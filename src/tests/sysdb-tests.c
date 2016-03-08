@@ -185,25 +185,116 @@ struct test_data {
     struct tevent_context *ev;
     struct sysdb_test_ctx *ctx;
 
-    const char *username;
-    const char *groupname;
+    const char *username;           /* fqname */
+    const char *groupname;          /* fqname */
     const char *netgrname;
     const char *autofsmapname;
     uid_t uid;
     gid_t gid;
     const char *shell;
+    const char *orig_dn;
+    const char *sid_str;
 
     bool finished;
     int error;
 
     struct sysdb_attrs *attrs;
     const char **attrlist;
-    char **memberlist;
+    char **ghostlist;
     struct ldb_message *msg;
 
     size_t msgs_count;
     struct ldb_message **msgs;
 };
+
+static struct test_data *test_data_new(struct sysdb_test_ctx *test_ctx)
+{
+    struct test_data *data;
+
+    data = talloc_zero(test_ctx, struct test_data);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    data->attrs = sysdb_new_attrs(data);
+    if (data->attrs == NULL) {
+        talloc_free(data);
+        return NULL;
+    }
+
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+
+    return data;
+}
+
+static char *test_asprintf_fqname(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *dom,
+                                  const char *fmt,
+                                  ...)
+{
+    char *shortname;
+    char *fqname;
+    va_list ap;
+
+    va_start(ap, fmt);
+    shortname = talloc_vasprintf(mem_ctx, fmt, ap);
+    va_end(ap);
+    if (shortname == NULL) {
+        return NULL;
+    }
+
+    fqname = sss_create_internal_fqname(mem_ctx, shortname, dom->name);
+    talloc_free(shortname);
+    if (fqname == NULL) {
+        return NULL;
+    }
+
+    return fqname;
+}
+
+static struct test_data *test_data_new_user(struct sysdb_test_ctx *test_ctx,
+                                            uid_t uid)
+{
+    struct test_data *data;
+
+    data = test_data_new(test_ctx);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    data->uid = uid;
+    data->gid = uid;
+    data->username = test_asprintf_fqname(data, test_ctx->domain,
+                                          "testuser%d", uid);
+    if (data->username == NULL) {
+        talloc_free(data);
+        return NULL;
+    }
+
+    return data;
+}
+
+static struct test_data *test_data_new_group(struct sysdb_test_ctx *test_ctx,
+                                             gid_t gid)
+{
+    struct test_data *data;
+
+    data = test_data_new(test_ctx);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    data->gid = gid;
+    data->groupname = test_asprintf_fqname(data, test_ctx->domain,
+                                           "testgroup%d", gid);
+    if (data->groupname == NULL) {
+        talloc_free(data);
+        return NULL;
+    }
+
+    return data;
+}
 
 static int test_add_user(struct test_data *data)
 {
@@ -212,11 +303,18 @@ static int test_add_user(struct test_data *data)
     int ret;
 
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
+    if (homedir == NULL) {
+        return ENOMEM;
+    }
+
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
+    if (gecos == NULL) {
+        return ENOMEM;
+    }
 
     ret = sysdb_add_user(data->ctx->domain, data->username,
                          data->uid, 0, gecos, homedir, "/bin/bash",
-                         NULL, NULL, 0, 0);
+                         data->orig_dn, data->attrs, 0, 0);
     return ret;
 }
 
@@ -227,7 +325,9 @@ static int test_store_user(struct test_data *data)
     int ret;
 
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
+    fail_if(homedir == NULL, "OOM");
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
+    fail_if(gecos == NULL, "OOM");
 
     ret = sysdb_store_user(data->ctx->domain,
                            data->username, "x",
@@ -241,31 +341,23 @@ static int test_remove_user(struct test_data *data)
 {
     struct ldb_dn *user_dn;
     int ret;
+    struct ldb_result *res;
 
     user_dn = sysdb_user_dn(data, data->ctx->domain, data->username);
     if (!user_dn) return ENOMEM;
 
-    ret = sysdb_delete_entry(data->ctx->sysdb, user_dn, true);
-    return ret;
+    ret = sysdb_delete_entry(data->ctx->sysdb, user_dn, false);
+    if (ret != EOK) return ret;
+
+    ret = sysdb_getpwnam(data, data->ctx->domain, data->username, &res);
+    if (ret != EOK) return ret;
+
+    if (res->count != 0) return E2BIG;
+
+    return EOK;
 }
 
 static int test_remove_user_by_uid(struct test_data *data)
-{
-    int ret;
-
-    ret = sysdb_delete_user(data->ctx->domain, NULL, data->uid);
-    return ret;
-}
-
-static int test_remove_nonexistent_group(struct test_data *data)
-{
-    int ret;
-
-    ret = sysdb_delete_group(data->ctx->domain, NULL, data->uid);
-    return ret;
-}
-
-static int test_remove_nonexistent_user(struct test_data *data)
 {
     int ret;
 
@@ -287,21 +379,17 @@ static int test_add_incomplete_group(struct test_data *data)
     int ret;
 
     ret = sysdb_add_incomplete_group(data->ctx->domain, data->groupname,
-                                     data->gid, NULL, NULL, NULL, true, 0);
+                                     data->gid, data->orig_dn,
+                                     data->sid_str, NULL, true, 0);
     return ret;
 }
 
 static int test_store_group(struct test_data *data)
 {
     int ret;
-    char *internal_fqname;
 
-    internal_fqname = sss_create_internal_fqname(data->ctx,
-                                                 data->groupname,
-                                                 data->ctx->domain->name);
     ret = sysdb_store_group(data->ctx->domain,
-                            internal_fqname, data->gid, data->attrs, -1, 0);
-    talloc_free(internal_fqname);
+                            data->groupname, data->gid, data->attrs, -1, 0);
     return ret;
 }
 
@@ -309,12 +397,20 @@ static int test_remove_group(struct test_data *data)
 {
     struct ldb_dn *group_dn;
     int ret;
+    struct ldb_result *res;
 
     group_dn = sysdb_group_dn(data, data->ctx->domain, data->groupname);
     if (!group_dn) return ENOMEM;
 
     ret = sysdb_delete_entry(data->ctx->sysdb, group_dn, true);
-    return ret;
+    if (ret != EOK) return ret;
+
+    ret = sysdb_getgrnam(data, data->ctx->domain, data->groupname, &res);
+    if (ret != EOK) return ret;
+
+    if (res->count != 0) return E2BIG;
+
+    return EOK;
 }
 
 static int test_remove_group_by_gid(struct test_data *data)
@@ -322,9 +418,6 @@ static int test_remove_group_by_gid(struct test_data *data)
     int ret;
 
     ret = sysdb_delete_group(data->ctx->domain, NULL, data->gid);
-    if (ret == ENOENT) {
-        ret = EOK;
-    }
     return ret;
 }
 
@@ -339,39 +432,37 @@ static int test_set_user_attr(struct test_data *data)
 
 static int test_add_group_member(struct test_data *data)
 {
-    const char *fq_username;
     int ret;
-
-    fq_username = talloc_asprintf(data, "testuser%d@%s", data->uid,
-                                  data->ctx->domain->name);
-    if (fq_username == NULL) {
-        return ENOMEM;
-    }
 
     ret = sysdb_add_group_member(data->ctx->domain,
                                  data->groupname,
-                                 fq_username,
+                                 data->username,
                                  SYSDB_MEMBER_USER, false);
     return ret;
 }
 
 static int test_remove_group_member(struct test_data *data)
 {
-    const char *username;
-    char *user_fqname;
     int ret;
+    struct ldb_result *res_pre;
+    struct ldb_result *res_post;
 
-    username = talloc_asprintf(data, "testuser%d", data->uid);
-    if (username == NULL) {
-        return ENOMEM;
-    }
-
-    user_fqname = sss_create_internal_fqname(data, username,
-                                             data->ctx->domain->name);
+    ret = sysdb_initgroups(data, data->ctx->domain, data->username, &res_pre);
+    if (ret) return ret;
 
     ret = sysdb_remove_group_member(data->ctx->domain,
-                                    data->groupname, user_fqname,
+                                    data->groupname,
+                                    data->username,
                                     SYSDB_MEMBER_USER, false);
+
+    ret = sysdb_initgroups(data, data->ctx->domain, data->username, &res_post);
+    if (ret) return ret;
+
+    /* assert the member was removed */
+    if (res_post->count + 1 != res_pre->count) {
+        return E2BIG;
+    }
+
     return ret;
 }
 
@@ -435,33 +526,22 @@ static int test_delete_recursive(struct test_data *data)
 static int test_memberof_store_group(struct test_data *data)
 {
     int ret;
-    struct sysdb_attrs *attrs = NULL;
     char *member;
     int i;
-    char *gr_fqname;
 
-    attrs = sysdb_new_attrs(data);
-    if (!attrs) {
-        return ENOMEM;
-    }
     for (i = 0; data->attrlist && data->attrlist[i]; i++) {
         member = sysdb_group_strdn(data, data->ctx->domain->name,
                                    data->attrlist[i]);
         if (!member) {
             return ENOMEM;
         }
-        ret = sysdb_attrs_steal_string(attrs, SYSDB_MEMBER, member);
+        ret = sysdb_attrs_steal_string(data->attrs, SYSDB_MEMBER, member);
         if (ret != EOK) {
             return ret;
         }
     }
 
-    gr_fqname = sss_create_internal_fqname(data->ctx, data->groupname,
-                                           data->ctx->domain->name);
-    ret = sysdb_store_group(data->ctx->domain,
-                            gr_fqname, data->gid, attrs, -1, 0);
-    talloc_free(gr_fqname);
-    return ret;
+    return test_store_group(data);
 }
 
 static int test_memberof_store_group_with_ghosts(struct test_data *data)
@@ -470,7 +550,6 @@ static int test_memberof_store_group_with_ghosts(struct test_data *data)
     struct sysdb_attrs *attrs = NULL;
     char *member;
     int i;
-    char *gr_fqname;
 
     attrs = sysdb_new_attrs(data);
     if (!attrs) {
@@ -489,22 +568,16 @@ static int test_memberof_store_group_with_ghosts(struct test_data *data)
         }
     }
 
-    for (i = 0; data->memberlist && data->memberlist[i]; i++) {
+    for (i = 0; data->ghostlist && data->ghostlist[i]; i++) {
         ret = sysdb_attrs_steal_string(attrs, SYSDB_GHOST,
-                                       data->memberlist[i]);
+                                       data->ghostlist[i]);
         if (ret != EOK) {
             return ret;
         }
     }
 
-    gr_fqname = sss_create_internal_fqname(data->ctx, data->groupname,
-                                           data->ctx->domain->name);
-    if (gr_fqname == NULL) {
-        return ENOMEM;
-    }
-
     ret = sysdb_store_group(data->ctx->domain,
-                            gr_fqname, data->gid, attrs, -1, 0);
+                            data->groupname, data->gid, attrs, -1, 0);
     return ret;
 }
 
@@ -514,6 +587,7 @@ static int test_add_basic_netgroup(struct test_data *data)
     int ret;
 
     description = talloc_asprintf(data, "Test Netgroup %d", data->uid);
+    if (description == NULL) return ENOMEM;
 
     ret = sysdb_add_basic_netgroup(data->ctx->domain, data->netgrname,
                                    description);
@@ -547,6 +621,7 @@ static int test_set_netgroup_attr(struct test_data *data)
     struct sysdb_attrs *attrs = NULL;
 
     description = talloc_asprintf(data, "Sysdb Netgroup %d", data->uid);
+    if (description == NULL) return ENOMEM;
 
     attrs = sysdb_new_attrs(data);
     if (!attrs) {
@@ -563,16 +638,47 @@ static int test_set_netgroup_attr(struct test_data *data)
     return ret;
 }
 
+static struct ldb_result *test_getpwnam(struct test_data *data)
+{
+    int ret;
+    struct ldb_result *res;
+
+    ret = sysdb_getpwnam(data,
+                         data->ctx->domain,
+                         data->username, &res);
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    return res;
+}
+
+static struct ldb_result *test_getgrnam(struct test_data *data)
+{
+    int ret;
+    struct ldb_result *res;
+
+    ret = sysdb_getgrnam(data,
+                         data->ctx->domain,
+                         data->groupname, &res);
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    return res;
+}
+
 START_TEST (test_sysdb_user_new_id)
 {
     struct sysdb_test_ctx *test_ctx;
     int ret;
-    const char *username;
+    const char *fqname;
     struct sysdb_attrs *attrs = NULL;
     struct ldb_message *msg;
     const char *get_attrs[] = { SYSDB_DESCRIPTION, NULL };
     const char *desc;
     const char *desc_in = "testuser_new_id_desc";
+    const char *username = "testuser_newid";
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -581,7 +687,10 @@ START_TEST (test_sysdb_user_new_id)
         return;
     }
 
-    username = "testuser_newid@test.sub";
+    fqname = sss_create_internal_fqname(test_ctx,
+                                        username,
+                                        test_ctx->domain->name);
+    fail_if(fqname == NULL);
 
     attrs = sysdb_new_attrs(test_ctx);
     fail_if(attrs == NULL);
@@ -589,21 +698,21 @@ START_TEST (test_sysdb_user_new_id)
     ret = sysdb_attrs_add_string(attrs, SYSDB_DESCRIPTION, desc_in);
     fail_if(ret != EOK);
 
-    ret = sysdb_add_user(test_ctx->domain, username,
-                         0, 0, username, "/", "/bin/bash",
+    ret = sysdb_add_user(test_ctx->domain, fqname,
+                         0, 0, fqname, "/", "/bin/bash",
                          NULL, attrs, 0, 0);
-    fail_if(ret != EOK, "Could not store user %s", username);
+    fail_if(ret != EOK, "Could not store user %s", fqname);
 
     ret = sysdb_search_user_by_name(test_ctx,
                                     test_ctx->domain,
-                                    username, get_attrs, &msg);
-    fail_if(ret != EOK, "Could not retrieve user %s", username);
+                                    fqname, get_attrs, &msg);
+    fail_if(ret != EOK, "Could not retrieve user %s", fqname);
 
     desc = ldb_msg_find_attr_as_string(msg, SYSDB_DESCRIPTION, NULL);
     fail_unless(desc != NULL);
     ck_assert_str_eq(desc, desc_in);
 
-    ret = sysdb_delete_user(test_ctx->domain, username, 0);
+    ret = sysdb_delete_user(test_ctx->domain, fqname, 0);
     fail_unless(ret == EOK, "sysdb_delete_user error [%d][%s]",
                             ret, strerror(ret));
 
@@ -616,7 +725,6 @@ START_TEST (test_sysdb_store_user)
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
     int ret;
-    char *shortname;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -625,15 +733,8 @@ START_TEST (test_sysdb_store_user)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = _i;
-    data->gid = _i;
-    shortname = talloc_asprintf(data, "testuser%d", _i);
-    data->username = sss_create_internal_fqname(data, shortname,
-                                                data->ctx->domain->name);
-    talloc_free(shortname);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
 
     ret = test_store_user(data);
 
@@ -647,7 +748,6 @@ START_TEST (test_sysdb_store_user_existing)
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
     int ret;
-    char *shortname;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -656,16 +756,9 @@ START_TEST (test_sysdb_store_user_existing)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = _i;
-    data->gid = _i;
-    shortname = talloc_asprintf(data, "testuser%d", _i);
-    data->shell = talloc_asprintf(data, "/bin/ksh");
-    data->username = sss_create_internal_fqname(data, shortname,
-                                                data->ctx->domain->name);
-    talloc_free(shortname);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
+    data->shell = "/bin/ksh";
 
     ret = test_store_user(data);
 
@@ -687,11 +780,8 @@ START_TEST (test_sysdb_store_group)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", _i, TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL, "OOM");
 
     ret = test_store_group(data);
 
@@ -713,10 +803,8 @@ START_TEST (test_sysdb_remove_local_user)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->username = talloc_asprintf(data, "testuser%d", _i);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL, "OOM");
 
     ret = test_remove_user(data);
 
@@ -738,9 +826,8 @@ START_TEST (test_sysdb_remove_local_user_by_uid)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
     data->uid = _i;
 
     ret = test_remove_user_by_uid(data);
@@ -763,10 +850,8 @@ START_TEST (test_sysdb_remove_local_group)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", _i, TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     ret = test_remove_group(data);
 
@@ -788,10 +873,8 @@ START_TEST (test_sysdb_remove_local_group_by_gid)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     null_ctx_get_size(data->ctx);
     ret = test_remove_group_by_gid(data);
@@ -815,12 +898,8 @@ START_TEST (test_sysdb_add_user)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = _i;
-    data->gid = _i;
-    data->username = talloc_asprintf(data, "testuser%d", _i);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
 
     ret = test_add_user(data);
 
@@ -842,12 +921,8 @@ START_TEST (test_sysdb_add_group)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = _i;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", _i, TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     ret = test_add_group(data);
 
@@ -861,7 +936,7 @@ START_TEST (test_sysdb_add_group_with_ghosts)
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
     int ret;
-    char *membername;
+    char *member_fqname;
     int j;
 
     /* Setup */
@@ -871,25 +946,13 @@ START_TEST (test_sysdb_add_group_with_ghosts)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = _i;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", _i,
-                                      TEST_DOM_NAME);
-    fail_unless(data->groupname != NULL, "Out of memory\n");
-
-    data->attrs = sysdb_new_attrs(data);
-    if (ret != EOK) {
-        fail("Could not create the changeset");
-        return;
-    }
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     for (j = MBO_GROUP_BASE; j < _i; j++) {
-        membername = talloc_asprintf(data, "testghost%d", j);
-        fail_unless(membername != NULL, "Out of memory\n");
-        ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, membername);
+        member_fqname = test_asprintf_fqname(data, data->ctx->domain,
+                                             "testghost%d", j);
+        ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, member_fqname);
         if (ret != EOK) {
             fail_unless(ret == EOK, "Cannot add attr\n");
         }
@@ -915,12 +978,8 @@ START_TEST (test_sysdb_add_incomplete_group)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = _i;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", _i, TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     ret = test_add_incomplete_group(data);
 
@@ -932,10 +991,11 @@ END_TEST
 START_TEST (test_sysdb_getpwnam)
 {
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     struct ldb_result *res;
-    const char *username;
     uid_t uid;
     int ret;
+    const char *username;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -944,42 +1004,29 @@ START_TEST (test_sysdb_getpwnam)
         return;
     }
 
-    username = talloc_asprintf(test_ctx, "testuser%d", _i);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
 
-    ret = sysdb_getpwnam(test_ctx,
-                         test_ctx->domain,
-                         username, &res);
-    if (ret) {
-        fail("sysdb_getpwnam failed for username %s (%d: %s)",
-             username, ret, strerror(ret));
-        goto done;
-    }
+    res = test_getpwnam(data);
+    fail_if(res->count != 1,
+            "Invalid number of replies. Expected 1, got %d", res->count);
 
-    if (res->count != 1) {
-        fail("Invalid number of replies. Expected 1, got %d", res->count);
-        goto done;
-    }
-
+    /* Check the user was found with the expected FQDN and UID */
     uid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
     fail_unless(uid == _i, "Did not find the expected UID");
+    username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    ck_assert_str_eq(username, data->username);
 
     /* Search for the user with the wrong case */
-    username = talloc_asprintf(test_ctx, "TESTUSER%d", _i);
+    data->username = test_asprintf_fqname(data, test_ctx->domain,
+                                          "TESTUSER%d", _i);
+    fail_if(data->username == NULL, "OOM");
+    fail_if(ret != EOK);
 
-    ret = sysdb_getpwnam(test_ctx,
-                         test_ctx->domain,
-                         username, &res);
-    if (ret) {
-        fail("sysdb_getpwnam failed for username %s (%d: %s)",
-             username, ret, strerror(ret));
-        goto done;
-    }
+    res = test_getpwnam(data);
+    fail_if(res->count != 0,
+            "Invalid number of replies. Expected 0, got %d", res->count);
 
-    if (res->count != 0) {
-        fail("The upper-case username search should fail.");
-    }
-
-done:
     talloc_free(test_ctx);
 }
 END_TEST
@@ -987,6 +1034,7 @@ END_TEST
 START_TEST (test_sysdb_getgrnam)
 {
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     struct ldb_result *res;
     const char *groupname;
     gid_t gid;
@@ -999,44 +1047,30 @@ START_TEST (test_sysdb_getgrnam)
         return;
     }
 
-    groupname = talloc_asprintf(test_ctx, "testgroup%d", _i);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
-    ret = sysdb_getgrnam(test_ctx,
-                         test_ctx->domain,
-                         groupname, &res);
-    if (ret) {
-        fail("sysdb_getgrnam failed for groupname %s (%d: %s)",
-             groupname, ret, strerror(ret));
-        goto done;
-    }
-
-    if (res->count != 1) {
-        fail("Invalid number of replies. Expected 1, got %d", res->count);
-        goto done;
-    }
+    res = test_getgrnam(data);
+    fail_if(res->count != 1,
+            "Invalid number of replies. Expected 1, got %d", res->count);
 
     gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
     fail_unless(gid == _i,
                 "Did not find the expected GID (found %d expected %d)",
                 gid, _i);
+    groupname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    ck_assert_str_eq(groupname, data->groupname);
 
     /* Search for the group with the wrong case */
-    groupname = talloc_asprintf(test_ctx, "TESTGROUP%d", _i);
+    data->groupname = test_asprintf_fqname(data, test_ctx->domain,
+                                          "TESTGROUP%d", _i);
+    fail_if(data->groupname == NULL, "OOM");
+    fail_if(ret != EOK);
 
-    ret = sysdb_getgrnam(test_ctx,
-                         test_ctx->domain,
-                         groupname, &res);
-    if (ret) {
-        fail("sysdb_getgrnam failed for groupname %s (%d: %s)",
-             groupname, ret, strerror(ret));
-        goto done;
-    }
+    res = test_getgrnam(data);
+    fail_if(res->count != 0,
+            "Invalid number of replies. Expected 1, got %d", res->count);
 
-    if (res->count != 0) {
-        fail("The upper-case groupname search should fail.");
-    }
-
-done:
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1044,9 +1078,9 @@ END_TEST
 START_TEST (test_sysdb_getgrgid)
 {
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     struct ldb_result *res;
-    const char *e_groupname;
-    const char *groupname;
+    const char *fqname;
     int ret;
 
     /* Setup */
@@ -1056,26 +1090,24 @@ START_TEST (test_sysdb_getgrgid)
         return;
     }
 
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL, "OOM");
+
     ret = sysdb_getgrgid(test_ctx,
                          test_ctx->domain,
-                         _i, &res);
+                         data->gid, &res);
     if (ret) {
         fail("sysdb_getgrgid failed for gid %d (%d: %s)",
-             _i, ret, strerror(ret));
+             data->gid, ret, strerror(ret));
         goto done;
     }
 
-    groupname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
+    fqname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
+    fail_unless(fqname != NULL, "No group name?\n");
 
-    e_groupname = talloc_asprintf(test_ctx, "testgroup%d", _i);
-    if (e_groupname == NULL) {
-        fail("Cannot allocate memory");
-        goto done;
-    }
-
-    fail_unless(strcmp(groupname, e_groupname) == 0,
+    fail_unless(strcmp(fqname, data->groupname) == 0,
                 "Did not find the expected groupname (found %s expected %s)",
-                groupname, e_groupname);
+                fqname, data->groupname);
 done:
     talloc_free(test_ctx);
 }
@@ -1110,9 +1142,9 @@ END_TEST
 START_TEST (test_sysdb_getpwuid)
 {
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     struct ldb_result *res;
-    const char *e_username;
-    const char *username;
+    const char *fqname;
     int ret;
 
     /* Setup */
@@ -1121,6 +1153,9 @@ START_TEST (test_sysdb_getpwuid)
         fail("Could not set up the test");
         return;
     }
+
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
 
     ret = sysdb_getpwuid(test_ctx,
                          test_ctx->domain,
@@ -1134,17 +1169,12 @@ START_TEST (test_sysdb_getpwuid)
     fail_unless(res->count == 1, "Expected 1 user entry, found %d\n",
                 res->count);
 
-    username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
+    fqname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
+    fail_unless(fqname != NULL, "No name?\n");
 
-    e_username = talloc_asprintf(test_ctx, "testuser%d", _i);
-    if (username == NULL) {
-        fail("Cannot allocate memory");
-        goto done;
-    }
-
-    fail_unless(strcmp(username, e_username) == 0,
+    fail_unless(strcmp(fqname, data->username) == 0,
                 "Did not find the expected username (found %s expected %s)",
-                username, e_username);
+                fqname, data->username);
 done:
     talloc_free(test_ctx);
 }
@@ -1217,10 +1247,8 @@ START_TEST (test_sysdb_set_user_attr)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->username = talloc_asprintf(data, "testuser%d@%s", _i, test_ctx->domain->name);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
 
     data->attrs = sysdb_new_attrs(test_ctx);
     if (ret != EOK) {
@@ -1275,39 +1303,38 @@ END_TEST
 START_TEST (test_sysdb_remove_attrs)
 {
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     int ret;
     char *rmattrs[2];
-    char *username;
     struct ldb_result *res;
     const char *shell;
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    username = talloc_asprintf(test_ctx, "testuser%d@%s", _i,
-                               test_ctx->domain->name);
-    fail_if(username == NULL, "OOM");
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL, "OOM");
 
     ret = sysdb_getpwnam(test_ctx,
                          test_ctx->domain,
-                         username, &res);
-    fail_if(ret != EOK, "sysdb_getpwnam failed for username %s (%d: %s)",
-                         username, ret, strerror(ret));
+                         data->username, &res);
+    fail_if(ret != EOK, "sysdb_getpwnam failed for fqname %s (%d: %s)",
+                         data->username, ret, strerror(ret));
     shell = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, NULL);
     fail_unless(shell != NULL, "Did not find user shell before removal");
 
     rmattrs[0] = discard_const(SYSDB_SHELL);
     rmattrs[1] = NULL;
 
-    ret = sysdb_remove_attrs(test_ctx->domain, username, SYSDB_MEMBER_USER,
-                             rmattrs);
+    ret = sysdb_remove_attrs(test_ctx->domain, data->username,
+                             SYSDB_MEMBER_USER, rmattrs);
     fail_if(ret != EOK, "Removing attributes failed: %d", ret);
 
     ret = sysdb_getpwnam(test_ctx,
                          test_ctx->domain,
-                         username, &res);
-    fail_if(ret != EOK, "sysdb_getpwnam failed for username %s (%d: %s)",
-                         username, ret, strerror(ret));
+                         data->username, &res);
+    fail_if(ret != EOK, "sysdb_getpwnam failed for fqname %s (%d: %s)",
+                         data->username, ret, strerror(ret));
     shell = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, NULL);
     fail_unless(shell == NULL, "Found user shell after removal");
 }
@@ -1316,10 +1343,10 @@ END_TEST
 START_TEST (test_sysdb_get_user_attr)
 {
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     const char *attrs[] = { SYSDB_SHELL, NULL };
     struct ldb_result *res;
     const char *attrval;
-    char *username;
     int ret;
 
     /* Setup */
@@ -1329,12 +1356,13 @@ START_TEST (test_sysdb_get_user_attr)
         return;
     }
 
-    username = talloc_asprintf(test_ctx, "testuser%d", _i);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
 
-    ret = sysdb_get_user_attr(test_ctx, test_ctx->domain, username, attrs,
+    ret = sysdb_get_user_attr(test_ctx, test_ctx->domain, data->username, attrs,
                               &res);
     if (ret) {
-        fail("Could not get attributes for user %s", username);
+        fail("Could not get attributes for user %s", data->username);
         goto done;
     }
 
@@ -1343,7 +1371,7 @@ START_TEST (test_sysdb_get_user_attr)
 
     attrval = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, 0);
     fail_if(strcmp(attrval, "/bin/ksh"),
-            "Got bad attribute value for user %s", username);
+            "Got bad attribute value for user %s", data->username);
 done:
     talloc_free(test_ctx);
 }
@@ -1387,7 +1415,7 @@ START_TEST (test_sysdb_get_user_attr_subdomain)
     fail_if(ret != EOK, "sysdb_store_user failed.");
 
     /* Test */
-    ret = sysdb_get_user_attr(test_ctx, subdomain, username,
+    ret = sysdb_get_user_attr(test_ctx, subdomain, fq_name,
                               attrs, &res);
     fail_if(ret != EOK, "Could not get user attributes.");
     fail_if(res->count != 1, "Invalid number of entries, expected 1, got %d",
@@ -1413,11 +1441,13 @@ START_TEST (test_sysdb_add_group_member)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", _i, TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
+
     data->uid = _i - 1000; /* the UID of user to add */
+    data->username = test_asprintf_fqname(data, test_ctx->domain,
+                                          "testuser%d", data->uid);
+    fail_if(data->username == NULL);
 
     ret = test_add_group_member(data);
 
@@ -1429,8 +1459,8 @@ END_TEST
 START_TEST (test_sysdb_initgroups)
 {
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     int ret;
-    const char *username;
     struct ldb_result *res;
     struct ldb_message *user;
     struct ldb_message *group;
@@ -1444,11 +1474,13 @@ START_TEST (test_sysdb_initgroups)
         return;
     }
 
-    username = talloc_asprintf(test_ctx, "testuser%d", _i);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL, "OOM\n");
 
     ret = sysdb_initgroups(test_ctx,
                            test_ctx->domain,
-                           username, &res);
+                           data->username,
+                           &res);
     fail_if(ret != EOK, "sysdb_initgroups failed\n");
 
     /* result should contain 2 messages - user and his group */
@@ -1464,14 +1496,15 @@ START_TEST (test_sysdb_initgroups)
                 uid, _i);
 
     fail_unless(strcmp(ldb_msg_find_attr_as_string(user, SYSDB_NAME, NULL),
-                       username) == 0,
+                       data->username) == 0,
                 "Wrong username\n");
-
 
     gid = ldb_msg_find_attr_as_uint(group, SYSDB_GIDNUM, 0);
     fail_unless(gid == _i + 1000,
                 "Did not find the expected GID (found %d expected %d)",
                 gid, _i);
+
+    talloc_free(test_ctx);
 }
 END_TEST
 
@@ -1488,12 +1521,13 @@ START_TEST (test_sysdb_remove_group_member)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", _i,
-                                      TEST_DOM_NAME);
-    data->uid = _i - 1000; /* the UID of user to add */
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
+
+    data->uid = _i - 1000; /* the UID of user to remove */
+    data->username = test_asprintf_fqname(data, test_ctx->domain,
+                                          "testuser%d", data->uid);
+    fail_if(data->username == NULL);
 
     ret = test_remove_group_member(data);
     fail_if(ret != EOK, "Remove group member failed: %d", ret);
@@ -1515,12 +1549,11 @@ START_TEST (test_sysdb_remove_nonexistent_user)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
     data->uid = 12345;
 
-    ret = test_remove_nonexistent_user(data);
+    ret = test_remove_user_by_uid(data);
 
     fail_if(ret != ENOENT, "Unexpected return code %d, expected ENOENT", ret);
     talloc_free(test_ctx);
@@ -1540,12 +1573,11 @@ START_TEST (test_sysdb_remove_nonexistent_group)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = 12345;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
+    data->gid = 12345;
 
-    ret = test_remove_nonexistent_group(data);
+    ret = test_remove_group_by_gid(data);
 
     fail_if(ret != ENOENT, "Unexpected return code %d, expected ENOENT", ret);
     talloc_free(test_ctx);
@@ -1581,9 +1613,9 @@ START_TEST (test_sysdb_store_custom)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
+
     data->uid = _i;
     data->attrs = sysdb_new_attrs(test_ctx);
     if (ret != EOK) {
@@ -1620,10 +1652,9 @@ START_TEST (test_sysdb_search_custom_by_name)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    fail_unless(data != NULL, "talloc_zero failed");
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
+
     data->attrlist = talloc_array(test_ctx, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
     data->attrlist[0] = TEST_ATTR_NAME;
@@ -1674,9 +1705,9 @@ START_TEST (test_sysdb_update_custom)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
+
     data->uid = 29010;
     data->attrs = sysdb_new_attrs(test_ctx);
     if (ret != EOK) {
@@ -1722,10 +1753,9 @@ START_TEST (test_sysdb_search_custom_update)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    fail_unless(data != NULL, "talloc_zero failed");
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
+
     data->attrlist = talloc_array(test_ctx, const char *, 3);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
     data->attrlist[0] = TEST_ATTR_NAME;
@@ -1791,10 +1821,9 @@ START_TEST (test_sysdb_search_custom)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    fail_unless(data != NULL, "talloc_zero failed");
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
+
     data->attrlist = talloc_array(test_ctx, const char *, 3);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
     data->attrlist[0] = TEST_ATTR_NAME;
@@ -1830,9 +1859,8 @@ START_TEST (test_sysdb_delete_custom)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
 
     ret = test_delete_custom(data);
 
@@ -1851,14 +1879,12 @@ START_TEST (test_sysdb_cache_password)
     ret = setup_sysdb_tests(&test_ctx);
     fail_unless(ret == EOK, "Could not set up the test");
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->username = talloc_asprintf(data, "testuser%d", _i);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL, "OOM\n");
 
-    ret = sysdb_cache_password(test_ctx->domain, data->username,
+    ret = sysdb_cache_password(test_ctx->domain,
+                               data->username,
                                data->username);
-
     fail_unless(ret == EOK, "sysdb_cache_password request failed [%d].", ret);
 
     talloc_free(test_ctx);
@@ -1879,10 +1905,8 @@ START_TEST (test_sysdb_cache_password_ex)
     ret = setup_sysdb_tests(&test_ctx);
     fail_unless(ret == EOK, "Could not set up the test");
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->username = talloc_asprintf(data, "testuser%d", _i);
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL, "OOM\n");
 
     ret = sysdb_get_user_attr(test_ctx, test_ctx->domain, data->username,
                               attrs, &res);
@@ -1916,7 +1940,7 @@ START_TEST (test_sysdb_cache_password_ex)
 }
 END_TEST
 
-static void cached_authentication_without_expiration(const char *username,
+static void cached_authentication_without_expiration(uid_t uid,
                                                      const char *password,
                                                      int expected_result)
 {
@@ -1932,10 +1956,8 @@ static void cached_authentication_without_expiration(const char *username,
     ret = setup_sysdb_tests(&test_ctx);
     fail_unless(ret == EOK, "Could not set up the test");
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->username = username;
+    data = test_data_new_user(test_ctx, uid);
+    fail_if(data == NULL);
 
     val[0] = "0";
     ret = confdb_add_param(test_ctx->confdb, true, CONFDB_PAM_CONF_ENTRY,
@@ -1947,7 +1969,8 @@ static void cached_authentication_without_expiration(const char *username,
     }
 
     ret = sysdb_cache_auth(test_ctx->domain, data->username,
-                           password, test_ctx->confdb, false,
+                           password ? password : data->username,
+                           test_ctx->confdb, false,
                            &expire_date, &delayed_until);
 
     fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
@@ -1963,7 +1986,7 @@ static void cached_authentication_without_expiration(const char *username,
     talloc_free(test_ctx);
 }
 
-static void cached_authentication_with_expiration(const char *username,
+static void cached_authentication_with_expiration(uid_t uid,
                                                   const char *password,
                                                   int expected_result)
 {
@@ -1981,10 +2004,8 @@ static void cached_authentication_with_expiration(const char *username,
     ret = setup_sysdb_tests(&test_ctx);
     fail_unless(ret == EOK, "Could not set up the test");
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->username = username;
+    data = test_data_new_user(test_ctx, uid);
+    fail_if(data == NULL);
 
     val[0] = "1";
     ret = confdb_add_param(test_ctx->confdb, true, CONFDB_PAM_CONF_ENTRY,
@@ -2002,15 +2023,16 @@ static void cached_authentication_with_expiration(const char *username,
 
     data->attrs = sysdb_new_attrs(data);
     ret = sysdb_attrs_add_time_t(data->attrs, SYSDB_LAST_ONLINE_AUTH, now);
-    fail_unless(ret == EOK, "Could not mdd attribute "SYSDB_LAST_ONLINE_AUTH
-                            ": %s", data->username);
+    fail_unless(ret == EOK, "Could not add attribute "SYSDB_LAST_ONLINE_AUTH
+                            ": %s", sss_strerror(ret));
 
     ret = sysdb_set_user_attr(data->ctx->domain, data->username, data->attrs,
                               SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Could not modify user %s", data->username);
 
     ret = sysdb_cache_auth(data->ctx->domain, data->username,
-                           password, test_ctx->confdb, false,
+                           password ? password : data->username,
+                           test_ctx->confdb, false,
                            &expire_date, &delayed_until);
 
     fail_unless(ret == expected_result,
@@ -2029,62 +2051,22 @@ static void cached_authentication_with_expiration(const char *username,
 
 START_TEST (test_sysdb_cached_authentication_missing_password)
 {
-    TALLOC_CTX *tmp_ctx;
-    char *username;
-
-    tmp_ctx = talloc_new(NULL);
-    fail_unless(tmp_ctx != NULL, "talloc_new failed.");
-
-    username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
-    fail_unless(username != NULL, "talloc_asprintf failed.");
-
-    cached_authentication_without_expiration(username, "abc",
-                                             ERR_NO_CACHED_CREDS);
-    cached_authentication_with_expiration(username, "abc",
-                                             ERR_NO_CACHED_CREDS);
-
-    talloc_free(tmp_ctx);
-
+    cached_authentication_without_expiration(_i, "abc", ERR_NO_CACHED_CREDS);
+    cached_authentication_with_expiration(_i, "abc", ERR_NO_CACHED_CREDS);
 }
 END_TEST
 
 START_TEST (test_sysdb_cached_authentication_wrong_password)
 {
-    TALLOC_CTX *tmp_ctx;
-    char *username;
-
-    tmp_ctx = talloc_new(NULL);
-    fail_unless(tmp_ctx != NULL, "talloc_new failed.");
-
-    username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
-    fail_unless(username != NULL, "talloc_asprintf failed.");
-
-    cached_authentication_without_expiration(username, "abc",
-                                             ERR_AUTH_FAILED);
-    cached_authentication_with_expiration(username, "abc",
-                                             ERR_AUTH_FAILED);
-
-    talloc_free(tmp_ctx);
-
+    cached_authentication_without_expiration(_i, "abc", ERR_AUTH_FAILED);
+    cached_authentication_with_expiration(_i, "abc", ERR_AUTH_FAILED);
 }
 END_TEST
 
 START_TEST (test_sysdb_cached_authentication)
 {
-    TALLOC_CTX *tmp_ctx;
-    char *username;
-
-    tmp_ctx = talloc_new(NULL);
-    fail_unless(tmp_ctx != NULL, "talloc_new failed.");
-
-    username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
-    fail_unless(username != NULL, "talloc_asprintf failed.");
-
-    cached_authentication_without_expiration(username, username, EOK);
-    cached_authentication_with_expiration(username, username, EOK);
-
-    talloc_free(tmp_ctx);
-
+    cached_authentication_without_expiration(_i, NULL, EOK);
+    cached_authentication_with_expiration(_i, NULL, EOK);
 }
 END_TEST
 
@@ -2101,12 +2083,13 @@ START_TEST (test_sysdb_prepare_asq_test_user)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", _i,
-                                      TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
+
     data->uid = ASQ_TEST_USER_UID;
+    data->username = test_asprintf_fqname(data, test_ctx->domain,
+                                          "testuser%u", data->uid);
+    fail_if(data->username == NULL);
 
     ret = test_add_group_member(data);
 
@@ -2133,16 +2116,15 @@ START_TEST (test_sysdb_asq_search)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new_user(test_ctx, ASQ_TEST_USER_UID);
+    fail_if(data == NULL);
+
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
-
     data->attrlist[0] = "gidNumber";
     data->attrlist[1] = NULL;
 
-    user_dn = sysdb_user_dn(data, data->ctx->domain, ASQ_TEST_USER);
+    user_dn = sysdb_user_dn(data, data->ctx->domain, data->username);
     fail_unless(user_dn != NULL, "sysdb_user_dn failed");
 
     ret = sysdb_asq_search(data, test_ctx->domain,
@@ -2192,12 +2174,11 @@ START_TEST (test_sysdb_search_all_users)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_unless(data != NULL);
+
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed");
-
     data->attrlist[0] = "uidNumber";
     data->attrlist[1] = NULL;
 
@@ -2245,9 +2226,8 @@ START_TEST (test_sysdb_delete_recursive)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_unless(data != NULL);
 
     ret = test_delete_recursive(data);
 
@@ -2304,7 +2284,6 @@ START_TEST (test_sysdb_memberof_store_group)
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
     int ret;
-    char *member_name;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -2313,20 +2292,18 @@ START_TEST (test_sysdb_memberof_store_group)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = MBO_GROUP_BASE + _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, MBO_GROUP_BASE + _i);
+    fail_if(data == NULL);
 
     if (_i == 0) {
         data->attrlist = NULL;
     } else {
         data->attrlist = talloc_array(data, const char *, 2);
         fail_unless(data->attrlist != NULL, "talloc_array failed.");
-        data->attrlist[0] = talloc_asprintf(data, "testgroup%d", data->gid - 1);
+        data->attrlist[0] = test_asprintf_fqname(data, data->ctx->domain,
+                                                 "testgroup%d", data->gid - 1);
         data->attrlist[1] = NULL;
+        fail_if(data->attrlist[0] == NULL);
     }
 
     ret = test_memberof_store_group(data);
@@ -2349,27 +2326,26 @@ START_TEST (test_sysdb_memberof_store_group_with_ghosts)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     if (_i == 0 || _i == MBO_GROUP_BASE) {
         data->attrlist = NULL;
     } else {
         data->attrlist = talloc_array(data, const char *, 2);
         fail_unless(data->attrlist != NULL, "talloc_array failed.");
-        data->attrlist[0] = talloc_asprintf(data, "testgroup%d", data->gid - 1);
+        data->attrlist[0] = test_asprintf_fqname(data, data->ctx->domain,
+                                                 "testgroup%d", data->gid - 1);
         data->attrlist[1] = NULL;
+        fail_if(data->attrlist[0] == NULL);
     }
 
-    data->memberlist = talloc_array(data, char *, 2);
-    fail_unless(data->memberlist != NULL, "talloc_array failed.");
-    member_name = talloc_asprintf(data, "testuser%d", data->gid);
-    data->memberlist[0] = sss_create_internal_fqname(data, member_name,
-                                                     test_ctx->domain->name);
-    data->memberlist[1] = NULL;
+    data->ghostlist = talloc_array(data, char *, 2);
+    fail_unless(data->ghostlist != NULL, "talloc_array failed.");
+    data->ghostlist[0] = test_asprintf_fqname(data, data->ctx->domain,
+                                             "testuser%d", data->gid);
+    data->ghostlist[1] = NULL;
+    fail_if(data->ghostlist[0] == NULL);
 
     ret = test_memberof_store_group_with_ghosts(data);
 
@@ -2391,27 +2367,26 @@ START_TEST (test_sysdb_memberof_store_group_with_double_ghosts)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     if (_i == 0) {
         data->attrlist = NULL;
     } else {
         data->attrlist = talloc_array(data, const char *, 2);
         fail_unless(data->attrlist != NULL, "talloc_array failed.");
-        data->attrlist[0] = talloc_asprintf(data, "testgroup%d", data->gid - 1);
+        data->attrlist[0] = test_asprintf_fqname(data, data->ctx->domain,
+                                                 "testgroup%d", data->gid - 1);
         data->attrlist[1] = NULL;
     }
 
-    data->memberlist = talloc_array(data, char *, 3);
-    fail_unless(data->memberlist != NULL, "talloc_array failed.");
-    data->memberlist[0] = talloc_asprintf(data, "testusera%d", data->gid);
-    data->memberlist[1] = talloc_asprintf(data, "testuserb%d", data->gid);
-    data->memberlist[2] = NULL;
+    data->ghostlist = talloc_array(data, char *, 3);
+    fail_unless(data->ghostlist != NULL, "talloc_array failed.");
+    data->ghostlist[0] = test_asprintf_fqname(data, data->ctx->domain,
+                                              "testusera%d", data->gid);
+    data->ghostlist[1] = test_asprintf_fqname(data, data->ctx->domain,
+                                              "testuserb%d", data->gid);
+    data->ghostlist[2] = NULL;
 
     ret = test_memberof_store_group_with_ghosts(data);
 
@@ -2437,21 +2412,13 @@ START_TEST (test_sysdb_memberof_mod_add)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
-    data->attrs = sysdb_new_attrs(data);
-    if (ret != EOK) {
-        fail("Could not create the changeset");
-        return;
-    }
-
-    ghostname = talloc_asprintf(data, "testghost%d", _i);
+    ghostname = test_asprintf_fqname(data, test_ctx->domain,
+                                     "testghost%d", _i);
     fail_unless(ghostname != NULL, "Out of memory\n");
+
     ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname);
     fail_unless(ret == EOK, "Cannot add attr\n");
 
@@ -2483,8 +2450,8 @@ START_TEST (test_sysdb_memberof_mod_add)
     }
 
     /* Perform the add operation */
-    ret =  sysdb_set_group_attr(test_ctx->domain,
-                                data->groupname, data->attrs, SYSDB_MOD_ADD);
+    ret = sysdb_set_group_attr(test_ctx->domain,
+                               data->groupname, data->attrs, SYSDB_MOD_ADD);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* Before the delete, all groups with gid >= _i have the testuser%_i
@@ -2527,25 +2494,18 @@ START_TEST (test_sysdb_memberof_mod_replace)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
-
-    data->attrs = sysdb_new_attrs(data);
-    if (ret != EOK) {
-        fail("Could not create the changeset");
-        return;
-    }
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     /* The test replaces the testuser%i attribute with testghost%i */
-    ghostname_del = talloc_asprintf(data, "testuser%d", _i);
+    ghostname_del = test_asprintf_fqname(data, test_ctx->domain,
+                                         "testuser%d", _i);
     fail_unless(ghostname_del != NULL, "Out of memory\n");
 
-    ghostname_add = talloc_asprintf(data, "testghost%d", _i);
+    ghostname_add = test_asprintf_fqname(data, test_ctx->domain,
+                                         "testuser%d", _i);
     fail_unless(ghostname_add != NULL, "Out of memory\n");
+
     ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname_add);
     fail_unless(ret == EOK, "Cannot add attr\n");
 
@@ -2621,29 +2581,22 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = MBO_GROUP_BASE + 10 - _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
-
-    data->attrs = sysdb_new_attrs(data);
-    if (ret != EOK) {
-        fail("Could not create the changeset");
-        return;
-    }
+    data = test_data_new_group(test_ctx, MBO_GROUP_BASE + 10 - _i);
+    fail_if(data == NULL);
 
     /* The test replaces the attributes (testusera$gid, testuserb$gid) with
      * just testusera$gid. The result should be not only testusera, but also
      * all ghost users inherited from child groups
      */
-    ghostname_rep = talloc_asprintf(data, "testusera%d", data->gid);
+    ghostname_rep = test_asprintf_fqname(data, data->ctx->domain,
+                                         "testusera%d", data->gid);
     fail_unless(ghostname_rep != NULL, "Out of memory\n");
+
     ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname_rep);
     fail_unless(ret == EOK, "Cannot add attr\n");
 
-    ghostname_del = talloc_asprintf(data, "testuserb%d", data->gid);
+    ghostname_del = test_asprintf_fqname(data, data->ctx->domain,
+                                         "testuserb%d", data->gid);
     fail_unless(ghostname_del != NULL, "Out of memory\n");
 
     data->attrlist = talloc_array(data, const char *, 2);
@@ -2677,7 +2630,10 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
 
         /* inherited users must be there */
         for (iteruid = MBO_GROUP_BASE ; iteruid < itergid ; iteruid++) {
-            ghostname_check = talloc_asprintf(data, "testusera%d", iteruid);
+            ghostname_check = test_asprintf_fqname(data, data->ctx->domain,
+                                                   "testusera%d", iteruid);
+            fail_unless(ghostname_rep != NULL, "Out of memory\n");
+
             gv.data = (uint8_t *) ghostname_check;
             gv.length = strlen(ghostname_check);
 
@@ -2687,7 +2643,8 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
 
             if (iteruid < data->gid) {
                 /* Also check the B user if it hasn't been deleted yet */
-                ghostname_check = talloc_asprintf(data, "testuserb%d", iteruid);
+                ghostname_check = test_asprintf_fqname(data, data->ctx->domain,
+                                                       "testuserb%d", iteruid);
                 gv.data = (uint8_t *) ghostname_check;
                 gv.length = strlen(ghostname_check);
 
@@ -2700,8 +2657,8 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
     }
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->domain,
-                                data->groupname, data->attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_group_attr(test_ctx->domain,
+                               data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the replace, testusera should still be there, but we also need
@@ -2732,7 +2689,8 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
 
         /* inherited users must still be there */
         for (iteruid = MBO_GROUP_BASE ; iteruid < itergid ; iteruid++) {
-            ghostname_check = talloc_asprintf(data, "testusera%d", iteruid);
+            ghostname_check = test_asprintf_fqname(data, data->ctx->domain,
+                                                   "testusera%d", iteruid);
             gv.data = (uint8_t *) ghostname_check;
             gv.length = strlen(ghostname_check);
 
@@ -2742,7 +2700,8 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
 
             if (iteruid < data->gid) {
                 /* Also check the B user if it hasn't been deleted yet */
-                ghostname_check = talloc_asprintf(data, "testuserb%d", iteruid);
+                ghostname_check = test_asprintf_fqname(data, data->ctx->domain,
+                                                       "testuserb%d", iteruid);
                 gv.data = (uint8_t *) ghostname_check;
                 gv.length = strlen(ghostname_check);
 
@@ -2763,7 +2722,6 @@ START_TEST (test_sysdb_memberof_close_loop)
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
     int ret;
-    char *shortname;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -2772,16 +2730,14 @@ START_TEST (test_sysdb_memberof_close_loop)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = MBO_GROUP_BASE;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, MBO_GROUP_BASE);
+    fail_if(data == NULL, "OOM");
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
-    data->attrlist[0] = talloc_asprintf(data, "testgroup%d", data->gid + 9);
+    data->attrlist[0] = test_asprintf_fqname(data, test_ctx->domain,
+                                             "testgroup%d", data->gid + 9);
+    fail_unless(data->attrlist[0], "talloc_array failed.");
     data->attrlist[1] = NULL;
 
     ret = test_memberof_store_group(data);
@@ -2804,17 +2760,10 @@ START_TEST (test_sysdb_memberof_store_user)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = MBO_USER_BASE + _i;
-    data->gid = 0; /* MPG domain */
-    shortname = talloc_asprintf(data, "testuser%d", data->uid);
-    data->username = sss_create_internal_fqname(data, shortname,
-                                                data->ctx->domain->name);
-    talloc_free(shortname);
-    ret = test_store_user(data);
+    data = test_data_new_user(test_ctx, MBO_USER_BASE + _i);
+    fail_if(data == NULL);
 
+    ret = test_store_user(data);
     fail_if(ret != EOK, "Could not store user %s", data->username);
     talloc_free(test_ctx);
 }
@@ -2833,16 +2782,15 @@ START_TEST (test_sysdb_memberof_add_group_member)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s",
-                                      _i + MBO_GROUP_BASE,
-                                      TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, MBO_GROUP_BASE + _i);
+    fail_if(data == NULL);
+
     data->uid = MBO_USER_BASE + _i;
+    data->username = test_asprintf_fqname(data, test_ctx->domain,
+                                          "testuser%d", data->uid);
+    fail_if(data->username == NULL);
 
     ret = test_add_group_member(data);
-
     fail_if(ret != EOK, "Could not modify group %s", data->groupname);
 
     talloc_free(test_ctx);
@@ -2862,10 +2810,8 @@ START_TEST (test_sysdb_memberof_check_memberuid_without_group_5)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i + MBO_GROUP_BASE;
+    data = test_data_new_group(test_ctx, MBO_GROUP_BASE + _i);
+    fail_if(data == NULL);
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "tallo_array failed.");
@@ -2873,7 +2819,7 @@ START_TEST (test_sysdb_memberof_check_memberuid_without_group_5)
     data->attrlist[1] = NULL;
 
     ret = sysdb_search_group_by_gid(data, test_ctx->domain,
-                                    _i + MBO_GROUP_BASE, data->attrlist,
+                                    data->gid, data->attrlist,
                                     &data->msg);
     if (_i == 5) {
         fail_unless(ret == ENOENT,
@@ -2913,18 +2859,16 @@ START_TEST (test_sysdb_memberof_check_memberuid)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i + MBO_GROUP_BASE;
+    data = test_data_new_group(test_ctx, MBO_GROUP_BASE + _i);
+    fail_if(data == NULL);
 
     data->attrlist = talloc_array(data, const char *, 2);
-    fail_unless(data->attrlist != NULL, "tallo_array failed.");
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
     ret = sysdb_search_group_by_gid(data, test_ctx->domain,
-                                    _i + MBO_GROUP_BASE, data->attrlist,
+                                    data->gid, data->attrlist,
                                     &data->msg);
 
     fail_if(ret != EOK, "Could not check group %d", data->gid);
@@ -2955,18 +2899,16 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i + MBO_GROUP_BASE;
+    data = test_data_new_group(test_ctx, _i + MBO_GROUP_BASE);
+    fail_if(data == NULL);
 
     data->attrlist = talloc_array(data, const char *, 2);
-    fail_unless(data->attrlist != NULL, "tallo_array failed.");
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
     ret = sysdb_search_group_by_gid(data, test_ctx->domain,
-                                    _i + MBO_GROUP_BASE, data->attrlist,
+                                    data->gid, data->attrlist,
                                     &data->msg);
 
     fail_if(ret != EOK, "Could not check group %d", data->gid);
@@ -2997,10 +2939,8 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i + MBO_GROUP_BASE;
+    data = test_data_new_group(test_ctx, _i + MBO_GROUP_BASE);
+    fail_if(data == NULL);
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "tallo_array failed.");
@@ -3008,7 +2948,7 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
     data->attrlist[1] = NULL;
 
     ret = sysdb_search_group_by_gid(data, test_ctx->domain,
-                                    _i + MBO_GROUP_BASE, data->attrlist,
+                                    data->gid, data->attrlist,
                                     &data->msg);
 
     if (_i == 5) {
@@ -3048,10 +2988,8 @@ START_TEST (test_sysdb_memberof_check_nested_ghosts)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3066,7 +3004,7 @@ START_TEST (test_sysdb_memberof_check_nested_ghosts)
                 "Wrong attribute name");
     fail_unless(data->msg->elements[0].num_values == _i - MBO_GROUP_BASE + 1,
                 "Wrong number of attribute values, expected [%d] got [%d]",
-                _i + 1, data->msg->elements[0].num_values);
+                _i - MBO_GROUP_BASE + 1, data->msg->elements[0].num_values);
 
     talloc_free(test_ctx);
 }
@@ -3085,10 +3023,8 @@ START_TEST (test_sysdb_memberof_check_nested_double_ghosts)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3124,10 +3060,8 @@ START_TEST (test_sysdb_memberof_remove_child_group_and_check_ghost)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
     delgid = data->gid - 1;
 
     data->attrlist = talloc_array(data, const char *, 2);
@@ -3188,20 +3122,10 @@ START_TEST (test_sysdb_memberof_mod_del)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
-    data->attrs = sysdb_new_attrs(data);
-    if (ret != EOK) {
-        fail("Could not create the changeset");
-        return;
-    }
-
-    ghostname = talloc_asprintf(data, "testuser%d", _i);
+    ghostname = test_asprintf_fqname(data, test_ctx->domain, "testuser%d", _i);
     fail_unless(ghostname != NULL, "Out of memory\n");
     ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname);
     fail_unless(ret == EOK, "Cannot add attr\n");
@@ -3277,10 +3201,8 @@ START_TEST (test_sysdb_memberof_check_ghost)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     data->attrlist = talloc_array(data, const char *, 2);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3314,7 +3236,7 @@ START_TEST (test_sysdb_memberof_check_ghost)
                 _i + 1, data->msg->elements[0].num_values);
 
     for (j = MBO_GROUP_BASE; j < _i; j++) {
-        expected = talloc_asprintf(data, "testghost%d", j);
+        expected = test_asprintf_fqname(data, test_ctx->domain, "testghost%d", j);
         fail_if(expected == NULL, "OOM\n");
         fail_unless(strcmp(expected,
                            (const char *) data->msg->elements[0].values[j-MBO_GROUP_BASE].data) == 0);
@@ -3330,7 +3252,6 @@ START_TEST (test_sysdb_memberof_convert_to_real_users)
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
     int ret;
-    char *shortname;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -3339,15 +3260,12 @@ START_TEST (test_sysdb_memberof_convert_to_real_users)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = _i * 2;
-    data->gid = _i * 2;
-    shortname = talloc_asprintf(data, "testghost%d", _i);
-    data->username = sss_create_internal_fqname(data, shortname,
-                                                data->ctx->domain->name);
-    talloc_free(shortname);
+    data = test_data_new_user(test_ctx, _i * 2);
+    fail_if(data == NULL);
+    data->username = test_asprintf_fqname(data, test_ctx->domain,
+                                          "testghost%d", _i);
+    fail_if(data->username == NULL);
+
     ret = test_store_user(data);
     fail_if(ret != EOK, "Cannot add user %s\n", data->username);
 }
@@ -3371,10 +3289,8 @@ START_TEST (test_sysdb_memberof_check_convert)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     data->attrlist = talloc_array(data, const char *, 3);
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
@@ -3395,7 +3311,6 @@ START_TEST (test_sysdb_memberof_check_convert)
         talloc_free(test_ctx);
         return;
     }
-
 
     members = ldb_msg_find_element(data->msg, SYSDB_MEMBER);
     exp_mem = _i - MBO_GROUP_BASE;
@@ -3437,25 +3352,18 @@ START_TEST (test_sysdb_memberof_ghost_replace)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
-
-    data->attrs = sysdb_new_attrs(data);
-    if (ret != EOK) {
-        fail("Could not create the changeset");
-        return;
-    }
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     /* The test replaces the testghost%i attribute with testuser%i */
-    ghostname_del = talloc_asprintf(data, "testghost%d", _i - 1);
+    ghostname_del = test_asprintf_fqname(data, test_ctx->domain,
+                                         "testghost%d", data->gid - 1);
     fail_unless(ghostname_del != NULL, "Out of memory\n");
 
-    ghostname_add = talloc_asprintf(data, "testuser%d", _i - 1);
+    ghostname_add = test_asprintf_fqname(data, test_ctx->domain,
+                                         "testuser%d", data->gid - 1);
     fail_unless(ghostname_add != NULL, "Out of memory\n");
+
     ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname_add);
     fail_unless(ret == EOK, "Cannot add attr\n");
 
@@ -3518,25 +3426,18 @@ START_TEST (test_sysdb_memberof_ghost_replace_noop)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->gid = _i;
-    data->groupname = talloc_asprintf(data, "testgroup%d@%s", data->gid,
-                                      TEST_DOM_NAME);
-
-    data->attrs = sysdb_new_attrs(data);
-    if (ret != EOK) {
-        fail("Could not create the changeset");
-        return;
-    }
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
 
     /* The test replaces the testghost%i attribute with testuser%i */
-    ghostname_del = talloc_asprintf(data, "testuser%d", _i - 1);
+    ghostname_del = test_asprintf_fqname(data, test_ctx->domain,
+                                         "testuser%d", data->gid - 1);
     fail_unless(ghostname_del != NULL, "Out of memory\n");
 
-    ghostname_add = talloc_asprintf(data, "testuser%d", _i - 1);
+    ghostname_add = test_asprintf_fqname(data, test_ctx->domain,
+                                         "testuser%d", data->gid - 1);
     fail_unless(ghostname_add != NULL, "Out of memory\n");
+
     ret = sysdb_attrs_steal_string(data->attrs, SYSDB_GHOST, ghostname_add);
     fail_unless(ret == EOK, "Cannot add attr\n");
 
@@ -3595,10 +3496,8 @@ START_TEST (test_sysdb_memberof_user_cleanup)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
-    data->uid = _i * 2;
+    data = test_data_new_user(test_ctx, _i * 2);
+    fail_if(data == NULL);
 
     ret = test_remove_user_by_uid(data);
 
@@ -3850,8 +3749,8 @@ START_TEST(test_user_rename)
     ret = setup_sysdb_tests(&test_ctx);
     fail_unless(ret == EOK, "Could not set up the test");
 
-    fromname = sss_create_internal_fqname(&test_ctx, "fromname", test_ctx->domain->name);
-    toname = sss_create_internal_fqname(&test_ctx, "toname", test_ctx->domain->name);
+    fromname = sss_create_internal_fqname(test_ctx, "fromname", test_ctx->domain->name);
+    toname = sss_create_internal_fqname(test_ctx, "toname", test_ctx->domain->name);
     fail_if(fromname == NULL, "sss_create_internal_fqname failed");
     fail_if(toname == NULL, "sss_create_internal_fqname failed");
 
@@ -3921,7 +3820,10 @@ START_TEST (test_sysdb_update_members)
     char **del_groups;
     const char *user = "testuser27000";
     char *user_fqname;
+    const char *group_fqname;
+    const char *check_fqname;
     errno_t ret;
+    struct ldb_result *res;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -3931,18 +3833,38 @@ START_TEST (test_sysdb_update_members)
                                              test_ctx->domain->name);
     fail_if(user_fqname == NULL, "user_fqname returned NULL");
 
+    ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
+    fail_if(ret != EOK);
+    fail_unless(res->count == 1);   /* only the user itself */
+
     /* Add a user to two groups */
     add_groups = talloc_array(test_ctx, char *, 3);
     add_groups[0] = sss_create_internal_fqname(add_groups, "testgroup28001",
                                                test_ctx->domain->name);
+    fail_if(add_groups[0] == NULL);
     add_groups[1] = sss_create_internal_fqname(add_groups, "testgroup28002",
                                                test_ctx->domain->name);
+    fail_if(add_groups[1] == NULL);
     add_groups[2] = NULL;
+
+    /* For later check */
+    group_fqname = talloc_strdup(test_ctx, add_groups[1]);
+    fail_if(group_fqname == NULL);
 
     ret = sysdb_update_members(test_ctx->domain, user_fqname,
                                SYSDB_MEMBER_USER,
                                (const char *const *)add_groups, NULL);
     fail_unless(ret == EOK, "Could not add groups");
+
+    ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
+    fail_if(ret != EOK);
+    fail_unless(res->count == 3);
+
+    check_fqname = ldb_msg_find_attr_as_string(res->msgs[1], SYSDB_NAME, NULL);
+    ck_assert_str_eq(check_fqname, add_groups[0]);
+    check_fqname = ldb_msg_find_attr_as_string(res->msgs[2], SYSDB_NAME, NULL);
+    ck_assert_str_eq(check_fqname, add_groups[1]);
+
     talloc_zfree(add_groups);
 
     /* Remove a user from one group and add to another */
@@ -3959,8 +3881,22 @@ START_TEST (test_sysdb_update_members)
                                (const char *const *)add_groups,
                                (const char *const *)del_groups);
     fail_unless(ret == EOK, "Group replace failed");
+
+    ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
+    fail_if(ret != EOK);
+    fail_unless(res->count == 3);
+
+    check_fqname = ldb_msg_find_attr_as_string(res->msgs[1], SYSDB_NAME, NULL);
+    ck_assert_str_eq(check_fqname, group_fqname);
+    check_fqname = ldb_msg_find_attr_as_string(res->msgs[2], SYSDB_NAME, NULL);
+    ck_assert_str_eq(check_fqname, add_groups[0]);
+
     talloc_zfree(add_groups);
     talloc_zfree(del_groups);
+
+    ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
+    fail_if(ret != EOK);
+    fail_unless(res->count == 3);
 
     /* Remove a user from two groups */
     del_groups = talloc_array(test_ctx, char *, 3);
@@ -3974,6 +3910,10 @@ START_TEST (test_sysdb_update_members)
                                NULL, (const char *const *)del_groups);
     fail_unless(ret == EOK, "Could not remove groups");
 
+    ret = sysdb_initgroups(test_ctx, test_ctx->domain, user_fqname, &res);
+    fail_if(ret != EOK);
+    fail_unless(res->count == 1);   /* only the user itself */
+
     talloc_zfree(test_ctx);
 }
 END_TEST
@@ -3982,9 +3922,9 @@ END_TEST
 START_TEST (test_sysdb_group_dn_name)
 {
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     int ret;
     struct ldb_dn *group_dn;
-    const char *groupname;
     char *parsed;
 
     /* Setup */
@@ -3994,18 +3934,17 @@ START_TEST (test_sysdb_group_dn_name)
         return;
     }
 
-    groupname = talloc_asprintf(test_ctx, "testgroup%d@%s", _i, TEST_DOM_NAME);
-    group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, groupname);
-    if (!group_dn || !groupname) {
-        fail("Out of memory");
-        return;
-    }
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL);
+
+    group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, data->groupname);
+    fail_if(group_dn == NULL, "OOM");
 
     ret = sysdb_group_dn_name(test_ctx->sysdb, test_ctx,
                               ldb_dn_get_linearized(group_dn), &parsed);
     fail_if(ret != EOK, "Cannot get the group name from DN");
 
-    fail_if(strcmp(groupname, parsed) != 0,
+    fail_if(strcmp(data->groupname, parsed) != 0,
             "Names don't match (got %s)", parsed);
     talloc_free(test_ctx);
 }
@@ -4024,9 +3963,8 @@ START_TEST (test_sysdb_add_basic_netgroup)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
     data->uid = _i;         /* This is kinda abuse of uid, though */
     data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
 
@@ -4078,9 +4016,8 @@ START_TEST (test_sysdb_remove_netgroup_entry)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
     data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
 
     ret = test_remove_netgroup_entry(data);
@@ -4103,9 +4040,8 @@ START_TEST (test_sysdb_remove_netgroup_by_name)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
     data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
 
     ret = test_remove_netgroup_by_name(data);
@@ -4128,9 +4064,8 @@ START_TEST (test_sysdb_set_netgroup_attr)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->ev = test_ctx->ev;
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
     data->uid = _i;         /* This is kinda abuse of uid, though */
     data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
 
@@ -4368,7 +4303,8 @@ START_TEST(test_SSS_LDB_SEARCH)
     struct sysdb_test_ctx *test_ctx;
     struct ldb_dn *group_dn, *nonexist_dn;
     struct ldb_result *res;
-    const char groupname[] = "test_group@"TEST_DOM_NAME;
+    const char *groupname;
+    const char *groupname_neg;
     const char *received_group;
 
     /* Setup */
@@ -4380,11 +4316,18 @@ START_TEST(test_SSS_LDB_SEARCH)
 
     check_leaks_push(test_ctx);
 
+    groupname = test_asprintf_fqname(test_ctx, test_ctx->domain,
+                                     "test_group");
+    fail_if(groupname == NULL);
+    groupname_neg = test_asprintf_fqname(test_ctx, test_ctx->domain,
+                                         "non_existing_test_group");
+    fail_if(groupname_neg == NULL);
+
     group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, groupname);
     fail_if(group_dn == NULL, "sysdb_group_dn failed");
 
     nonexist_dn = sysdb_group_dn(test_ctx, test_ctx->domain,
-                                 "non-existing-group@"TEST_DOM_NAME);
+                                 groupname_neg);
     fail_if(nonexist_dn == NULL, "sysdb_group_dn failed");
 
     /* Add */
@@ -4439,6 +4382,8 @@ START_TEST(test_SSS_LDB_SEARCH)
 
     talloc_zfree(nonexist_dn);
     talloc_zfree(group_dn);
+    talloc_zfree(groupname);
+    talloc_zfree(groupname_neg);
     fail_unless(check_leaks_pop(test_ctx) == true, "Memory leak");
 }
 END_TEST
@@ -5062,6 +5007,7 @@ START_TEST (test_sysdb_search_return_ENOENT)
     struct ldb_result *res = NULL;
     size_t count;
     const char *str = NULL;
+    struct test_data *data;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -5074,49 +5020,93 @@ START_TEST (test_sysdb_search_return_ENOENT)
                 ret, strerror(ret));
     talloc_zfree(res);
 
+    data = test_data_new_user(test_ctx, 1234);
+    fail_if(data == NULL);
+    data->sid_str = "S-5-4-3-2-1";
+
     /* Search user */
     ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain,
-                                    "nonexisting_user@"TEST_DOM_NAME,
+                                    data->username,
                                     NULL, &msg);
     fail_unless(ret == ENOENT, "sysdb_search_user_by_name error [%d][%s].",
                                ret, strerror(ret));
     talloc_zfree(msg);
 
     ret = sysdb_get_real_name(test_ctx, test_ctx->domain,
-                              "nonexisting_user", &str);
+                              data->username, &str);
     fail_unless(ret == ENOENT, "sysdb_get_real_name error [%d][%s].",
                                ret, strerror(ret));
     talloc_zfree(str);
 
     ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
-                                   1234, NULL, &msg);
+                                   data->uid, NULL, &msg);
     fail_unless(ret == ENOENT, "sysdb_search_user_by_uid error [%d][%s].",
                                ret, strerror(ret));
     talloc_zfree(msg);
 
     ret = sysdb_search_user_by_sid_str(test_ctx, test_ctx->domain,
-                                       "S-5-4-3-2-1", NULL, &msg);
+                                       data->sid_str, NULL, &msg);
     fail_unless(ret == ENOENT, "sysdb_search_user_by_sid_str failed with "
                                "[%d][%s].", ret, strerror(ret));
 
+    /* General search */
+    user_dn = sysdb_user_dn(test_ctx, test_ctx->domain,
+                            data->username);
+    fail_if(user_dn == NULL, "sysdb_user_dn failed");
+
+    ret = sysdb_asq_search(test_ctx, test_ctx->domain,
+                           user_dn, NULL, "memberof", NULL,
+                           &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_asq_search failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->sysdb,
+                             user_dn, LDB_SCOPE_SUBTREE,
+                             "objectClass=user", NULL,
+                             &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_search_entry failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+    talloc_zfree(user_dn);
+
+    /* SSS_LDB_SEARCH */
+    user_dn = sysdb_user_dn(test_ctx, test_ctx->domain,
+                            data->username);
+    fail_if(user_dn == NULL, "sysdb_user_dn failed");
+    SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, user_dn,
+                   LDB_SCOPE_BASE, NULL, "objectClass=user");
+
+    fail_unless(ret == ENOENT, "SSS_LDB_SEARCH failed: %d, %s",
+                               ret, strerror(ret));
+
+    talloc_zfree(res);
+    talloc_zfree(user_dn);
+
     /* Search group */
+    talloc_zfree(data);
+    data = test_data_new_group(test_ctx, 1234);
+    fail_if(data == NULL);
+    data->sid_str = "S-5-4-3-2-1";
+
     ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain,
-                                     "nonexisting_group", NULL, &msg);
+                                     data->groupname, NULL, &msg);
     fail_unless(ret == ENOENT, "sysdb_search_group_by_name error [%d][%s].",
                                ret, strerror(ret));
     talloc_zfree(msg);
 
     ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain,
-                                    1234, NULL, &msg);
+                                    data->gid, NULL, &msg);
     fail_unless(ret == ENOENT, "sysdb_search_group_by_gid error [%d][%s].",
                                ret, strerror(ret));
     talloc_zfree(msg);
 
     ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->domain,
-                                        "S-5-4-3-2-1", NULL, &msg);
+                                        data->sid_str, NULL, &msg);
     fail_unless(ret == ENOENT, "sysdb_search_group_by_sid_str failed with "
                                "[%d][%s].", ret, strerror(ret));
     talloc_zfree(msg);
+    talloc_zfree(data);
 
     /* Search netgroup */
     ret = sysdb_search_netgroup_by_name(test_ctx, test_ctx->domain,
@@ -5177,40 +5167,6 @@ START_TEST (test_sysdb_search_return_ENOENT)
                                ret, strerror(ret));
     talloc_zfree(msgs);
 
-    /* General search */
-    user_dn = sysdb_user_dn(test_ctx, test_ctx->domain,
-                            "nonexisting_user@"TEST_DOM_NAME);
-    fail_if(user_dn == NULL, "sysdb_user_dn failed");
-
-    ret = sysdb_asq_search(test_ctx, test_ctx->domain,
-                           user_dn, NULL, "memberof", NULL,
-                           &count, &msgs);
-    fail_unless(ret == ENOENT, "sysdb_asq_search failed: %d, %s",
-                               ret, strerror(ret));
-    talloc_zfree(msgs);
-
-    ret = sysdb_search_entry(test_ctx, test_ctx->sysdb,
-                             user_dn, LDB_SCOPE_SUBTREE,
-                             "objectClass=user", NULL,
-                             &count, &msgs);
-    fail_unless(ret == ENOENT, "sysdb_search_entry failed: %d, %s",
-                               ret, strerror(ret));
-    talloc_zfree(msgs);
-    talloc_zfree(user_dn);
-
-    /* SSS_LDB_SEARCH */
-    user_dn = sysdb_user_dn(test_ctx, test_ctx->domain,
-                            "nonexisting_user@"TEST_DOM_NAME);
-    fail_if(user_dn == NULL, "sysdb_user_dn failed");
-    SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, user_dn,
-                   LDB_SCOPE_BASE, NULL, "objectClass=user");
-
-    fail_unless(ret == ENOENT, "SSS_LDB_SEARCH failed: %d, %s",
-                               ret, strerror(ret));
-
-    talloc_zfree(res);
-    talloc_zfree(user_dn);
-
     /* TODO: test sysdb_search_selinux_config */
 
     fail_unless(check_leaks_pop(test_ctx) == true, "Memory leak");
@@ -5252,33 +5208,51 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
 {
     errno_t ret;
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     const char *filter;
     struct ldb_dn *base_dn;
     const char *no_attrs[] = { NULL };
     struct ldb_message **msgs;
     size_t num_msgs;
+    char *c;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    ret = sysdb_add_incomplete_group(test_ctx->domain,
-                                     "case_sensitive_group1@"TEST_DOM_NAME, 29000,
-                                     "cn=case_sensitive_group1@"TEST_DOM_NAME",cn=example,cn=com",
-                                     NULL, NULL, true, 0);
+    data = test_data_new(test_ctx);
+    fail_if(data == NULL);
+    data->gid = 2900;
+
+    data->groupname = test_asprintf_fqname(data, test_ctx->domain,
+                                           "case_sensitive_group1");
+    fail_if(data->groupname == NULL);
+
+    data->orig_dn = talloc_asprintf(data, "cn=%s,cn=example,cn=com", data->groupname);
+    fail_if(data->orig_dn == NULL);
+
+    ret = test_add_incomplete_group(data);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
-    ret = sysdb_add_incomplete_group(test_ctx->domain,
-                                     "case_sensitive_group2@"TEST_DOM_NAME, 29001,
-                                     "cn=CASE_SENSITIVE_GROUP1@"TEST_DOM_NAME",cn=EXAMPLE,cn=COM",
-                                     NULL, NULL, true, 0);
+    /* different name and GID, original DN differs only by case */
+    data->gid = 2901;
+    data->groupname = test_asprintf_fqname(data, test_ctx->domain,
+                                           "case_sensitive_group2");
+    fail_if(data->groupname == NULL);
+    c = discard_const(data->orig_dn);
+    while(*c != '\0') {
+        *c = toupper(*c);
+        c++;
+    }
+
+    ret = test_add_incomplete_group(data);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
     /* Search by originalDN should yield 2 entries */
-    filter = talloc_asprintf(test_ctx, "%s=%s", SYSDB_ORIG_DN,
-                             "cn=case_sensitive_group1@"TEST_DOM_NAME",cn=example,cn=com");
+    filter = talloc_asprintf(test_ctx, "%s=%s",
+                             SYSDB_ORIG_DN, data->orig_dn);
     fail_if(filter == NULL, "Cannot construct filter\n");
 
     base_dn = sysdb_domain_dn(test_ctx, test_ctx->domain);
@@ -5298,54 +5272,58 @@ START_TEST(test_sysdb_search_sid_str)
 {
     errno_t ret;
     struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
     struct ldb_message *msg;
-    struct sysdb_attrs *attrs = NULL;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    ret = sysdb_add_incomplete_group(test_ctx->domain,
-                                     "group@"TEST_DOM_NAME, 29000,
-                                     "cn=group@"TEST_DOM_NAME",cn=example,cn=com",
-                                     "S-1-2-3-4", NULL, true, 0);
+    data = test_data_new_group(test_ctx, 2900);
+    fail_if(data == NULL);
+    data->sid_str = "S-1-2-3-4";
+
+    ret = test_add_incomplete_group(data);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
     ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->domain,
-                                        "S-1-2-3-4", NULL, &msg);
+                                        data->sid_str, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_group_by_sid_str failed with [%d][%s].",
                 ret, strerror(ret));
 
     /* Delete the group by SID */
-    ret = sysdb_delete_by_sid(test_ctx->sysdb, test_ctx->domain, "S-1-2-3-4");
+    ret = sysdb_delete_by_sid(test_ctx->sysdb, test_ctx->domain, data->sid_str);
     fail_unless(ret == EOK, "sysdb_delete_by_sid failed with [%d][%s].",
                 ret, strerror(ret));
 
     /* Verify it's gone */
-    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->domain, "S-1-2-3-4",
-                                        NULL, &msg);
-    fail_unless(ret == ENOENT, "sysdb_search_group_by_sid_str failed with [%d][%s].",
+    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->domain,
+                                        data->sid_str, NULL, &msg);
+    fail_unless(ret == ENOENT,
+                "sysdb_search_group_by_sid_str failed with [%d][%s].",
                 ret, strerror(ret));
 
     talloc_free(msg);
     msg = NULL;
 
-    attrs = sysdb_new_attrs(test_ctx);
-    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+    talloc_zfree(data);
 
-    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4-5");
+    data = test_data_new_user(test_ctx, 12345);
+    fail_if(data == NULL);
+    data->sid_str = "S-1-2-3-4-5";
+    fail_if(data->sid_str == NULL);
+
+    ret = sysdb_attrs_add_string(data->attrs, SYSDB_SID_STR, data->sid_str);
     fail_unless(ret == EOK, "sysdb_attrs_add_string failed with [%d][%s].",
                 ret, strerror(ret));
 
-    ret = sysdb_add_user(test_ctx->domain, "SIDuser",
-                         12345, 0, "SID user", "/home/siduser", "/bin/bash",
-                         NULL, attrs, 0, 0);
+    ret = test_add_user(data);
     fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
                 ret, strerror(ret));
 
     ret = sysdb_search_user_by_sid_str(test_ctx, test_ctx->domain,
-                                       "S-1-2-3-4-5", NULL, &msg);
+                                       data->sid_str, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_sid_str failed with [%d][%s].",
                 ret, strerror(ret));
 
@@ -5358,23 +5336,23 @@ START_TEST(test_sysdb_search_object_by_uuid)
     errno_t ret;
     struct sysdb_test_ctx *test_ctx;
     struct ldb_result *res;
-    struct sysdb_attrs *attrs = NULL;
+    const char *uuid;
+    struct test_data *data;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    attrs = sysdb_new_attrs(test_ctx);
-    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+    data = test_data_new_user(test_ctx, 123456);
+    fail_if(data == NULL);
 
-    ret = sysdb_attrs_add_string(attrs, SYSDB_UUID,
-                                 "11111111-2222-3333-4444-555555555555");
+    uuid = "11111111-2222-3333-4444-555555555555";
+
+    ret = sysdb_attrs_add_string(data->attrs, SYSDB_UUID, uuid);
     fail_unless(ret == EOK, "sysdb_attrs_add_string failed with [%d][%s].",
                 ret, strerror(ret));
 
-    ret = sysdb_add_user(test_ctx->domain, "UUIDuser",
-                         123456, 0, "UUID user", "/home/uuiduser", "/bin/bash",
-                         NULL, attrs, 0, 0);
+    ret = test_add_user(data);
     fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
                 ret, strerror(ret));
 
@@ -5386,15 +5364,14 @@ START_TEST(test_sysdb_search_object_by_uuid)
                 "missing object, expected [%d], got [%d].", ENOENT, ret);
 
     ret = sysdb_search_object_by_uuid(test_ctx, test_ctx->domain,
-                                      "11111111-2222-3333-4444-555555555555",
-                                      NULL, &res);
+                                      uuid, NULL, &res);
     fail_unless(ret == EOK, "sysdb_search_object_by_uuid failed with [%d][%s].",
                 ret, strerror(ret));
     fail_unless(res->count == 1, "Unexpected number of results, " \
                                  "expected [%u], get [%u].", 1, res->count);
     fail_unless(strcmp(ldb_msg_find_attr_as_string(res->msgs[0],
                                                    SYSDB_NAME, ""),
-                      "UUIDuser") == 0, "Unexpected object found, " \
+                      data->username) == 0, "Unexpected object found, " \
                       "expected [%s], got [%s].", "UUIDuser",
                       ldb_msg_find_attr_as_string(res->msgs[0],SYSDB_NAME, ""));
     talloc_free(test_ctx);
@@ -5408,26 +5385,24 @@ START_TEST(test_sysdb_search_user_by_cert)
     errno_t ret;
     struct sysdb_test_ctx *test_ctx;
     struct ldb_result *res;
-    struct sysdb_attrs *attrs = NULL;
     struct ldb_val val;
+    struct test_data *data;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
+    data = test_data_new_user(test_ctx, 234567);
+    fail_if(data == NULL);
+
     val.data = sss_base64_decode(test_ctx, TEST_USER_CERT_DERB64, &val.length);
     fail_unless(val.data != NULL, "sss_base64_decode failed.");
 
-    attrs = sysdb_new_attrs(test_ctx);
-    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
-
-    ret = sysdb_attrs_add_val(attrs, SYSDB_USER_CERT, &val);
+    ret = sysdb_attrs_add_val(data->attrs, SYSDB_USER_CERT, &val);
     fail_unless(ret == EOK, "sysdb_attrs_add_val failed with [%d][%s].",
                 ret, strerror(ret));
 
-    ret = sysdb_add_user(test_ctx->domain, "certuser",
-                         234567, 0, "cert user", "/home/certuser", "/bin/bash",
-                         NULL, attrs, 0, 0);
+    ret = test_add_user(data);
     fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
                 ret, strerror(ret));
 
@@ -5444,8 +5419,8 @@ START_TEST(test_sysdb_search_user_by_cert)
                                  "expected [%u], get [%u].", 1, res->count);
     fail_unless(strcmp(ldb_msg_find_attr_as_string(res->msgs[0],
                                                    SYSDB_NAME, ""),
-                      "certuser") == 0, "Unexpected object found, " \
-                      "expected [%s], got [%s].", "certuser",
+                      data->username) == 0, "Unexpected object found, " \
+                      "expected [%s], got [%s].", data->username,
                       ldb_msg_find_attr_as_string(res->msgs[0],SYSDB_NAME, ""));
     talloc_free(test_ctx);
 }
@@ -5484,8 +5459,9 @@ START_TEST(test_sysdb_subdomain_store_user)
     struct ldb_dn *base_dn = NULL;
     struct ldb_dn *check_dn = NULL;
     const char *attrs[] = { SYSDB_NAME, SYSDB_NAME_ALIAS, NULL };
-    struct sysdb_attrs *user_attrs;
     struct ldb_message *msg;
+    struct test_data *data;
+    char *alias;
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
@@ -5503,28 +5479,30 @@ START_TEST(test_sysdb_subdomain_store_user)
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
-    user_attrs = sysdb_new_attrs(test_ctx);
-    fail_unless(user_attrs != NULL, "sysdb_new_attrs failed");
+    data = test_data_new_user(test_ctx, 12345);
+    fail_if(data == NULL);
+    data->username = test_asprintf_fqname(data, subdomain, "SubDomUser");
 
-    ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS,
-                                 "subdomuser@test.sub");
+    alias = test_asprintf_fqname(data, subdomain, "subdomuser");
+    fail_if(alias == NULL);
+
+    ret = sysdb_attrs_add_string(data->attrs, SYSDB_NAME_ALIAS, alias);
     fail_unless(ret == EOK, "sysdb_store_user failed.");
 
-    ret = sysdb_store_user(subdomain, "SubDomUser@test.sub",
-                           NULL, 12345, 0, "Sub Domain User",
+    ret = sysdb_store_user(subdomain, data->username,
+                           NULL, data->uid, 0, "Sub Domain User",
                            "/home/subdomuser", "/bin/bash",
-                           NULL, user_attrs, NULL, -1, 0);
+                           NULL, data->attrs, NULL, -1, 0);
     fail_unless(ret == EOK, "sysdb_store_user failed.");
 
     base_dn =ldb_dn_new(test_ctx, test_ctx->sysdb->ldb, "cn=sysdb");
     fail_unless(base_dn != NULL);
 
-    check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb,
-                          "name=SubDomUser@test.sub,cn=users,cn=test.sub,cn=sysdb");
+    check_dn = sysdb_user_dn(data, subdomain, data->username);
     fail_unless(check_dn != NULL);
 
     ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
-                     LDB_SCOPE_SUBTREE, NULL, "name=SubDomUser@test.sub");
+                     LDB_SCOPE_SUBTREE, NULL, "name=%s", data->username);
     fail_unless(ret == EOK, "ldb_search failed.");
     fail_unless(results->count == 1, "Unexpected number of results, "
                                      "expected [%d], got [%d]",
@@ -5534,16 +5512,16 @@ START_TEST(test_sysdb_subdomain_store_user)
 
     /* Subdomains are case-insensitive. Test that the lowercased name
      * can be found, too */
-    ret = sysdb_search_user_by_name(test_ctx, subdomain, "subdomuser@test.sub",
+    ret = sysdb_search_user_by_name(test_ctx, subdomain, alias,
                                     attrs, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_name failed.");
 
-    ret = sysdb_delete_user(subdomain, "subdomuser@test.sub", 0);
+    ret = sysdb_delete_user(subdomain, alias, 0);
     fail_unless(ret == EOK, "sysdb_delete_user failed [%d][%s].",
                             ret, strerror(ret));
 
     ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
-                     LDB_SCOPE_SUBTREE, NULL, "name=subdomuser@test.sub");
+                     LDB_SCOPE_SUBTREE, NULL, "name=%s", alias);
     fail_unless(ret == EOK, "ldb_search failed.");
     fail_unless(results->count == 0, "Unexpected number of results, "
                                      "expected [%d], got [%d]",
@@ -5558,6 +5536,11 @@ START_TEST(test_sysdb_subdomain_user_ops)
     struct sss_domain_info *subdomain = NULL;
     struct ldb_message *msg = NULL;
     struct ldb_dn *check_dn = NULL;
+    struct test_data *data;
+    const char *name;
+    const char *shortname = "subdomuser";
+    char *short_check;
+    char *dom_check;
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
@@ -5575,34 +5558,46 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
-    ret = sysdb_store_user(subdomain, "subdomuser@test.sub",
-                           NULL, 12345, 0, "Sub Domain User",
+    data = test_data_new_user(test_ctx, 12345);
+    fail_if(data == NULL);
+
+    data->username = test_asprintf_fqname(data, subdomain, shortname);
+    fail_if(data->username == NULL);
+
+    ret = sysdb_store_user(subdomain, data->username,
+                           NULL, data->uid, 0, "Sub Domain User",
                            "/home/subdomuser", "/bin/bash",
                            NULL, NULL, NULL, -1, 0);
     fail_unless(ret == EOK, "sysdb_store_domuser failed.");
 
-    check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb,
-                          "name=subdomuser@test.sub,cn=users,cn=test.sub,cn=sysdb");
+    check_dn = sysdb_user_dn(data, subdomain, data->username);
     fail_unless(check_dn != NULL);
 
     ret = sysdb_search_user_by_name(test_ctx, subdomain,
-                                    "subdomuser@test.sub", NULL,
+                                    data->username, NULL,
                                     &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_name failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_search_user_by_uid(test_ctx, subdomain, 12345, NULL, &msg);
+    name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_if(name == NULL);
+
+    ret = sss_parse_internal_fqname(data, name, &short_check, &dom_check);
+    fail_if(ret != EOK);
+    ck_assert_str_eq(short_check, shortname);
+    ck_assert_str_eq(dom_check, subdomain->name);
+
+    ret = sysdb_search_user_by_uid(test_ctx, subdomain, data->uid, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_domuser_by_uid failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_delete_user(subdomain, "subdomuser@test.sub", 12345);
+    ret = sysdb_delete_user(subdomain, data->username, data->uid);
     fail_unless(ret == EOK, "sysdb_delete_domuser failed with [%d][%s].",
                             ret, strerror(ret));
-
 }
 END_TEST
 
@@ -5613,9 +5608,12 @@ START_TEST(test_sysdb_subdomain_group_ops)
     struct sss_domain_info *subdomain = NULL;
     struct ldb_message *msg = NULL;
     struct ldb_dn *check_dn = NULL;
-    struct sysdb_attrs *group_attrs;
-    char *dn;
-    char *subdomgroup;
+    struct test_data *data;
+    char *alias;
+    const char *name;
+    const char *shortname = "subDomGroup";
+    char *short_check;
+    char *dom_check;
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
@@ -5633,25 +5631,24 @@ START_TEST(test_sysdb_subdomain_group_ops)
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
-    group_attrs = sysdb_new_attrs(test_ctx);
-    fail_unless(group_attrs != NULL, "sysdb_new_attrs failed");
+    data = test_data_new_group(test_ctx, 12345);
+    fail_if(data == NULL);
+    data->groupname = test_asprintf_fqname(data, subdomain, shortname);
 
-    ret = sysdb_attrs_add_string(group_attrs, SYSDB_NAME_ALIAS, "subdomgroup");
+    alias = test_asprintf_fqname(data, subdomain, "subdomgroup");
+    fail_if(alias == NULL);
+
+    ret = sysdb_attrs_add_string(data->attrs, SYSDB_NAME_ALIAS, alias);
     fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
 
-    subdomgroup = sss_create_internal_fqname(test_ctx, "subDomGroup",
-                                             subdomain->name);
-    fail_if(subdomgroup == NULL, "sss_create_internal_fqname failed");
     ret = sysdb_store_group(subdomain,
-                            subdomgroup, 12345, group_attrs, -1, 0);
+                            data->groupname, data->gid, data->attrs, -1, 0);
     fail_unless(ret == EOK, "sysdb_store_group failed.");
 
-    dn = talloc_asprintf(test_ctx, "name=%s,cn=groups,cn=test.sub,cn=sysdb",
-                         subdomgroup);
-    check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb, dn);
+    check_dn = sysdb_group_dn(data, subdomain, data->groupname);
     fail_unless(check_dn != NULL);
 
-    ret = sysdb_search_group_by_name(test_ctx, subdomain, subdomgroup, NULL,
+    ret = sysdb_search_group_by_name(test_ctx, subdomain, data->groupname, NULL,
                                      &msg);
     fail_unless(ret == EOK, "sysdb_search_group_by_name failed with [%d][%s].",
                             ret, strerror(ret));
@@ -5661,24 +5658,30 @@ START_TEST(test_sysdb_subdomain_group_ops)
     /* subdomains are case insensitive, so it should be possible to search
     the group with a lowercase name version, too */
     /* Fixme - lowercase this */
-    ret = sysdb_search_group_by_name(test_ctx, subdomain, subdomgroup, NULL,
+    ret = sysdb_search_group_by_name(test_ctx, subdomain, data->groupname, NULL,
                                      &msg);
     fail_unless(ret == EOK, "case-insensitive group search failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpected DN returned");
 
+    name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_if(name == NULL);
 
-    ret = sysdb_search_group_by_gid(test_ctx, subdomain, 12345, NULL, &msg);
+    ret = sss_parse_internal_fqname(data, name, &short_check, &dom_check);
+    fail_if(ret != EOK);
+    ck_assert_str_eq(short_check, shortname);
+    ck_assert_str_eq(dom_check, subdomain->name);
+
+    ret = sysdb_search_group_by_gid(test_ctx, subdomain, data->gid, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_group_by_gid failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_delete_group(subdomain, subdomgroup, 12345);
+    ret = sysdb_delete_group(subdomain, data->groupname, data->gid);
     fail_unless(ret == EOK, "sysdb_delete_group failed with [%d][%s].",
                             ret, strerror(ret));
-
 }
 END_TEST
 
@@ -6429,26 +6432,33 @@ START_TEST(test_sysdb_mark_entry_as_expired_ldb_dn)
     struct ldb_message **msgs;
     uint64_t expire;
     struct ldb_dn *userdn;
+    struct test_data *data;
+    char *filter;
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not setup the test");
 
     /* Add something to database to test against */
+    data = test_data_new_user(test_ctx, 2000);
+    fail_if(data == NULL);
 
     ret = sysdb_transaction_start(test_ctx->sysdb);
     ck_assert_int_eq(ret, EOK);
 
-    ret = sysdb_add_user(test_ctx->domain, "testuser",
-                         2000, 0, "Test User", "/home/testuser",
-                         "/bin/bash",
-                         NULL, NULL, 500, 0);
+    ret = test_add_user(data);
     ck_assert_int_eq(ret, EOK);
 
     ret = sysdb_transaction_commit(test_ctx->sysdb);
     ck_assert_int_eq(ret, EOK);
 
+    filter = talloc_asprintf(data,
+                             "("SYSDB_UIDNUM"=%llu)",
+                             (unsigned long long) data->uid);
+    fail_if(filter == NULL);
+
     ret = sysdb_search_users(test_ctx, test_ctx->domain,
-                             "("SYSDB_UIDNUM"=2000)", attrs, &count, &msgs);
+                             filter, attrs, &count, &msgs);
+    talloc_zfree(filter);
     ck_assert_int_eq(ret, EOK);
     ck_assert_int_eq(count, 1);
 
@@ -6456,7 +6466,7 @@ START_TEST(test_sysdb_mark_entry_as_expired_ldb_dn)
     ck_assert(expire != 1);
 
     userdn = sysdb_user_dn(test_ctx, test_ctx->domain,
-                           "testuser@"TEST_DOM_NAME);
+                           data->username);
     ck_assert(userdn != NULL);
 
     ret = sysdb_transaction_start(test_ctx->sysdb);
@@ -6469,8 +6479,14 @@ START_TEST(test_sysdb_mark_entry_as_expired_ldb_dn)
     ret = sysdb_transaction_commit(test_ctx->sysdb);
     ck_assert_int_eq(ret, EOK);
 
+    filter = talloc_asprintf(data,
+                             "("SYSDB_UIDNUM"=%llu)",
+                             (unsigned long long) data->uid);
+    fail_if(filter == NULL);
+
     ret = sysdb_search_users(test_ctx, test_ctx->domain,
-                             "("SYSDB_UIDNUM"=2000)", attrs, &count, &msgs);
+                             filter, attrs, &count, &msgs);
+    talloc_zfree(filter);
     ck_assert_int_eq(ret, EOK);
     ck_assert_int_eq(count, 1);
 
@@ -6502,7 +6518,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_user_new_id);
 
     /* Create a new user */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_add_user,27000,27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_user, 27000, 27010);
 
     /* Verify the users were added */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getpwnam, 27000, 27010);
@@ -6526,10 +6542,14 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_update_members);
 
     /* Remove the other half by gid */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 28000, 28010);
+    tcase_add_loop_test(tc_sysdb,
+                        test_sysdb_remove_local_group_by_gid,
+                        28000, 28010);
 
     /* Remove the other half by uid */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_user_by_uid, 27000, 27010);
+    tcase_add_loop_test(tc_sysdb,
+                        test_sysdb_remove_local_user_by_uid,
+                        27000, 27010);
 
     /* Create a new user */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_user, 27010, 27020);
@@ -6611,9 +6631,15 @@ Suite *create_sysdb_suite(void)
     /* test the ignore_not_found parameter for groups */
     tcase_add_test(tc_sysdb, test_sysdb_remove_nonexistent_group);
 
-    /* Create incomplete groups - remove will fail if the LDB objects don't exist */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_add_incomplete_group, 28000, 28010);
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 28000, 28010);
+    /* Create incomplete groups - remove will fail if the LDB objects
+     * don't exist
+     */
+    tcase_add_loop_test(tc_sysdb,
+                        test_sysdb_add_incomplete_group,
+                        28000, 28010);
+    tcase_add_loop_test(tc_sysdb,
+                        test_sysdb_remove_local_group_by_gid,
+                        28000, 28010);
 
     /* test custom operations */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_custom, 29010, 29020);
@@ -6721,7 +6747,9 @@ Suite *create_sysdb_suite(void)
                         test_sysdb_memberof_check_memberuid_without_group_5,
                         0, 10);
     tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
-                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 5);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE+6 , MBO_GROUP_BASE + 10);
 
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group, 0, 10);
     tcase_add_test(tc_memberof, test_sysdb_memberof_close_loop);
@@ -6736,7 +6764,9 @@ Suite *create_sysdb_suite(void)
                         test_sysdb_memberof_check_memberuid_loop_without_group_5,
                         0, 10);
     tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
-                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 5);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE+6 , MBO_GROUP_BASE + 10);
 
     /* Ghost users tests */
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group_with_ghosts,
@@ -6774,6 +6804,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_ghost_replace_noop,
                         MBO_GROUP_BASE + NUM_GHOSTS/2 + 1,
                         MBO_GROUP_BASE + NUM_GHOSTS);
+
     /* Remove the real users */
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_user_cleanup,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + NUM_GHOSTS/2);
@@ -6827,7 +6858,6 @@ Suite *create_sysdb_suite(void)
                         1 , 11);
     tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
-
     suite_add_tcase(s, tc_memberof);
 
     TCase *tc_subdomain = tcase_create("SYSDB sub-domain Tests");

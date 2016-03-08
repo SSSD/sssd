@@ -184,7 +184,7 @@ endif
 if HAVE_CHECK
     non_interactive_check_based_tests = \
         dlopen-tests \
-        #sysdb-tests \
+        sysdb-tests \
         strtonum-tests \
         resolv-tests \
         krb5-utils-tests \
@@ -1695,18 +1695,18 @@ dlopen_tests_LDADD = \
     $(LIBADD_DL) \
     $(CHECK_LIBS)
 
-#EXTRA_sysdb_tests_DEPENDENCIES = \
-#    $(ldblib_LTLIBRARIES)
-#sysdb_tests_SOURCES = \
-#    src/tests/sysdb-tests.c
-#sysdb_tests_CFLAGS = \
-#    $(AM_CFLAGS) \
-#    $(CHECK_CFLAGS)
-#sysdb_tests_LDADD = \
-#    $(SSSD_LIBS) \
-#    $(CHECK_LIBS) \
-#    $(SSSD_INTERNAL_LTLIBS) \
-#    libsss_test_common.la
+EXTRA_sysdb_tests_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES)
+sysdb_tests_SOURCES = \
+    src/tests/sysdb-tests.c
+sysdb_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+sysdb_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
 
 EXTRA_sysdb_ssh_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
