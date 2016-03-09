@@ -67,7 +67,7 @@ void hbac_debug_messages(const char *file, int line,
         va_list ap;
 
         va_start(ap, fmt);
-        sss_vdebug_fn(file, line, function, loglevel, fmt, ap);
+        sss_vdebug_fn(file, line, function, loglevel, 0, fmt, ap);
         va_end(ap);
     }
 }
