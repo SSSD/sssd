@@ -75,6 +75,16 @@ static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx,
                                  const char *sub_filter, const char **attrs,
                                  size_t *msgs_count, struct ldb_message ***msgs);
 
+struct input_values {
+    char *domain;
+    char *group;
+    char *map;
+    char *netgroup;
+    char *service;
+    char *ssh_host;
+    char *user;
+};
+
 struct cache_tool_ctx {
     struct confdb_ctx *confdb;
     struct sss_domain_info *domains;
@@ -101,6 +111,9 @@ struct cache_tool_ctx {
     bool update_ssh_host_filter;
 };
 
+static void free_input_values(struct input_values *values);
+static bool is_filter_valid(struct cache_tool_ctx *ctx,
+                            struct input_values *values, int idb);
 errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
 errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx);
 static errno_t invalidate_entry(TALLOC_CTX *ctx,
@@ -201,6 +214,17 @@ int main(int argc, const char *argv[])
 done:
     if (tctx) talloc_free(tctx);
     return ret;
+}
+
+static void free_input_values(struct input_values *values)
+{
+    free(values->domain);
+    free(values->group);
+    free(values->map);
+    free(values->netgroup);
+    free(values->service);
+    free(values->ssh_host);
+    free(values->user);
 }
 
 static errno_t update_filter(struct cache_tool_ctx *tctx,
@@ -571,13 +595,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 {
     struct cache_tool_ctx *ctx = NULL;
     int idb = INVALIDATE_NONE;
-    char *user = NULL;
-    char *group = NULL;
-    char *netgroup = NULL;
-    char *service = NULL;
-    char *map = NULL;
-    char *ssh_host = NULL;
-    char *domain = NULL;
+    struct input_values values = { 0 };
     int debug = SSSDBG_DEFAULT;
     errno_t ret = EOK;
 
@@ -588,35 +606,35 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
             0, _("The debug level to run with"), NULL },
         { "everything", 'E', POPT_ARG_NONE, NULL, 'e',
             _("Invalidate all cached entries except for sudo rules"), NULL },
-        { "user", 'u', POPT_ARG_STRING, &user, 0,
+        { "user", 'u', POPT_ARG_STRING, &(values.user), 0,
             _("Invalidate particular user"), NULL },
         { "users", 'U', POPT_ARG_NONE, NULL, 'u',
             _("Invalidate all users"), NULL },
-        { "group", 'g', POPT_ARG_STRING, &group, 0,
+        { "group", 'g', POPT_ARG_STRING, &(values.group), 0,
             _("Invalidate particular group"), NULL },
         { "groups", 'G', POPT_ARG_NONE, NULL, 'g',
             _("Invalidate all groups"), NULL },
-        { "netgroup", 'n', POPT_ARG_STRING, &netgroup, 0,
+        { "netgroup", 'n', POPT_ARG_STRING, &(values.netgroup), 0,
             _("Invalidate particular netgroup"), NULL },
         { "netgroups", 'N', POPT_ARG_NONE, NULL, 'n',
             _("Invalidate all netgroups"), NULL },
-        { "service", 's', POPT_ARG_STRING, &service, 0,
+        { "service", 's', POPT_ARG_STRING, &(values.service), 0,
             _("Invalidate particular service"), NULL },
         { "services", 'S', POPT_ARG_NONE, NULL, 's',
             _("Invalidate all services"), NULL },
 #ifdef BUILD_AUTOFS
-        { "autofs-map", 'a', POPT_ARG_STRING, &map, 0,
+        { "autofs-map", 'a', POPT_ARG_STRING, &(values.map), 0,
             _("Invalidate particular autofs map"), NULL },
         { "autofs-maps", 'A', POPT_ARG_NONE, NULL, 'a',
             _("Invalidate all autofs maps"), NULL },
 #endif /* BUILD_AUTOFS */
 #ifdef BUILD_SSH
-        { "ssh-host", 'h', POPT_ARG_STRING, &ssh_host, 0,
+        { "ssh-host", 'h', POPT_ARG_STRING, &(values.ssh_host), 0,
             _("Invalidate particular SSH host"), NULL },
         { "ssh-hosts", 'H', POPT_ARG_NONE, NULL, 'h',
             _("Invalidate all SSH hosts"), NULL },
 #endif /* BUILD_SSH */
-        { "domain", 'd', POPT_ARG_STRING, &domain, 0,
+        { "domain", 'd', POPT_ARG_STRING, &(values.domain), 0,
             _("Only invalidate entries from a particular domain"), NULL },
         POPT_TABLEEND
     };
@@ -663,8 +681,9 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
-    if (idb == INVALIDATE_NONE && !user && !group &&
-        !netgroup && !service && !map && !ssh_host) {
+    if (idb == INVALIDATE_NONE && !values.user && !values.group &&
+        !values.netgroup && !values.service && !values.map &&
+        !values.ssh_host) {
         BAD_POPT_PARAMS(pc,
                 _("Please select at least one object to invalidate\n"),
                 ret, fini);
@@ -683,32 +702,32 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     if (idb & INVALIDATE_USERS) {
         ctx->user_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
         ctx->update_user_filter = false;
-    } else if (user) {
-        ctx->user_name = talloc_strdup(ctx, user);
+    } else if (values.user) {
+        ctx->user_name = talloc_strdup(ctx, values.user);
         ctx->update_user_filter = true;
     }
 
     if (idb & INVALIDATE_GROUPS) {
         ctx->group_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
         ctx->update_group_filter = false;
-    } else if (group) {
-        ctx->group_name = talloc_strdup(ctx, group);
+    } else if (values.group) {
+        ctx->group_name = talloc_strdup(ctx, values.group);
         ctx->update_group_filter = true;
     }
 
     if (idb & INVALIDATE_NETGROUPS) {
         ctx->netgroup_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
         ctx->update_netgroup_filter = false;
-    } else if (netgroup) {
-        ctx->netgroup_name = talloc_strdup(ctx, netgroup);
+    } else if (values.netgroup) {
+        ctx->netgroup_name = talloc_strdup(ctx, values.netgroup);
         ctx->update_netgroup_filter = true;
     }
 
     if (idb & INVALIDATE_SERVICES) {
         ctx->service_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
         ctx->update_service_filter = false;
-    } else if (service) {
-        ctx->service_name = talloc_strdup(ctx, service);
+    } else if (values.service) {
+        ctx->service_name = talloc_strdup(ctx, values.service);
         ctx->update_service_filter = true;
     }
 
@@ -716,42 +735,31 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         ctx->autofs_filter = talloc_asprintf(ctx, "(&(objectclass=%s)(%s=*))",
                                              SYSDB_AUTOFS_MAP_OC, SYSDB_NAME);
         ctx->update_autofs_filter = false;
-    } else if (map) {
-        ctx->autofs_name = talloc_strdup(ctx, map);
+    } else if (values.map) {
+        ctx->autofs_name = talloc_strdup(ctx, values.map);
         ctx->update_autofs_filter = true;
     }
 
     if (idb & INVALIDATE_SSH_HOSTS) {
         ctx->ssh_host_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
         ctx->update_ssh_host_filter = false;
-    } else if (ssh_host) {
-        ctx->ssh_host_name = talloc_strdup(ctx, ssh_host);
+    } else if (values.ssh_host) {
+        ctx->ssh_host_name = talloc_strdup(ctx, values.ssh_host);
         ctx->update_ssh_host_filter = true;
     }
 
-    if (((idb & INVALIDATE_USERS) && !ctx->user_filter) ||
-        ((idb & INVALIDATE_GROUPS) && !ctx->group_filter) ||
-        ((idb & INVALIDATE_NETGROUPS) && !ctx->netgroup_filter) ||
-        ((idb & INVALIDATE_SERVICES) && !ctx->service_filter) ||
-        ((idb & INVALIDATE_AUTOFSMAPS) && !ctx->autofs_filter) ||
-        ((idb & INVALIDATE_SSH_HOSTS) && !ctx->ssh_host_filter) ||
-         (user && !ctx->user_name) ||
-         (group && !ctx->group_name) ||
-         (netgroup && !ctx->netgroup_name) ||
-         (service && !ctx->service_name) ||
-         (map && !ctx->autofs_name) ||
-         (ssh_host && !ctx->ssh_host_name)) {
+    if (is_filter_valid(ctx, &values, idb) == false) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Construction of filters failed\n");
         ret = ENOMEM;
         goto fini;
     }
 
-    ret = init_domains(ctx, domain);
+    ret = init_domains(ctx, values.domain);
     if (ret != EOK) {
-        if (domain) {
+        if (values.domain) {
             ERROR("Could not open domain %1$s. If the domain is a subdomain "
                   "(trusted domain), use fully qualified name instead of "
-                  "--domain/-d parameter.\n", domain);
+                  "--domain/-d parameter.\n", values.domain);
         } else {
             ERROR("Could not open available domains\n");
         }
@@ -764,10 +772,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 
 fini:
     poptFreeContext(pc);
-    free(user);
-    free(group);
-    free(netgroup);
-    free(domain);
+    free_input_values(&values);
     if (ret != EOK && ctx) {
         talloc_zfree(ctx);
     }
@@ -775,6 +780,60 @@ fini:
         *tctx = ctx;
     }
     return ret;
+}
+
+static bool is_filter_valid(struct cache_tool_ctx *ctx,
+                            struct input_values *values, int idb)
+{
+    if ((idb & INVALIDATE_USERS) && ctx->user_filter == NULL) {
+        return false;
+    }
+
+    if ((idb & INVALIDATE_GROUPS) && ctx->group_filter == NULL) {
+        return false;
+    }
+
+    if ((idb & INVALIDATE_NETGROUPS) && ctx->netgroup_filter == NULL) {
+        return false;
+    }
+
+    if ((idb & INVALIDATE_SERVICES) && ctx->service_filter == NULL) {
+        return false;
+    }
+
+    if ((idb & INVALIDATE_AUTOFSMAPS) && ctx->autofs_filter == NULL) {
+        return false;
+    }
+
+    if ((idb & INVALIDATE_SSH_HOSTS) && ctx->ssh_host_filter == NULL) {
+        return false;
+    }
+
+    if (values->user && ctx->user_name == NULL) {
+        return false;
+    }
+
+    if (values->group && ctx->group_name == NULL) {
+        return false;
+    }
+
+    if (values->netgroup && ctx->netgroup_name == NULL) {
+        return false;
+    }
+
+    if (values->service && ctx->service_name == NULL) {
+        return false;
+    }
+
+    if (values->map && ctx->autofs_name == NULL) {
+        return false;
+    }
+
+    if (values->ssh_host && ctx->ssh_host_name == NULL) {
+        return false;
+    }
+
+    return true;
 }
 
 static errno_t
