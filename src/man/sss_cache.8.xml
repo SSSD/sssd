@@ -180,6 +180,29 @@
                     </para>
                 </listitem>
             </varlistentry>
+           <varlistentry condition="with_sudo">
+                <term>
+                    <option>-r</option>,<option>--sudo-rule</option>
+                    <replaceable>rule</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate particular sudo rule.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_sudo">
+                <term>
+                    <option>-R</option>,<option>--sudo-rules</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all cached sudo rules. This option
+                        overrides invalidation of specific sudo rule
+                        if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
             <varlistentry>
                 <term>
                     <option>-d</option>,<option>--domain</option>

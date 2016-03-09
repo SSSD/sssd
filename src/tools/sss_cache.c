@@ -31,6 +31,7 @@
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_ssh.h"
+#include "db/sysdb_sudo.h"
 
 #define INVALIDATE_NONE 0
 #define INVALIDATE_USERS 1
@@ -39,6 +40,7 @@
 #define INVALIDATE_SERVICES 8
 #define INVALIDATE_AUTOFSMAPS 16
 #define INVALIDATE_SSH_HOSTS 32
+#define INVALIDATE_SUDO_RULES 64
 
 #ifdef BUILD_AUTOFS
 #ifdef BUILD_SSH
@@ -67,7 +69,8 @@ enum sss_cache_entry {
     TYPE_NETGROUP,
     TYPE_SERVICE,
     TYPE_AUTOFSMAP,
-    TYPE_SSH_HOST
+    TYPE_SSH_HOST,
+    TYPE_SUDO_RULE
 };
 
 static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx,
@@ -82,6 +85,7 @@ struct input_values {
     char *netgroup;
     char *service;
     char *ssh_host;
+    char *sudo_rule;
     char *user;
 };
 
@@ -95,6 +99,7 @@ struct cache_tool_ctx {
     char *service_filter;
     char *autofs_filter;
     char *ssh_host_filter;
+    char *sudo_rule_filter;
 
     char *user_name;
     char *group_name;
@@ -102,6 +107,7 @@ struct cache_tool_ctx {
     char *service_name;
     char *autofs_name;
     char *ssh_host_name;
+    char *sudo_rule_name;
 
     bool update_user_filter;
     bool update_group_filter;
@@ -109,6 +115,7 @@ struct cache_tool_ctx {
     bool update_service_filter;
     bool update_autofs_filter;
     bool update_ssh_host_filter;
+    bool update_sudo_rule_filter;
 };
 
 static void free_input_values(struct input_values *values);
@@ -185,6 +192,9 @@ int main(int argc, const char *argv[])
         skipped &= !invalidate_entries(tctx, dinfo, TYPE_SSH_HOST,
                                        tctx->ssh_host_filter,
                                        tctx->ssh_host_name);
+        skipped &= !invalidate_entries(tctx, dinfo, TYPE_SUDO_RULE,
+                                       tctx->sudo_rule_filter,
+                                       tctx->sudo_rule_name);
 
         ret = sysdb_transaction_commit(sysdb);
         if (ret != EOK) {
@@ -224,6 +234,7 @@ static void free_input_values(struct input_values *values)
     free(values->netgroup);
     free(values->service);
     free(values->ssh_host);
+    free(values->sudo_rule);
     free(values->user);
 }
 
@@ -380,6 +391,14 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
         return ret;
     }
 
+    /* Update sudo rule filter */
+    ret = update_filter(tctx, dinfo, tctx->sudo_rule_name,
+                        tctx->update_sudo_rule_filter, "(%s=%s)", false,
+                        &tctx->sudo_rule_filter);
+    if (ret != EOK) {
+        return ret;
+    }
+
     return EOK;
 }
 
@@ -431,6 +450,15 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
 #else  /* BUILD_SSH */
         ret = ENOSYS;
 #endif /* BUILD_SSH */
+        break;
+    case TYPE_SUDO_RULE:
+        type_string = "sudo_rule";
+#ifdef BUILD_SUDO
+        ret = sysdb_search_sudo_rules(ctx, dinfo,
+                                      filter, attrs, &msg_count, &msgs);
+#else  /* BUILD_SUDO */
+        ret = ENOSYS;
+#endif /* BUILD_SUDO */
         break;
     }
 
@@ -515,6 +543,14 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
 #else  /* BUILD_SSH */
                     ret = ENOSYS;
 #endif /* BUILD_SSH */
+                    break;
+                case TYPE_SUDO_RULE:
+#ifdef BUILD_SUDO
+                    ret = sysdb_set_sudo_rule_attr(domain, name,
+                                                   sys_attrs, SYSDB_MOD_REP);
+#else  /* BUILD_SUDO */
+                    ret = ENOSYS;
+#endif /* BUILD_SUDO */
                     break;
                 default:
                     return EINVAL;
@@ -605,7 +641,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &debug,
             0, _("The debug level to run with"), NULL },
         { "everything", 'E', POPT_ARG_NONE, NULL, 'e',
-            _("Invalidate all cached entries except for sudo rules"), NULL },
+            _("Invalidate all cached entries"), NULL },
         { "user", 'u', POPT_ARG_STRING, &(values.user), 0,
             _("Invalidate particular user"), NULL },
         { "users", 'U', POPT_ARG_NONE, NULL, 'u',
@@ -634,6 +670,12 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         { "ssh-hosts", 'H', POPT_ARG_NONE, NULL, 'h',
             _("Invalidate all SSH hosts"), NULL },
 #endif /* BUILD_SSH */
+#ifdef BUILD_SUDO
+        { "sudo-rule", 'r', POPT_ARG_STRING, &(values.sudo_rule), 0,
+            _("Invalidate particular sudo rule"), NULL },
+        { "sudo-rules", 'R', POPT_ARG_NONE, NULL, 'r',
+            _("Invalidate all cached sudo rules"), NULL },
+#endif /* BUILD_SUDO */
         { "domain", 'd', POPT_ARG_STRING, &(values.domain), 0,
             _("Only invalidate entries from a particular domain"), NULL },
         POPT_TABLEEND
@@ -668,8 +710,14 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
             case 'h':
                 idb |= INVALIDATE_SSH_HOSTS;
                 break;
+            case 'r':
+                idb |= INVALIDATE_SUDO_RULES;
+                break;
             case 'e':
                 idb = INVALIDATE_EVERYTHING;
+#ifdef BUILD_SUDO
+                idb |= INVALIDATE_SUDO_RULES;
+#endif /* BUILD_SUDO */
                 break;
         }
     }
@@ -683,7 +731,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 
     if (idb == INVALIDATE_NONE && !values.user && !values.group &&
         !values.netgroup && !values.service && !values.map &&
-        !values.ssh_host) {
+        !values.ssh_host && !values.sudo_rule) {
         BAD_POPT_PARAMS(pc,
                 _("Please select at least one object to invalidate\n"),
                 ret, fini);
@@ -746,6 +794,14 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     } else if (values.ssh_host) {
         ctx->ssh_host_name = talloc_strdup(ctx, values.ssh_host);
         ctx->update_ssh_host_filter = true;
+    }
+
+    if (idb & INVALIDATE_SUDO_RULES) {
+        ctx->sudo_rule_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
+        ctx->update_sudo_rule_filter = false;
+    } else if (values.sudo_rule) {
+        ctx->sudo_rule_name = talloc_strdup(ctx, values.sudo_rule);
+        ctx->update_sudo_rule_filter = true;
     }
 
     if (is_filter_valid(ctx, &values, idb) == false) {
@@ -830,6 +886,10 @@ static bool is_filter_valid(struct cache_tool_ctx *ctx,
     }
 
     if (values->ssh_host && ctx->ssh_host_name == NULL) {
+        return false;
+    }
+
+    if (values->sudo_rule && ctx->sudo_rule_name == NULL) {
         return false;
     }
 
