@@ -527,6 +527,7 @@ dist_noinst_HEADERS = \
     src/util/crypto/sss_crypto.h \
     src/util/cert.h \
     src/util/dlinklist.h \
+    src/util/debug.h \
     src/util/util.h \
     src/util/io.h \
     src/util/util_errors.h \
