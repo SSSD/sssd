@@ -210,6 +210,7 @@ void sss_vdebug_fn(const char *file,
                    long line,
                    const char *function,
                    int level,
+                   int flags,
                    const char *format,
                    va_list ap)
 {
@@ -265,6 +266,9 @@ void sss_vdebug_fn(const char *file,
     }
 
     debug_vprintf(format, ap);
+    if (flags & APPEND_LINE_FEED) {
+        debug_printf("\n");
+    }
     debug_fflush();
 }
 
@@ -277,7 +281,7 @@ void sss_debug_fn(const char *file,
     va_list ap;
 
     va_start(ap, format);
-    sss_vdebug_fn(file, line, function, level, format, ap);
+    sss_vdebug_fn(file, line, function, level, 0, format, ap);
     va_end(ap);
 }
 
@@ -302,7 +306,8 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
     }
 
     if (DEBUG_IS_SET(loglevel)) {
-        sss_vdebug_fn(__FILE__, __LINE__, "ldb", loglevel, fmt, ap);
+        sss_vdebug_fn(__FILE__, __LINE__, "ldb", loglevel, APPEND_LINE_FEED,
+                      fmt, ap);
     }
 }
 

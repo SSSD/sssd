@@ -29,6 +29,8 @@
 #define SSS_ATTRIBUTE_PRINTF(a1, a2)
 #endif
 
+#define APPEND_LINE_FEED 0x1
+
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
@@ -40,6 +42,7 @@ void sss_vdebug_fn(const char *file,
                    long line,
                    const char *function,
                    int level,
+                   int flags,
                    const char *format,
                    va_list ap);
 void sss_debug_fn(const char *file,
