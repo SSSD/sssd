@@ -53,7 +53,7 @@ enum hbac_debug_level {
 #ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
 #define HBAC_ATTRIBUTE_PRINTF(a1, a2) __attribute__((format(printf, a1, a2)))
 #else
-#define HABC_ATTRIBUTE_PRINTF(a1, a2)
+#define HBAC_ATTRIBUTE_PRINTF(a1, a2)
 #endif
 
 /**
