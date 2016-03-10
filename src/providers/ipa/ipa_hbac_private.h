@@ -24,7 +24,7 @@
 #define IPA_HBAC_PRIVATE_H_
 
 #include "providers/ipa/ipa_access.h"
-#include "providers/ipa/ipa_hbac.h"
+#include "lib/ipa_hbac/ipa_hbac.h"
 
 #define IPA_HBAC_RULE "ipaHBACRule"
 

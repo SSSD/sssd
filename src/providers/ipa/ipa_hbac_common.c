@@ -21,7 +21,6 @@
 */
 
 #include "providers/ipa/ipa_hbac_private.h"
-#include "providers/ipa/ipa_hbac.h"
 #include "providers/ipa/ipa_common.h"
 
 static errno_t

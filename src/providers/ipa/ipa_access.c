@@ -30,7 +30,6 @@
 #include "providers/ldap/sdap_access.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_access.h"
-#include "providers/ipa/ipa_hbac.h"
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ipa/ipa_hbac_rules.h"

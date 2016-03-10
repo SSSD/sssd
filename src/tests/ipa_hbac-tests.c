@@ -27,7 +27,7 @@
 #include <talloc.h>
 
 #include "tests/common_check.h"
-#include "providers/ipa/ipa_hbac.h"
+#include "lib/ipa_hbac/ipa_hbac.h"
 
 #define HBAC_TEST_USER "testuser"
 #define HBAC_TEST_INVALID_USER "nosuchuser"

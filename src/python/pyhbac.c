@@ -23,7 +23,7 @@
 
 #include "util/util.h"
 #include "util/sss_python.h"
-#include "providers/ipa/ipa_hbac.h"
+#include "lib/ipa_hbac/ipa_hbac.h"
 
 #define PYTHON_MODULE_NAME  "pyhbac"
 

@@ -443,7 +443,7 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/sysv/sssd src/sysv/gentoo/sssd src/sysv/SUSE/sssd
                  po/Makefile.in src/man/Makefile src/tests/cwrap/Makefile
                  src/tests/intg/Makefile
-                 src/providers/ipa/ipa_hbac.pc src/providers/ipa/ipa_hbac.doxy
+                 src/lib/ipa_hbac/ipa_hbac.pc src/lib/ipa_hbac/ipa_hbac.doxy
                  src/lib/idmap/sss_idmap.pc src/lib/idmap/sss_idmap.doxy
                  src/sss_client/idmap/sss_nss_idmap.pc
                  src/sss_client/idmap/sss_nss_idmap.doxy

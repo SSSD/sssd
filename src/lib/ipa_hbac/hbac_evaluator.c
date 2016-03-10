@@ -28,8 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "providers/ipa/ipa_hbac.h"
-#include "util/sss_utf8.h"
+#include "ipa_hbac.h"
+#include "sss_utf8.h"
 
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
@@ -358,7 +358,7 @@ static errno_t hbac_evaluate_element(struct hbac_rule_element *rule_el,
 
 const char *hbac_result_string(enum hbac_eval_result result)
 {
-    switch(result) {
+    switch (result) {
     case HBAC_EVAL_ALLOW:
         return "HBAC_EVAL_ALLOW";
     case HBAC_EVAL_DENY:
@@ -381,7 +381,7 @@ void hbac_free_info(struct hbac_info *info)
 
 const char *hbac_error_string(enum hbac_error_code code)
 {
-    switch(code) {
+    switch (code) {
     case HBAC_SUCCESS:
         return "Success";
     case HBAC_ERROR_NOT_IMPLEMENTED:

@@ -338,7 +338,6 @@ void hbac_free_info(struct hbac_info *info);
  */
 bool hbac_rule_is_complete(struct hbac_rule *rule, uint32_t *missing_attrs);
 
-
 /**
  * @}
  */

@@ -939,18 +939,22 @@ lib_LTLIBRARIES = libipa_hbac.la \
                   libsss_nss_idmap.la \
                   $(NULL)
 
-pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
-libipa_hbac_la_DEPENDENCIES = src/providers/ipa/ipa_hbac.exports
+pkgconfig_DATA += src/lib/ipa_hbac/ipa_hbac.pc
+libipa_hbac_la_DEPENDENCIES = src/lib/ipa_hbac/ipa_hbac.exports
 libipa_hbac_la_SOURCES = \
-    src/providers/ipa/hbac_evaluator.c \
+    src/lib/ipa_hbac/hbac_evaluator.c \
     src/util/sss_utf8.c
+libipa_hbac_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    -I$(top_srcdir)/src/util \
+    $(NULL)
 libipa_hbac_la_LIBADD = \
     $(UNICODE_LIBS)
 libipa_hbac_la_LDFLAGS = \
-    -Wl,--version-script,$(srcdir)/src/providers/ipa/ipa_hbac.exports \
+    -Wl,--version-script,$(srcdir)/src/lib/ipa_hbac/ipa_hbac.exports \
     -version-info 1:0:1
 
-dist_noinst_DATA += src/providers/ipa/ipa_hbac.exports
+dist_noinst_DATA += src/lib/ipa_hbac/ipa_hbac.exports
 
 pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
 libsss_idmap_la_DEPENDENCIES = src/lib/idmap/sss_idmap.exports
@@ -979,7 +983,7 @@ libsss_nss_idmap_la_LDFLAGS = \
 dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.exports
 
 include_HEADERS = \
-    src/providers/ipa/ipa_hbac.h \
+    src/lib/ipa_hbac/ipa_hbac.h \
     src/lib/idmap/sss_idmap.h \
     src/sss_client/idmap/sss_nss_idmap.h \
     $(NULL)
@@ -3555,7 +3559,7 @@ endif
 if HAVE_DOXYGEN
 docs:
 	$(DOXYGEN) src/doxy.config
-	$(DOXYGEN) src/providers/ipa/ipa_hbac.doxy
+	$(DOXYGEN) src/lib/ipa_hbac/ipa_hbac.doxy
 	$(DOXYGEN) src/lib/idmap/sss_idmap.doxy
 	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
 if BUILD_IFP
