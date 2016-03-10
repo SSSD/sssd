@@ -189,8 +189,8 @@ enum hbac_eval_result hbac_evaluate(struct hbac_rule **rules,
         } else {
             /* An error occurred processing this rule */
             HBAC_DEBUG(HBAC_DBG_ERROR,
-                       "Error occurred during evaluating of rule [%s].\n",
-                       rules[i]->name);
+                       "Error %d occurred during evaluating of rule [%s].\n",
+                       ret, rules[i]->name);
             result = HBAC_EVAL_ERROR;
             if (info) {
                 (*info)->code = ret;
@@ -223,13 +223,19 @@ enum hbac_eval_result_int hbac_evaluate_rule(struct hbac_rule *rule,
     errno_t ret;
     bool matched;
 
-    if (!rule->enabled) return HBAC_EVAL_UNMATCHED;
+    if (!rule->enabled) {
+        HBAC_DEBUG(HBAC_DBG_INFO, "Rule [%s] is not enabled\n", rule->name);
+        return HBAC_EVAL_UNMATCHED;
+    }
 
     /* Make sure we have all elements */
     if (!rule->users
      || !rule->services
      || !rule->targethosts
      || !rule->srchosts) {
+        HBAC_DEBUG(HBAC_DBG_INFO,
+                   "Rule [%s] cannot be parsed, some elements are empty\n",
+                   rule->name);
         *error = HBAC_ERROR_UNPARSEABLE_RULE;
         return HBAC_EVAL_MATCH_ERROR;
     }
@@ -239,6 +245,8 @@ enum hbac_eval_result_int hbac_evaluate_rule(struct hbac_rule *rule,
                                 hbac_req->user,
                                 &matched);
     if (ret != EOK) {
+        HBAC_DEBUG(HBAC_DBG_ERROR,
+                   "Cannot parse user elements of rule [%s]\n", rule->name);
         *error = HBAC_ERROR_UNPARSEABLE_RULE;
         return HBAC_EVAL_MATCH_ERROR;
     } else if (!matched) {
@@ -250,6 +258,8 @@ enum hbac_eval_result_int hbac_evaluate_rule(struct hbac_rule *rule,
                                 hbac_req->service,
                                 &matched);
     if (ret != EOK) {
+        HBAC_DEBUG(HBAC_DBG_ERROR,
+                   "Cannot parse service elements of rule [%s]\n", rule->name);
         *error = HBAC_ERROR_UNPARSEABLE_RULE;
         return HBAC_EVAL_MATCH_ERROR;
     } else if (!matched) {
@@ -261,6 +271,9 @@ enum hbac_eval_result_int hbac_evaluate_rule(struct hbac_rule *rule,
                                 hbac_req->targethost,
                                 &matched);
     if (ret != EOK) {
+        HBAC_DEBUG(HBAC_DBG_ERROR,
+                   "Cannot parse targethost elements of rule [%s]\n",
+                   rule->name);
         *error = HBAC_ERROR_UNPARSEABLE_RULE;
         return HBAC_EVAL_MATCH_ERROR;
     } else if (!matched) {
@@ -272,6 +285,9 @@ enum hbac_eval_result_int hbac_evaluate_rule(struct hbac_rule *rule,
                                 hbac_req->srchost,
                                 &matched);
     if (ret != EOK) {
+        HBAC_DEBUG(HBAC_DBG_ERROR,
+                   "Cannot parse srchost elements of rule [%s]\n",
+                   rule->name);
         *error = HBAC_ERROR_UNPARSEABLE_RULE;
         return HBAC_EVAL_MATCH_ERROR;
     } else if (!matched) {
