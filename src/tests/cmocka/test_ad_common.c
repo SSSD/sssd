@@ -207,7 +207,8 @@ static void test_ad_create_2way_trust_options(void **state)
                                                             test_ctx->ad_ctx,
                                                             REALMNAME,
                                                             DOMNAME,
-                                                            HOST_NAME);
+                                                            HOST_NAME,
+                                                            NULL);
     assert_non_null(test_ctx->ad_ctx->ad_options);
 
     assert_int_equal(test_ctx->ad_ctx->ad_options->id->schema_type,
@@ -272,7 +273,8 @@ test_ldap_conn_setup(void **state)
     ad_ctx->ad_options = ad_create_2way_trust_options(ad_ctx,
                                                       REALMNAME,
                                                       DOMNAME,
-                                                      HOST_NAME);
+                                                      HOST_NAME,
+                                                      NULL);
     assert_non_null(ad_ctx->ad_options);
 
     ad_ctx->gc_ctx = talloc_zero(ad_ctx, struct sdap_id_conn_ctx);

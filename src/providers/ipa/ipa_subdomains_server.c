@@ -176,7 +176,8 @@ static struct ad_options *ipa_ad_options_new(struct ipa_id_ctx *id_ctx,
         ad_options = ad_create_2way_trust_options(id_ctx,
                                                   id_ctx->server_mode->realm,
                                                   subdom->name,
-                                                  id_ctx->server_mode->hostname);
+                                                  id_ctx->server_mode->hostname,
+                                                  NULL);
     } else if (direction & LSA_TRUST_DIRECTION_INBOUND) {
         ad_options = ipa_create_1way_trust_ctx(id_ctx, forest,
                                                forest_realm, subdom);

@@ -139,7 +139,8 @@ static errno_t
 set_common_ad_trust_opts(struct ad_options *ad_options,
                          const char *realm,
                          const char *ad_domain,
-                         const char *hostname)
+                         const char *hostname,
+                         const char *keytab)
 {
     errno_t ret;
 
@@ -161,6 +162,14 @@ set_common_ad_trust_opts(struct ad_options *ad_options,
         return ret;
     }
 
+    if (keytab != NULL) {
+        ret = dp_opt_set_string(ad_options->basic, AD_KEYTAB, keytab);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot set keytab\n");
+            return ret;
+        }
+    }
+
     return EOK;
 }
 
@@ -168,7 +177,8 @@ struct ad_options *
 ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
                              const char *realm,
                              const char *ad_domain,
-                             const char *hostname)
+                             const char *hostname,
+                             const char *keytab)
 {
     struct ad_options *ad_options;
     errno_t ret;
@@ -176,7 +186,8 @@ ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
     ad_options = ad_create_default_options(mem_ctx);
     if (ad_options == NULL) return NULL;
 
-    ret = set_common_ad_trust_opts(ad_options, realm, ad_domain, hostname);
+    ret = set_common_ad_trust_opts(ad_options, realm, ad_domain, hostname,
+                                   keytab);
     if (ret != EOK) {
         talloc_free(ad_options);
         return NULL;
@@ -212,16 +223,8 @@ ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
     }
 
     ret = set_common_ad_trust_opts(ad_options, realm,
-                                   ad_domain, hostname);
+                                   ad_domain, hostname, keytab);
     if (ret != EOK) {
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    /* Set AD_KEYTAB to the special 1way keytab */
-    ret = dp_opt_set_string(ad_options->basic, AD_KEYTAB, keytab);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set trust keytab\n");
         talloc_free(ad_options);
         return NULL;
     }
