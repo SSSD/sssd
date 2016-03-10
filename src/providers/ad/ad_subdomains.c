@@ -108,9 +108,11 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     errno_t ret;
     const char *realm;
     const char *hostname;
+    const char *keytab;
 
     realm = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_KRB5_REALM);
     hostname = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_HOSTNAME);
+    keytab = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_KEYTAB);
     ad_domain = subdom->name;
     if (realm == NULL || hostname == NULL || ad_domain == NULL) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Missing realm or hostname.\n");
@@ -118,7 +120,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     }
 
     ad_options = ad_create_2way_trust_options(id_ctx, realm,
-                                              ad_domain, hostname);
+                                              ad_domain, hostname, keytab);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);

@@ -110,7 +110,8 @@ struct ad_options *ad_create_default_options(TALLOC_CTX *mem_ctx);
 struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
                                                 const char *realm,
                                                 const char *ad_domain,
-                                                const char *hostname);
+                                                const char *hostname,
+                                                const char *keytab);
 
 struct ad_options *ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
                                                 const char *ad_domain,
