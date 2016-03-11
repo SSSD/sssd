@@ -66,9 +66,12 @@ static errno_t set_close_on_exec(int fd)
     return EOK;
 }
 
-static int client_destructor(struct cli_ctx *ctx)
+static void client_close_fn(struct tevent_context *ev,
+                            struct tevent_fd *fde, int fd,
+                            void *ptr)
 {
     errno_t ret;
+    struct cli_ctx *ctx = talloc_get_type(ptr, struct cli_ctx);
 
     if ((ctx->cfd > 0) && close(ctx->cfd) < 0) {
         ret = errno;
@@ -80,7 +83,8 @@ static int client_destructor(struct cli_ctx *ctx)
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Terminated client [%p][%d]\n",
            ctx, ctx->cfd);
-    return 0;
+
+    ctx->cfd = -1;
 }
 
 static errno_t get_client_cred(struct cli_ctx *cctx)
@@ -474,11 +478,10 @@ static void accept_fd_handler(struct tevent_context *ev,
                accept_ctx->is_private ? " on privileged pipe" : "");
         return;
     }
+    tevent_fd_set_close_fn(cctx->cfde, client_close_fn);
 
     cctx->ev = ev;
     cctx->rctx = rctx;
-
-    talloc_set_destructor(cctx, client_destructor);
 
     /* Set up the idle timer */
     ret = reset_idle_timer(cctx);
