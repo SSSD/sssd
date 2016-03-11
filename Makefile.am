@@ -944,9 +944,14 @@ libipa_hbac_la_DEPENDENCIES = src/lib/ipa_hbac/ipa_hbac.exports
 libipa_hbac_la_SOURCES = \
     src/lib/ipa_hbac/hbac_evaluator.c \
     src/util/sss_utf8.c
+# libipa_hbac is also used by external projects such as pam_hbac which
+# support platforms that do not have a C99 compiler. We add -std=c89
+# explicitly here to make sure we don't accidentally add a C99 feature
+# to the libipa_hbac code
 libipa_hbac_la_CFLAGS = \
     $(AM_CFLAGS) \
     -I$(top_srcdir)/src/util \
+    -std=c89 \
     $(NULL)
 libipa_hbac_la_LIBADD = \
     $(UNICODE_LIBS)

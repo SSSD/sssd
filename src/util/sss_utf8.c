@@ -22,6 +22,9 @@
 
 #include "config.h"
 
+#include <string.h>
+#include <errno.h>
+
 #ifdef HAVE_LIBUNISTRING
 #include <unistr.h>
 #include <unicase.h>

@@ -23,11 +23,14 @@
 #ifndef SSS_UTF8_H_
 #define SSS_UTF8_H_
 
-#include "util/util.h"
-
 #ifndef ENOMATCH
 #define ENOMATCH -1
 #endif
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "util/util_errors.h"
 
 void sss_utf8_free(void *ptr);
 
