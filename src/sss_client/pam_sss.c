@@ -53,6 +53,7 @@
 #define FLAGS_IGNORE_UNKNOWN_USER (1 << 3)
 #define FLAGS_IGNORE_AUTHINFO_UNAVAIL (1 << 4)
 #define FLAGS_USE_2FA (1 << 5)
+#define FLAGS_ALLOW_MISSING_NAME (1 << 6)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
 #define FD_DESTRUCTOR "pam_sss:fd_destructor"
@@ -977,6 +978,27 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
 
+                if (pi->pam_user == NULL || *(pi->pam_user) == '\0') {
+                    ret = pam_set_item(pamh, PAM_USER, pi->cert_user);
+                    if (ret != PAM_SUCCESS) {
+                        D(("Failed to set PAM_USER during "
+                           "Smartcard authentication [%s]",
+                           pam_strerror(pamh, ret)));
+                        break;
+                    }
+
+                    ret = pam_get_item(pamh, PAM_USER,
+                                       (const void **)&(pi->pam_user));
+                    if (ret != PAM_SUCCESS) {
+                        D(("Failed to get PAM_USER during "
+                           "Smartcard authentication [%s]",
+                           pam_strerror(pamh, ret)));
+                        break;
+                    }
+
+                    pi->pam_user_size = strlen(pi->pam_user) + 1;
+                }
+
                 offset = strlen(pi->cert_user) + 1;
                 if (offset >= len) {
                     D(("Cert message size mismatch"));
@@ -1003,7 +1025,8 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
     return PAM_SUCCESS;
 }
 
-static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
+static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
+                         struct pam_items *pi)
 {
     int ret;
 
@@ -1021,10 +1044,18 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     pi->pam_service_size=strlen(pi->pam_service)+1;
 
     ret = pam_get_item(pamh, PAM_USER, (const void **) &(pi->pam_user));
+    if (ret == PAM_PERM_DENIED && (flags & FLAGS_ALLOW_MISSING_NAME)) {
+        pi->pam_user = "";
+        ret = PAM_SUCCESS;
+    }
     if (ret != PAM_SUCCESS) return ret;
     if (pi->pam_user == NULL) {
-        D(("No user found, aborting."));
-        return PAM_BAD_ITEM;
+        if (flags & FLAGS_ALLOW_MISSING_NAME) {
+            pi->pam_user = "";
+        } else {
+            D(("No user found, aborting."));
+            return PAM_BAD_ITEM;
+        }
     }
     if (strcmp(pi->pam_user, "root") == 0) {
         D(("pam_sss will not handle root."));
@@ -1512,6 +1543,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             *flags |= FLAGS_IGNORE_AUTHINFO_UNAVAIL;
         } else if (strcmp(*argv, "use_2fa") == 0) {
             *flags |= FLAGS_USE_2FA;
+        } else if (strcmp(*argv, "allow_missing_name") == 0) {
+            *flags |= FLAGS_ALLOW_MISSING_NAME;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -1676,7 +1709,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
     pi.requested_domains = domains;
 
-    ret = get_pam_items(pamh, &pi);
+    ret = get_pam_items(pamh, flags, &pi);
     if (ret != PAM_SUCCESS) {
         D(("get items returned error: %s", pam_strerror(pamh,ret)));
         if (flags & FLAGS_IGNORE_UNKNOWN_USER && ret == PAM_USER_UNKNOWN) {

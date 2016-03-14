@@ -46,6 +46,9 @@
             <arg choice='opt'>
                 <replaceable>domains=X</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>allow_missing_name</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -154,6 +157,30 @@
                             <manvolnum>5</manvolnum>
                         </citerefentry> manual page for more information
                         on these two PAM responder options.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>allow_missing_name</option>
+                </term>
+                <listitem>
+                    <para>
+                        The main purpose of this option is to let SSSD determine
+                        the user name based on additional information, e.g. the
+                        certificate from a Smartcard.
+                    </para>
+                    <para>
+                        The current use case are login managers which can
+                        monitor a Smartcard reader for card events. In case a
+                        Smartcard is inserted the login manager will call a PAM
+                        stack which includes a line like
+                        <programlisting>
+                            auth sufficient pam_sss.so allow_missing_name
+                        </programlisting>
+                        In this case SSSD will try to determine the user name
+                        based on the content of the Smartcard, returns it to
+                        pam_sss which will finally put it on the PAM stack.
                     </para>
                 </listitem>
             </varlistentry>
