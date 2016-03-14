@@ -232,7 +232,7 @@ if HAVE_CMOCKA
         sss_nss_idmap-tests \
         dyndns-tests \
         fqnames-tests \
-        #nestedgroups-tests \
+        nestedgroups-tests \
         test_sss_idmap \
         test_ipa_idmap \
         test_utils \
@@ -2302,29 +2302,29 @@ fqnames_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
-#nestedgroups_tests_SOURCES = \
-#    $(TEST_MOCK_PROVIDER_OBJ) \
-#    src/providers/ldap/sdap_idmap.c \
-#    src/tests/cmocka/test_nested_groups.c \
-#    src/tests/cmocka/common_mock_be.c \
-#    src/providers/ldap/sdap_async_nested_groups.c \
-#    src/providers/ldap/sdap_ad_groups.c \
-#    src/providers/ipa/ipa_dn.c \
-#    $(NULL)
-#nestedgroups_tests_CFLAGS = \
-#    $(AM_CFLAGS) \
-#    -DEXTERNAL_MEMBERS_CHUNK=1 \
-#    $(NULL)
-#nestedgroups_tests_LDADD = \
-#    $(CMOCKA_LIBS) \
-#    $(SSSD_LIBS) \
-#    $(SSSD_INTERNAL_LTLIBS) \
-#    libsss_idmap.la \
-#    libsss_test_common.la \
-#    $(NULL)
-#if BUILD_SYSTEMTAP
-#nestedgroups_tests_LDADD += stap_generated_probes.lo
-#endif
+nestedgroups_tests_SOURCES = \
+    $(TEST_MOCK_PROVIDER_OBJ) \
+    src/providers/ldap/sdap_idmap.c \
+    src/tests/cmocka/test_nested_groups.c \
+    src/tests/cmocka/common_mock_be.c \
+    src/providers/ldap/sdap_async_nested_groups.c \
+    src/providers/ldap/sdap_ad_groups.c \
+    src/providers/ipa/ipa_dn.c \
+    $(NULL)
+nestedgroups_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DEXTERNAL_MEMBERS_CHUNK=1 \
+    $(NULL)
+nestedgroups_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_idmap.la \
+    libsss_test_common.la \
+    $(NULL)
+if BUILD_SYSTEMTAP
+nestedgroups_tests_LDADD += stap_generated_probes.lo
+endif
 
 test_sss_idmap_SOURCES = \
     src/tests/cmocka/test_sss_idmap.c
