@@ -180,9 +180,11 @@ static void sssd_async_connect_done(struct tevent_context *ev,
     errno = 0;
     ret = connect(state->fd, (struct sockaddr *) &state->addr,
                   state->addr_len);
-    if ((ret != EOK) &&
-        (errno == EALREADY || errno == EINPROGRESS || errno == EINTR)) {
-        return; /* Try again later */
+    if (ret == -1) {
+        ret = errno;
+        if (ret == EALREADY || ret == EINPROGRESS || ret == EINTR) {
+            return; /* Try again later */
+        }
     }
 
     talloc_zfree(fde);
