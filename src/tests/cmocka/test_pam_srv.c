@@ -86,6 +86,9 @@ struct pam_test_ctx {
     int ncache_hits;
     int exp_pam_status;
     bool provider_contacted;
+
+    const char *pam_user_fqdn;
+    const char *wrong_user_fqdn;
 };
 
 /* Must be global because it is needed in some wrappers */
@@ -269,9 +272,22 @@ static void pam_test_setup_common(void)
 {
     errno_t ret;
 
+    pam_test_ctx->pam_user_fqdn = \
+                    sss_create_internal_fqname(pam_test_ctx,
+                                               "pamuser",
+                                               pam_test_ctx->tctx->dom->name);
+    assert_non_null(pam_test_ctx->pam_user_fqdn);
+
+    pam_test_ctx->wrong_user_fqdn = \
+                    sss_create_internal_fqname(pam_test_ctx,
+                                               "wronguser",
+                                               pam_test_ctx->tctx->dom->name);
+    assert_non_null(pam_test_ctx->wrong_user_fqdn);
+
     /* Prime the cache with a valid user */
     ret = sysdb_add_user(pam_test_ctx->tctx->dom,
-                         "pamuser", 123, 456, "pam user",
+                         pam_test_ctx->pam_user_fqdn,
+                         123, 456, "pam user",
                          "/home/pamuser", "/bin/sh", NULL,
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
@@ -286,8 +302,9 @@ static void pam_test_setup_common(void)
 
     /* Prime the cache with a user for wrong matches */
     ret = sysdb_add_user(pam_test_ctx->tctx->dom,
-                         "wronguser", 321, 654, "wrong user",
-                         "/home/wringuser", "/bin/sh", NULL,
+                         pam_test_ctx->wrong_user_fqdn,
+                         321, 654, "wrong user",
+                         "/home/wronguser", "/bin/sh", NULL,
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
@@ -379,10 +396,12 @@ static int pam_test_teardown(void **state)
 {
     int ret;
 
-    ret = sysdb_delete_user(pam_test_ctx->tctx->dom, "pamuser", 0);
+    ret = sysdb_delete_user(pam_test_ctx->tctx->dom,
+                            pam_test_ctx->pam_user_fqdn, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_delete_user(pam_test_ctx->tctx->dom, "wronguser", 0);
+    ret = sysdb_delete_user(pam_test_ctx->tctx->dom,
+                            pam_test_ctx->wrong_user_fqdn, 0);
     assert_int_equal(ret, EOK);
 
     talloc_free(pam_test_ctx);
@@ -943,7 +962,9 @@ void test_pam_cached_auth_success(void **state)
     /* Back end should be contacted */
     assert_true(pam_test_ctx->provider_contacted);
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
     assert_int_equal(ret, EOK);
 
     /* Reset before next call */
@@ -959,11 +980,14 @@ void test_pam_cached_auth_wrong_pw(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
     assert_int_equal(ret, EOK);
 
     ret = pam_set_last_online_auth_with_curr_token(pam_test_ctx->tctx->dom,
-                                                   "pamuser", time(NULL));
+                                                   pam_test_ctx->pam_user_fqdn,
+                                                   time(NULL));
     assert_int_equal(ret, EOK);
 
     common_test_pam_cached_auth("11111");
@@ -978,12 +1002,14 @@ void test_pam_cached_auth_opt_timeout(void **state)
     int ret;
     uint64_t last_online;
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
     assert_int_equal(ret, EOK);
 
     last_online = time(NULL) - CACHED_AUTH_TIMEOUT - 1;
     ret = pam_set_last_online_auth_with_curr_token(pam_test_ctx->tctx->dom,
-                                                   "pamuser",
+                                                   pam_test_ctx->pam_user_fqdn,
                                                    last_online);
     assert_int_equal(ret, EOK);
 
@@ -998,11 +1024,14 @@ void test_pam_cached_auth_timeout(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
     assert_int_equal(ret, EOK);
 
     ret = pam_set_last_online_auth_with_curr_token(pam_test_ctx->tctx->dom,
-                                                   "pamuser", 0);
+                                                   pam_test_ctx->pam_user_fqdn,
+                                                   0);
     assert_int_equal(ret, EOK);
 
     common_test_pam_cached_auth("12345");
@@ -1019,7 +1048,8 @@ void test_pam_cached_auth_success_combined_pw_with_cached_2fa(void **state)
 
     assert_true(pam_test_ctx->provider_contacted);
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  pam_test_ctx->pam_user_fqdn,
                                   "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1035,11 +1065,13 @@ void test_pam_cached_auth_failed_combined_pw_with_cached_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  pam_test_ctx->pam_user_fqdn,
                                   "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
     ret = pam_set_last_online_auth_with_curr_token(pam_test_ctx->tctx->dom,
-                                                   "pamuser", time(NULL));
+                                                   pam_test_ctx->pam_user_fqdn,
+                                                   time(NULL));
     assert_int_equal(ret, EOK);
 
     common_test_pam_cached_auth("1111abcde");
@@ -1075,7 +1107,8 @@ void test_pam_offline_auth_success(void **state)
     int ret;
 
     ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
-                               "pamuser@"TEST_DOM_NAME, "12345");
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
     assert_int_equal(ret, EOK);
 
     mock_input_pam(pam_test_ctx, "pamuser", "12345", NULL);
@@ -1099,7 +1132,9 @@ void test_pam_offline_auth_wrong_pw(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser@"TEST_DOM_NAME, "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
     assert_int_equal(ret, EOK);
 
     mock_input_pam(pam_test_ctx, "pamuser", "11111", NULL);
@@ -1124,7 +1159,8 @@ void test_pam_offline_auth_success_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
-                               "pamuser@"TEST_DOM_NAME, "12345");
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
     assert_int_equal(ret, EOK);
 
     mock_input_pam(pam_test_ctx, "pamuser", "12345", "abcde");
@@ -1149,7 +1185,8 @@ void test_pam_offline_auth_failed_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
-                               "pamuser@"TEST_DOM_NAME, "12345");
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
     assert_int_equal(ret, EOK);
 
     mock_input_pam(pam_test_ctx, "pamuser", "11111", "abcde");
@@ -1174,7 +1211,8 @@ void test_pam_offline_auth_success_2fa_with_cached_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
-                                  "pamuser@"TEST_DOM_NAME, "12345",
+                                  pam_test_ctx->pam_user_fqdn,
+                                  "12345",
                                   SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1200,7 +1238,8 @@ void test_pam_offline_auth_failed_2fa_with_cached_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
-                                  "pamuser@"TEST_DOM_NAME, "12345",
+                                  pam_test_ctx->pam_user_fqdn,
+                                  "12345",
                                   SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1226,7 +1265,8 @@ void test_pam_offline_auth_success_pw_with_cached_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
-                                  "pamuser@"TEST_DOM_NAME, "12345",
+                                  pam_test_ctx->pam_user_fqdn,
+                                  "12345",
                                   SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1252,7 +1292,8 @@ void test_pam_offline_auth_failed_pw_with_cached_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
-                                  "pamuser@"TEST_DOM_NAME, "12345",
+                                  pam_test_ctx->pam_user_fqdn,
+                                  "12345",
                                   SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1278,7 +1319,7 @@ void test_pam_offline_auth_success_combined_pw_with_cached_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
-                                  "pamuser@"TEST_DOM_NAME,
+                                  pam_test_ctx->pam_user_fqdn,
                                   "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1304,7 +1345,7 @@ void test_pam_offline_auth_failed_combined_pw_with_cached_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
-                                  "pamuser@"TEST_DOM_NAME,
+                                  pam_test_ctx->pam_user_fqdn,
                                   "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1330,7 +1371,7 @@ void test_pam_offline_auth_failed_wrong_2fa_size_with_cached_2fa(void **state)
     int ret;
 
     ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
-                                  "pamuser@"TEST_DOM_NAME,
+                                  pam_test_ctx->pam_user_fqdn,
                                   "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1458,7 +1499,9 @@ static int test_lookup_by_cert_cb(void *pvt)
         talloc_free(der);
         assert_int_equal(ret, EOK);
 
-        ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom, "pamuser", attrs,
+        ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                                  pam_test_ctx->pam_user_fqdn,
+                                  attrs,
                                   LDB_FLAG_MOD_ADD);
         assert_int_equal(ret, EOK);
     }
@@ -1484,7 +1527,9 @@ static int test_lookup_by_cert_wrong_user_cb(void *pvt)
         talloc_free(der);
         assert_int_equal(ret, EOK);
 
-        ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom, "wronguser", attrs,
+        ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                                  pam_test_ctx->wrong_user_fqdn,
+                                  attrs,
                                   LDB_FLAG_MOD_ADD);
         assert_int_equal(ret, EOK);
     }

@@ -1096,6 +1096,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     struct pam_ctx *pctx =
             talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
     struct tevent_req *req;
+    char *name = NULL;
 
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
@@ -1147,8 +1148,16 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                 goto done;
             }
 
+            name = sss_resp_create_fqname(preq, pctx->rctx, preq->domain,
+                                          preq->pd->name_is_upn,
+                                          preq->pd->user);
+            if (name == NULL) {
+                return ENOMEM;
+            }
+
             ncret = sss_ncache_check_user(pctx->rctx->ncache,
-                                          preq->domain, pd->user);
+                                          preq->domain, name);
+            talloc_free(name);
             if (ncret == EEXIST) {
                 /* User found in the negative cache */
                 ret = ENOENT;
@@ -1160,8 +1169,16 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                  dom = get_next_domain(dom, 0)) {
                 if (dom->fqnames) continue;
 
+                name = sss_resp_create_fqname(preq, pctx->rctx, dom,
+                                              preq->pd->name_is_upn,
+                                              preq->pd->user);
+                if (name == NULL) {
+                    return ENOMEM;
+                }
+
                 ncret = sss_ncache_check_user(pctx->rctx->ncache,
-                                              dom, pd->user);
+                                              dom, name);
+                talloc_free(name);
                 if (ncret == ENOENT) {
                     /* User not found in the negative cache
                      * Proceed with PAM actions
@@ -1441,17 +1458,11 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         preq->domain = dom;
 
         talloc_free(name);
-        name = sss_get_cased_name(preq, preq->pd->user,
-                                  dom->case_sensitive);
-        if (!name) {
-            return ENOMEM;
-        }
 
-        name = sss_reverse_replace_space(preq, name,
-                                         pctx->rctx->override_space);
+        name = sss_resp_create_fqname(preq, pctx->rctx, dom,
+                                      preq->pd->name_is_upn,
+                                      preq->pd->user);
         if (name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_reverse_replace_space failed\n");
             return ENOMEM;
         }
 
@@ -1474,8 +1485,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             /* Entry is still valid, get it from the sysdb */
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Requesting info for [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for [%s]\n", name);
 
         if (dom->sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
@@ -1511,7 +1521,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         if (ret == ENOENT) {
             if (preq->check_provider == false) {
                 /* set negative cache only if not result of cache check */
-                ret = sss_ncache_set_user(pctx->rctx->ncache, false, dom, name);
+                ret = sss_ncache_set_user(pctx->rctx->ncache,
+                                          false, dom, preq->pd->user);
                 if (ret != EOK) {
                     /* Should not be fatal, just slower next time */
                     DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1834,7 +1845,8 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         }
 
         /* pam_check_user_search() calls pd_set_primary_name() is the search
-         * was successful, so pd->user contains the canonical name as well */
+         * was successful, so pd->user contains the canonical sysdb name
+         * as well */
         if (strcmp(cert_user, preq->pd->user) == 0) {
 
             preq->pd->pam_status = PAM_SUCCESS;

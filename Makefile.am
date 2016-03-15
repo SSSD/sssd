@@ -256,7 +256,7 @@ if HAVE_CMOCKA
         responder_cache_req-tests \
         test_sbus_opath \
         test_fo_srv \
-        #pam-srv-tests \
+        pam-srv-tests \
         test_ipa_subdom_util \
         test_tools_colondb \
         test_krb5_wait_queue \

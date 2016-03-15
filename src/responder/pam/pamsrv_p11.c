@@ -508,7 +508,7 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
  * Settings Daemon to determine the name of the token used for login */
 #define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
 
-errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
+errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
                               const char *token_name)
 {
     uint8_t *msg = NULL;
@@ -517,24 +517,33 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
     size_t msg_len;
     size_t slot_len;
     int ret;
+    char *username;
 
-    if (user == NULL || token_name == NULL) {
+    if (sysdb_username == NULL || token_name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing mandatory user or slot name.\n");
         return EINVAL;
     }
 
-    user_len = strlen(user) + 1;
+    ret = sss_parse_internal_fqname(pd, sysdb_username, &username, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot parse [%s]\n", sysdb_username);
+        return ret;
+    }
+
+    user_len = strlen(username) + 1;
     slot_len = strlen(token_name) + 1;
     msg_len = user_len + slot_len;
 
     msg = talloc_zero_size(pd, msg_len);
     if (msg == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
+        talloc_free(username);
         return ENOMEM;
     }
 
-    memcpy(msg, user, user_len);
+    memcpy(msg, username, user_len);
     memcpy(msg + user_len, token_name, slot_len);
+    talloc_free(username);
 
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, msg_len, msg);
     talloc_free(msg);
