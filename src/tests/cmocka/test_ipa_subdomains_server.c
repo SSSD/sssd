@@ -69,6 +69,26 @@
 
 static bool global_rename_called;
 
+#ifdef HAVE_SELINUX
+/* Provide faster implementation of kerberos function
+ * krb5int_labeled_[f]?open. Real functions take care also
+ * about SELinux context which is very expensive operation
+ * and cause failures due to timeout when executing with valgrind.
+ * It's approximately 40 times slower with real function
+ */
+FILE *
+krb5int_labeled_fopen(const char *path, const char *mode)
+{
+    return fopen(path, mode);
+}
+
+int
+krb5int_labeled_open(const char *path, int flags, mode_t mode)
+{
+    return open(path, flags, mode);
+}
+#endif /* HAVE_SELINUX */
+
 krb5_error_code __wrap_krb5_kt_default(krb5_context context, krb5_keytab *id)
 {
     return krb5_kt_resolve(context, KEYTAB_PATH, id);
