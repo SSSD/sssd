@@ -1137,8 +1137,27 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
 
     ret = ini_config_parse(file_ctx, INI_STOP_ON_NONE, 0, 0, ini_config);
     if (ret != 0) {
+        int lret;
+        char **errors;
+
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_config_parse failed [%d][%s]\n", ret, strerror(ret));
+              "[%s]: ini_config_parse failed [%d][%s]\n",
+              filename, ret, strerror(ret));
+
+        /* Now get specific errors if there are any */
+        lret = ini_config_get_errors(ini_config, &errors);
+        if (lret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to get specific parse error [%d][%s]\n", lret,
+                  strerror(lret));
+            goto done;
+        }
+
+        for (int a = 0; errors[a]; a++) {
+             DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[a]);
+        }
+        ini_config_free_errors(errors);
+
         goto done;
     }
 
