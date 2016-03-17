@@ -242,6 +242,8 @@ int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
                                 struct sec_data *body)
 {
     const char *reason_phrase = reason ? reason : "";
+    bool add_content_length = true;
+    bool has_content_type = false;
     int ret;
 
     /* Status-Line */
@@ -251,9 +253,22 @@ int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
 
     /* Headers */
     for (int i = 0; i < num_headers; i++) {
+        if (strcasecmp(headers[i].name, "Content-Length") == 0) {
+            add_content_length = false;
+        } else if (strcasecmp(headers[i].name, "Content-Type") == 0) {
+            has_content_type = true;
+        }
         ret = sec_http_append_header(mem_ctx, &reply->data,
                                      headers[i].name, headers[i].value);
         if (ret) return ret;
+    }
+
+    if (!has_content_type) return EINVAL;
+
+    if (add_content_length) {
+        reply->data = talloc_asprintf_append_buffer(reply->data,
+                            "Content-Length: %u\r\n", (unsigned)body->length);
+        if (!reply->data) return ENOMEM;
     }
 
     /* CRLF separator before body */
@@ -460,4 +475,16 @@ int sec_add_provider(struct sec_ctx *sctx, struct provider_handle *handle)
     sctx->providers[c + 1] = NULL;
 
     return EOK;
+}
+
+bool sec_req_has_header(struct sec_req_ctx *req,
+                        const char *name, const char *value)
+{
+    for (int i = 0; i < req->num_headers; i++) {
+        if (strcasecmp(name, req->headers[i].name) == 0) {
+            if (value == NULL) return true;
+            return (strcasecmp(value, req->headers[i].value) == 0);
+        }
+    }
+    return false;
 }

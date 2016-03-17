@@ -405,6 +405,8 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     struct local_secret_state *state;
     struct local_context *lctx;
     struct sec_data body = { 0 };
+    const char *content_type;
+    bool body_is_json;
     char *req_path;
     char *secret;
     char **keys;
@@ -423,6 +425,19 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (sec_req_has_header(secreq, "Content-Type",
+                                  "application/json")) {
+        body_is_json = true;
+        content_type = "application/json";
+    } else if (sec_req_has_header(secreq, "Content-Type",
+                           "application/octet-stream")) {
+        body_is_json = false;
+        content_type = "application/octet-stream";
+    } else {
+        ret = EINVAL;
+        goto done;
+    }
+
     ret = local_secrets_map_path(state, secreq, &req_path);
     if (ret) goto done;
 
@@ -434,21 +449,36 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
 
             ret = sec_array_to_json(state, keys, nkeys, &body.data);
             if (ret) goto done;
-        } else {
-            ret = local_db_get_simple(state, lctx, req_path, &secret);
-            if (ret) goto done;
 
-            ret = sec_simple_secret_to_json(state, secret, &body.data);
-            if (ret) goto done;
+            body.length = strlen(body.data);
+            break;
         }
 
-        body.length = strlen(body.data);
+        ret = local_db_get_simple(state, lctx, req_path, &secret);
+        if (ret) goto done;
+
+        if (body_is_json) {
+            ret = sec_simple_secret_to_json(state, secret, &body.data);
+            if (ret) goto done;
+
+            body.length = strlen(body.data);
+        } else {
+            body.data = (void *)sss_base64_decode(state, secret, &body.length);
+            ret = body.data ? EOK : ENOMEM;
+        }
+        if (ret) goto done;
+
         break;
 
     case HTTP_PUT:
-        /*FIXME: check fot content-type */
-
-        ret = sec_json_to_simple_secret(state, secreq->body.data, &secret);
+        if (body_is_json) {
+            ret = sec_json_to_simple_secret(state, secreq->body.data,
+                                            &secret);
+        } else {
+            secret = sss_base64_encode(state, (uint8_t *)secreq->body.data,
+                                       secreq->body.length);
+            ret = secret ? EOK : ENOMEM;
+        }
         if (ret) goto done;
 
         ret = local_db_put_simple(state, lctx, req_path, secret);
@@ -467,7 +497,7 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
 
     if (body.data) {
         ret = sec_http_reply_with_body(secreq, &secreq->reply, STATUS_200,
-                                       "application/json", &body);
+                                       content_type, &body);
     } else {
         ret = sec_http_status_reply(secreq, &secreq->reply, STATUS_200);
     }

@@ -131,6 +131,9 @@ int sec_array_to_json(TALLOC_CTX *mem_ctx,
                       char **array, int count,
                       char **output);
 
+bool sec_req_has_header(struct sec_req_ctx *req,
+                        const char *name, const char *value);
+
 /* secsrv_cmd.c */
 #define SEC_REQUEST_MAX_SIZE 65536
 #define SEC_PACKET_MAX_RECV_SIZE 8192
