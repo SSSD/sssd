@@ -504,10 +504,15 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+/* The PKCS11_LOGIN_TOKEN_NAME environment variable is e.g. used by the Gnome
+ * Settings Daemon to determine the name of the token used for login */
+#define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
+
 errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
                               const char *token_name)
 {
     uint8_t *msg = NULL;
+    char *env = NULL;
     size_t user_len;
     size_t msg_len;
     size_t slot_len;
@@ -533,6 +538,26 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
 
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, msg_len, msg);
     talloc_free(msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "pam_add_response failed to add certificate info.\n");
+        return ret;
+    }
+
+    env = talloc_asprintf(pd, "%s=%s", PKCS11_LOGIN_TOKEN_ENV_NAME, token_name);
+    if (env == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        return ENOMEM;
+    }
+
+    ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env) + 1,
+                           (uint8_t *)env);
+    talloc_free(env);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "pam_add_response failed to add environment variable.\n");
+        return ret;
+    }
 
     return ret;
 }
