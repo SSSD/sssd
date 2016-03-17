@@ -150,6 +150,7 @@ static void test_sysdb_store_override(void **state)
     struct ldb_message **msgs;
     struct sysdb_attrs *attrs;
     size_t count;
+    char *name;
     const char override_dn_str[] = SYSDB_OVERRIDE_ANCHOR_UUID "=" \
                        TEST_ANCHOR_PREFIX TEST_USER_SID "," TEST_VIEW_CONTAINER;
 
@@ -157,14 +158,17 @@ static void test_sysdb_store_override(void **state)
                                                          struct sysdb_test_ctx);
 
     test_ctx->domain->mpg = false;
+    name = sss_create_internal_fqname(test_ctx, TEST_USER_NAME,
+                                      test_ctx->domain->name);
+    assert_non_null(name);
 
-    ret = sysdb_store_user(test_ctx->domain, TEST_USER_NAME, NULL,
+    ret = sysdb_store_user(test_ctx->domain, name, NULL,
                            TEST_USER_UID, TEST_USER_GID, TEST_USER_GECOS,
                            TEST_USER_HOMEDIR, TEST_USER_SHELL, NULL, NULL, NULL,
                            0,0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, name,
                                     NULL, &msg);
     assert_int_equal(ret, EOK);
     assert_non_null(msg);
@@ -378,6 +382,7 @@ void test_sysdb_delete_view_tree(void **state)
     struct sysdb_attrs *attrs;
     size_t count;
     struct ldb_dn *views_dn;
+    char *name;
 
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
@@ -387,13 +392,17 @@ void test_sysdb_delete_view_tree(void **state)
     ret = sysdb_update_view_name(test_ctx->domain->sysdb, TEST_VIEW_NAME);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_user(test_ctx->domain, TEST_USER_NAME, NULL,
+    name = sss_create_internal_fqname(test_ctx, TEST_USER_NAME,
+                                      test_ctx->domain->name);
+    assert_non_null(name);
+
+    ret = sysdb_store_user(test_ctx->domain, name, NULL,
                            TEST_USER_UID, TEST_USER_GID, TEST_USER_GECOS,
                            TEST_USER_HOMEDIR, TEST_USER_SHELL, NULL, NULL, NULL,
                            0,0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, name,
                                     NULL, &msg);
     assert_int_equal(ret, EOK);
     assert_non_null(msg);
@@ -436,6 +445,7 @@ void test_sysdb_invalidate_overrides(void **state)
     struct ldb_message *msg;
     struct sysdb_attrs *attrs;
     struct ldb_dn *views_dn;
+    char *name;
     const char *user_attrs[] = { SYSDB_NAME,
                                  SYSDB_CACHE_EXPIRE,
                                  SYSDB_OVERRIDE_DN,
@@ -445,17 +455,21 @@ void test_sysdb_invalidate_overrides(void **state)
                                                          struct sysdb_test_ctx);
 
     test_ctx->domain->mpg = false;
+    name = sss_create_internal_fqname(test_ctx, TEST_USER_NAME,
+                                      test_ctx->domain->name);
+    assert_non_null(name);
+
 
     ret = sysdb_update_view_name(test_ctx->domain->sysdb, TEST_VIEW_NAME);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_user(test_ctx->domain, TEST_USER_NAME, NULL,
+    ret = sysdb_store_user(test_ctx->domain, name, NULL,
                            TEST_USER_UID, TEST_USER_GID, TEST_USER_GECOS,
                            TEST_USER_HOMEDIR, TEST_USER_SHELL, NULL, NULL, NULL,
                            10,0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, name,
                                     NULL, &msg);
     assert_int_equal(ret, EOK);
     assert_non_null(msg);
@@ -478,7 +492,7 @@ void test_sysdb_invalidate_overrides(void **state)
     ret = sysdb_delete_view_tree(test_ctx->domain->sysdb, TEST_VIEW_NAME);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, name,
                                     user_attrs, &msg);
     assert_int_equal(ret, EOK);
     assert_non_null(msg);
@@ -488,7 +502,7 @@ void test_sysdb_invalidate_overrides(void **state)
     ret = sysdb_invalidate_overrides(test_ctx->domain->sysdb);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, name,
                                     user_attrs, &msg);
     assert_int_equal(ret, EOK);
     assert_non_null(msg);
@@ -496,7 +510,7 @@ void test_sysdb_invalidate_overrides(void **state)
                      1);
     assert_null(ldb_msg_find_attr_as_string(msg, SYSDB_OVERRIDE_DN, NULL));
 
-    ret = sysdb_delete_user(test_ctx->domain, TEST_USER_NAME, 0);
+    ret = sysdb_delete_user(test_ctx->domain, name, 0);
     assert_int_equal(ret, EOK);
 }
 
@@ -542,19 +556,23 @@ static void enum_test_add_users(struct sysdb_test_ctx *test_ctx,
     int i;
     int ret;
     struct sysdb_attrs *attrs;
+    char *name = NULL;
 
     for (i = 0; usernames[i] != NULL; i++) {
         attrs = talloc(test_ctx, struct sysdb_attrs);
         assert_non_null(attrs);
-
-        ret = sysdb_store_user(test_ctx->domain, usernames[i],
+        name = sss_create_internal_fqname(test_ctx, usernames[i],
+                                          test_ctx->domain->name);
+        assert_non_null(name);
+        ret = sysdb_store_user(test_ctx->domain, name,
                                NULL, 0, 0, usernames[i], "/", "/bin/sh",
                                NULL, NULL, NULL, 1, 1234 + i);
         assert_int_equal(ret, EOK);
 
-        enum_test_user_override(test_ctx, usernames[i]);
+        enum_test_user_override(test_ctx, name);
 
         talloc_free(attrs);
+        talloc_free(name);
     }
 }
 
@@ -779,16 +797,19 @@ static void enum_test_add_groups(struct sysdb_test_ctx *test_ctx,
     int i;
     int ret;
     struct sysdb_attrs *attrs;
+    char *gr_name;
 
     for (i = 0; groupnames[i] != NULL; i++) {
         attrs = talloc(test_ctx, struct sysdb_attrs);
         assert_non_null(attrs);
 
-        ret = sysdb_store_group(test_ctx->domain, groupnames[i],
+        gr_name = sss_create_internal_fqname(test_ctx, groupnames[i],
+                                             test_ctx->domain->name);
+        ret = sysdb_store_group(test_ctx->domain, gr_name,
                                 0, NULL, 1, 1234 + i);
         assert_int_equal(ret, EOK);
 
-        enum_test_group_override(test_ctx, groupnames[i],
+        enum_test_group_override(test_ctx, gr_name,
                                  TEST_GID_OVERRIDE_BASE + i);
         talloc_free(attrs);
     }
