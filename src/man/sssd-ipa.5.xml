@@ -117,7 +117,7 @@
                     <listitem>
                         <para>
                             Optional. This option tells SSSD to automatically
-                            update the DNS server built into FreeIPA v2 with
+                            update the DNS server built into FreeIPA with
                             the IP address of this client. The update is
                             secured using GSS-TSIG. The IP address of the IPA
                             LDAP connection is used for the updates, if it is
