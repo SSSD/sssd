@@ -601,6 +601,8 @@ static int test_pam_simple_check(uint32_t status, uint8_t *body, size_t blen)
     return EOK;
 }
 
+#define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
+
 static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
 {
     size_t rp = 0;
@@ -612,7 +614,7 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
     assert_int_equal(val, pam_test_ctx->exp_pam_status);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, 2);
+    assert_int_equal(val, 3);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
     assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
@@ -622,6 +624,16 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
 
     assert_int_equal(*(body + rp + val - 1), 0);
     assert_string_equal(body + rp, TEST_DOM_NAME);
+    rp += val;
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_ENV_ITEM);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, (strlen(PKCS11_LOGIN_TOKEN_ENV_NAME "=")
+                           + sizeof(TEST_TOKEN_NAME)));
+    assert_string_equal(body + rp,
+                        PKCS11_LOGIN_TOKEN_ENV_NAME "=" TEST_TOKEN_NAME);
     rp += val;
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
