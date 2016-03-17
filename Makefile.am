@@ -224,7 +224,7 @@ endif # HAVE_CHECK
 
 if HAVE_CMOCKA
     non_interactive_cmocka_based_tests = \
-        #nss-srv-tests \
+        nss-srv-tests \
         test-find-uid \
         test-io \
         test-negcache \
@@ -2083,6 +2083,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/responder_common.c \
      src/responder/common/data_provider/rdp_message.c \
      src/responder/common/data_provider/rdp_client.c \
+     src/responder/common/responder_utils.c \
      src/responder/common/responder_cache_req.c
 
 TEST_MOCK_PROVIDER_OBJ = \
@@ -2098,68 +2099,68 @@ TEST_MOCK_PROVIDER_OBJ = \
      src/tests/cmocka/common_mock_sdap.c \
      src/tests/cmocka/common_mock_sysdb_objects.c
 
-#EXTRA_nss_srv_tests_DEPENDENCIES = \
-#     $(ldblib_LTLIBRARIES)
-#nss_srv_tests_SOURCES = \
-#     $(TEST_MOCK_RESP_OBJ) \
-#     src/tests/cmocka/test_nss_srv.c \
-#     src/responder/nss/nsssrv_cmd.c \
-#     src/responder/nss/nsssrv_netgroup.c \
-#     src/responder/nss/nsssrv_services.c \
-#     src/responder/nss/nsssrv_mmap_cache.c
-#nss_srv_tests_CFLAGS = \
-#    $(AM_CFLAGS)
-#nss_srv_tests_LDFLAGS = \
-#    -Wl,-wrap,sss_ncache_check_user \
-#    -Wl,-wrap,sss_ncache_check_uid \
-#    -Wl,-wrap,sss_ncache_check_sid \
-#    -Wl,-wrap,sss_ncache_check_cert \
-#    -Wl,-wrap,sss_packet_get_body \
-#    -Wl,-wrap,sss_packet_get_cmd \
-#    -Wl,-wrap,sss_cmd_send_empty \
-#    -Wl,-wrap,sss_cmd_done
-#nss_srv_tests_LDADD = \
-#    $(CMOCKA_LIBS) \
-#    $(SSSD_LIBS) \
-#    $(SSSD_INTERNAL_LTLIBS) \
-#    $(SYSTEMD_DAEMON_LIBS) \
-#    libsss_test_common.la \
-#    libsss_cert.la \
-#    libsss_idmap.la
+EXTRA_nss_srv_tests_DEPENDENCIES = \
+     $(ldblib_LTLIBRARIES)
+nss_srv_tests_SOURCES = \
+     $(TEST_MOCK_RESP_OBJ) \
+     src/tests/cmocka/test_nss_srv.c \
+     src/responder/nss/nsssrv_cmd.c \
+     src/responder/nss/nsssrv_netgroup.c \
+     src/responder/nss/nsssrv_services.c \
+     src/responder/nss/nsssrv_mmap_cache.c
+nss_srv_tests_CFLAGS = \
+    $(AM_CFLAGS)
+nss_srv_tests_LDFLAGS = \
+    -Wl,-wrap,sss_ncache_check_user \
+    -Wl,-wrap,sss_ncache_check_uid \
+    -Wl,-wrap,sss_ncache_check_sid \
+    -Wl,-wrap,sss_ncache_check_cert \
+    -Wl,-wrap,sss_packet_get_body \
+    -Wl,-wrap,sss_packet_get_cmd \
+    -Wl,-wrap,sss_cmd_send_empty \
+    -Wl,-wrap,sss_cmd_done
+nss_srv_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
+    libsss_test_common.la \
+    libsss_cert.la \
+    libsss_idmap.la
 
-#EXTRA_pam_srv_tests_DEPENDENCIES = \
-#    $(ldblib_LTLIBRARIES) \
-#    $(NULL)
-#pam_srv_tests_SOURCES = \
-#    $(TEST_MOCK_RESP_OBJ) \
-#    src/tests/cmocka/test_pam_srv.c \
-#    src/sss_client/pam_message.c \
-#    src/responder/pam/pamsrv_cmd.c \
-#    src/responder/pam/pamsrv_p11.c \
-#    src/responder/pam/pam_helpers.c \
-#    src/responder/pam/pamsrv_dp.c \
-#    src/responder/pam/pam_LOCAL_domain.c \
-#    $(NULL)
-#pam_srv_tests_CFLAGS = \
-#    -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
-#    $(AM_CFLAGS) \
-#    $(NULL)
-#pam_srv_tests_LDFLAGS = \
-#    -Wl,-wrap,sss_packet_get_body \
-#    -Wl,-wrap,sss_packet_get_cmd \
-#    -Wl,-wrap,sss_cmd_send_empty \
-#    -Wl,-wrap,sss_cmd_done \
-#    -Wl,-wrap,pam_dp_send_req \
-#    $(NULL)
-#pam_srv_tests_LDADD = \
-#    $(CMOCKA_LIBS) \
-#    $(PAM_LIBS) \
-#    $(SSSD_LIBS) \
-#    $(SSSD_INTERNAL_LTLIBS) \
-#    $(SYSTEMD_DAEMON_LIBS) \
-#    libsss_test_common.la \
-#    libsss_idmap.la \
-#    $(NULL)
+EXTRA_pam_srv_tests_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES) \
+    $(NULL)
+pam_srv_tests_SOURCES = \
+    $(TEST_MOCK_RESP_OBJ) \
+    src/tests/cmocka/test_pam_srv.c \
+    src/sss_client/pam_message.c \
+    src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_p11.c \
+    src/responder/pam/pam_helpers.c \
+    src/responder/pam/pamsrv_dp.c \
+    src/responder/pam/pam_LOCAL_domain.c \
+    $(NULL)
+pam_srv_tests_CFLAGS = \
+    -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
+    $(AM_CFLAGS) \
+    $(NULL)
+pam_srv_tests_LDFLAGS = \
+    -Wl,-wrap,sss_packet_get_body \
+    -Wl,-wrap,sss_packet_get_cmd \
+    -Wl,-wrap,sss_cmd_send_empty \
+    -Wl,-wrap,sss_cmd_done \
+    -Wl,-wrap,pam_dp_send_req \
+    $(NULL)
+pam_srv_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(PAM_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
+    libsss_test_common.la \
+    libsss_idmap.la \
+    $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
@@ -2524,12 +2525,11 @@ sdap_tests_LDADD = \
 
 if BUILD_IFP
 ifp_tests_SOURCES = \
-     $(TEST_MOCK_RESP_OBJ) \
+    $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_ifp.c \
     src/responder/ifp/ifpsrv_cmd.c \
     src/responder/ifp/ifp_iface_generated.c \
     src/responder/ifp/ifpsrv_util.c \
-    src/responder/common/responder_utils.c \
     $(NULL)
 ifp_tests_CFLAGS = \
     $(AM_CFLAGS)

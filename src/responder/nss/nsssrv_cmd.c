@@ -193,21 +193,10 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
                                         struct sss_nss_homedir_ctx *homedir_ctx)
 {
     const char *homedir;
-    const char *orig_name = homedir_ctx->username;
-    errno_t ret;
 
     homedir = sss_view_ldb_msg_find_attr_as_string(dom, msg, SYSDB_HOMEDIR,
                                                    NULL);
     homedir_ctx->original = homedir;
-
-    /* Subdomain users store FQDN in their name attribute */
-    ret = sss_parse_name_const(mem_ctx, dom->names, orig_name,
-                               NULL, &homedir_ctx->username);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Could not parse [%s] into "
-              "name-value components.\n", orig_name);
-        return NULL;
-    }
 
     /* Check to see which homedir_prefix to use. */
     if (dom->homedir_substr != NULL) {
@@ -324,6 +313,93 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
     return talloc_strdup(mem_ctx, NOLOGIN_SHELL);
 }
 
+static int sized_output_name(TALLOC_CTX *mem_ctx,
+                             struct resp_ctx *rctx,
+                             const char *orig_name,
+                             struct sss_domain_info *name_dom,
+                             struct sized_string **_name)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
+    char *username;
+    struct sized_string *name;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    username = sss_output_name(tmp_ctx, orig_name, name_dom->case_preserve,
+                               rctx->override_space);
+    if (username == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    if (name_dom->fqnames) {
+        username = sss_tc_fqname(tmp_ctx, name_dom->names, name_dom, username);
+        if (username == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
+            ret = EIO;
+            goto done;
+        }
+    }
+
+    name = talloc_zero(tmp_ctx, struct sized_string);
+    if (name == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    to_sized_string(name, username);
+    name->str = talloc_steal(name, username);
+    *_name = talloc_steal(mem_ctx, name);
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static int sized_member_name(TALLOC_CTX *mem_ctx,
+                             struct resp_ctx *rctx,
+                             const char *member_name,
+                             struct sized_string **_name)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
+    char *domname;
+    struct sss_domain_info *member_dom;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_parse_internal_fqname(tmp_ctx, member_name, NULL, &domname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_parse_internal_fqname failed\n");
+        goto done;
+    }
+
+    if (domname == NULL) {
+        ret = ERR_WRONG_NAME_FORMAT;
+        goto done;
+    }
+
+    member_dom = find_domain_by_name(get_domains_head(rctx->domains),
+                                     domname, true);
+    if (member_dom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
+
+    ret = sized_output_name(mem_ctx, rctx, member_name,
+                            member_dom, _name);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static int fill_pwent(struct sss_packet *packet,
                       struct sss_domain_info *dom,
                       struct nss_ctx *nctx,
@@ -336,18 +412,15 @@ static int fill_pwent(struct sss_packet *packet,
     const char *upn;
     const char *tmpstr;
     const char *orig_name;
-    struct sized_string name;
+    struct sized_string *name;
     struct sized_string gecos;
     struct sized_string homedir;
     struct sized_string shell;
     struct sized_string pwfield;
-    struct sized_string fullname;
     uint32_t uid;
     uint32_t gid;
     size_t rsize, rp, blen;
-    int fq_len = 0;
     int i, ret, num;
-    bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
     bool packet_initialized = false;
     int ncret;
@@ -371,10 +444,6 @@ static int fill_pwent(struct sss_packet *packet,
             orig_name = ldb_msg_find_attr_as_string(msg,
                                                     OVERRIDE_PREFIX SYSDB_NAME,
                                                     NULL);
-            if (orig_name != NULL && IS_SUBDOMAIN(dom)) {
-                /* Override names are not fully qualified */
-                add_domain = true;
-            }
 
             gid = ldb_msg_find_attr_as_uint64(msg,
                                               OVERRIDE_PREFIX SYSDB_GIDNUM, 0);
@@ -408,8 +477,7 @@ static int fill_pwent(struct sss_packet *packet,
             ncret = sss_ncache_check_user(nctx->rctx->ncache, dom, orig_name);
             if (ncret == EEXIST) {
                 DEBUG(SSSDBG_TRACE_FUNC,
-                      "User [%s@%s] filtered out! (negative cache)\n",
-                       orig_name, domain);
+                      "User [%s] filtered out! (negative cache)\n", orig_name);
                 continue;
             }
         }
@@ -421,22 +489,13 @@ static int fill_pwent(struct sss_packet *packet,
             packet_initialized = true;
         }
 
-        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_preserve);
-        if (tmpstr == NULL) {
+        ret = sized_output_name(tmp_ctx, nctx->rctx, orig_name,
+                                dom, &name);
+        if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_get_cased_name failed, skipping\n");
+                  "sized_output_name failed, skipping\n");
             continue;
         }
-
-        tmpstr = sss_replace_space(tmp_ctx, tmpstr,
-                                   nctx->rctx->override_space);
-        if (tmpstr == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_replace_space failed, skipping\n");
-            continue;
-        }
-
-        to_sized_string(&name, tmpstr);
 
         tmpstr = sss_view_ldb_msg_find_attr_as_string(dom, msg, SYSDB_GECOS,
                                                       NULL);
@@ -447,8 +506,7 @@ static int fill_pwent(struct sss_packet *packet,
         }
 
         ZERO_STRUCT(homedir_ctx);
-
-        homedir_ctx.username = name.str;
+        homedir_ctx.username = orig_name;
         homedir_ctx.uid = uid;
         homedir_ctx.domain = dom->name;
         homedir_ctx.upn = upn;
@@ -467,19 +525,8 @@ static int fill_pwent(struct sss_packet *packet,
             to_sized_string(&shell, tmpstr);
         }
 
-        rsize = 2 * sizeof(uint32_t) + name.len + gecos.len +
+        rsize = 2 * sizeof(uint32_t) + name->len + gecos.len +
                                        homedir.len + shell.len + pwfield.len;
-
-        if (add_domain) {
-            fq_len = sss_fqname(NULL, 0, dom->names, dom, name.str);
-            if (fq_len >= 0) {
-                fq_len += 1;
-                rsize -= name.len;
-                rsize += fq_len;
-            } else {
-                fq_len = 0;
-            }
-        }
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -490,20 +537,8 @@ static int fill_pwent(struct sss_packet *packet,
 
         SAFEALIGN_SET_UINT32(&body[rp], uid, &rp);
         SAFEALIGN_SET_UINT32(&body[rp], gid, &rp);
-
-        if (add_domain) {
-            ret = sss_fqname((char *) &body[rp], fq_len, dom->names, dom, name.str);
-            if (ret < 0 || ret != fq_len - 1) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to generate a fully qualified name for user "
-                          "[%s] in [%s]! Skipping user.\n", name.str, domain);
-                continue;
-            }
-        } else {
-            memcpy(&body[rp], name.str, name.len);
-        }
-        to_sized_string(&fullname, (const char *)&body[rp]);
-        rp += fullname.len;
+        memcpy(&body[rp], name->str, name->len);
+        rp += name->len;
 
         memcpy(&body[rp], pwfield.str, pwfield.len);
         rp += pwfield.len;
@@ -518,13 +553,13 @@ static int fill_pwent(struct sss_packet *packet,
 
         if (pw_mmap_cache && nctx->pwd_mc_ctx) {
             ret = sss_mmap_cache_pw_store(&nctx->pwd_mc_ctx,
-                                          &fullname, &pwfield,
+                                          name, &pwfield,
                                           uid, gid,
                                           &gecos, &homedir, &shell);
             if (ret != EOK && ret != ENOMEM) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to store user %s(%s) in mmap cache!\n",
-                        name.str, domain);
+                       name->str, domain);
             }
         }
     }
@@ -881,13 +916,14 @@ static void nsssrv_dp_send_acct_req_done(struct tevent_req *req)
     cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
 }
 
-static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
+static int delete_entry_from_memcache(struct sss_domain_info *dom,
+                                      char *name,
+                                      struct resp_ctx *rctx,
                                       struct sss_mc_ctx *mc_ctx,
                                       enum sss_mc_type type)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    struct sized_string delete_name;
-    char *fqdn = NULL;
+    struct sized_string *delete_name;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -896,21 +932,15 @@ static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
         return ENOMEM;
     }
 
-    if (dom->fqnames) {
-        fqdn = sss_tc_fqname(tmp_ctx, dom->names, dom, name);
-        if (fqdn == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-        to_sized_string(&delete_name, fqdn);
-    } else {
-        to_sized_string(&delete_name, name);
+    ret = sized_output_name(tmp_ctx, rctx, name, dom, &delete_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sized_output_name failed: %d\n", ret);
+        goto done;
     }
 
     switch (type) {
     case SSS_MC_PASSWD:
-        ret = sss_mmap_cache_pw_invalidate(mc_ctx, &delete_name);
+        ret = sss_mmap_cache_pw_invalidate(mc_ctx, delete_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Internal failure in memory cache code: %d [%s]\n",
@@ -919,7 +949,7 @@ static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
         }
         break;
     case SSS_MC_GROUP:
-        ret = sss_mmap_cache_gr_invalidate(mc_ctx, &delete_name);
+        ret = sss_mmap_cache_gr_invalidate(mc_ctx, delete_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Internal failure in memory cache code: %d [%s]\n",
@@ -928,7 +958,7 @@ static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
         }
         break;
     case SSS_MC_INITGROUPS:
-        ret = sss_mmap_cache_initgr_invalidate(mc_ctx, &delete_name);
+        ret = sss_mmap_cache_initgr_invalidate(mc_ctx, delete_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Internal failure in memory cache code: %d [%s]\n",
@@ -993,14 +1023,9 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         dctx->domain = dom;
 
         talloc_free(name);
-        name = sss_get_cased_name(cmdctx, cmdctx->name, dom->case_sensitive);
-        if (!name) return ENOMEM;
-
-        name = sss_reverse_replace_space(dctx, name,
-                                         nctx->rctx->override_space);
+        name = sss_resp_create_fqname(dctx, nctx->rctx, dctx->domain,
+                                      cmdctx->name_is_upn, cmdctx->name);
         if (name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_reverse_replace_space failed\n");
             return ENOMEM;
         }
 
@@ -1028,8 +1053,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             return ENOENT;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Requesting info for [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for [%s]\n", name);
 
         if (dom->sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
@@ -1078,9 +1102,9 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "getpwnam call returned more than one result !?!\n");
             sss_log(SSS_LOG_ERR,
-                    "More users have the same name [%s@%s] in SSSD cache. "
+                    "More users have the same name [%s] in SSSD cache. "
                     "SSSD will not work correctly.\n",
-                    name, dom->name);
+                    name);
             return ENOENT;
         }
 
@@ -1088,8 +1112,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             /* set negative cache only if not result of cache check */
             ret = sss_ncache_set_user(nctx->rctx->ncache, false, dom, name);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s@%s\n",
-                      name, dom->name);
+                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s\n",
+                      name);
             }
 
             /* if a multidomain search, try with next */
@@ -1105,14 +1129,15 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             DEBUG(SSSDBG_OP_FAILURE, "No results for getpwnam call\n");
 
             /* User not found in ldb -> delete user from memory cache. */
-            ret = delete_entry_from_memcache(dctx->domain, name,
+            ret = delete_entry_from_memcache(dctx->domain, name, nctx->rctx,
                                              nctx->pwd_mc_ctx, SSS_MC_PASSWD);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Deleting user from memcache failed.\n");
             }
 
-            ret = delete_entry_from_memcache(dctx->domain, name,
+            ret = delete_entry_from_memcache(dctx->domain,
+                                             name, nctx->rctx,
                                              nctx->initgr_mc_ctx,
                                              SSS_MC_INITGROUPS);
             if (ret != EOK) {
@@ -1149,9 +1174,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         }
 
         /* One result found */
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Returning info for user [%s@%s]\n", name, dom->name);
-
+        DEBUG(SSSDBG_TRACE_FUNC, "Returning info for user [%s]\n", name);
         return EOK;
     }
 
@@ -2750,53 +2773,8 @@ void nss_update_gr_memcache(struct nss_ctx *nctx)
 #define MNUM_ROFFSET sizeof(uint32_t)
 #define STRS_ROFFSET 2*sizeof(uint32_t)
 
-static int parse_member(TALLOC_CTX *mem_ctx, struct sss_domain_info *group_dom,
-                        const char *member, struct sss_domain_info **_member_dom,
-                        struct sized_string *_name, bool *_add_domain)
-{
-    errno_t ret;
-    char *username;
-    char *domname;
-    const char *use_member;
-    struct sss_domain_info *member_dom;
-    bool add_domain;
-
-    ret = sss_parse_name(mem_ctx, group_dom->names, member, &domname, &username);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Could not parse [%s] into "
-              "name-value components.\n", member);
-        return ret;
-    }
-
-    add_domain = (!IS_SUBDOMAIN(group_dom) && group_dom->fqnames);
-    use_member = member;
-    member_dom = group_dom;
-
-    if (IS_SUBDOMAIN(group_dom) == false && domname != NULL) {
-        /* The group is stored in the parent domain, but the member comes from.
-         * a subdomain. No need to add the domain component, it's already
-         * present in the memberuid/ghost attribute
-         */
-        add_domain = false;
-    }
-
-    if (IS_SUBDOMAIN(group_dom) == true && domname == NULL) {
-        /* The group is stored in a subdomain, but the member comes
-         * from the parent domain. Need to add the domain component
-         * of the parent domain
-         */
-        add_domain = true;
-        use_member = username;
-        member_dom = group_dom->parent;
-    }
-
-    to_sized_string(_name, use_member);
-    *_add_domain = add_domain;
-    *_member_dom = member_dom;
-    return EOK;
-}
-
 static int fill_members(struct sss_packet *packet,
+                        struct resp_ctx *rctx,
                         struct sss_domain_info *dom,
                         struct nss_ctx *nctx,
                         struct ldb_message_element *el,
@@ -2804,22 +2782,16 @@ static int fill_members(struct sss_packet *packet,
                         size_t *_rsize,
                         int *_memnum)
 {
-    int i, ret = EOK;
+    int ret = EOK;
     int memnum = *_memnum;
     size_t rzero= *_rzero;
     size_t rsize = *_rsize;
-    const char *tmpstr;
-    struct sized_string name;
+    struct sized_string *name;
     TALLOC_CTX *tmp_ctx = NULL;
 
-    int nlen = 0;
-
+    const char *fqname;
     uint8_t *body;
     size_t blen;
-
-    const char *domain = dom->name;
-    bool add_domain;
-    struct sss_domain_info *member_dom;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -2827,82 +2799,34 @@ static int fill_members(struct sss_packet *packet,
     }
 
     sss_packet_get_body(packet, &body, &blen);
-    for (i = 0; i < el->num_values; i++) {
-        tmpstr = sss_get_cased_name(tmp_ctx, (char *)el->values[i].data,
-                                    dom->case_preserve);
-        if (tmpstr == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_get_cased_name failed, skipping\n");
-            continue;
-        }
-
-        tmpstr = sss_replace_space(tmp_ctx, tmpstr,
-                                   nctx->rctx->override_space);
-        if (tmpstr == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_replace_space failed\n");
-            ret = ENOMEM;
-            goto done;
-        }
+    for (unsigned i = 0; i < el->num_values; i++) {
+        fqname = (const char *)el->values[i].data;
 
         if (nctx->filter_users_in_groups) {
-            ret = sss_ncache_check_user(nctx->rctx->ncache, dom, tmpstr);
+            ret = sss_ncache_check_user(nctx->rctx->ncache, dom, fqname);
             if (ret == EEXIST) {
                 DEBUG(SSSDBG_TRACE_FUNC,
-                      "Group [%s] member [%s@%s] filtered out!"
+                      "Group [%s] member [%s] filtered out!"
                        " (negative cache)\n",
-                       (char *)&body[rzero+STRS_ROFFSET], tmpstr, domain);
+                       (char *)&body[rzero+STRS_ROFFSET], fqname);
                 continue;
             }
         }
 
-        ret = parse_member(tmp_ctx, dom, tmpstr, &member_dom, &name, &add_domain);
+        ret = sized_member_name(tmp_ctx, rctx, fqname, &name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Could not process member %s, skipping\n", tmpstr);
-            continue;
+            DEBUG(SSSDBG_OP_FAILURE, "sized_member_name failed: %d\n", ret);
+            goto done;
         }
 
-        if (add_domain) {
-            nlen = sss_fqname(NULL, 0, member_dom->names, member_dom,
-                              name.str);
-            if (nlen >= 0) {
-                nlen += 1;
-            } else {
-                /* Other failures caught below */
-                nlen = 0;
-            }
-        } else {
-            nlen = name.len;
-        }
-
-        ret = sss_packet_grow(packet, nlen);
+        ret = sss_packet_grow(packet, name->len);
         if (ret != EOK) {
             goto done;
         }
         sss_packet_get_body(packet, &body, &blen);
 
-        if (add_domain) {
-            ret = sss_fqname((char *)&body[rzero + rsize], nlen,
-                             member_dom->names, member_dom, name.str);
-            if (ret < 0 || ret != nlen - 1) {
-                DEBUG(SSSDBG_OP_FAILURE, "Failed to generate a fully qualified name"
-                                          " for member [%s@%s] of group [%s]!"
-                                          " Skipping\n", name.str, domain,
-                                          (char *)&body[rzero+STRS_ROFFSET]);
-                /* reclaim space */
-                ret = sss_packet_shrink(packet, nlen);
-                if (ret != EOK) {
-                    goto done;
-                }
-                continue;
-            }
-
-        } else {
-            memcpy(&body[rzero + rsize], name.str, name.len);
-        }
-
-        rsize += nlen;
+        memcpy(&body[rzero + rsize], name->str, name->len);
+        rsize += name->len;
         memnum++;
     }
 
@@ -2928,16 +2852,12 @@ static int fill_grent(struct sss_packet *packet,
     uint8_t *body;
     size_t blen;
     uint32_t gid;
-    const char *tmpstr;
     const char *orig_name = NULL;
-    struct sized_string name;
+    struct sized_string *name;
     struct sized_string pwfield;
-    struct sized_string fullname;
-    int fq_len = 0;
     int i = 0;
     int ret, num, memnum;
     size_t rzero, rsize;
-    bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
     TALLOC_CTX *tmp_ctx = NULL;
 
@@ -2979,10 +2899,6 @@ static int fill_grent(struct sss_packet *packet,
             orig_name = ldb_msg_find_attr_as_string(msg,
                                                     OVERRIDE_PREFIX SYSDB_NAME,
                                                     NULL);
-            if (orig_name != NULL && IS_SUBDOMAIN(dom)) {
-                /* Override names are not fully qualified */
-                add_domain = true;
-            }
         }
         if (orig_name == NULL) {
             orig_name = ldb_msg_find_attr_as_string(msg,
@@ -3005,43 +2921,20 @@ static int fill_grent(struct sss_packet *packet,
             ret = sss_ncache_check_group(nctx->rctx->ncache, dom, orig_name);
             if (ret == EEXIST) {
                 DEBUG(SSSDBG_TRACE_FUNC,
-                      "Group [%s@%s] filtered out! (negative cache)\n",
-                       orig_name, domain);
+                      "Group [%s] filtered out! (negative cache)\n", orig_name);
                 continue;
             }
         }
 
-        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_preserve);
-        if (tmpstr == NULL) {
+        ret = sized_output_name(tmp_ctx, nctx->rctx, orig_name, dom, &name);
+        if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_get_cased_name failed, skipping\n");
+                  "sized_output_name failed, skipping\n");
             continue;
         }
-
-        tmpstr = sss_replace_space(tmp_ctx, tmpstr,
-                                   nctx->rctx->override_space);
-        if (tmpstr == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_replace_space failed, skipping\n");
-            continue;
-        }
-
-        to_sized_string(&name, tmpstr);
 
         /* fill in gid and name and set pointer for number of members */
-        rsize = STRS_ROFFSET + name.len + pwfield.len; /* name\0x\0 */
-
-        if (add_domain) {
-            fq_len = sss_fqname(NULL, 0, dom->names, dom, name.str);
-            if (fq_len >= 0) {
-                fq_len += 1;
-                rsize -= name.len;
-                rsize += fq_len;
-            } else {
-                /* Other failures caught below */
-                fq_len = 0;
-            }
-        }
+        rsize = STRS_ROFFSET + name->len + pwfield.len; /* name\0x\0 */
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -3057,37 +2950,18 @@ static int fill_grent(struct sss_packet *packet,
         SAFEALIGN_SET_UINT32(&body[rzero+MNUM_ROFFSET], 0, NULL);
 
         /*  8-X: sequence of strings (name, passwd, mem..) */
-        if (add_domain) {
-            ret = sss_fqname((char *)&body[rzero+STRS_ROFFSET], fq_len,
-                             dom->names, dom, name.str);
-            if (ret < 0 || ret != fq_len - 1) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to generate a fully qualified name for"
-                          " group [%s] in [%s]! Skipping\n", name.str, domain);
-                /* reclaim space */
-                ret = sss_packet_shrink(packet, rsize);
-                if (ret != EOK) {
-                    num = 0;
-                    goto done;
-                }
-                rsize = 0;
-                continue;
-            }
-        } else {
-            memcpy(&body[rzero+STRS_ROFFSET], name.str, name.len);
-        }
-        to_sized_string(&fullname, (const char *)&body[rzero+STRS_ROFFSET]);
+        memcpy(&body[rzero+STRS_ROFFSET], name->str, name->len);
 
         /* group passwd field */
-        memcpy(&body[rzero+STRS_ROFFSET + fullname.len],
+        memcpy(&body[rzero+STRS_ROFFSET + name->len],
                                             pwfield.str, pwfield.len);
 
         memnum = 0;
         if (!dom->ignore_group_members) {
             el = sss_view_ldb_msg_find_element(dom, msg, SYSDB_MEMBERUID);
             if (el) {
-                ret = fill_members(packet, dom, nctx, el, &rzero, &rsize,
-                                   &memnum);
+                ret = fill_members(packet, nctx->rctx, dom, nctx, el,
+                                   &rzero, &rsize, &memnum);
                 if (ret != EOK) {
                     num = 0;
                     goto done;
@@ -3104,8 +2978,8 @@ static int fill_grent(struct sss_packet *packet,
                     num = 0;
                     goto done;
                 }
-                ret = fill_members(packet, dom, nctx, el, &rzero, &rsize,
-                                   &memnum);
+                ret = fill_members(packet, nctx->rctx, dom, nctx, el,
+                                   &rzero, &rsize, &memnum);
                 if (ret != EOK) {
                     num = 0;
                     goto done;
@@ -3123,17 +2997,16 @@ static int fill_grent(struct sss_packet *packet,
         if (gr_mmap_cache && nctx->grp_mc_ctx) {
             /* body was reallocated, so fullname might be pointing to
              * where body used to be, not where it is */
-            to_sized_string(&fullname, (const char *)&body[rzero+STRS_ROFFSET]);
             ret = sss_mmap_cache_gr_store(&nctx->grp_mc_ctx,
-                                          &fullname, &pwfield, gid, memnum,
+                                          name, &pwfield, gid, memnum,
                                           (char *)&body[rzero] + STRS_ROFFSET +
-                                            fullname.len + pwfield.len,
+                                            name->len + pwfield.len,
                                           rsize - STRS_ROFFSET -
-                                            fullname.len - pwfield.len);
+                                            name->len - pwfield.len);
             if (ret != EOK && ret != ENOMEM) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to store group %s(%s) in mmap cache!\n",
-                      name.str, domain);
+                      name->str, domain);
             }
         }
 
@@ -3227,14 +3100,9 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         dctx->domain = dom;
 
         talloc_free(name);
-        name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
-        if (!name) return ENOMEM;
-
-        name = sss_reverse_replace_space(dctx, name,
-                                         nctx->rctx->override_space);
+        name = sss_resp_create_fqname(dctx, nctx->rctx, dctx->domain,
+                                      cmdctx->name_is_upn, cmdctx->name);
         if (name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_reverse_replace_space failed\n");
             return ENOMEM;
         }
 
@@ -3258,8 +3126,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             return ENOENT;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Requesting info for [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for [%s]\n", name);
 
         if (dom->sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
@@ -3278,9 +3145,9 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "getgrnam call returned more than one result !?!\n");
             sss_log(SSS_LOG_ERR,
-                    "More groups have the same name [%s@%s] in SSSD cache. "
+                    "More groups have the same name [%s] in SSSD cache. "
                     "SSSD will not work correctly.\n",
-                    name, dom->name);
+                    name);
             return ENOENT;
         }
 
@@ -3288,8 +3155,8 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             /* set negative cache only if not result of cache check */
             ret = sss_ncache_set_group(nctx->rctx->ncache, false, dom, name);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s@%s\n",
-                      name, dom->name);
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Cannot set negcache for %s\n", name);
             }
 
             /* if a multidomain search, try with next */
@@ -3301,7 +3168,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             DEBUG(SSSDBG_OP_FAILURE, "No results for getgrnam call\n");
 
             /* Group not found in ldb -> delete group from memory cache. */
-            ret = delete_entry_from_memcache(dctx->domain, name,
+            ret = delete_entry_from_memcache(dctx->domain, name, nctx->rctx,
                                              nctx->grp_mc_ctx, SSS_MC_GROUP);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
@@ -3337,7 +3204,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         /* One result found */
         DEBUG(SSSDBG_TRACE_FUNC,
-              "Returning info for group [%s@%s]\n", name, dom->name);
+              "Returning info for group [%s]\n", name);
 
         return EOK;
     }
@@ -4277,15 +4144,9 @@ static int fill_initgr(struct sss_packet *packet,
 
     if (nctx->initgr_mc_ctx) {
         struct sized_string unique_name;
-        char *fq_name = sss_tc_fqname(packet, dom->names, dom, name);
-        if (!fq_name) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Could not create fq name\n");
-            return ENOMEM;
-        }
 
         to_sized_string(&rawname, mc_name);
-        to_sized_string(&unique_name, fq_name);
+        to_sized_string(&unique_name, name);
         ret = sss_mmap_cache_initgr_store(&nctx->initgr_mc_ctx, &rawname,
                                           &unique_name, num - skipped, gids);
         if (ret != EOK && ret != ENOMEM) {
@@ -4361,18 +4222,15 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         dctx->domain = dom;
 
         talloc_zfree(cmdctx->normalized_name);
-        name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
-        if (!name) return ENOMEM;
 
-        name = sss_reverse_replace_space(cmdctx, name,
-                                         nctx->rctx->override_space);
-        /* save name so it can be used in initgr reply */
-        cmdctx->normalized_name = name;
+        name = sss_resp_create_fqname(dctx, nctx->rctx, dctx->domain,
+                                      cmdctx->name_is_upn, cmdctx->name);
         if (name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_reverse_replace_space failed\n");
             return ENOMEM;
         }
+
+        /* save name so it can be used in initgr reply */
+        cmdctx->normalized_name = name;
 
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
@@ -4394,8 +4252,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             return ENOENT;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Requesting info for [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for [%s]\n", name);
 
         if (dom->sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
@@ -4453,8 +4310,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             /* set negative cache only if not result of cache check */
             ret = sss_ncache_set_user(nctx->rctx->ncache, false, dom, name);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s@%s\n",
-                      name, dom->name);
+                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s\n",
+                      name);
             }
 
             /* if a multidomain search, try with next */
@@ -4493,8 +4350,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             }
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Initgroups for [%s@%s] completed\n", name, dom->name);
+        DEBUG(SSSDBG_TRACE_FUNC, "Initgroups for [%s] completed\n", name);
         return EOK;
     }
 
@@ -4538,7 +4394,6 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
     bool user_found = false;
     bool group_found = false;
     struct ldb_message *msg = NULL;
-    char *sysdb_name = NULL;
     char *name = NULL;
     char *req_name;
     uint32_t req_id;
@@ -4607,42 +4462,21 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
 
         } else {
             talloc_free(name);
-            talloc_zfree(sysdb_name);
 
-            name = sss_get_cased_name(cmdctx, cmdctx->name, dom->case_sensitive);
+            name = sss_resp_create_fqname(cmdctx, nctx->rctx, dom, false, cmdctx->name);
             if (name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "sss_get_cased_name failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
 
-            name = sss_reverse_replace_space(dctx, name,
-                                             nctx->rctx->override_space);
-            if (name == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "sss_reverse_replace_space failed\n");
-                ret = ENOMEM;
-                goto done;
-            }
-
-            /* For subdomains a fully qualified name is needed for
-             * sysdb_search_user_by_name and sysdb_search_group_by_name. */
-            if (IS_SUBDOMAIN(dom)) {
-                sysdb_name = sss_tc_fqname(cmdctx, dom->names, dom, name);
-                if (sysdb_name == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
-            }
-
-
             /* verify this name has not yet been negatively cached, as user
              * and groupm, or has been permanently filtered */
-            ret = sss_ncache_check_user(nctx->rctx->ncache, dom, name);
+            ret = sss_ncache_check_user(nctx->rctx->ncache, dom, cmdctx->name);
 
             if (ret == EEXIST) {
-                ret = sss_ncache_check_group(nctx->rctx->ncache, dom, name);
+                ret = sss_ncache_check_group(nctx->rctx->ncache,
+                                             dom, cmdctx->name);
                 if (ret == EEXIST) {
                     /* if neg cached, return we didn't find it */
                     DEBUG(SSSDBG_TRACE_FUNC,
@@ -4661,8 +4495,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 }
             }
 
-            DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%s@%s]\n",
-                                      name, dom->name);
+            DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%s]\n", name);
         }
 
 
@@ -4714,9 +4547,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 }
             }
         } else {
-            ret = sysdb_search_user_by_name(cmdctx, dom,
-                                            sysdb_name ? sysdb_name : name,
-                                            attrs, &msg);
+            ret = sysdb_search_user_by_name(cmdctx, dom, name, attrs,
+                                            &msg);
             if (ret != EOK && ret != ENOENT) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to make request to our cache!\n");
@@ -4728,8 +4560,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 user_found = true;
             } else {
                 talloc_free(msg);
-                ret = sysdb_search_group_by_name(cmdctx, dom,
-                                                 sysdb_name ? sysdb_name : name,
+                ret = sysdb_search_group_by_name(cmdctx, dom, name,
                                                  attrs, &msg);
                 if (ret != EOK && ret != ENOENT) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
@@ -4765,16 +4596,18 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         if (dctx->res->count == 0 && !dctx->check_provider) {
             if (cmdctx->cmd == SSS_NSS_GETSIDBYNAME
                     || cmdctx->cmd == SSS_NSS_GETORIGBYNAME) {
-                ret = sss_ncache_set_user(nctx->rctx->ncache, false, dom, name);
+                ret = sss_ncache_set_user(nctx->rctx->ncache, false,
+                                          dom, name);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                          "Cannot set negcache for %s@%s\n", name, dom->name);
+                          "Cannot set negcache for %s\n", name);
                 }
 
-                ret = sss_ncache_set_group(nctx->rctx->ncache, false, dom, name);
+                ret = sss_ncache_set_group(nctx->rctx->ncache, false,
+                                           dom, name);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                          "Cannot set negcache for %s@%s\n", name, dom->name);
+                          "Cannot set negcache for %s\n", name);
                 }
             }
             /* if a multidomain search, try with next */
@@ -4823,8 +4656,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             DEBUG(SSSDBG_TRACE_FUNC, "Returning info for id [%"PRIu32"@%s]\n",
                                      cmdctx->id, dom->name);
         } else {
-            DEBUG(SSSDBG_TRACE_FUNC, "Returning info for user/group [%s@%s]\n",
-                                      name, dom->name);
+            DEBUG(SSSDBG_TRACE_FUNC, "Returning info for user/group [%s]\n",
+                                      name);
         }
 
         /* Success. Break from the loop and return EOK */
@@ -4870,8 +4703,7 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%s@%s]\n", cmdctx->secid,
-                                                               dom->name);
+    DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%s]\n", cmdctx->secid);
 
     sysdb = dom->sysdb;
     if (sysdb == NULL) {
@@ -4938,9 +4770,7 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
     }
 
     /* One result found */
-    DEBUG(SSSDBG_TRACE_FUNC, "Returning info for sid [%s@%s]\n", cmdctx->secid,
-                                                                  dom->name);
-
+    DEBUG(SSSDBG_TRACE_FUNC, "Returning info for sid [%s]\n", cmdctx->secid);
     return EOK;
 }
 
@@ -5049,6 +4879,7 @@ static errno_t process_attr_list(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
             if (strcmp(attr_list[c], SYSDB_USER_CERT) == 0) {
                 use_base64 = true;
             }
+
             for (d = 0; d < el->num_values; d++) {
                 to_sized_string(&keys[*found], attr_list[c]);
                 *sum += keys[*found].len;
@@ -5062,6 +4893,7 @@ static errno_t process_attr_list(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
                 } else {
                     val = el->values[d];
                 }
+
                 if (val.data == NULL || val.data[val.length] != '\0') {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Unexpected attribute value found for [%s].\n",
@@ -5186,6 +5018,7 @@ done:
 }
 
 static errno_t fill_name(struct sss_packet *packet,
+                         struct resp_ctx *rctx,
                          struct sss_domain_info *dom,
                          enum sss_id_type id_type,
                          bool apply_no_view,
@@ -5194,10 +5027,7 @@ static errno_t fill_name(struct sss_packet *packet,
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
     const char *orig_name = NULL;
-    const char *cased_name;
-    const char *fq_name;
-    struct sized_string name;
-    bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
+    struct sized_string *name;
     uint8_t *body;
     size_t blen;
     size_t pctr = 0;
@@ -5211,10 +5041,6 @@ static errno_t fill_name(struct sss_packet *packet,
             orig_name = ldb_msg_find_attr_as_string(msg,
                                                     OVERRIDE_PREFIX SYSDB_NAME,
                                                     NULL);
-            if (orig_name != NULL && IS_SUBDOMAIN(dom)) {
-                /* Override names are un-qualified */
-                add_domain = true;
-            }
         }
     }
 
@@ -5232,26 +5058,15 @@ static errno_t fill_name(struct sss_packet *packet,
         return ENOMEM;
     }
 
-    cased_name= sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
-    if (cased_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_get_cased_name failed.\n");
-        ret = ENOMEM;
+    ret = sized_output_name(tmp_ctx, rctx, orig_name, dom, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+             "sized_output_name failed for %s: (%d): %s\n",
+             orig_name, ret, sss_strerror(ret));
         goto done;
     }
 
-    if (add_domain) {
-        fq_name = sss_tc_fqname(tmp_ctx, dom->names, dom, cased_name);
-        if (fq_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-        to_sized_string(&name, fq_name);
-    } else {
-        to_sized_string(&name, cased_name);
-    }
-
-    ret = sss_packet_grow(packet, name.len + 3 * sizeof(uint32_t));
+    ret = sss_packet_grow(packet, name->len + 3 * sizeof(uint32_t));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_packet_grow failed.\n");
         goto done;
@@ -5261,7 +5076,7 @@ static errno_t fill_name(struct sss_packet *packet,
     SAFEALIGN_SETMEM_UINT32(body, 1, &pctr); /* Num results */
     SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
     SAFEALIGN_COPY_UINT32(body + pctr, &id_type, &pctr);
-    memcpy(&body[pctr], name.str, name.len);
+    memcpy(&body[pctr], name->str, name->len);
 
 
     ret = EOK;
@@ -5342,6 +5157,7 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
     switch(cmdctx->cmd) {
     case SSS_NSS_GETNAMEBYSID:
         ret = fill_name(pctx->creq->out,
+                        cctx->rctx,
                         dctx->domain,
                         id_type,
                         true,
@@ -5639,8 +5455,8 @@ static void users_find_by_cert_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = fill_name(pctx->creq->out, domain, SSS_ID_TYPE_UID, true,
-                    result->msgs[0]);
+    ret = fill_name(pctx->creq->out, cctx->rctx, domain,
+                    SSS_ID_TYPE_UID, true, result->msgs[0]);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "fill_name failed.\n");
         goto done;
