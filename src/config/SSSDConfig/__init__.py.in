@@ -92,6 +92,8 @@ option_strings = {
     'pam_public_domains' : _('List of domains accessible even for untrusted users.'),
     'pam_account_expired_message' : _('Message printed when user account is expired.'),
     'pam_account_locked_message' : _('Message printed when user account is locked.'),
+    'pam_cert_auth' : _('Allow certificate based/Smartcard authentication.'),
+    'pam_cert_db_path' : _('Path to certificate databse with PKCS#11 modules.'),
     'p11_child_timeout' : _('How many seconds will pam_sss wait for p11_child to finish'),
 
     # [sudo]

@@ -1027,6 +1027,32 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>pam_cert_auth (bool)</term>
+                    <listitem>
+                        <para>
+                            Enable certificate based Smartcard authentication.
+                            Since this requires additional communication with
+                            the Smartcard which will delay the authentication
+                            process this option is disabled by default.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pam_cert_db_path (string)</term>
+                    <listitem>
+                        <para>
+                            The path to the certificate database which contain
+                            the PKCS#11 modules to access the Smartcard.
+                        </para>
+                        <para>
+                            Default: /etc/pki/nssdb (NSS version)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>p11_child_timeout (integer)</term>
                     <listitem>
                         <para>
