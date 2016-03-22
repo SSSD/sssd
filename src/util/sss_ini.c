@@ -46,6 +46,8 @@
 
 struct sss_ini_initdata {
     char **error_list;
+    struct ref_array *ra_success_list;
+    struct ref_array *ra_error_list;
     struct ini_cfgobj *sssd_config;
     struct value_obj *obj;
     const struct stat *cstat;
@@ -205,10 +207,19 @@ void sss_ini_config_print_errors(char **error_list)
 /* Load configuration */
 
 int sss_ini_get_config(struct sss_ini_initdata *init_data,
-                       const char *config_file)
+                       const char *config_file,
+                       const char *config_dir)
 {
     int ret;
 #ifdef HAVE_LIBINI_CONFIG_V1
+#ifdef HAVE_LIBINI_CONFIG_V1_3
+    const char *patterns[] = { "^[^\\.].*\\.conf", NULL };
+    const char *sections[] = { ".*", NULL };
+    uint32_t i = 0;
+    char *msg = NULL;
+    struct access_check snip_check;
+    struct ini_cfgobj *modified_sssd_config = NULL;
+#endif /* HAVE_LIBINI_CONFIG_V1_3 */
 
     /* Create config object */
     ret = ini_config_create(&(init_data->sssd_config));
@@ -243,6 +254,55 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
         init_data->sssd_config = NULL;
         return ret;
     }
+
+#ifdef HAVE_LIBINI_CONFIG_V1_3
+    snip_check.flags = INI_ACCESS_CHECK_MODE | INI_ACCESS_CHECK_UID
+                       | INI_ACCESS_CHECK_GID;
+    snip_check.uid = 0; /* owned by root */
+    snip_check.gid = 0; /* owned by root */
+    snip_check.mode = S_IRUSR; /* r**------ */
+    snip_check.mask = ALLPERMS & ~(S_IWUSR | S_IXUSR);
+
+    ret = ini_config_augment(init_data->sssd_config,
+                             config_dir,
+                             patterns,
+                             sections,
+                             &snip_check,
+                             INI_STOP_ON_ANY,
+                             INI_MV1S_OVERWRITE,
+                             INI_PARSE_NOWRAP,
+                             INI_MV2S_OVERWRITE,
+                             &modified_sssd_config,
+                             &init_data->ra_error_list,
+                             &init_data->ra_success_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to augment configuration [%d]: %s",
+              ret, sss_strerror(ret));
+    }
+
+    while (ref_array_get(init_data->ra_success_list, i, &msg) != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Config merge success: %s\n", msg);
+        i++;
+    }
+
+    i = 0;
+    while (ref_array_get(init_data->ra_error_list, i, &msg) != NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Config merge error: %s\n", msg);
+        i++;
+    }
+
+    /* switch config objects if there are no errors */
+    if (modified_sssd_config != NULL) {
+        ini_config_destroy(init_data->sssd_config);
+        init_data->sssd_config = modified_sssd_config;
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Using only main configuration file due to errors in merging\n");
+    }
+#endif
 
     return ret;
 

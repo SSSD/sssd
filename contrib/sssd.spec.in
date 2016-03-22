@@ -782,6 +782,7 @@ done
 %attr(755,sssd,sssd) %dir %{gpocachepath}
 %attr(750,sssd,sssd) %dir %{_var}/log/%{name}
 %attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd
+%attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd/conf.d
 %ghost %attr(0600,sssd,sssd) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %if (0%{?use_systemd} == 1)
 %attr(755,root,root) %dir %{_sysconfdir}/systemd/system/sssd.service.d

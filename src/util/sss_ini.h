@@ -58,7 +58,8 @@ int sss_ini_get_mtime(struct sss_ini_initdata *init_data,
 
 /* Load configuration */
 int sss_ini_get_config(struct sss_ini_initdata *init_data,
-                       const char *config_file);
+                       const char *config_file,
+                       const char *config_dir);
 /* Get configuration object */
 int sss_ini_get_cfgobj(struct sss_ini_initdata *init_data,
                        const char *section, const char *name);

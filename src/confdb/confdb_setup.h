@@ -48,6 +48,7 @@
 errno_t confdb_setup(TALLOC_CTX *mem_ctx,
                      const char *cdb_file,
                      const char *config_file,
+                     const char *config_dir,
                      struct confdb_ctx **_cdb);
 
 #endif /* CONFDB_SETUP_H_ */

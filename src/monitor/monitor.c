@@ -1872,6 +1872,7 @@ static int monitor_ctx_destructor(void *mem)
  */
 errno_t load_configuration(TALLOC_CTX *mem_ctx,
                            const char *config_file,
+                           const char *config_dir,
                            struct mt_ctx **monitor)
 {
     errno_t ret;
@@ -1892,7 +1893,7 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = confdb_setup(ctx, cdb_file, config_file, &ctx->cdb);
+    ret = confdb_setup(ctx, cdb_file, config_file, config_dir, &ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",
              ret, sss_strerror(ret));
@@ -3147,7 +3148,8 @@ int main(int argc, const char *argv[])
     }
 
     /* Parse config file, fail if cannot be done */
-    ret = load_configuration(tmp_ctx, config_file, &monitor);
+    ret = load_configuration(tmp_ctx, config_file, CONFDB_DEFAULT_CONFIG_DIR,
+                             &monitor);
     if (ret != EOK) {
         switch (ret) {
         case ERR_MISSING_CONF:

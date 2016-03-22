@@ -103,7 +103,9 @@ static errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = confdb_setup(mem_ctx, path, SSSD_CONFIG_FILE, &confdb);
+    ret = confdb_setup(mem_ctx, path,
+                       SSSD_CONFIG_FILE, CONFDB_DEFAULT_CONFIG_DIR,
+                       &confdb);
     talloc_zfree(path);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",

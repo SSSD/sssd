@@ -3849,6 +3849,7 @@ SSSD_USER_DIRS = \
     $(DESTDIR)$(pubconfpath)/krb5.include.d \
     $(DESTDIR)$(gpocachepath) \
     $(DESTDIR)$(sssdconfdir) \
+    $(DESTDIR)$(sssdconfdir)/conf.d \
     $(DESTDIR)$(sssddefaultconfdir) \
     $(DESTDIR)$(logpath) \
     $(NULL)
@@ -3883,7 +3884,8 @@ endif
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(mcpath) $(DESTDIR)$(pipepath) \
             $(DESTDIR)$(pubconfpath) \
             $(DESTDIR)$(pubconfpath)/krb5.include.d $(DESTDIR)$(gpocachepath)
-	$(INSTALL) -d -m 0711 $(DESTDIR)$(sssdconfdir)
+	$(INSTALL) -d -m 0711 $(DESTDIR)$(sssdconfdir) \
+                          $(DESTDIR)$(sssdconfdir)/conf.d
 
 if HAVE_DOXYGEN
 docs:
