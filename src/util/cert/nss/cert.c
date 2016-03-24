@@ -223,7 +223,7 @@ done:
 
 errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
                         const uint8_t *der_blob, size_t der_size,
-                        bool do_ocsp,
+                        struct cert_verify_opts *cert_verify_opts,
                         uint8_t **key, size_t *key_size)
 {
     CERTCertDBHandle *handle;
@@ -259,7 +259,7 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
 
     handle = CERT_GetDefaultCertDB();
 
-    if (do_ocsp) {
+    if (cert_verify_opts->do_ocsp) {
         rv = CERT_EnableOCSPChecking(handle);
         if (rv != SECSuccess) {
             DEBUG(SSSDBG_OP_FAILURE, "CERT_EnableOCSPChecking failed: [%d].\n",
@@ -278,13 +278,15 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
         goto done;
     }
 
-    rv = CERT_VerifyCertificateNow(handle, cert, PR_TRUE,
-                                   certificateUsageSSLClient, NULL, NULL);
-    if (rv != SECSuccess) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "CERT_VerifyCertificateNow failed [%d].\n",
-                                   PR_GetError());
-        ret = EACCES;
-        goto done;
+    if (cert_verify_opts->do_verification) {
+        rv = CERT_VerifyCertificateNow(handle, cert, PR_TRUE,
+                                       certificateUsageSSLClient, NULL, NULL);
+        if (rv != SECSuccess) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "CERT_VerifyCertificateNow failed [%d].\n",
+                                       PR_GetError());
+            ret = EACCES;
+            goto done;
+        }
     }
 
     cert_pub_key = CERT_ExtractPublicKey(cert);

@@ -1107,23 +1107,47 @@ errno_t sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl)
     return ret;
 }
 
-errno_t parse_cert_verify_opts(const char *verify_opts, bool *do_ocsp)
+static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
+{
+    struct cert_verify_opts *cert_verify_opts;
+
+    cert_verify_opts = talloc(mem_ctx, struct cert_verify_opts);
+    if (cert_verify_opts == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return NULL;
+    }
+
+    cert_verify_opts->do_ocsp = true;
+    cert_verify_opts->do_verification = true;
+
+    return cert_verify_opts;
+}
+
+errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
+                               struct cert_verify_opts **_cert_verify_opts)
 {
     int ret;
     TALLOC_CTX *tmp_ctx;
     char **opts;
     size_t c;
-
-    if (verify_opts == NULL) {
-        *do_ocsp = true;
-
-        return EOK;
-    }
+    struct cert_verify_opts *cert_verify_opts;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
+    }
+
+    cert_verify_opts = init_cert_verify_opts(tmp_ctx);
+    if (cert_verify_opts == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "init_cert_verify_opts failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (verify_opts == NULL) {
+        ret = EOK;
+        goto done;
     }
 
     ret = split_on_separator(tmp_ctx, verify_opts, ',', true, true, &opts,
@@ -1137,7 +1161,13 @@ errno_t parse_cert_verify_opts(const char *verify_opts, bool *do_ocsp)
         if (strcasecmp(opts[c], "no_ocsp") == 0) {
             DEBUG(SSSDBG_TRACE_ALL,
                   "Found 'no_ocsp' option, disabling OCSP.\n");
-            *do_ocsp = false;
+            cert_verify_opts->do_ocsp = false;
+        } else if (strcasecmp(opts[c], "no_verification") == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Found 'no_verification' option, "
+                  "disabling verification completely. "
+                  "This should not be used in production.\n");
+            cert_verify_opts->do_verification = false;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unsupported certificate verification option [%s], " \
@@ -1148,6 +1178,10 @@ errno_t parse_cert_verify_opts(const char *verify_opts, bool *do_ocsp)
     ret = EOK;
 
 done:
+    if (ret == EOK) {
+        *_cert_verify_opts = talloc_steal(mem_ctx, cert_verify_opts);
+    }
+
     talloc_free(tmp_ctx);
 
     return ret;

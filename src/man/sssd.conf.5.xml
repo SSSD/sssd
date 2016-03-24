@@ -383,6 +383,14 @@
                                         the client.</para>
                                     </listitem>
                                 </varlistentry>
+                                <varlistentry>
+                                    <term>no_verification</term>
+                                    <listitem>
+                                        <para>Disables verification completely.
+                                        This option should only be used for
+                                        testing.</para>
+                                    </listitem>
+                                </varlistentry>
                                 </variablelist>
                             </para>
                             <para>

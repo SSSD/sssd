@@ -320,6 +320,30 @@ static int pam_test_setup(void **state)
     return 0;
 }
 
+static int pam_test_setup_no_verification(void **state)
+{
+    struct sss_test_conf_param dom_params[] = {
+        { "enumerate", "false" },
+        { "cache_credentials", "true" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    struct sss_test_conf_param pam_params[] = {
+        { "p11_child_timeout", "30" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "no_verification" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    test_pam_setup(dom_params, pam_params, monitor_params, state);
+
+    pam_test_setup_common();
+    return 0;
+}
+
 static int pam_cached_test_setup(void **state)
 {
     struct sss_test_conf_param dom_params[] = {
@@ -1701,6 +1725,9 @@ int main(int argc, const char *argv[])
                                    pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth,
                                         pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth,
+                                        pam_test_setup_no_verification,
+                                        pam_test_teardown),
 #endif /* HAVE_NSS */
     };
 
