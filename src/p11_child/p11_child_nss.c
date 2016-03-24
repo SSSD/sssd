@@ -70,8 +70,9 @@ static char *password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
 
 
 int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
-            enum op_mode mode, const char *pin, bool do_ocsp, char **cert,
-            char **token_name_out)
+            enum op_mode mode, const char *pin,
+            struct cert_verify_opts *cert_verify_opts,
+            char **cert, char **token_name_out)
 {
     int ret;
     SECStatus rv;
@@ -263,7 +264,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
         return EIO;
     }
 
-    if (do_ocsp) {
+    if (cert_verify_opts->do_ocsp) {
         rv = CERT_EnableOCSPChecking(handle);
         if (rv != SECSuccess) {
             DEBUG(SSSDBG_OP_FAILURE, "CERT_EnableOCSPChecking failed: [%d].\n",
@@ -282,15 +283,18 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
                              cert_list_node->cert->nickname,
                              cert_list_node->cert->subjectName);
 
-            rv = CERT_VerifyCertificateNow(handle, cert_list_node->cert,
-                                           PR_TRUE, certificateUsageSSLClient,
-                                           NULL, NULL);
-            if (rv != SECSuccess) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Certificate [%s][%s] not valid [%d], skipping.\n",
-                      cert_list_node->cert->nickname,
-                      cert_list_node->cert->subjectName, PR_GetError());
-                continue;
+            if (cert_verify_opts->do_verification) {
+                rv = CERT_VerifyCertificateNow(handle, cert_list_node->cert,
+                                               PR_TRUE,
+                                               certificateUsageSSLClient,
+                                               NULL, NULL);
+                if (rv != SECSuccess) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Certificate [%s][%s] not valid [%d], skipping.\n",
+                          cert_list_node->cert->nickname,
+                          cert_list_node->cert->subjectName, PR_GetError());
+                    continue;
+                }
             }
 
 
@@ -466,7 +470,7 @@ int main(int argc, const char *argv[])
     char *slot_name_in = NULL;
     char *token_name_out = NULL;
     char *nss_db = NULL;
-    bool do_ocsp = true;
+    struct cert_verify_opts *cert_verify_opts;
     char *verify_opts = NULL;
 
     struct poptOption long_options[] = {
@@ -613,12 +617,10 @@ int main(int argc, const char *argv[])
     }
     talloc_steal(main_ctx, debug_prg_name);
 
-    if (verify_opts != NULL) {
-        ret = parse_cert_verify_opts(verify_opts, &do_ocsp);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verifiy option.\n");
-            goto fail;
-        }
+    ret = parse_cert_verify_opts(main_ctx, verify_opts, &cert_verify_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verifiy option.\n");
+        goto fail;
     }
 
     if (mode == OP_AUTH && pin_mode == PIN_STDIN) {
@@ -629,8 +631,8 @@ int main(int argc, const char *argv[])
         }
     }
 
-    ret = do_work(main_ctx, nss_db, slot_name_in, mode, pin, do_ocsp, &cert,
-                  &token_name_out);
+    ret = do_work(main_ctx, nss_db, slot_name_in, mode, pin, cert_verify_opts,
+                  &cert, &token_name_out);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");
         goto fail;

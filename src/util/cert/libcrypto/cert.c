@@ -172,7 +172,7 @@ done:
 
 errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
                         const uint8_t *der_blob, size_t der_size,
-                        bool do_ocsp,
+                        struct cert_verify_opts *cert_verify_opts,
                         uint8_t **key, size_t *key_size)
 {
     int ret;

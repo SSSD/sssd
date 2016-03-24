@@ -798,7 +798,7 @@ static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
     size_t d;
     TALLOC_CTX *tmp_ctx;
     char *cert_verification_opts;
-    bool do_ocsp = true;
+    struct cert_verify_opts *cert_verify_opts;
 
     if (el == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "Mssing element, nothing to do.\n");
@@ -826,7 +826,8 @@ static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
             }
 
             if (cert_verification_opts != NULL) {
-                ret = parse_cert_verify_opts(cert_verification_opts, &do_ocsp);
+                ret = parse_cert_verify_opts(tmp_ctx, cert_verification_opts,
+                                             &cert_verify_opts);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_FATAL_FAILURE,
                           "Failed to parse verifiy option.\n");
@@ -836,7 +837,7 @@ static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
 
             ret = cert_to_ssh_key(tmp_ctx, ssh_ctx->ca_db,
                                   el->values[d].data, el->values[d].length,
-                                  do_ocsp, &key, &key_len);
+                                  cert_verify_opts, &key, &key_len);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key failed.\n");
                 return ret;
