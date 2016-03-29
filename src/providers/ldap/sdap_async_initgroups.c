@@ -2634,7 +2634,7 @@ struct sdap_get_initgr_state {
     struct sdap_handle *sh;
     struct sdap_id_ctx *id_ctx;
     struct sdap_id_conn_ctx *conn;
-    const char *name;
+    const char *filter_value;
     const char **grp_attrs;
     const char **user_attrs;
     char *user_base_filter;
@@ -2659,8 +2659,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_handle *sh,
                                         struct sdap_id_ctx *id_ctx,
                                         struct sdap_id_conn_ctx *conn,
-                                        const char *name,
-                                        int name_type,
+                                        const char *filter_value,
+                                        int filter_type,
                                         const char *extra_value,
                                         const char **grp_attrs)
 {
@@ -2684,7 +2684,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->id_ctx = id_ctx;
     state->conn = conn;
-    state->name = name;
+    state->filter_value = filter_value;
     state->grp_attrs = grp_attrs;
     state->orig_user = NULL;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
@@ -2702,7 +2702,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                                           sdom->dom->name,
                                                           sdom->dom->domain_id);
 
-    ret = sss_filter_sanitize(state, name, &clean_name);
+    ret = sss_filter_sanitize(state, filter_value, &clean_name);
     if (ret != EOK) {
         talloc_zfree(req);
         return NULL;
@@ -2711,7 +2711,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
         search_attr =  state->opts->user_map[SDAP_AT_USER_PRINC].name;
     } else {
-        switch (name_type) {
+        switch (filter_type) {
         case BE_FILTER_SECID:
             search_attr =  state->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
             break;
@@ -2849,7 +2849,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         if ((state->opts->schema_type == SDAP_SCHEMA_RFC2307) &&
             (dp_opt_get_bool(state->opts->basic,
                              SDAP_RFC2307_FALLBACK_TO_LOCAL_USERS) == true)) {
-            ret = sdap_fallback_local_user(state, state->name, -1, &usr_attrs);
+            ret = sdap_fallback_local_user(state, state->filter_value, -1, &usr_attrs);
         } else {
             ret = ENOENT;
         }
@@ -2898,7 +2898,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     }
     in_transaction = false;
 
-    ret = sysdb_get_real_name(state, state->dom, state->name, &cname);
+    ret = sysdb_get_real_name(state, state->dom, state->filter_value, &cname);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot canonicalize username\n");
         tevent_req_error(req, ret);

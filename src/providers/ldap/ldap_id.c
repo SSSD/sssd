@@ -48,7 +48,7 @@ struct users_get_state {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
-    const char *name;
+    const char *filter_value;
     int filter_type;
 
     char *filter;
@@ -71,7 +71,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   struct sdap_id_ctx *ctx,
                                   struct sdap_domain *sdom,
                                   struct sdap_id_conn_ctx *conn,
-                                  const char *name,
+                                  const char *filter_value,
                                   int filter_type,
                                   const char *extra_value,
                                   int attrs_type,
@@ -80,7 +80,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct users_get_state *state;
     const char *attr_name = NULL;
-    char *clean_name = NULL;
+    char *clean_value = NULL;
     char *endptr;
     int ret;
     uid_t uid;
@@ -107,7 +107,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
-    state->name = name;
+    state->filter_value = filter_value;
     state->filter_type = filter_type;
 
     state->use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
@@ -117,7 +117,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     switch (filter_type) {
     case BE_FILTER_WILDCARD:
         attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
-        ret = sss_filter_sanitize_ex(state, name, &clean_name,
+        ret = sss_filter_sanitize_ex(state, filter_value, &clean_value,
                                      LDAP_ALLOWED_WILDCARDS);
         if (ret != EOK) {
             goto done;
@@ -129,7 +129,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         } else {
             attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
         }
-        ret = sss_filter_sanitize(state, name, &clean_name);
+        ret = sss_filter_sanitize(state, filter_value, &clean_value);
         if (ret != EOK) {
             goto done;
         }
@@ -139,7 +139,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             /* If we're ID-mapping, we need to use the objectSID
              * in the search filter.
              */
-            uid = strtouint32(name, &endptr, 10);
+            uid = strtouint32(filter_value, &endptr, 10);
             if (errno != EOK) {
                 ret = EINVAL;
                 goto done;
@@ -151,7 +151,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             if (err == IDMAP_NO_DOMAIN) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "[%s] did not match any configured ID mapping domain\n",
-                       name);
+                       filter_value);
 
                 ret = sysdb_delete_user(state->domain, NULL, uid);
                 if (ret == ENOENT) {
@@ -163,13 +163,13 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             } else if (err != IDMAP_SUCCESS) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Mapping ID [%s] to SID failed: [%s]\n",
-                       name, idmap_error_string(err));
+                       filter_value, idmap_error_string(err));
                 ret = EIO;
                 goto done;
             }
 
             attr_name = ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
-            ret = sss_filter_sanitize(state, sid, &clean_name);
+            ret = sss_filter_sanitize(state, sid, &clean_value);
             sss_idmap_free_sid(ctx->opts->idmap_ctx->map, sid);
             if (ret != EOK) {
                 goto done;
@@ -177,7 +177,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
         } else {
             attr_name = ctx->opts->user_map[SDAP_AT_USER_UID].name;
-            ret = sss_filter_sanitize(state, name, &clean_name);
+            ret = sss_filter_sanitize(state, filter_value, &clean_value);
             if (ret != EOK) {
                 goto done;
             }
@@ -186,7 +186,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     case BE_FILTER_SECID:
         attr_name = ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
 
-        ret = sss_filter_sanitize(state, name, &clean_name);
+        ret = sss_filter_sanitize(state, filter_value, &clean_value);
         if (ret != EOK) {
             goto done;
         }
@@ -200,7 +200,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             goto done;
         }
 
-        ret = sss_filter_sanitize(state, name, &clean_name);
+        ret = sss_filter_sanitize(state, filter_value, &clean_value);
         if (ret != EOK) {
             goto done;
         }
@@ -214,7 +214,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             goto done;
         }
 
-        ret = sss_cert_derb64_to_ldap_filter(state, name, attr_name,
+        ret = sss_cert_derb64_to_ldap_filter(state, filter_value, attr_name,
                                              &user_filter);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -234,8 +234,8 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     }
 
     if (user_filter == NULL) {
-        user_filter = talloc_asprintf(state, "(%s=%s)", attr_name, clean_name);
-        talloc_free(clean_name);
+        user_filter = talloc_asprintf(state, "(%s=%s)", attr_name, clean_value);
+        talloc_free(clean_value);
         if (user_filter == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
             ret = ENOMEM;
@@ -457,13 +457,13 @@ static void users_get_done(struct tevent_req *subreq)
 
         switch (state->filter_type) {
         case BE_FILTER_NAME:
-            name = state->name;
+            name = state->filter_value;
             uid = -1;
             fallback = true;
             break;
         case BE_FILTER_IDNUM:
-            uid = (uid_t) strtouint32(state->name, &endptr, 10);
-            if (errno || *endptr || (state->name == endptr)) {
+            uid = (uid_t) strtouint32(state->filter_value, &endptr, 10);
+            if (errno || *endptr || (state->filter_value == endptr)) {
                 tevent_req_error(req, errno ? errno : EINVAL);
                 return;
             }
@@ -496,7 +496,7 @@ static void users_get_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         case BE_FILTER_NAME:
-            ret = sysdb_delete_user(state->domain, state->name, 0);
+            ret = sysdb_delete_user(state->domain, state->filter_value, 0);
             if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
                 return;
@@ -504,8 +504,8 @@ static void users_get_done(struct tevent_req *subreq)
             break;
 
         case BE_FILTER_IDNUM:
-            uid = (uid_t) strtouint32(state->name, &endptr, 10);
-            if (errno || *endptr || (state->name == endptr)) {
+            uid = (uid_t) strtouint32(state->filter_value, &endptr, 10);
+            if (errno || *endptr || (state->filter_value == endptr)) {
                 tevent_req_error(req, errno ? errno : EINVAL);
                 return;
             }
@@ -531,7 +531,7 @@ static void users_get_done(struct tevent_req *subreq)
             break;
 
         case BE_FILTER_CERT:
-            ret = sysdb_remove_cert(state->domain, state->name);
+            ret = sysdb_remove_cert(state->domain, state->filter_value);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Unable to remove user certificate"
                       "[%d]: %s\n", ret, sss_strerror(ret));
@@ -580,7 +580,7 @@ struct groups_get_state {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
-    const char *name;
+    const char *filter_value;
     int filter_type;
 
     char *filter;
@@ -604,7 +604,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct sdap_id_ctx *ctx,
                                    struct sdap_domain *sdom,
                                    struct sdap_id_conn_ctx *conn,
-                                   const char *name,
+                                   const char *filter_value,
                                    int filter_type,
                                    int attrs_type,
                                    bool noexist_delete,
@@ -613,7 +613,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct groups_get_state *state;
     const char *attr_name = NULL;
-    char *clean_name;
+    char *clean_value;
     char *endptr;
     int ret;
     gid_t gid;
@@ -642,7 +642,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
-    state->name = name;
+    state->filter_value = filter_value;
     state->filter_type = filter_type;
 
     state->use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
@@ -653,7 +653,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     switch(filter_type) {
     case BE_FILTER_WILDCARD:
         attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
-        ret = sss_filter_sanitize_ex(state, name, &clean_name,
+        ret = sss_filter_sanitize_ex(state, filter_value, &clean_value,
                                      LDAP_ALLOWED_WILDCARDS);
         if (ret != EOK) {
             goto done;
@@ -662,7 +662,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     case BE_FILTER_NAME:
         attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
 
-        ret = sss_filter_sanitize(state, name, &clean_name);
+        ret = sss_filter_sanitize(state, filter_value, &clean_value);
         if (ret != EOK) {
             goto done;
         }
@@ -672,7 +672,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
             /* If we're ID-mapping, we need to use the objectSID
              * in the search filter.
              */
-            gid = strtouint32(name, &endptr, 10);
+            gid = strtouint32(filter_value, &endptr, 10);
             if (errno != EOK) {
                 ret = EINVAL;
                 goto done;
@@ -684,7 +684,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
             if (err == IDMAP_NO_DOMAIN) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "[%s] did not match any configured ID mapping domain\n",
-                       name);
+                       filter_value);
 
                 ret = sysdb_delete_group(state->domain, NULL, gid);
                 if (ret == ENOENT) {
@@ -696,13 +696,13 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
             } else if (err != IDMAP_SUCCESS) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Mapping ID [%s] to SID failed: [%s]\n",
-                       name, idmap_error_string(err));
+                       filter_value, idmap_error_string(err));
                 ret = EIO;
                 goto done;
             }
 
             attr_name = ctx->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name;
-            ret = sss_filter_sanitize(state, sid, &clean_name);
+            ret = sss_filter_sanitize(state, sid, &clean_value);
             sss_idmap_free_sid(ctx->opts->idmap_ctx->map, sid);
             if (ret != EOK) {
                 goto done;
@@ -710,7 +710,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         } else {
             attr_name = ctx->opts->group_map[SDAP_AT_GROUP_GID].name;
-            ret = sss_filter_sanitize(state, name, &clean_name);
+            ret = sss_filter_sanitize(state, filter_value, &clean_value);
             if (ret != EOK) {
                 goto done;
             }
@@ -719,7 +719,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     case BE_FILTER_SECID:
         attr_name = ctx->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name;
 
-        ret = sss_filter_sanitize(state, name, &clean_name);
+        ret = sss_filter_sanitize(state, filter_value, &clean_value);
         if (ret != EOK) {
             goto done;
         }
@@ -733,7 +733,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
             goto done;
         }
 
-        ret = sss_filter_sanitize(state, name, &clean_name);
+        ret = sss_filter_sanitize(state, filter_value, &clean_value);
         if (ret != EOK) {
             goto done;
         }
@@ -763,18 +763,18 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         state->filter = talloc_asprintf(state,
                                         "(&(%s=%s)(%s)(%s=*))",
-                                        attr_name, clean_name, oc_list,
+                                        attr_name, clean_value, oc_list,
                                         ctx->opts->group_map[SDAP_AT_GROUP_NAME].name);
     } else {
         state->filter = talloc_asprintf(state,
                                         "(&(%s=%s)(%s)(%s=*)(&(%s=*)(!(%s=0))))",
-                                        attr_name, clean_name, oc_list,
+                                        attr_name, clean_value, oc_list,
                                         ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
                                         ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                                         ctx->opts->group_map[SDAP_AT_GROUP_GID].name);
     }
 
-    talloc_zfree(clean_name);
+    talloc_zfree(clean_value);
     if (!state->filter) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
@@ -974,7 +974,7 @@ static void groups_get_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         case BE_FILTER_NAME:
-            ret = sysdb_delete_group(state->domain, state->name, 0);
+            ret = sysdb_delete_group(state->domain, state->filter_value, 0);
             if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
                 return;
@@ -982,8 +982,8 @@ static void groups_get_done(struct tevent_req *subreq)
             break;
 
         case BE_FILTER_IDNUM:
-            gid = (gid_t) strtouint32(state->name, &endptr, 10);
-            if (errno || *endptr || (state->name == endptr)) {
+            gid = (gid_t) strtouint32(state->filter_value, &endptr, 10);
+            if (errno || *endptr || (state->filter_value == endptr)) {
                 tevent_req_error(req, errno ? errno : EINVAL);
                 return;
             }
@@ -1049,8 +1049,8 @@ struct groups_by_user_state {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
-    const char *name;
-    int name_type;
+    const char *filter_value;
+    int filter_type;
     const char *extra_value;
     const char **attrs;
 
@@ -1102,8 +1102,8 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                               struct sdap_id_ctx *ctx,
                                               struct sdap_domain *sdom,
                                               struct sdap_id_conn_ctx *conn,
-                                              const char *name,
-                                              int name_type,
+                                              const char *filter_value,
+                                              int filter_type,
                                               const char *extra_value,
                                               bool noexist_delete)
 {
@@ -1128,8 +1128,8 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->name = name;
-    state->name_type = name_type;
+    state->filter_value = filter_value;
+    state->filter_type = filter_type;
     state->extra_value = extra_value;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
@@ -1191,8 +1191,8 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                   sdap_id_op_handle(state->op),
                                   state->ctx,
                                   state->conn,
-                                  state->name,
-                                  state->name_type,
+                                  state->filter_value,
+                                  state->filter_type,
                                   state->extra_value,
                                   state->attrs);
     if (!subreq) {
@@ -1229,11 +1229,14 @@ static void groups_by_user_done(struct tevent_req *subreq)
     state->sdap_ret = ret;
 
     if (ret == EOK || ret == ENOENT) {
-        /* state->name is still the name used for the original req. The cached
+        /* state->filter_value is still the name used for the original req. The cached
          * object might have a different name, e.g. a fully-qualified name. */
-        ret = sysdb_get_real_name(state, state->domain, state->name, &cname);
+        ret = sysdb_get_real_name(state,
+                                  state->domain,
+                                  state->filter_value,
+                                  &cname);
         if (ret != EOK) {
-            cname = state->name;
+            cname = state->filter_value;
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Failed to canonicalize name, using [%s] [%d]: %s.\n",
                   cname, ret, sss_strerror(ret));
@@ -1296,7 +1299,7 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
                                                   struct sdap_id_ctx *ctx,
                                                   struct sdap_domain *sdom,
                                                   struct sdap_id_conn_ctx *conn,
-                                                  const char *name,
+                                                  const char *filter_value,
                                                   int filter_type,
                                                   int attrs_type,
                                                   bool noexist_delete);
