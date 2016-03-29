@@ -269,6 +269,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
 {
     TALLOC_CTX *tmp_ctx;
     char **ldap_grouplist = NULL;
+    char **ldap_fqdnlist = NULL;
     char **add_groups;
     char **del_groups;
     int ret, tret;
@@ -300,7 +301,16 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
     /* Find the differences between the sysdb and LDAP lists
      * Groups in the sysdb only must be removed.
      */
-    ret = diff_string_lists(tmp_ctx, ldap_grouplist, sysdb_grouplist,
+    ldap_fqdnlist = sss_create_internal_fqname_list(
+                                        tmp_ctx,
+                                        (const char * const *) ldap_grouplist,
+                                        domain->name);
+    if (ldap_fqdnlist == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = diff_string_lists(tmp_ctx, ldap_fqdnlist, sysdb_grouplist,
                             &add_groups, &del_groups, NULL);
     if (ret != EOK) goto done;
 
@@ -391,6 +401,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     struct sdap_initgr_rfc2307_state *state;
     const char **attr_filter;
     char *clean_name;
+    char *shortname;
     errno_t ret;
     char *oc_list;
 
@@ -438,7 +449,14 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    ret = sss_filter_sanitize(state, name, &clean_name);
+    ret = sss_parse_internal_fqname(state, name,
+                                    &shortname, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", name);
+        goto done;
+    }
+
+    ret = sss_filter_sanitize(state, shortname, &clean_name);
     if (ret != EOK) {
         talloc_free(req);
         return NULL;
@@ -1200,6 +1218,7 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
 
     char **sysdb_parent_name_list = NULL;
     char **ldap_parent_name_list = NULL;
+    char **ldap_fqdnlist = NULL;
 
     int nparents;
     struct sysdb_attrs **ldap_parentlist;
@@ -1269,6 +1288,15 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
         }
     }
 
+    ldap_fqdnlist = sss_create_internal_fqname_list(
+                                tmp_ctx,
+                                (const char * const *) ldap_parent_name_list,
+                                state->dom->name);
+    if (ldap_fqdnlist == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = sysdb_get_direct_parents(tmp_ctx, state->dom, SYSDB_MEMBER_USER,
                                    state->username, &sysdb_parent_name_list);
     if (ret) {
@@ -1279,7 +1307,7 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     }
 
     ret = diff_string_lists(tmp_ctx,
-                            ldap_parent_name_list, sysdb_parent_name_list,
+                            ldap_fqdnlist, sysdb_parent_name_list,
                             &add_groups, &del_groups, NULL);
     if (ret != EOK) {
         goto done;
@@ -2638,6 +2666,7 @@ struct sdap_get_initgr_state {
     const char **grp_attrs;
     const char **user_attrs;
     char *user_base_filter;
+    char *shortname;
     char *filter;
     int timeout;
 
@@ -2702,24 +2731,49 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                                           sdom->dom->name,
                                                           sdom->dom->domain_id);
 
-    ret = sss_filter_sanitize(state, filter_value, &clean_name);
-    if (ret != EOK) {
-        talloc_zfree(req);
-        return NULL;
-    }
+    switch (filter_type) {
+    case BE_FILTER_SECID:
+        search_attr =  state->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
 
-    if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
-        search_attr =  state->opts->user_map[SDAP_AT_USER_PRINC].name;
-    } else {
-        switch (filter_type) {
-        case BE_FILTER_SECID:
-            search_attr =  state->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
-            break;
-        case BE_FILTER_UUID:
-            search_attr =  state->opts->user_map[SDAP_AT_USER_UUID].name;
-            break;
-        default:
-            search_attr =  state->opts->user_map[SDAP_AT_USER_NAME].name;
+        ret = sss_filter_sanitize(state, state->filter_value, &clean_name);
+        if (ret != EOK) {
+            talloc_zfree(req);
+            return NULL;
+        }
+        break;
+    case BE_FILTER_UUID:
+        search_attr =  state->opts->user_map[SDAP_AT_USER_UUID].name;
+
+        ret = sss_filter_sanitize(state, state->filter_value, &clean_name);
+        if (ret != EOK) {
+            talloc_zfree(req);
+            return NULL;
+        }
+        break;
+    case BE_FILTER_NAME:
+        if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
+            search_attr =  state->opts->user_map[SDAP_AT_USER_PRINC].name;
+
+            ret = sss_filter_sanitize(state, state->filter_value, &clean_name);
+            if (ret != EOK) {
+                talloc_zfree(req);
+                return NULL;
+            }
+        } else {
+            search_attr = state->opts->user_map[SDAP_AT_USER_NAME].name;
+
+            ret = sss_parse_internal_fqname(state, filter_value,
+                                            &state->shortname, NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", filter_value);
+                goto done;
+            }
+
+            ret = sss_filter_sanitize(state, state->shortname, &clean_name);
+            if (ret != EOK) {
+                talloc_zfree(req);
+                return NULL;
+            }
         }
     }
 
@@ -2849,7 +2903,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         if ((state->opts->schema_type == SDAP_SCHEMA_RFC2307) &&
             (dp_opt_get_bool(state->opts->basic,
                              SDAP_RFC2307_FALLBACK_TO_LOCAL_USERS) == true)) {
-            ret = sdap_fallback_local_user(state, state->filter_value, -1, &usr_attrs);
+            ret = sdap_fallback_local_user(state, state->shortname, -1, &usr_attrs);
         } else {
             ret = ENOENT;
         }

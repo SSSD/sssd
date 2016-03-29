@@ -47,6 +47,7 @@ struct users_get_state {
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
+    char *shortname;
 
     const char *filter_value;
     int filter_type;
@@ -126,12 +127,25 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     case BE_FILTER_NAME:
         if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
             attr_name = ctx->opts->user_map[SDAP_AT_USER_PRINC].name;
+
+            ret = sss_filter_sanitize(state, filter_value, &clean_value);
+            if (ret != EOK) {
+                goto done;
+            }
         } else {
             attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
-        }
-        ret = sss_filter_sanitize(state, filter_value, &clean_value);
-        if (ret != EOK) {
-            goto done;
+
+            ret = sss_parse_internal_fqname(state, filter_value,
+                                            &state->shortname, NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", filter_value);
+                goto done;
+            }
+
+            ret = sss_filter_sanitize(state, state->shortname, &clean_value);
+            if (ret != EOK) {
+                goto done;
+            }
         }
         break;
     case BE_FILTER_IDNUM:
@@ -452,12 +466,10 @@ static void users_get_done(struct tevent_req *subreq)
         (dp_opt_get_bool(state->ctx->opts->basic,
                          SDAP_RFC2307_FALLBACK_TO_LOCAL_USERS) == true)) {
         struct sysdb_attrs **usr_attrs;
-        const char *name = NULL;
         bool fallback;
 
         switch (state->filter_type) {
         case BE_FILTER_NAME:
-            name = state->filter_value;
             uid = -1;
             fallback = true;
             break;
@@ -475,7 +487,7 @@ static void users_get_done(struct tevent_req *subreq)
         }
 
         if (fallback) {
-            ret = sdap_fallback_local_user(state, name, uid, &usr_attrs);
+            ret = sdap_fallback_local_user(state, state->shortname, uid, &usr_attrs);
             if (ret == EOK) {
                 ret = sdap_save_user(state, state->ctx->opts, state->domain,
                                      usr_attrs[0], NULL, 0);
@@ -613,6 +625,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct groups_get_state *state;
     const char *attr_name = NULL;
+    char *shortname = NULL;
     char *clean_value;
     char *endptr;
     int ret;
@@ -662,7 +675,14 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     case BE_FILTER_NAME:
         attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
 
-        ret = sss_filter_sanitize(state, filter_value, &clean_value);
+        ret = sss_parse_internal_fqname(state, filter_value,
+                                        &shortname, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", shortname);
+            goto done;
+        }
+
+        ret = sss_filter_sanitize(state, shortname, &clean_value);
         if (ret != EOK) {
             goto done;
         }
