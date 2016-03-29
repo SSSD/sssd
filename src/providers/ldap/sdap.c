@@ -1557,7 +1557,6 @@ sdap_get_primary_name(TALLOC_CTX *memctx,
 {
     errno_t ret;
     const char *orig_name = NULL;
-    char *name;
 
     ret = sysdb_attrs_primary_name(dom->sysdb, attrs, attr_name, &orig_name);
     if (ret != EOK) {
@@ -1567,8 +1566,43 @@ sdap_get_primary_name(TALLOC_CTX *memctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Processing object %s\n", orig_name);
 
-    *_primary_name = talloc_steal(memctx, name);
+    *_primary_name = talloc_strdup(memctx, orig_name);
     return EOK;
+}
+
+static errno_t
+sdap_get_primary_fqdn(TALLOC_CTX *mem_ctx,
+                      const char *attr_name,
+                      struct sysdb_attrs *attrs,
+                      struct sss_domain_info *dom,
+                      const char **_primary_fqdn)
+{
+    errno_t ret;
+    const char *shortname = NULL;
+    const char *primary_fqdn = NULL;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sdap_get_primary_name(tmp_ctx, attr_name, attrs, dom, &shortname);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    primary_fqdn = sss_create_internal_fqname(tmp_ctx, shortname, dom->name);
+    if (primary_fqdn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+    *_primary_fqdn = talloc_steal(mem_ctx, primary_fqdn);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 errno_t sdap_get_user_primary_name(TALLOC_CTX *memctx,
@@ -1577,7 +1611,7 @@ errno_t sdap_get_user_primary_name(TALLOC_CTX *memctx,
                                    struct sss_domain_info *dom,
                                    const char **_user_name)
 {
-    return sdap_get_primary_name(memctx,
+    return sdap_get_primary_fqdn(memctx,
                                  opts->user_map[SDAP_AT_USER_NAME].name,
                                  attrs, dom, _user_name);
 }
@@ -1588,7 +1622,7 @@ errno_t sdap_get_group_primary_name(TALLOC_CTX *memctx,
                                     struct sss_domain_info *dom,
                                     const char **_group_name)
 {
-    return sdap_get_primary_name(memctx,
+    return sdap_get_primary_fqdn(memctx,
                                  opts->group_map[SDAP_AT_GROUP_NAME].name,
                                  attrs, dom, _group_name);
 }
