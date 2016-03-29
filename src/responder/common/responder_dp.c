@@ -26,6 +26,7 @@
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
+#include "providers/data_provider/dp_responder_iface.h"
 #include "sbus/sbus_client.h"
 
 struct sss_dp_req;
@@ -520,8 +521,9 @@ sss_dp_get_account_msg(void *pvt)
     DBusMessage *msg;
     dbus_bool_t dbret;
     struct sss_dp_account_info *info;
-    uint32_t be_type;
-    uint32_t attrs = BE_ATTR_CORE;
+    uint32_t dp_flags;
+    uint32_t entry_type;
+    uint32_t attrs_type = BE_ATTR_CORE;
     char *filter;
 
     info = talloc_get_type(pvt, struct sss_dp_account_info);
@@ -529,77 +531,50 @@ sss_dp_get_account_msg(void *pvt)
     switch (info->type) {
         case SSS_DP_USER:
         case SSS_DP_WILDCARD_USER:
-            be_type = BE_REQ_USER;
+            entry_type = BE_REQ_USER;
             break;
         case SSS_DP_GROUP:
         case SSS_DP_WILDCARD_GROUP:
-            be_type = BE_REQ_GROUP;
+            entry_type = BE_REQ_GROUP;
             break;
         case SSS_DP_INITGROUPS:
-            be_type = BE_REQ_INITGROUPS;
+            entry_type = BE_REQ_INITGROUPS;
             break;
         case SSS_DP_NETGR:
-            be_type = BE_REQ_NETGROUP;
+            entry_type = BE_REQ_NETGROUP;
             break;
         case SSS_DP_SERVICES:
-            be_type = BE_REQ_SERVICES;
+            entry_type = BE_REQ_SERVICES;
             break;
         case SSS_DP_SECID:
-            be_type = BE_REQ_BY_SECID;
+            entry_type = BE_REQ_BY_SECID;
             break;
         case SSS_DP_USER_AND_GROUP:
-            be_type = BE_REQ_USER_AND_GROUP;
+            entry_type = BE_REQ_USER_AND_GROUP;
             break;
         case SSS_DP_CERT:
-            be_type = BE_REQ_BY_CERT;
+            entry_type = BE_REQ_BY_CERT;
             break;
     }
 
-    if (info->fast_reply) {
-        be_type |= BE_REQ_FAST;
-    }
+    dp_flags = info->fast_reply ? DP_FAST_REPLY : 0;
 
     if (info->opt_name) {
         if (info->type == SSS_DP_SECID) {
-            if (info->extra) {
-                filter = talloc_asprintf(info, "%s=%s:%s", DP_SEC_ID,
-                                               info->opt_name, info->extra);
-            } else {
-                filter = talloc_asprintf(info, "%s=%s", DP_SEC_ID,
-                                               info->opt_name);
-            }
+            filter = talloc_asprintf(info, "%s=%s", DP_SEC_ID,
+                                     info->opt_name);
         } else if (info->type == SSS_DP_CERT) {
-            if (info->extra) {
-                filter = talloc_asprintf(info, "%s=%s:%s", DP_CERT,
-                                               info->opt_name, info->extra);
-            } else {
-                filter = talloc_asprintf(info, "%s=%s", DP_CERT,
-                                               info->opt_name);
-            }
+            filter = talloc_asprintf(info, "%s=%s", DP_CERT,
+                                     info->opt_name);
         } else if (info->type == SSS_DP_WILDCARD_USER ||
                    info->type == SSS_DP_WILDCARD_GROUP) {
-            if (info->extra) {
-                filter = talloc_asprintf(info, "%s=%s:%s", DP_WILDCARD,
-                                               info->opt_name, info->extra);
-            } else {
-                filter = talloc_asprintf(info, "%s=%s", DP_WILDCARD,
-                                               info->opt_name);
-            }
+            filter = talloc_asprintf(info, "%s=%s", DP_WILDCARD,
+                                     info->opt_name);
         } else {
-            if (info->extra) {
-                filter = talloc_asprintf(info, "name=%s:%s",
-                                         info->opt_name, info->extra);
-            } else {
-                filter = talloc_asprintf(info, "name=%s", info->opt_name);
-            }
+            filter = talloc_asprintf(info, "name=%s", info->opt_name);
         }
     } else if (info->opt_id) {
-        if (info->extra) {
-            filter = talloc_asprintf(info, "idnumber=%u:%s",
-                                     info->opt_id, info->extra);
-        } else {
-            filter = talloc_asprintf(info, "idnumber=%u", info->opt_id);
-        }
+        filter = talloc_asprintf(info, "idnumber=%u", info->opt_id);
     } else {
         filter = talloc_strdup(info, ENUM_INDICATOR);
     }
@@ -610,8 +585,8 @@ sss_dp_get_account_msg(void *pvt)
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DATA_PROVIDER_IFACE,
-                                       DATA_PROVIDER_IFACE_GETACCOUNTINFO);
+                                       IFACE_DP,
+                                       IFACE_DP_GETACCOUNTINFO);
     if (msg == NULL) {
         talloc_free(filter);
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
@@ -620,14 +595,22 @@ sss_dp_get_account_msg(void *pvt)
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Creating request for [%s][%#x][%s][%d][%s]\n",
-           info->dom->name, be_type, be_req2str(be_type), attrs, filter);
+          "Creating request for [%s][%#x][%s][%d][%s:%s]\n",
+          info->dom->name, entry_type, be_req2str(entry_type), attrs_type,
+          filter, info->extra == NULL ? "-" : info->extra);
+
+    if (info->extra == NULL) {
+        /* D-Bus can't deal with NULL. */
+        info->extra = "";
+    }
 
     dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_UINT32, &be_type,
-                                     DBUS_TYPE_UINT32, &attrs,
+                                     DBUS_TYPE_UINT32, &dp_flags,
+                                     DBUS_TYPE_UINT32, &entry_type,
+                                     DBUS_TYPE_UINT32, &attrs_type,
                                      DBUS_TYPE_STRING, &filter,
                                      DBUS_TYPE_STRING, &info->dom->name,
+                                     DBUS_TYPE_STRING, &info->extra,
                                      DBUS_TYPE_INVALID);
     talloc_free(filter);
     if (!dbret) {

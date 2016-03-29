@@ -21,38 +21,33 @@
 
 #include "providers/data_provider_req.h"
 
-#define be_req_to_str(req_type, be_req_t) \
-        ((req_type) & BE_REQ_FAST) ? "FAST " #be_req_t : #be_req_t
+#define be_req_to_str(be_req_t) #be_req_t
 
 const char *be_req2str(dbus_uint32_t req_type)
 {
     switch (req_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER:
-        return be_req_to_str(req_type, BE_REQ_USER);
+        return be_req_to_str(BE_REQ_USER);
     case BE_REQ_GROUP:
-        return be_req_to_str(req_type, BE_REQ_GROUP);
+        return be_req_to_str(BE_REQ_GROUP);
     case BE_REQ_INITGROUPS:
-        return be_req_to_str(req_type, BE_REQ_INITGROUPS);
+        return be_req_to_str(BE_REQ_INITGROUPS);
     case BE_REQ_NETGROUP:
-        return be_req_to_str(req_type, BE_REQ_NETGROUP);
+        return be_req_to_str(BE_REQ_NETGROUP);
     case BE_REQ_SERVICES:
-        return be_req_to_str(req_type, BE_REQ_SERVICES);
+        return be_req_to_str(BE_REQ_SERVICES);
     case BE_REQ_SUDO_FULL:
-        return be_req_to_str(req_type, BE_REQ_SUDO_FULL);
+        return be_req_to_str(BE_REQ_SUDO_FULL);
     case BE_REQ_SUDO_RULES:
-        return be_req_to_str(req_type, BE_REQ_SUDO_RULES);
-    case BE_REQ_AUTOFS:
-        return be_req_to_str(req_type, BE_REQ_AUTOFS);
-    case BE_REQ_HOST:
-        return be_req_to_str(req_type, BE_REQ_HOST);
+        return be_req_to_str(BE_REQ_SUDO_RULES);
     case BE_REQ_BY_SECID:
-        return be_req_to_str(req_type, BE_REQ_BY_SECID);
+        return be_req_to_str(BE_REQ_BY_SECID);
     case BE_REQ_USER_AND_GROUP:
-        return be_req_to_str(req_type, BE_REQ_USER_AND_GROUP);
+        return be_req_to_str(BE_REQ_USER_AND_GROUP);
     case BE_REQ_BY_UUID:
-        return be_req_to_str(req_type, BE_REQ_BY_UUID);
+        return be_req_to_str(BE_REQ_BY_UUID);
     case BE_REQ_BY_CERT:
-        return be_req_to_str(req_type, BE_REQ_BY_CERT);
+        return be_req_to_str(BE_REQ_BY_CERT);
     }
     return "UNKNOWN_REQ";
 }

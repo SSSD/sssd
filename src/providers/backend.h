@@ -35,48 +35,8 @@
 #define BE_SRV_IDENTIFIER  "_srv_"
 
 struct be_ctx;
-struct bet_ops;
-struct be_req;
-
-typedef int (*bet_init_fn_t)(TALLOC_CTX *, struct bet_ops **, void **);
-typedef void (*be_shutdown_fn)(void *);
-typedef void (*be_req_fn_t)(struct be_req *);
-typedef void (*be_async_callback_t)(struct be_req *, int, int, const char *);
 
 typedef void (*be_callback_t)(void *);
-
-enum bet_type {
-    BET_NULL = 0,
-    BET_ID,
-    BET_AUTH,
-    BET_ACCESS,
-    BET_CHPASS,
-    BET_SUDO,
-    BET_AUTOFS,
-    BET_SELINUX,
-    BET_HOSTID,
-    BET_SUBDOMAINS,
-    BET_MAX
-};
-
-struct bet_data {
-    enum bet_type bet_type;
-    const char *option_name;
-    const char *mod_init_fn_name_fmt;
-};
-
-struct loaded_be {
-    char *be_name;
-    void *handle;
-};
-
-struct bet_info {
-    enum bet_type bet_type;
-    struct bet_ops *bet_ops;
-    void *pvt_bet_data;
-    char *mod_name;
-    struct bet_queue_item *req_queue;
-};
 
 struct be_offline_status {
     time_t went_offline;
@@ -88,13 +48,6 @@ struct be_resolv_ctx {
     struct dp_option *opts;
 
     enum restrict_family family_order;
-};
-
-struct be_client {
-    struct be_ctx *bectx;
-    struct sbus_connection *conn;
-    struct tevent_timer *timeout;
-    bool initialized;
 };
 
 struct be_failover_ctx;
@@ -130,33 +83,12 @@ struct be_ctx {
     struct be_ptask *check_if_online_ptask;
 
     struct sbus_connection *mon_conn;
-    struct sbus_connection *sbus_srv;
-
-    struct be_client *nss_cli;
-    struct be_client *pam_cli;
-    struct be_client *sudo_cli;
-    struct be_client *autofs_cli;
-    struct be_client *ssh_cli;
-    struct be_client *pac_cli;
-    struct be_client *ifp_cli;
-
-    struct loaded_be loaded_be[BET_MAX];
-    struct bet_info bet_info[BET_MAX];
 
     struct be_refresh_ctx *refresh_ctx;
 
     size_t check_online_ref_count;
 
-    /* List of ongoing requests */
-    struct be_req *active_requests;
-
     struct data_provider *provider;
-};
-
-struct bet_ops {
-    be_req_fn_t check_online;
-    be_req_fn_t handler;
-    be_req_fn_t finalize;
 };
 
 struct be_acct_req {
@@ -166,28 +98,6 @@ struct be_acct_req {
     char *filter_value;
     char *extra_value;
     char *domain;
-};
-
-struct be_sudo_req {
-    uint32_t type;
-    char **rules;
-};
-
-struct be_autofs_req {
-    char *mapname;
-    bool invalidate;
-};
-
-struct be_subdom_req {
-    bool force;
-    char *domain_hint;
-};
-
-struct be_host_req {
-    uint32_t type;
-    int filter_type;
-    char *name;
-    char *alias;
 };
 
 bool be_is_offline(struct be_ctx *ctx);
@@ -294,41 +204,5 @@ const char *be_fo_get_active_server_name(struct be_ctx *ctx,
                                          const char *service_name);
 
 errno_t be_res_init(struct be_ctx *ctx);
-
-/* be_req helpers */
-
-/* Create a back end request and call fn when done. Please note the
- * request name is not duplicated. The caller should either provide
- * a static string or steal a dynamic string onto req context.
- */
-struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
-                             struct be_client *becli,
-                             struct be_ctx *be_ctx,
-                             const char *name,
-                             be_async_callback_t fn,
-                             void *pvt_fn_data);
-struct be_ctx *be_req_get_be_ctx(struct be_req *be_req);
-
-void *be_req_get_data(struct be_req *be_req);
-
-void be_req_terminate(struct be_req *be_req,
-                      int dp_err_type, int errnum, const char *errstr);
-
-void be_terminate_domain_requests(struct be_ctx *be_ctx,
-                                  const char *domain);
-
-/* Request account information */
-struct tevent_req *
-be_get_account_info_send(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *ev,
-                         struct be_client *becli,
-                         struct be_ctx *be_ctx,
-                         struct be_acct_req *ar);
-
-errno_t be_get_account_info_recv(struct tevent_req *req,
-                                 TALLOC_CTX *mem_ctx,
-                                 int *_err_maj,
-                                 int *_err_min,
-                                 const char **_err_msg);
 
 #endif /* __DP_BACKEND_H___ */

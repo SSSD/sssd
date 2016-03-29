@@ -51,7 +51,6 @@ disable_gc(struct ad_options *ad_options)
 }
 
 struct ad_handle_acct_info_state {
-    struct be_req *breq;
     struct be_acct_req *ar;
     struct sdap_id_ctx *ctx;
     struct sdap_id_conn_ctx **conn;
@@ -69,7 +68,6 @@ static void ad_handle_acct_info_done(struct tevent_req *subreq);
 
 struct tevent_req *
 ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
-                         struct be_req *breq,
                          struct be_acct_req *ar,
                          struct sdap_id_ctx *ctx,
                          struct ad_options *ad_options,
@@ -78,14 +76,13 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req;
     struct ad_handle_acct_info_state *state;
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
+    struct be_ctx *be_ctx = ctx->be;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct ad_handle_acct_info_state);
     if (req == NULL) {
         return NULL;
     }
-    state->breq = breq;
     state->ar = ar;
     state->ctx = ctx;
     state->sdom = sdom;
@@ -276,7 +273,7 @@ ad_handle_acct_info_recv(struct tevent_req *req,
 }
 
 struct sdap_id_conn_ctx **
-get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
+get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
               struct sss_domain_info *dom, struct be_acct_req *ar)
 {
     struct sdap_id_conn_ctx **clist;
@@ -289,11 +286,11 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
     case BE_REQ_USER_AND_GROUP: /* get SID */
     case BE_REQ_GROUP: /* group */
     case BE_REQ_INITGROUPS: /* init groups for user */
-        clist = ad_gc_conn_list(breq, ad_ctx, dom);
+        clist = ad_gc_conn_list(mem_ctx, ad_ctx, dom);
         break;
     default:
         /* Requests for other object should only contact LDAP by default */
-        clist = ad_ldap_conn_list(breq, ad_ctx, dom);
+        clist = ad_ldap_conn_list(mem_ctx, ad_ctx, dom);
         break;
     }
 
@@ -365,146 +362,136 @@ done:
     return shortcut;
 }
 
-static void ad_account_info_complete(struct tevent_req *req);
-
-struct ad_account_info_state {
-    struct be_req *be_req;
-    struct sss_domain_info *dom;
+struct ad_account_info_handler_state {
+    struct sss_domain_info *domain;
+    struct dp_reply_std reply;
 };
 
-void
-ad_account_info_handler(struct be_req *be_req)
+static void ad_account_info_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
+                              struct ad_id_ctx *id_ctx,
+                              struct be_acct_req *data,
+                              struct dp_req_params *params)
 {
-    struct ad_id_ctx *ad_ctx;
-    struct be_acct_req *ar;
-    struct sdap_id_ctx *sdap_id_ctx;
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct tevent_req *req;
-    struct sss_domain_info *dom;
-    struct sdap_domain *sdom;
+    struct ad_account_info_handler_state *state;
     struct sdap_id_conn_ctx **clist;
+    struct sdap_id_ctx *sdap_id_ctx;
+    struct sss_domain_info *domain;
+    struct sdap_domain *sdom;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    struct be_ctx *be_ctx;
     bool shortcut;
     errno_t ret;
-    struct ad_account_info_state *state;
 
-    ad_ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
-                             struct ad_id_ctx);
-    ar = talloc_get_type(be_req_get_data(be_req), struct be_acct_req);
-    sdap_id_ctx = ad_ctx->sdap_id_ctx;
+    sdap_id_ctx = id_ctx->sdap_id_ctx;
+    be_ctx = params->be_ctx;
 
-    if (be_is_offline(be_ctx)) {
-        return be_req_terminate(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_account_info_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
     }
 
-    if (sdap_is_enum_request(ar)) {
+    if (sdap_is_enum_request(data)) {
         DEBUG(SSSDBG_TRACE_LIBS, "Skipping enumeration on demand\n");
-        return sdap_handler_done(be_req, DP_ERR_OK, EOK, "Success");
+        ret = EOK;
+        goto immediately;
     }
 
     /* Try to shortcut if this is ID or SID search and it belongs to
      * other domain range than is in ar->domain. */
     shortcut = ad_account_can_shortcut(be_ctx, sdap_id_ctx->opts->idmap_ctx,
-                                       ar->filter_type, ar->filter_value,
-                                       ar->domain);
+                                       data->filter_type, data->filter_value,
+                                       data->domain);
     if (shortcut) {
         DEBUG(SSSDBG_TRACE_FUNC, "This ID is from different domain\n");
-        be_req_terminate(be_req, DP_ERR_OK, EOK, NULL);
-        return;
+        ret = EOK;
+        goto immediately;
     }
 
-    dom = be_ctx->domain;
-    if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
-        /* Subdomain request, verify subdomain */
-        dom = find_domain_by_name(be_ctx->domain, ar->domain, true);
+    domain = be_ctx->domain;
+    if (strcasecmp(data->domain, be_ctx->domain->name) != 0) {
+        /* Subdomain request, verify subdomain. */
+        domain = find_domain_by_name(be_ctx->domain, data->domain, true);
     }
 
-    if (dom == NULL) {
+    if (domain == NULL) {
         ret = EINVAL;
-        goto fail;
+        goto immediately;
     }
 
-    /* Determine whether to connect to GC, LDAP or try both */
-    clist = get_conn_list(be_req, ad_ctx, dom, ar);
+    /* Determine whether to connect to GC, LDAP or try both. */
+    clist = get_conn_list(state, id_ctx, domain, data);
     if (clist == NULL) {
         ret = EIO;
-        goto fail;
+        goto immediately;
     }
 
-    sdom = sdap_domain_get(sdap_id_ctx->opts, dom);
+    sdom = sdap_domain_get(sdap_id_ctx->opts, domain);
     if (sdom == NULL) {
         ret = EIO;
-        goto fail;
+        goto immediately;
     }
 
-    state = talloc(be_req, struct ad_account_info_state);
-    if (state == NULL) {
+    state->domain = sdom->dom;
+
+    subreq = ad_handle_acct_info_send(state, data, sdap_id_ctx,
+                                      id_ctx->ad_options, sdom, clist);
+    if (subreq == NULL) {
         ret = ENOMEM;
-        goto fail;
+        goto immediately;
     }
-    state->dom = sdom->dom;
-    state->be_req = be_req;
 
-    req = ad_handle_acct_info_send(be_req, be_req, ar, sdap_id_ctx,
-                                   ad_ctx->ad_options, sdom, clist);
-    if (req == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(req, ad_account_info_complete, state);
-    return;
+    tevent_req_set_callback(subreq, ad_account_info_handler_done, req);
 
-fail:
-    be_req_terminate(be_req, DP_ERR_FATAL, ret, NULL);
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
 }
 
-static void
-ad_account_info_complete(struct tevent_req *req)
+static void ad_account_info_handler_done(struct tevent_req *subreq)
 {
-    struct be_req *be_req;
-    errno_t ret;
+    struct ad_account_info_handler_state *state;
+    struct tevent_req *req;
+    const char *err_msg;
     int dp_error;
-    const char *error_text = "Internal error";
-    const char *req_error_text;
-    struct ad_account_info_state *state;
+    errno_t ret;
 
-    state = tevent_req_callback_data(req, struct ad_account_info_state);
-    be_req = state->be_req;
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_account_info_handler_state);
 
-    ret = ad_handle_acct_info_recv(req, &dp_error, &req_error_text);
-    talloc_zfree(req);
-    if (ret == ERR_SUBDOM_INACTIVE) {
-        be_mark_dom_offline(state->dom, be_req_get_be_ctx(be_req));
-        return be_req_terminate(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
-    } else if (dp_error == DP_ERR_OK) {
-        if (ret == EOK) {
-            error_text = NULL;
-        } else {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Bug: dp_error is OK on failed request\n");
-            dp_error = DP_ERR_FATAL;
-            error_text = req_error_text;
-        }
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        error_text = "Offline";
-    } else if (dp_error == DP_ERR_FATAL && ret == ENOMEM) {
-        error_text = "Out of memory";
-    } else {
-        error_text = req_error_text;
-    }
+    ret = ad_handle_acct_info_recv(subreq, &dp_error, &err_msg);
+    talloc_zfree(subreq);
 
-    return be_req_terminate(be_req, dp_error, ret, error_text);
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, dp_error, ret, err_msg);
+    tevent_req_done(req);
 }
 
-void
-ad_check_online(struct be_req *be_req)
+errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      struct dp_reply_std *data)
 {
-    struct ad_id_ctx *ad_ctx;
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
+    struct ad_account_info_handler_state *state = NULL;
 
-    ad_ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
-                             struct ad_id_ctx);
+    state = tevent_req_data(req, struct ad_account_info_handler_state);
 
-    return sdap_do_online_check(be_req, ad_ctx->sdap_id_ctx);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
+
+    return EOK;
 }
 
 struct ad_enumeration_state {
@@ -1079,3 +1066,4 @@ ad_enumeration_recv(struct tevent_req *req)
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
 }
+

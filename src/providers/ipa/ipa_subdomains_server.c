@@ -961,7 +961,7 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
     DLIST_REMOVE(id_ctx->server_mode->trusts, iter);
 
     /* terminate all requests for this subdomain so we can free it */
-    be_terminate_domain_requests(be_ctx, subdom->name);
+    dp_terminate_domain_requests(be_ctx->provider, subdom->name);
     talloc_zfree(sdom);
 }
 

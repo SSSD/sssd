@@ -26,7 +26,8 @@
 
 #include "util/util.h"
 #include "sbus/sbus_client.h"
-#include "providers/data_provider.h"
+#include "providers/data_provider_req.h"
+#include "providers/data_provider/dp_responder_iface.h"
 #include "responder/common/responder.h"
 #include "responder/sudo/sudosrv_private.h"
 #include "db/sysdb.h"
@@ -121,6 +122,7 @@ sss_dp_get_sudoers_msg(void *pvt)
     errno_t ret;
     struct sss_dp_get_sudoers_info *info;
     uint32_t be_type = 0;
+    uint32_t dp_flags = 0;
     const char *rule_name = NULL;
     uint32_t i;
 
@@ -136,13 +138,13 @@ sss_dp_get_sudoers_msg(void *pvt)
     }
 
     if (info->fast_reply) {
-        be_type |= BE_REQ_FAST;
+        dp_flags |= DP_FAST_REPLY;
     }
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DATA_PROVIDER_IFACE,
-                                       DATA_PROVIDER_IFACE_SUDOHANDLER);
+                                       IFACE_DP,
+                                       IFACE_DP_SUDOHANDLER);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;
@@ -154,6 +156,11 @@ sss_dp_get_sudoers_msg(void *pvt)
            info->dom->name, be_type, info->name, info->num_rules);
 
     dbus_message_iter_init_append(msg, &iter);
+
+    dbret = dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT32, &dp_flags);
+    if (dbret == FALSE) {
+        goto fail;
+    }
 
     /* BE TYPE */
     dbret = dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT32, &be_type);

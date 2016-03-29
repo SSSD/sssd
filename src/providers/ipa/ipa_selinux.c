@@ -37,8 +37,6 @@
 #include "providers/ipa/ipa_selinux_maps.h"
 #include "providers/ipa/ipa_subdomains.h"
 
-#if defined HAVE_SELINUX && defined HAVE_SELINUX_LOGIN_DIR
-
 #ifndef SELINUX_CHILD_DIR
 #ifndef SSSD_LIBEXEC_PATH
 #error "SSSD_LIBEXEC_PATH not defined"
@@ -70,15 +68,6 @@ static errno_t ipa_get_selinux_recv(struct tevent_req *req,
                                     char **default_user,
                                     char **map_order);
 
-static struct ipa_selinux_op_ctx *
-ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *ipa_domain,
-                          struct sss_domain_info *user_domain,
-                          struct be_req *be_req, const char *username,
-                          const char *hostname,
-                          struct ipa_selinux_ctx *selinux_ctx);
-static void ipa_selinux_handler_done(struct tevent_req *subreq);
-
 static void ipa_get_selinux_connect_done(struct tevent_req *subreq);
 static void ipa_get_selinux_hosts_done(struct tevent_req *subreq);
 static void ipa_get_config_step(struct tevent_req *req);
@@ -93,83 +82,6 @@ static errno_t ipa_selinux_process_maps(TALLOC_CTX *mem_ctx,
                                         struct sysdb_attrs **hbac_rules,
                                         size_t hbac_rule_count,
                                         struct sysdb_attrs ***usermaps);
-
-struct ipa_selinux_op_ctx {
-    struct be_req *be_req;
-    struct sss_domain_info *user_domain;
-    struct sss_domain_info *ipa_domain;
-    struct ipa_selinux_ctx *selinux_ctx;
-
-    struct sysdb_attrs *user;
-    struct sysdb_attrs *host;
-};
-
-void ipa_selinux_handler(struct be_req *be_req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct ipa_selinux_ctx *selinux_ctx;
-    struct ipa_selinux_op_ctx *op_ctx;
-    struct tevent_req *req;
-    struct pam_data *pd;
-    const char *hostname;
-    struct sss_domain_info *user_domain;
-    struct be_ctx *subdom_be_ctx;
-
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
-
-    selinux_ctx = talloc_get_type(be_ctx->bet_info[BET_SELINUX].pvt_bet_data,
-                                  struct ipa_selinux_ctx);
-
-    hostname = dp_opt_get_string(selinux_ctx->id_ctx->ipa_options->basic,
-                                 IPA_HOSTNAME);
-    if (!hostname) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot determine this machine's host name\n");
-        goto fail;
-    }
-
-    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
-        subdom_be_ctx = ipa_get_subdomains_be_ctx(be_ctx);
-        if (subdom_be_ctx == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Subdomains are not configured, " \
-                                      "cannot lookup domain [%s].\n",
-                                       pd->domain);
-            goto fail;
-        } else {
-            user_domain = find_domain_by_name(subdom_be_ctx->domain,
-                                              pd->domain, true);
-            if (user_domain == NULL) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "No domain entry found " \
-                                             "for [%s].\n", pd->domain);
-                goto fail;
-            }
-        }
-    } else {
-        user_domain = be_ctx->domain;
-    }
-
-    op_ctx = ipa_selinux_create_op_ctx(be_req, user_domain->sysdb,
-                                       be_ctx->domain,
-                                       user_domain,
-                                       be_req, pd->user, hostname,
-                                       selinux_ctx);
-    if (op_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot create op context\n");
-        goto fail;
-    }
-
-    req = ipa_get_selinux_send(be_req, be_ctx,
-                               op_ctx->user, op_ctx->host, selinux_ctx);
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot initiate the search\n");
-        goto fail;
-    }
-
-    tevent_req_set_callback(req, ipa_selinux_handler_done, op_ctx);
-    return;
-
-fail:
-    be_req_terminate(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
-}
 
 static errno_t
 ipa_save_user_maps(struct sysdb_ctx *sysdb,
@@ -217,245 +129,17 @@ done:
     return ret;
 }
 
-static struct ipa_selinux_op_ctx *
-ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *ipa_domain,
-                          struct sss_domain_info *user_domain,
-                          struct be_req *be_req, const char *username,
-                          const char *hostname,
-                          struct ipa_selinux_ctx *selinux_ctx)
-{
-    struct ipa_selinux_op_ctx *op_ctx;
-    struct ldb_dn *host_dn;
-    const char *attrs[] = { SYSDB_ORIG_DN,
-                            SYSDB_ORIG_MEMBEROF,
-                            NULL };
-    size_t count;
-    struct ldb_message **msgs;
-    struct sysdb_attrs **hosts;
-    errno_t ret;
-
-    op_ctx = talloc_zero(mem_ctx, struct ipa_selinux_op_ctx);
-    if (op_ctx == NULL) {
-        return NULL;
-    }
-    op_ctx->be_req = be_req;
-    op_ctx->ipa_domain = ipa_domain;
-    op_ctx->user_domain = user_domain;
-    op_ctx->selinux_ctx = selinux_ctx;
-
-    ret = sss_selinux_extract_user(op_ctx, user_domain, username, &op_ctx->user);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    host_dn = sysdb_custom_dn(op_ctx, ipa_domain, hostname, HBAC_HOSTS_SUBDIR);
-    if (host_dn == NULL) {
-        goto fail;
-    }
-
-    /* Look up the host to get its originalMemberOf entries */
-    ret = sysdb_search_entry(op_ctx, sysdb, host_dn,
-                             LDB_SCOPE_BASE, NULL,
-                             attrs, &count, &msgs);
-    if (ret == ENOENT || count == 0) {
-        op_ctx->host = NULL;
-        return op_ctx;
-    } else if (ret != EOK) {
-        goto fail;
-    } else if (count > 1) {
-        DEBUG(SSSDBG_OP_FAILURE, "More than one result for a BASE search!\n");
-        goto fail;
-    }
-
-    ret = sysdb_msg2attrs(op_ctx, count, msgs, &hosts);
-    talloc_free(msgs);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    op_ctx->host = hosts[0];
-    return op_ctx;
-
-fail:
-    talloc_free(op_ctx);
-    return NULL;
-}
-
 struct map_order_ctx {
     char *order;
     char **order_array;
     size_t order_count;
 };
 
-static errno_t init_map_order_ctx(TALLOC_CTX *mem_ctx, const char *map_order,
-                                  struct map_order_ctx **_mo_ctx);
-
 struct selinux_child_input {
     const char *seuser;
     const char *mls_range;
     const char *username;
 };
-
-static errno_t choose_best_seuser(TALLOC_CTX *mem_ctx,
-                                  struct sysdb_attrs **usermaps,
-                                  struct pam_data *pd,
-                                  struct sss_domain_info *user_domain,
-                                  struct map_order_ctx *mo_ctx,
-                                  const char *default_user,
-                                  struct selinux_child_input **_sci);
-
-static struct tevent_req *selinux_child_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct selinux_child_input *sci);
-static errno_t selinux_child_recv(struct tevent_req *req);
-
-static void ipa_selinux_child_done(struct tevent_req *child_req);
-
-static void ipa_selinux_handler_done(struct tevent_req *req)
-{
-    struct ipa_selinux_op_ctx *op_ctx = tevent_req_callback_data(req, struct ipa_selinux_op_ctx);
-    struct be_req *breq = op_ctx->be_req;
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct sysdb_ctx *sysdb = op_ctx->ipa_domain->sysdb;
-    errno_t ret, sret;
-    size_t map_count = 0;
-    struct sysdb_attrs **maps = NULL;
-    bool in_transaction = false;
-    char *default_user = NULL;
-    struct pam_data *pd =
-                    talloc_get_type(be_req_get_data(breq), struct pam_data);
-    char *map_order = NULL;
-    size_t hbac_count = 0;
-    struct sysdb_attrs **hbac_rules = 0;
-    struct sysdb_attrs **best_match_maps;
-    struct map_order_ctx *map_order_ctx;
-    struct selinux_child_input *sci = NULL;
-    struct tevent_req *child_req;
-
-    ret = ipa_get_selinux_recv(req, breq, &map_count, &maps,
-                               &hbac_count, &hbac_rules,
-                               &default_user, &map_order);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
-        goto fail;
-    }
-    in_transaction = true;
-
-    ret = sysdb_delete_usermaps(op_ctx->ipa_domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot delete existing maps from sysdb\n");
-        goto fail;
-    }
-
-    ret = sysdb_store_selinux_config(op_ctx->ipa_domain,
-                                     default_user, map_order);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    if (map_count > 0) {
-        ret = ipa_save_user_maps(sysdb, op_ctx->ipa_domain, map_count, maps);
-        if (ret != EOK) {
-            goto fail;
-        }
-    }
-
-    ret = sysdb_transaction_commit(sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not commit transaction\n");
-        goto fail;
-    }
-    in_transaction = false;
-
-    /* Process the maps and return list of best matches (maps with
-     * highest priority). The input maps are also parent memory
-     * context for the output list of best matches. The best match
-     * maps should never be freed explicitly but always through
-     * their parent (or any indirect parent) */
-    ret = ipa_selinux_process_maps(maps, op_ctx->user, op_ctx->host,
-                                   maps, map_count,
-                                   hbac_rules, hbac_count, &best_match_maps);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    ret = init_map_order_ctx(op_ctx, map_order, &map_order_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to create ordered SELinux users array.\n");
-        goto fail;
-    }
-
-    ret = choose_best_seuser(breq,
-                             best_match_maps, pd, op_ctx->user_domain,
-                             map_order_ctx, default_user, &sci);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to evaluate ordered SELinux users array.\n");
-        goto fail;
-    }
-
-    /* Update the SELinux context in a privileged child as the back end is
-     * running unprivileged
-     */
-    child_req = selinux_child_send(breq, be_ctx->ev, sci);
-    if (child_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "selinux_child_send() failed\n");
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(child_req, ipa_selinux_child_done, op_ctx);
-    return;
-
-fail:
-    if (in_transaction) {
-        sret = sysdb_transaction_cancel(sysdb);
-        if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
-        }
-    }
-    if (ret == EAGAIN) {
-        be_req_terminate(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
-    } else {
-        be_req_terminate(breq, DP_ERR_FATAL, ret, NULL);
-    }
-}
-
-static void ipa_selinux_child_done(struct tevent_req *child_req)
-{
-    errno_t ret;
-    struct ipa_selinux_op_ctx *op_ctx;
-    struct be_req *breq;
-    struct pam_data *pd;
-    struct be_ctx *be_ctx;
-
-    op_ctx = tevent_req_callback_data(child_req, struct ipa_selinux_op_ctx);
-    breq = op_ctx->be_req;
-    pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
-    be_ctx = be_req_get_be_ctx(breq);
-
-    ret = selinux_child_recv(child_req);
-    talloc_free(child_req);
-    if (ret != EOK) {
-        be_req_terminate(breq, DP_ERR_FATAL, ret, NULL);
-        return;
-    }
-
-    /* If we got here in online mode, set last_update to current time */
-    if (!be_is_offline(be_ctx)) {
-        op_ctx->selinux_ctx->last_update = time(NULL);
-    }
-
-    pd->pam_status = PAM_SUCCESS;
-    be_req_terminate(breq, DP_ERR_OK, EOK, "Success");
-}
 
 static errno_t
 ipa_selinux_process_seealso_maps(struct sysdb_attrs *user,
@@ -1023,8 +707,8 @@ static errno_t selinux_child_create_buffer(struct selinux_child_state *state)
 
 static errno_t selinux_fork_child(struct selinux_child_state *state)
 {
-    int pipefd_to_child[2] = PIPE_INIT;
-    int pipefd_from_child[2] = PIPE_INIT;
+    int pipefd_to_child[2];
+    int pipefd_from_child[2];
     pid_t pid;
     errno_t ret;
 
@@ -1033,7 +717,7 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pipe failed [%d][%s].\n", errno, sss_strerror(errno));
-        goto fail;
+        return ret;
     }
 
     ret = pipe(pipefd_to_child);
@@ -1041,23 +725,22 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pipe failed [%d][%s].\n", errno, sss_strerror(errno));
-        goto fail;
+        return ret;
     }
 
     pid = fork();
 
     if (pid == 0) { /* child */
-        exec_child(state,
-                   pipefd_to_child, pipefd_from_child,
+        exec_child(state, pipefd_to_child, pipefd_from_child,
                    SELINUX_CHILD, selinux_child_debug_fd);
-
-        /* We should never get here */
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec selinux_child\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec selinux_child: [%d][%s].\n",
+              ret, sss_strerror(ret));
+        return ret;
     } else if (pid > 0) { /* parent */
         state->io->read_from_child_fd = pipefd_from_child[0];
-        PIPE_FD_CLOSE(pipefd_from_child[1]);
+        close(pipefd_from_child[1]);
         state->io->write_to_child_fd = pipefd_to_child[1];
-        PIPE_FD_CLOSE(pipefd_to_child[0]);
+        close(pipefd_to_child[0]);
         sss_fd_nonblocking(state->io->read_from_child_fd);
         sss_fd_nonblocking(state->io->write_to_child_fd);
 
@@ -1065,21 +748,16 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Could not set up child signal handler\n");
-            goto fail;
+            return ret;
         }
     } else { /* error */
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "fork failed [%d][%s].\n", errno, sss_strerror(errno));
-        goto fail;
+        return ret;
     }
 
     return EOK;
-
-fail:
-    PIPE_CLOSE(pipefd_from_child);
-    PIPE_CLOSE(pipefd_to_child);
-    return ret;
 }
 
 static void selinux_child_step(struct tevent_req *subreq)
@@ -1099,7 +777,8 @@ static void selinux_child_step(struct tevent_req *subreq)
         return;
     }
 
-    PIPE_FD_CLOSE(state->io->write_to_child_fd);
+    close(state->io->write_to_child_fd);
+    state->io->write_to_child_fd = -1;
 
     subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
     if (subreq == NULL) {
@@ -1128,7 +807,8 @@ static void selinux_child_done(struct tevent_req *subreq)
         return;
     }
 
-    PIPE_FD_CLOSE(state->io->read_from_child_fd);
+    close(state->io->read_from_child_fd);
+    state->io->read_from_child_fd = -1;
 
     ret = selinux_child_parse_response(buf, len, &child_result);
     if (ret != EOK) {
@@ -1278,9 +958,8 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
     int dp_error = DP_ERR_FATAL;
     int ret;
     struct ipa_id_ctx *id_ctx = state->selinux_ctx->id_ctx;
-
-    const char *access_name;
-    const char *selinux_name;
+    struct dp_module *access_mod;
+    struct dp_module *selinux_mod;
     const char *hostname;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
@@ -1300,9 +979,9 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    access_name = state->be_ctx->bet_info[BET_ACCESS].mod_name;
-    selinux_name = state->be_ctx->bet_info[BET_SELINUX].mod_name;
-    if (strcasecmp(access_name, selinux_name) == 0 && state->host != NULL) {
+    access_mod = dp_target_module(state->be_ctx->provider, DPT_ACCESS);
+    selinux_mod = dp_target_module(state->be_ctx->provider, DPT_SELINUX);
+    if (access_mod == selinux_mod && state->host != NULL) {
         /* If the access control module is the same as the selinux module
          * and the access control had already discovered the host
          */
@@ -1506,11 +1185,9 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct ipa_get_selinux_state *state;
-
     struct ipa_id_ctx *id_ctx;
-
-    char *selinux_name;
-    char *access_name;
+    struct dp_module *access_mod;
+    struct dp_module *selinux_mod;
 
     const char *tmp_str;
     bool check_hbac;
@@ -1548,9 +1225,9 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     }
 
     if (check_hbac) {
-        access_name = state->be_ctx->bet_info[BET_ACCESS].mod_name;
-        selinux_name = state->be_ctx->bet_info[BET_SELINUX].mod_name;
-        if (strcasecmp(access_name, selinux_name) == 0) {
+        access_mod = dp_target_module(state->be_ctx->provider, DPT_ACCESS);
+        selinux_mod = dp_target_module(state->be_ctx->provider, DPT_SELINUX);
+        if (access_mod == selinux_mod) {
             ret = hbac_get_cached_rules(state, state->be_ctx->domain,
                                         &state->hbac_rule_count,
                                         &state->hbac_rules);
@@ -1656,16 +1333,367 @@ ipa_get_selinux_recv(struct tevent_req *req,
     return EOK;
 }
 
-/*end of #if defined HAVE_SELINUX && defined HAVE_SELINUX_LOGIN_DIR */
-#else
-/* Simply return success if HAVE_SELINUX_LOGIN_DIR is not defined. */
-void ipa_selinux_handler(struct be_req *be_req)
+static errno_t
+ipa_selinux_init_attrs(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *ipa_domain,
+                       struct sss_domain_info *user_domain,
+                       const char *username,
+                       const char *hostname,
+                       struct sysdb_attrs **_user,
+                       struct sysdb_attrs **_host)
 {
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *host_dn;
+    const char *attrs[] = { SYSDB_ORIG_DN,
+                            SYSDB_ORIG_MEMBEROF,
+                            NULL };
+    size_t count;
+    struct ldb_message **msgs;
+    struct sysdb_attrs **hosts;
+    struct sysdb_attrs *user = NULL;
+    struct sysdb_attrs *host = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_selinux_extract_user(tmp_ctx, user_domain, username, &user);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    host_dn = sysdb_custom_dn(tmp_ctx, ipa_domain, hostname, HBAC_HOSTS_SUBDIR);
+    if (host_dn == NULL) {
+        goto done;
+    }
+
+    /* Look up the host to get its originalMemberOf entries */
+    ret = sysdb_search_entry(tmp_ctx, sysdb, host_dn, LDB_SCOPE_BASE, NULL,
+                             attrs, &count, &msgs);
+    if (ret == ENOENT || count == 0) {
+        host = NULL;
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
+    } else if (count > 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "More than one result for a BASE search!\n");
+        goto done;
+    }
+
+    ret = sysdb_msg2attrs(tmp_ctx, count, msgs, &hosts);
+    talloc_free(msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    host = hosts[0];
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_user = talloc_steal(mem_ctx, user);
+        *_host = talloc_steal(mem_ctx, host);
+    }
+
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t
+ipa_selinux_store_config(struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *ipa_domain,
+                         const char *default_user,
+                         const char *map_order,
+                         size_t map_count,
+                         struct sysdb_attrs **maps)
+{
+    bool in_transaction = false;
+    errno_t sret;
+    errno_t ret;
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
+        goto done;
+    }
+    in_transaction = true;
+
+    ret = sysdb_delete_usermaps(ipa_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot delete existing maps from sysdb\n");
+        goto done;
+    }
+
+    ret = sysdb_store_selinux_config(ipa_domain, default_user, map_order);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (map_count > 0) {
+        ret = ipa_save_user_maps(sysdb, ipa_domain, map_count, maps);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not commit transaction\n");
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
+        }
+    }
+
+    return ret;
+}
+
+static errno_t
+ipa_selinux_create_child_input(TALLOC_CTX *mem_ctx,
+                               struct sysdb_attrs *user,
+                               struct sysdb_attrs *host,
+                               struct sysdb_attrs **maps,
+                               size_t map_count,
+                               struct sysdb_attrs **hbac_rules,
+                               size_t hbac_count,
+                               const char *map_order,
+                               struct pam_data *pd,
+                               struct sss_domain_info *user_domain,
+                               const char *default_user,
+                               struct selinux_child_input **_sci)
+{
+    struct sysdb_attrs **best_match_maps = NULL;
+    struct map_order_ctx *map_order_ctx = NULL;
+    struct selinux_child_input *sci = NULL;
+    errno_t ret;
+
+    /* Process the maps and return list of best matches
+     * (maps with highest priority). */
+    ret = ipa_selinux_process_maps(mem_ctx, user, host, maps, map_count,
+                                   hbac_rules, hbac_count, &best_match_maps);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = init_map_order_ctx(mem_ctx, map_order, &map_order_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to create ordered SELinux users array.\n");
+        goto done;
+    }
+
+    ret = choose_best_seuser(mem_ctx, best_match_maps, pd, user_domain,
+                             map_order_ctx, default_user, &sci);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to evaluate ordered SELinux users array.\n");
+        goto done;
+    }
+
+    *_sci = sci;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(best_match_maps);
+        talloc_free(map_order_ctx);
+        talloc_free(sci);
+    }
+
+    return ret;
+}
+
+struct ipa_selinux_handler_state {
+    struct be_ctx *be_ctx;
+    struct tevent_context *ev;
     struct pam_data *pd;
 
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
+    struct sss_domain_info *user_domain;
+    struct sss_domain_info *ipa_domain;
+    struct ipa_selinux_ctx *selinux_ctx;
 
-    pd->pam_status = PAM_SUCCESS;
-    be_req_terminate(be_req, DP_ERR_OK, EOK, "Success");
+    struct sysdb_attrs *user;
+    struct sysdb_attrs *host;
+};
+
+static void ipa_selinux_handler_get_done(struct tevent_req *subreq);
+static void ipa_selinux_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ipa_selinux_handler_send(TALLOC_CTX *mem_ctx,
+                         struct ipa_selinux_ctx *selinux_ctx,
+                         struct pam_data *pd,
+                         struct dp_req_params *params)
+{
+    struct ipa_selinux_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    const char *hostname;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_selinux_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->be_ctx = params->be_ctx;
+    state->ev = params->ev;
+    state->pd = pd;
+    state->user_domain = params->domain;
+    state->ipa_domain = params->be_ctx->domain;
+    state->selinux_ctx = selinux_ctx;
+
+    pd->pam_status = PAM_SYSTEM_ERR;
+
+    hostname = dp_opt_get_string(selinux_ctx->id_ctx->ipa_options->basic,
+                                 IPA_HOSTNAME);
+    if (hostname == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot determine this machine's host name\n");
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    ret = ipa_selinux_init_attrs(state, state->user_domain->sysdb,
+                                 state->ipa_domain, state->user_domain,
+                                 pd->user, hostname,
+                                 &state->user, &state->host);
+    if (ret != EOK) {
+        goto immediately;
+    }
+
+    subreq = ipa_get_selinux_send(state, params->be_ctx, state->user,
+                                  state->host, selinux_ctx);
+    if (subreq == NULL) {
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_selinux_handler_get_done, req);
+
+    return req;
+
+immediately:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
 }
-#endif
+
+static void ipa_selinux_handler_get_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct ipa_selinux_handler_state *state;
+    struct selinux_child_input *sci;
+    struct sysdb_attrs **hbac_rules = NULL;
+    struct sysdb_attrs **maps = NULL;
+    size_t map_count = 0;
+    size_t hbac_count = 0;
+    char *default_user = NULL;
+    char *map_order = NULL;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_selinux_handler_state);
+
+    ret = ipa_get_selinux_recv(subreq, state, &map_count, &maps,
+                               &hbac_count, &hbac_rules,
+                               &default_user, &map_order);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = ipa_selinux_store_config(state->ipa_domain->sysdb, state->ipa_domain,
+                                   default_user, map_order, map_count, maps);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to store SELinux config [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = ipa_selinux_create_child_input(state, state->user, state->host,
+                                         maps, map_count, hbac_rules,
+                                         hbac_count, map_order, state->pd,
+                                         state->user_domain, default_user,
+                                         &sci);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create child input [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Update the SELinux context in a privileged child as the back end is
+     * running unprivileged
+     */
+    subreq = selinux_child_send(state, state->ev, sci);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ipa_selinux_handler_done, req);
+    return;
+
+done:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+static void ipa_selinux_handler_done(struct tevent_req *subreq)
+{
+    struct ipa_selinux_handler_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_selinux_handler_state);
+
+    ret = selinux_child_recv(subreq);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    if (!be_is_offline(state->be_ctx)) {
+        state->selinux_ctx->last_update = time(NULL);
+    }
+
+    state->pd->pam_status = PAM_SUCCESS;
+
+done:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+errno_t
+ipa_selinux_handler_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         struct pam_data **_data)
+{
+    struct ipa_selinux_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct ipa_selinux_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
+}

@@ -34,149 +34,6 @@
 
 #define TIMEOUT_OF_REFRESH_FILTER_LISTS 5
 
-static void simple_access_check(struct tevent_req *req);
-static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
-                                         struct be_ctx *be_ctx,
-                                         char **list,
-                                         char ***_out);
-
-static int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
-{
-    struct be_ctx *bectx = ctx->be_ctx;
-    int ret;
-    int i;
-    struct {
-        const char *name;
-        const char *option;
-        char **orig_list;
-        char ***ctx_list;
-    } lists[] = {{"Allow users", CONFDB_SIMPLE_ALLOW_USERS, NULL, NULL},
-                 {"Deny users", CONFDB_SIMPLE_DENY_USERS, NULL, NULL},
-                 {"Allow groups", CONFDB_SIMPLE_ALLOW_GROUPS, NULL, NULL},
-                 {"Deny groups", CONFDB_SIMPLE_DENY_GROUPS, NULL, NULL},
-                 {NULL, NULL, NULL, NULL}};
-
-    lists[0].ctx_list = &ctx->allow_users;
-    lists[1].ctx_list = &ctx->deny_users;
-    lists[2].ctx_list = &ctx->allow_groups;
-    lists[3].ctx_list = &ctx->deny_groups;
-
-    ret = sysdb_master_domain_update(bectx->domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FUNC_DATA, "Update of master domain failed [%d]: %s.\n",
-                                 ret, sss_strerror(ret));
-        goto failed;
-    }
-
-    for (i = 0; lists[i].name != NULL; i++) {
-        ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
-                                        lists[i].option, &lists[i].orig_list);
-        if (ret == ENOENT) {
-            DEBUG(SSSDBG_FUNC_DATA, "%s list is empty.\n", lists[i].name);
-            *lists[i].ctx_list = NULL;
-            continue;
-        } else if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "confdb_get_string_as_list failed.\n");
-            goto failed;
-        }
-
-        ret = simple_access_parse_names(ctx, bectx, lists[i].orig_list,
-                                        lists[i].ctx_list);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse %s list [%d]: %s\n",
-                                        lists[i].name, ret, sss_strerror(ret));
-            goto failed;
-        }
-    }
-
-    if (!ctx->allow_users &&
-            !ctx->allow_groups &&
-            !ctx->deny_users &&
-            !ctx->deny_groups) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "No rules supplied for simple access provider. "
-               "Access will be granted for all users.\n");
-    }
-    return EOK;
-
-failed:
-    return ret;
-}
-
-void simple_access_handler(struct be_req *be_req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct pam_data *pd;
-    struct tevent_req *req;
-    struct simple_ctx *ctx;
-    int ret;
-    time_t now;
-
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
-
-    pd->pam_status = PAM_SYSTEM_ERR;
-
-    if (pd->cmd != SSS_PAM_ACCT_MGMT) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "simple access does not handle pam task %d.\n", pd->cmd);
-        pd->pam_status = PAM_MODULE_UNKNOWN;
-        goto done;
-    }
-
-    ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
-                          struct simple_ctx);
-
-
-    now = time(NULL);
-    if ((now - ctx->last_refresh_of_filter_lists)
-        > TIMEOUT_OF_REFRESH_FILTER_LISTS) {
-
-        ret = simple_access_obtain_filter_lists(ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to refresh filter lists\n");
-        }
-        ctx->last_refresh_of_filter_lists = now;
-    }
-
-    req = simple_access_check_send(be_req, be_ctx->ev, ctx, pd->user);
-    if (!req) {
-        pd->pam_status = PAM_SYSTEM_ERR;
-        goto done;
-    }
-    tevent_req_set_callback(req, simple_access_check, be_req);
-    return;
-
-done:
-    be_req_terminate(be_req, DP_ERR_OK, pd->pam_status, NULL);
-}
-
-static void simple_access_check(struct tevent_req *req)
-{
-    bool access_granted = false;
-    errno_t ret;
-    struct pam_data *pd;
-    struct be_req *be_req;
-
-    be_req = tevent_req_callback_data(req, struct be_req);
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
-
-    ret = simple_access_check_recv(req, &access_granted);
-    talloc_free(req);
-    if (ret != EOK) {
-        pd->pam_status = PAM_SYSTEM_ERR;
-        goto done;
-    }
-
-    if (access_granted) {
-        pd->pam_status = PAM_SUCCESS;
-    } else {
-        pd->pam_status = PAM_PERM_DENIED;
-    }
-
-done:
-    be_req_terminate(be_req, DP_ERR_OK, pd->pam_status, NULL);
-}
-
 static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
                                          struct be_ctx *be_ctx,
                                          char **list,
@@ -250,38 +107,204 @@ done:
     return ret;
 }
 
-struct bet_ops simple_access_ops = {
-    .handler = simple_access_handler,
-    .finalize = NULL
+int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
+{
+    struct be_ctx *bectx = ctx->be_ctx;
+    int ret;
+    int i;
+    struct {
+        const char *name;
+        const char *option;
+        char **orig_list;
+        char ***ctx_list;
+    } lists[] = {{"Allow users", CONFDB_SIMPLE_ALLOW_USERS, NULL, NULL},
+                 {"Deny users", CONFDB_SIMPLE_DENY_USERS, NULL, NULL},
+                 {"Allow groups", CONFDB_SIMPLE_ALLOW_GROUPS, NULL, NULL},
+                 {"Deny groups", CONFDB_SIMPLE_DENY_GROUPS, NULL, NULL},
+                 {NULL, NULL, NULL, NULL}};
+
+    lists[0].ctx_list = &ctx->allow_users;
+    lists[1].ctx_list = &ctx->deny_users;
+    lists[2].ctx_list = &ctx->allow_groups;
+    lists[3].ctx_list = &ctx->deny_groups;
+
+    ret = sysdb_master_domain_update(bectx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FUNC_DATA, "Update of master domain failed [%d]: %s.\n",
+                                 ret, sss_strerror(ret));
+        goto failed;
+    }
+
+    for (i = 0; lists[i].name != NULL; i++) {
+        ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
+                                        lists[i].option, &lists[i].orig_list);
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_FUNC_DATA, "%s list is empty.\n", lists[i].name);
+            *lists[i].ctx_list = NULL;
+            continue;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "confdb_get_string_as_list failed.\n");
+            goto failed;
+        }
+
+        ret = simple_access_parse_names(ctx, bectx, lists[i].orig_list,
+                                        lists[i].ctx_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse %s list [%d]: %s\n",
+                                        lists[i].name, ret, sss_strerror(ret));
+            goto failed;
+        }
+    }
+
+    if (!ctx->allow_users &&
+            !ctx->allow_groups &&
+            !ctx->deny_users &&
+            !ctx->deny_groups) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "No rules supplied for simple access provider. "
+               "Access will be granted for all users.\n");
+    }
+    return EOK;
+
+failed:
+    return ret;
+}
+
+struct simple_access_handler_state {
+    struct pam_data *pd;
 };
 
-int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
-                            void **pvt_data)
+static void simple_access_handler_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+simple_access_handler_send(TALLOC_CTX *mem_ctx,
+                           struct simple_ctx *simple_ctx,
+                           struct pam_data *pd,
+                           struct dp_req_params *params)
 {
-    int ret = EINVAL;
+    struct simple_access_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+    time_t now;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct simple_access_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->pd = pd;
+
+    pd->pam_status = PAM_SYSTEM_ERR;
+    if (pd->cmd != SSS_PAM_ACCT_MGMT) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "simple access does not handle pam task %d.\n", pd->cmd);
+        pd->pam_status = PAM_MODULE_UNKNOWN;
+        goto immediately;
+    }
+
+    now = time(NULL);
+    if ((now - simple_ctx->last_refresh_of_filter_lists)
+        > TIMEOUT_OF_REFRESH_FILTER_LISTS) {
+
+        ret = simple_access_obtain_filter_lists(simple_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to refresh filter lists\n");
+        }
+        simple_ctx->last_refresh_of_filter_lists = now;
+    }
+
+    subreq = simple_access_check_send(state, params->ev, simple_ctx, pd->user);
+    if (subreq == NULL) {
+        pd->pam_status = PAM_SYSTEM_ERR;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, simple_access_handler_done, req);
+
+    return req;
+
+immediately:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void simple_access_handler_done(struct tevent_req *subreq)
+{
+    struct simple_access_handler_state *state;
+    struct tevent_req *req;
+    bool access_granted;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct simple_access_handler_state);
+
+    ret = simple_access_check_recv(subreq, &access_granted);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    if (access_granted) {
+        state->pd->pam_status = PAM_SUCCESS;
+    } else {
+        state->pd->pam_status = PAM_PERM_DENIED;
+    }
+
+done:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+static errno_t
+simple_access_handler_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *req,
+                       struct pam_data **_data)
+{
+    struct simple_access_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct simple_access_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
+}
+
+errno_t sssm_simple_access_init(TALLOC_CTX *mem_ctx,
+                                struct be_ctx *be_ctx,
+                                void *module_data,
+                                struct dp_method *dp_methods)
+{
     struct simple_ctx *ctx;
-    ctx = talloc_zero(bectx, struct simple_ctx);
+    errno_t ret;
+
+    ctx = talloc_zero(mem_ctx, struct simple_ctx);
     if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed.\n");
         return ENOMEM;
     }
 
-    ctx->domain = bectx->domain;
-    ctx->be_ctx = bectx;
+    ctx->domain = be_ctx->domain;
+    ctx->be_ctx = be_ctx;
     ctx->last_refresh_of_filter_lists = 0;
 
     ret = simple_access_obtain_filter_lists(ctx);
     if (ret != EOK) {
-        goto failed;
+        talloc_free(ctx);
+        return ret;
     }
 
-    *ops = &simple_access_ops;
-    *pvt_data = ctx;
+    dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
+                  simple_access_handler_send, simple_access_handler_recv, ctx,
+                  struct simple_ctx, struct pam_data, struct pam_data *);
 
     return EOK;
-
-failed:
-    talloc_free(ctx);
-    return ret;
 }
-

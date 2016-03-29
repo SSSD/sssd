@@ -31,4 +31,32 @@
 errno_t dp_register_sbus_interface(struct sbus_connection *conn,
                                    struct dp_client *pvt);
 
+errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
+                                    void *dp_cli,
+                                    uint32_t dp_flags,
+                                    uint32_t entry_type,
+                                    uint32_t attr_type,
+                                    const char *filter,
+                                    const char *domain,
+                                    const char *extra);
+
+errno_t dp_pam_handler(struct sbus_request *sbus_req, void *dp_cli);
+
+errno_t dp_sudo_handler(struct sbus_request *sbus_req, void *dp_cli);
+
+errno_t dp_host_handler(struct sbus_request *sbus_req,
+                        void *dp_cli,
+                        uint32_t dp_flags,
+                        const char *name,
+                        const char *alias);
+
+errno_t dp_autofs_handler(struct sbus_request *sbus_req,
+                          void *dp_cli,
+                          uint32_t dp_flags,
+                          const char *mapname);
+
+errno_t dp_subdomains_handler(struct sbus_request *sbus_req,
+                              void *dp_cli,
+                              const char *domain_hint);
+
 #endif /* DP_IFACE_H_ */

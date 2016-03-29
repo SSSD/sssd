@@ -49,6 +49,7 @@
 #include "providers/ldap/ldap_auth.h"
 #include "providers/ldap/sdap_access.h"
 
+
 #define LDAP_PWEXPIRE_WARNING_TIME 0
 
 static errno_t add_expired_warning(struct pam_data *pd, long exp_time)
@@ -897,384 +898,99 @@ static errno_t auth_recv(struct tevent_req *req, TALLOC_CTX *memctx,
     return EOK;
 }
 
-/* ==Perform-Password-Change===================== */
-
-struct sdap_pam_chpass_state {
-    struct be_req *breq;
+struct sdap_pam_auth_handler_state {
     struct pam_data *pd;
-    const char *username;
-    char *dn;
-    struct sdap_handle *sh;
-
-    struct sdap_auth_ctx *ctx;
+    struct be_ctx *be_ctx;
 };
 
-static void sdap_auth4chpass_done(struct tevent_req *req);
-static void sdap_pam_chpass_done(struct tevent_req *req);
+static void sdap_pam_auth_handler_done(struct tevent_req *subreq);
 
-void sdap_pam_chpass_handler(struct be_req *breq)
+struct tevent_req *
+sdap_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
+                           struct sdap_auth_ctx *auth_ctx,
+                           struct pam_data *pd,
+                           struct dp_req_params *params)
 {
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct sdap_pam_chpass_state *state;
-    struct sdap_auth_ctx *ctx;
+    struct sdap_pam_auth_handler_state *state;
     struct tevent_req *subreq;
-    struct pam_data *pd;
-    int dp_err = DP_ERR_FATAL;
+    struct tevent_req *req;
 
-    ctx = talloc_get_type(be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
-                          struct sdap_auth_ctx);
-    pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
-
-    if (be_is_offline(ctx->be)) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Backend is marked offline, retry later!\n");
-        pd->pam_status = PAM_AUTHINFO_UNAVAIL;
-        dp_err = DP_ERR_OFFLINE;
-        goto done;
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_pam_auth_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
     }
 
-    if ((pd->priv == 1) && (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
-        (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD)) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Password reset by root is not supported.\n");
-        pd->pam_status = PAM_PERM_DENIED;
-        dp_err = DP_ERR_OK;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_OP_FAILURE,
-          "starting password change request for user [%s].\n", pd->user);
-
-    pd->pam_status = PAM_SYSTEM_ERR;
-
-    if (pd->cmd != SSS_PAM_CHAUTHTOK && pd->cmd != SSS_PAM_CHAUTHTOK_PRELIM) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "chpass target was called by wrong pam command.\n");
-        goto done;
-    }
-
-    state = talloc_zero(breq, struct sdap_pam_chpass_state);
-    if (!state) goto done;
-
-    state->breq = breq;
     state->pd = pd;
-    state->username = pd->user;
-    state->ctx = ctx;
-
-    subreq = auth_send(breq, be_ctx->ev, ctx,
-                       state->username, pd->authtok, true);
-    if (!subreq) goto done;
-
-    tevent_req_set_callback(subreq, sdap_auth4chpass_done, state);
-    return;
-
-done:
-    be_req_terminate(breq, dp_err, pd->pam_status, NULL);
-}
-
-static void sdap_lastchange_done(struct tevent_req *req);
-static void sdap_auth4chpass_done(struct tevent_req *req)
-{
-    struct sdap_pam_chpass_state *state =
-                    tevent_req_callback_data(req, struct sdap_pam_chpass_state);
-    struct be_ctx *be_ctx = be_req_get_be_ctx(state->breq);
-    struct tevent_req *subreq;
-    enum pwexpire pw_expire_type;
-    void *pw_expire_data;
-    int dp_err = DP_ERR_FATAL;
-    int ret;
-    size_t msg_len;
-    uint8_t *msg;
-
-    ret = auth_recv(req, state, &state->sh, &state->dn,
-                    &pw_expire_type, &pw_expire_data);
-    talloc_zfree(req);
-    if ((ret == EOK || ret == ERR_PASSWORD_EXPIRED) &&
-        state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
-        DEBUG(SSSDBG_TRACE_ALL,
-              "Initial authentication for change password operation "
-                  "successful.\n");
-        state->pd->pam_status = PAM_SUCCESS;
-        dp_err = DP_ERR_OK;
-        goto done;
-    }
-
-    if (ret == EOK) {
-        switch (pw_expire_type) {
-        case PWEXPIRE_SHADOW:
-            ret = check_pwexpire_shadow(pw_expire_data, time(NULL), NULL);
-            break;
-        case PWEXPIRE_KERBEROS:
-            ret = check_pwexpire_kerberos(pw_expire_data, time(NULL), NULL,
-                                          be_ctx->domain->pwd_expiration_warning);
-
-            if (ret == ERR_PASSWORD_EXPIRED) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "LDAP provider cannot change kerberos "
-                          "passwords.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            break;
-        case PWEXPIRE_LDAP_PASSWORD_POLICY:
-        case PWEXPIRE_NONE:
-            break;
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown password expiration type.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
-        }
-    }
-
-    switch (ret) {
-    case EOK:
-    case ERR_PASSWORD_EXPIRED:
-        DEBUG(SSSDBG_TRACE_LIBS,
-              "user [%s] successfully authenticated.\n", state->dn);
-        if (pw_expire_type == PWEXPIRE_SHADOW) {
-/* TODO: implement async ldap modify request */
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Changing shadow password attributes not implemented.\n");
-            state->pd->pam_status = PAM_MODULE_UNKNOWN;
-            goto done;
-        } else {
-            const char *password;
-            const char *new_password;
-            int timeout;
-
-            ret = sss_authtok_get_password(state->pd->authtok,
-                                           &password, NULL);
-            if (ret) {
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            ret = sss_authtok_get_password(state->pd->newauthtok,
-                                           &new_password, NULL);
-            if (ret) {
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-
-            timeout = dp_opt_get_int(state->ctx->opts->basic, SDAP_OPT_TIMEOUT);
-
-            subreq = sdap_exop_modify_passwd_send(state, be_ctx->ev,
-                                                  state->sh, state->dn,
-                                                  password, new_password,
-                                                  timeout);
-            if (!subreq) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Failed to change password for %s\n", state->username);
-                goto done;
-            }
-            tevent_req_set_callback(subreq, sdap_pam_chpass_done, state);
-            return;
-        }
-        break;
-    case ERR_AUTH_DENIED:
-    case ERR_AUTH_FAILED:
-        state->pd->pam_status = PAM_AUTH_ERR;
-        ret = pack_user_info_chpass_error(state->pd, "Old password not accepted.",
-                                          &msg_len, &msg);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "pack_user_info_chpass_error failed.\n");
-        } else {
-            ret = pam_add_response(state->pd, SSS_PAM_USER_INFO, msg_len,
-                                    msg);
-            if (ret != EOK) {
-               DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
-            }
-        }
-
-        break;
-    case ETIMEDOUT:
-    case ERR_NETWORK_IO:
-        state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
-        be_mark_offline(be_ctx);
-        dp_err = DP_ERR_OFFLINE;
-        break;
-    default:
-        state->pd->pam_status = PAM_SYSTEM_ERR;
-    }
-
-done:
-    be_req_terminate(state->breq, dp_err, state->pd->pam_status, NULL);
-}
-
-static void sdap_pam_chpass_done(struct tevent_req *req)
-{
-    struct sdap_pam_chpass_state *state =
-                    tevent_req_callback_data(req, struct sdap_pam_chpass_state);
-    struct be_ctx *be_ctx = be_req_get_be_ctx(state->breq);
-    int dp_err = DP_ERR_FATAL;
-    int ret;
-    char *user_error_message = NULL;
-    char *lastchanged_name;
-    struct tevent_req *subreq;
-    size_t msg_len;
-    uint8_t *msg;
-
-    ret = sdap_exop_modify_passwd_recv(req, state, &user_error_message);
-    talloc_zfree(req);
-
-    switch (ret) {
-    case EOK:
-        state->pd->pam_status = PAM_SUCCESS;
-        dp_err = DP_ERR_OK;
-        break;
-    case ERR_CHPASS_DENIED:
-        state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
-        break;
-    case ERR_NETWORK_IO:
-        state->pd->pam_status = PAM_AUTHTOK_ERR;
-        break;
-    default:
-        state->pd->pam_status = PAM_SYSTEM_ERR;
-        break;
-    }
-
-    if (state->pd->pam_status != PAM_SUCCESS && user_error_message != NULL) {
-        ret = pack_user_info_chpass_error(state->pd, user_error_message,
-                                            &msg_len, &msg);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "pack_user_info_chpass_error failed.\n");
-        } else {
-            ret = pam_add_response(state->pd, SSS_PAM_USER_INFO, msg_len,
-                                    msg);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
-            }
-        }
-    }
-
-    if (state->pd->pam_status == PAM_SUCCESS &&
-        dp_opt_get_bool(state->ctx->opts->basic,
-                        SDAP_CHPASS_UPDATE_LAST_CHANGE)) {
-        lastchanged_name = state->ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name;
-
-        subreq = sdap_modify_shadow_lastchange_send(state, be_ctx->ev,
-                                                    state->sh, state->dn,
-                                                    lastchanged_name);
-        if (subreq == NULL) {
-            state->pd->pam_status = PAM_SYSTEM_ERR;
-            goto done;
-        }
-
-        tevent_req_set_callback(subreq, sdap_lastchange_done, state);
-        return;
-    }
-
-done:
-    be_req_terminate(state->breq, dp_err, state->pd->pam_status, NULL);
-}
-
-static void sdap_lastchange_done(struct tevent_req *req)
-{
-    struct sdap_pam_chpass_state *state =
-                    tevent_req_callback_data(req, struct sdap_pam_chpass_state);
-    int dp_err = DP_ERR_FATAL;
-    errno_t ret;
-
-    ret = sdap_modify_shadow_lastchange_recv(req);
-    if (ret != EOK) {
-        state->pd->pam_status = PAM_SYSTEM_ERR;
-        goto done;
-    }
-
-    dp_err = DP_ERR_OK;
-    state->pd->pam_status = PAM_SUCCESS;
-
-done:
-    be_req_terminate(state->breq, dp_err, state->pd->pam_status, NULL);
-}
-
-/* ==Perform-User-Authentication-and-Password-Caching===================== */
-
-struct sdap_pam_auth_state {
-    struct be_req *breq;
-    struct pam_data *pd;
-};
-
-static void sdap_pam_auth_done(struct tevent_req *req);
-
-void sdap_pam_auth_handler(struct be_req *breq)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct sdap_pam_auth_state *state;
-    struct sdap_auth_ctx *ctx;
-    struct tevent_req *subreq;
-    struct pam_data *pd;
-    int dp_err = DP_ERR_FATAL;
-
-    ctx = talloc_get_type(be_ctx->bet_info[BET_AUTH].pvt_bet_data,
-                          struct sdap_auth_ctx);
-    pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
-
-    if (be_is_offline(ctx->be)) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Backend is marked offline, retry later!\n");
-        pd->pam_status = PAM_AUTHINFO_UNAVAIL;
-        dp_err = DP_ERR_OFFLINE;
-        goto done;
-    }
-
+    state->be_ctx = params->be_ctx;
     pd->pam_status = PAM_SYSTEM_ERR;
 
     switch (pd->cmd) {
     case SSS_PAM_AUTHENTICATE:
-    case SSS_PAM_CHAUTHTOK_PRELIM:
+        subreq = auth_send(state, params->ev, auth_ctx,
+                           pd->user, pd->authtok, false);
+        if (subreq == NULL) {
+            pd->pam_status = PAM_SYSTEM_ERR;
+            goto immediately;
+        }
 
-        state = talloc_zero(breq, struct sdap_pam_auth_state);
-        if (!state) goto done;
-
-        state->breq = breq;
-        state->pd = pd;
-
-        subreq = auth_send(breq, be_ctx->ev, ctx,
-                           pd->user, pd->authtok,
-                           pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ? true : false);
-        if (!subreq) goto done;
-
-        tevent_req_set_callback(subreq, sdap_pam_auth_done, state);
-        return;
-
-    case SSS_PAM_CHAUTHTOK:
+        tevent_req_set_callback(subreq, sdap_pam_auth_handler_done, req);
         break;
+    case SSS_PAM_CHAUTHTOK_PRELIM:
+        subreq = auth_send(state, params->ev, auth_ctx,
+                           pd->user, pd->authtok, true);
+        if (subreq == NULL) {
+            pd->pam_status = PAM_SYSTEM_ERR;
+            goto immediately;
+        }
+
+        tevent_req_set_callback(subreq, sdap_pam_auth_handler_done, req);
+        break;
+    case SSS_PAM_CHAUTHTOK:
+        pd->pam_status = PAM_SYSTEM_ERR;
+        goto immediately;
 
     case SSS_PAM_ACCT_MGMT:
     case SSS_PAM_SETCRED:
     case SSS_PAM_OPEN_SESSION:
     case SSS_PAM_CLOSE_SESSION:
         pd->pam_status = PAM_SUCCESS;
-        dp_err = DP_ERR_OK;
-        break;
+        goto immediately;
     default:
         pd->pam_status = PAM_MODULE_UNKNOWN;
-        dp_err = DP_ERR_OK;
+        goto immediately;
     }
 
-done:
-    be_req_terminate(breq, dp_err, pd->pam_status, NULL);
+    return req;
+
+immediately:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
 }
 
-static void sdap_pam_auth_done(struct tevent_req *req)
+static void sdap_pam_auth_handler_done(struct tevent_req *subreq)
 {
-    struct sdap_pam_auth_state *state =
-                    tevent_req_callback_data(req, struct sdap_pam_auth_state);
-    struct be_ctx *be_ctx = be_req_get_be_ctx(state->breq);
+    struct sdap_pam_auth_handler_state *state;
+    struct tevent_req *req;
     enum pwexpire pw_expire_type;
     void *pw_expire_data;
     const char *password;
-    int dp_err = DP_ERR_OK;
-    int ret;
+    errno_t ret;
 
-    ret = auth_recv(req, state, NULL, NULL,
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_pam_auth_handler_state);
+
+    ret = auth_recv(subreq, state, NULL, NULL,
                     &pw_expire_type, &pw_expire_data);
-    talloc_zfree(req);
+    talloc_free(subreq);
 
     if (ret == EOK) {
         ret = check_pwexpire_policy(pw_expire_type, pw_expire_data, state->pd,
-                                    be_ctx->domain->pwd_expiration_warning);
+                                state->be_ctx->domain->pwd_expiration_warning);
         if (ret == EINVAL) {
             /* Unknown password expiration type. */
             state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -1295,6 +1011,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     case ETIMEDOUT:
     case ERR_NETWORK_IO:
         state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        be_mark_offline(state->be_ctx);
         break;
     case ERR_ACCOUNT_EXPIRED:
         state->pd->pam_status = PAM_ACCT_EXPIRED;
@@ -1308,33 +1025,353 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;
-        dp_err = DP_ERR_FATAL;
+        break;
     }
 
-    if (ret == ETIMEDOUT || ret == ERR_NETWORK_IO) {
-        be_mark_offline(be_ctx);
-        dp_err = DP_ERR_OFFLINE;
-        goto done;
-    }
-
-    if (ret == EOK && be_ctx->domain->cache_credentials) {
-
+    if (ret == EOK && state->be_ctx->domain->cache_credentials) {
         ret = sss_authtok_get_password(state->pd->authtok, &password, NULL);
         if (ret == EOK) {
-            ret = sysdb_cache_password(be_ctx->domain, state->pd->user,
+            ret = sysdb_cache_password(state->be_ctx->domain, state->pd->user,
                                        password);
         }
 
         /* password caching failures are not fatal errors */
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to cache password for %s\n",
-                      state->pd->user);
+                  state->pd->user);
         } else {
             DEBUG(SSSDBG_CONF_SETTINGS, "Password successfully cached for %s\n",
-                      state->pd->user);
+                  state->pd->user);
         }
     }
 
 done:
-    be_req_terminate(state->breq, dp_err, state->pd->pam_status, NULL);
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+errno_t
+sdap_pam_auth_handler_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           struct pam_data **_data)
+{
+    struct sdap_pam_auth_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct sdap_pam_auth_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
+}
+
+struct sdap_pam_chpass_handler_state {
+    struct be_ctx *be_ctx;
+    struct tevent_context *ev;
+    struct sdap_auth_ctx *auth_ctx;
+    struct pam_data *pd;
+    struct sdap_handle *sh;
+    char *dn;
+};
+
+static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq);
+static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq);
+static void sdap_pam_chpass_handler_last_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
+                           struct sdap_auth_ctx *auth_ctx,
+                           struct pam_data *pd,
+                           struct dp_req_params *params)
+{
+    struct sdap_pam_chpass_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_pam_chpass_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->pd = pd;
+    state->be_ctx = params->be_ctx;
+    state->auth_ctx = auth_ctx;
+    state->ev = params->ev;
+
+    if ((pd->priv == 1) && (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
+        (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD)) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Password reset by root is not supported.\n");
+        pd->pam_status = PAM_PERM_DENIED;
+        goto immediately;
+    }
+
+    DEBUG(SSSDBG_OP_FAILURE,
+          "starting password change request for user [%s].\n", pd->user);
+
+    pd->pam_status = PAM_SYSTEM_ERR;
+
+    if (pd->cmd != SSS_PAM_CHAUTHTOK && pd->cmd != SSS_PAM_CHAUTHTOK_PRELIM) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "chpass target was called by wrong pam command.\n");
+        goto immediately;
+    }
+
+    subreq = auth_send(state, params->ev, auth_ctx,
+                       pd->user, pd->authtok, true);
+    if (subreq == NULL) {
+        pd->pam_status = PAM_SYSTEM_ERR;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_pam_chpass_handler_auth_done, req);
+
+    return req;
+
+immediately:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
+{
+    struct sdap_pam_chpass_handler_state *state;
+    struct tevent_req *req;
+    enum pwexpire pw_expire_type;
+    void *pw_expire_data;
+    size_t msg_len;
+    uint8_t *msg;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
+
+    ret = auth_recv(subreq, state, &state->sh, &state->dn,
+                    &pw_expire_type, &pw_expire_data);
+    talloc_free(subreq);
+
+    if ((ret == EOK || ret == ERR_PASSWORD_EXPIRED) &&
+        state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+        DEBUG(SSSDBG_TRACE_ALL, "Initial authentication for change "
+              "password operation successful.\n");
+        state->pd->pam_status = PAM_SUCCESS;
+        goto done;
+    }
+
+    if (ret == EOK) {
+        switch (pw_expire_type) {
+        case PWEXPIRE_SHADOW:
+            ret = check_pwexpire_shadow(pw_expire_data, time(NULL), NULL);
+            break;
+        case PWEXPIRE_KERBEROS:
+            ret = check_pwexpire_kerberos(pw_expire_data, time(NULL), NULL,
+                              state->be_ctx->domain->pwd_expiration_warning);
+
+            if (ret == ERR_PASSWORD_EXPIRED) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "LDAP provider cannot change "
+                      "kerberos passwords.\n");
+                state->pd->pam_status = PAM_SYSTEM_ERR;
+                goto done;
+            }
+            break;
+        case PWEXPIRE_LDAP_PASSWORD_POLICY:
+        case PWEXPIRE_NONE:
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown password expiration type.\n");
+                state->pd->pam_status = PAM_SYSTEM_ERR;
+                goto done;
+        }
+    }
+
+    switch (ret) {
+        case EOK:
+        case ERR_PASSWORD_EXPIRED:
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "user [%s] successfully authenticated.\n", state->dn);
+            if (pw_expire_type == PWEXPIRE_SHADOW) {
+                /* TODO: implement async ldap modify request */
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Changing shadow password attributes not implemented.\n");
+                state->pd->pam_status = PAM_MODULE_UNKNOWN;
+                goto done;
+            } else {
+                const char *password;
+                const char *new_password;
+                int timeout;
+
+                ret = sss_authtok_get_password(state->pd->authtok,
+                                               &password, NULL);
+                if (ret) {
+                    state->pd->pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+                ret = sss_authtok_get_password(state->pd->newauthtok,
+                                               &new_password, NULL);
+                if (ret) {
+                    state->pd->pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+
+                timeout = dp_opt_get_int(state->auth_ctx->opts->basic,
+                                         SDAP_OPT_TIMEOUT);
+
+                subreq = sdap_exop_modify_passwd_send(state, state->ev,
+                                                      state->sh, state->dn,
+                                                      password, new_password,
+                                                      timeout);
+                if (subreq == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "Failed to change password for "
+                          "%s\n", state->pd->user);
+                    state->pd->pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+
+                tevent_req_set_callback(subreq,
+                                        sdap_pam_chpass_handler_chpass_done,
+                                        req);
+                return;
+            }
+            break;
+        case ERR_AUTH_DENIED:
+        case ERR_AUTH_FAILED:
+            state->pd->pam_status = PAM_AUTH_ERR;
+            ret = pack_user_info_chpass_error(state->pd, "Old password not "
+                                              "accepted.", &msg_len, &msg);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "pack_user_info_chpass_error failed.\n");
+            } else {
+                ret = pam_add_response(state->pd, SSS_PAM_USER_INFO,
+                                       msg_len, msg);
+                if (ret != EOK) {
+                   DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+                }
+            }
+            break;
+        case ETIMEDOUT:
+        case ERR_NETWORK_IO:
+            state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+            be_mark_offline(state->be_ctx);
+            break;
+        default:
+            state->pd->pam_status = PAM_SYSTEM_ERR;
+            break;
+        }
+
+done:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
+{
+    struct sdap_pam_chpass_handler_state *state;
+    struct tevent_req *req;
+    char *user_error_message = NULL;
+    char *lastchanged_name;
+    size_t msg_len;
+    uint8_t *msg;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
+
+    ret = sdap_exop_modify_passwd_recv(subreq, state, &user_error_message);
+    talloc_free(subreq);
+
+    switch (ret) {
+    case EOK:
+        state->pd->pam_status = PAM_SUCCESS;
+        break;
+    case ERR_CHPASS_DENIED:
+        state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
+        break;
+    case ERR_NETWORK_IO:
+        state->pd->pam_status = PAM_AUTHTOK_ERR;
+        break;
+    default:
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        break;
+    }
+
+    if (state->pd->pam_status != PAM_SUCCESS && user_error_message != NULL) {
+        ret = pack_user_info_chpass_error(state->pd, user_error_message,
+                                          &msg_len, &msg);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pack_user_info_chpass_error failed.\n");
+        } else {
+            ret = pam_add_response(state->pd, SSS_PAM_USER_INFO, msg_len, msg);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+            }
+        }
+    }
+
+    if (state->pd->pam_status == PAM_SUCCESS &&
+        dp_opt_get_bool(state->auth_ctx->opts->basic,
+                        SDAP_CHPASS_UPDATE_LAST_CHANGE)) {
+        lastchanged_name = state->auth_ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name;
+
+        subreq = sdap_modify_shadow_lastchange_send(state, state->ev,
+                                                    state->sh, state->dn,
+                                                    lastchanged_name);
+        if (subreq == NULL) {
+            state->pd->pam_status = PAM_SYSTEM_ERR;
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq, sdap_pam_chpass_handler_last_done, req);
+        return;
+    }
+
+done:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+static void sdap_pam_chpass_handler_last_done(struct tevent_req *subreq)
+{
+    struct sdap_pam_chpass_handler_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
+
+    ret = sdap_modify_shadow_lastchange_recv(subreq);
+    talloc_free(subreq);
+
+    if (ret != EOK) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    state->pd->pam_status = PAM_SUCCESS;
+
+done:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+errno_t
+sdap_pam_chpass_handler_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             struct pam_data **_data)
+{
+    struct sdap_pam_chpass_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
 }

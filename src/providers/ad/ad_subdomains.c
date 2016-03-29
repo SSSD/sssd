@@ -29,6 +29,7 @@
 #include "providers/ad/ad_common.h"
 
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ldap/sdap_ops.h"
 #include "util/util_sss_idmap.h"
 #include <ctype.h>
 #include <ndr.h>
@@ -55,42 +56,6 @@
 
 /* do not refresh more often than every 5 seconds for now */
 #define AD_SUBDOMAIN_REFRESH_LIMIT 5
-
-struct ad_subdomains_ctx {
-    struct be_ctx *be_ctx;
-    struct sdap_id_ctx *sdap_id_ctx;
-    struct sdap_domain *sdom;
-    struct sdap_id_conn_ctx *ldap_ctx;
-    struct sss_idmap_ctx *idmap_ctx;
-    char *domain_name;
-
-    time_t last_refreshed;
-    struct tevent_timer *timer_event;
-    struct ad_id_ctx *ad_id_ctx;
-};
-
-struct ad_subdomains_req_ctx {
-    struct be_req *be_req;
-    struct ad_subdomains_ctx *sd_ctx;
-    struct sdap_id_op *sdap_op;
-
-    char *current_filter;
-    size_t base_iter;
-
-    struct ad_id_ctx *root_id_ctx;
-    struct sdap_id_op *root_op;
-    size_t root_base_iter;
-    struct sysdb_attrs *root_domain_attrs;
-    struct sss_domain_info *root_domain;
-
-    size_t reply_count;
-    struct sysdb_attrs **reply;
-
-    char *master_sid;
-    char *flat_name;
-    char *site;
-    char *forest;
-};
 
 static errno_t
 ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
@@ -119,8 +84,8 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
         return EINVAL;
     }
 
-    ad_options = ad_create_2way_trust_options(id_ctx, realm,
-                                              ad_domain, hostname, keytab);
+    ad_options = ad_create_2way_trust_options(id_ctx, realm, ad_domain,
+                                              hostname, keytab);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
@@ -192,34 +157,16 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     return EOK;
 }
 
-static errno_t
-ads_store_sdap_subdom(struct ad_subdomains_ctx *ctx,
-                      struct sss_domain_info *parent)
-{
-    int ret;
-    struct sdap_domain *sditer;
-    struct ad_id_ctx *subdom_id_ctx;
+struct ad_subdomains_ctx {
+    struct be_ctx *be_ctx;
+    struct ad_id_ctx *ad_id_ctx;
+    struct sdap_id_ctx *sdap_id_ctx;
 
-    ret = sdap_domain_subdom_add(ctx->sdap_id_ctx, ctx->sdom, parent);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_domain_subdom_add failed.\n");
-        return ret;
-    }
+    struct sdap_domain *sdom;
+    char *domain_name;
 
-    DLIST_FOR_EACH(sditer, ctx->sdom) {
-        if (IS_SUBDOMAIN(sditer->dom) && sditer->pvt == NULL) {
-            ret = ad_subdom_ad_ctx_new(ctx->be_ctx, ctx->ad_id_ctx,
-                                       sditer->dom, &subdom_id_ctx);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "ad_subdom_ad_ctx_new failed.\n");
-            } else {
-                sditer->pvt = subdom_id_ctx;
-            }
-        }
-    }
-
-    return EOK;
-}
+    time_t last_refreshed;
+};
 
 static errno_t ad_subdom_enumerates(struct sss_domain_info *parent,
                                     struct sysdb_attrs *attrs,
@@ -239,7 +186,7 @@ static errno_t ad_subdom_enumerates(struct sss_domain_info *parent,
 }
 
 static errno_t
-ad_subdom_store(struct ad_subdomains_ctx *ctx,
+ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
                 struct sss_domain_info *domain,
                 struct sysdb_attrs *subdom_attrs,
                 bool enumerate)
@@ -293,10 +240,8 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
         goto done;
     }
 
-    err = sss_idmap_bin_sid_to_sid(ctx->idmap_ctx,
-                                   el->values[0].data,
-                                   el->values[0].length,
-                                   &sid_str);
+    err = sss_idmap_bin_sid_to_sid(idmap_ctx->map, el->values[0].data,
+                                   el->values[0].length, &sid_str);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not convert SID: [%s].\n", idmap_error_string(err));
@@ -304,10 +249,7 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
         goto done;
     }
 
-    mpg = sdap_idmap_domain_has_algorithmic_mapping(
-                                             ctx->sdap_id_ctx->opts->idmap_ctx,
-                                             name,
-                                             sid_str);
+    mpg = sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, name, sid_str);
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
                                 mpg, enumerate, domain->forest, 0);
@@ -318,32 +260,37 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
 
     ret = EOK;
 done:
-    sss_idmap_free_sid(ctx->sdap_id_ctx->opts->idmap_ctx->map, sid_str);
+    sss_idmap_free_sid(idmap_ctx->map, sid_str);
     talloc_free(tmp_ctx);
 
     return ret;
 }
 
-static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
-                                     int count, bool root_domain,
-                                     struct sysdb_attrs **reply,
-                                     bool *changes)
+static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
+                                     struct sdap_idmap_ctx *idmap_ctx,
+                                     struct sdap_options *opts,
+                                     struct sysdb_attrs **subdomains,
+                                     size_t num_subdomains,
+                                     bool root_domain,
+                                     time_t *_last_refreshed,
+                                     bool *_changes)
 {
     struct sdap_domain *sdom;
-    struct sss_domain_info *domain, *dom;
-    bool handled[count];
+    struct sss_domain_info *domain;
+    struct sss_domain_info *dom;
+    bool handled[num_subdomains];
     const char *value;
     const char *root_name = NULL;
-    int c, h;
+    size_t c, h;
     int ret;
     bool enumerate;
 
-    domain = ctx->be_ctx->domain;
-    memset(handled, 0, sizeof(bool) * count);
+    domain = be_ctx->domain;
+    memset(handled, 0, sizeof(bool) * num_subdomains);
     h = 0;
 
     if (root_domain) {
-        ret = sysdb_attrs_get_string(reply[0], AD_AT_TRUST_PARTNER,
+        ret = sysdb_attrs_get_string(subdomains[0], AD_AT_TRUST_PARTNER,
                                      &root_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
@@ -363,11 +310,12 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
             continue;
         }
 
-        for (c = 0; c < count; c++) {
+        for (c = 0; c < num_subdomains; c++) {
             if (handled[c]) {
                 continue;
             }
-            ret = sysdb_attrs_get_string(reply[c], AD_AT_TRUST_PARTNER, &value);
+            ret = sysdb_attrs_get_string(subdomains[c], AD_AT_TRUST_PARTNER,
+                                         &value);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
                 goto done;
@@ -377,7 +325,7 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
             }
         }
 
-        if (c >= count) {
+        if (c >= num_subdomains) {
             /* ok this subdomain does not exist anymore, let's clean up */
             sss_domain_set_state(dom, DOM_DISABLED);
             ret = sysdb_subdomain_delete(dom->sysdb, dom->name);
@@ -385,29 +333,29 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
                 goto done;
             }
 
-            sdom = sdap_domain_get(ctx->sdap_id_ctx->opts, dom);
+            sdom = sdap_domain_get(opts, dom);
             if (sdom == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Domain does not exist?\n");
                 continue;
             }
 
             /* Remove the subdomain from the list of LDAP domains */
-            sdap_domain_remove(ctx->sdap_id_ctx->opts, dom);
+            sdap_domain_remove(opts, dom);
 
             be_ptask_destroy(&sdom->enum_task);
             be_ptask_destroy(&sdom->cleanup_task);
 
             /* terminate all requests for this subdomain so we can free it */
-            be_terminate_domain_requests(ctx->be_ctx, dom->name);
+            dp_terminate_domain_requests(be_ctx->provider, dom->name);
             talloc_zfree(sdom);
         } else {
             /* ok let's try to update it */
-            ret = ad_subdom_enumerates(domain, reply[c], &enumerate);
+            ret = ad_subdom_enumerates(domain, subdomains[c], &enumerate);
             if (ret != EOK) {
                 goto done;
             }
 
-            ret = ad_subdom_store(ctx, domain, reply[c], enumerate);
+            ret = ad_subdom_store(idmap_ctx, domain, subdomains[c], enumerate);
             if (ret) {
                 /* Nothing we can do about the error. Let's at least try
                  * to reuse the existing domains
@@ -420,29 +368,29 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
         }
     }
 
-    if (count == h) {
+    if (num_subdomains == h) {
         /* all domains were already accounted for and have been updated */
         ret = EOK;
-        *changes = false;
+        *_changes = false;
         goto done;
     }
 
     /* if we get here it means we have changes to the subdomains list */
-    *changes = true;
+    *_changes = true;
 
-    for (c = 0; c < count; c++) {
+    for (c = 0; c < num_subdomains; c++) {
         if (handled[c]) {
             continue;
         }
         /* Nothing we can do about the error. Let's at least try
          * to reuse the existing domains.
          */
-        ret = ad_subdom_enumerates(domain, reply[c], &enumerate);
+        ret = ad_subdom_enumerates(domain, subdomains[c], &enumerate);
         if (ret != EOK) {
             goto done;
         }
 
-        ret = ad_subdom_store(ctx, domain, reply[c], enumerate);
+        ret = ad_subdom_store(idmap_ctx, domain, subdomains[c], enumerate);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
                   "will try to use cached subdomain\n");
@@ -453,482 +401,12 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
 
 done:
     if (ret != EOK) {
-        ctx->last_refreshed = 0;
+        *_last_refreshed = 0;
     } else {
-        ctx->last_refreshed = time(NULL);
+        *_last_refreshed = time(NULL);
     }
 
     return ret;
-}
-
-static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *ctx)
-{
-    errno_t ret;
-
-    ret = sss_write_krb5_conf_snippet(
-                            dp_opt_get_string(ctx->ad_id_ctx->ad_options->basic,
-                                              AD_KRB5_CONFD_PATH));
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
-        /* Just continue */
-    }
-
-    ret = sysdb_update_subdomains(ctx->be_ctx->domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
-        return ret;
-    }
-
-    ret = sss_write_domain_mappings(ctx->be_ctx->domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "sss_krb5_write_mappings failed.\n");
-        /* Just continue */
-    }
-
-    ret = ads_store_sdap_subdom(ctx, ctx->be_ctx->domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ads_store_sdap_subdom failed.\n");
-        return ret;
-    }
-
-    return EOK;
-}
-
-static void ad_subdomains_get_conn_done(struct tevent_req *req);
-static void ad_subdomains_master_dom_done(struct tevent_req *req);
-static errno_t ad_subdomains_get_root(struct ad_subdomains_req_ctx *ctx);
-static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx);
-
-static void ad_subdomains_retrieve(struct ad_subdomains_ctx *ctx,
-                                   struct be_req *be_req)
-{
-    struct ad_subdomains_req_ctx *req_ctx = NULL;
-    struct tevent_req *req;
-    int dp_error = DP_ERR_FATAL;
-    int ret;
-
-    req_ctx = talloc_zero(be_req, struct ad_subdomains_req_ctx);
-    if (req_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    req_ctx->be_req = be_req;
-    req_ctx->sd_ctx = ctx;
-    req_ctx->current_filter = NULL;
-    req_ctx->base_iter = 0;
-    req_ctx->root_base_iter = 0;
-    req_ctx->root_id_ctx = NULL;
-    req_ctx->root_op = NULL;
-    req_ctx->root_domain = NULL;
-    req_ctx->root_domain_attrs = NULL;
-    req_ctx->reply_count = 0;
-    req_ctx->reply = NULL;
-
-    req_ctx->sdap_op = sdap_id_op_create(req_ctx,
-                                         ctx->ldap_ctx->conn_cache);
-    if (req_ctx->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    req = sdap_id_op_connect_send(req_ctx->sdap_op, req_ctx, &ret);
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
-        goto done;
-    }
-
-    tevent_req_set_callback(req, ad_subdomains_get_conn_done, req_ctx);
-
-    return;
-
-done:
-    talloc_free(req_ctx);
-    if (ret == EOK) {
-        dp_error = DP_ERR_OK;
-    }
-    be_req_terminate(be_req, dp_error, ret, NULL);
-}
-
-static void ad_subdomains_get_conn_done(struct tevent_req *req)
-{
-    int ret;
-    int dp_error = DP_ERR_FATAL;
-    struct ad_subdomains_req_ctx *ctx;
-
-    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
-
-    ret = sdap_id_op_connect_recv(req, &dp_error);
-    talloc_zfree(req);
-    if (ret) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No AD server is available, cannot get the "
-                   "subdomain list while offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to AD server: [%d](%s)\n",
-                   ret, strerror(ret));
-        }
-
-        goto fail;
-    }
-
-    req = ad_master_domain_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                                ctx->sd_ctx->ldap_ctx,
-                                ctx->sdap_op,
-                                ctx->sd_ctx->domain_name);
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ad_master_domain_send failed.\n");
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(req, ad_subdomains_master_dom_done, ctx);
-    return;
-
-fail:
-    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
-}
-
-static void ad_subdomains_master_dom_done(struct tevent_req *req)
-{
-    struct ad_subdomains_req_ctx *ctx;
-    errno_t ret;
-    const char *realm;
-
-    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
-
-    ret = ad_master_domain_recv(req, ctx,
-                                &ctx->flat_name, &ctx->master_sid,
-                                &ctx->site, &ctx->forest);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve master domain info\n");
-        goto done;
-    }
-
-    realm = dp_opt_get_cstring(ctx->sd_ctx->ad_id_ctx->ad_options->basic,
-                               AD_KRB5_REALM);
-    if (realm == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Missing realm.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
-                                       realm,
-                                       ctx->flat_name, ctx->master_sid,
-                                       ctx->forest);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info\n");
-        goto done;
-    }
-
-    if (ctx->forest == NULL ||
-          strcasecmp(ctx->sd_ctx->be_ctx->domain->name, ctx->forest) != 0) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "SSSD needs to look up the forest root domain\n");
-        ret = ad_subdomains_get_root(ctx);
-    } else {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Connected to forest root, looking up child domains..\n");
-
-        ctx->root_op = ctx->sdap_op;
-        ctx->root_id_ctx = ctx->sd_ctx->ad_id_ctx;
-
-        ret = ad_subdomains_get_slave(ctx);
-    }
-
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret != EOK) {
-        goto done;
-    }
-
-done:
-    be_req_terminate(ctx->be_req, DP_ERR_FATAL, ret, NULL);
-}
-
-static void ad_subdomains_get_root_domain_done(struct tevent_req *req);
-
-static errno_t ad_subdomains_get_root(struct ad_subdomains_req_ctx *ctx)
-{
-    struct tevent_req *req;
-    struct sdap_search_base *base;
-    struct sdap_id_ctx *sdap_id_ctx;
-    char *filter;
-    const char *forest_root_attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
-                                        AD_AT_SID, AD_AT_TRUST_TYPE,
-                                        AD_AT_TRUST_ATTRS, NULL };
-
-    sdap_id_ctx = ctx->sd_ctx->sdap_id_ctx;
-    base = sdap_id_ctx->opts->sdom->search_bases[ctx->root_base_iter];
-    if (base == NULL) {
-        return EOK;
-    }
-
-    filter = talloc_asprintf(ctx, FOREST_ROOT_FILTER_FMT, ctx->forest);
-    if (filter == NULL) {
-        return ENOMEM;
-    }
-
-    req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                                sdap_id_ctx->opts,
-                                sdap_id_op_handle(ctx->sdap_op),
-                                base->basedn, LDAP_SCOPE_SUBTREE,
-                                filter, forest_root_attrs,
-                                NULL, 0,
-                                dp_opt_get_int(sdap_id_ctx->opts->basic,
-                                                SDAP_SEARCH_TIMEOUT),
-                                false);
-
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, ad_subdomains_get_root_domain_done, ctx);
-    return EAGAIN;
-}
-
-static struct sss_domain_info *ads_get_root_domain(struct ad_subdomains_req_ctx *ctx);
-static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx);
-static void ad_subdomains_root_conn_done(struct tevent_req *req);
-
-static void ad_subdomains_get_root_domain_done(struct tevent_req *req)
-{
-    int ret;
-    size_t reply_count;
-    struct sysdb_attrs **reply = NULL;
-    struct ad_subdomains_req_ctx *ctx;
-    int dp_error = DP_ERR_FATAL;
-    bool has_changes = false;
-
-    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
-
-    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
-        goto fail;
-    }
-
-    if (reply_count == 0) {
-        /* If no root domain was found in the default search base, try the
-         * next one, if available
-         */
-        ctx->root_base_iter++;
-        ret = ad_subdomains_get_root(ctx);
-        if (ret == EAGAIN) {
-            return;
-        }
-
-        goto fail;
-    } else if (reply_count > 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Multiple results for root domain search, "
-              "domain list might be incomplete!\n");
-
-        ctx->root_op = ctx->sdap_op;
-        ctx->root_id_ctx = ctx->sd_ctx->ad_id_ctx;
-
-        ret = ad_subdomains_get_slave(ctx);
-        if (ret == EAGAIN) {
-            return;
-        }
-
-        goto fail;
-    }
-    /* Exactly one result, good. */
-
-    /* We won't use the operation to the local LDAP anymore, but
-     * read from the forest root
-     */
-    ret = sdap_id_op_done(ctx->sdap_op, ret, &dp_error);
-    if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No AD server is available, cannot get the "
-                   "subdomain list while offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to search the AD server: [%d](%s)\n",
-                  ret, strerror(ret));
-        }
-        goto fail;
-    }
-
-    ret = ad_subdomains_refresh(ctx->sd_ctx, 1, true, reply, &has_changes);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ad_subdomains_refresh failed.\n");
-        goto fail;
-    }
-
-    if (has_changes) {
-        ret = ad_subdom_reinit(ctx->sd_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
-            goto fail;
-        }
-    }
-
-    ctx->root_domain_attrs = reply[0];
-    ctx->root_domain = ads_get_root_domain(ctx);
-    if (ctx->root_domain == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not find the root domain\n");
-        ret = EFAULT;
-        goto fail;
-    }
-
-    ctx->root_id_ctx = ads_get_root_id_ctx(ctx);
-    if (ctx->root_id_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot create id ctx for the root domain\n");
-        ret = EFAULT;
-        goto fail;
-    }
-
-    ctx->root_op = sdap_id_op_create(ctx,
-                                     ctx->root_id_ctx->ldap_ctx->conn_cache);
-    if (ctx->root_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    req = sdap_id_op_connect_send(ctx->root_op, ctx, &ret);
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
-        goto fail;
-    }
-
-    tevent_req_set_callback(req, ad_subdomains_root_conn_done, ctx);
-    return;
-
-fail:
-    if (ret == EOK) {
-        ctx->sd_ctx->last_refreshed = time(NULL);
-        dp_error = DP_ERR_OK;
-    }
-    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
-}
-
-static struct sss_domain_info *ads_get_root_domain(struct ad_subdomains_req_ctx *ctx)
-{
-    errno_t ret;
-    const char *name;
-    struct sss_domain_info *root;
-
-    ret = sysdb_attrs_get_string(ctx->root_domain_attrs, AD_AT_TRUST_PARTNER, &name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-        return NULL;
-    }
-
-    /* With a subsequent run, the root should already be known */
-    root = find_domain_by_name(ctx->sd_ctx->be_ctx->domain,
-                               name, false);
-
-    return root;
-}
-
-static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx)
-{
-    errno_t ret;
-    struct sdap_domain *sdom;
-    struct ad_id_ctx *root_id_ctx;
-
-    sdom = sdap_domain_get(ctx->sd_ctx->ad_id_ctx->sdap_id_ctx->opts,
-                           ctx->root_domain);
-    if (sdom == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the sdom for %s!\n", ctx->root_domain->name);
-        return NULL;
-    }
-
-    if (sdom->pvt == NULL) {
-        ret = ad_subdom_ad_ctx_new(ctx->sd_ctx->be_ctx,
-                                   ctx->sd_ctx->ad_id_ctx,
-                                   ctx->root_domain,
-                                   &root_id_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "ad_subdom_ad_ctx_new failed.\n");
-            return NULL;
-        }
-
-        sdom->pvt = root_id_ctx;
-    } else {
-        root_id_ctx = sdom->pvt;
-    }
-
-    root_id_ctx->ldap_ctx->ignore_mark_offline = true;
-    return root_id_ctx;
-}
-
-static void ad_subdomains_root_conn_done(struct tevent_req *req)
-{
-    int ret;
-    int dp_error = DP_ERR_FATAL;
-    struct ad_subdomains_req_ctx *ctx;
-
-    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
-
-    ret = sdap_id_op_connect_recv(req, &dp_error);
-    talloc_zfree(req);
-    if (ret) {
-        be_mark_dom_offline(ctx->root_domain, be_req_get_be_ctx(ctx->be_req));
-
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to connect to AD server: [%d](%s)\n",
-              ret, strerror(ret));
-        goto fail;
-    }
-
-    ret = ad_subdomains_get_slave(ctx);
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret != EOK) {
-        goto fail;
-    }
-
-fail:
-    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
-}
-
-static void ad_subdomains_get_slave_domain_done(struct tevent_req *req);
-
-static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx)
-{
-    struct tevent_req *req;
-    struct sdap_search_base *base;
-    const char *slave_dom_attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
-                                      AD_AT_SID, AD_AT_TRUST_TYPE,
-                                      AD_AT_TRUST_ATTRS, NULL };
-
-    base = ctx->root_id_ctx->sdap_id_ctx->opts->sdom->search_bases[ctx->base_iter];
-    if (base == NULL) {
-        return EOK;
-    }
-
-    req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                           ctx->root_id_ctx->sdap_id_ctx->opts,
-                           sdap_id_op_handle(ctx->root_op),
-                           base->basedn, LDAP_SCOPE_SUBTREE,
-                           SLAVE_DOMAIN_FILTER, slave_dom_attrs,
-                           NULL, 0,
-                           dp_opt_get_int(ctx->root_id_ctx->sdap_id_ctx->opts->basic,
-                                          SDAP_SEARCH_TIMEOUT),
-                           false);
-
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, ad_subdomains_get_slave_domain_done, ctx);
-    return EAGAIN;
 }
 
 static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
@@ -993,236 +471,918 @@ fail:
     return ret;
 }
 
-static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
+static errno_t
+ads_store_sdap_subdom(struct ad_subdomains_ctx *ctx,
+                      struct sss_domain_info *parent)
 {
     int ret;
-    size_t reply_count;
-    struct sysdb_attrs **reply = NULL;
-    struct ad_subdomains_req_ctx *ctx;
-    int dp_error = DP_ERR_FATAL;
-    bool refresh_has_changes = false;
-    size_t nsubdoms;
-    struct sysdb_attrs **subdoms;
+    struct sdap_domain *sditer;
+    struct ad_id_ctx *subdom_id_ctx;
 
-    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
-
-    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
-    talloc_zfree(req);
+    ret = sdap_domain_subdom_add(ctx->sdap_id_ctx, ctx->sdom, parent);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
-        goto done;
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_domain_subdom_add failed.\n");
+        return ret;
     }
 
-    if (reply_count) {
-        ctx->reply = talloc_realloc(ctx, ctx->reply, struct sysdb_attrs *,
-                                    ctx->reply_count + reply_count);
-        if (ctx->reply == NULL) {
-            ret = ENOMEM;
-            goto done;
+    DLIST_FOR_EACH(sditer, ctx->sdom) {
+        if (IS_SUBDOMAIN(sditer->dom) && sditer->pvt == NULL) {
+            ret = ad_subdom_ad_ctx_new(ctx->be_ctx, ctx->ad_id_ctx,
+                                       sditer->dom, &subdom_id_ctx);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "ad_subdom_ad_ctx_new failed.\n");
+            } else {
+                sditer->pvt = subdom_id_ctx;
+            }
         }
-        memcpy(ctx->reply+ctx->reply_count, reply,
-               reply_count * sizeof(struct sysdb_attrs *));
-        ctx->reply_count += reply_count;
     }
 
-    ctx->base_iter++;
-    ret = ad_subdomains_get_slave(ctx);
-    if (ret == EAGAIN) {
-        /* Search in progress */
-        return;
-    }
+    return EOK;
+}
 
-    ret = sdap_id_op_done(ctx->root_op, ret, &dp_error);
+static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
+{
+    const char *path;
+    errno_t ret;
+
+    path = dp_opt_get_string(subdoms_ctx->ad_id_ctx->ad_options->basic,
+                             AD_KRB5_CONFD_PATH);
+
+    ret = sss_write_krb5_conf_snippet(path);
     if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
+        /* Just continue */
+    }
+
+    ret = sysdb_update_subdomains(subdoms_ctx->be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
+        return ret;
+    }
+
+    ret = sss_write_domain_mappings(subdoms_ctx->be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_krb5_write_mappings failed.\n");
+        /* Just continue */
+    }
+
+    ret = ads_store_sdap_subdom(subdoms_ctx, subdoms_ctx->be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ads_store_sdap_subdom failed.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+struct ad_get_slave_domain_state {
+    struct tevent_context *ev;
+    struct ad_subdomains_ctx *sd_ctx;
+    struct be_ctx *be_ctx;
+    struct sdap_options *opts;
+    struct sdap_idmap_ctx *idmap_ctx;
+    struct sysdb_attrs *root_attrs;
+    struct sdap_id_op *sdap_op;
+};
+
+static errno_t ad_get_slave_domain_retry(struct tevent_req *req);
+static void ad_get_slave_domain_connect_done(struct tevent_req *subreq);
+static void ad_get_slave_domain_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ad_get_slave_domain_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct ad_subdomains_ctx *sd_ctx,
+                         struct sysdb_attrs *root_attrs,
+                         struct ad_id_ctx *root_id_ctx)
+{
+    struct ad_get_slave_domain_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_get_slave_domain_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->sd_ctx = sd_ctx;
+    state->be_ctx = sd_ctx->be_ctx;
+    state->opts = root_id_ctx->sdap_id_ctx->opts;
+    state->idmap_ctx = root_id_ctx->sdap_id_ctx->opts->idmap_ctx;
+    state->root_attrs = root_attrs;
+
+    state->sdap_op = sdap_id_op_create(state, root_id_ctx->ldap_ctx->conn_cache);
+    if (state->sdap_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    ret = ad_get_slave_domain_retry(req);
+    if (ret == EAGAIN) {
+        /* asynchronous processing */
+        return req;
+    }
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static errno_t ad_get_slave_domain_retry(struct tevent_req *req)
+{
+    struct ad_get_slave_domain_state *state;
+    struct tevent_req *subreq;
+    int ret;
+
+    state = tevent_req_data(req, struct ad_get_slave_domain_state);
+
+    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, ad_get_slave_domain_connect_done, req);
+
+    return EAGAIN;
+}
+
+static void ad_get_slave_domain_connect_done(struct tevent_req *subreq)
+{
+    struct ad_get_slave_domain_state *state;
+    struct tevent_req *req = NULL;
+    int dp_error;
+    errno_t ret;
+    const char *attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
+                            AD_AT_SID, AD_AT_TRUST_TYPE,
+                            AD_AT_TRUST_ATTRS, NULL };
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_get_slave_domain_state);
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to LDAP "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No AD server is available, cannot get the "
-                   "subdomain list while offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to search the AD server: [%d](%s)\n",
-                  ret, strerror(ret));
+            DEBUG(SSSDBG_MINOR_FAILURE, "No AD server is available, "
+                  "cannot get the subdomain list while offline\n");
+            ret = ERR_OFFLINE;
         }
         tevent_req_error(req, ret);
         return;
     }
 
+    subreq = sdap_search_bases_send(state, state->ev, state->opts,
+                                    sdap_id_op_handle(state->sdap_op),
+                                    state->opts->sdom->search_bases,
+                                    NULL, false, 0,
+                                    SLAVE_DOMAIN_FILTER, attrs);
+    if (subreq == NULL) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ad_get_slave_domain_done, req);
+    return;
+}
+
+static void ad_get_slave_domain_done(struct tevent_req *subreq)
+{
+    struct ad_get_slave_domain_state *state;
+    struct tevent_req *req;
+    struct sysdb_attrs **reply;
+    size_t reply_count;
+    struct sysdb_attrs **subdoms;
+    size_t nsubdoms;
+    bool has_changes;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_get_slave_domain_state);
+
+    ret = sdap_search_bases_recv(subreq, state, &reply_count, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup slave domain data "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        /* We continue to finish sdap_id_op. */
+    }
+
+    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+    if (dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = ad_get_slave_domain_retry(req);
+        if (ret != EOK) {
+            goto done;
+        }
+        return;
+    } else if (dp_error == DP_ERR_OFFLINE) {
+        ret = ERR_OFFLINE;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
     /* Based on whether we are connected to the forest root or not, we might
      * need to exclude the subdomain we are connected to from the list of
-     * subdomains
+     * subdomains.
      */
-    ret = ad_subdomains_process(ctx, ctx->sd_ctx->be_ctx->domain,
-                                ctx->reply_count, ctx->reply,
-                                ctx->root_domain_attrs, &nsubdoms, &subdoms);
+    ret = ad_subdomains_process(state, state->be_ctx->domain,
+                                reply_count, reply, state->root_attrs,
+                                &nsubdoms, &subdoms);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot process subdomain list\n");
         tevent_req_error(req, ret);
         return;
     }
 
-    /* Got all the subdomains, let's process them */
-    ret = ad_subdomains_refresh(ctx->sd_ctx, nsubdoms, false, subdoms,
-                                &refresh_has_changes);
+    /* Got all the subdomains, let's process them. */
+    ret = ad_subdomains_refresh(state->be_ctx, state->idmap_ctx, state->opts,
+                                subdoms, nsubdoms, false,
+                                &state->sd_ctx->last_refreshed,
+                                &has_changes);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to refresh subdomains.\n");
         goto done;
     }
 
     DEBUG(SSSDBG_TRACE_LIBS, "There are %schanges\n",
-                    refresh_has_changes ? "" : "no ");
+          has_changes ? "" : "no ");
 
-    if (refresh_has_changes) {
-        ret = ad_subdom_reinit(ctx->sd_ctx);
+    if (has_changes) {
+        ret = ad_subdom_reinit(state->sd_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
             goto done;
         }
     }
 
+    state->sd_ctx->last_refreshed = time(NULL);
     ret = EOK;
+
 done:
-    if (ret == EOK) {
-        ctx->sd_ctx->last_refreshed = time(NULL);
-        dp_error = DP_ERR_OK;
-    }
-    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
-}
-
-static void ad_subdom_online_cb(void *pvt);
-
-static void ad_subdom_timer_refresh(struct tevent_context *ev,
-                                     struct tevent_timer *te,
-                                     struct timeval current_time,
-                                     void *pvt)
-{
-    ad_subdom_online_cb(pvt);
-}
-
-static void ad_subdom_be_req_callback(struct be_req *be_req,
-                                       int dp_err, int dp_ret,
-                                       const char *errstr)
-{
-    talloc_free(be_req);
-}
-
-static void ad_subdom_online_cb(void *pvt)
-{
-    struct ad_subdomains_ctx *ctx;
-    struct be_req *be_req;
-    struct timeval tv;
-    uint32_t refresh_interval;
-
-    ctx = talloc_get_type(pvt, struct ad_subdomains_ctx);
-    if (!ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Bad private pointer\n");
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
         return;
     }
 
-    refresh_interval = ctx->be_ctx->domain->subdomain_refresh_interval;
-
-    be_req = be_req_create(ctx, NULL, ctx->be_ctx, "AD subdomains",
-                           ad_subdom_be_req_callback, NULL);
-    if (be_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "be_req_create() failed.\n");
-        return;
-    }
-
-    ad_subdomains_retrieve(ctx, be_req);
-
-    tv = tevent_timeval_current_ofs(refresh_interval, 0);
-    ctx->timer_event = tevent_add_timer(ctx->be_ctx->ev, ctx, tv,
-                                        ad_subdom_timer_refresh, ctx);
-    if (!ctx->timer_event) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom timer event\n");
-    }
+    tevent_req_done(req);
 }
 
-static void ad_subdom_offline_cb(void *pvt)
+static errno_t ad_get_slave_domain_recv(struct tevent_req *req)
 {
-    struct ad_subdomains_ctx *ctx;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    ctx = talloc_get_type(pvt, struct ad_subdomains_ctx);
-
-    if (ctx) {
-        talloc_zfree(ctx->timer_event);
-    }
+    return EOK;
 }
 
-void ad_subdomains_handler(struct be_req *be_req)
+static struct sss_domain_info *
+ads_get_root_domain(struct be_ctx *be_ctx, struct sysdb_attrs *attrs)
 {
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct ad_subdomains_ctx *ctx;
-    time_t now;
+    struct sss_domain_info *root;
+    const char *name;
+    errno_t ret;
 
-    ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
-                          struct ad_subdomains_ctx);
-    if (!ctx) {
-        be_req_terminate(be_req, DP_ERR_FATAL, EINVAL, NULL);
-        return;
+    ret = sysdb_attrs_get_string(attrs, AD_AT_TRUST_PARTNER, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+        return NULL;
     }
 
-    now = time(NULL);
+    /* With a subsequent run, the root should already be known */
+    root = find_domain_by_name(be_ctx->domain, name, false);
 
-    if (ctx->last_refreshed > now - AD_SUBDOMAIN_REFRESH_LIMIT) {
-        be_req_terminate(be_req, DP_ERR_OK, EOK, NULL);
-        return;
-    }
-
-    ad_subdomains_retrieve(ctx, be_req);
+    return root;
 }
 
-struct bet_ops ad_subdomains_ops = {
-    .handler = ad_subdomains_handler,
-    .finalize = NULL
+static struct ad_id_ctx *
+ads_get_root_id_ctx(struct be_ctx *be_ctx,
+                    struct ad_id_ctx *ad_id_ctx,
+                    struct sss_domain_info *root_domain,
+                    struct sdap_options *opts)
+{
+    errno_t ret;
+    struct sdap_domain *sdom;
+    struct ad_id_ctx *root_id_ctx;
+
+    sdom = sdap_domain_get(opts, root_domain);
+    if (sdom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get the sdom for %s!\n", root_domain->name);
+        return NULL;
+    }
+
+    if (sdom->pvt == NULL) {
+        ret = ad_subdom_ad_ctx_new(be_ctx, ad_id_ctx, root_domain,
+                                   &root_id_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "ad_subdom_ad_ctx_new failed.\n");
+            return NULL;
+        }
+
+        sdom->pvt = root_id_ctx;
+    } else {
+        root_id_ctx = sdom->pvt;
+    }
+
+    root_id_ctx->ldap_ctx->ignore_mark_offline = true;
+    return root_id_ctx;
+}
+
+struct ad_get_root_domain_state {
+    struct ad_subdomains_ctx *sd_ctx;
+    struct be_ctx *be_ctx;
+    struct sdap_idmap_ctx *idmap_ctx;
+    struct sdap_options *opts;
+
+    struct ad_id_ctx *root_id_ctx;
+    struct sysdb_attrs *root_domain_attrs;
 };
 
-int ad_subdom_init(struct be_ctx *be_ctx,
-                   struct ad_id_ctx *id_ctx,
-                   const char *ad_domain,
-                   struct bet_ops **ops,
-                   void **pvt_data)
-{
-    struct ad_subdomains_ctx *ctx;
-    int ret;
-    enum idmap_error_code err;
+static void ad_get_root_domain_done(struct tevent_req *subreq);
 
-    ctx = talloc_zero(id_ctx, struct ad_subdomains_ctx);
-    if (ctx == NULL) {
+static struct tevent_req *
+ad_get_root_domain_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        const char *forest,
+                        struct sdap_handle *sh,
+                        struct ad_subdomains_ctx *sd_ctx)
+{
+    struct ad_get_root_domain_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    struct sdap_options *opts;
+    errno_t ret;
+    const char *filter;
+    const char *attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
+                            AD_AT_SID, AD_AT_TRUST_TYPE,
+                            AD_AT_TRUST_ATTRS, NULL };
+
+    req = tevent_req_create(mem_ctx, &state, struct ad_get_root_domain_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    if (forest != NULL && strcasecmp(sd_ctx->be_ctx->domain->name, forest) == 0) {
+        state->root_id_ctx = sd_ctx->ad_id_ctx;
+        state->root_domain_attrs = NULL;
+        ret = EOK;
+        goto immediately;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Looking up the forest root domain.\n");
+
+    state->sd_ctx = sd_ctx;
+    state->opts = opts = sd_ctx->sdap_id_ctx->opts;
+    state->be_ctx = sd_ctx->be_ctx;
+    state->idmap_ctx = opts->idmap_ctx;
+
+    filter = talloc_asprintf(state, FOREST_ROOT_FILTER_FMT, forest);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    subreq = sdap_search_bases_return_first_send(state, ev, opts, sh,
+                                                 opts->sdom->search_bases,
+                                                 NULL, false, 0, filter, attrs);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ad_get_root_domain_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void ad_get_root_domain_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct ad_get_root_domain_state *state;
+    struct sysdb_attrs **reply;
+    struct sss_domain_info *root_domain;
+    size_t reply_count;
+    bool has_changes;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_get_root_domain_state);
+
+    ret = sdap_search_bases_return_first_recv(subreq, state, &reply_count,
+                                              &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to lookup forest root information "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (reply_count == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "No information provided for root domain\n");
+        ret = ENOENT;
+        goto done;
+    } else if (reply_count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Multiple results for root domain search, "
+              "domain list might be incomplete!\n");
+        ret = ERR_MALFORMED_ENTRY;
+        goto done;
+    }
+
+    ret = ad_subdomains_refresh(state->be_ctx, state->idmap_ctx, state->opts,
+                                reply, reply_count, true,
+                                &state->sd_ctx->last_refreshed,
+                                &has_changes);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ad_subdomains_refresh failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (has_changes) {
+        ret = ad_subdom_reinit(state->sd_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
+            goto done;
+        }
+    }
+
+    state->root_domain_attrs = reply[0];
+    root_domain = ads_get_root_domain(state->be_ctx, reply[0]);
+    if (root_domain == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not find the root domain\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    state->root_id_ctx = ads_get_root_id_ctx(state->be_ctx,
+                                             state->sd_ctx->ad_id_ctx,
+                                             root_domain, state->opts);
+    if (state->root_id_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot create id ctx for the root domain\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t ad_get_root_domain_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       struct sysdb_attrs **_attrs,
+                                       struct ad_id_ctx **_id_ctx)
+{
+    struct ad_get_root_domain_state *state = NULL;
+    state = tevent_req_data(req, struct ad_get_root_domain_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_attrs = talloc_steal(mem_ctx, state->root_domain_attrs);
+    *_id_ctx = state->root_id_ctx;
+
+    return EOK;
+}
+
+struct ad_subdomains_refresh_state {
+    struct tevent_context *ev;
+    struct be_ctx *be_ctx;
+    struct ad_subdomains_ctx *sd_ctx;
+    struct sdap_id_op *sdap_op;
+    struct sdap_id_ctx *id_ctx;
+    struct ad_options *ad_options;
+};
+
+static errno_t ad_subdomains_refresh_retry(struct tevent_req *req);
+static void ad_subdomains_refresh_connect_done(struct tevent_req *subreq);
+static void ad_subdomains_refresh_master_done(struct tevent_req *subreq);
+static void ad_subdomains_refresh_root_done(struct tevent_req *subreq);
+static void ad_subdomains_refresh_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ad_subdomains_refresh_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct ad_subdomains_ctx *sd_ctx)
+{
+    struct ad_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_subdomains_refresh_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->be_ctx = sd_ctx->be_ctx;
+    state->sd_ctx = sd_ctx;
+    state->id_ctx = sd_ctx->sdap_id_ctx;
+    state->ad_options = sd_ctx->ad_id_ctx->ad_options;
+
+    state->sdap_op = sdap_id_op_create(state,
+                                       sd_ctx->sdap_id_ctx->conn->conn_cache);
+    if (state->sdap_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    ret = ad_subdomains_refresh_retry(req);
+    if (ret == EAGAIN) {
+        /* asynchronous processing */
+        return req;
+    }
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static errno_t ad_subdomains_refresh_retry(struct tevent_req *req)
+{
+    struct ad_subdomains_refresh_state *state;
+    struct tevent_req *subreq;
+    int ret;
+
+    state = tevent_req_data(req, struct ad_subdomains_refresh_state);
+
+    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, ad_subdomains_refresh_connect_done, req);
+
+    return EAGAIN;
+}
+
+static void ad_subdomains_refresh_connect_done(struct tevent_req *subreq)
+{
+    struct ad_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_subdomains_refresh_state);
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to LDAP "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "No AD server is available, "
+                  "cannot get the subdomain list while offline\n");
+            ret = ERR_OFFLINE;
+        }
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ad_master_domain_send(state, state->ev, state->id_ctx->conn,
+                                   state->sdap_op, state->sd_ctx->domain_name);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ad_subdomains_refresh_master_done, req);
+    return;
+}
+
+static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
+{
+    struct ad_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    const char *realm;
+    char *master_sid;
+    char *flat_name;
+    char *forest;
+    char *site;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_subdomains_refresh_state);
+
+    ret = ad_master_domain_recv(subreq, state, &flat_name, &master_sid,
+                                &site, &forest);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get master domain information "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    realm = dp_opt_get_cstring(state->ad_options->basic, AD_KRB5_REALM);
+    if (realm == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Missing realm.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sysdb_master_domain_add_info(state->be_ctx->domain, realm,
+                                       flat_name, master_sid, forest);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    subreq = ad_get_root_domain_send(state, state->ev, forest,
+                                     sdap_id_op_handle(state->sdap_op),
+                                     state->sd_ctx);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ad_subdomains_refresh_root_done, req);
+    return;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static void ad_subdomains_refresh_root_done(struct tevent_req *subreq)
+{
+    struct ad_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    struct ad_id_ctx *root_id_ctx;
+    struct sysdb_attrs *root_attrs;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_subdomains_refresh_state);
+
+    ret = ad_get_root_domain_recv(state, subreq, &root_attrs, &root_id_ctx);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get forest root [%d]: %s\n",
+              ret, sss_strerror(ret));
+        root_attrs = NULL;
+        root_id_ctx = NULL;
+        /* We continue to finish sdap_id_op. */
+    }
+
+    /* We finish sdap_id_op here since we connect
+     * to forest root for slave domains. */
+    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+    if (dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = ad_subdomains_refresh_retry(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    } else if (dp_error == DP_ERR_OFFLINE) {
+        tevent_req_error(req, ERR_OFFLINE);
+        return;
+    } else if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ad_get_slave_domain_send(state, state->ev, state->sd_ctx,
+                                      root_attrs, root_id_ctx);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ad_subdomains_refresh_done, req);
+    return;
+}
+
+static void ad_subdomains_refresh_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = ad_get_slave_domain_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get subdomains [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Unable to refresh subdomains [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Subdomains refreshed.\n");
+    tevent_req_done(req);
+}
+
+static errno_t ad_subdomains_refresh_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct ad_subdomains_handler_state {
+    struct dp_reply_std reply;
+};
+
+static void ad_subdomains_handler_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ad_subdomains_handler_send(TALLOC_CTX *mem_ctx,
+                           struct ad_subdomains_ctx *sd_ctx,
+                           struct dp_subdomains_data *data,
+                           struct dp_req_params *params)
+{
+    struct ad_subdomains_handler_state *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_subdomains_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+
+    if (sd_ctx->last_refreshed > time(NULL) - AD_SUBDOMAIN_REFRESH_LIMIT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Subdomains were recently refreshed, "
+              "nothing to do\n");
+        ret = EOK;
+        goto immediately;
+    }
+
+    subreq = ad_subdomains_refresh_send(state, params->ev, sd_ctx);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ad_subdomains_handler_done, req);
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void ad_subdomains_handler_done(struct tevent_req *subreq)
+{
+    struct ad_subdomains_handler_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_subdomains_handler_state);
+
+    ret = ad_subdomains_refresh_recv(subreq);
+    talloc_zfree(subreq);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    tevent_req_done(req);
+}
+
+static errno_t ad_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
+                                          struct tevent_req *req,
+                                          struct dp_reply_std *data)
+{
+   struct ad_subdomains_handler_state *state;
+
+   state = tevent_req_data(req, struct ad_subdomains_handler_state);
+
+   TEVENT_REQ_RETURN_ON_ERROR(req);
+
+   *data = state->reply;
+
+   return EOK;
+}
+
+static struct tevent_req *
+ad_subdomains_ptask_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_ctx *be_ctx,
+                         struct be_ptask *be_ptask,
+                         void *pvt)
+{
+    struct ad_subdomains_ctx *sd_ctx;
+    sd_ctx = talloc_get_type(pvt, struct ad_subdomains_ctx);
+
+    return ad_subdomains_refresh_send(mem_ctx, ev, sd_ctx);
+}
+
+static errno_t
+ad_subdomains_ptask_recv(struct tevent_req *req)
+{
+    return ad_subdomains_refresh_recv(req);
+}
+
+errno_t ad_subdomains_init(TALLOC_CTX *mem_ctx,
+                           struct be_ctx *be_ctx,
+                           struct ad_id_ctx *ad_id_ctx,
+                           struct dp_method *dp_methods)
+{
+    struct ad_subdomains_ctx *sd_ctx;
+    const char *ad_domain;
+    time_t period;
+    errno_t ret;
+
+    ad_domain = dp_opt_get_string(ad_id_ctx->ad_options->basic, AD_DOMAIN);
+
+    sd_ctx = talloc_zero(mem_ctx, struct ad_subdomains_ctx);
+    if (sd_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
-    ctx->be_ctx = be_ctx;
-    ctx->sdom = id_ctx->sdap_id_ctx->opts->sdom;
-    ctx->ldap_ctx = id_ctx->ldap_ctx;
-    ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
-    ctx->domain_name = talloc_strdup(ctx, ad_domain);
-    if (ctx->domain_name == NULL) {
+    sd_ctx->be_ctx = be_ctx;
+    sd_ctx->sdom = ad_id_ctx->sdap_id_ctx->opts->sdom;
+    sd_ctx->sdap_id_ctx = ad_id_ctx->sdap_id_ctx;
+    sd_ctx->domain_name = talloc_strdup(sd_ctx, ad_domain);
+    if (sd_ctx->domain_name == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
         return ENOMEM;
     }
-    ctx->ad_id_ctx = id_ctx;
-    *ops = &ad_subdomains_ops;
-    *pvt_data = ctx;
+    sd_ctx->ad_id_ctx = ad_id_ctx;
 
-    ret = be_add_online_cb(ctx, be_ctx, ad_subdom_online_cb, ctx, NULL);
+    dp_set_method(dp_methods, DPM_DOMAINS_HANDLER,
+                  ad_subdomains_handler_send, ad_subdomains_handler_recv, sd_ctx,
+                  struct ad_subdomains_ctx, struct dp_subdomains_data, struct dp_reply_std);
+
+    period = be_ctx->domain->subdomain_refresh_interval;
+    ret = be_ptask_create(sd_ctx, be_ctx, period, 0, 0, 0, period,
+                          BE_PTASK_OFFLINE_DISABLE, 0,
+                          ad_subdomains_ptask_send, ad_subdomains_ptask_recv, sd_ctx,
+                          "Subdomains Refresh", NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom online callback\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        /* Ignore, responders will trigger refresh from time to time. */
     }
 
-    ret = be_add_offline_cb(ctx, be_ctx, ad_subdom_offline_cb, ctx, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom offline callback\n");
-    }
-
-    err = sss_idmap_init(sss_idmap_talloc, ctx, sss_idmap_talloc_free,
-                         &ctx->idmap_ctx);
-    if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize idmap context.\n");
-        return EFAULT;
-    }
-
-    ret = ad_subdom_reinit(ctx);
+    ret = ad_subdom_reinit(sd_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Could not reinitialize subdomains. "
               "Users from trusted domains might not be resolved correctly\n");

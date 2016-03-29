@@ -40,10 +40,10 @@ struct sdap_sudo_ctx {
 
 /* Common functions from ldap_sudo.c */
 
-int sdap_sudo_init(struct be_ctx *be_ctx,
-                   struct sdap_id_ctx *id_ctx,
-                   struct bet_ops **ops,
-                   void **pvt_data);
+errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
+                       struct be_ctx *be_ctx,
+                       struct sdap_id_ctx *id_ctx,
+                       struct dp_method *dp_methods);
 
 /* sdap async interface */
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,

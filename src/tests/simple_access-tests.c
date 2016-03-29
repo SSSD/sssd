@@ -37,6 +37,8 @@ const char *ulist_1[] = {"u1", "u2", NULL};
 const char *glist_1[] = {"g1", "g2", NULL};
 const char *glist_1_case[] = {"G1", "G2", NULL};
 
+int simple_access_obtain_filter_lists(struct simple_ctx *ctx);
+
 struct simple_test_ctx *test_ctx = NULL;
 
 struct simple_test_ctx {
@@ -546,20 +548,22 @@ static void check_access_list(char **list, const char **values)
     fail_if(values[i] != NULL, "List contains fewer entries than expected");
 }
 
-int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
-                            void **pvt_data);
-
 START_TEST(test_provider_init)
 {
-    struct bet_ops *bet_ops = NULL;
     struct simple_ctx *ctx = NULL;
     errno_t ret;
 
     const char *val[2] = {"user-1, user-2@LOCAL, user with space, "
                           "another space@LOCAL", NULL};
 
+    const char *du_val[2] = {"duser-1, duser-2@LOCAL, duser with space, "
+                             "deny another space@LOCAL", NULL};
+
     const char *correct[] = {"user-1", "user-2", "user with space",
                              "another space", NULL};
+
+    const char *du_correct[] = {"duser-1", "duser-2", "duser with space",
+                                "deny another space", NULL};
 
     /* allow users */
     ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
@@ -568,7 +572,7 @@ START_TEST(test_provider_init)
 
     /* deny users */
     ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
-                           "simple_deny_users", val);
+                           "simple_deny_users", du_val);
     fail_if(ret != EOK, "Could not setup deny users list");
 
     /* allow groups */
@@ -581,14 +585,20 @@ START_TEST(test_provider_init)
                            "simple_deny_groups", val);
     fail_if(ret != EOK, "Could not setup deny groups list");
 
-    ret = sssm_simple_access_init(test_ctx->be_ctx, &bet_ops, (void**)&ctx);
-    fail_if(ret != EOK);
+    ctx = talloc(test_ctx, struct simple_ctx);
+    fail_if(ctx == NULL, "Could not allocate simple_ctx");
+
+    ctx->be_ctx = test_ctx->be_ctx;
+    ctx->domain = test_ctx->ctx->domain;
+
+    ret = simple_access_obtain_filter_lists(ctx);
+    fail_if(ret != EOK, "simple_access_obtain_filter_lists failed");
 
     DEBUG(SSSDBG_TRACE_FUNC, "Checking allow users list\n");
     check_access_list(ctx->allow_users, correct);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Checking deny users list\n");
-    check_access_list(ctx->deny_users, correct);
+    check_access_list(ctx->deny_users, du_correct);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Checking allow groups list\n");
     check_access_list(ctx->allow_groups, correct);

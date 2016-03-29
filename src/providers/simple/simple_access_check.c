@@ -268,7 +268,9 @@ simple_resolve_group_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    subreq = be_get_account_info_send(state, ev, NULL, ctx->be_ctx, ar);
+    subreq = dp_req_send(state, ctx->be_ctx->provider, NULL, ar->domain,
+                         "Simple Resolve Group", DPT_ID, DPM_ACCOUNT_HANDLER,
+                         0, ar, NULL);
     if (!subreq) {
         ret = ENOMEM;
         goto done;
@@ -328,27 +330,24 @@ static void simple_resolve_group_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct simple_resolve_group_state *state;
-    int err_maj;
-    int err_min;
+    struct dp_reply_std *reply;
     errno_t ret;
-    const char *err_msg;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct simple_resolve_group_state);
 
-    ret = be_get_account_info_recv(subreq, state,
-                                   &err_maj, &err_min, &err_msg);
+    ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "be_get_account_info_recv failed\n");
+        DEBUG(SSSDBG_OP_FAILURE, "dp_req_recv failed\n");
         tevent_req_error(req, ret);
         return;
     }
 
-    if (err_maj) {
+    if (reply->dp_error != DP_ERR_OK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot refresh data from DP: %u,%u: %s\n",
-              err_maj, err_min, err_msg);
+              reply->dp_error, reply->error, reply->message);
         tevent_req_error(req, EIO);
         return;
     }

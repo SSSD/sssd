@@ -29,90 +29,100 @@
 #include "src/providers/ldap/sdap_access.h"
 #include "providers/ldap/ldap_common.h"
 
-static void sdap_access_reply(struct be_req *be_req, int pam_status)
-{
+struct sdap_pam_access_handler_state {
     struct pam_data *pd;
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
-    pd->pam_status = pam_status;
+};
 
-    if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED
-            || pam_status == PAM_ACCT_EXPIRED) {
-        be_req_terminate(be_req, DP_ERR_OK, pam_status, NULL);
-    } else {
-        be_req_terminate(be_req, DP_ERR_FATAL, pam_status, NULL);
-    }
-}
+static void sdap_pam_access_handler_done(struct tevent_req *subreq);
 
-static void sdap_access_done(struct tevent_req *req);
-void sdap_pam_access_handler(struct be_req *breq)
+struct tevent_req *
+sdap_pam_access_handler_send(TALLOC_CTX *mem_ctx,
+                           struct sdap_access_ctx *access_ctx,
+                           struct pam_data *pd,
+                           struct dp_req_params *params)
 {
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct pam_data *pd;
+    struct sdap_pam_access_handler_state *state;
+    struct tevent_req *subreq;
     struct tevent_req *req;
-    struct sdap_access_ctx *access_ctx;
-    struct sss_domain_info *dom;
 
-    pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
-
-    access_ctx =
-            talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
-                            struct sdap_access_ctx);
-
-    dom = be_ctx->domain;
-    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
-        /* Subdomain request, verify subdomain */
-        dom = find_domain_by_name(be_ctx->domain, pd->domain, true);
-    }
-
-    req = sdap_access_send(breq, be_ctx->ev, be_ctx,
-                           dom, access_ctx,
-                           access_ctx->id_ctx->conn,
-                           pd);
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_pam_access_handler_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to start sdap_access request\n");
-        sdap_access_reply(breq, PAM_SYSTEM_ERR);
-        return;
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
     }
 
-    tevent_req_set_callback(req, sdap_access_done, breq);
+    state->pd = pd;
+
+    subreq = sdap_access_send(state, params->ev, params->be_ctx,
+                              params->domain, access_ctx,
+                              access_ctx->id_ctx->conn, pd);
+    if (subreq == NULL) {
+        pd->pam_status = PAM_SYSTEM_ERR;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_pam_access_handler_done, req);
+
+    return req;
+
+immediately:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
 }
 
-static void sdap_access_done(struct tevent_req *req)
+static void sdap_pam_access_handler_done(struct tevent_req *subreq)
 {
+    struct sdap_pam_access_handler_state *state;
+    struct tevent_req *req;
     errno_t ret;
-    int pam_status;
-    struct be_req *breq =
-            tevent_req_callback_data(req, struct be_req);
 
-    ret = sdap_access_recv(req);
-    talloc_zfree(req);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_pam_access_handler_state);
+
+    ret = sdap_access_recv(subreq);
+    talloc_free(subreq);
     switch (ret) {
     case EOK:
-        pam_status = PAM_SUCCESS;
-        break;
-    case ERR_ACCESS_DENIED:
-        pam_status = PAM_PERM_DENIED;
+    case ERR_PASSWORD_EXPIRED_WARN:
+        state->pd->pam_status = PAM_SUCCESS;
         break;
     case ERR_ACCOUNT_EXPIRED:
-        pam_status = PAM_ACCT_EXPIRED;
+        state->pd->pam_status = PAM_ACCT_EXPIRED;
         break;
+    case ERR_ACCESS_DENIED:
     case ERR_PASSWORD_EXPIRED:
-        pam_status = PAM_PERM_DENIED;
-        break;
     case ERR_PASSWORD_EXPIRED_REJECT:
-        pam_status = PAM_PERM_DENIED;
-        break;
-    case ERR_PASSWORD_EXPIRED_WARN:
-        pam_status = PAM_SUCCESS;
+        state->pd->pam_status = PAM_PERM_DENIED;
         break;
     case ERR_PASSWORD_EXPIRED_RENEW:
-        pam_status = PAM_NEW_AUTHTOK_REQD;
+        state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Error retrieving access check result.\n");
-        pam_status = PAM_SYSTEM_ERR;
+        state->pd->pam_status = PAM_SYSTEM_ERR;
         break;
     }
 
-    sdap_access_reply(breq, pam_status);
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+errno_t
+sdap_pam_access_handler_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             struct pam_data **_data)
+{
+    struct sdap_pam_access_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct sdap_pam_access_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
 }

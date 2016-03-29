@@ -34,103 +34,6 @@
 #include "db/sysdb_autofs.h"
 #include "util/util.h"
 
-static void
-sdap_autofs_shutdown(struct be_req *req)
-{
-    sdap_handler_done(req, DP_ERR_OK, EOK, NULL);
-}
-
-void sdap_autofs_handler(struct be_req *be_req);
-
-/* Autofs Handler */
-struct bet_ops sdap_autofs_ops = {
-    .handler = sdap_autofs_handler,
-    .finalize = sdap_autofs_shutdown
-};
-
-int sdap_autofs_init(struct be_ctx *be_ctx,
-                     struct sdap_id_ctx *id_ctx,
-                     struct bet_ops **ops,
-                     void **pvt_data)
-{
-    int ret;
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs LDAP back end\n");
-
-    *ops = &sdap_autofs_ops;
-    *pvt_data = id_ctx;
-
-    ret = ldap_get_autofs_options(id_ctx, be_ctx->cdb,
-                                  be_ctx->conf_path, id_ctx->opts);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return ret;
-}
-
-static struct tevent_req *
-sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *ev,
-                         struct sdap_id_ctx *ctx,
-                         const char *map_name);
-
-static void sdap_autofs_handler_done(struct tevent_req *req);
-
-void sdap_autofs_handler(struct be_req *be_req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct sdap_id_ctx *id_ctx;
-    struct be_autofs_req *autofs_req;
-    struct tevent_req *req;
-    const char *master_map;
-    int ret = EOK;
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "sdap autofs handler called\n");
-
-    id_ctx = talloc_get_type(be_ctx->bet_info[BET_AUTOFS].pvt_bet_data,
-                             struct sdap_id_ctx);
-
-    if (be_is_offline(id_ctx->be)) {
-        return sdap_handler_done(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
-    }
-
-    autofs_req = talloc_get_type(be_req_get_data(be_req), struct be_autofs_req);
-
-    DEBUG(SSSDBG_FUNC_DATA, "Requested refresh for: %s\n",
-          autofs_req->mapname ? autofs_req->mapname : "<ALL>\n");
-
-    if (autofs_req->mapname != NULL) {
-        master_map = dp_opt_get_string(id_ctx->opts->basic,
-                                       SDAP_AUTOFS_MAP_MASTER_NAME);
-        if (strcmp(master_map, autofs_req->mapname) == 0) {
-            autofs_req->invalidate = true;
-            DEBUG(SSSDBG_FUNC_DATA, "Refresh of automount master map triggered: %s\n",
-                  autofs_req->mapname);
-        }
-    }
-
-    if (autofs_req->invalidate) {
-        ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not invalidate autofs maps, "
-                  "backend might return stale entries\n");
-        }
-    }
-
-    req = sdap_autofs_get_map_send(be_req, be_ctx->ev,
-                                   id_ctx, autofs_req->mapname);
-    if (!req) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(req, sdap_autofs_handler_done, be_req);
-
-    return;
-fail:
-    be_req_terminate(be_req, DP_ERR_FATAL, ret, NULL);
-}
-
 struct autofs_get_map_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
@@ -298,15 +201,121 @@ sdap_autofs_get_map_recv(struct tevent_req *req, int *dp_error_out)
     return EOK;
 }
 
-static void
-sdap_autofs_handler_done(struct tevent_req *req)
+struct sdap_autofs_handler_state {
+    struct dp_reply_std reply;
+};
+
+static void sdap_autofs_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_autofs_handler_send(TALLOC_CTX *mem_ctx,
+                         struct sdap_id_ctx *id_ctx,
+                         struct dp_autofs_data *data,
+                         struct dp_req_params *params)
 {
-    struct be_req *be_req =
-        tevent_req_callback_data(req, struct be_req);
-    int dperr;
+    struct sdap_autofs_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    const char *master_map;
+
     errno_t ret;
 
-    ret = sdap_autofs_get_map_recv(req, &dperr);
-    sdap_handler_done(be_req, dperr, ret, strerror(ret));
+    req = tevent_req_create(mem_ctx, &state, struct sdap_autofs_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "Requested refresh for: %s\n", data->mapname);
+
+    master_map = dp_opt_get_string(id_ctx->opts->basic,
+                                   SDAP_AUTOFS_MAP_MASTER_NAME);
+    if (strcmp(master_map, data->mapname) == 0) {
+        DEBUG(SSSDBG_FUNC_DATA, "Refresh of automount master map triggered: "
+              "%s\n", data->mapname);
+
+        ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not invalidate autofs maps, "
+                  "backend might return stale entries\n");
+        }
+    }
+
+    subreq = sdap_autofs_get_map_send(mem_ctx, params->ev,
+                                      id_ctx, data->mapname);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request for %s.\n",
+              data->mapname);
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_autofs_handler_done, req);
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
 }
 
+static void sdap_autofs_handler_done(struct tevent_req *subreq)
+{
+    struct sdap_autofs_handler_state *state;
+    struct tevent_req *req;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_autofs_handler_state);
+
+    ret = sdap_autofs_get_map_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    tevent_req_done(req);
+}
+
+errno_t
+sdap_autofs_handler_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         struct dp_reply_std *data)
+{
+    struct sdap_autofs_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct sdap_autofs_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
+
+    return EOK;
+}
+
+errno_t sdap_autofs_init(TALLOC_CTX *mem_ctx,
+                         struct be_ctx *be_ctx,
+                         struct sdap_id_ctx *id_ctx,
+                         struct dp_method *dp_methods)
+{
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs LDAP back end\n");
+
+    ret = ldap_get_autofs_options(id_ctx, be_ctx->cdb, be_ctx->conf_path,
+                                  id_ctx->opts);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    dp_set_method(dp_methods, DPM_AUTOFS_HANDLER,
+                  sdap_autofs_handler_send, sdap_autofs_handler_recv, id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
+
+    return EOK;
+}

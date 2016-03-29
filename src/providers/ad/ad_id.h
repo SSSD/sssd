@@ -23,12 +23,18 @@
 #ifndef AD_ID_H_
 #define AD_ID_H_
 
-void
-ad_account_info_handler(struct be_req *breq);
+struct tevent_req *
+ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
+                              struct ad_id_ctx *id_ctx,
+                              struct be_acct_req *data,
+                              struct dp_req_params *params);
+
+errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      struct dp_reply_std *data);
 
 struct tevent_req *
 ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
-                         struct be_req *breq,
                          struct be_acct_req *ar,
                          struct sdap_id_ctx *ctx,
                          struct ad_options *ad_options,
@@ -48,6 +54,4 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
 errno_t
 ad_enumeration_recv(struct tevent_req *req);
 
-void
-ad_check_online(struct be_req *be_req);
 #endif /* AD_ID_H_ */

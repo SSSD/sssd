@@ -38,12 +38,6 @@
 /* a fd the child process would log into */
 int ldap_child_debug_fd = -1;
 
-void sdap_handler_done(struct be_req *req, int dp_err,
-                       int error, const char *errstr)
-{
-    return be_req_terminate(req, dp_err, error, errstr);
-}
-
 int ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
     return sdap_id_setup_tasks(ctx->be, ctx, ctx->opts->sdom,

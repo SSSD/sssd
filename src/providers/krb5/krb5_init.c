@@ -30,118 +30,44 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_init_shared.h"
+#include "providers/data_provider.h"
 
-struct krb5_options {
-    struct dp_option *opts;
-    struct krb5_ctx *auth_ctx;
-};
-
-struct krb5_options *krb5_options = NULL;
-
-struct bet_ops krb5_auth_ops = {
-    .handler = krb5_pam_handler,
-    .finalize = NULL,
-};
-
-int krb5_ctx_re_destructor(void *memctx)
+static errno_t krb5_init_kpasswd(struct krb5_ctx *ctx,
+                                 struct be_ctx *be_ctx)
 {
-    struct krb5_ctx *ctx = (struct krb5_ctx *) memctx;
+    const char *realm;
+    const char *primary_servers;
+    const char *backup_servers;
+    const char *kdc_servers;
+    bool use_kdcinfo;
+    errno_t ret;
 
-    if (ctx->illegal_path_re) {
-        pcre_free(ctx->illegal_path_re);
-        ctx->illegal_path_re = NULL;
-    }
-    return 0;
-}
-
-int sssm_krb5_auth_init(struct be_ctx *bectx,
-                        struct bet_ops **ops,
-                        void **pvt_auth_data)
-{
-    struct krb5_ctx *ctx = NULL;
-    int ret;
-    const char *krb5_servers;
-    const char *krb5_backup_servers;
-    const char *krb5_kpasswd_servers;
-    const char *krb5_backup_kpasswd_servers;
-    const char *krb5_realm;
-    const char *errstr;
-    int errval;
-    int errpos;
-
-    if (krb5_options == NULL) {
-        krb5_options = talloc_zero(bectx, struct krb5_options);
-        if (krb5_options == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
-            return ENOMEM;
-        }
-        ret = krb5_get_options(krb5_options, bectx->cdb, bectx->conf_path,
-                               &krb5_options->opts);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "krb5_get_options failed.\n");
-            return ret;
-        }
-    }
-
-    if (krb5_options->auth_ctx != NULL) {
-        *ops = &krb5_auth_ops;
-        *pvt_auth_data = krb5_options->auth_ctx;
-        return EOK;
-    }
-
-    ctx = talloc_zero(bectx, struct krb5_ctx);
-    if (!ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        return ENOMEM;
-    }
-    krb5_options->auth_ctx = ctx;
-
-    ctx->action = INIT_PW;
-    ctx->opts = krb5_options->opts;
-    ctx->config_type = K5C_GENERIC;
-
-    krb5_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
-    krb5_backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KDC);
-
-    krb5_realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
-    if (krb5_realm == NULL) {
+    realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
+    if (realm == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Missing krb5_realm option!\n");
         return EINVAL;
     }
 
-    ret = krb5_service_init(ctx, bectx,
-                            SSS_KRB5KDC_FO_SRV, krb5_servers,
-                            krb5_backup_servers, krb5_realm,
-                            dp_opt_get_bool(krb5_options->opts,
-                                            KRB5_USE_KDCINFO),
-                            &ctx->service);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init KRB5 failover service!\n");
-        return ret;
-    }
+    kdc_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
+    primary_servers = dp_opt_get_string(ctx->opts, KRB5_KPASSWD);
+    backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KPASSWD);
+    use_kdcinfo = dp_opt_get_bool(ctx->opts, KRB5_USE_KDCINFO);
 
-    krb5_kpasswd_servers = dp_opt_get_string(ctx->opts, KRB5_KPASSWD);
-    krb5_backup_kpasswd_servers = dp_opt_get_string(ctx->opts,
-                                                       KRB5_BACKUP_KPASSWD);
-    if (krb5_kpasswd_servers == NULL && krb5_backup_kpasswd_servers != NULL) {
+    if (primary_servers == NULL && backup_servers != NULL) {
         DEBUG(SSSDBG_CONF_SETTINGS, "kpasswd server wasn't specified but "
-                                     "backup kpasswd given. Using it as primary\n");
-        krb5_kpasswd_servers = krb5_backup_kpasswd_servers;
-        krb5_backup_kpasswd_servers = NULL;
+              "backup_servers kpasswd given. Using it as primary_servers\n");
+        primary_servers = backup_servers;
+        backup_servers = NULL;
     }
 
-    if (krb5_kpasswd_servers == NULL && krb5_servers != NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Missing krb5_kpasswd option and KDC set explicitly, "
-                  "will use KDC for pasword change operations!\n");
+    if (primary_servers == NULL && kdc_servers != NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Missing krb5_kpasswd option and KDC set "
+              "explicitly, will use KDC for pasword change operations!\n");
         ctx->kpasswd_service = NULL;
     } else {
-        ret = krb5_service_init(ctx, bectx,
-                                SSS_KRB5KPASSWD_FO_SRV, krb5_kpasswd_servers,
-                                krb5_backup_kpasswd_servers, krb5_realm,
-                                dp_opt_get_bool(krb5_options->opts,
-                                                KRB5_USE_KDCINFO),
-                                &ctx->kpasswd_service);
+        ret = krb5_service_init(ctx, be_ctx, SSS_KRB5KPASSWD_FO_SRV,
+                                primary_servers, backup_servers, realm,
+                                use_kdcinfo, &ctx->kpasswd_service);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Failed to init KRB5KPASSWD failover service!\n");
@@ -149,52 +75,157 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         }
     }
 
-    /* Initialize features needed by the krb5_child */
-    ret = krb5_child_init(ctx, bectx);
+    return EOK;
+}
+
+static errno_t krb5_init_kdc(struct krb5_ctx *ctx, struct be_ctx *be_ctx)
+{
+    const char *primary_servers;
+    const char *backup_servers;
+    const char *realm;
+    bool use_kdcinfo;
+    errno_t ret;
+
+    realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
+    if (realm == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Missing krb5_realm option!\n");
+        return EINVAL;
+    }
+
+    primary_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
+    backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KDC);
+
+    use_kdcinfo = dp_opt_get_bool(ctx->opts, KRB5_USE_KDCINFO);
+
+    ret = krb5_service_init(ctx, be_ctx, SSS_KRB5KDC_FO_SRV,
+                            primary_servers, backup_servers, realm,
+                            use_kdcinfo, &ctx->service);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not initialize krb5_child settings: [%s]\n",
-               strerror(ret));
-        goto fail;
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init KRB5 failover service!\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+int krb5_ctx_re_destructor(struct krb5_ctx *ctx)
+{
+    if (ctx->illegal_path_re != NULL) {
+        pcre_free(ctx->illegal_path_re);
+        ctx->illegal_path_re = NULL;
+    }
+
+    return 0;
+}
+
+errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
+                       struct be_ctx *be_ctx,
+                       struct data_provider *provider,
+                       const char *module_name,
+                       void **_module_data)
+{
+    struct krb5_ctx *ctx;
+    const char *errstr;
+    int errval;
+    int errpos;
+    errno_t ret;
+
+    ctx = talloc_zero(mem_ctx, struct krb5_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
+        return ENOMEM;
+    }
+
+    ret = krb5_get_options(ctx, be_ctx->cdb, be_ctx->conf_path, &ctx->opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get krb5 options [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ctx->action = INIT_PW;
+    ctx->config_type = K5C_GENERIC;
+
+    ret = krb5_init_kdc(ctx, be_ctx);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = krb5_init_kpasswd(ctx, be_ctx);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = krb5_child_init(ctx, be_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not initialize krb5_child settings "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
     ctx->illegal_path_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
                                          &errval, &errstr, &errpos, NULL);
     if (ctx->illegal_path_re == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Invalid Regular Expression pattern at position %d. "
-                  "(Error: %d [%s])\n", errpos, errval, errstr);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid Regular Expression pattern "
+              "at position %d. (Error: %d [%s])\n", errpos, errval, errstr);
         ret = EFAULT;
-        goto fail;
+        goto done;
     }
-    talloc_set_destructor((TALLOC_CTX *) ctx, krb5_ctx_re_destructor);
+    talloc_set_destructor(ctx, krb5_ctx_re_destructor);
 
-    ret = be_fo_set_dns_srv_lookup_plugin(bectx, NULL);
+    ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
-                                   "[%d]: %s\n", ret, sss_strerror(ret));
-        goto fail;
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
-    *ops = &krb5_auth_ops;
-    *pvt_auth_data = ctx;
-    return EOK;
+    *_module_data = ctx;
 
-fail:
-    talloc_zfree(krb5_options->auth_ctx);
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(ctx);
+    }
+
     return ret;
 }
 
-int sssm_krb5_chpass_init(struct be_ctx *bectx,
-                          struct bet_ops **ops,
-                          void **pvt_auth_data)
+errno_t sssm_krb5_auth_init(TALLOC_CTX *mem_ctx,
+                            struct be_ctx *be_ctx,
+                            void *module_data,
+                            struct dp_method *dp_methods)
 {
-    return sssm_krb5_auth_init(bectx, ops, pvt_auth_data);
+    struct krb5_ctx *ctx;
+
+    ctx = talloc_get_type(module_data, struct krb5_ctx);
+    dp_set_method(dp_methods, DPM_AUTH_HANDLER,
+                  krb5_pam_handler_send, krb5_pam_handler_recv, ctx,
+                  struct krb5_ctx, struct pam_data, struct pam_data *);
+
+    return EOK;
 }
 
-int sssm_krb5_access_init(struct be_ctx *bectx,
-                          struct bet_ops **ops,
-                          void **pvt_auth_data)
+errno_t sssm_krb5_chpass_init(TALLOC_CTX *mem_ctx,
+                              struct be_ctx *be_ctx,
+                              void *module_data,
+                              struct dp_method *dp_methods)
 {
-    return sssm_krb5_auth_init(bectx, ops, pvt_auth_data);
+    return sssm_krb5_auth_init(mem_ctx, be_ctx, module_data, dp_methods);
+}
+
+errno_t sssm_krb5_access_init(TALLOC_CTX *mem_ctx,
+                              struct be_ctx *be_ctx,
+                              void *module_data,
+                              struct dp_method *dp_methods)
+{
+    struct krb5_ctx *ctx;
+
+    ctx = talloc_get_type(module_data, struct krb5_ctx);
+    dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
+                  krb5_pam_handler_send, krb5_pam_handler_recv, ctx,
+                  struct krb5_ctx, struct pam_data, struct pam_data *);
+
+    return EOK;
 }

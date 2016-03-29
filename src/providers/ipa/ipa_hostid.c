@@ -39,104 +39,6 @@ struct hosts_get_state {
     int dp_error;
 };
 
-struct tevent_req *
-hosts_get_send(TALLOC_CTX *memctx,
-               struct tevent_context *ev,
-               struct ipa_hostid_ctx *hostid_ctx,
-               const char *name,
-               const char *alias);
-static errno_t
-hosts_get_recv(struct tevent_req *req,
-               int *dp_error_out);
-
-static void
-ipa_host_info_hosts_done(struct tevent_req *req);
-
-void
-ipa_host_info_handler(struct be_req *breq)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct ipa_hostid_ctx *hostid_ctx;
-    struct sdap_id_ctx *ctx;
-    struct be_host_req *hr;
-    struct tevent_req *req;
-    int dp_error = DP_ERR_FATAL;
-    errno_t ret = EOK;
-    const char *err = "Unknown Error";
-
-    hostid_ctx = talloc_get_type(be_ctx->bet_info[BET_HOSTID].pvt_bet_data,
-                                 struct ipa_hostid_ctx);
-    ctx = hostid_ctx->sdap_id_ctx;
-
-    if (be_is_offline(ctx->be)) {
-        dp_error = DP_ERR_OFFLINE;
-        ret = EAGAIN;
-        err = "Offline";
-        goto done;
-    }
-
-    hr = talloc_get_type(be_req_get_data(breq), struct be_host_req);
-
-    if (hr->filter_type != BE_FILTER_NAME) {
-        ret = EINVAL;
-        err = "Invalid filter type";
-        goto done;
-    }
-
-    req = hosts_get_send(breq, be_ctx->ev, hostid_ctx,
-                         hr->name, hr->alias);
-    if (!req) {
-        ret = ENOMEM;
-        err = "Out of memory";
-        goto done;
-    }
-
-    tevent_req_set_callback(req, ipa_host_info_hosts_done, breq);
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) return sdap_handler_done(breq, dp_error, ret, err);
-}
-
-static void
-ipa_host_info_complete(struct be_req *breq, int dp_error,
-                            errno_t ret, const char *default_error_text)
-{
-    const char* error_text;
-
-    if (dp_error == DP_ERR_OK) {
-        if (ret == EOK) {
-            error_text = NULL;
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Bug: dp_error is OK on failed request\n");
-            dp_error = DP_ERR_FATAL;
-            error_text = default_error_text;
-        }
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        error_text = "Offline";
-    } else if (dp_error == DP_ERR_FATAL && ret == ENOMEM) {
-        error_text = "Out of memory";
-    } else {
-        error_text = default_error_text;
-    }
-
-    sdap_handler_done(breq, dp_error, ret, error_text);
-}
-
-static void
-ipa_host_info_hosts_done(struct tevent_req *req)
-{
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = hosts_get_recv(req, &dp_error);
-    talloc_zfree(req);
-
-    ipa_host_info_complete(breq, dp_error, ret, "Host lookup failed");
-}
-
 static errno_t
 hosts_get_retry(struct tevent_req *req);
 static void
@@ -329,6 +231,85 @@ hosts_get_recv(struct tevent_req *req,
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct ipa_hostid_handler_state {
+    struct dp_reply_std reply;
+};
+
+static void ipa_hostid_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ipa_hostid_handler_send(TALLOC_CTX *mem_ctx,
+                       struct ipa_hostid_ctx *hostid_ctx,
+                       struct dp_hostid_data *data,
+                       struct dp_req_params *params)
+{
+    struct ipa_hostid_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_hostid_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    subreq = hosts_get_send(state, params->ev, hostid_ctx,
+                            data->name, data->alias);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_hostid_handler_done, req);
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void ipa_hostid_handler_done(struct tevent_req *subreq)
+{
+    struct ipa_hostid_handler_state *state;
+    struct tevent_req *req;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_hostid_handler_state);
+
+    ret = hosts_get_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    tevent_req_done(req);
+}
+
+errno_t
+ipa_hostid_handler_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *req,
+                       struct dp_reply_std *data)
+{
+    struct ipa_hostid_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct ipa_hostid_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
 
     return EOK;
 }

@@ -25,21 +25,21 @@
 #include "providers/ad/ad_common.h"
 #include "providers/ldap/sdap_sudo.h"
 
-int ad_sudo_init(struct be_ctx *be_ctx,
-                 struct ad_id_ctx *id_ctx,
-                 struct bet_ops **ops,
-                 void **pvt_data)
+errno_t ad_sudo_init(TALLOC_CTX *mem_ctx,
+                    struct be_ctx *be_ctx,
+                    struct ad_id_ctx *id_ctx,
+                    struct dp_method *dp_methods)
 {
-    int ret;
+    errno_t ret;
     struct ad_options *ad_options;
     struct sdap_options *ldap_options;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing sudo AD back end\n");
 
-    ret = sdap_sudo_init(be_ctx, id_ctx->sdap_id_ctx, ops, pvt_data);
+    ret = sdap_sudo_init(mem_ctx, be_ctx, id_ctx->sdap_id_ctx, dp_methods);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize LDAP SUDO [%d]: %s\n",
-                                 ret, strerror(ret));
+                                 ret, sss_strerror(ret));
         return ret;
     }
 

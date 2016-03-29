@@ -29,12 +29,117 @@
 #include "providers/ldap/sdap_sudo.h"
 #include "db/sysdb_sudo.h"
 
-static void sdap_sudo_handler(struct be_req *breq);
-
-struct bet_ops sdap_sudo_ops = {
-    .handler = sdap_sudo_handler,
-    .finalize = NULL
+struct sdap_sudo_handler_state {
+    uint32_t type;
+    struct dp_reply_std reply;
 };
+
+static void sdap_sudo_handler_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+sdap_sudo_handler_send(TALLOC_CTX *mem_ctx,
+                       struct sdap_sudo_ctx *sudo_ctx,
+                       struct dp_sudo_data *data,
+                       struct dp_req_params *params)
+{
+    struct sdap_sudo_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->type = data->type;
+
+    switch (data->type) {
+    case BE_REQ_SUDO_FULL:
+        DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
+        subreq = sdap_sudo_full_refresh_send(state, sudo_ctx);
+        break;
+    case BE_REQ_SUDO_RULES:
+        DEBUG(SSSDBG_TRACE_FUNC, "Issuing a refresh of specific sudo rules\n");
+        subreq = sdap_sudo_rules_refresh_send(state, sudo_ctx, data->rules);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n", data->type);
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request: %d\n", data->type);
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_sudo_handler_done, req);
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void sdap_sudo_handler_done(struct tevent_req *subreq)
+{
+    struct sdap_sudo_handler_state *state;
+    struct tevent_req *req;
+    int dp_error;
+    bool deleted;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_sudo_handler_state);
+
+    switch (state->type) {
+    case BE_REQ_SUDO_FULL:
+        ret = sdap_sudo_full_refresh_recv(subreq, &dp_error);
+        talloc_zfree(subreq);
+        break;
+    case BE_REQ_SUDO_RULES:
+        ret = sdap_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
+        talloc_zfree(subreq);
+        if (ret == EOK && deleted == true) {
+            ret = ENOENT;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n", state->type);
+        dp_error = DP_ERR_FATAL;
+        ret = ERR_INTERNAL;
+        break;
+    }
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    tevent_req_done(req);
+}
+
+static errno_t
+sdap_sudo_handler_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *req,
+                       struct dp_reply_std *data)
+{
+    struct sdap_sudo_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct sdap_sudo_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
+
+    return EOK;
+}
 
 static void sdap_sudo_online_cb(void *pvt)
 {
@@ -51,43 +156,40 @@ static void sdap_sudo_online_cb(void *pvt)
     sudo_ctx->run_hostinfo = true;
 }
 
-int sdap_sudo_init(struct be_ctx *be_ctx,
-                   struct sdap_id_ctx *id_ctx,
-                   struct bet_ops **ops,
-                   void **pvt_data)
+errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
+                       struct be_ctx *be_ctx,
+                       struct sdap_id_ctx *id_ctx,
+                       struct dp_method *dp_methods)
 {
-    struct sdap_sudo_ctx *sudo_ctx = NULL;
+    struct sdap_sudo_ctx *sudo_ctx;
     int ret;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing sudo LDAP back end\n");
 
-    sudo_ctx = talloc_zero(be_ctx, struct sdap_sudo_ctx);
+    sudo_ctx = talloc_zero(mem_ctx, struct sdap_sudo_ctx);
     if (sudo_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc() failed\n");
         return ENOMEM;
     }
 
     sudo_ctx->id_ctx = id_ctx;
-    *ops = &sdap_sudo_ops;
-    *pvt_data = sudo_ctx;
 
-    ret = ldap_get_sudo_options(be_ctx->cdb,
-                                be_ctx->conf_path, id_ctx->opts,
+    ret = ldap_get_sudo_options(be_ctx->cdb, be_ctx->conf_path, id_ctx->opts,
                                 &sudo_ctx->use_host_filter,
                                 &sudo_ctx->include_regexp,
                                 &sudo_ctx->include_netgroups);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot get SUDO options [%d]: %s\n",
-                                  ret, strerror(ret));
+              ret, sss_strerror(ret));
         goto done;
     }
 
     if (sudo_ctx->use_host_filter) {
-        ret = be_add_online_cb(sudo_ctx, sudo_ctx->id_ctx->be,
-                               sdap_sudo_online_cb, sudo_ctx, NULL);
+        ret = be_add_online_cb(sudo_ctx, be_ctx, sdap_sudo_online_cb,
+                               sudo_ctx, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Unable to install online callback "
-                                     "[%d]: %s\n", ret, sss_strerror(ret));
+                  "[%d]: %s\n", ret, sss_strerror(ret));
             goto done;
         }
 
@@ -95,14 +197,17 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
         sudo_ctx->run_hostinfo = true;
     }
 
-    ret = sdap_sudo_ptask_setup(sudo_ctx->id_ctx->be, sudo_ctx);
+    ret = sdap_sudo_ptask_setup(be_ctx, sudo_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Unable to setup periodical refresh of sudo rules [%d]: %s\n",
-              ret, strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to setup periodical refresh of "
+              "sudo rules [%d]: %s\n", ret, sss_strerror(ret));
         /* periodical updates will not work, but specific-rule update
          * is no affected by this, therefore we don't have to fail here */
     }
+
+    dp_set_method(dp_methods, DPM_SUDO_HANDLER,
+                  sdap_sudo_handler_send, sdap_sudo_handler_recv, sudo_ctx,
+                  struct sdap_sudo_ctx, struct dp_sudo_data, struct dp_reply_std);
 
     ret = EOK;
 
@@ -112,86 +217,4 @@ done:
     }
 
     return ret;
-}
-
-static void sdap_sudo_reply(struct tevent_req *req)
-{
-    struct be_req *be_req = NULL;
-    struct be_sudo_req *sudo_req = NULL;
-    int dp_error;
-    bool deleted;
-    int ret;
-
-    be_req = tevent_req_callback_data(req, struct be_req);
-    sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
-
-    switch (sudo_req->type) {
-    case BE_REQ_SUDO_FULL:
-        ret = sdap_sudo_full_refresh_recv(req, &dp_error);
-        break;
-    case BE_REQ_SUDO_RULES:
-        ret = sdap_sudo_rules_refresh_recv(req, &dp_error, &deleted);
-        if (ret == EOK && deleted == true) {
-            ret = ENOENT;
-        }
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
-                                    sudo_req->type);
-        dp_error = DP_ERR_FATAL;
-        ret = ERR_INTERNAL;
-        break;
-    }
-
-    talloc_zfree(req);
-    sdap_handler_done(be_req, dp_error, ret, strerror(ret));
-}
-
-static void sdap_sudo_handler(struct be_req *be_req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct tevent_req *req = NULL;
-    struct be_sudo_req *sudo_req = NULL;
-    struct sdap_sudo_ctx *sudo_ctx = NULL;
-    int ret = EOK;
-
-    if (be_is_offline(be_ctx)) {
-        sdap_handler_done(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
-        return;
-    }
-
-    sudo_ctx = talloc_get_type(be_ctx->bet_info[BET_SUDO].pvt_bet_data,
-                               struct sdap_sudo_ctx);
-
-    sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
-
-    switch (sudo_req->type) {
-    case BE_REQ_SUDO_FULL:
-        DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
-        req = sdap_sudo_full_refresh_send(be_req, sudo_ctx);
-        break;
-    case BE_REQ_SUDO_RULES:
-        DEBUG(SSSDBG_TRACE_FUNC, "Issuing a refresh of specific sudo rules\n");
-        req = sdap_sudo_rules_refresh_send(be_req, sudo_ctx, sudo_req->rules);
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
-                                    sudo_req->type);
-        ret = EINVAL;
-        goto fail;
-    }
-
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request: %d\n",
-                                    sudo_req->type);
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    tevent_req_set_callback(req, sdap_sudo_reply, be_req);
-
-    return;
-
-fail:
-    sdap_handler_done(be_req, DP_ERR_FATAL, ret, NULL);
 }

@@ -24,12 +24,118 @@
 #include "providers/ipa/ipa_sudo.h"
 #include "db/sysdb_sudo.h"
 
-static void ipa_sudo_handler(struct be_req *breq);
-
-struct bet_ops ipa_sudo_ops = {
-    .handler = ipa_sudo_handler,
-    .finalize = NULL,
+struct ipa_sudo_handler_state {
+    uint32_t type;
+    struct dp_reply_std reply;
 };
+
+static void ipa_sudo_handler_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_sudo_handler_send(TALLOC_CTX *mem_ctx,
+                      struct ipa_sudo_ctx *sudo_ctx,
+                      struct dp_sudo_data *data,
+                      struct dp_req_params *params)
+{
+    struct ipa_sudo_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_sudo_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->type = data->type;
+
+    switch (data->type) {
+    case BE_REQ_SUDO_FULL:
+        DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
+        subreq = ipa_sudo_full_refresh_send(state, params->ev, sudo_ctx);
+        break;
+    case BE_REQ_SUDO_RULES:
+        DEBUG(SSSDBG_TRACE_FUNC, "Issuing a refresh of specific sudo rules\n");
+        subreq = ipa_sudo_rules_refresh_send(state, params->ev, sudo_ctx,
+                                             data->rules);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n", data->type);
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request: %d\n", data->type);
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_sudo_handler_done, req);
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void ipa_sudo_handler_done(struct tevent_req *subreq)
+{
+    struct ipa_sudo_handler_state *state;
+    struct tevent_req *req;
+    int dp_error;
+    bool deleted;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_sudo_handler_state);
+
+    switch (state->type) {
+    case BE_REQ_SUDO_FULL:
+        ret = ipa_sudo_full_refresh_recv(subreq, &dp_error);
+        talloc_zfree(subreq);
+        break;
+    case BE_REQ_SUDO_RULES:
+        ret = ipa_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
+        talloc_zfree(subreq);
+        if (ret == EOK && deleted == true) {
+            ret = ENOENT;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n", state->type);
+        dp_error = DP_ERR_FATAL;
+        ret = ERR_INTERNAL;
+        break;
+    }
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    tevent_req_done(req);
+}
+
+static errno_t
+ipa_sudo_handler_recv(TALLOC_CTX *mem_ctx,
+                      struct tevent_req *req,
+                      struct dp_reply_std *data)
+{
+    struct ipa_sudo_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct ipa_sudo_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
+
+    return EOK;
+}
 
 enum sudo_schema {
     SUDO_SCHEMA_IPA,
@@ -95,10 +201,10 @@ done:
 }
 
 static int
-ipa_sudo_init_ipa_schema(struct be_ctx *be_ctx,
+ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
+                         struct be_ctx *be_ctx,
                          struct ipa_id_ctx *id_ctx,
-                         struct bet_ops **ops,
-                         void **pvt_data)
+                         struct dp_method *dp_methods)
 {
     struct ipa_sudo_ctx *sudo_ctx;
     errno_t ret;
@@ -154,8 +260,9 @@ ipa_sudo_init_ipa_schema(struct be_ctx *be_ctx,
         goto done;
     }
 
-    *ops = &ipa_sudo_ops;
-    *pvt_data = sudo_ctx;
+    dp_set_method(dp_methods, DPM_SUDO_HANDLER,
+                  ipa_sudo_handler_send, ipa_sudo_handler_recv, sudo_ctx,
+                  struct ipa_sudo_ctx, struct dp_sudo_data, struct dp_reply_std);
 
     ret = EOK;
 
@@ -167,10 +274,10 @@ done:
     return ret;
 }
 
-int ipa_sudo_init(struct be_ctx *be_ctx,
+int ipa_sudo_init(TALLOC_CTX *mem_ctx,
+                  struct be_ctx *be_ctx,
                   struct ipa_id_ctx *id_ctx,
-                  struct bet_ops **ops,
-                  void **pvt_data)
+                  struct dp_method *dp_methods)
 {
     enum sudo_schema schema;
     errno_t ret;
@@ -189,11 +296,11 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
     switch (schema) {
     case SUDO_SCHEMA_IPA:
         DEBUG(SSSDBG_TRACE_FUNC, "Using IPA schema for sudo\n");
-        ret = ipa_sudo_init_ipa_schema(be_ctx, id_ctx, ops, pvt_data);
+        ret = ipa_sudo_init_ipa_schema(mem_ctx, be_ctx, id_ctx, dp_methods);
         break;
     case SUDO_SCHEMA_LDAP:
         DEBUG(SSSDBG_TRACE_FUNC, "Using LDAP schema for sudo\n");
-        ret = sdap_sudo_init(be_ctx, id_ctx->sdap_id_ctx, ops, pvt_data);
+        ret = sdap_sudo_init(mem_ctx, be_ctx, id_ctx->sdap_id_ctx, dp_methods);
         break;
     }
 
@@ -204,87 +311,4 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
     }
 
     return EOK;
-}
-
-static void
-ipa_sudo_reply(struct tevent_req *req)
-{
-    struct be_sudo_req *sudo_req;
-    struct be_req *be_req;
-    bool deleted;
-    int dp_error;
-    int ret;
-
-    be_req = tevent_req_callback_data(req, struct be_req);
-    sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
-
-    switch (sudo_req->type) {
-    case BE_REQ_SUDO_FULL:
-        ret = ipa_sudo_full_refresh_recv(req, &dp_error);
-        break;
-    case BE_REQ_SUDO_RULES:
-        ret = ipa_sudo_rules_refresh_recv(req, &dp_error, &deleted);
-        if (ret == EOK && deleted == true) {
-            ret = ENOENT;
-        }
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
-                                    sudo_req->type);
-        dp_error = DP_ERR_FATAL;
-        ret = ERR_INTERNAL;
-        break;
-    }
-
-    talloc_zfree(req);
-    sdap_handler_done(be_req, dp_error, ret, sss_strerror(ret));
-}
-
-static void
-ipa_sudo_handler(struct be_req *be_req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct ipa_sudo_ctx *sudo_ctx;
-    struct be_sudo_req *sudo_req;
-    struct tevent_req *req;
-    int ret;
-
-    if (be_is_offline(be_ctx)) {
-        sdap_handler_done(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
-        return;
-    }
-
-    sudo_ctx = talloc_get_type(be_ctx->bet_info[BET_SUDO].pvt_bet_data,
-                               struct ipa_sudo_ctx);
-
-    sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
-
-    switch (sudo_req->type) {
-    case BE_REQ_SUDO_FULL:
-        req = ipa_sudo_full_refresh_send(be_req, be_ctx->ev, sudo_ctx);
-        break;
-    case BE_REQ_SUDO_RULES:
-        req = ipa_sudo_rules_refresh_send(be_req, be_ctx->ev, sudo_ctx,
-                                          sudo_req->rules);
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
-                                    sudo_req->type);
-        ret = EINVAL;
-        goto fail;
-    }
-
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request: %d\n",
-                                    sudo_req->type);
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    tevent_req_set_callback(req, ipa_sudo_reply, be_req);
-
-    return;
-
-fail:
-    sdap_handler_done(be_req, DP_ERR_FATAL, ret, NULL);
 }

@@ -24,75 +24,6 @@
 
 #include "providers/proxy/proxy.h"
 
-struct proxy_client_ctx {
-    struct be_req *be_req;
-    struct proxy_auth_ctx *auth_ctx;
-};
-
-static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
-                                           struct proxy_auth_ctx *ctx,
-                                           struct be_req *be_req);
-static void proxy_child_done(struct tevent_req *child_req);
-void proxy_pam_handler(struct be_req *req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(req);
-    struct pam_data *pd;
-    struct proxy_auth_ctx *ctx;
-    struct tevent_req *child_req = NULL;
-    struct proxy_client_ctx *client_ctx;
-
-    pd = talloc_get_type(be_req_get_data(req), struct pam_data);
-
-    switch (pd->cmd) {
-        case SSS_PAM_AUTHENTICATE:
-            ctx = talloc_get_type(be_ctx->bet_info[BET_AUTH].pvt_bet_data,
-                                  struct proxy_auth_ctx);
-            break;
-        case SSS_PAM_CHAUTHTOK:
-        case SSS_PAM_CHAUTHTOK_PRELIM:
-            ctx = talloc_get_type(be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
-                                  struct proxy_auth_ctx);
-            break;
-        case SSS_PAM_ACCT_MGMT:
-            ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
-                                  struct proxy_auth_ctx);
-            break;
-        case SSS_PAM_SETCRED:
-        case SSS_PAM_OPEN_SESSION:
-        case SSS_PAM_CLOSE_SESSION:
-            pd->pam_status = PAM_SUCCESS;
-            be_req_terminate(req, DP_ERR_OK, EOK, NULL);
-            return;
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported PAM task.\n");
-            pd->pam_status = PAM_MODULE_UNKNOWN;
-            be_req_terminate(req, DP_ERR_OK, EINVAL, "Unsupported PAM task");
-            return;
-    }
-
-    client_ctx = talloc(req, struct proxy_client_ctx);
-    if (client_ctx == NULL) {
-        be_req_terminate(req, DP_ERR_FATAL, ENOMEM, NULL);
-        return;
-    }
-    client_ctx->auth_ctx = ctx;
-    client_ctx->be_req = req;
-
-    /* Queue the request and spawn a child if there
-     * is an available slot.
-     */
-    child_req = proxy_child_send(req, ctx, req);
-    if (child_req == NULL) {
-        /* Could not queue request
-         * Return an error
-         */
-        be_req_terminate(req, DP_ERR_FATAL, EINVAL, "Could not queue request\n");
-        return;
-    }
-    tevent_req_set_callback(child_req, proxy_child_done, client_ctx);
-    return;
-}
-
 struct pc_init_ctx;
 
 static int proxy_child_destructor(TALLOC_CTX *ctx)
@@ -122,7 +53,7 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
 static void proxy_child_init_done(struct tevent_req *subreq);
 static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
                                            struct proxy_auth_ctx *auth_ctx,
-                                           struct be_req *be_req)
+                                           struct pam_data *pd)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -138,9 +69,8 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->be_req = be_req;
     state->auth_ctx = auth_ctx;
-    state->pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
+    state->pd = pd;
 
     /* Find an available key */
     key.type = HASH_KEY_ULONG;
@@ -731,69 +661,6 @@ static int proxy_child_recv(struct tevent_req *req,
     return EOK;
 }
 
-static void proxy_child_done(struct tevent_req *req)
-{
-    struct proxy_client_ctx *client_ctx =
-            tevent_req_callback_data(req, struct proxy_client_ctx);
-    struct be_ctx *be_ctx = be_req_get_be_ctx(client_ctx->be_req);
-    struct pam_data *pd = NULL;
-    const char *password;
-    int ret;
-    struct tevent_immediate *imm;
-
-    ret = proxy_child_recv(req, client_ctx, &pd);
-    talloc_zfree(req);
-
-    /* Start the next auth in the queue, if any */
-    client_ctx->auth_ctx->running--;
-    imm = tevent_create_immediate(be_ctx->ev);
-    if (imm == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_create_immediate failed.\n");
-        /* We'll still finish the current request, but we're
-         * likely to have problems if there are queued events
-         * if we've gotten into this state.
-         * Hopefully this is impossible, since freeing req
-         * above should guarantee that we have enough memory
-         * to create this immediate event.
-         */
-    } else {
-        tevent_schedule_immediate(imm, be_ctx->ev,
-                                  run_proxy_child_queue,
-                                  client_ctx->auth_ctx);
-    }
-
-    if (ret != EOK) {
-        /* Pam child failed */
-        be_req_terminate(client_ctx->be_req, DP_ERR_FATAL, ret,
-                    "PAM child failed");
-        return;
-    }
-
-    /* Check if we need to save the cached credentials */
-    if ((pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_PAM_CHAUTHTOK) &&
-        (pd->pam_status == PAM_SUCCESS) && be_ctx->domain->cache_credentials) {
-
-        ret = sss_authtok_get_password(pd->authtok, &password, NULL);
-        if (ret) {
-            /* password caching failures are not fatal errors */
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to cache password\n");
-            goto done;
-        }
-
-        ret = sysdb_cache_password(be_ctx->domain, pd->user, password);
-
-        /* password caching failures are not fatal errors */
-        /* so we just log it any return */
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to cache password (%d)[%s]!?\n",
-                      ret, strerror(ret));
-        }
-    }
-
-done:
-    be_req_terminate(client_ctx->be_req, DP_ERR_OK, EOK, NULL);
-}
-
 static void run_proxy_child_queue(struct tevent_context *ev,
                                   struct tevent_immediate *imm,
                                   void *pvt)
@@ -840,3 +707,144 @@ static void run_proxy_child_queue(struct tevent_context *ev,
         state->running = true;
     }
 }
+
+struct proxy_pam_handler_state {
+    struct pam_data *pd;
+    struct proxy_auth_ctx *auth_ctx;
+    struct be_ctx *be_ctx;
+};
+
+static void proxy_pam_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
+                      struct proxy_auth_ctx *proxy_auth_ctx,
+                      struct pam_data *pd,
+                      struct dp_req_params *params)
+{
+    struct proxy_pam_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+
+    req = tevent_req_create(mem_ctx, &state, struct proxy_pam_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->pd = pd;
+    state->auth_ctx = proxy_auth_ctx;
+    state->be_ctx = params->be_ctx;
+
+    switch (pd->cmd) {
+    case SSS_PAM_AUTHENTICATE:
+    case SSS_PAM_CHAUTHTOK:
+    case SSS_PAM_CHAUTHTOK_PRELIM:
+    case SSS_PAM_ACCT_MGMT:
+        /* Queue the request and spawn a child if there is an available slot. */
+        subreq = proxy_child_send(state, proxy_auth_ctx, state->pd);
+        if (subreq == NULL) {
+            pd->pam_status = PAM_SYSTEM_ERR;
+            goto immediately;
+        }
+        tevent_req_set_callback(subreq, proxy_pam_handler_done, req);
+        break;
+    case SSS_PAM_SETCRED:
+    case SSS_PAM_OPEN_SESSION:
+    case SSS_PAM_CLOSE_SESSION:
+        pd->pam_status = PAM_SUCCESS;
+        goto immediately;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported PAM task.\n");
+        pd->pam_status = PAM_MODULE_UNKNOWN;
+        goto immediately;
+    }
+
+    return req;
+
+immediately:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void proxy_pam_handler_done(struct tevent_req *subreq)
+{
+    struct proxy_pam_handler_state *state;
+    struct tevent_immediate *imm;
+    struct tevent_req *req;
+    const char *password;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct proxy_pam_handler_state);
+
+    ret = proxy_child_recv(subreq, state, &state->pd);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    /* Start the next auth in the queue, if any */
+    state->auth_ctx->running--;
+    imm = tevent_create_immediate(state->be_ctx->ev);
+    if (imm == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_create_immediate failed.\n");
+        /* We'll still finish the current request, but we're
+         * likely to have problems if there are queued events
+         * if we've gotten into this state.
+         * Hopefully this is impossible, since freeing req
+         * above should guarantee that we have enough memory
+         * to create this immediate event.
+         */
+    } else {
+        tevent_schedule_immediate(imm, state->be_ctx->ev,
+                                  run_proxy_child_queue,
+                                  state->auth_ctx);
+    }
+
+    /* Check if we need to save the cached credentials */
+    if ((state->pd->cmd == SSS_PAM_AUTHENTICATE || state->pd->cmd == SSS_PAM_CHAUTHTOK)
+            && (state->pd->pam_status == PAM_SUCCESS) && state->be_ctx->domain->cache_credentials) {
+
+        ret = sss_authtok_get_password(state->pd->authtok, &password, NULL);
+        if (ret) {
+            /* password caching failures are not fatal errors */
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to cache password\n");
+            goto done;
+        }
+
+        ret = sysdb_cache_password(state->be_ctx->domain, state->pd->user, password);
+
+        /* password caching failures are not fatal errors */
+        /* so we just log it any return */
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to cache password (%d)[%s]!?\n",
+                  ret, sss_strerror(ret));
+        }
+    }
+
+done:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+errno_t
+proxy_pam_handler_recv(TALLOC_CTX *mem_ctx,
+                      struct tevent_req *req,
+                      struct pam_data **_data)
+{
+    struct proxy_pam_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct proxy_pam_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
+}
+

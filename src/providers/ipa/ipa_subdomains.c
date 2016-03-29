@@ -24,6 +24,7 @@
 
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ldap/sdap_ops.h"
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_id.h"
@@ -53,23 +54,9 @@
 
 #define IPA_SUBDOMAIN_DISABLED_PERIOD 3600
 
-enum ipa_subdomains_req_type {
-    IPA_SUBDOMAINS_MASTER,
-    IPA_SUBDOMAINS_SLAVE,
-    IPA_SUBDOMAINS_RANGES,
-
-    IPA_SUBDOMAINS_MAX /* Counter */
-};
-
-struct ipa_subdomains_req_params {
-    const char *filter;
-    tevent_req_fn cb;
-    const char *attrs[9];
-};
-
 struct ipa_subdomains_ctx {
     struct be_ctx *be_ctx;
-    struct ipa_id_ctx *id_ctx;
+    struct ipa_id_ctx *ipa_id_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
     struct sdap_search_base **search_bases;
     struct sdap_search_base **master_search_bases;
@@ -77,33 +64,8 @@ struct ipa_subdomains_ctx {
     struct sdap_search_base **host_search_bases;
 
     time_t last_refreshed;
-    struct tevent_timer *timer_event;
-    bool configured_explicit;
-    time_t disabled_until;
     bool view_read_at_init;
 };
-
-static void ipa_subdomains_done(struct ipa_subdomains_ctx *sd_ctx,
-                                struct be_req *req, int dp_err,
-                                int error, const char *errstr)
-{
-    sd_ctx->view_read_at_init = true;
-    return be_req_terminate(req, dp_err, error, errstr);
-}
-
-struct be_ctx *ipa_get_subdomains_be_ctx(struct be_ctx *be_ctx)
-{
-    struct ipa_subdomains_ctx *subdom_ctx;
-
-    subdom_ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
-                                 struct ipa_subdomains_ctx);
-    if (subdom_ctx == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, "Subdomains are not configured.\n");
-        return NULL;
-    }
-
-    return subdom_ctx->be_ctx;
-}
 
 static errno_t
 ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
@@ -114,7 +76,7 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
           "Re-initializing domain %s\n", ctx->be_ctx->domain->name);
 
     ret = sss_write_krb5_conf_snippet(
-                              dp_opt_get_string(ctx->id_ctx->ipa_options->basic,
+                              dp_opt_get_string(ctx->ipa_id_ctx->ipa_options->basic,
                                                 IPA_KRB5_CONFD_PATH));
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
@@ -535,10 +497,10 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             }
 
             /* Remove the AD ID ctx from the list of LDAP domains */
-            ipa_ad_subdom_remove(ctx->be_ctx, ctx->id_ctx, dom);
+            ipa_ad_subdom_remove(ctx->be_ctx, ctx->ipa_id_ctx, dom);
         } else {
             /* ok let's try to update it */
-            ipa_subdom_store_step(parent, ctx->id_ctx,
+            ipa_subdom_store_step(parent, ctx->ipa_id_ctx,
                                   ctx->sdap_id_ctx->opts->idmap_ctx,
                                   reply[c]);
             handled[c] = true;
@@ -560,7 +522,7 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             continue;
         }
 
-        ipa_subdom_store_step(parent, ctx->id_ctx,
+        ipa_subdom_store_step(parent, ctx->ipa_id_ctx,
                               ctx->sdap_id_ctx->opts->idmap_ctx,
                               reply[c]);
     }
@@ -576,667 +538,333 @@ done:
     return ret;
 }
 
-struct ipa_subdomains_req_ctx {
-    struct be_req *be_req;
-    struct ipa_subdomains_ctx *sd_ctx;
-    struct sdap_id_op *sdap_op;
-
-    char *current_filter;
-
-    struct sdap_search_base **search_bases;
-    int search_base_iter;
-
-    size_t reply_count;
-    struct sysdb_attrs **reply;
-};
-
-static void ipa_subdomains_get_conn_done(struct tevent_req *req);
-static errno_t
-ipa_subdomains_handler_get_start(struct ipa_subdomains_req_ctx *ctx,
-                                 struct sdap_search_base **search_bases,
-                                 enum ipa_subdomains_req_type type);
-static errno_t
-ipa_subdomains_handler_get_cont(struct ipa_subdomains_req_ctx *ctx,
-                                enum ipa_subdomains_req_type type);
-static void ipa_subdomains_handler_done(struct tevent_req *req);
-static void ipa_subdomains_handler_master_done(struct tevent_req *req);
-static void ipa_subdomains_handler_ranges_done(struct tevent_req *req);
-
-static struct ipa_subdomains_req_params subdomain_requests[] = {
-    { MASTER_DOMAIN_FILTER,
-      ipa_subdomains_handler_master_done,
-      { IPA_CN, IPA_FLATNAME, IPA_SID, NULL }
-    },
-    { SUBDOMAINS_FILTER,
-      ipa_subdomains_handler_done,
-      { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID,
-        IPA_TRUST_DIRECTION, NULL }
-    },
-    { RANGE_FILTER,
-      ipa_subdomains_handler_ranges_done,
-      { OBJECTCLASS, IPA_CN,
-        IPA_BASE_ID, IPA_BASE_RID, IPA_SECONDARY_BASE_RID,
-        IPA_ID_RANGE_SIZE, IPA_TRUSTED_DOMAIN_SID, IPA_RANGE_TYPE, NULL
-      }
-    }
-};
-
-static void ipa_subdomains_retrieve(struct ipa_subdomains_ctx *ctx, struct be_req *be_req)
+static errno_t ipa_apply_view(struct sss_domain_info *domain,
+                              struct ipa_id_ctx *ipa_id_ctx,
+                              const char *view_name,
+                              bool read_at_init)
 {
-    struct ipa_subdomains_req_ctx *req_ctx = NULL;
-    struct tevent_req *req;
-    int dp_error = DP_ERR_FATAL;
-    int ret;
-
-    req_ctx = talloc(be_req, struct ipa_subdomains_req_ctx);
-    if (req_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    req_ctx->be_req = be_req;
-    req_ctx->sd_ctx = ctx;
-    req_ctx->search_base_iter = 0;
-    req_ctx->search_bases = ctx->ranges_search_bases;
-    req_ctx->current_filter = NULL;
-    req_ctx->reply_count = 0;
-    req_ctx->reply = NULL;
-
-    req_ctx->sdap_op = sdap_id_op_create(req_ctx,
-                                         ctx->sdap_id_ctx->conn->conn_cache);
-    if (req_ctx->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    req = sdap_id_op_connect_send(req_ctx->sdap_op, req_ctx, &ret);
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
-        goto done;
-    }
-
-    tevent_req_set_callback(req, ipa_subdomains_get_conn_done, req_ctx);
-
-    return;
-
-done:
-    talloc_free(req_ctx);
-    if (ret == EOK) {
-        dp_error = DP_ERR_OK;
-    }
-    ipa_subdomains_done(ctx, be_req, dp_error, ret, NULL);
-}
-
-static void ipa_subdomains_get_conn_done(struct tevent_req *req)
-{
-    int ret;
-    int dp_error = DP_ERR_FATAL;
-    struct ipa_subdomains_req_ctx *ctx;
-
-    ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
-
-    ret = sdap_id_op_connect_recv(req, &dp_error);
-    talloc_zfree(req);
-    if (ret) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No IPA server is available, cannot get the "
-                   "subdomain list while offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret));
-        }
-
-        goto fail;
-    }
-
-    ret = ipa_subdomains_handler_get_start(ctx,
-                                           ctx->sd_ctx->ranges_search_bases,
-                                           IPA_SUBDOMAINS_RANGES);
-    if (ret != EOK && ret != EAGAIN) {
-        goto fail;
-    }
-
-    return;
-
-fail:
-    ipa_subdomains_done(ctx->sd_ctx, ctx->be_req, dp_error, ret, NULL);
-}
-
-static errno_t
-ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
-                           enum ipa_subdomains_req_type type)
-{
-    struct tevent_req *req;
-    struct sdap_search_base *base;
-    struct ipa_subdomains_req_params *params;
-
-    if (type >= IPA_SUBDOMAINS_MAX) {
-        return EINVAL;
-    }
-
-    params = &subdomain_requests[type];
-
-    base = ctx->search_bases[ctx->search_base_iter];
-    if (base == NULL) {
-        return EOK;
-    }
-
-    talloc_free(ctx->current_filter);
-    ctx->current_filter = sdap_combine_filters(ctx, params->filter,
-                                               base->filter);
-    if (ctx->current_filter == NULL) {
-        return ENOMEM;
-    }
-
-    req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                        ctx->sd_ctx->sdap_id_ctx->opts,
-                        sdap_id_op_handle(ctx->sdap_op),
-                        base->basedn, base->scope,
-                        ctx->current_filter, params->attrs, NULL, 0,
-                        dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
-                                       SDAP_SEARCH_TIMEOUT), false);
-
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, params->cb, ctx);
-
-    return EAGAIN;
-}
-
-static errno_t
-ipa_subdomains_handler_get_start(struct ipa_subdomains_req_ctx *ctx,
-                                 struct sdap_search_base **search_bases,
-                                 enum ipa_subdomains_req_type type)
-{
-    ctx->search_base_iter = 0;
-    ctx->search_bases = search_bases;
-    return ipa_subdomains_handler_get(ctx, type);
-}
-
-static errno_t
-ipa_subdomains_handler_get_cont(struct ipa_subdomains_req_ctx *ctx,
-                                enum ipa_subdomains_req_type type)
-{
-    ctx->search_base_iter++;
-    return ipa_subdomains_handler_get(ctx, type);
-}
-
-static void ipa_get_view_name_done(struct tevent_req *req);
-static void ipa_server_create_trusts_done(struct tevent_req *trust_req);
-static errno_t ipa_check_master(struct ipa_subdomains_req_ctx *ctx);
-
-static errno_t ipa_get_view_name(struct ipa_subdomains_req_ctx *ctx)
-{
-    struct tevent_req *req;
-    struct sdap_search_base *base;
-    const char *attrs[] = {IPA_CN, OBJECTCLASS, NULL};
-    struct sdap_attr_map_info *maps;
-
-    maps = talloc_zero(ctx, struct sdap_attr_map_info);
-    if (maps == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
-        return ENOMEM;
-    }
-    maps->map = ctx->sd_ctx->id_ctx->ipa_options->view_map;
-    maps->num_attrs = IPA_OPTS_VIEW;
-
-    base = ctx->search_bases[ctx->search_base_iter];
-    if (base == NULL) {
-        return EOK;
-    }
-
-    /* We add SDAP_DEREF_FLG_SILENT because old IPA servers don't have
-     * the attribute we dereference, causing the deref call to fail
-     */
-    req = sdap_deref_search_with_filter_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                        ctx->sd_ctx->sdap_id_ctx->opts,
-                        sdap_id_op_handle(ctx->sdap_op),
-                        base->basedn,
-                        ctx->current_filter, IPA_ASSIGNED_ID_VIEW, attrs,
-                        1, maps,
-                        dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
-                                       SDAP_SEARCH_TIMEOUT),
-                        SDAP_DEREF_FLG_SILENT);
-
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, ipa_get_view_name_done, ctx);
-
-    return EAGAIN;
-}
-
-static void ipa_get_view_name_done(struct tevent_req *req)
-{
-    int ret;
-    int sret;
-    struct ipa_subdomains_req_ctx *ctx;
-    size_t reply_count;
-    struct sdap_deref_attrs **reply = NULL;
-    const char *view_name;
-    int dp_error = DP_ERR_FATAL;
-
-    ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
-
-    ret = sdap_deref_search_with_filter_recv(req, ctx, &reply_count, &reply);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        /* Depending on the version 389ds return a different error code if the
-         * search for the view name failed because our dereference attribute
-         * ipaAssignedIDView is not known. Newer version return
-         * LDAP_UNAVAILABLE_CRITICAL_EXTENSION(12) which is translated to
-         * EOPNOTSUPP and older versions return LDAP_PROTOCOL_ERROR(2) which
-         * is returned as EIO. In both cases we have to assume that the server
-         * is not view aware and keep the view name unset. */
-        if (ret == EOPNOTSUPP || ret == EIO) {
-            DEBUG(SSSDBG_TRACE_FUNC, "get_view_name request failed, looks " \
-                                     "like server does not support views.\n");
-            ret = EOK;
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE, "get_view_name request failed.\n");
-        }
-        goto done;
-    }
-
-    if (reply_count == 0) {
-        ctx->search_base_iter++;
-        ret = ipa_get_view_name(ctx);
-        if (ret == EAGAIN) {
-            return;
-        } else if (ret == EOK) {
-            DEBUG(SSSDBG_TRACE_FUNC, "No view found, using default.\n");
-            view_name = SYSDB_DEFAULT_VIEW_NAME;
-        } else {
-            goto done;
-        }
-    } else if (reply_count > 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "get_view_name request returned more than one object.\n");
-        ret = EINVAL;
-        goto done;
-    } else {
-        ret = sysdb_attrs_get_string(reply[0]->attrs, SYSDB_VIEW_NAME,
-                                     &view_name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-            goto done;
-        }
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Found view name [%s].\n", view_name);
-    if (is_default_view(view_name)) {
-        DEBUG(SSSDBG_TRACE_ALL,
-              "Found IPA default view name, replacing with sysdb default.\n");
-        view_name = SYSDB_DEFAULT_VIEW_NAME;
-    }
-
-    DEBUG(SSSDBG_TRACE_ALL, "read_at_init [%s] current view  [%s].\n",
-                             ctx->sd_ctx->view_read_at_init ? "true" : "false",
-                             ctx->sd_ctx->id_ctx->view_name);
-
-    if (ctx->sd_ctx->id_ctx->view_name != NULL
-            && strcmp(ctx->sd_ctx->id_ctx->view_name, view_name) != 0
-            && ctx->sd_ctx->view_read_at_init) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "View name changed, this is not supported at runtime. " \
-              "Please restart SSSD to get the new view applied.\n");
-    } else {
-        if (ctx->sd_ctx->id_ctx->view_name == NULL
-            || strcmp(ctx->sd_ctx->id_ctx->view_name, view_name) != 0) {
-            /* View name changed. If there was a non-default non-local view
-             * was used the tree in cache containing the override values is
-             * removed. In all cases sysdb_invalidate_overrides() is called to
-             * remove the override attribute from the cached user objects.
-             *
-             * Typically ctx->sd_ctx->id_ctx->view_name == NULL means that the
-             * cache was empty but there was a bug in with caused that the
-             * view name was not written to the cache at all. In this case the
-             * cache must be invalidated if the new view is not the
-             * default-view as well. */
-
-            if (ctx->sd_ctx->id_ctx->view_name != NULL
-                    || !is_default_view(view_name)) {
-                ret = sysdb_transaction_start(
-                                            ctx->sd_ctx->be_ctx->domain->sysdb);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "sysdb_transaction_start failed.\n");
-                    goto done;
-                }
-
-                if (!is_default_view(ctx->sd_ctx->id_ctx->view_name)
-                        && !is_local_view(ctx->sd_ctx->id_ctx->view_name)) {
-                    /* Old view was not the default view, delete view tree */
-                    ret = sysdb_delete_view_tree(
-                                             ctx->sd_ctx->be_ctx->domain->sysdb,
-                                             ctx->sd_ctx->id_ctx->view_name);
-                    if (ret != EOK) {
-                        DEBUG(SSSDBG_OP_FAILURE,
-                              "sysdb_delete_view_tree failed.\n");
-                        sret = sysdb_transaction_cancel(
-                                            ctx->sd_ctx->be_ctx->domain->sysdb);
-                        if (sret != EOK) {
-                            DEBUG(SSSDBG_OP_FAILURE,
-                                  "sysdb_transaction_cancel failed.\n");
-                            goto done;
-                        }
-                        goto done;
-                    }
-                }
-
-                ret = sysdb_invalidate_overrides(
-                                            ctx->sd_ctx->be_ctx->domain->sysdb);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "sysdb_invalidate_overrides failed.\n");
-                    sret = sysdb_transaction_cancel(
-                                            ctx->sd_ctx->be_ctx->domain->sysdb);
-                    if (sret != EOK) {
-                        DEBUG(SSSDBG_OP_FAILURE,
-                              "sysdb_transaction_cancel failed.\n");
-                        goto done;
-                    }
-                    goto done;
-                }
-
-                ret = sysdb_transaction_commit(
-                                            ctx->sd_ctx->be_ctx->domain->sysdb);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                                          "sysdb_transaction_commit failed.\n");
-                    goto done;
-                }
-
-                /* TODO: start referesh task */
-            }
-
-            ret = sysdb_update_view_name(ctx->sd_ctx->be_ctx->domain->sysdb,
-                                         view_name);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Cannot add/update view name to sysdb.\n");
-            } else {
-                talloc_free(ctx->sd_ctx->id_ctx->view_name);
-                ctx->sd_ctx->id_ctx->view_name = talloc_strdup(
-                                                            ctx->sd_ctx->id_ctx,
-                                                            view_name);
-                if (ctx->sd_ctx->id_ctx->view_name == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot copy view name.\n");
-                }
-            }
-        }
-
-        if (!ctx->sd_ctx->view_read_at_init) {
-            /* refresh view data of all domains at startup */
-            ret = sysdb_master_domain_update(ctx->sd_ctx->be_ctx->domain);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "sysdb_master_domain_update failed.\n");
-                goto done;
-            }
-
-            ret = sysdb_update_subdomains(ctx->sd_ctx->be_ctx->domain);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
-                goto done;
-            }
-        }
-
-        ctx->sd_ctx->view_read_at_init = true;
-
-    }
-
-    ret = EOK;
-done:
-    if (ret == EOK) {
-        dp_error = DP_ERR_OK;
-    }
-    ipa_subdomains_done(ctx->sd_ctx, ctx->be_req, dp_error, ret, NULL);
-}
-
-static void ipa_subdomains_handler_done(struct tevent_req *req)
-{
-    int ret;
-    size_t reply_count;
-    struct sysdb_attrs **reply = NULL;
-    struct ipa_subdomains_req_ctx *ctx;
-    struct sss_domain_info *domain;
-    bool refresh_has_changes = false;
-    int dp_error = DP_ERR_FATAL;
-    struct tevent_req *trust_req;
-
-    ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
-    domain = ctx->sd_ctx->be_ctx->domain;
-
-    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
-        goto done;
-    }
-
-    if (reply_count) {
-        ctx->reply = talloc_realloc(ctx, ctx->reply, struct sysdb_attrs *,
-                                    ctx->reply_count + reply_count);
-        if (ctx->reply == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-        memcpy(ctx->reply+ctx->reply_count, reply,
-               reply_count * sizeof(struct sysdb_attrs *));
-        ctx->reply_count += reply_count;
-    }
-
-    ret = ipa_subdomains_handler_get_cont(ctx, IPA_SUBDOMAINS_SLAVE);
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret != EOK) {
-        goto done;
-    }
-
-    ret = ipa_subdomains_refresh(ctx->sd_ctx, ctx->reply_count, ctx->reply,
-                                 &refresh_has_changes);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to refresh subdomains.\n");
-        goto done;
-    }
-
-    if (refresh_has_changes) {
-        ret = ipa_subdom_reinit(ctx->sd_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
-            goto done;
-        }
-
-        if (ctx->sd_ctx->id_ctx->server_mode != NULL) {
-            trust_req = ipa_server_create_trusts_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                                                      ctx->sd_ctx->be_ctx,
-                                                      ctx->sd_ctx->id_ctx,
-                                                      domain);
-            if (trust_req == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-            tevent_req_set_callback(trust_req, ipa_server_create_trusts_done, ctx);
-            return;
-        }
-    }
-
-    ctx->search_base_iter = 0;
-    ctx->search_bases = ctx->sd_ctx->host_search_bases;
-    talloc_zfree(ctx->current_filter);
-    ctx->current_filter = talloc_asprintf(ctx, "(&(objectClass=%s)(%s=%s))",
-              ctx->sd_ctx->id_ctx->ipa_options->host_map[IPA_OC_HOST].name,
-              ctx->sd_ctx->id_ctx->ipa_options->host_map[IPA_AT_HOST_FQDN].name,
-              dp_opt_get_string(ctx->sd_ctx->id_ctx->ipa_options->basic,
-                                IPA_HOSTNAME));
-    if (ctx->current_filter == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (ctx->sd_ctx->id_ctx->server_mode == NULL) {
-        /* Only get view on clients, on servers it is always 'default' */
-        ret = ipa_get_view_name(ctx);
-        if (ret == EAGAIN) {
-            return;
-        } else if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    ret = EOK;
-done:
-    if (ret == EOK) {
-        dp_error = DP_ERR_OK;
-    }
-    ipa_subdomains_done(ctx->sd_ctx, ctx->be_req, dp_error, ret, NULL);
-}
-
-static void ipa_server_create_trusts_done(struct tevent_req *trust_req)
-{
+    const char *current = ipa_id_ctx->view_name;
+    struct sysdb_ctx *sysdb = domain->sysdb;
+    bool in_transaction = false;
+    errno_t sret;
     errno_t ret;
-    int dp_error = DP_ERR_FATAL;
-    struct ipa_subdomains_req_ctx *ctx;
 
-    ctx = tevent_req_callback_data(trust_req, struct ipa_subdomains_req_ctx);
+    DEBUG(SSSDBG_TRACE_ALL, "read_at_init [%s] current view [%s]\n",
+          read_at_init ? "true" : "false", ipa_id_ctx->view_name);
 
-    ret = ipa_server_create_trusts_recv(trust_req);
-    talloc_zfree(trust_req);
-    if (ret == EOK) {
-        dp_error = DP_ERR_OK;
+    if (current != NULL && strcmp(current, view_name) != 0 && read_at_init) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "View name changed, this is not supported "
+              "at runtime. Please restart SSSD to get the new view applied.\n");
+        return EOK;
     }
 
-    ipa_subdomains_done(ctx->sd_ctx, ctx->be_req, dp_error, ret, NULL);
-}
+    if (current != NULL && strcmp(current, view_name) == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "View name did not change.\n");
+        return EOK;
+    }
 
-static errno_t ipa_check_master(struct ipa_subdomains_req_ctx *ctx)
-{
-    int ret;
-    struct sss_domain_info *domain;
+    DEBUG(SSSDBG_TRACE_FUNC, "View name changed to [%s].\n", view_name);
 
-    domain = ctx->sd_ctx->be_ctx->domain;
+    /* View name changed. If there was a non-default non-local view
+     * was used the tree in cache containing the override values is
+     * removed. In all cases sysdb_invalidate_overrides() is called to
+     * remove the override attribute from the cached user objects.
+     *
+     * Typically ctx->sd_ctx->id_ctx->view_name == NULL means that the
+     * cache was empty but there was a bug in with caused that the
+     * view name was not written to the cache at all. In this case the
+     * cache must be invalidated if the new view is not the
+     * default-view as well. */
 
-    ret = sysdb_master_domain_update(domain);
+    if (current != NULL || !is_default_view(view_name)) {
+        ret = sysdb_transaction_start(sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to start transaction "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
+        }
+
+        in_transaction = true;
+
+        if (!is_default_view(current) && !is_local_view(current)) {
+            /* Old view was not the default view, delete view tree */
+            ret = sysdb_delete_view_tree(sysdb, current);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Unable to delete old view tree "
+                      "[%d]: %s\n", ret, sss_strerror(ret));
+                goto done;
+            }
+        }
+
+        ret = sysdb_invalidate_overrides(sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, " Unable to invalidate overrides "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
+        }
+
+        ret = sysdb_transaction_commit(sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to commint transaction "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
+        }
+
+        in_transaction = false;
+    }
+
+    ret = sysdb_update_view_name(sysdb, view_name);
     if (ret != EOK) {
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot update view name "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
-    if (domain->flat_name == NULL ||
-        domain->domain_id == NULL ||
-        domain->realm == NULL) {
+    talloc_free(ipa_id_ctx->view_name);
+    ipa_id_ctx->view_name = talloc_strdup(ipa_id_ctx, view_name);
+    if (ipa_id_ctx->view_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot copy view name.\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
-        ret = ipa_subdomains_handler_get_start(ctx,
-                                               ctx->sd_ctx->master_search_bases,
-                                               IPA_SUBDOMAINS_MASTER);
-        if (ret == EAGAIN) {
-            return EAGAIN;
-        } else if (ret != EOK) {
-            return ret;
+    if (!read_at_init) {
+        /* refresh view data of all domains at startup */
+        ret = sysdb_master_domain_update(domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_master_domain_update failed "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
+        }
+
+        ret = sysdb_update_subdomains(domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
         }
     }
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
+        }
+    }
+
+    return ret;
+}
+
+struct ipa_subdomains_ranges_state {
+    struct sss_domain_info *domain;
+};
+
+static void ipa_subdomains_ranges_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_subdomains_ranges_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct ipa_subdomains_ctx *sd_ctx,
+                           struct sdap_handle *sh)
+{
+    struct ipa_subdomains_ranges_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+    const char *attrs[] = { OBJECTCLASS, IPA_CN,
+                            IPA_BASE_ID, IPA_BASE_RID, IPA_SECONDARY_BASE_RID,
+                            IPA_ID_RANGE_SIZE, IPA_TRUSTED_DOMAIN_SID,
+                            IPA_RANGE_TYPE, NULL };
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_subdomains_ranges_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    if (sd_ctx->ranges_search_bases == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No search base is set\n");
+        ret = EOK;
+        goto immediately;
+    }
+
+    state->domain = sd_ctx->be_ctx->domain;
+
+    subreq = sdap_search_bases_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
+                                    sd_ctx->ranges_search_bases, NULL, false,
+                                    0, RANGE_FILTER, attrs);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_ranges_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void ipa_subdomains_ranges_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_ranges_state *state;
+    struct tevent_req *req;
+    struct range_info **range_list;
+    struct sysdb_attrs **reply;
+    size_t reply_count;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_ranges_state);
+
+    ret = sdap_search_bases_recv(subreq, state, &reply_count, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get data from LDAP [%d]: %s\n",
+                      ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = ipa_ranges_parse_results(state, state->domain->name,
+                                   reply_count, reply, &range_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to parse range resulg [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sysdb_update_ranges(state->domain->sysdb, range_list);
+    talloc_free(range_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to update ranges [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t ipa_subdomains_ranges_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
 
-
-static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
-{
-    errno_t ret;
-    int dp_error = DP_ERR_FATAL;
-    size_t reply_count;
-    struct sysdb_attrs **reply = NULL;
-    struct ipa_subdomains_req_ctx *ctx;
-    struct range_info **range_list = NULL;
-    struct sysdb_ctx *sysdb;
+struct ipa_subdomains_master_state {
     struct sss_domain_info *domain;
+    struct ipa_options *ipa_options;
+};
 
-    ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
-    domain = ctx->sd_ctx->be_ctx->domain;
-    sysdb = domain->sysdb;
+static void ipa_subdomains_master_done(struct tevent_req *subreq);
 
-    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
-    talloc_zfree(req);
+static struct tevent_req *
+ipa_subdomains_master_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct ipa_subdomains_ctx *sd_ctx,
+                           struct sdap_handle *sh)
+{
+    struct ipa_subdomains_master_state *state;
+    struct sss_domain_info *domain;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+    const char *attrs[] = { IPA_CN, IPA_FLATNAME, IPA_SID, NULL };
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_subdomains_master_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    if (sd_ctx->master_search_bases == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No search base is set\n");
+        ret = EOK;
+        goto immediately;
+    }
+
+    state->domain = domain = sd_ctx->be_ctx->domain;
+    state->ipa_options = sd_ctx->ipa_id_ctx->ipa_options;
+
+    ret = sysdb_master_domain_update(domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
-        goto done;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to update master domain [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto immediately;
     }
 
-    ret = ipa_ranges_parse_results(ctx, domain->name,
-                                   reply_count, reply, &range_list);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "ipa_ranges_parse_results request failed.\n");
-        goto done;
+    if (domain->flat_name != NULL && domain->domain_id != NULL
+            && domain->realm != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Master record is up to date.\n");
+        ret = EOK;
+        goto immediately;
     }
 
-    ret = sysdb_update_ranges(sysdb, range_list);
-    talloc_free(range_list);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_ranges failed.\n");
-        goto done;
+    subreq = sdap_search_bases_return_first_send(state, ev,
+                                     sd_ctx->sdap_id_ctx->opts, sh,
+                                     sd_ctx->master_search_bases, NULL, false,
+                                     0, MASTER_DOMAIN_FILTER, attrs);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
     }
 
-    ret = ipa_check_master(ctx);
-    if (ret == EAGAIN) {
-        DEBUG(SSSDBG_TRACE_ALL, "Checking master record..\n");
-        return;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_check_master failed.\n");
-        goto done;
-    }
-    /* Master domain is up-to-date. Continue checking subdomains */
+    tevent_req_set_callback(subreq, ipa_subdomains_master_done, req);
 
-    DEBUG(SSSDBG_TRACE_ALL, "Master record up2date, checking subdomains\n");
-    ret = ipa_subdomains_handler_get_start(ctx, ctx->sd_ctx->search_bases,
-                                           IPA_SUBDOMAINS_SLAVE);
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret != EOK) {
-        goto done;
-    }
+    return req;
 
-    DEBUG(SSSDBG_OP_FAILURE, "No search base for ranges available.\n");
-    ret = EINVAL;
-
-done:
+immediately:
     if (ret == EOK) {
-        dp_error = DP_ERR_OK;
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
     }
-    ipa_subdomains_done(ctx->sd_ctx, ctx->be_req, dp_error, ret, NULL);
+    tevent_req_post(req, ev);
+
+    return req;
 }
 
-static void ipa_subdomains_handler_master_done(struct tevent_req *req)
+static void ipa_subdomains_master_done(struct tevent_req *subreq)
 {
-    errno_t ret;
-    int dp_error = DP_ERR_FATAL;
-    size_t reply_count = 0;
-    struct sysdb_attrs **reply = NULL;
-    struct ipa_subdomains_req_ctx *ctx;
+    struct ipa_subdomains_master_state *state;
+    struct tevent_req *req;
+    struct sysdb_attrs **reply;
+    size_t reply_count;
     const char *flat = NULL;
     const char *id = NULL;
     const char *realm = NULL;
+    errno_t ret;
 
-    ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_master_state);
 
-    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
-    talloc_zfree(req);
+    ret = sdap_search_bases_return_first_recv(subreq, state,
+                                              &reply_count, &reply);
+    talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get data from LDAP [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
-    if (reply_count) {
+    if (reply_count > 0) {
         ret = sysdb_attrs_get_string(reply[0], IPA_FLATNAME, &flat);
         if (ret != EOK) {
             goto done;
@@ -1246,278 +874,765 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
         if (ret != EOK) {
             goto done;
         }
-
-        /* There is only one master record. Don't bother checking other IPA
-         * search bases; move to checking subdomains instead
-         */
     } else {
-        ret = ipa_subdomains_handler_get_cont(ctx, IPA_SUBDOMAINS_MASTER);
-        if (ret == EAGAIN) {
-            return;
-        } else if (ret != EOK) {
-            goto done;
-        }
-
         /* All search paths are searched and no master domain record was
          * found.
          *
          * A default IPA installation will not have a master domain record,
          * this is only created by ipa-adtrust-install. Nevertheless we should
          * continue to read other data like the idview on IPA clients. */
-
         DEBUG(SSSDBG_TRACE_INTERNAL, "Master domain record not found!\n");
-
     }
 
-    realm = dp_opt_get_string(ctx->sd_ctx->id_ctx->ipa_options->basic,
-                              IPA_KRB5_REALM);
+    realm = dp_opt_get_string(state->ipa_options->basic, IPA_KRB5_REALM);
     if (realm == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm for IPA?\n");
         ret = EINVAL;
         goto done;
     }
 
-    ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
-                                       realm, flat, id, NULL);
+    ret = sysdb_master_domain_add_info(state->domain, realm, flat, id, NULL);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add master domain info "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
-
-    ret = ipa_subdomains_handler_get_start(ctx,
-                                           ctx->sd_ctx->search_bases,
-                                           IPA_SUBDOMAINS_SLAVE);
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret == EOK) {
-        /* If there are no search bases defined for subdomains try to get the
-         * idview before ending the request */
-        if (ctx->sd_ctx->id_ctx->server_mode == NULL) {
-            /* Only get view on clients, on servers it is always 'default' */
-            ret = ipa_get_view_name(ctx);
-            if (ret == EAGAIN) {
-                return;
-            } else if (ret != EOK) {
-                goto done;
-            }
-        }
-    }
-
-done:
-    if (ret == EOK) {
-        dp_error = DP_ERR_OK;
-    }
-    ipa_subdomains_done(ctx->sd_ctx, ctx->be_req, dp_error, ret, NULL);
-}
-
-static void ipa_subdom_online_cb(void *pvt);
-
-static void ipa_subdom_timer_refresh(struct tevent_context *ev,
-                                     struct tevent_timer *te,
-                                     struct timeval current_time,
-                                     void *pvt)
-{
-    ipa_subdom_online_cb(pvt);
-}
-
-static void ipa_subdom_be_req_callback(struct be_req *be_req,
-                                       int dp_err, int dp_ret,
-                                       const char *errstr)
-{
-    talloc_free(be_req);
-}
-
-static void ipa_subdom_reset_timeouts_cb(void *pvt)
-{
-    struct ipa_subdomains_ctx *ctx;
-
-    ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Bad private pointer\n");
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_ALL, "Resetting last_refreshed and disabled_until.\n");
-    ctx->last_refreshed = 0;
-    ctx->disabled_until = 0;
-}
-
-static void ipa_subdom_online_cb(void *pvt)
-{
-    struct ipa_subdomains_ctx *ctx;
-    struct be_req *be_req;
-    struct timeval tv;
-    uint32_t refresh_interval;
-
-    ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
-    if (!ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Bad private pointer\n");
-        return;
-    }
-
-    ctx->disabled_until = 0;
-
-    refresh_interval = ctx->be_ctx->domain->subdomain_refresh_interval;
-
-    be_req = be_req_create(ctx, NULL, ctx->be_ctx, "IPA subdomains",
-                           ipa_subdom_be_req_callback, NULL);
-    if (be_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "be_req_create() failed.\n");
-        return;
-    }
-
-    ipa_subdomains_retrieve(ctx, be_req);
-
-    tv = tevent_timeval_current_ofs(refresh_interval, 0);
-    ctx->timer_event = tevent_add_timer(ctx->be_ctx->ev, ctx, tv,
-                                        ipa_subdom_timer_refresh, ctx);
-    if (!ctx->timer_event) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom timer event\n");
-    }
-}
-
-static void ipa_subdom_offline_cb(void *pvt)
-{
-    struct ipa_subdomains_ctx *ctx;
-
-    ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
-
-    if (ctx) {
-        talloc_zfree(ctx->timer_event);
-    }
-}
-
-static errno_t get_config_status(struct be_ctx *be_ctx,
-                                 bool *configured_explicit)
-{
-    int ret;
-    TALLOC_CTX *tmp_ctx = NULL;
-    char *tmp_str;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
-                            CONFDB_DOMAIN_SUBDOMAINS_PROVIDER, NULL,
-                            &tmp_str);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "confdb_get_string failed.\n");
-        goto done;
-    }
-
-    if (tmp_str == NULL) {
-        *configured_explicit = false;
-    } else {
-        *configured_explicit = true;
-    }
-
-    DEBUG(SSSDBG_TRACE_ALL, "IPA subdomain provider is configured %s.\n",
-                             *configured_explicit ? "explicit" : "implicit");
 
     ret = EOK;
 
 done:
-    talloc_free(tmp_ctx);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
 
-    return ret;
+    tevent_req_done(req);
 }
 
-void ipa_subdomains_handler(struct be_req *be_req)
+static errno_t ipa_subdomains_master_recv(struct tevent_req *req)
 {
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct ipa_subdomains_ctx *ctx;
-    time_t now;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
-                          struct ipa_subdomains_ctx);
-    if (!ctx) {
-        be_req_terminate(be_req, DP_ERR_FATAL, EINVAL, NULL);
-        return;
-    }
-
-    now = time(NULL);
-
-    if (ctx->disabled_until > now) {
-        DEBUG(SSSDBG_TRACE_ALL, "Subdomain provider disabled.\n");
-        ipa_subdomains_done(ctx, be_req, DP_ERR_OK, EOK, NULL);
-        return;
-    }
-
-    if (ctx->last_refreshed > now - IPA_SUBDOMAIN_REFRESH_LIMIT) {
-        ipa_subdomains_done(ctx, be_req, DP_ERR_OK, EOK, NULL);
-        return;
-    }
-
-    ipa_subdomains_retrieve(ctx, be_req);
+    return EOK;
 }
 
-struct bet_ops ipa_subdomains_ops = {
-    .handler = ipa_subdomains_handler,
-    .finalize = NULL
+struct ipa_subdomains_slave_state {
+    struct ipa_subdomains_ctx *sd_ctx;
+    struct be_ctx *be_ctx;
+    struct ipa_id_ctx *ipa_id_ctx;
 };
 
-int ipa_subdom_init(struct be_ctx *be_ctx,
-                    struct ipa_id_ctx *id_ctx,
-                    struct bet_ops **ops,
-                    void **pvt_data)
-{
-    struct ipa_subdomains_ctx *ctx;
-    int ret;
-    bool configured_explicit = false;
+static void ipa_subdomains_slave_search_done(struct tevent_req *subreq);
+static void ipa_subdomains_slave_trusts_done(struct tevent_req *subreq);
 
-    ret = get_config_status(be_ctx, &configured_explicit);
+static struct tevent_req *
+ipa_subdomains_slave_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct ipa_subdomains_ctx *sd_ctx,
+                          struct sdap_handle *sh)
+{
+    struct ipa_subdomains_slave_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+    const char *attrs[] = { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID,
+                            IPA_TRUST_DIRECTION, NULL };
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_subdomains_slave_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    if (sd_ctx->search_bases == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No search base is set\n");
+        ret = EOK;
+        goto immediately;
+    }
+
+    state->sd_ctx = sd_ctx;
+    state->be_ctx = sd_ctx->be_ctx;
+    state->ipa_id_ctx = sd_ctx->ipa_id_ctx;
+
+    subreq = sdap_search_bases_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
+                                    sd_ctx->search_bases, NULL, false,
+                                    0, SUBDOMAINS_FILTER, attrs);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_slave_search_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void ipa_subdomains_slave_search_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_slave_state *state;
+    struct tevent_req *req;
+    struct sysdb_attrs **reply;
+    size_t reply_count;
+    bool has_changes;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_slave_state);
+
+    ret = sdap_search_bases_recv(subreq, state, &reply_count, &reply);
+    talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_config_status failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get data from LDAP [%d]: %s\n",
+                      ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = ipa_subdomains_refresh(state->sd_ctx, reply_count, reply,
+                                 &has_changes);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to refresh subdomains.\n");
+        goto done;
+    }
+
+    if (!has_changes) {
+        ret = EOK;
+        goto done;
+    }
+
+    ret = ipa_subdom_reinit(state->sd_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
+        goto done;
+    }
+
+    if (state->sd_ctx->ipa_id_ctx->server_mode == NULL) {
+        ret = EOK;
+        goto done;
+    }
+
+    subreq = ipa_server_create_trusts_send(state, state->be_ctx->ev,
+                                           state->be_ctx, state->ipa_id_ctx,
+                                           state->be_ctx->domain);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ipa_subdomains_slave_trusts_done, req);
+    return;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static void ipa_subdomains_slave_trusts_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = ipa_server_create_trusts_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create trusts [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t ipa_subdomains_slave_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct ipa_subdomains_view_name_state {
+    struct ipa_subdomains_ctx *sd_ctx;
+};
+
+static void ipa_subdomains_view_name_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_subdomains_view_name_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct ipa_subdomains_ctx *sd_ctx,
+                              struct sdap_handle *sh)
+{
+    struct ipa_subdomains_view_name_state *state;
+    struct sdap_attr_map_info *maps;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    struct ipa_options *ipa_options;
+    const char *filter;
+    const char *attrs[] = {IPA_CN, OBJECTCLASS, NULL};
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_subdomains_view_name_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    if (sd_ctx->ipa_id_ctx->server_mode != NULL) {
+        /* Only get view on clients, on servers it is always 'default'. */
+        ret = EOK;
+        goto immediately;
+    }
+
+    state->sd_ctx = sd_ctx;
+
+    ipa_options = sd_ctx->ipa_id_ctx->ipa_options;
+
+    maps = talloc_zero_array(state, struct sdap_attr_map_info, 2);
+    if (maps == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero() failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+    maps[0].map = ipa_options->view_map;
+    maps->num_attrs = IPA_OPTS_VIEW;
+
+    filter = talloc_asprintf(state, "(&(objectClass=%s)(%s=%s))",
+                        ipa_options->host_map[IPA_OC_HOST].name,
+                        ipa_options->host_map[IPA_AT_HOST_FQDN].name,
+                        dp_opt_get_string(ipa_options->basic, IPA_HOSTNAME));
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    /* We add SDAP_DEREF_FLG_SILENT because old IPA servers don't have
+     * the attribute we dereference, causing the deref call to fail. */
+    subreq = sdap_deref_bases_return_first_send(state, ev,
+                 sd_ctx->sdap_id_ctx->opts, sh, sd_ctx->host_search_bases,
+                 maps, filter, attrs, IPA_ASSIGNED_ID_VIEW,
+                 SDAP_DEREF_FLG_SILENT, 0);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_view_name_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void ipa_subdomains_view_name_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_view_name_state *state;
+    struct tevent_req *req;
+    size_t reply_count;
+    struct sdap_deref_attrs **reply;
+    const char *view_name;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_view_name_state);
+
+    ret = sdap_deref_bases_return_first_recv(subreq, state,
+                                             &reply_count, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        /* Depending on the version 389ds return a different error code if the
+         * search for the view name failed because our dereference attribute
+         * ipaAssignedIDView is not known. Newer version return
+         * LDAP_UNAVAILABLE_CRITICAL_EXTENSION(12) which is translated to
+         * EOPNOTSUPP and older versions return LDAP_PROTOCOL_ERROR(2) which
+         * is returned as EIO. In both cases we have to assume that the server
+         * is not view aware and keep the view name unset. */
+        if (ret == EOPNOTSUPP || ret == EIO) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Unable to get view name, looks " \
+                                     "like server does not support views.\n");
+            ret = EOK;
+            goto done;
+        }
+
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get view name [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (reply_count == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No view found, using default.\n");
+        view_name = SYSDB_DEFAULT_VIEW_NAME;
+    } else if (reply_count == 1) {
+        ret = sysdb_attrs_get_string(reply[0]->attrs, SYSDB_VIEW_NAME,
+                                     &view_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "More than one object returned.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = ipa_apply_view(state->sd_ctx->be_ctx->domain,
+                         state->sd_ctx->ipa_id_ctx, view_name,
+                         state->sd_ctx->view_read_at_init);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set view [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    state->sd_ctx->view_read_at_init = true;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t ipa_subdomains_view_name_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+
+struct ipa_subdomains_refresh_state {
+    struct tevent_context *ev;
+    struct ipa_subdomains_ctx *sd_ctx;
+    struct sdap_id_op *sdap_op;
+};
+
+static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req);
+static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_view_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_subdomains_refresh_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct ipa_subdomains_ctx *sd_ctx)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_subdomains_refresh_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->sd_ctx = sd_ctx;
+
+    state->sdap_op = sdap_id_op_create(state,
+                                       sd_ctx->sdap_id_ctx->conn->conn_cache);
+    if (state->sdap_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    ret = ipa_subdomains_refresh_retry(req);
+    if (ret == EAGAIN) {
+        /* asynchronous processing */
+        return req;
+    }
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *subreq;
+    int ret;
+
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         return ret;
     }
 
-    ctx = talloc_zero(id_ctx, struct ipa_subdomains_ctx);
-    if (ctx == NULL) {
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_connect_done, req);
+
+    return EAGAIN;
+}
+
+static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to LDAP "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "No IPA server is available, "
+                  "cannot get the subdomain list while offline\n");
+            ret = ERR_OFFLINE;
+        }
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ipa_subdomains_ranges_send(state, state->ev, state->sd_ctx,
+                                        sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_ranges_done, req);
+    return;
+}
+
+static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_ranges_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get IPA ranges "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ipa_subdomains_master_send(state, state->ev, state->sd_ctx,
+                                        sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_master_done, req);
+    return;
+}
+
+static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_master_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get master domain "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ipa_subdomains_slave_send(state, state->ev, state->sd_ctx,
+                                       sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_slave_done, req);
+    return;
+}
+
+static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_slave_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get subdomains "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ipa_subdomains_view_name_send(state, state->ev, state->sd_ctx,
+                                           sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_view_done, req);
+    return;
+}
+
+static void ipa_subdomains_refresh_view_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_view_name_recv(subreq);
+    talloc_zfree(subreq);
+    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+    if (dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = ipa_subdomains_refresh_retry(req);
+        if (ret != EOK) {
+            goto done;
+        }
+        return;
+    } else if (dp_error == DP_ERR_OFFLINE) {
+        ret = ERR_OFFLINE;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get view name "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Unable to refresh subdomains [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Subdomains refreshed.\n");
+    tevent_req_done(req);
+}
+
+static errno_t ipa_subdomains_refresh_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct ipa_subdomains_handler_state {
+    struct dp_reply_std reply;
+};
+
+static void ipa_subdomains_handler_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_subdomains_handler_send(TALLOC_CTX *mem_ctx,
+                            struct ipa_subdomains_ctx *sd_ctx,
+                            struct dp_subdomains_data *data,
+                            struct dp_req_params *params)
+{
+    struct ipa_subdomains_handler_state *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_subdomains_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+
+    if (sd_ctx->last_refreshed > time(NULL) - IPA_SUBDOMAIN_REFRESH_LIMIT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Subdomains were recently refreshed, "
+              "nothing to do\n");
+        ret = EOK;
+        goto immediately;
+    }
+
+    subreq = ipa_subdomains_refresh_send(state, params->ev, sd_ctx);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_handler_done, req);
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void ipa_subdomains_handler_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_handler_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_handler_state);
+
+    ret = ipa_subdomains_refresh_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh subdomains [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    tevent_req_done(req);
+}
+
+static errno_t ipa_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
+                                           struct tevent_req *req,
+                                           struct dp_reply_std *data)
+{
+   struct ipa_subdomains_handler_state *state;
+
+   state = tevent_req_data(req, struct ipa_subdomains_handler_state);
+
+   TEVENT_REQ_RETURN_ON_ERROR(req);
+
+   *data = state->reply;
+
+   return EOK;
+}
+
+static struct tevent_req *
+ipa_subdomains_ptask_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct be_ctx *be_ctx,
+                          struct be_ptask *be_ptask,
+                          void *pvt)
+{
+    struct ipa_subdomains_ctx *sd_ctx;
+    sd_ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
+
+    return ipa_subdomains_refresh_send(mem_ctx, ev, sd_ctx);
+}
+
+static errno_t
+ipa_subdomains_ptask_recv(struct tevent_req *req)
+{
+    return ipa_subdomains_refresh_recv(req);
+}
+
+errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
+                            struct be_ctx *be_ctx,
+                            struct ipa_id_ctx *ipa_id_ctx,
+                            struct dp_method *dp_methods)
+{
+    struct ipa_subdomains_ctx *sd_ctx;
+    struct ipa_options *ipa_options;
+    time_t period;
+    errno_t ret;
+
+    ipa_options = ipa_id_ctx->ipa_options;
+
+    sd_ctx = talloc_zero(mem_ctx, struct ipa_subdomains_ctx);
+    if (sd_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
-    ctx->be_ctx = be_ctx;
-    ctx->id_ctx = id_ctx;
-    ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
-    ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
-    ctx->master_search_bases = id_ctx->ipa_options->master_domain_search_bases;
-    ctx->ranges_search_bases = id_ctx->ipa_options->ranges_search_bases;
-    ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
-    ctx->configured_explicit = configured_explicit;
-    ctx->disabled_until = 0;
-    *ops = &ipa_subdomains_ops;
-    *pvt_data = ctx;
+    sd_ctx->be_ctx = be_ctx;
+    sd_ctx->ipa_id_ctx = ipa_id_ctx;
+    sd_ctx->sdap_id_ctx = ipa_id_ctx->sdap_id_ctx;
+    sd_ctx->search_bases = ipa_options->subdomains_search_bases;
+    sd_ctx->master_search_bases = ipa_options->master_domain_search_bases;
+    sd_ctx->ranges_search_bases = ipa_options->ranges_search_bases;
+    sd_ctx->host_search_bases = ipa_options->host_search_bases;
 
-    ret = be_add_unconditional_online_cb(ctx, be_ctx,
-                                         ipa_subdom_reset_timeouts_cb, ctx,
-                                         NULL);
+    dp_set_method(dp_methods, DPM_DOMAINS_HANDLER,
+                  ipa_subdomains_handler_send, ipa_subdomains_handler_recv, sd_ctx,
+                  struct ipa_subdomains_ctx, struct dp_subdomains_data, struct dp_reply_std);
+
+    period = be_ctx->domain->subdomain_refresh_interval;
+    ret = be_ptask_create(sd_ctx, be_ctx, period, 0, 0, 0, period,
+                          BE_PTASK_OFFLINE_DISABLE, 0,
+                          ipa_subdomains_ptask_send, ipa_subdomains_ptask_recv, sd_ctx,
+                          "Subdomains Refresh", NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Failed to add subdom reset timeouts callback\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        /* Ignore, responders will trigger refresh from time to time. */
     }
 
-    ret = be_add_online_cb(ctx, be_ctx, ipa_subdom_online_cb, ctx, NULL);
+    ret = ipa_subdom_reinit(sd_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom online callback\n");
-    }
-
-    ret = be_add_offline_cb(ctx, be_ctx, ipa_subdom_offline_cb, ctx, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom offline callback\n");
-    }
-
-    ret = ipa_subdom_reinit(ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Could not load the list of subdomains. "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not reinitialize subdomains. "
               "Users from trusted domains might not be resolved correctly\n");
+        /* Ignore this error and try to discover the subdomains later */
     }
 
-    ret = ipa_ad_subdom_init(be_ctx, id_ctx);
+    ret = ipa_ad_subdom_init(be_ctx, ipa_id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_ad_subdom_init failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_ad_subdom_init() failed.\n");
         return ret;
     }
 

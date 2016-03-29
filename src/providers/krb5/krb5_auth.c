@@ -137,34 +137,6 @@ static int krb5_delete_ccname(TALLOC_CTX *mem_ctx,
                            SYSDB_MOD_DEL);
 }
 
-static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct pam_data *pd;
-
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
-
-    switch (pd->cmd) {
-        case SSS_PAM_AUTHENTICATE:
-        case SSS_CMD_RENEW:
-            return talloc_get_type(be_ctx->bet_info[BET_AUTH].pvt_bet_data,
-                                   struct krb5_ctx);
-            break;
-        case SSS_PAM_ACCT_MGMT:
-            return talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
-                                   struct krb5_ctx);
-            break;
-        case SSS_PAM_CHAUTHTOK:
-        case SSS_PAM_CHAUTHTOK_PRELIM:
-            return talloc_get_type(be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
-                                   struct krb5_ctx);
-            break;
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported PAM task.\n");
-            return NULL;
-    }
-}
-
 static int krb5_cleanup(void *ptr)
 {
     struct krb5child_req *kr = talloc_get_type(ptr, struct krb5child_req);
@@ -1165,115 +1137,137 @@ int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err)
     return EOK;
 }
 
-void krb5_pam_handler_auth_done(struct tevent_req *req);
-static void krb5_pam_handler_access_done(struct tevent_req *req);
-
-void krb5_pam_handler(struct be_req *be_req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct tevent_req *req;
+struct krb5_pam_handler_state {
     struct pam_data *pd;
-    struct krb5_ctx *krb5_ctx;
-    int dp_err = DP_ERR_FATAL;
+};
 
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
-    pd->pam_status = PAM_SYSTEM_ERR;
+static void krb5_pam_handler_auth_done(struct tevent_req *subreq);
+static void krb5_pam_handler_access_done(struct tevent_req *subreq);
 
-    krb5_ctx = get_krb5_ctx(be_req);
-    if (krb5_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Kerberos context not available.\n");
-        goto done;
+struct tevent_req *
+krb5_pam_handler_send(TALLOC_CTX *mem_ctx,
+                      struct krb5_ctx *krb5_ctx,
+                      struct pam_data *pd,
+                      struct dp_req_params *params)
+{
+    struct krb5_pam_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct krb5_pam_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
     }
+
+    state->pd = pd;
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
         case SSS_CMD_RENEW:
         case SSS_PAM_CHAUTHTOK_PRELIM:
         case SSS_PAM_CHAUTHTOK:
-            req = krb5_auth_queue_send(be_req, be_ctx->ev, be_ctx, pd, krb5_ctx);
-            if (req == NULL) {
+            subreq = krb5_auth_queue_send(state, params->ev, params->be_ctx,
+                                          pd, krb5_ctx);
+            if (subreq == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth_send failed.\n");
-                goto done;
+                pd->pam_status = PAM_SYSTEM_ERR;
+                goto immediately;
             }
 
-            tevent_req_set_callback(req, krb5_pam_handler_auth_done, be_req);
+            tevent_req_set_callback(subreq, krb5_pam_handler_auth_done, req);
             break;
         case SSS_PAM_ACCT_MGMT:
-            req = krb5_access_send(be_req, be_ctx->ev, be_ctx, pd, krb5_ctx);
-            if (req == NULL) {
+            subreq = krb5_access_send(state, params->ev, params->be_ctx,
+                                      pd, krb5_ctx);
+            if (subreq == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "krb5_access_send failed.\n");
-                goto done;
+                pd->pam_status = PAM_SYSTEM_ERR;
+                goto immediately;
             }
 
-            tevent_req_set_callback(req, krb5_pam_handler_access_done, be_req);
+            tevent_req_set_callback(subreq, krb5_pam_handler_access_done, req);
             break;
         case SSS_PAM_SETCRED:
         case SSS_PAM_OPEN_SESSION:
         case SSS_PAM_CLOSE_SESSION:
             pd->pam_status = PAM_SUCCESS;
-            dp_err = DP_ERR_OK;
-            goto done;
+            goto immediately;
             break;
         default:
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "krb5 does not handles pam task %d.\n", pd->cmd);
             pd->pam_status = PAM_MODULE_UNKNOWN;
-            dp_err = DP_ERR_OK;
-            goto done;
+            goto immediately;
     }
 
-    return;
+    return req;
 
-done:
-    be_req_terminate(be_req, dp_err, pd->pam_status, NULL);
+immediately:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
 }
 
-void krb5_pam_handler_auth_done(struct tevent_req *req)
+static void krb5_pam_handler_auth_done(struct tevent_req *subreq)
 {
-    int ret;
-    struct be_req *be_req = tevent_req_callback_data(req, struct be_req);
-    int pam_status;
-    int dp_err;
-    struct pam_data *pd;
+    struct krb5_pam_handler_state *state;
+    struct tevent_req *req;
+    errno_t ret;
 
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct krb5_pam_handler_state);
 
-    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
-    talloc_zfree(req);
-    if (ret) {
-        pd->pam_status = PAM_SYSTEM_ERR;
-        dp_err = DP_ERR_OK;
-    } else {
-        pd->pam_status = pam_status;
-    }
-
-    be_req_terminate(be_req, dp_err, pd->pam_status, NULL);
-}
-
-static void krb5_pam_handler_access_done(struct tevent_req *req)
-{
-    int ret;
-    struct be_req *be_req = tevent_req_callback_data(req, struct be_req);
-    bool access_allowed;
-    struct pam_data *pd;
-    int dp_err = DP_ERR_OK;
-
-    pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
-    pd->pam_status = PAM_SYSTEM_ERR;
-
-    ret = krb5_access_recv(req, &access_allowed);
-    talloc_zfree(req);
+    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, NULL);
+    talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "krb5_access request failed [%d][%s]\n", ret, strerror(ret));
-        goto done;
+        state->pd->pam_status = PAM_SYSTEM_ERR;
     }
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+static void krb5_pam_handler_access_done(struct tevent_req *subreq)
+{
+    struct krb5_pam_handler_state *state;
+    struct tevent_req *req;
+    bool access_allowed;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct krb5_pam_handler_state);
+
+    ret = krb5_access_recv(subreq, &access_allowed);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+    }
+
 
     DEBUG(SSSDBG_TRACE_LIBS, "Access %s for user [%s].\n",
-              access_allowed ? "allowed" : "denied", pd->user);
-    pd->pam_status = access_allowed ? PAM_SUCCESS : PAM_PERM_DENIED;
-    dp_err = DP_ERR_OK;
+          access_allowed ? "allowed" : "denied", state->pd->user);
+    state->pd->pam_status = access_allowed ? PAM_SUCCESS : PAM_PERM_DENIED;
 
-done:
-    be_req_terminate(be_req, dp_err, pd->pam_status, NULL);
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+errno_t
+krb5_pam_handler_recv(TALLOC_CTX *mem_ctx,
+                      struct tevent_req *req,
+                      struct pam_data **_data)
+{
+    struct krb5_pam_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct krb5_pam_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
 }

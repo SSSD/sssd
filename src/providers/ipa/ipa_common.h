@@ -258,10 +258,10 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
 errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
                                struct ipa_options *ctx);
 
-int ipa_autofs_init(struct be_ctx *be_ctx,
-                    struct ipa_id_ctx *id_ctx,
-                    struct bet_ops **ops,
-                    void **pvt_data);
+errno_t ipa_autofs_init(TALLOC_CTX *mem_ctx,
+                        struct be_ctx *be_ctx,
+                        struct ipa_id_ctx *id_ctx,
+                        struct dp_method *dp_methods);
 
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *primary_servers,
@@ -269,10 +269,10 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      struct ipa_options *options,
                      struct ipa_service **_service);
 
-int ipa_sudo_init(struct be_ctx *be_ctx,
+int ipa_sudo_init(TALLOC_CTX *mem_ctx,
+                  struct be_ctx *be_ctx,
                   struct ipa_id_ctx *id_ctx,
-                  struct bet_ops **ops,
-                  void **pvt_data);
+                  struct dp_method *dp_methods);
 
 errno_t get_idmap_data_from_range(struct range_info *r, char *domain_name,
                                   char **_name, char **_sid, uint32_t *_rid,

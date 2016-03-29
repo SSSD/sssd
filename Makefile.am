@@ -674,6 +674,14 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_dn.h \
     src/providers/ipa/ipa_sudo.h \
     src/providers/ad/ad_srv.h \
+    src/providers/ad/ad_common.h \
+    src/providers/ad/ad_pac.h \
+    src/providers/ad/ad_id.h \
+    src/providers/ad/ad_access.h \
+    src/providers/ad/ad_gpo.h \
+    src/providers/ad/ad_opts.h \
+    src/providers/ad/ad_domain_info.h \
+    src/providers/ad/ad_subdomains.h \
     src/providers/proxy/proxy.h \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \
@@ -1323,6 +1331,12 @@ sssd_be_SOURCES = \
     src/providers/data_provider/dp_request_reply.c \
     src/providers/data_provider/dp_request_table.c \
     src/providers/data_provider/dp_reply_std.c \
+    src/providers/data_provider/dp_target_sudo.c \
+    src/providers/data_provider/dp_target_hostid.c \
+    src/providers/data_provider/dp_target_autofs.c \
+    src/providers/data_provider/dp_target_subdomains.c \
+    src/providers/data_provider/dp_target_id.c \
+    src/providers/data_provider/dp_target_auth.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     $(LIBADD_DL) \
@@ -1798,6 +1812,10 @@ simple_access_tests_SOURCES = \
     src/providers/simple/simple_access.c \
     src/providers/simple/simple_access_check.c \
     $(NULL)
+simple_access_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS) \
+    -DUNIT_TESTING
 simple_access_tests_LDADD = \
     $(LIBADD_DL) \
     $(CHECK_LIBS) \
@@ -3070,6 +3088,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_async_connection.c \
     src/providers/ldap/sdap_async_netgroups.c \
     src/providers/ldap/sdap_async_services.c \
+    src/providers/ldap/sdap_online_check.c \
     src/providers/ldap/sdap_ad_groups.c \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
@@ -3165,6 +3184,7 @@ libsss_ldap_la_LDFLAGS = \
 
 libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_init.c \
+    src/providers/proxy/proxy_client.c \
     src/providers/proxy/proxy_id.c \
     src/providers/proxy/proxy_netgroup.c \
     src/providers/proxy/proxy_services.c \
@@ -3229,19 +3249,15 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_hbac_services.c \
     src/providers/ipa/ipa_hbac_users.c \
     src/providers/ipa/ipa_hbac_common.c \
-    src/providers/ipa/ipa_selinux.c \
-    src/providers/ipa/ipa_selinux_maps.c \
     src/providers/ipa/ipa_srv.c \
     src/providers/ipa/ipa_idmap.c \
     src/providers/ipa/ipa_dn.c \
     src/providers/ad/ad_opts.c \
     src/providers/ad/ad_common.c \
-    src/providers/ad/ad_common.h \
     src/providers/ad/ad_dyndns.c \
     src/providers/ad/ad_id.c \
     src/providers/ad/ad_pac.c \
     src/providers/ad/ad_pac_common.c \
-    src/providers/ad/ad_pac.h \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_domain_info.c
 libsss_ipa_la_CFLAGS = \
@@ -3281,6 +3297,12 @@ libsss_ipa_la_SOURCES += \
     src/providers/ipa/ipa_sudo_async.c
 endif
 
+if BUILD_SEMANAGE
+libsss_ipa_la_SOURCES += \
+    src/providers/ipa/ipa_selinux.c \
+    src/providers/ipa/ipa_selinux_maps.c
+endif
+
 if BUILD_SSH
 libsss_ipa_la_SOURCES += src/providers/ipa/ipa_hostid.c
 endif
@@ -3289,26 +3311,18 @@ endif
 libsss_ad_la_SOURCES = \
     src/providers/ad/ad_opts.c \
     src/providers/ad/ad_common.c \
-    src/providers/ad/ad_common.h \
     src/providers/ad/ad_init.c \
     src/providers/ad/ad_dyndns.c \
     src/providers/ad/ad_machine_pw_renewal.c \
     src/providers/ad/ad_id.c \
     src/providers/ad/ad_pac.c \
     src/providers/ad/ad_pac_common.c \
-    src/providers/ad/ad_pac.h \
-    src/providers/ad/ad_id.h \
     src/providers/ad/ad_access.c \
-    src/providers/ad/ad_access.h \
     src/providers/ad/ad_gpo.c \
-    src/providers/ad/ad_gpo.h \
     src/providers/ad/ad_gpo_ndr.c \
-    src/providers/ad/ad_opts.h \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_subdomains.c \
-    src/providers/ad/ad_subdomains.h \
-    src/providers/ad/ad_domain_info.c \
-    src/providers/ad/ad_domain_info.h
+    src/providers/ad/ad_domain_info.c
 
 if BUILD_SUDO
 libsss_ad_la_SOURCES += \

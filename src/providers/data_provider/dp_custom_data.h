@@ -25,6 +25,36 @@
 
 /* Request handler private data. */
 
+struct dp_sudo_data {
+    uint32_t type;
+    char **rules;
+};
+
+struct dp_hostid_data {
+    const char *name;
+    const char *alias;
+};
+
+struct dp_autofs_data {
+    const char *mapname;
+};
+
+struct dp_subdomains_data {
+    const char *domain_hint;
+};
+
+/* TODO rename be_acct_req to dp_id_data to be consistent
+   This can be done after the original code is removed.
+struct dp_id_data {
+    uint32_t entry_type;
+    uint32_t attr_type;
+    uint32_t filter_type;
+    const char *filter_value;
+    const char *extra_value;
+    const char *domain;
+};
+*/
+
 /* Reply private data. */
 
 struct dp_reply_std {

@@ -1362,150 +1362,159 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
 
 /* =Proxy_Id-Functions====================================================*/
 
-void proxy_get_account_info(struct be_req *breq)
+static struct dp_reply_std
+proxy_account_info(TALLOC_CTX *mem_ctx,
+                   struct proxy_id_ctx *ctx,
+                   struct be_acct_req *data,
+                   struct be_ctx *be_ctx,
+                   struct sss_domain_info *domain)
 {
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct be_acct_req *ar;
-    struct proxy_id_ctx *ctx;
+    struct dp_reply_std reply;
     struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
     uid_t uid;
     gid_t gid;
-    int ret;
+    errno_t ret;
     char *endptr;
 
-    ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
-    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
-                          struct proxy_id_ctx);
-    sysdb = be_ctx->domain->sysdb;
-    domain = be_ctx->domain;
+    sysdb = domain->sysdb;
 
-    if (be_is_offline(be_ctx)) {
-        return be_req_terminate(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
+    /* For now we support only core attrs. */
+    if (data->attr_type != BE_ATTR_CORE) {
+        dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL, "Invalid attr type");
+        return reply;
     }
 
-    /* for now we support only core attrs */
-    if (ar->attr_type != BE_ATTR_CORE) {
-        return be_req_terminate(breq, DP_ERR_FATAL, EINVAL, "Invalid attr type");
+    /* Proxy provider does not support security ID lookups. */
+    if (data->filter_type == BE_FILTER_SECID) {
+        dp_reply_std_set(&reply, DP_ERR_FATAL, ENOSYS,
+                         "Security lookups are not supported");
+        return reply;
     }
 
-    /* proxy provider does not support security ID lookups */
-    if (ar->filter_type == BE_FILTER_SECID) {
-        return be_req_terminate(breq, DP_ERR_FATAL, ENOSYS,
-                                "Invalid filter type");
-    }
-
-    switch (ar->entry_type & BE_REQ_TYPE_MASK) {
+    switch (data->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
-        switch (ar->filter_type) {
+        switch (data->filter_type) {
         case BE_FILTER_ENUM:
-            ret = enum_users(breq, ctx, sysdb, domain);
+            ret = enum_users(mem_ctx, ctx, sysdb, domain);
             break;
 
         case BE_FILTER_NAME:
-            ret = get_pw_name(ctx, domain, ar->filter_value);
+            ret = get_pw_name(ctx, domain, data->filter_value);
             break;
 
         case BE_FILTER_IDNUM:
-            uid = (uid_t) strtouint32(ar->filter_value, &endptr, 10);
-            if (errno || *endptr || (ar->filter_value == endptr)) {
-                return be_req_terminate(breq, DP_ERR_FATAL,
-                                   EINVAL, "Invalid attr type");
+            uid = (uid_t) strtouint32(data->filter_value, &endptr, 10);
+            if (errno || *endptr || (data->filter_value == endptr)) {
+                dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                                 "Invalid attr type");
+                return reply;
             }
             ret = get_pw_uid(ctx, domain, uid);
             break;
         default:
-            return be_req_terminate(breq, DP_ERR_FATAL,
-                               EINVAL, "Invalid filter type");
+            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                             "Invalid filter type");
+            return reply;
         }
         break;
 
     case BE_REQ_GROUP: /* group */
-        switch (ar->filter_type) {
+        switch (data->filter_type) {
         case BE_FILTER_ENUM:
-            ret = enum_groups(breq, ctx, sysdb, domain);
+            ret = enum_groups(mem_ctx, ctx, sysdb, domain);
             break;
         case BE_FILTER_NAME:
-            ret = get_gr_name(ctx, sysdb, domain, ar->filter_value);
+            ret = get_gr_name(ctx, sysdb, domain, data->filter_value);
             break;
         case BE_FILTER_IDNUM:
-            gid = (gid_t) strtouint32(ar->filter_value, &endptr, 10);
-            if (errno || *endptr || (ar->filter_value == endptr)) {
-                return be_req_terminate(breq, DP_ERR_FATAL,
-                                   EINVAL, "Invalid attr type");
+            gid = (gid_t) strtouint32(data->filter_value, &endptr, 10);
+            if (errno || *endptr || (data->filter_value == endptr)) {
+                dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                                 "Invalid attr type");
+                return reply;
             }
-            ret = get_gr_gid(breq, ctx, sysdb, domain, gid, 0);
+            ret = get_gr_gid(mem_ctx, ctx, sysdb, domain, gid, 0);
             break;
         default:
-            return be_req_terminate(breq, DP_ERR_FATAL,
-                               EINVAL, "Invalid filter type");
+            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                             "Invalid filter type");
+            return reply;
         }
         break;
 
     case BE_REQ_INITGROUPS: /* init groups for user */
-        if (ar->filter_type != BE_FILTER_NAME) {
-            return be_req_terminate(breq, DP_ERR_FATAL,
-                               EINVAL, "Invalid filter type");
+        if (data->filter_type != BE_FILTER_NAME) {
+            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                             "Invalid filter type");
+            return reply;
         }
         if (ctx->ops.initgroups_dyn == NULL) {
-            return be_req_terminate(breq, DP_ERR_FATAL,
-                               ENODEV, "Initgroups call not supported");
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+                             "Initgroups call not supported");
+            return reply;
         }
-        ret = get_initgr(breq, ctx, sysdb, domain, ar->filter_value);
+        ret = get_initgr(mem_ctx, ctx, sysdb, domain, data->filter_value);
         break;
 
     case BE_REQ_NETGROUP:
-        if (ar->filter_type != BE_FILTER_NAME) {
-            return be_req_terminate(breq, DP_ERR_FATAL,
-                               EINVAL, "Invalid filter type");
+        if (data->filter_type != BE_FILTER_NAME) {
+            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                             "Invalid filter type");
+            return reply;
         }
         if (ctx->ops.setnetgrent == NULL || ctx->ops.getnetgrent_r == NULL ||
             ctx->ops.endnetgrent == NULL) {
-            return be_req_terminate(breq, DP_ERR_FATAL,
-                               ENODEV, "Netgroups are not supported");
+            dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+                             "Netgroups are not supported");
+            return reply;
         }
 
-        ret = get_netgroup(ctx, domain, ar->filter_value);
+        ret = get_netgroup(ctx, domain, data->filter_value);
         break;
 
     case BE_REQ_SERVICES:
-        switch (ar->filter_type) {
+        switch (data->filter_type) {
         case BE_FILTER_NAME:
             if (ctx->ops.getservbyname_r == NULL) {
-                return be_req_terminate(breq, DP_ERR_FATAL,
-                                   ENODEV, "Services are not supported");
+                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+                                 "Services are not supported");
+                return reply;
             }
             ret = get_serv_byname(ctx, domain,
-                                  ar->filter_value,
-                                  ar->extra_value);
+                                  data->filter_value,
+                                  data->extra_value);
             break;
         case BE_FILTER_IDNUM:
             if (ctx->ops.getservbyport_r == NULL) {
-                return be_req_terminate(breq, DP_ERR_FATAL,
-                                   ENODEV, "Services are not supported");
+                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+                                 "Services are not supported");
+                return reply;
             }
             ret = get_serv_byport(ctx, domain,
-                                  ar->filter_value,
-                                  ar->extra_value);
+                                  data->filter_value,
+                                  data->extra_value);
             break;
         case BE_FILTER_ENUM:
             if (!ctx->ops.setservent
                     || !ctx->ops.getservent_r
                     || !ctx->ops.endservent) {
-                return be_req_terminate(breq, DP_ERR_FATAL,
-                                   ENODEV, "Services are not supported");
+                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
+                                 "Services are not supported");
+                return reply;
             }
             ret = enum_services(ctx, sysdb, domain);
             break;
         default:
-            return be_req_terminate(breq, DP_ERR_FATAL,
-                               EINVAL, "Invalid filter type");
+            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                             "Invalid filter type");
+            return reply;
         }
         break;
 
     default: /*fail*/
-        return be_req_terminate(breq, DP_ERR_FATAL,
-                           EINVAL, "Invalid request type");
+        dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                         "Invalid filter type");
+        return reply;
     }
 
     if (ret) {
@@ -1514,8 +1523,56 @@ void proxy_get_account_info(struct be_req *breq)
                   "proxy returned UNAVAIL error, going offline!\n");
             be_mark_offline(be_ctx);
         }
-        be_req_terminate(breq, DP_ERR_FATAL, ret, NULL);
-        return;
+
+        dp_reply_std_set(&reply, DP_ERR_FATAL, ret, NULL);
+        return reply;
     }
-    be_req_terminate(breq, DP_ERR_OK, EOK, NULL);
+
+    dp_reply_std_set(&reply, DP_ERR_OK, EOK, NULL);
+    return reply;
+}
+
+struct proxy_account_info_handler_state {
+    struct dp_reply_std reply;
+};
+
+struct tevent_req *
+proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
+                               struct proxy_id_ctx *id_ctx,
+                               struct be_acct_req *data,
+                               struct dp_req_params *params)
+{
+    struct proxy_account_info_handler_state *state;
+    struct tevent_req *req;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct proxy_account_info_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->reply = proxy_account_info(state, id_ctx, data, params->be_ctx,
+                                      params->be_ctx->domain);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+errno_t proxy_account_info_handler_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       struct dp_reply_std *data)
+{
+    struct proxy_account_info_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct proxy_account_info_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
+
+    return EOK;
 }

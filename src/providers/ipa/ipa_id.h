@@ -33,7 +33,16 @@
 
 #define IPA_DEFAULT_VIEW_NAME "Default Trust View"
 
-void ipa_account_info_handler(struct be_req *breq);
+struct tevent_req *
+ipa_account_info_handler_send(TALLOC_CTX *mem_ctx,
+                              struct ipa_id_ctx *id_ctx,
+                              struct be_acct_req *data,
+                              struct dp_req_params *params);
+
+errno_t ipa_account_info_handler_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      struct dp_reply_std *data);
+
 struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sysdb_ctx *sysdb,
@@ -49,8 +58,6 @@ int ipa_get_netgroups_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
                            size_t *reply_count,
                            struct sysdb_attrs ***reply);
-
-void ipa_check_online(struct be_req *be_req);
 
 struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
@@ -98,7 +105,6 @@ errno_t ipa_get_ad_override_recv(struct tevent_req *req, int *dp_error_out,
 struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
                                               struct ipa_id_ctx *ipa_ctx,
-                                              struct be_req *be_req,
                                               struct be_acct_req *ar);
 
 errno_t ipa_subdomain_account_recv(struct tevent_req *req, int *dp_error_out);

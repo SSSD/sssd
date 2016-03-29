@@ -18,32 +18,38 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <dbus/dbus.h>
+#include <talloc.h>
+#include <tevent.h>
 
 #include "sbus/sssd_dbus.h"
-#include "providers/data_provider/dp_iface_generated.h"
-#include "providers/data_provider/dp_iface.h"
 #include "providers/data_provider/dp_private.h"
-#include "providers/data_provider/dp.h"
+#include "providers/data_provider/dp_iface.h"
+#include "providers/backend.h"
+#include "util/util.h"
 
-struct iface_dp iface_dp = {
-    {&iface_dp_meta, 0},
-    .pamHandler = dp_pam_handler,
-    .sudoHandler = dp_sudo_handler,
-    .autofsHandler = dp_autofs_handler,
-    .hostHandler = dp_host_handler,
-    .getDomains = dp_subdomains_handler,
-    .getAccountInfo = dp_get_account_info_handler
-};
-
-static struct sbus_iface_map dp_map[] = {
-    { DP_PATH, &iface_dp.vtable },
-    { NULL, NULL }
-};
-
-errno_t
-dp_register_sbus_interface(struct sbus_connection *conn,
-                           struct dp_client *pvt)
+errno_t dp_autofs_handler(struct sbus_request *sbus_req,
+                          void *dp_cli,
+                          uint32_t dp_flags,
+                          const char *mapname)
 {
-    return sbus_conn_register_iface_map(conn, dp_map, pvt);
+    struct dp_autofs_data *data;
+    const char *key;
+
+    if (mapname == NULL) {
+        return EINVAL;
+    }
+
+    data = talloc_zero(sbus_req, struct dp_autofs_data);
+    if (data == NULL) {
+        return ENOMEM;
+    }
+
+    data->mapname = mapname;
+    key = mapname;
+
+    dp_req_with_reply(dp_cli, NULL, "AutoFS", key, sbus_req, DPT_AUTOFS,
+                      DPM_AUTOFS_HANDLER, dp_flags, data,
+                      dp_req_reply_std, struct dp_reply_std);
+
+    return EOK;
 }

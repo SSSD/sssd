@@ -1286,151 +1286,10 @@ int groups_by_user_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret
     return EOK;
 }
 
-static void sdap_check_online_done(struct tevent_req *req);
-void sdap_check_online(struct be_req *be_req)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct sdap_id_ctx *ctx;
-
-    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
-                          struct sdap_id_ctx);
-
-    return sdap_do_online_check(be_req, ctx);
-}
-
-struct sdap_online_check_ctx {
-    struct be_req *be_req;
-    struct sdap_id_ctx *id_ctx;
-};
-
-void sdap_do_online_check(struct be_req *be_req, struct sdap_id_ctx *ctx)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
-    struct tevent_req *req;
-    struct sdap_online_check_ctx *check_ctx;
-    errno_t ret;
-
-    check_ctx = talloc_zero(be_req, struct sdap_online_check_ctx);
-    if (!check_ctx) {
-        ret = ENOMEM;
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed\n");
-        goto fail;
-    }
-    check_ctx->id_ctx = ctx;
-    check_ctx->be_req = be_req;
-
-    req = sdap_cli_connect_send(be_req, be_ctx->ev, ctx->opts,
-                                be_ctx, ctx->conn->service, false,
-                                CON_TLS_DFL, false);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_cli_connect_send failed.\n");
-        ret = EIO;
-        goto fail;
-    }
-    tevent_req_set_callback(req, sdap_check_online_done, check_ctx);
-
-    return;
-fail:
-    sdap_handler_done(be_req, DP_ERR_FATAL, ret, NULL);
-}
-
-static void sdap_check_online_reinit_done(struct tevent_req *req);
-
-static void sdap_check_online_done(struct tevent_req *req)
-{
-    struct sdap_online_check_ctx *check_ctx = tevent_req_callback_data(req,
-                                        struct sdap_online_check_ctx);
-    int ret;
-    int dp_err = DP_ERR_FATAL;
-    bool can_retry;
-    struct sdap_server_opts *srv_opts;
-    struct be_req *be_req;
-    struct sdap_id_ctx *id_ctx;
-    struct tevent_req *reinit_req = NULL;
-    bool reinit = false;
-    struct be_ctx *be_ctx;
-
-    ret = sdap_cli_connect_recv(req, NULL, &can_retry, NULL, &srv_opts);
-    talloc_zfree(req);
-
-    if (ret != EOK) {
-        if (!can_retry) {
-            dp_err = DP_ERR_OFFLINE;
-        }
-    } else {
-        dp_err = DP_ERR_OK;
-
-        if (!check_ctx->id_ctx->srv_opts) {
-            srv_opts->max_user_value = 0;
-            srv_opts->max_group_value = 0;
-            srv_opts->max_service_value = 0;
-            srv_opts->max_sudo_value = 0;
-        } else if (strcmp(srv_opts->server_id, check_ctx->id_ctx->srv_opts->server_id) == 0
-                   && srv_opts->supports_usn
-                   && check_ctx->id_ctx->srv_opts->last_usn > srv_opts->last_usn) {
-            check_ctx->id_ctx->srv_opts->max_user_value = 0;
-            check_ctx->id_ctx->srv_opts->max_group_value = 0;
-            check_ctx->id_ctx->srv_opts->max_service_value = 0;
-            check_ctx->id_ctx->srv_opts->max_sudo_value = 0;
-            check_ctx->id_ctx->srv_opts->last_usn = srv_opts->last_usn;
-
-            reinit = true;
-        }
-
-        sdap_steal_server_opts(check_ctx->id_ctx, &srv_opts);
-    }
-
-    be_req = check_ctx->be_req;
-    be_ctx = be_req_get_be_ctx(be_req);
-    id_ctx = check_ctx->id_ctx;
-    talloc_free(check_ctx);
-
-    if (reinit) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Server reinitialization detected. "
-                                  "Cleaning cache.\n");
-        reinit_req = sdap_reinit_cleanup_send(be_req, be_ctx, id_ctx);
-        if (reinit_req == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to perform reinitialization "
-                                        "clean up.\n");
-            /* not fatal */
-            goto done;
-        }
-
-        tevent_req_set_callback(reinit_req, sdap_check_online_reinit_done,
-                                be_req);
-        return;
-    }
-
-done:
-    sdap_handler_done(be_req, dp_err, 0, NULL);
-}
-
-static void sdap_check_online_reinit_done(struct tevent_req *req)
-{
-    struct be_req *be_req = NULL;
-    errno_t ret;
-
-    be_req = tevent_req_callback_data(req, struct be_req);
-    ret = sdap_reinit_cleanup_recv(req);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to perform reinitialization "
-              "clean up [%d]: %s\n", ret, strerror(ret));
-        /* not fatal */
-    } else {
-        DEBUG(SSSDBG_TRACE_FUNC, "Reinitialization clean up completed\n");
-    }
-
-    sdap_handler_done(be_req, DP_ERR_OK, 0, NULL);
-}
-
 /* =Get-Account-Info-Call================================================= */
 
 /* FIXME: embed this function in sssd_be and only call out
  * specific functions from modules ? */
-
-void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
-                              struct sdap_id_conn_ctx *conn);
 
 static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
                                                   struct tevent_context *ev,
@@ -1444,20 +1303,6 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
 
 errno_t sdap_get_user_and_group_recv(struct tevent_req *req,
                                      int *dp_error_out, int *sdap_ret);
-
-void sdap_account_info_handler(struct be_req *breq)
-{
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct sdap_id_ctx *ctx;
-
-    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
-    if (!ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not get sdap ctx\n");
-        return sdap_handler_done(breq, DP_ERR_FATAL,
-                                 EINVAL, "Invalid request data\n");
-    }
-    return sdap_handle_account_info(breq, ctx, ctx->conn);
-}
 
 bool sdap_is_enum_request(struct be_acct_req *ar)
 {
@@ -1757,66 +1602,6 @@ sdap_handle_acct_req_recv(struct tevent_req *req,
     return EOK;
 }
 
-static void sdap_account_info_complete(struct tevent_req *req);
-
-void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
-                              struct sdap_id_conn_ctx *conn)
-{
-    struct be_acct_req *ar;
-    struct tevent_req *req;
-
-    if (be_is_offline(ctx->be)) {
-        return sdap_handler_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
-    }
-
-    ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
-    if (ar == NULL) {
-        return sdap_handler_done(breq, DP_ERR_FATAL,
-                                 EINVAL, "Invalid private data");
-    }
-
-    if (sdap_is_enum_request(ar)) {
-        DEBUG(SSSDBG_TRACE_LIBS, "Skipping enumeration on demand\n");
-        return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
-    }
-
-    req = sdap_handle_acct_req_send(breq, ctx->be, ar, ctx,
-                                    ctx->opts->sdom, conn, true);
-    if (req == NULL) {
-        return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
-    }
-    tevent_req_set_callback(req, sdap_account_info_complete, breq);
-}
-
-static void sdap_account_info_complete(struct tevent_req *req)
-{
-    const char *error_text;
-    const char *req_error_text;
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret, dp_error;
-
-    ret = sdap_handle_acct_req_recv(req, &dp_error, &req_error_text, NULL);
-    talloc_zfree(req);
-    if (dp_error == DP_ERR_OK) {
-        if (ret == EOK) {
-            error_text = NULL;
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Bug: dp_error is OK on failed request\n");
-            dp_error = DP_ERR_FATAL;
-            error_text = req_error_text;
-        }
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        error_text = "Offline";
-    } else if (dp_error == DP_ERR_FATAL && ret == ENOMEM) {
-        error_text = "Out of memory";
-    } else {
-        error_text = req_error_text;
-    }
-
-    sdap_handler_done(breq, dp_error, ret, error_text);
-}
-
 struct get_user_and_group_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
@@ -2009,6 +1794,91 @@ errno_t sdap_get_user_and_group_recv(struct tevent_req *req,
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct sdap_account_info_handler_state {
+    struct dp_reply_std reply;
+};
+
+static void sdap_account_info_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
+                               struct sdap_id_ctx *id_ctx,
+                               struct be_acct_req *data,
+                               struct dp_req_params *params)
+{
+    struct sdap_account_info_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_account_info_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    if (sdap_is_enum_request(data)) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Skipping enumeration on demand\n");
+        ret = EOK;
+        goto immediately;
+    }
+
+    subreq = sdap_handle_acct_req_send(state, params->be_ctx, data, id_ctx,
+                                       id_ctx->opts->sdom, id_ctx->conn, true);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_account_info_handler_done, req);
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void sdap_account_info_handler_done(struct tevent_req *subreq)
+{
+    struct sdap_account_info_handler_state *state;
+    struct tevent_req *req;
+    const char *error_msg;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_account_info_handler_state);
+
+    ret = sdap_handle_acct_req_recv(subreq, &dp_error, &error_msg, NULL);
+    talloc_zfree(subreq);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, dp_error, ret, error_msg);
+    tevent_req_done(req);
+}
+
+errno_t sdap_account_info_handler_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       struct dp_reply_std *data)
+{
+    struct sdap_account_info_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct sdap_account_info_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
 
     return EOK;
 }

@@ -76,6 +76,17 @@ struct sdap_access_ctx {
 };
 
 struct tevent_req *
+sdap_pam_access_handler_send(TALLOC_CTX *mem_ctx,
+                           struct sdap_access_ctx *access_ctx,
+                           struct pam_data *pd,
+                           struct dp_req_params *params);
+
+errno_t
+sdap_pam_access_handler_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             struct pam_data **_data);
+
+struct tevent_req *
 sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct tevent_context *ev,
                  struct be_ctx *be_ctx,

@@ -38,6 +38,13 @@
 #define TEST_ID_PROVIDER "ldap"
 #define TEST_EXT_MEMBER "extMember"
 
+bool _dp_target_enabled(struct data_provider *provider,
+                        const char *module_name,
+                        ...)
+{
+    return true;
+}
+
 #define new_test(test) \
     cmocka_unit_test_setup_teardown(nested_groups_test_ ## test, \
                                     nested_groups_test_setup, \

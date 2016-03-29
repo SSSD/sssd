@@ -31,23 +31,14 @@
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/ipa/ipa_selinux.h"
 
-struct bet_ops ipa_autofs_ops = {
-    .handler = sdap_autofs_handler,
-    .finalize = NULL,
-    .check_online = sdap_check_online
-};
-
-int ipa_autofs_init(struct be_ctx *be_ctx,
-                    struct ipa_id_ctx *id_ctx,
-                    struct bet_ops **ops,
-                    void **pvt_data)
+errno_t ipa_autofs_init(TALLOC_CTX *mem_ctx,
+                        struct be_ctx *be_ctx,
+                        struct ipa_id_ctx *id_ctx,
+                        struct dp_method *dp_methods)
 {
     int ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs LDAP back end\n");
-
-    *ops = &ipa_autofs_ops;
-    *pvt_data = id_ctx->sdap_id_ctx;
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs IPA back end\n");
 
     ret = ipa_get_autofs_options(id_ctx->ipa_options, be_ctx->cdb,
                                  be_ctx->conf_path, &id_ctx->sdap_id_ctx->opts);
@@ -55,6 +46,10 @@ int ipa_autofs_init(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get IPA autofs options\n");
         return ret;
     }
+
+    dp_set_method(dp_methods, DPM_AUTOFS_HANDLER,
+                  sdap_autofs_handler_send, sdap_autofs_handler_recv, id_ctx->sdap_id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
 
     return ret;
 }

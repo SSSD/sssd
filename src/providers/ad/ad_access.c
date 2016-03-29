@@ -457,73 +457,92 @@ ad_access_recv(struct tevent_req *req)
     return EOK;
 }
 
-static void
-ad_access_done(struct tevent_req *req);
+struct ad_pam_access_handler_state {
+    struct pam_data *pd;
+};
 
-void
-ad_access_handler(struct be_req *breq)
+static void ad_pam_access_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ad_pam_access_handler_send(TALLOC_CTX *mem_ctx,
+                           struct ad_access_ctx *access_ctx,
+                           struct pam_data *pd,
+                           struct dp_req_params *params)
 {
+    struct ad_pam_access_handler_state *state;
+    struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct ad_access_ctx *access_ctx =
-            talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
-                            struct ad_access_ctx);
-    struct pam_data *pd =
-                    talloc_get_type(be_req_get_data(breq), struct pam_data);
-    struct sss_domain_info *domain;
 
-    /* Handle subdomains */
-    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
-        domain = find_domain_by_name(be_ctx->domain, pd->domain, true);
-        if (domain == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
-            be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
-            return;
-        }
-    } else {
-        domain = be_ctx->domain;
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_pam_access_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
     }
 
-    /* Verify access control: locked accounts, ldap policies, GPOs, etc */
-    req = ad_access_send(breq, be_ctx->ev, be_ctx, domain,
-                         access_ctx, pd);
-    if (!req) {
-        be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
-        return;
+    state->pd = pd;
+
+    subreq = ad_access_send(state, params->ev, params->be_ctx,
+                            params->domain, access_ctx, pd);
+    if (subreq == NULL) {
+        pd->pam_status = PAM_SYSTEM_ERR;
+        goto immediately;
     }
-    tevent_req_set_callback(req, ad_access_done, breq);
+
+    tevent_req_set_callback(subreq, ad_pam_access_handler_done, req);
+
+    return req;
+
+immediately:
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
 }
 
-static void
-ad_access_done(struct tevent_req *req)
+static void ad_pam_access_handler_done(struct tevent_req *subreq)
 {
+    struct ad_pam_access_handler_state *state;
+    struct tevent_req *req;
     errno_t ret;
-    struct be_req *breq =
-            tevent_req_callback_data(req, struct be_req);
-    struct pam_data *pd =
-                    talloc_get_type(be_req_get_data(breq), struct pam_data);
 
-    ret = ad_access_recv(req);
-    talloc_zfree(req);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_pam_access_handler_state);
+
+    ret = ad_access_recv(subreq);
+    talloc_free(subreq);
     switch (ret) {
     case EOK:
-        pd->pam_status = PAM_SUCCESS;
-        be_req_terminate(breq, DP_ERR_OK, PAM_SUCCESS, NULL);
-        return;
+        state->pd->pam_status = PAM_SUCCESS;
+        break;
     case ERR_ACCESS_DENIED:
-        /* We got the proper denial */
-        pd->pam_status = PAM_PERM_DENIED;
-        be_req_terminate(breq, DP_ERR_OK, PAM_PERM_DENIED, NULL);
-        return;
+        state->pd->pam_status = PAM_PERM_DENIED;
+        break;
     case ERR_ACCOUNT_EXPIRED:
-        pd->pam_status = PAM_ACCT_EXPIRED;
-        be_req_terminate(breq, DP_ERR_OK, PAM_ACCT_EXPIRED, NULL);
-        return;
+        state->pd->pam_status = PAM_ACCT_EXPIRED;
+        break;
     default:
-        /* Something went wrong */
-        pd->pam_status = PAM_SYSTEM_ERR;
-        be_req_terminate(breq, DP_ERR_FATAL,
-                         PAM_SYSTEM_ERR, sss_strerror(ret));
-        return;
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        break;
     }
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+}
+
+errno_t
+ad_pam_access_handler_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             struct pam_data **_data)
+{
+    struct ad_pam_access_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct ad_pam_access_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
 }

@@ -42,30 +42,10 @@
 #include "providers/ad/ad_subdomains.h"
 #include "providers/ad/ad_domain_info.h"
 
-struct ad_options *ad_options = NULL;
-
-static void
-ad_shutdown(struct be_req *req);
-
-struct bet_ops ad_id_ops = {
-    .handler = ad_account_info_handler,
-    .finalize = ad_shutdown,
-    .check_online = ad_check_online
-};
-
-struct bet_ops ad_auth_ops = {
-    .handler = krb5_pam_handler,
-    .finalize = NULL
-};
-
-struct bet_ops ad_chpass_ops = {
-    .handler = krb5_pam_handler,
-    .finalize = NULL
-};
-
-struct bet_ops ad_access_ops = {
-    .handler = ad_access_handler,
-    .finalize = NULL
+struct ad_init_ctx {
+    struct ad_options *options;
+    struct ad_id_ctx *id_ctx;
+    struct krb5_ctx *auth_ctx;
 };
 
 #define AD_COMPAT_ON "1"
@@ -119,7 +99,7 @@ static int map_sasl2sssd_log_level(int sasl_level)
     return sssd_level;
 }
 
-int ad_sasl_log(void *context, int level, const char *message)
+static int ad_sasl_log(void *context, int level, const char *message)
 {
     int sssd_level;
 
@@ -137,6 +117,7 @@ static const sasl_callback_t ad_sasl_callbacks[] = {
     { SASL_CB_LOG, (sss_sasl_gen_cb_fn)ad_sasl_log, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
+
 /* This is quite a hack, we *try* to fool openldap libraries by initializing
  * sasl first so we can pass in the SASL_CB_GETOPT callback we need to set some
  * options. Should be removed as soon as openldap exposes a way to do that */
@@ -149,26 +130,25 @@ static void ad_sasl_initialize(void)
     (void)sasl_client_init(ad_sasl_callbacks);
 }
 
-static errno_t
-common_ad_init(struct be_ctx *bectx)
+static errno_t ad_init_options(TALLOC_CTX *mem_ctx,
+                               struct be_ctx *be_ctx,
+                               struct ad_options **_ad_options)
 {
-    errno_t ret;
+    struct ad_options *ad_options;
     char *ad_servers = NULL;
     char *ad_backup_servers = NULL;
     char *ad_realm;
+    errno_t ret;
 
     ad_sasl_initialize();
 
     /* Get AD-specific options */
-    ret = ad_get_common_options(bectx, bectx->cdb,
-                                bectx->conf_path,
-                                bectx->domain,
-                                &ad_options);
+    ret = ad_get_common_options(mem_ctx, be_ctx->cdb, be_ctx->conf_path,
+                                be_ctx->domain, &ad_options);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not parse common options: [%s]\n",
-               strerror(ret));
-        goto done;
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not parse common options "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        return ret;
     }
 
     ad_servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
@@ -176,180 +156,165 @@ common_ad_init(struct be_ctx *bectx)
     ad_realm = dp_opt_get_string(ad_options->basic, AD_KRB5_REALM);
 
     /* Set up the failover service */
-    ret = ad_failover_init(ad_options, bectx, ad_servers, ad_backup_servers, ad_realm,
-                           AD_SERVICE_NAME, AD_GC_SERVICE_NAME,
+    ret = ad_failover_init(ad_options, be_ctx, ad_servers, ad_backup_servers,
+                           ad_realm, AD_SERVICE_NAME, AD_GC_SERVICE_NAME,
                            dp_opt_get_string(ad_options->basic, AD_DOMAIN),
                            &ad_options->service);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to init AD failover service: [%s]\n",
-               strerror(ret));
-        goto done;
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init AD failover service: "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        talloc_free(ad_options);
+        return ret;
     }
 
-    ret = EOK;
-done:
-    return ret;
+    *_ad_options = ad_options;
+
+    return EOK;
 }
 
-int
-sssm_ad_id_init(struct be_ctx *bectx,
-                struct bet_ops **ops,
-                void **pvt_data)
+static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
+                                  struct ad_options *ad_options)
 {
-    errno_t ret;
-    struct ad_id_ctx *ad_ctx;
+    struct ad_srv_plugin_ctx *srv_ctx;
     const char *hostname;
     const char *ad_domain;
     const char *ad_site_override;
-    struct ad_srv_plugin_ctx *srv_ctx;
+    bool sites_enabled;
+    errno_t ret;
 
-    if (!ad_options) {
-        ret = common_ad_init(bectx);
-        if (ret != EOK) {
-            return ret;
-        }
-    }
-
-    if (ad_options->id_ctx) {
-        /* already initialized */
-        *ops = &ad_id_ops;
-        *pvt_data = ad_options->id_ctx;
-        return EOK;
-    }
-
-
-    ad_ctx = ad_id_ctx_init(ad_options, bectx);
-    if (ad_ctx == NULL) {
-        return ENOMEM;
-    }
-    ad_options->id_ctx = ad_ctx;
-
-    ret = ad_dyndns_init(ad_ctx->sdap_id_ctx->be, ad_options);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-             "Failure setting up automatic DNS update\n");
-        /* Continue without DNS updates */
-    }
-
-    ret = sdap_setup_child();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "setup_child failed [%d][%s].\n",
-               ret, strerror(ret));
-        goto done;
-    }
-
-    /* Set up various SDAP options */
-    ret = ad_get_id_options(ad_options, bectx->cdb,
-                            bectx->conf_path,
-                            &ad_ctx->sdap_id_ctx->opts);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sdap_id_setup_tasks(bectx,
-                              ad_ctx->sdap_id_ctx,
-                              ad_ctx->sdap_id_ctx->opts->sdom,
-                              ad_enumeration_send,
-                              ad_enumeration_recv,
-                              ad_ctx);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ad_ctx->sdap_id_ctx->opts->sdom->pvt = ad_ctx;
-
-    /* Set up the ID mapping object */
-    ret = sdap_idmap_init(ad_ctx->sdap_id_ctx, ad_ctx->sdap_id_ctx,
-                          &ad_ctx->sdap_id_ctx->opts->idmap_ctx);
-    if (ret != EOK) goto done;
-
-    ret = setup_tls_config(ad_ctx->sdap_id_ctx->opts->basic);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "setup_tls_config failed [%s]\n", strerror(ret));
-        goto done;
-    }
-
-    /* setup SRV lookup plugin */
     hostname = dp_opt_get_string(ad_options->basic, AD_HOSTNAME);
-    if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_DNS_SITES)) {
-        /* use AD plugin */
-        ad_domain = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
-        ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
+    ad_domain = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
+    ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
+    sites_enabled = dp_opt_get_bool(ad_options->basic, AD_ENABLE_DNS_SITES);
 
-        srv_ctx = ad_srv_plugin_ctx_init(bectx, bectx->be_res,
-                                         default_host_dbs, ad_options->id,
-                                         hostname, ad_domain,
-                                         ad_site_override);
-        if (srv_ctx == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
-            ret = ENOMEM;
-            goto done;
-        }
 
-        be_fo_set_srv_lookup_plugin(bectx, ad_srv_plugin_send,
-                                    ad_srv_plugin_recv, srv_ctx, "AD");
-    } else {
-        /* fall back to standard plugin */
-        ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
+    if (!sites_enabled) {
+        ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, hostname);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
-                                        "[%d]: %s\n", ret, strerror(ret));
-            goto done;
-        }
-    }
-
-    /* setup periodical refresh of expired records */
-    ret = sdap_refresh_init(bectx->refresh_ctx, ad_ctx->sdap_id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    ret = ad_machine_account_password_renewal_init(bectx, ad_options);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot setup task for machine account "
-                                   "password renewal.\n");
-        goto done;
-    }
-
-    *ops = &ad_id_ops;
-    *pvt_data = ad_ctx;
-
-    ret = EOK;
-done:
-    if (ret != EOK) {
-        talloc_zfree(ad_options->id_ctx);
-    }
-    return ret;
-}
-
-int
-sssm_ad_auth_init(struct be_ctx *bectx,
-                  struct bet_ops **ops,
-                  void **pvt_data)
-{
-    errno_t ret;
-    struct krb5_ctx *krb5_auth_ctx = NULL;
-
-    if (!ad_options) {
-        ret = common_ad_init(bectx);
-        if (ret != EOK) {
+                  "[%d]: %s\n", ret, sss_strerror(ret));
             return ret;
         }
-    }
 
-    if (ad_options->auth_ctx) {
-        /* Already initialized */
-        *ops = &ad_auth_ops;
-        *pvt_data = ad_options->auth_ctx;
         return EOK;
     }
 
-    krb5_auth_ctx = talloc_zero(NULL, struct krb5_ctx);
-    if (!krb5_auth_ctx) {
+    srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx->be_res,
+                                     default_host_dbs, ad_options->id,
+                                     hostname, ad_domain,
+                                     ad_site_override);
+    if (srv_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
+        return ENOMEM;
+    }
+
+    be_fo_set_srv_lookup_plugin(be_ctx, ad_srv_plugin_send,
+                                ad_srv_plugin_recv, srv_ctx, "AD");
+
+    return EOK;
+}
+
+static errno_t ad_init_sdap_access_ctx(struct ad_access_ctx *access_ctx)
+{
+    struct dp_option *options = access_ctx->ad_options;
+    struct sdap_id_ctx *sdap_id_ctx = access_ctx->ad_id_ctx->sdap_id_ctx;
+    struct sdap_access_ctx *sdap_access_ctx;
+    const char *filter;
+
+    sdap_access_ctx = talloc_zero(access_ctx, struct sdap_access_ctx);
+    if (sdap_access_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    sdap_access_ctx->id_ctx = sdap_id_ctx;
+
+
+    /* If ad_access_filter is set, the value of ldap_acess_order is
+     * expire, filter, otherwise only expire.
+     */
+    sdap_access_ctx->access_rule[0] = LDAP_ACCESS_EXPIRE;
+    filter = dp_opt_get_cstring(options, AD_ACCESS_FILTER);
+    if (filter != NULL) {
+        /* The processing of the extended filter is performed during the access
+         * check itself.
+         */
+        sdap_access_ctx->filter = talloc_strdup(sdap_access_ctx, filter);
+        if (sdap_access_ctx->filter == NULL) {
+            talloc_free(sdap_access_ctx);
+            return ENOMEM;
+        }
+
+        sdap_access_ctx->access_rule[1] = LDAP_ACCESS_FILTER;
+        sdap_access_ctx->access_rule[2] = LDAP_ACCESS_EMPTY;
+    } else {
+        sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
+    }
+
+    access_ctx->sdap_access_ctx = sdap_access_ctx;
+
+    return EOK;
+}
+
+errno_t ad_gpo_parse_map_options(struct ad_access_ctx *access_ctx);
+
+static errno_t ad_init_gpo(struct ad_access_ctx *access_ctx)
+{
+    struct dp_option *options;
+    const char *gpo_access_control_mode;
+    int gpo_cache_timeout;
+    errno_t ret;
+
+    options = access_ctx->ad_options;
+
+    /* GPO access control mode */
+    gpo_access_control_mode = dp_opt_get_string(options, AD_GPO_ACCESS_CONTROL);
+    if (gpo_access_control_mode == NULL) {
+        return EINVAL;
+    } else if (strcasecmp(gpo_access_control_mode, "disabled") == 0) {
+        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_DISABLED;
+    } else if (strcasecmp(gpo_access_control_mode, "permissive") == 0) {
+        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_PERMISSIVE;
+    } else if (strcasecmp(gpo_access_control_mode, "enforcing") == 0) {
+        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_ENFORCING;
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized GPO access control mode: "
+              "%s\n", gpo_access_control_mode);
+        return EINVAL;
+    }
+
+    /* GPO cache timeout */
+    gpo_cache_timeout = dp_opt_get_int(options, AD_GPO_CACHE_TIMEOUT);
+    access_ctx->gpo_cache_timeout = gpo_cache_timeout;
+
+    /* GPO logon maps */
+    ret = sss_hash_create(access_ctx, 10, &access_ctx->gpo_map_options_table);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not create gpo_map_options "
+              "hash table [%d]: %s\n", ret, sss_strerror(ret));
+        return ret;
+    }
+
+    ret = ad_gpo_parse_map_options(access_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not parse gpo_map_options "
+              "(invalid config) [%d]: %s\n", ret, sss_strerror(ret));
+        talloc_zfree(access_ctx->gpo_map_options_table);
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t ad_init_auth_ctx(TALLOC_CTX *mem_ctx,
+                                struct be_ctx *be_ctx,
+                                struct ad_options *ad_options,
+                                struct krb5_ctx **_auth_ctx)
+{
+    struct krb5_ctx *krb5_auth_ctx;
+    errno_t ret;
+
+    krb5_auth_ctx = talloc_zero(mem_ctx, struct krb5_ctx);
+    if (krb5_auth_ctx == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -357,257 +322,324 @@ sssm_ad_auth_init(struct be_ctx *bectx,
     krb5_auth_ctx->config_type = K5C_GENERIC;
     krb5_auth_ctx->service = ad_options->service->krb5_service;
 
-    ret = ad_get_auth_options(krb5_auth_ctx, ad_options, bectx,
+    ret = ad_get_auth_options(krb5_auth_ctx, ad_options, be_ctx,
                               &krb5_auth_ctx->opts);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not determine Kerberos options\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not determine Kerberos options\n");
         goto done;
     }
 
-    ret = krb5_child_init(krb5_auth_ctx, bectx);
+    ret = krb5_child_init(krb5_auth_ctx, be_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not initialize krb5_child settings: [%s]\n",
-               strerror(ret));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not initialize krb5_child settings: "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
 
-    ad_options->auth_ctx = talloc_steal(ad_options, krb5_auth_ctx);
-    *ops = &ad_auth_ops;
-    *pvt_data = ad_options->auth_ctx;
+    ad_options->auth_ctx = krb5_auth_ctx;
+    *_auth_ctx = krb5_auth_ctx;
+
+    ret = EOK;
 
 done:
     if (ret != EOK) {
         talloc_free(krb5_auth_ctx);
     }
+
     return ret;
 }
 
-int
-sssm_ad_chpass_init(struct be_ctx *bectx,
-                    struct bet_ops **ops,
-                    void **pvt_data)
+static errno_t ad_init_misc(struct be_ctx *be_ctx,
+                            struct ad_options *ad_options,
+                            struct ad_id_ctx *ad_id_ctx,
+                            struct sdap_id_ctx *sdap_id_ctx)
 {
     errno_t ret;
 
-    if (!ad_options) {
-        ret = common_ad_init(bectx);
+    ret = ad_dyndns_init(be_ctx, ad_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failure setting up automatic DNS update\n");
+        /* Continue without DNS updates */
+    }
+
+    ret = setup_tls_config(sdap_id_ctx->opts->basic);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get TLS options [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    ret = sdap_idmap_init(sdap_id_ctx, sdap_id_ctx,
+                          &sdap_id_ctx->opts->idmap_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not initialize ID mapping. In case ID mapping properties "
+              "changed on the server, please remove the SSSD database\n");
+        return ret;
+    }
+
+    ret = sdap_id_setup_tasks(be_ctx, sdap_id_ctx, sdap_id_ctx->opts->sdom,
+                              ad_enumeration_send, ad_enumeration_recv,
+                              ad_id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup background tasks "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        return ret;
+    }
+
+    sdap_id_ctx->opts->sdom->pvt = ad_id_ctx;
+
+    ret = sdap_setup_child();
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_setup_child() failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    ret = ad_init_srv_plugin(be_ctx, ad_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup SRV plugin [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    ret = sdap_refresh_init(be_ctx->refresh_ctx, sdap_id_ctx);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
+              "will not work [%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    ret = ad_machine_account_password_renewal_init(be_ctx, ad_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot setup task for machine account "
+                                   "password renewal.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t sssm_ad_init(TALLOC_CTX *mem_ctx,
+                     struct be_ctx *be_ctx,
+                     struct data_provider *provider,
+                     const char *module_name,
+                     void **_module_data)
+{
+    struct ad_init_ctx *init_ctx;
+    errno_t ret;
+
+    init_ctx = talloc_zero(mem_ctx, struct ad_init_ctx);
+    if (init_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* Always initialize options since it is needed everywhere. */
+    ret = ad_init_options(mem_ctx, be_ctx, &init_ctx->options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to init AD options [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    /* Always initialize id_ctx since it is needed everywhere. */
+    init_ctx->id_ctx = ad_id_ctx_init(init_ctx->options, be_ctx);
+    if (init_ctx->id_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize AD ID context\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    init_ctx->options->id_ctx = init_ctx->id_ctx;
+
+    ret = ad_get_id_options(init_ctx->options, be_ctx->cdb, be_ctx->conf_path,
+                            &init_ctx->id_ctx->sdap_id_ctx->opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to init AD id options\n");
+        return ret;
+    }
+
+    /* Setup miscellaneous things. */
+    ret = ad_init_misc(be_ctx, init_ctx->options, init_ctx->id_ctx,
+                       init_ctx->id_ctx->sdap_id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to init AD module "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Initialize auth_ctx only if one of the target is enabled. */
+    if (dp_target_enabled(provider, module_name, DPT_AUTH, DPT_CHPASS)) {
+        ret = ad_init_auth_ctx(init_ctx, be_ctx, init_ctx->options,
+                               &init_ctx->auth_ctx);
         if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
             return ret;
         }
     }
 
-    if (ad_options->auth_ctx) {
-        /* Already initialized */
-        *ops = &ad_chpass_ops;
-        *pvt_data = ad_options->auth_ctx;
-        return EOK;
+    *_module_data = init_ctx;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(init_ctx);
     }
 
-    ret = sssm_ad_auth_init(bectx, ops, pvt_data);
-    *ops = &ad_chpass_ops;
-    ad_options->auth_ctx = *pvt_data;
     return ret;
 }
 
-/* GPO parsing of PAM service names to Windows Logon Rights*/
-errno_t ad_gpo_parse_map_options(struct ad_access_ctx *access_ctx);
-
-int
-sssm_ad_access_init(struct be_ctx *bectx,
-                    struct bet_ops **ops,
-                    void **pvt_data)
+errno_t sssm_ad_id_init(TALLOC_CTX *mem_ctx,
+                        struct be_ctx *be_ctx,
+                        void *module_data,
+                        struct dp_method *dp_methods)
 {
-    errno_t ret;
+    struct ad_init_ctx *init_ctx;
+    struct ad_id_ctx *id_ctx;
+
+    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+    id_ctx = init_ctx->id_ctx;
+
+    dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
+                  ad_account_info_handler_send, ad_account_info_handler_recv, id_ctx,
+                  struct ad_id_ctx, struct be_acct_req, struct dp_reply_std);
+
+    dp_set_method(dp_methods, DPM_CHECK_ONLINE,
+                  sdap_online_check_handler_send, sdap_online_check_handler_recv, id_ctx->sdap_id_ctx,
+                  struct sdap_id_ctx, void, struct dp_reply_std);
+
+    return EOK;
+}
+
+errno_t sssm_ad_auth_init(TALLOC_CTX *mem_ctx,
+                          struct be_ctx *be_ctx,
+                          void *module_data,
+                          struct dp_method *dp_methods)
+{
+    struct ad_init_ctx *init_ctx;
+    struct krb5_ctx *auth_ctx;
+
+    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+    auth_ctx = init_ctx->auth_ctx;
+
+    dp_set_method(dp_methods, DPM_AUTH_HANDLER,
+                  krb5_pam_handler_send, krb5_pam_handler_recv, auth_ctx,
+                  struct krb5_ctx, struct pam_data, struct pam_data *);
+
+    return EOK;
+}
+
+errno_t sssm_ad_chpass_init(TALLOC_CTX *mem_ctx,
+                            struct be_ctx *be_ctx,
+                            void *module_data,
+                            struct dp_method *dp_methods)
+{
+    return sssm_ad_auth_init(mem_ctx, be_ctx, module_data, dp_methods);
+}
+
+errno_t sssm_ad_access_init(TALLOC_CTX *mem_ctx,
+                            struct be_ctx *be_ctx,
+                            void *module_data,
+                            struct dp_method *dp_methods)
+{
+    struct ad_init_ctx *init_ctx;
     struct ad_access_ctx *access_ctx;
-    struct ad_id_ctx *ad_id_ctx;
-    const char *filter;
-    const char *gpo_access_control_mode;
-    int gpo_cache_timeout;
+    errno_t ret;
 
-    access_ctx = talloc_zero(bectx, struct ad_access_ctx);
-    if (!access_ctx) return ENOMEM;
+    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
 
-    ret = sssm_ad_id_init(bectx, ops, (void **)&ad_id_ctx);
-    if (ret != EOK) {
-        goto fail;
+    access_ctx = talloc_zero(mem_ctx, struct ad_access_ctx);
+    if (access_ctx == NULL) {
+        return ENOMEM;
     }
-    access_ctx->ad_id_ctx = ad_id_ctx;
 
-    ret = dp_copy_options(access_ctx, ad_options->basic, AD_OPTS_BASIC,
+    access_ctx->ad_id_ctx = init_ctx->id_ctx;
+
+    ret = dp_copy_options(access_ctx, init_ctx->options->basic, AD_OPTS_BASIC,
                           &access_ctx->ad_options);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not initialize access provider options: [%s]\n",
-               strerror(ret));
-        goto fail;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not initialize access provider "
+              "options [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
-    /* Set up an sdap_access_ctx for checking expired/locked accounts */
-    access_ctx->sdap_access_ctx =
-            talloc_zero(access_ctx, struct sdap_access_ctx);
-    if (!access_ctx->sdap_access_ctx) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    access_ctx->sdap_access_ctx->id_ctx = ad_id_ctx->sdap_id_ctx;
-
-    /* If ad_access_filter is set, the value of ldap_acess_order is
-     * expire, filter, otherwise only expire
-     */
-    access_ctx->sdap_access_ctx->access_rule[0] = LDAP_ACCESS_EXPIRE;
-    filter = dp_opt_get_cstring(access_ctx->ad_options, AD_ACCESS_FILTER);
-    if (filter != NULL) {
-        /* The processing of the extended filter is performed during the access
-         * check itself
-         */
-        access_ctx->sdap_access_ctx->filter = talloc_strdup(
-                                                  access_ctx->sdap_access_ctx,
-                                                  filter);
-        if (access_ctx->sdap_access_ctx->filter == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_FILTER;
-        access_ctx->sdap_access_ctx->access_rule[2] = LDAP_ACCESS_EMPTY;
-    } else {
-        access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
-    }
-
-    /* GPO access control mode */
-    gpo_access_control_mode =
-        dp_opt_get_string(access_ctx->ad_options, AD_GPO_ACCESS_CONTROL);
-    if (strcasecmp(gpo_access_control_mode, "disabled") == 0) {
-        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_DISABLED;
-    } else if (strcasecmp(gpo_access_control_mode, "permissive") == 0) {
-        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_PERMISSIVE;
-    } else if (strcasecmp(gpo_access_control_mode, "enforcing") == 0) {
-        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_ENFORCING;
-    } else {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unrecognized GPO access control mode: %s\n",
-              gpo_access_control_mode);
-        ret = EINVAL;
-        goto fail;
-    }
-
-    /* GPO cache timeout */
-    gpo_cache_timeout =
-        dp_opt_get_int(access_ctx->ad_options, AD_GPO_CACHE_TIMEOUT);
-    access_ctx->gpo_cache_timeout = gpo_cache_timeout;
-
-    /* GPO logon maps */
-
-    ret = sss_hash_create(access_ctx, 10, &access_ctx->gpo_map_options_table);
+    ret = ad_init_sdap_access_ctx(access_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not create gpo_map_options hash table: [%s]\n",
-              strerror(ret));
-        goto fail;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not initialize sdap access context "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
-    ret = ad_gpo_parse_map_options(access_ctx);
+    ret = ad_init_gpo(access_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not parse gpo_map_options (invalid config): [%s]\n",
-              strerror(ret));
-        goto fail;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not initialize GPO "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
-    *ops = &ad_access_ops;
-    *pvt_data = access_ctx;
+    dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
+                  ad_pam_access_handler_send, ad_pam_access_handler_recv, access_ctx,
+                  struct ad_access_ctx, struct pam_data, struct pam_data *);
 
-    return EOK;
+    ret = EOK;
 
-fail:
-    talloc_free(access_ctx);
+done:
+    if (ret != EOK) {
+        talloc_free(access_ctx);
+    }
+
     return ret;
 }
 
-static void
-ad_shutdown(struct be_req *req)
+errno_t sssm_ad_autofs_init(TALLOC_CTX *mem_ctx,
+                            struct be_ctx *be_ctx,
+                            void *module_data,
+                            struct dp_method *dp_methods)
 {
-    /* TODO: Clean up any internal data */
-    sdap_handler_done(req, DP_ERR_OK, EOK, NULL);
-}
+#ifdef BUILD_AUTOFS
+    struct ad_init_ctx *init_ctx;
 
-int sssm_ad_subdomains_init(struct be_ctx *bectx,
-                            struct bet_ops **ops,
-                            void **pvt_data)
-{
-    int ret;
-    struct ad_id_ctx *id_ctx;
-    const char *ad_domain;
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD autofs handler\n");
+    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
 
-    ret = sssm_ad_id_init(bectx, ops, (void **) &id_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ad_id_init failed.\n");
-        return ret;
-    }
-
-    if (ad_options == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Global AD options not available.\n");
-        return EINVAL;
-    }
-
-    ad_domain = dp_opt_get_cstring(ad_options->basic, AD_DOMAIN);
-
-    ret = ad_subdom_init(bectx, id_ctx, ad_domain, ops, pvt_data);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ad_subdom_init failed.\n");
-        return ret;
-    }
-
-    return EOK;
-}
-
-
-int sssm_ad_sudo_init(struct be_ctx *bectx,
-                      struct bet_ops **ops,
-                      void **pvt_data)
-{
-#ifdef BUILD_SUDO
-    struct ad_id_ctx *id_ctx;
-    int ret;
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD sudo handler\n");
-
-    ret = sssm_ad_id_init(bectx, ops, (void **) &id_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ad_id_init failed.\n");
-        return ret;
-    }
-
-    return ad_sudo_init(bectx, id_ctx, ops, pvt_data);
+    return ad_autofs_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 #else
-    DEBUG(SSSDBG_MINOR_FAILURE, "Sudo init handler called but SSSD is "
-                                "built without sudo support, ignoring\n");
+    DEBUG(SSSDBG_MINOR_FAILURE, "Autofs init handler called but SSSD is "
+                                "built without autofs support, ignoring\n");
     return EOK;
 #endif
 }
 
-int sssm_ad_autofs_init(struct be_ctx *bectx,
-                        struct bet_ops **ops,
-                        void **pvt_data)
+errno_t sssm_ad_subdomains_init(TALLOC_CTX *mem_ctx,
+                                struct be_ctx *be_ctx,
+                                void *module_data,
+                                struct dp_method *dp_methods)
 {
-#ifdef BUILD_AUTOFS
-    struct ad_id_ctx *id_ctx;
-    int ret;
+    struct ad_init_ctx *init_ctx;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD autofs handler\n");
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD subdomains handler\n");
+    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
 
-    ret = sssm_ad_id_init(bectx, ops, (void **) &id_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ad_id_init failed.\n");
-        return ret;
-    }
+    return ad_subdomains_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
+}
 
-    return ad_autofs_init(bectx, id_ctx, ops, pvt_data);
+errno_t sssm_ad_sudo_init(TALLOC_CTX *mem_ctx,
+                          struct be_ctx *be_ctx,
+                          void *module_data,
+                          struct dp_method *dp_methods)
+{
+#ifdef BUILD_SUDO
+    struct ad_init_ctx *init_ctx;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD sudo handler\n");
+    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+
+    return ad_sudo_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 #else
-    DEBUG(SSSDBG_MINOR_FAILURE, "Autofs init handler called but SSSD is "
-                                "built without autofs support, ignoring\n");
+    DEBUG(SSSDBG_MINOR_FAILURE, "Sudo init handler called but SSSD is "
+                                "built without sudo support, ignoring\n");
     return EOK;
 #endif
 }

@@ -1108,8 +1108,9 @@ struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    subreq = be_get_account_info_send(state, ev, NULL,
-                                      ipa_ctx->sdap_id_ctx->be, ar);
+    subreq = dp_req_send(state, ipa_ctx->sdap_id_ctx->be->provider, NULL,
+                         ar->domain, "External Member",
+                         DPT_ID, DPM_ACCOUNT_HANDLER, 0, ar, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -1135,19 +1136,22 @@ static void ipa_ext_group_member_done(struct tevent_req *subreq)
     struct ipa_ext_member_state *state = tevent_req_data(req,
                                                 struct ipa_ext_member_state);
     errno_t ret;
-    int err_maj;
-    int err_min;
-    const char *err_msg;
     struct ldb_message *msg;
     struct sysdb_attrs **members;
+    struct dp_reply_std *reply;
 
-    ret = be_get_account_info_recv(subreq, state,
-                                   &err_maj, &err_min, &err_msg);
+
+    ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
     talloc_free(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "be request failed %d:%d: %s\n", err_maj, err_min, err_msg);
+        DEBUG(SSSDBG_OP_FAILURE, "dp_req_recv failed\n");
         tevent_req_error(req, ret);
+        return;
+    } else if (reply->dp_error != DP_ERR_OK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot refresh data from DP: %u,%u: %s\n",
+              reply->dp_error, reply->error, reply->message);
+        tevent_req_error(req, EIO);
         return;
     }
 

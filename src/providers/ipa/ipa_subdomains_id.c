@@ -40,7 +40,6 @@ static struct tevent_req *
 ipa_srv_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
-                     struct be_req *be_req,
                      struct sysdb_attrs *override_attrs,
                      struct be_acct_req *ar);
 static errno_t
@@ -53,7 +52,6 @@ struct ipa_subdomain_account_state {
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
-    struct be_req *be_req;
     struct be_acct_req *ar;
 
     bool ipa_server_mode;
@@ -75,7 +73,6 @@ static errno_t ipa_subdomain_account_get_original_step(struct tevent_req *req,
 struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
                                               struct ipa_id_ctx *ipa_ctx,
-                                              struct be_req *be_req,
                                               struct be_acct_req *ar)
 {
     struct tevent_req *req;
@@ -109,7 +106,6 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
         goto fail;
     }
     state->sysdb = state->domain->sysdb;
-    state->be_req = be_req;
     state->ar = ar;
     state->ipa_server_mode = dp_opt_get_bool(state->ipa_ctx->ipa_options->basic,
                                              IPA_SERVER_MODE);
@@ -277,7 +273,7 @@ static errno_t ipa_subdomain_account_get_original_step(struct tevent_req *req,
 
     if (state->ipa_server_mode) {
         subreq = ipa_srv_ad_acct_send(state, state->ev, state->ipa_ctx,
-                                      state->be_req, state->override_attrs, ar);
+                                      state->override_attrs, ar);
     } else {
         subreq = ipa_get_subdom_acct_send(state, state->ev, state->ipa_ctx,
                                           state->override_attrs, ar);
@@ -402,7 +398,6 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
         case BE_REQ_USER:
         case BE_REQ_GROUP:
         case BE_REQ_BY_SECID:
-        case BE_REQ_BY_CERT:
         case BE_REQ_USER_AND_GROUP:
             ret = EOK;
             break;
@@ -625,7 +620,6 @@ struct ipa_get_ad_acct_state {
     int dp_error;
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
-    struct be_req *be_req;
     struct be_acct_req *ar;
     struct sss_domain_info *obj_dom;
     char *object_sid;
@@ -646,7 +640,6 @@ static struct tevent_req *
 ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
-                     struct be_req *be_req,
                      struct sysdb_attrs *override_attrs,
                      struct be_acct_req *ar)
 {
@@ -665,7 +658,6 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     state->dp_error = -1;
     state->ev = ev;
     state->ipa_ctx = ipa_ctx;
-    state->be_req = be_req;
     state->ar = ar;
     state->obj_msg = NULL;
     state->override_attrs = override_attrs;
@@ -715,7 +707,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    subreq = ad_handle_acct_info_send(req, be_req, ar, sdap_id_ctx,
+    subreq = ad_handle_acct_info_send(req, ar, sdap_id_ctx,
                                       ad_id_ctx->ad_options, sdom, clist);
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -1404,7 +1396,6 @@ ipa_get_ad_acct_recv(struct tevent_req *req, int *dp_error_out)
 struct ipa_srv_ad_acct_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
-    struct be_req *be_req;
     struct sysdb_attrs *override_attrs;
     struct be_acct_req *ar;
 
@@ -1423,7 +1414,6 @@ static struct tevent_req *
 ipa_srv_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
-                     struct be_req *be_req,
                      struct sysdb_attrs *override_attrs,
                      struct be_acct_req *ar)
 {
@@ -1438,12 +1428,11 @@ ipa_srv_ad_acct_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->ipa_ctx = ipa_ctx;
-    state->be_req = be_req;
     state->override_attrs = override_attrs;
     state->ar = ar;
     state->retry = true;
     state->dp_error = DP_ERR_FATAL;
-    state->be_ctx = be_req_get_be_ctx(state->be_req);
+    state->be_ctx = ipa_ctx->sdap_id_ctx->be;
 
     state->obj_dom = find_domain_by_name(
                                   state->ipa_ctx->sdap_id_ctx->be->domain,
@@ -1475,7 +1464,7 @@ static int ipa_srv_ad_acct_lookup_step(struct tevent_req *req)
 
     DEBUG(SSSDBG_TRACE_FUNC, "Looking up AD account\n");
     subreq = ipa_get_ad_acct_send(state, state->ev, state->ipa_ctx,
-                                  state->be_req, state->override_attrs,
+                                  state->override_attrs,
                                   state->ar);
     if (subreq == NULL) {
         return ENOMEM;

@@ -25,10 +25,10 @@
 #ifndef _SDAP_AUTOFS_H_
 #define _SDAP_AUTOFS_H_
 
-int sdap_autofs_init(struct be_ctx *be_ctx,
-                     struct sdap_id_ctx *id_ctx,
-                     struct bet_ops **ops,
-                     void **pvt_data);
+errno_t sdap_autofs_init(TALLOC_CTX *mem_ctx,
+                         struct be_ctx *be_ctx,
+                         struct sdap_id_ctx *id_ctx,
+                         struct dp_method *dp_methods);
 
 struct tevent_req *
 sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,

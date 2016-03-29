@@ -22,16 +22,16 @@
 #include "providers/ad/ad_common.h"
 #include "providers/ldap/sdap_autofs.h"
 
-int ad_autofs_init(struct be_ctx *be_ctx,
-                   struct ad_id_ctx *id_ctx,
-                   struct bet_ops **ops,
-                   void **pvt_data)
+errno_t ad_autofs_init(TALLOC_CTX *mem_ctx,
+                       struct be_ctx *be_ctx,
+                       struct ad_id_ctx *id_ctx,
+                       struct dp_method *dp_methods)
 {
     int ret;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs AD back end\n");
 
-    ret = sdap_autofs_init(be_ctx, id_ctx->sdap_id_ctx, ops, pvt_data);
+    ret = sdap_autofs_init(mem_ctx, be_ctx, id_ctx->sdap_id_ctx, dp_methods);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD autofs [%d]: %s\n",
                                  ret, sss_strerror(ret));

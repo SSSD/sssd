@@ -49,7 +49,15 @@ struct ad_access_ctx {
     enum gpo_map_type gpo_default_right;
 };
 
-void
-ad_access_handler(struct be_req *breq);
+struct tevent_req *
+ad_pam_access_handler_send(TALLOC_CTX *mem_ctx,
+                           struct ad_access_ctx *access_ctx,
+                           struct pam_data *pd,
+                           struct dp_req_params *params);
+
+errno_t
+ad_pam_access_handler_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             struct pam_data **_data);
 
 #endif /* AD_ACCESS_H_ */

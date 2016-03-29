@@ -542,7 +542,7 @@ bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
     TALLOC_CTX *tmp_ctx = NULL;
 
     if (dp_opt_get_bool(ctx->id_ctx->opts->basic, SDAP_ID_MAPPING)
-        && 0 == strcmp("ldap", ctx->id_ctx->be->bet_info[BET_ID].mod_name)) {
+        && dp_target_enabled(ctx->id_ctx->be->provider, "ldap", DPT_ID)) {
         return true;
     }
 

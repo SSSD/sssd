@@ -137,15 +137,34 @@ struct pc_init_ctx {
     struct sbus_connection *conn;
 };
 
+//int proxy_client_init(struct sbus_connection *conn, void *data);
+
 #define PROXY_CHILD_PIPE "private/proxy_child"
 #define DEFAULT_BUFSIZE 4096
 #define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
 
 /* From proxy_id.c */
-void proxy_get_account_info(struct be_req *breq);
+struct tevent_req *
+proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
+                               struct proxy_id_ctx *id_ctx,
+                               struct be_acct_req *data,
+                               struct dp_req_params *params);
+
+errno_t proxy_account_info_handler_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       struct dp_reply_std *data);
 
 /* From proxy_auth.c */
-void proxy_pam_handler(struct be_req *req);
+struct tevent_req *
+proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
+                      struct proxy_auth_ctx *proxy_auth_ctx,
+                      struct pam_data *pd,
+                      struct dp_req_params *params);
+
+errno_t
+proxy_pam_handler_recv(TALLOC_CTX *mem_ctx,
+                      struct tevent_req *req,
+                      struct pam_data **_data);
 
 /* From proxy_netgroup.c */
 errno_t get_netgroup(struct proxy_id_ctx *ctx,
@@ -166,5 +185,7 @@ get_serv_byport(struct proxy_id_ctx *ctx,
 errno_t enum_services(struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom);
+
+int proxy_client_init(struct sbus_connection *conn, void *data);
 
 #endif /* __PROXY_H__ */

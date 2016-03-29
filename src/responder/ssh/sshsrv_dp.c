@@ -25,7 +25,7 @@
 
 #include "util/util.h"
 #include "sbus/sbus_client.h"
-#include "providers/data_provider.h"
+#include "providers/data_provider/dp_responder_iface.h"
 #include "responder/common/responder.h"
 #include "responder/ssh/sshsrv_private.h"
 
@@ -104,45 +104,38 @@ sss_dp_get_ssh_host_msg(void *pvt)
     DBusMessage *msg;
     dbus_bool_t dbret;
     struct sss_dp_get_ssh_host_info *info;
-    uint32_t be_type = 0;
-    char *filter;
+    uint32_t dp_flags = 0;
 
     info = talloc_get_type(pvt, struct sss_dp_get_ssh_host_info);
 
     if (info->fast_reply) {
-        be_type |= BE_REQ_FAST;
-    }
-
-    if (info->alias) {
-        filter = talloc_asprintf(info, "name=%s:%s", info->name, info->alias);
-    } else {
-        filter = talloc_asprintf(info, "name=%s", info->name);
-    }
-    if (!filter) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
-        return NULL;
+        dp_flags |= DP_FAST_REPLY;
     }
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DATA_PROVIDER_IFACE,
-                                       DATA_PROVIDER_IFACE_HOSTHANDLER);
+                                       IFACE_DP,
+                                       IFACE_DP_HOSTHANDLER);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
-        talloc_free(filter);
         return NULL;
     }
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Creating SSH host request for [%s][%u][%s]\n",
-           info->dom->name, be_type, filter);
+          "Creating SSH host request for [%s][%u][%s][%s]\n",
+           info->dom->name, dp_flags, info->name,
+           info->alias == NULL ? "-" : info->alias);
+
+    if (info->alias == NULL) {
+        info->alias = "";
+    }
 
     dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_UINT32, &be_type,
-                                     DBUS_TYPE_STRING, &filter,
+                                     DBUS_TYPE_UINT32, &dp_flags,
+                                     DBUS_TYPE_STRING, &info->name,
+                                     DBUS_TYPE_STRING, &info->alias,
                                      DBUS_TYPE_INVALID);
-    talloc_free(filter);
     if (!dbret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
         dbus_message_unref(msg);
