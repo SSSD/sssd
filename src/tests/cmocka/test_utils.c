@@ -1131,14 +1131,14 @@ void test_expand_homedir_template(void **state)
     talloc_free(tmp_ctx);
 }
 
-static int setup_add_strings_lists(void **state)
+static int setup_leak_tests(void **state)
 {
     assert_true(leak_check_setup());
 
     return 0;
 }
 
-static int teardown_add_strings_lists(void **state)
+static int teardown_leak_tests(void **state)
 {
     assert_true(leak_check_teardown());
     return 0;
@@ -1564,6 +1564,66 @@ static void test_parse_cert_verify_opts(void **state)
     talloc_free(cv_opts);
 }
 
+static void assert_parse_fqname(const char *fqname,
+                                const char *exp_shortname,
+                                const char *exp_domname)
+{
+    errno_t ret;
+    char *shortname = NULL;
+    char *domname = NULL;
+
+    check_leaks_push(global_talloc_context);
+
+    ret = sss_parse_internal_fqname(global_talloc_context, fqname,
+                                    exp_shortname ? &shortname : NULL,
+                                    exp_domname ? &domname : NULL);
+    assert_int_equal(ret, EOK);
+
+    if (exp_shortname) {
+        assert_string_equal(shortname, exp_shortname);
+    }
+    if (exp_domname) {
+        assert_string_equal(domname, exp_domname);
+    }
+
+    talloc_free(shortname);
+    talloc_free(domname);
+
+    assert_true(check_leaks_pop(global_talloc_context) == true);
+}
+
+static void assert_fqname_unparseable(const char *fqname, errno_t retval)
+{
+    errno_t ret;
+    char *shortname = NULL;
+    char *domname = NULL;
+
+    check_leaks_push(global_talloc_context);
+
+    ret = sss_parse_internal_fqname(global_talloc_context, fqname,
+                                    &shortname, &domname);
+    assert_int_equal(ret, retval);
+    assert_null(shortname);
+    assert_null(domname);
+
+    assert_true(check_leaks_pop(global_talloc_context) == true);
+}
+
+static void test_sss_parse_internal_fqname(void **state)
+{
+    assert_parse_fqname("foo@bar", "foo", "bar");
+    assert_parse_fqname("foo@bar", NULL, "bar");
+    assert_parse_fqname("foo@bar", "foo", NULL);
+    assert_parse_fqname("foo@bar", NULL, NULL);
+    assert_parse_fqname("foo@bar@baz", "foo@bar", "baz");
+
+    assert_fqname_unparseable("foo", ERR_WRONG_NAME_FORMAT);
+    assert_fqname_unparseable("foo@", ERR_WRONG_NAME_FORMAT);
+    assert_fqname_unparseable("@", ERR_WRONG_NAME_FORMAT);
+    assert_fqname_unparseable("@bar", ERR_WRONG_NAME_FORMAT);
+    assert_fqname_unparseable(NULL, EINVAL);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1624,8 +1684,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_get_last_x_chars),
         cmocka_unit_test(test_concatenate_string_array),
         cmocka_unit_test_setup_teardown(test_add_strings_lists,
-                                        setup_add_strings_lists,
-                                        teardown_add_strings_lists),
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
         cmocka_unit_test(test_sss_write_krb5_conf_snippet),
         cmocka_unit_test_setup_teardown(test_fix_domain_in_name_list,
                                         confdb_test_setup,
@@ -1644,8 +1704,11 @@ int main(int argc, const char *argv[])
                                         unique_file_test_setup,
                                         unique_file_test_teardown),
         cmocka_unit_test_setup_teardown(test_parse_cert_verify_opts,
-                                        setup_add_strings_lists,
-                                        teardown_add_strings_lists),
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_parse_internal_fqname,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
