@@ -1624,6 +1624,32 @@ static void test_sss_parse_internal_fqname(void **state)
     assert_fqname_unparseable(NULL, EINVAL);
 }
 
+static void test_sss_create_internal_fqname(void **state)
+{
+    char *fqname = NULL;
+
+    check_leaks_push(global_talloc_context);
+
+    fqname = sss_create_internal_fqname(global_talloc_context, "foo", "bar");
+    assert_string_equal(fqname, "foo@bar");
+    talloc_zfree(fqname);
+
+    fqname = sss_create_internal_fqname(global_talloc_context, "foo", "BAR");
+    assert_string_equal(fqname, "foo@bar");
+    talloc_zfree(fqname);
+
+    fqname = sss_create_internal_fqname(global_talloc_context, "foo", NULL);
+    assert_null(fqname);
+
+    fqname = sss_create_internal_fqname(global_talloc_context, NULL, "bar");
+    assert_null(fqname);
+
+    fqname = sss_create_internal_fqname(global_talloc_context, NULL, NULL);
+    assert_null(fqname);
+
+    assert_true(check_leaks_pop(global_talloc_context) == true);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1707,6 +1733,9 @@ int main(int argc, const char *argv[])
                                         setup_leak_tests,
                                         teardown_leak_tests),
         cmocka_unit_test_setup_teardown(test_sss_parse_internal_fqname,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_create_internal_fqname,
                                         setup_leak_tests,
                                         teardown_leak_tests),
     };
