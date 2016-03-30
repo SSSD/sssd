@@ -27,6 +27,21 @@
 
 /* Reply private data. */
 
+struct dp_reply_std {
+    int dp_error;
+    int error;
+    const char *message;
+};
+
+void dp_reply_std_set(struct dp_reply_std *reply,
+                      int dp_error,
+                      int error,
+                      const char *msg);
+
 /* Reply callbacks. */
+
+void dp_req_reply_std(const char *request_name,
+                      struct sbus_request *sbus_req,
+                      struct dp_reply_std *reply);
 
 #endif /* _DP_CUSTOM_DATA_H_ */

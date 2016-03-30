@@ -115,6 +115,7 @@
  * @}
  */ /* end of group pamHandler */
 
+#define DP_ERR_DECIDE -1
 #define DP_ERR_OK 0
 #define DP_ERR_OFFLINE 1
 #define DP_ERR_TIMEOUT 2

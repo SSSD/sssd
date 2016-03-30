@@ -1318,6 +1318,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider/dp_request.c \
     src/providers/data_provider/dp_request_reply.c \
     src/providers/data_provider/dp_request_table.c \
+    src/providers/data_provider/dp_reply_std.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     $(LIBADD_DL) \
