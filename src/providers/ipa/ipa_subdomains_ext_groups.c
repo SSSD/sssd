@@ -989,7 +989,6 @@ done:
 
 static errno_t
 ipa_ext_group_member_check(TALLOC_CTX *mem_ctx,
-                           struct ipa_id_ctx *ipa_ctx,
                            struct sss_domain_info *member_dom,
                            const char *ext_member,
                            enum sysdb_member_type *_member_type,
@@ -1088,7 +1087,7 @@ struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = ipa_ext_group_member_check(state, ipa_ctx, state->dom, ext_member,
+    ret = ipa_ext_group_member_check(state, state->dom, ext_member,
                                      &state->member_type, &state->member);
     if (ret == EOK) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
