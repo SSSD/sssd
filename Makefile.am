@@ -368,7 +368,6 @@ dist_noinst_SCRIPTS = \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
     contrib/ci/clean \
-    contrib/ci/make-check-wrap \
     contrib/ci/rpm-spec-builddeps \
     contrib/ci/run \
     contrib/ci/valgrind-condense \
