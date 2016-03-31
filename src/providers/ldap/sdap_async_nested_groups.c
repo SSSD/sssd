@@ -717,8 +717,7 @@ done:
 }
 
 static errno_t
-sdap_nested_group_add_ext_members(TALLOC_CTX *mem_ctx,
-                                  struct sdap_nested_group_ctx *group_ctx,
+sdap_nested_group_add_ext_members(struct sdap_nested_group_ctx *group_ctx,
                                   struct sysdb_attrs *group,
                                   struct ldb_message_element *ext_members)
 {
@@ -1064,8 +1063,7 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = sdap_nested_group_add_ext_members(state,
-                                            state->group_ctx,
+    ret = sdap_nested_group_add_ext_members(state->group_ctx,
                                             group,
                                             state->ext_members);
     if (ret != EOK) {
