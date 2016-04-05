@@ -1074,7 +1074,8 @@ void test_pam_offline_auth_success(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               "pamuser@"TEST_DOM_NAME, "12345");
     assert_int_equal(ret, EOK);
 
     mock_input_pam(pam_test_ctx, "pamuser", "12345", NULL);
@@ -1098,7 +1099,7 @@ void test_pam_offline_auth_wrong_pw(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser@"TEST_DOM_NAME, "12345");
     assert_int_equal(ret, EOK);
 
     mock_input_pam(pam_test_ctx, "pamuser", "11111", NULL);
@@ -1122,7 +1123,8 @@ void test_pam_offline_auth_success_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               "pamuser@"TEST_DOM_NAME, "12345");
     assert_int_equal(ret, EOK);
 
     mock_input_pam(pam_test_ctx, "pamuser", "12345", "abcde");
@@ -1146,7 +1148,8 @@ void test_pam_offline_auth_failed_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               "pamuser@"TEST_DOM_NAME, "12345");
     assert_int_equal(ret, EOK);
 
     mock_input_pam(pam_test_ctx, "pamuser", "11111", "abcde");
@@ -1170,7 +1173,8 @@ void test_pam_offline_auth_success_2fa_with_cached_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser", "12345",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  "pamuser@"TEST_DOM_NAME, "12345",
                                   SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1195,7 +1199,8 @@ void test_pam_offline_auth_failed_2fa_with_cached_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser", "12345",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  "pamuser@"TEST_DOM_NAME, "12345",
                                   SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1220,7 +1225,8 @@ void test_pam_offline_auth_success_pw_with_cached_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser", "12345",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  "pamuser@"TEST_DOM_NAME, "12345",
                                   SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1245,7 +1251,8 @@ void test_pam_offline_auth_failed_pw_with_cached_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser", "12345",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  "pamuser@"TEST_DOM_NAME, "12345",
                                   SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1270,7 +1277,8 @@ void test_pam_offline_auth_success_combined_pw_with_cached_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  "pamuser@"TEST_DOM_NAME,
                                   "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1295,7 +1303,8 @@ void test_pam_offline_auth_failed_combined_pw_with_cached_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  "pamuser@"TEST_DOM_NAME,
                                   "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
@@ -1320,7 +1329,8 @@ void test_pam_offline_auth_failed_wrong_2fa_size_with_cached_2fa(void **state)
 {
     int ret;
 
-    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser",
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom,
+                                  "pamuser@"TEST_DOM_NAME,
                                   "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
     assert_int_equal(ret, EOK);
 
