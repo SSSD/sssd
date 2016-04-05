@@ -182,15 +182,41 @@ static void test_id_cleanup_exp_group(void **state)
     errno_t ret;
     struct ldb_message *msg;
     struct sdap_domain sdom;
-    const char *special_grp = "special_gr*o/u\\p(2016)";
-    const char *empty_special_grp = "empty_gr*o/u\\p(2016)";
-    const char *empty_grp = "empty_grp";
-    const char *grp = "grp";
+    char *special_grp;
+    char *empty_special_grp;
+    char *empty_grp;
+    char *grp;
+    char *test_user;
+    char *test_user2;
     /* This timeout can be bigger because we will call invalidate_group
      * to expire entries without waiting. */
     const uint64_t CACHE_TIMEOUT = 30;
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                             struct sysdb_test_ctx);
+
+    special_grp = sss_create_internal_fqname(test_ctx,
+                                             "special_gr*o/u\\p(2016)",
+                                             test_ctx->domain->name);
+    assert_non_null(special_grp);
+
+    empty_special_grp = sss_create_internal_fqname(test_ctx,
+                                                   "empty_gr*o/u\\p(2016)",
+                                                   test_ctx->domain->name);
+    assert_non_null(empty_special_grp);
+
+    empty_grp = sss_create_internal_fqname(test_ctx, "empty_grp",
+                                           test_ctx->domain->name);
+    assert_non_null(empty_grp);
+
+    grp = sss_create_internal_fqname(test_ctx, "grp", test_ctx->domain->name);
+    assert_non_null(grp);
+
+    test_user = sss_create_internal_fqname(test_ctx, "test_user",
+                                           test_ctx->domain->name);
+    assert_non_null(test_user);
+    test_user2 = sss_create_internal_fqname(test_ctx, "test_user2",
+                                            test_ctx->domain->name);
+    assert_non_null(test_user2);
 
     ret = sysdb_store_group(test_ctx->domain, special_grp,
                             10002, NULL, CACHE_TIMEOUT, 0);
@@ -208,13 +234,13 @@ static void test_id_cleanup_exp_group(void **state)
                             10005, NULL, CACHE_TIMEOUT, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_user(test_ctx->domain, "test_user", NULL,
+    ret = sysdb_store_user(test_ctx->domain, test_user, NULL,
                            10001, 10002, "Test user",
                            NULL, NULL, NULL, NULL, NULL,
                            0, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_user(test_ctx->domain, "test_user2", NULL,
+    ret = sysdb_store_user(test_ctx->domain, test_user2, NULL,
                            10002, 10004, "Test user",
                            NULL, NULL, NULL, NULL, NULL,
                            0, 0);

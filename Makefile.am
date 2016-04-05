@@ -262,7 +262,7 @@ if HAVE_CMOCKA
         test_tools_colondb \
         test_krb5_wait_queue \
         test_cert_utils \
-        #test_ldap_id_cleanup \
+        test_ldap_id_cleanup \
         test_data_provider_be \
         test_dp_request_table \
         test_dp_request \
@@ -2405,19 +2405,19 @@ test_ldap_auth_LDADD = \
     libdlopen_test_providers.la \
     $(NULL)
 
-#test_ldap_id_cleanup_SOURCES = \
-#    src/tests/cmocka/test_ldap_id_cleanup.c \
-#    $(NULL)
-#test_ldap_id_cleanup_LDADD = \
-#    $(CMOCKA_LIBS) \
-#    $(POPT_LIBS) \
-#    $(TALLOC_LIBS) \
-#    $(TEVENT_LIBS) \
-#    $(SSSD_INTERNAL_LTLIBS) \
-#    libsss_ldap_common.la \
-#    libsss_test_common.la \
-#    libdlopen_test_providers.la \
-#    $(NULL)
+test_ldap_id_cleanup_SOURCES = \
+    src/tests/cmocka/test_ldap_id_cleanup.c \
+    $(NULL)
+test_ldap_id_cleanup_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
+    $(NULL)
 
 test_sdap_access_SOURCES = \
     src/tests/cmocka/test_sdap_access.c \
