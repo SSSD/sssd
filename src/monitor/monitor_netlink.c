@@ -669,14 +669,64 @@ static void addr_msg_debug_print(struct rtnl_addr *addr_obj)
 
 static void addr_msg_handler(struct nl_object *obj, void *arg)
 {
+    int err;
     struct netlink_ctx *ctx = (struct netlink_ctx *) arg;
     struct rtnl_addr *addr_obj;
+    struct nl_addr *local_addr;
+    struct sockaddr_in sa4;
+    struct sockaddr_in6 sa6;
+    socklen_t salen;
 
     if (!nlw_is_addr_object(obj)) return;
 
     addr_obj = (struct rtnl_addr *) obj;
     if (debug_level & SSSDBG_TRACE_LIBS) {
         addr_msg_debug_print(addr_obj);
+    }
+
+    local_addr = rtnl_addr_get_local(addr_obj);
+    if (local_addr == NULL) {
+    DEBUG(SSSDBG_MINOR_FAILURE,
+          "Received RTM_NEWADDR with no address\n");
+    return;
+    }
+
+    switch (nl_addr_get_family(local_addr)) {
+    case AF_INET6:
+        salen = sizeof(struct sockaddr_in6);
+        err = nl_addr_fill_sockaddr(local_addr,
+                                    (struct sockaddr *) &sa6,
+                                    &salen);
+        if (err < 0) {
+          DEBUG(SSSDBG_MINOR_FAILURE,
+                "Unknown error in nl_addr_fill_sockaddr\n");
+          return;
+        }
+
+        if (!check_ipv6_addr(&sa6.sin6_addr, SSS_NO_SPECIAL)) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Ignoring special address.\n");
+            return;
+        }
+        break;
+
+    case AF_INET:
+        salen = sizeof(struct sockaddr_in);
+        err = nl_addr_fill_sockaddr(local_addr,
+                                    (struct sockaddr *) &sa4,
+                                     &salen);
+        if (err < 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+            "Unknown error in nl_addr_fill_sockaddr\n");
+            return;
+        }
+        if (check_ipv4_addr(&sa4.sin_addr, SSS_NO_SPECIAL)) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Ignoring special address.\n");
+            return;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
+        return;
     }
 
     ctx->change_cb(ctx->cb_data);
