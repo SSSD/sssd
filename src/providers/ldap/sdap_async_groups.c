@@ -1566,16 +1566,26 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
                                 struct ldb_message_element *ghostel)
 {
     struct ldb_message *msg;
+    char *member_attr_val;
     char *member_name;
     char *userdn;
     int ret;
     int i;
 
     for (i=0; i < memberel->num_values; i++) {
-        member_name = (char *)memberel->values[i].data;
+        member_attr_val = (char *)memberel->values[i].data;
 
         /* We need to skip over zero-length usernames */
-        if (member_name[0] == '\0') continue;
+        if (member_attr_val[0] == '\0') continue;
+
+        /* RFC2307 stores members as plain usernames in the member attribute.
+         * Internally, we use fqdns in the cache..
+         */
+        member_name = sss_create_internal_fqname(state, member_attr_val,
+                                                 state->dom->name);
+        if (member_name == NULL) {
+            return ENOMEM;
+        }
 
         ret = sysdb_search_user_by_name(state, state->dom, member_name,
                                         NULL, &msg);
