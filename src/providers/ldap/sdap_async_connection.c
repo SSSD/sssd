@@ -2035,6 +2035,9 @@ int sdap_cli_connect_recv(struct tevent_req *req,
     if (tevent_req_is_error(req, &tstate, &err)) {
         /* mark the server as bad if connection failed */
         if (state->srv) {
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to establish connection "
+                  "[%"PRIu64"]: %s\n", err, sss_strerror(err));
+
             be_fo_set_port_status(state->be, state->service->name,
                                   state->srv, PORT_NOT_WORKING);
         } else {
@@ -2048,6 +2051,8 @@ int sdap_cli_connect_recv(struct tevent_req *req,
         }
         return EIO;
     } else if (state->srv) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Connection established.\n");
+
         be_fo_set_port_status(state->be, state->service->name,
                               state->srv, PORT_WORKING);
     }
