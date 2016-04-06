@@ -402,6 +402,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
         case BE_REQ_USER:
         case BE_REQ_GROUP:
         case BE_REQ_BY_SECID:
+        case BE_REQ_BY_CERT:
         case BE_REQ_USER_AND_GROUP:
             ret = EOK;
             break;
@@ -526,6 +527,11 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
                 return;
             }
             break;
+        case BE_FILTER_CERT:
+            DEBUG(SSSDBG_OP_FAILURE, "Lookup by certificate not supported yet.\n");
+            state->dp_error = dp_error;
+            tevent_req_error(req, EINVAL);
+            return;
         default:
             DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain filter type.\n");
             state->dp_error = dp_error;

@@ -289,6 +289,7 @@ struct sdap_attr_map ipa_override_map[] = {
     { "ldap_group_name", "cn", SYSDB_NAME, NULL },
     { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
     { "ldap_user_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL },
+    { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
