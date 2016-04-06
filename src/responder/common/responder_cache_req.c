@@ -520,8 +520,8 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         break;
     case CACHE_REQ_USER_BY_CERT:
         one_item_only = true;
-        ret = sysdb_search_user_by_cert(mem_ctx, input->domain,
-                                        input->cert, &result);
+        ret = sysdb_search_user_by_cert_with_views(mem_ctx, input->domain,
+                                                   input->cert, &result);
         break;
     case CACHE_REQ_USER_BY_FILTER:
         one_item_only = false;
