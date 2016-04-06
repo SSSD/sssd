@@ -391,7 +391,8 @@ enum dc_functional_level {
     DS_BEHAVIOR_WIN2008 = 3,
     DS_BEHAVIOR_WIN2008R2 = 4,
     DS_BEHAVIOR_WIN2012 = 5,
-    DS_BEHAVIOR_WIN2012R2 = 6
+    DS_BEHAVIOR_WIN2012R2 = 6,
+    DS_BEHAVIOR_WIN2016 = 7,
 };
 
 struct sdap_domain {
