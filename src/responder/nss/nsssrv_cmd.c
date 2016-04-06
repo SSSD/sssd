@@ -22,6 +22,7 @@
 #include "util/util.h"
 #include "util/sss_nss.h"
 #include "util/sss_cli_cmd.h"
+#include "util/crypto/sss_crypto.h"
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_netgroup.h"
@@ -4973,8 +4974,9 @@ static errno_t process_attr_list(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
     size_t d;
     struct sized_string *keys;
     struct sized_string *vals;
-    struct ldb_val *val;
+    struct ldb_val val;
     struct ldb_message_element *el;
+    bool use_base64;
 
     keys = *_keys;
     vals = *_vals;
@@ -4993,18 +4995,31 @@ static errno_t process_attr_list(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
                     return ENOMEM;
                 }
             }
+
+            use_base64 = false;
+            if (strcmp(attr_list[c], SYSDB_USER_CERT) == 0) {
+                use_base64 = true;
+            }
             for (d = 0; d < el->num_values; d++) {
                 to_sized_string(&keys[*found], attr_list[c]);
                 *sum += keys[*found].len;
-                val = &(el->values[d]);
-                if (val == NULL || val->data == NULL
-                        || val->data[val->length] != '\0') {
+                if (use_base64) {
+                    val.data = (uint8_t *) sss_base64_encode(vals,
+                                                          el->values[d].data,
+                                                          el->values[d].length);
+                    if (val.data != NULL) {
+                        val.length = strlen((char *)val.data);
+                    }
+                } else {
+                    val = el->values[d];
+                }
+                if (val.data == NULL || val.data[val.length] != '\0') {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Unexpected attribute value found for [%s].\n",
                           attr_list[c]);
                     return EINVAL;
                 }
-                to_sized_string(&vals[*found], (const char *)val->data);
+                to_sized_string(&vals[*found], (const char *)val.data);
                 *sum += vals[*found].len;
 
                 (*found)++;
