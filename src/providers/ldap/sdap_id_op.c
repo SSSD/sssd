@@ -603,6 +603,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
             case EIO:
             case EFAULT:
             case ETIMEDOUT:
+            case ERR_AUTH_FAILED:
                 break;
 
             default:
