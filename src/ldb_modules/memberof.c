@@ -2531,7 +2531,7 @@ static int mbof_del_fill_ghop_ex(struct mbof_del_ctx *del_ctx,
               num_gh_vals, mbof->num_values);
 
     for (i = 0; i < mbof->num_values; i++) {
-        valdn = ldb_dn_from_ldb_val(del_ctx->ghops,
+        valdn = ldb_dn_from_ldb_val(del_ctx,
                                     ldb_module_get_ctx(del_ctx->ctx->module),
                                     &mbof->values[i]);
         if (!valdn || !ldb_dn_validate(valdn)) {
@@ -2556,6 +2556,7 @@ static int mbof_del_fill_ghop_ex(struct mbof_del_ctx *del_ctx,
             if (ret != LDB_SUCCESS) {
                 return ret;
             }
+            talloc_steal(del_ctx->ghops, valdn);
         }
     }
 
