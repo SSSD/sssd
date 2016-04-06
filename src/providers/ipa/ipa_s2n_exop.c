@@ -22,6 +22,7 @@
 #include "util/util.h"
 #include "util/sss_nss.h"
 #include "util/strtonum.h"
+#include "util/crypto/sss_crypto.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_async_ad.h"
 #include "providers/ldap/ldap_common.h"
@@ -497,8 +498,22 @@ static errno_t get_extra_attrs(BerElement *ber, struct resp_attrs *resp_attrs)
 
         for (c = 0; values[c] != NULL; c++) {
 
-            v.data = (uint8_t *) values[c]->bv_val;
-            v.length = values[c]->bv_len;
+            if (strcmp(name, SYSDB_USER_CERT) == 0) {
+                if (values[c]->bv_val[values[c]->bv_len] != '\0') {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "base64 encoded certificate not 0-terminated.\n");
+                    return EINVAL;
+                }
+
+                v.data = sss_base64_decode(NULL, values[c]->bv_val, &v.length);
+                if (v.data == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+                    return EINVAL;
+                }
+            } else {
+                v.data = (uint8_t *)values[c]->bv_val;
+                v.length = values[c]->bv_len;
+            }
 
             ret = sysdb_attrs_add_val(resp_attrs->sysdb_attrs, name, &v);
             if (ret != EOK) {
