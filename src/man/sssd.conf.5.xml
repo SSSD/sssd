@@ -1027,27 +1027,6 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>pam_account_locked_message (string)</term>
-                    <listitem>
-                        <para>
-                           If user is authenticating and
-                           account is locked then by default
-                           'Permission denied' is output. This output will
-                           be changed to content of this variable if it is
-                           set.
-                        </para>
-                        <para>
-                            example:
-                            <programlisting>
-pam_account_locked_message = Account locked, please call help desk.
-                            </programlisting>
-                        </para>
-                        <para>
-                            Default: none
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
                     <term>p11_child_timeout (integer)</term>
                     <listitem>
                         <para>
