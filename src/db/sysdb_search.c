@@ -1842,3 +1842,70 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+int sysdb_search_user_by_cert_with_views(TALLOC_CTX *mem_ctx,
+                                         struct sss_domain_info *domain,
+                                         const char *cert,
+                                         struct ldb_result **res)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_result *orig_obj = NULL;
+    struct ldb_result *override_obj = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    /* If there are views we first have to search the overrides for matches */
+    if (DOM_HAS_VIEWS(domain)) {
+        ret = sysdb_search_override_by_cert(tmp_ctx, domain, cert, attrs,
+                                            &override_obj, &orig_obj);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_search_override_by_cert failed.\n");
+            goto done;
+        }
+    }
+
+    /* If there are no views or nothing was found in the overrides the
+     * original objects are searched. */
+    if (orig_obj == NULL) {
+        ret = sysdb_search_user_by_cert(tmp_ctx, domain, cert, &orig_obj);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_cert failed.\n");
+            goto done;
+        }
+    }
+
+    /* If there are views we have to check if override values must be added to
+     * the original object. */
+    if (DOM_HAS_VIEWS(domain) && orig_obj->count == 1) {
+        ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
+                          override_obj == NULL ? NULL : override_obj->msgs[0],
+                          NULL);
+        if (ret == ENOENT) {
+            *res = talloc_zero(mem_ctx, struct ldb_result);
+            if (*res == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+                ret = ENOMEM;
+            } else {
+                ret = EOK;
+            }
+            goto done;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
+            goto done;
+        }
+    }
+
+    *res = talloc_steal(mem_ctx, orig_obj);
+    ret = EOK;
+
+done:
+
+    talloc_free(tmp_ctx);
+    return ret;
+}

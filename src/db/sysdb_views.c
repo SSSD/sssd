@@ -20,6 +20,7 @@
 */
 
 #include "util/util.h"
+#include "util/cert.h"
 #include "db/sysdb_private.h"
 
 /* In general is should not be possible that there is a view container without
@@ -736,6 +737,7 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                     SYSDB_SHELL,
                                     SYSDB_NAME,
                                     SYSDB_SSH_PUBKEY,
+                                    SYSDB_USER_CERT,
                                     NULL };
     bool override_attrs_found = false;
 
@@ -781,8 +783,10 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                 }
             } else {
                 num_values = el->num_values;
-                /* Only SYSDB_SSH_PUBKEY is allowed to have multiple values. */
+                /* Only SYSDB_SSH_PUBKEY and SYSDB_USER_CERT are allowed to
+                 * have multiple values. */
                 if (strcmp(allowed_attrs[c], SYSDB_SSH_PUBKEY) != 0
+                        && strcmp(allowed_attrs[c], SYSDB_USER_CERT) != 0
                         && num_values != 1) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
                           "Override attribute for [%s] has more [%zd] " \
@@ -835,6 +839,7 @@ done:
 
 #define SYSDB_USER_NAME_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_USER_UID_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")("SYSDB_UIDNUM"=%lu))"
+#define SYSDB_USER_CERT_OVERIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")%s)"
 #define SYSDB_GROUP_NAME_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_GROUP_CLASS")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_GROUP_GID_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_GROUP_CLASS")("SYSDB_GIDNUM"=%lu))"
 
@@ -843,6 +848,100 @@ enum override_object_type {
     OO_TYPE_USER,
     OO_TYPE_GROUP
 };
+
+errno_t sysdb_search_override_by_cert(TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *domain,
+                                      const char *cert,
+                                      const char **attrs,
+                                      struct ldb_result **override_obj,
+                                      struct ldb_result **orig_obj)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *base_dn;
+    struct ldb_result *override_res;
+    struct ldb_result *orig_res;
+    char *cert_filter;
+    int ret;
+    const char *orig_obj_dn;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
+                             SYSDB_TMPL_VIEW_SEARCH_BASE, domain->view_name);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_cert_derb64_to_ldap_filter(tmp_ctx, cert, SYSDB_USER_CERT,
+                                         &cert_filter);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_derb64_to_ldap_filter failed.\n");
+        goto done;
+    }
+
+    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &override_res, base_dn,
+                     LDB_SCOPE_SUBTREE, attrs, SYSDB_USER_CERT_OVERIDE_FILTER,
+                     cert_filter);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    if (override_res->count == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No user override found for cert [%s].\n",
+                                 cert);
+        ret = ENOENT;
+        goto done;
+    } else if (override_res->count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Found more than one override for cert [%s].\n", cert);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (orig_obj != NULL) {
+        orig_obj_dn = ldb_msg_find_attr_as_string(override_res->msgs[0],
+                                                  SYSDB_OVERRIDE_OBJECT_DN,
+                                                  NULL);
+        if (orig_obj_dn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Missing link to original object in override [%s].\n",
+                  ldb_dn_get_linearized(override_res->msgs[0]->dn));
+            ret = EINVAL;
+            goto done;
+        }
+
+        base_dn = ldb_dn_new(tmp_ctx, domain->sysdb->ldb, orig_obj_dn);
+        if (base_dn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &orig_res, base_dn,
+                         LDB_SCOPE_BASE, attrs, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        *orig_obj = talloc_steal(mem_ctx, orig_res);
+    }
+
+    *override_obj = talloc_steal(mem_ctx, override_res);
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
 
 static errno_t sysdb_search_override_by_name(TALLOC_CTX *mem_ctx,
                                              struct sss_domain_info *domain,
@@ -1170,6 +1269,7 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
         {SYSDB_SHELL, OVERRIDE_PREFIX SYSDB_SHELL},
         {SYSDB_NAME, OVERRIDE_PREFIX SYSDB_NAME},
         {SYSDB_SSH_PUBKEY, OVERRIDE_PREFIX SYSDB_SSH_PUBKEY},
+        {SYSDB_USER_CERT, OVERRIDE_PREFIX SYSDB_USER_CERT},
         {NULL, NULL}
     };
     size_t c;

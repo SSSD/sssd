@@ -545,6 +545,13 @@ errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
                                             struct ldb_result **override_obj,
                                             struct ldb_result **orig_obj);
 
+errno_t sysdb_search_override_by_cert(TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *domain,
+                                      const char *cert,
+                                      const char **attrs,
+                                      struct ldb_result **override_obj,
+                                      struct ldb_result **orig_obj);
+
 errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
                                       struct ldb_message *obj,
                                       struct ldb_message *override_obj,
@@ -721,6 +728,11 @@ int sysdb_get_user_attr_with_views(TALLOC_CTX *mem_ctx,
                                    const char *name,
                                    const char **attributes,
                                    struct ldb_result **res);
+
+int sysdb_search_user_by_cert_with_views(TALLOC_CTX *mem_ctx,
+                                         struct sss_domain_info *domain,
+                                         const char *cert,
+                                         struct ldb_result **res);
 
 int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info *domain,
