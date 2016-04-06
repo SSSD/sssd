@@ -24,6 +24,7 @@
 
 #include "util/util.h"
 #include "util/strtonum.h"
+#include "util/cert.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
 
@@ -35,6 +36,8 @@ static errno_t be_acct_req_to_override_filter(TALLOC_CTX *mem_ctx,
     char *filter;
     uint32_t id;
     char *endptr;
+    char *cert_filter;
+    int ret;
 
     switch (ar->filter_type) {
     case BE_FILTER_NAME:
@@ -135,6 +138,28 @@ static errno_t be_acct_req_to_override_filter(TALLOC_CTX *mem_ctx,
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unexpected entry type [%d] for UUID filter.\n",
+                  ar->entry_type);
+            return EINVAL;
+        }
+        break;
+
+    case BE_FILTER_CERT:
+        if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_BY_CERT) {
+            ret = sss_cert_derb64_to_ldap_filter(mem_ctx, ar->filter_value,
+                         ipa_opts->override_map[IPA_AT_OVERRIDE_USER_CERT].name,
+                         &cert_filter);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_cert_derb64_to_ldap_filter failed.\n");
+                return ret;
+            }
+            filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)%s)",
+                        ipa_opts->override_map[IPA_OC_OVERRIDE_USER].name,
+                        cert_filter);
+            talloc_free(cert_filter);
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unexpected entry type [%d] for certificate filter.\n",
                   ar->entry_type);
             return EINVAL;
         }
