@@ -137,6 +137,14 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
     for (dom = domains; dom != NULL;
             dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         if (!IS_SUBDOMAIN(dom)) {
+            /* Get flat name and domain ID (SID) from the cache
+             * if available */
+            ret = sysdb_master_domain_update(dom);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "Failed to update domain %s.\n",
+                                            dom->name);
+            }
+
             /* Update list of subdomains for this domain */
             ret = sysdb_update_subdomains(dom);
             if (ret != EOK) {
