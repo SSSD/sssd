@@ -59,6 +59,8 @@ struct sysdb_test_ctx {
     struct confdb_ctx *confdb;
     struct tevent_context *ev;
     struct sss_domain_info *domain;
+
+    size_t null_pointer_size;
 };
 
 static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
@@ -155,8 +157,26 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
     }
     test_ctx->sysdb = test_ctx->domain->sysdb;
 
+    test_ctx->null_pointer_size = talloc_total_size(NULL);
+
     *ctx = test_ctx;
     return EOK;
+}
+
+static void null_ctx_get_size(struct sysdb_test_ctx *ctx)
+{
+    ctx->null_pointer_size = talloc_total_size(NULL);
+}
+
+static void fail_if_null_ctx_leaks(struct sysdb_test_ctx *ctx)
+{
+    size_t new_null_pointer_size;
+
+    new_null_pointer_size = talloc_total_size(NULL);
+    if(new_null_pointer_size != ctx->null_pointer_size) {
+        fail("NULL pointer leaked memory, was %zu, is %zu\n",
+             ctx->null_pointer_size, new_null_pointer_size);
+    }
 }
 
 #define setup_sysdb_tests(ctx) _setup_sysdb_tests((ctx), false)
@@ -743,7 +763,9 @@ START_TEST (test_sysdb_remove_local_group_by_gid)
     data->ev = test_ctx->ev;
     data->gid = _i;
 
+    null_ctx_get_size(data->ctx);
     ret = test_remove_group_by_gid(data);
+    fail_if_null_ctx_leaks(test_ctx);
 
     fail_if(ret != EOK, "Could not remove group with gid %d", _i);
     talloc_free(test_ctx);
@@ -3160,8 +3182,10 @@ START_TEST (test_sysdb_memberof_mod_del)
     }
 
     /* Delete the attribute */
+    null_ctx_get_size(test_ctx);
     ret = sysdb_set_group_attr(test_ctx->domain,
                                data->groupname, data->attrs, SYSDB_MOD_DEL);
+    fail_if_null_ctx_leaks(test_ctx);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the delete, we shouldn't be able to find the ghost attribute */
@@ -6800,6 +6824,7 @@ int main(int argc, const char *argv[]) {
     }
 
     tests_set_cwd();
+    talloc_enable_null_tracking();
 
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
 
