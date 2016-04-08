@@ -2471,7 +2471,7 @@ static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
     for (i = 0; i < el->num_values; i++) {
         struct ldb_dn *valdn;
 
-        valdn = ldb_dn_from_ldb_val(del_ctx->muops,
+        valdn = ldb_dn_from_ldb_val(del_ctx,
                                     ldb_module_get_ctx(del_ctx->ctx->module),
                                     &el->values[i]);
         if (!valdn || !ldb_dn_validate(valdn)) {
@@ -2489,6 +2489,7 @@ static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
         if (ret != LDB_SUCCESS) {
             return ret;
         }
+        talloc_steal(del_ctx->muops, valdn);
     }
 
     return LDB_SUCCESS;
