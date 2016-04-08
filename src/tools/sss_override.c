@@ -381,9 +381,35 @@ static char *get_fqname(TALLOC_CTX *mem_ctx,
     char *fqname;
     int fqlen;
     int check;
+    char *dummy_domain = NULL;
+    int ret;
 
-    if (domain == NULL) {
+    if (domain == NULL || domain->names == NULL) {
         return NULL;
+    }
+
+    /* check if the name already contains domain part */
+    ret = sss_parse_name(mem_ctx, domain->names, name, &dummy_domain, NULL);
+    if (ret == ERR_REGEX_NOMATCH) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "sss_parse_name could not parse domain from [%s]. "
+              "Assuming it is not FQDN.\n", name);
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "sss_parse_name failed [%d]: %s\n", ret, sss_strerror(ret));
+        return NULL;
+    }
+
+    if (dummy_domain != NULL) {
+        talloc_free(dummy_domain);
+        DEBUG(SSSDBG_TRACE_FUNC, "Name is already fully qualified.\n");
+        fqname = talloc_strdup(mem_ctx, name);
+        if (fqname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
+            return NULL;
+        }
+
+        return fqname;
     }
 
     /* Get length. */
