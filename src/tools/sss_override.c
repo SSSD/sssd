@@ -21,6 +21,7 @@
 #include <stdlib.h>
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 #include "db/sysdb.h"
 #include "tools/common/sss_tools.h"
 #include "tools/common/sss_colondb.h"
@@ -39,6 +40,7 @@ struct override_user {
     const char *home;
     const char *shell;
     const char *gecos;
+    const char *cert;
 };
 
 struct override_group {
@@ -97,6 +99,7 @@ static int parse_cmdline_user_add(struct sss_cmdline *cmdline,
         {"home", 'h', POPT_ARG_STRING, &user->home, 0, _("Override home directory"), NULL },
         {"shell", 's', POPT_ARG_STRING, &user->shell, 0, _("Override shell"), NULL },
         {"gecos", 'c', POPT_ARG_STRING, &user->gecos, 0, _("Override gecos"), NULL },
+        {"certificate", 'x', POPT_ARG_STRING, &user->cert, 0, _("Override certificate"), NULL },
         POPT_TABLEEND
     };
 
@@ -296,7 +299,8 @@ static struct sysdb_attrs *build_attrs(TALLOC_CTX *mem_ctx,
                                        gid_t gid,
                                        const char *home,
                                        const char *shell,
-                                       const char *gecos)
+                                       const char *gecos,
+                                       const char *cert)
 {
     struct sysdb_attrs *attrs;
     errno_t ret;
@@ -348,6 +352,13 @@ static struct sysdb_attrs *build_attrs(TALLOC_CTX *mem_ctx,
         }
     }
 
+    if (cert != NULL) {
+        ret = sysdb_attrs_add_base64_blob(attrs, SYSDB_USER_CERT, cert);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
     ret = EOK;
 
 done:
@@ -363,13 +374,13 @@ static struct sysdb_attrs *build_user_attrs(TALLOC_CTX *mem_ctx,
                                             struct override_user *user)
 {
     return build_attrs(mem_ctx, user->name, user->uid, user->gid, user->home,
-                       user->shell, user->gecos);
+                       user->shell, user->gecos, user->cert);
 }
 
 static struct sysdb_attrs *build_group_attrs(TALLOC_CTX *mem_ctx,
                                              struct override_group *group)
 {
-    return build_attrs(mem_ctx, group->name, 0, group->gid, 0, NULL, NULL);
+    return build_attrs(mem_ctx, group->name, 0, group->gid, 0, NULL, NULL, NULL);
 }
 
 static char *get_fqname(TALLOC_CTX *mem_ctx,
@@ -1101,6 +1112,7 @@ list_user_overrides(TALLOC_CTX *mem_ctx,
     size_t i;
     errno_t ret;
     const char *attrs[] = SYSDB_PW_ATTRS;
+    struct ldb_message_element *el;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1135,6 +1147,20 @@ list_user_overrides(TALLOC_CTX *mem_ctx,
         objs[i].home = ldb_msg_find_attr_as_string(msgs[i], SYSDB_HOMEDIR, NULL);
         objs[i].shell = ldb_msg_find_attr_as_string(msgs[i], SYSDB_SHELL, NULL);
         objs[i].gecos = ldb_msg_find_attr_as_string(msgs[i], SYSDB_GECOS, NULL);
+
+        el = ldb_msg_find_element(msgs[i], SYSDB_USER_CERT);
+        if (el != NULL && el->num_values > 0) {
+            /* Currently we support only 1 certificate override */
+            objs[i].cert = sss_base64_encode(objs, el->values[0].data,
+                                             el->values[0].length);
+            if (objs[i].cert == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "sss_base64_encode failed.\n");
+                ret = ERR_INTERNAL;
+                goto done;
+            }
+        } else {
+            objs[i].cert = NULL;
+        }
 
         talloc_steal(objs, objs[i].orig_name);
         talloc_steal(objs, objs[i].name);
@@ -1249,7 +1275,7 @@ static errno_t user_export(const char *filename,
 
         for (i = 0; objs[i].orig_name != NULL; i++) {
             /**
-             * Format: orig_name:name:uid:gid:gecos:home:shell
+             * Format: orig_name:name:uid:gid:gecos:home:shell:certificate
              */
             struct sss_colondb_write_field table[] = {
                 {SSS_COLONDB_STRING, {.str = objs[i].orig_name}},
@@ -1259,6 +1285,7 @@ static errno_t user_export(const char *filename,
                 {SSS_COLONDB_STRING, {.str = objs[i].gecos}},
                 {SSS_COLONDB_STRING, {.str = objs[i].home}},
                 {SSS_COLONDB_STRING, {.str = objs[i].shell}},
+                {SSS_COLONDB_STRING, {.str = objs[i].cert}},
                 {SSS_COLONDB_SENTINEL, {0}}
             };
 
@@ -1523,7 +1550,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
     }
 
     /**
-     * Format: orig_name:name:uid:gid:gecos:home:shell
+     * Format: orig_name:name:uid:gid:gecos:home:shell:certificate
      */
     struct sss_colondb_read_field table[] = {
         {SSS_COLONDB_STRING, {.str = &obj.input_name}},
@@ -1533,6 +1560,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
         {SSS_COLONDB_STRING, {.str = &obj.gecos}},
         {SSS_COLONDB_STRING, {.str = &obj.home}},
         {SSS_COLONDB_STRING, {.str = &obj.shell}},
+        {SSS_COLONDB_STRING, {.str = &obj.cert}},
         {SSS_COLONDB_SENTINEL, {0}}
     };
 

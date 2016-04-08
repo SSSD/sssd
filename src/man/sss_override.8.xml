@@ -64,6 +64,8 @@
                     <optional><option>-h,--home</option> HOME</optional>
                     <optional><option>-s,--shell</option> SHELL</optional>
                     <optional><option>-c,--gecos</option> GECOS</optional>
+                    <optional><option>-x,--certificate</option>
+                                     BASE64 ENCODED CERTIFICATE</optional>
                 </term>
                 <listitem>
                     <para>
@@ -123,7 +125,7 @@
                         The format is:
                     </para>
                     <para>
-                        original_name:name:uid:gid:gecos:home:shell
+                        original_name:name:uid:gid:gecos:home:shell:base64_encoded_certificate
                     </para>
                     <para>
                         where original_name is original name of the user whose
@@ -138,7 +140,7 @@
                         ckent:superman::::::
                     </para>
                     <para>
-                        ckent@krypton.com::501:501:Superman:/home/earth:/bin/bash
+                        ckent@krypton.com::501:501:Superman:/home/earth:/bin/bash:
                     </para>
                 </listitem>
             </varlistentry>
