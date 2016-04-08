@@ -286,7 +286,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
         ldap_grouplist = NULL;
     } else {
         ret = sysdb_attrs_primary_name_list(
-                sysdb, tmp_ctx,
+                domain, tmp_ctx,
                 ldap_groups, ldap_groups_count,
                 opts->group_map[SDAP_AT_GROUP_NAME].name,
                 &ldap_grouplist);
@@ -1275,7 +1275,7 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     if (nparents == 0) {
         ldap_parent_name_list = NULL;
     } else {
-        ret = sysdb_attrs_primary_name_list(state->sysdb, tmp_ctx,
+        ret = sysdb_attrs_primary_name_list(state->dom, tmp_ctx,
                                             ldap_parentlist,
                                             nparents,
                                             state->opts->group_map[SDAP_AT_GROUP_NAME].name,
@@ -1410,7 +1410,7 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
                group_name, parents_count);
 
     if (parents_count > 0) {
-        ret = sysdb_attrs_primary_name_list(sysdb, tmp_ctx,
+        ret = sysdb_attrs_primary_name_list(dom, tmp_ctx,
                                             ldap_parentlist,
                                             parents_count,
                                             opts->group_map[SDAP_AT_GROUP_NAME].name,
@@ -2076,7 +2076,7 @@ rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
     }
 
     if (group->parents_count > 0) {
-        ret = sysdb_attrs_primary_name_list(mstate->sysdb, tmp_ctx,
+        ret = sysdb_attrs_primary_name_list(mstate->dom, tmp_ctx,
                             group->ldap_parents, group->parents_count,
                             mstate->opts->group_map[SDAP_AT_GROUP_NAME].name,
                             &ldap_parents_names_list);
