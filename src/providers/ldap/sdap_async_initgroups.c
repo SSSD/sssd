@@ -32,7 +32,7 @@
 errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    struct sss_domain_info *domain,
                                    struct sdap_options *opts,
-                                   char **groupnames,
+                                   char **sysdb_groupnames,
                                    struct sysdb_attrs **ldap_groups,
                                    int ldap_groups_count)
 {
@@ -66,16 +66,16 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     }
     mi = 0;
 
-    for (i=0; groupnames[i]; i++) {
-        ret = sysdb_search_group_by_name(tmp_ctx, domain, groupnames[i], NULL,
+    for (i=0; sysdb_groupnames[i]; i++) {
+        ret = sysdb_search_group_by_name(tmp_ctx, domain, sysdb_groupnames[i], NULL,
                                          &msg);
         if (ret == EOK) {
             continue;
         } else if (ret == ENOENT) {
-            missing[mi] = talloc_strdup(missing, groupnames[i]);
+            missing[mi] = talloc_strdup(missing, sysdb_groupnames[i]);
             DEBUG(SSSDBG_TRACE_LIBS, "Group #%d [%s][%s] is not cached, " \
                       "need to add a fake entry\n",
-                      i, groupnames[i], missing[mi]);
+                      i, sysdb_groupnames[i], missing[mi]);
             mi++;
             continue;
         } else if (ret != ENOENT) {
