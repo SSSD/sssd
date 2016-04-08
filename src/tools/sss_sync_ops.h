@@ -57,6 +57,8 @@ struct ops_ctx {
     char *addattr;
     char *setattr;
     char *delattr;
+
+    char *sysdb_fqname;
 };
 
 /* default values for add operations */
