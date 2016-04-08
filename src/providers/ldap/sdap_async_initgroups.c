@@ -636,7 +636,7 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
     if (!tmp_ctx) return ENOMEM;
 
     if (count > 0) {
-        ret = sysdb_attrs_primary_name_list(sysdb, tmp_ctx,
+        ret = sysdb_attrs_primary_fqdn_list(domain, tmp_ctx,
                                             groups, count,
                                             opts->group_map[SDAP_AT_GROUP_NAME].name,
                                             &groupnamelist);
@@ -2112,8 +2112,6 @@ errno_t save_rfc2307bis_user_memberships(
     char **add_groups;
     char **del_groups;
     bool in_transaction = false;
-    size_t c;
-    char *tmp_str;
 
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if(!tmp_ctx) {
@@ -2141,27 +2139,13 @@ errno_t save_rfc2307bis_user_memberships(
         ldap_grouplist = NULL;
     }
     else {
-        ret = sysdb_attrs_primary_name_list(
-                state->sysdb, tmp_ctx,
+        ret = sysdb_attrs_primary_fqdn_list(
+                state->dom, tmp_ctx,
                 state->direct_groups, state->num_direct_parents,
                 state->opts->group_map[SDAP_AT_GROUP_NAME].name,
                 &ldap_grouplist);
         if (ret != EOK) {
             goto error;
-        }
-
-        if (IS_SUBDOMAIN(state->dom)) {
-            for (c = 0; ldap_grouplist[c] != NULL; c++) {
-                tmp_str = sss_tc_fqname(ldap_grouplist, state->dom->names,
-                                        state->dom, ldap_grouplist[c]);
-                if (tmp_str == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "sss_tc_fqname failed.\n");
-                    ret = ENOMEM;
-                    goto error;
-                }
-                talloc_free(ldap_grouplist[c]);
-                ldap_grouplist[c] = tmp_str;
-            }
         }
     }
 
