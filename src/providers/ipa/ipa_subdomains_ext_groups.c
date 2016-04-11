@@ -864,7 +864,13 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
         goto fail;
     }
 
-    val = ldb_dn_get_component_val(group_dn, 0);
+    val = ldb_dn_get_rdn_val(group_dn);
+    if (val == NULL || val->data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Invalid group DN [%s].\n", state->groups[state->iter]);
+        ret = EINVAL;
+        goto fail;
+    }
 
 /* TODO: here is would be useful for have a filter type like BE_FILTER_DN to
  * directly fetch the group with the corresponding DN. */
