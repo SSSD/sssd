@@ -1821,6 +1821,26 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+        if (ret == EAGAIN && dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
+            ret = process_offline_gpos(state,
+                                       state->user,
+                                       state->gpo_mode,
+                                       state->user_domain,
+                                       state->host_domain,
+                                       state->gpo_map_type);
+
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_FUNC, "process_offline_gpos succeeded\n");
+                tevent_req_done(req);
+                goto done;
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "process_offline_gpos failed [%d](%s)\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
+        }
 
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get policy target's DN: [%d](%s)\n",
