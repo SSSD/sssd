@@ -1104,7 +1104,9 @@ static void sdap_print_server(struct sdap_handle *sh)
     int fd;
     struct sockaddr_storage ss;
     socklen_t ss_len = sizeof(ss);
+    struct sockaddr *s_addr = (struct sockaddr *)&ss;
     char ip[NI_MAXHOST];
+    int port;
 
     if (!DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)) {
         return;
@@ -1116,20 +1118,31 @@ static void sdap_print_server(struct sdap_handle *sh)
         return;
     }
 
-    ret = getpeername(fd, (struct sockaddr *) &ss, &ss_len);
+    ret = getpeername(fd, s_addr, &ss_len);
     if (ret == -1) {
         DEBUG(SSSDBG_MINOR_FAILURE, "getsockname failed\n");
         return;
     }
 
-    ret = getnameinfo((struct sockaddr *) &ss, ss_len,
+    ret = getnameinfo(s_addr, ss_len,
                       ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
     if (ret != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE, "getnameinfo failed\n");
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s\n", ip);
+    switch (s_addr->sa_family) {
+    case AF_INET:
+        port = ntohs(((struct sockaddr_in *)s_addr)->sin_port);
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s:%d\n", ip, port);
+        break;
+    case AF_INET6:
+        port = ntohs(((struct sockaddr_in6 *)s_addr)->sin6_port);
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s:%d\n", ip, port);
+        break;
+    default:
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s\n", ip);
+    }
 }
 
 /* ==Generic Search exposing all options======================= */
