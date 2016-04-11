@@ -139,7 +139,8 @@ def create_sssd_fixture(request):
 OVERRIDE_FILENAME = "export_file"
 
 
-def prepare_sssd(request, ldap_conn, use_fully_qualified_names=False):
+def prepare_sssd(request, ldap_conn, use_fully_qualified_names=False,
+                 case_sensitive=True):
     """Prepare SSSD with defaults"""
     conf = unindent("""\
         [sssd]
@@ -158,6 +159,7 @@ def prepare_sssd(request, ldap_conn, use_fully_qualified_names=False):
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
         use_fully_qualified_names = {use_fully_qualified_names}
+        case_sensitive      = {case_sensitive}
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -951,3 +953,65 @@ def test_regr_2790_override(ldap_conn, env_regr_2790_override):
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user2 %d" % errno
     assert sorted(grp_list) == sorted(["group1", "group2"])
+
+# Test fully qualified and case-insensitive names
+
+@pytest.fixture
+def env_mix_cased_name_override(request, ldap_conn):
+    """Setup test for mixed case names"""
+
+    prepare_sssd(request, ldap_conn, True, False)
+
+    # Add entries
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 10001, 20001)
+    ent_list.add_user("uSeR2", 10002, 20002)
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+
+    pwd.getpwnam('user1@LDAP')
+    pwd.getpwnam('user2@LDAP')
+    with pytest.raises(KeyError):
+        pwd.getpwnam('ov_user1@LDAP')
+    with pytest.raises(KeyError):
+        pwd.getpwnam('ov_user2@LDAP')
+
+    # Override
+    subprocess.check_call(["sss_override", "user-add", "user1@LDAP",
+                           "-u", "10010",
+                           "-g", "20010",
+                           "-n", "ov_user1",
+                           "-c", "Overriden User 1",
+                           "-h", "/home/ov/user1",
+                           "-s", "/bin/ov_user1_shell"])
+
+    subprocess.check_call(["sss_override", "user-add", "user2@LDAP",
+                           "-u", "10020",
+                           "-g", "20020",
+                           "-n", "ov_user2",
+                           "-c", "Overriden User 2",
+                           "-h", "/home/ov/user2",
+                           "-s", "/bin/ov_user2_shell"])
+
+    restart_sssd()
+
+def test_mix_cased_name_override(ldap_conn, env_mix_cased_name_override):
+    """Test if names with upper and lower case letter are overridden"""
+
+    # Assert entries are overridden
+    user1 = dict(name='ov_user1@LDAP', passwd='*', uid=10010, gid=20010,
+                 gecos='Overriden User 1',
+                 dir='/home/ov/user1',
+                 shell='/bin/ov_user1_shell')
+
+    user2 = dict(name='ov_user2@LDAP', passwd='*', uid=10020, gid=20020,
+                 gecos='Overriden User 2',
+                 dir='/home/ov/user2',
+                 shell='/bin/ov_user2_shell')
+
+    ent.assert_passwd_by_name('user1@LDAP', user1)
+    ent.assert_passwd_by_name('ov_user1@LDAP', user1)
+
+    ent.assert_passwd_by_name('user2@LDAP', user2)
+    ent.assert_passwd_by_name('ov_user2@LDAP', user2)
