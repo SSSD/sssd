@@ -80,7 +80,6 @@ void test_switch_user(void **state)
 
     assert_true(leak_check_setup());
 
-    check_leaks_push(global_talloc_context);
     tmp_ctx = talloc_new(global_talloc_context);
     assert_non_null(tmp_ctx);
 
@@ -123,7 +122,6 @@ void test_switch_user(void **state)
     assert_true(check_leaks_pop(tmp_ctx));
     talloc_free(tmp_ctx);
 
-    assert_true(check_leaks_pop(global_talloc_context));
     assert_true(leak_check_teardown());
 }
 

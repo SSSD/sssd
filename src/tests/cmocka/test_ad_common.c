@@ -90,7 +90,6 @@ static int test_ad_common_setup(void **state)
     test_dom_suite_setup(TESTS_PATH);
 
     assert_true(leak_check_setup());
-    check_leaks_push(global_talloc_context);
 
     test_ctx = talloc_zero(global_talloc_context, struct ad_common_test_ctx);
     assert_non_null(test_ctx);
@@ -121,7 +120,6 @@ static int test_ad_common_teardown(void **state)
 
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
-    assert_true(check_leaks_pop(global_talloc_context) == true);
     assert_true(leak_check_teardown());
 
     ret = rmdir(TESTS_PATH);

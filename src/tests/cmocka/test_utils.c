@@ -1135,13 +1135,11 @@ static int setup_add_strings_lists(void **state)
 {
     assert_true(leak_check_setup());
 
-    check_leaks_push(global_talloc_context);
     return 0;
 }
 
 static int teardown_add_strings_lists(void **state)
 {
-    assert_true(check_leaks_pop(global_talloc_context) == true);
     assert_true(leak_check_teardown());
     return 0;
 }
@@ -1338,7 +1336,6 @@ static int unique_file_test_setup(void **state)
     struct unique_file_test_ctx *test_ctx;
 
     assert_true(leak_check_setup());
-    check_leaks_push(global_talloc_context);
 
     test_ctx = talloc_zero(global_talloc_context, struct unique_file_test_ctx);
     assert_non_null(test_ctx);
@@ -1364,7 +1361,6 @@ static int unique_file_test_teardown(void **state)
     }
 
     talloc_free(test_ctx);
-    assert_true(check_leaks_pop(global_talloc_context) == true);
     assert_true(leak_check_teardown());
     return 0;
 }
