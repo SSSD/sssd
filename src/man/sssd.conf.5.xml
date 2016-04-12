@@ -391,6 +391,34 @@
                                         testing.</para>
                                     </listitem>
                                 </varlistentry>
+                                <varlistentry>
+                                    <term>ocsp_default_responder=URL</term>
+                                    <listitem>
+                                        <para>Sets the OCSP default responder
+                                        which should be used instead of the one
+                                        mentioned in the certificate. URL must
+                                        be replaced with the URL of the OCSP
+                                        default responder e.g.
+                                        http://example.com:80/ocsp.</para>
+                                        <para>This option must be used together
+                                        with
+                                        ocsp_default_responder_signing_cert.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>
+                                    ocsp_default_responder_signing_cert=NAME</term>
+                                    <listitem>
+                                        <para>The nickname of the cert to trust
+                                        (expected) to sign the OCSP responses.
+                                        The certificate with the given nickname
+                                        must be availble in the systems NSS
+                                        database.</para>
+                                        <para>This option must be used together
+                                        with ocsp_default_responder.</para>
+                                    </listitem>
+                                </varlistentry>
                                 </variablelist>
                             </para>
                             <para>

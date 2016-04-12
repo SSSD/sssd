@@ -1651,6 +1651,83 @@ static void test_sss_get_domain_mappings_content(void **state)
      * capaths might not be as expected. */
 }
 
+static void test_parse_cert_verify_opts(void **state)
+{
+    int ret;
+    struct cert_verify_opts *cv_opts;
+
+    ret = parse_cert_verify_opts(global_talloc_context, NULL, &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_true(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context, "wedfkwefjk", &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_true(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context, "no_ocsp", &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_false(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context, "no_verification",
+                                 &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_false(cv_opts->do_verification);
+    assert_true(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context,
+                                 "no_ocsp,no_verification", &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_false(cv_opts->do_verification);
+    assert_false(cv_opts->do_ocsp);
+    assert_null(cv_opts->ocsp_default_responder);
+    assert_null(cv_opts->ocsp_default_responder_signing_cert);
+    talloc_free(cv_opts);
+
+    ret = parse_cert_verify_opts(global_talloc_context,
+                                 "ocsp_default_responder=", &cv_opts);
+    assert_int_equal(ret, EINVAL);
+
+    ret = parse_cert_verify_opts(global_talloc_context,
+                                 "ocsp_default_responder_signing_cert=",
+                                 &cv_opts);
+    assert_int_equal(ret, EINVAL);
+
+    ret = parse_cert_verify_opts(global_talloc_context,
+                                 "ocsp_default_responder=abc", &cv_opts);
+    assert_int_equal(ret, EINVAL);
+
+    ret = parse_cert_verify_opts(global_talloc_context,
+                                 "ocsp_default_responder_signing_cert=def",
+                                 &cv_opts);
+    assert_int_equal(ret, EINVAL);
+
+    ret = parse_cert_verify_opts(global_talloc_context,
+                                 "ocsp_default_responder=abc,"
+                                 "ocsp_default_responder_signing_cert=def",
+                                 &cv_opts);
+    assert_int_equal(ret, EOK);
+    assert_true(cv_opts->do_verification);
+    assert_true(cv_opts->do_ocsp);
+    assert_string_equal(cv_opts->ocsp_default_responder, "abc");
+    assert_string_equal(cv_opts->ocsp_default_responder_signing_cert, "def");
+    talloc_free(cv_opts);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1732,6 +1809,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_get_domain_mappings_content,
                                         setup_dom_list_with_subdomains,
                                         teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_parse_cert_verify_opts,
+                                        setup_add_strings_lists,
+                                        teardown_add_strings_lists),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

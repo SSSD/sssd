@@ -271,6 +271,27 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
                                      PR_GetError());
             return EIO;
         }
+
+        if (cert_verify_opts->ocsp_default_responder != NULL
+            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL) {
+            rv = CERT_SetOCSPDefaultResponder(handle,
+                         cert_verify_opts->ocsp_default_responder,
+                         cert_verify_opts->ocsp_default_responder_signing_cert);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "CERT_SetOCSPDefaultResponder failed: [%d].\n",
+                      PR_GetError());
+                return EIO;
+            }
+
+            rv = CERT_EnableOCSPDefaultResponder(handle);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "CERT_EnableOCSPDefaultResponder failed: [%d].\n",
+                      PR_GetError());
+                return EIO;
+            }
+        }
     }
 
     found_cert = NULL;
@@ -306,6 +327,18 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
             }
         } else {
             DEBUG(SSSDBG_TRACE_ALL, "--- empty cert list node ---\n");
+        }
+    }
+
+    /* Disable OCSP default responder so that NSS can shutdown properly */
+    if (cert_verify_opts->do_ocsp
+            && cert_verify_opts->ocsp_default_responder != NULL
+            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL) {
+        rv = CERT_DisableOCSPDefaultResponder(handle);
+        if (rv != SECSuccess) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "CERT_DisableOCSPDefaultResponder failed: [%d].\n",
+                  PR_GetError());
         }
     }
 

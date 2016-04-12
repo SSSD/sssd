@@ -238,6 +238,7 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     NSSInitParameters parameters = { 0 };
     parameters.length =  sizeof (parameters);
     SECStatus rv;
+    SECStatus rv_verify;
 
     if (der_blob == NULL || der_size == 0) {
         return EINVAL;
@@ -266,6 +267,27 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
                                      PR_GetError());
             return EIO;
         }
+
+        if (cert_verify_opts->ocsp_default_responder != NULL
+            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL) {
+            rv = CERT_SetOCSPDefaultResponder(handle,
+                         cert_verify_opts->ocsp_default_responder,
+                         cert_verify_opts->ocsp_default_responder_signing_cert);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "CERT_SetOCSPDefaultResponder failed: [%d].\n",
+                      PR_GetError());
+                return EIO;
+            }
+
+            rv = CERT_EnableOCSPDefaultResponder(handle);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "CERT_EnableOCSPDefaultResponder failed: [%d].\n",
+                      PR_GetError());
+                return EIO;
+            }
+        }
     }
 
     der_item.len = der_size;
@@ -279,9 +301,24 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     }
 
     if (cert_verify_opts->do_verification) {
-        rv = CERT_VerifyCertificateNow(handle, cert, PR_TRUE,
-                                       certificateUsageSSLClient, NULL, NULL);
-        if (rv != SECSuccess) {
+        rv_verify = CERT_VerifyCertificateNow(handle, cert, PR_TRUE,
+                                              certificateUsageSSLClient,
+                                              NULL, NULL);
+
+        /* Disable OCSP default responder so that NSS can shutdown properly */
+        if (cert_verify_opts->do_ocsp
+                && cert_verify_opts->ocsp_default_responder != NULL
+                && cert_verify_opts->ocsp_default_responder_signing_cert
+                                                                      != NULL) {
+            rv = CERT_DisableOCSPDefaultResponder(handle);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "CERT_DisableOCSPDefaultResponder failed: [%d].\n",
+                      PR_GetError());
+            }
+        }
+
+        if (rv_verify != SECSuccess) {
             DEBUG(SSSDBG_CRIT_FAILURE, "CERT_VerifyCertificateNow failed [%d].\n",
                                        PR_GetError());
             ret = EACCES;
