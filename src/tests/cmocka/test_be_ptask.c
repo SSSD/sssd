@@ -286,12 +286,14 @@ static int test_setup(void **state)
     test_ctx->be_ctx->ev = tevent_context_init(test_ctx->be_ctx);
     assert_non_null(test_ctx->be_ctx->ev);
 
+    check_leaks_push(test_ctx);
     *state = test_ctx;
     return 0;
 }
 
 static int test_teardown(void **state)
 {
+    assert_true(check_leaks_pop(*state));
     talloc_zfree(*state);
     assert_true(leak_check_teardown());
     return 0;
