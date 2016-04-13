@@ -31,6 +31,9 @@
 
 #include "providers/ad/ad_pac.h"
 #include "util/crypto/sss_crypto.h"
+#ifdef HAVE_NSS
+#include "util/crypto/nss/nss_util.h"
+#endif
 #include "util/util_sss_idmap.h"
 
 /* In order to access opaque types */
