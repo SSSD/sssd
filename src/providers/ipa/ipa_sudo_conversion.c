@@ -962,6 +962,11 @@ combine_cmdgroups(TALLOC_CTX *mem_ctx,
 
     DLIST_FOR_EACH(listitem, list) {
         cmdgroup = ipa_sudo_conv_lookup(conv->cmdgroups, listitem->dn);
+        if (cmdgroup == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "ipa_sudo_conv_lookup failed for DN:%s\n", listitem->dn);
+            continue;
+        }
 
         ret = add_strings_lists(mem_ctx, values, cmdgroup->expanded,
                                 false, discard_const(&values));
