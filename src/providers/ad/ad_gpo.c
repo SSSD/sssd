@@ -97,6 +97,12 @@
 #define GPO_CHILD SSSD_LIBEXEC_PATH"/gpo_child"
 #endif
 
+/* If INI_PARSE_IGNORE_NON_KVP is not defined, use 0 (no effect) */
+#ifndef INI_PARSE_IGNORE_NON_KVP
+#define INI_PARSE_IGNORE_NON_KVP 0
+#warning INI_PARSE_IGNORE_NON_KVP not defined.
+#endif
+
 /* fd used by the gpo_child process for logging */
 int gpo_child_debug_fd = -1;
 
@@ -1162,7 +1168,60 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
         }
         ini_config_free_errors(errors);
 
-        goto done;
+        /* Do not 'goto done' here. We will try to parse
+         * the GPO file again. */
+    }
+
+    if (ret != EOK) {
+        /* A problem occurred during parsing. Try again
+         * with INI_PARSE_IGNORE_NON_KVP flag */
+
+        ini_config_file_destroy(file_ctx);
+        file_ctx = NULL;
+        ini_config_destroy(ini_config);
+        ini_config = NULL;
+
+        ret = ini_config_file_open(filename, 0, &file_ctx);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ini_config_file_open failed [%d][%s]\n",
+                  ret, strerror(ret));
+            goto done;
+        }
+
+        ret = ini_config_create(&ini_config);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ini_config_create failed [%d][%s]\n", ret, strerror(ret));
+            goto done;
+        }
+
+        ret = ini_config_parse(file_ctx, INI_STOP_ON_NONE, 0,
+                               INI_PARSE_IGNORE_NON_KVP, ini_config);
+        if (ret != 0) {
+            int lret;
+            char **errors;
+
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "[%s]: ini_config_parse failed [%d][%s]\n",
+                  filename, ret, strerror(ret));
+
+            /* Now get specific errors if there are any */
+            lret = ini_config_get_errors(ini_config, &errors);
+            if (lret != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to get specific parse error [%d][%s]\n", lret,
+                      strerror(lret));
+                goto done;
+            }
+
+            for (int a = 0; errors[a]; a++) {
+                 DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[a]);
+            }
+            ini_config_free_errors(errors);
+
+            goto done;
+        }
     }
 
     for (i = 0; i < GPO_MAP_NUM_OPTS; i++) {
