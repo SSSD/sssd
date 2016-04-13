@@ -29,6 +29,7 @@ struct err_string error_to_str[] = {
     { "Internal Error" },       /* ERR_INTERNAL */
     { "SSSD is offline" },       /* ERR_OFFLINE */
     { "Terminated" },       /* ERR_TERMINATED */
+    { "Invalid data type" },       /* ERR_INVALID_DATA_TYPE */
     { "Account Unknown" },      /* ERR_ACCOUNT_UNKNOWN */
     { "Invalid credential type" },  /* ERR_INVALID_CRED_TYPE */
     { "No credentials available" }, /* ERR_NO_CREDS */
