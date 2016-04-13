@@ -695,7 +695,7 @@ sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
     ret = sysdb_search_custom(tmp_ctx, domain, filter,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
-    if (ret == ENOENT || count == 0) {
+    if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC, "No rules matched\n");
         ret = EOK;
         goto done;
