@@ -23,7 +23,7 @@ msgstr ""
 ")\n"
 "Language: ca\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 3.7.3\n"
+"X-Generator: Zanata 3.8.3\n"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 msgid "Set the verbosity of the debug logging"
