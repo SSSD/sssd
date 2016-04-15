@@ -339,6 +339,10 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
              * as the cached password.
              */
             break;
+        case SSS_PAM_PREAUTH:
+            /* There are no credentials available during pre-authentication,
+             * nothing to do. */
+            break;
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK_PRELIM:
             if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_2FA) {
@@ -372,7 +376,7 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
     }
 
     if (password == NULL) {
-        if (pd->cmd != SSS_CMD_RENEW) {
+        if (pd->cmd != SSS_CMD_RENEW && pd->cmd != SSS_PAM_PREAUTH) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "password not available, offline auth may not work.\n");
             /* password caching failures are not fatal errors */
