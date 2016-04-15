@@ -2,10 +2,20 @@ AC_SUBST(NDR_NBT_CFLAGS)
 AC_SUBST(NDR_NBT_LIBS)
 AC_SUBST(SMBCLIENT_CFLAGS)
 AC_SUBST(SMBCLIENT_LIBS)
+AC_SUBST(NDR_KRB5PAC_CFLAGS)
+AC_SUBST(NDR_KRB5PAC_LIBS)
 
 if test x"$with_samba" = xyes; then
     PKG_CHECK_MODULES(NDR_NBT, ndr_nbt, ,
-        AC_MSG_ERROR([[Please install Samba 4 development libraries.
+        AC_MSG_ERROR([[Please install Samba 4 NDR NBT development libraries.
+Samba 4 libraries are necessary for building ad and ipa provider.
+If you do not want to build these providers it is possible to build SSSD
+without them. In this case, you will need to execute configure script
+with argument --without-samba
+    ]]))
+
+    PKG_CHECK_MODULES(NDR_KRB5PAC, ndr_krb5pac, ,
+        AC_MSG_ERROR([[Please install Samba 4 NDR KRB5PAC development libraries.
 Samba 4 libraries are necessary for building ad and ipa provider.
 If you do not want to build these providers it is possible to build SSSD
 without them. In this case, you will need to execute configure script

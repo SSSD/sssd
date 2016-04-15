@@ -220,7 +220,6 @@ if HAVE_CMOCKA
         test_sss_idmap \
         test_ipa_idmap \
         test_utils \
-        ad_common_tests \
         dp_opt_tests \
         responder-get-domains-tests \
         sbus-internal-tests \
@@ -242,7 +241,6 @@ if HAVE_CMOCKA
         test_fo_srv \
         pam-srv-tests \
         test_ipa_subdom_util \
-        test_ipa_subdom_server \
         test_tools_colondb \
         test_krb5_wait_queue \
         test_cert_utils \
@@ -262,7 +260,10 @@ endif   # BUILD_IFP
 if BUILD_SAMBA
 non_interactive_cmocka_based_tests += \
     ad_access_filter_tests \
-    ad_gpo_tests
+    ad_gpo_tests \
+    ad_common_tests \
+    test_ipa_subdom_server \
+    $(NULL)
 endif
 
 endif   # HAVE_CMOCKA
