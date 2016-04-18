@@ -397,13 +397,13 @@ def user_and_groups_rfc2307_bis(request, ldap_conn):
 
 def test_add_remove_user(ldap_conn, blank_rfc2307):
     """Test user addition and removal are reflected by SSSD"""
-    e = ldap_ent.user(ldap_conn.ds_inst.base_dn, "user", 1001, 2000)
+    e = ldap_ent.user(ldap_conn.ds_inst.base_dn, "user", 2001, 2000)
     time.sleep(INTERACTIVE_TIMEOUT/2)
     # Add the user
     ent.assert_passwd(ent.contains_only())
     ldap_conn.add_s(*e)
     time.sleep(INTERACTIVE_TIMEOUT)
-    ent.assert_passwd(ent.contains_only(dict(name="user", uid=1001)))
+    ent.assert_passwd(ent.contains_only(dict(name="user", uid=2001)))
     # Remove the user
     ldap_conn.delete_s(e[0])
     time.sleep(INTERACTIVE_TIMEOUT)
