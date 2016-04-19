@@ -840,13 +840,7 @@ static void ipa_get_view_name_done(struct tevent_req *req)
         if (ret == EOPNOTSUPP || ret == EIO) {
             DEBUG(SSSDBG_TRACE_FUNC, "get_view_name request failed, looks " \
                                      "like server does not support views.\n");
-            ret = ipa_check_master(ctx);
-            if (ret == EAGAIN) {
-                return;
-            } else if (ret != EOK) {
-                goto done;
-            }
-
+            ret = EOK;
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "get_view_name request failed.\n");
         }
