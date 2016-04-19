@@ -265,10 +265,10 @@ static void test_sss_ncache_gid(void **state)
     assert_int_equal(ret, EEXIST);
 
     permanent = false;
-    ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, gid);
+    ret = sss_ncache_set_gid(ts->ctx, permanent, NULL, gid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, gid);
+    ret = sss_ncache_check_gid(ts->ctx, ttl, NULL, gid);
     assert_int_equal(ret, EEXIST);
 
     /* test when ttl is -1 with gid present in database*/
