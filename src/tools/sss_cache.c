@@ -406,7 +406,8 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
 
     /* Update sudo rule filter */
     ret = update_filter(tctx, dinfo, tctx->sudo_rule_name,
-                        tctx->update_sudo_rule_filter, "(%s=%s)", false,
+                        tctx->update_sudo_rule_filter,
+                        "(%s=%s)", TYPE_SUDO_RULE, false,
                         &tctx->sudo_rule_filter);
     if (ret != EOK) {
         return ret;
