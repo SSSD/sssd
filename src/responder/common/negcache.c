@@ -97,12 +97,6 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
         goto done;
     }
 
-    if (ttl == -1) {
-        /* a negative ttl means: never expires */
-        ret = EEXIST;
-        goto done;
-    }
-
     errno = 0;
     timestamp = strtoull((const char *)data.dptr, &ep, 10);
     if (errno != 0 || *ep != '\0') {

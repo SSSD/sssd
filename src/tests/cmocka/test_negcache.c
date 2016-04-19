@@ -230,11 +230,6 @@ static void test_sss_ncache_uid(void **state)
 
     ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, uid);
     assert_int_equal(ret, EOK);
-
-    /* test when ttl is -1 with uid present in database*/
-    ttl = -1;
-    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, uid);
-    assert_int_equal(ret, EEXIST);
 }
 
 /* @test_sss_ncache_gid : test following functions
@@ -268,11 +263,6 @@ static void test_sss_ncache_gid(void **state)
     ret = sss_ncache_set_gid(ts->ctx, permanent, NULL, gid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_gid(ts->ctx, ttl, NULL, gid);
-    assert_int_equal(ret, EEXIST);
-
-    /* test when ttl is -1 with gid present in database*/
-    ttl = -1;
     ret = sss_ncache_check_gid(ts->ctx, ttl, NULL, gid);
     assert_int_equal(ret, EEXIST);
 }
@@ -311,11 +301,6 @@ static void test_sss_ncache_sid(void **state)
 
     ret = sss_ncache_check_sid(ts->ctx, ttl, sid);
     assert_int_equal(ret, EEXIST);
-
-    /* test when ttl is -1 with sid present in database*/
-    ttl = -1;
-    ret = sss_ncache_check_sid(ts->ctx, ttl, sid);
-    assert_int_equal(ret, EEXIST);
 }
 
 /* @test_sss_ncache_cert : test following functions
@@ -349,11 +334,6 @@ static void test_sss_ncache_cert(void **state)
     ret = sss_ncache_set_cert(ts->ctx, permanent, cert);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_cert(ts->ctx, ttl, cert);
-    assert_int_equal(ret, EEXIST);
-
-    /* test when ttl is -1 with cert present in database*/
-    ttl = -1;
     ret = sss_ncache_check_cert(ts->ctx, ttl, cert);
     assert_int_equal(ret, EEXIST);
 }
@@ -398,11 +378,6 @@ static void test_sss_ncache_user(void **state)
 
     ret = sss_ncache_check_user(ts->ctx, ttl, dom, name);
     assert_int_equal(ret, EEXIST);
-
-    /* test when ttl is -1 with domain name present in database */
-    ttl = -1;
-    ret = sss_ncache_check_user(ts->ctx, ttl, dom, name);
-    assert_int_equal(ret, EEXIST);
 }
 
 /* @test_sss_ncache_group : test following functions
@@ -443,11 +418,6 @@ static void test_sss_ncache_group(void **state)
     ret = sss_ncache_set_group(ts->ctx, permanent, dom, name);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_group(ts->ctx, ttl, dom, name);
-    assert_int_equal(ret, EEXIST);
-
-    /* test when ttl is -1 with domain name present in database */
-    ttl = -1;
     ret = sss_ncache_check_group(ts->ctx, ttl, dom, name);
     assert_int_equal(ret, EEXIST);
 }
@@ -492,11 +462,6 @@ static void test_sss_ncache_netgr(void **state)
 
     ret = sss_ncache_check_netgr(ts->ctx, ttl, dom, name);
     assert_int_equal(ret, EEXIST);
-
-    /* test when ttl is -1 with domain name present in database */
-    ttl = -1;
-    ret = sss_ncache_check_netgr(ts->ctx, ttl, dom, name);
-    assert_int_equal(ret, EEXIST);
 }
 
 /* @test_sss_ncache_service_name : test following functions
@@ -537,11 +502,6 @@ static void test_sss_ncache_service_name(void **state)
     ret = sss_ncache_set_service_name(ts->ctx, permanent, dom, name, PROTO);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_service(ts->ctx, ttl, dom, name, PROTO);
-    assert_int_equal(ret, EEXIST);
-
-    /* test when ttl is -1 with domain name present in database */
-    ttl = -1;
     ret = sss_ncache_check_service(ts->ctx, ttl, dom, name, PROTO);
     assert_int_equal(ret, EEXIST);
 }
@@ -588,12 +548,6 @@ static void test_sss_ncache_service_port(void **state)
                                       PROTO);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_service_port(ts->ctx, ttl, dom, (uint16_t)PORT,
-                                        PROTO);
-    assert_int_equal(ret, EEXIST);
-
-    /* test when ttl is -1 with domain name present in database */
-    ttl = -1;
     ret = sss_ncache_check_service_port(ts->ctx, ttl, dom, (uint16_t)PORT,
                                         PROTO);
     assert_int_equal(ret, EEXIST);
