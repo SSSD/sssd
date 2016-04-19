@@ -243,6 +243,7 @@ static void free_input_values(struct input_values *values)
 static errno_t update_filter(struct cache_tool_ctx *tctx,
                              struct sss_domain_info *dinfo,
                              char *name, bool update, const char *fmt,
+                             enum sss_cache_entry entry_type,
                              bool force_case_sensitivity,
                              char **_filter)
 {
@@ -292,12 +293,16 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
         use_name = parsed_name;
     }
 
-    if (parsed_domain) {
-        use_name = sss_get_domain_name(tmp_ctx, use_name, dinfo);
-        if (!use_name) {
-            ret = ENOMEM;
-            goto done;
-        }
+    switch (entry_type) {
+        case TYPE_USER:
+        case TYPE_GROUP:
+            use_name = sss_create_internal_fqname(tmp_ctx, use_name, dinfo->name);
+        default:
+            break;
+    }
+    if (!use_name) {
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = sss_filter_sanitize_for_dom(tmp_ctx, use_name, dinfo,
@@ -346,7 +351,8 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
 
     /* Update user filter */
     ret = update_filter(tctx, dinfo, tctx->user_name,
-                        tctx->update_user_filter, "(%s=%s)", false,
+                        tctx->update_user_filter, "(%s=%s)",
+                        TYPE_USER, false,
                         &tctx->user_filter);
     if (ret != EOK) {
         return ret;
@@ -354,7 +360,8 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
 
     /* Update group filter */
     ret = update_filter(tctx, dinfo, tctx->group_name,
-                        tctx->update_group_filter, "(%s=%s)", false,
+                        tctx->update_group_filter, "(%s=%s)",
+                        TYPE_GROUP, false,
                         &tctx->group_filter);
     if (ret != EOK) {
         return ret;
@@ -362,7 +369,8 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
 
     /* Update netgroup filter */
     ret = update_filter(tctx, dinfo, tctx->netgroup_name,
-                        tctx->update_netgroup_filter, "(%s=%s)", false,
+                        tctx->update_netgroup_filter, "(%s=%s)",
+                        TYPE_NETGROUP, false,
                         &tctx->netgroup_filter);
     if (ret != EOK) {
         return ret;
@@ -370,7 +378,8 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
 
     /* Update service filter */
     ret = update_filter(tctx, dinfo, tctx->service_name,
-                        tctx->update_service_filter, "(%s=%s)", false,
+                        tctx->update_service_filter, "(%s=%s)",
+                        TYPE_SERVICE, false,
                         &tctx->service_filter);
     if (ret != EOK) {
         return ret;
@@ -379,7 +388,8 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
     /* Update autofs filter */
     ret = update_filter(tctx, dinfo, tctx->autofs_name,
                         tctx->update_autofs_filter,
-                        "(&(objectclass="SYSDB_AUTOFS_MAP_OC")(%s=%s))", true,
+                        "(&(objectclass="SYSDB_AUTOFS_MAP_OC")(%s=%s))",
+                        TYPE_AUTOFSMAP, true,
                         &tctx->autofs_filter);
     if (ret != EOK) {
         return ret;
@@ -387,7 +397,8 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
 
     /* Update ssh host filter */
     ret = update_filter(tctx, dinfo, tctx->ssh_host_name,
-                        tctx->update_ssh_host_filter, "(%s=%s)", false,
+                        tctx->update_ssh_host_filter, "(%s=%s)",
+                        TYPE_SSH_HOST, false,
                         &tctx->ssh_host_filter);
     if (ret != EOK) {
         return ret;
