@@ -489,7 +489,7 @@ int ifp_component_enable(struct sbus_request *dbus_req, void *data)
         goto done;
     }
 
-    config_ctx = sss_config_open(dbus_req, NULL, CONFDB_DEFAULT_CONFIG_FILE);
+    config_ctx = sss_config_open(dbus_req, NULL, SSSD_CONFIG_FILE);
     if (config_ctx == NULL) {
         ret = ENOMEM;
         goto done;
@@ -560,7 +560,7 @@ int ifp_component_disable(struct sbus_request *dbus_req, void *data)
         goto done;
     }
 
-    config_ctx = sss_config_open(dbus_req, NULL, CONFDB_DEFAULT_CONFIG_FILE);
+    config_ctx = sss_config_open(dbus_req, NULL, SSSD_CONFIG_FILE);
     if (config_ctx == NULL) {
         ret = ENOMEM;
         goto done;
@@ -651,7 +651,7 @@ int ifp_component_change_debug_level(struct sbus_request *dbus_req,
         goto done;
     }
 
-    config_ctx = sss_config_open(dbus_req, NULL, CONFDB_DEFAULT_CONFIG_FILE);
+    config_ctx = sss_config_open(dbus_req, NULL, SSSD_CONFIG_FILE);
     if (config_ctx == NULL) {
         ret = ENOMEM;
         goto done;
@@ -715,7 +715,7 @@ int ifp_component_change_debug_level_tmp(struct sbus_request *dbus_req,
     }
 
     /* Touch configuration file to make sure debug level is reloaded. */
-    if (utime(CONFDB_DEFAULT_CONFIG_FILE, NULL) == -1) {
+    if (utime(SSSD_CONFIG_FILE, NULL) == -1) {
         ret = errno;
         goto done;
     }

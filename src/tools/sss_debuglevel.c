@@ -107,7 +107,7 @@ int main(int argc, const char **argv)
     if (pc_config_file) {
         config_file = talloc_strdup(ctx, pc_config_file);
     } else {
-        config_file = talloc_strdup(ctx, CONFDB_DEFAULT_CONFIG_FILE);
+        config_file = talloc_strdup(ctx, SSSD_CONFIG_FILE);
     }
 
     if (config_file == NULL) {

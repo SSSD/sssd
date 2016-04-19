@@ -3114,7 +3114,7 @@ int main(int argc, const char *argv[])
     if (opt_config_file) {
         config_file = talloc_strdup(tmp_ctx, opt_config_file);
     } else {
-        config_file = talloc_strdup(tmp_ctx, CONFDB_DEFAULT_CONFIG_FILE);
+        config_file = talloc_strdup(tmp_ctx, SSSD_CONFIG_FILE);
     }
 
     if (!config_file) {
