@@ -36,6 +36,8 @@
 #include "util/util.h"
 #include "tests/common.h"
 
+#define TESTS_PATH "tp_" BASE_FILE_STEM
+
 static char tpl_dir[] = "file-tests-dir-XXXXXX";
 static char *dir_path;
 static char *dst_path;
@@ -47,8 +49,9 @@ static void setup_files_test(void)
 {
     /* create a temporary directory that we fill with stuff later on */
     test_ctx = talloc_new(NULL);
-    dir_path = mkdtemp(talloc_strdup(test_ctx, tpl_dir));
-    dst_path = mkdtemp(talloc_strdup(test_ctx, tpl_dir));
+    mkdir(TESTS_PATH, 0700);
+    dir_path = mkdtemp(talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, tpl_dir));
+    dst_path = mkdtemp(talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, tpl_dir));
 
     uid = getuid();
     gid = getgid();
@@ -75,6 +78,7 @@ static void teardown_files_test(void)
         }
     }
 
+    rmdir(TESTS_PATH);
     /* clean up */
     talloc_zfree(test_ctx);
 }
@@ -199,6 +203,49 @@ START_TEST(test_simple_copy)
 }
 END_TEST
 
+START_TEST(test_copy_file)
+{
+    TALLOC_CTX *tmp_ctx = talloc_new(test_ctx);
+    int ret;
+    char origpath[PATH_MAX+1];
+    char *foo_path;
+    char *bar_path;
+    int fd = -1;
+
+    errno = 0;
+    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    fail_unless(errno == 0, "Cannot getcwd\n");
+
+    /* create a file */
+    ret = chdir(dir_path);
+    fail_if(ret == -1, "Cannot chdir1\n");
+
+    ret = create_simple_file("foo", "foo");
+    fail_if(ret == -1, "Cannot create foo\n");
+    foo_path = talloc_asprintf(tmp_ctx, "%s/foo", dir_path);
+    bar_path = talloc_asprintf(tmp_ctx, "%s/bar", dst_path);
+
+    /* create a file */
+    ret = chdir(origpath);
+    fail_if(ret == -1, "Cannot chdir1\n");
+
+    /* Copy this file to a new file */
+    DEBUG(SSSDBG_FUNC_DATA,
+          "Will copy from 'foo' to 'bar'\n");
+    ret = copy_file_secure(foo_path, bar_path, 0700, uid, gid, 0);
+    fail_unless(ret == EOK, "copy_file_secure failed\n");
+
+    /* check if really copied */
+    ret = access(bar_path, F_OK);
+    fail_unless(ret == 0, "destination file 'bar' not there\n");
+
+    ret = check_and_open_readonly(bar_path, &fd, uid, gid, S_IFREG|S_IRWXU, 0);
+    fail_unless(ret == EOK, "Cannot open %s\n", bar_path);
+    close(fd);
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
 START_TEST(test_copy_symlink)
 {
     int ret;
@@ -291,6 +338,7 @@ static Suite *files_suite(void)
 
     tcase_add_test(tc_files, test_remove_tree);
     tcase_add_test(tc_files, test_simple_copy);
+    tcase_add_test(tc_files, test_copy_file);
     tcase_add_test(tc_files, test_copy_symlink);
     tcase_add_test(tc_files, test_copy_node);
     suite_add_tcase(s, tc_files);

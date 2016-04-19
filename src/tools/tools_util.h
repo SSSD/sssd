@@ -119,6 +119,12 @@ int remove_tree(const char *root);
 
 int copy_tree(const char *src_root, const char *dst_root,
               mode_t mode_root, uid_t uid, gid_t gid);
+int
+copy_file_secure(const char *src,
+                 const char *dest,
+                 mode_t mode,
+                 uid_t uid, gid_t gid,
+                 bool force);
 
 /* from selinux.c */
 int selinux_file_context(const char *dst_name);

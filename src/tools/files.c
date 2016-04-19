@@ -351,41 +351,15 @@ copy_symlink(int src_dir_fd,
     return EOK;
 }
 
-/* Copy bytes from input file descriptor ifd into file named
- * dst_named under directory with dest_dir_fd. Own the new file
- * by uid/gid
- */
 static int
-copy_file(int ifd,
-          int dest_dir_fd,
-          const char *file_name,
-          const char *full_path,
-          const struct stat *statp,
-          uid_t uid, gid_t gid)
+copy_file_contents(int ifd,
+                   int ofd,
+                   mode_t mode,
+                   uid_t uid, gid_t gid)
 {
-    int ofd = -1;
     errno_t ret;
     char buf[1024];
     ssize_t cnt, written;
-
-    ret = selinux_file_context(full_path);
-    if (ret != 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Failed to set SELinux context for [%s]\n", full_path);
-        /* Not fatal */
-    }
-
-    /* Start with absolutely restrictive permissions */
-    ofd = openat(dest_dir_fd, file_name,
-                 O_EXCL | O_CREAT | O_WRONLY | O_NOFOLLOW,
-                 0);
-    if (ofd < 0 && errno != EEXIST) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE,
-               "Cannot open() destination file '%s': [%d][%s].\n",
-               full_path, ret, strerror(ret));
-        goto done;
-    }
 
     while ((cnt = sss_atomic_read_s(ifd, buf, sizeof(buf))) != 0) {
         if (cnt == -1) {
@@ -419,19 +393,64 @@ copy_file(int ifd,
     if (ret == -1 && errno != EPERM) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-              "Error changing owner of '%s': %s\n",
-              full_path, strerror(ret));
+              "Error changing owner: %s\n",
+              strerror(ret));
         goto done;
     }
 
     /* Set the desired mode. */
-    ret = fchmod(ofd, statp->st_mode);
+    ret = fchmod(ofd, mode);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "Error changing owner of '%s': %s\n",
-              full_path, strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE, "Error changing mode: %s\n",
+              strerror(ret));
               goto done;
     }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+
+/* Copy bytes from input file descriptor ifd into file named
+ * dst_named under directory with dest_dir_fd. Own the new file
+ * by uid/gid
+ */
+static int
+copy_file(int ifd,
+          int dest_dir_fd,
+          const char *file_name,
+          const char *full_path,
+          const struct stat *statp,
+          uid_t uid, gid_t gid)
+{
+    int ofd = -1;
+    errno_t ret;
+
+    ret = selinux_file_context(full_path);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to set SELinux context for [%s]\n", full_path);
+        /* Not fatal */
+    }
+
+    /* Start with absolutely restrictive permissions */
+    ofd = openat(dest_dir_fd, file_name,
+                 O_EXCL | O_CREAT | O_WRONLY | O_NOFOLLOW,
+                 0);
+    if (ofd < 0 && errno != EEXIST) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+               "Cannot open() destination file '%s': [%d][%s].\n",
+               full_path, ret, strerror(ret));
+        goto done;
+    }
+
+    ret = copy_file_contents(ifd, ofd, statp->st_mode, uid, gid);
+    if (ret != EOK) goto done;
+
 
     ret = sss_futime_set(ofd, statp);
     if (ret != EOK) {
@@ -439,12 +458,58 @@ copy_file(int ifd,
               ret, strerror(ret));
         /* Do not fail */
     }
-
-    close(ofd);
-    ofd = -1;
     ret = EOK;
 
 done:
+    if (ofd != -1) close(ofd);
+    return ret;
+}
+
+int
+copy_file_secure(const char *src,
+                 const char *dest,
+                 mode_t mode,
+                 uid_t uid, gid_t gid,
+                 bool force)
+{
+    int ifd = -1;
+    int ofd = -1;
+    int dest_flags = 0;
+    errno_t ret;
+
+    ret = selinux_file_context(dest);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to set SELinux context for [%s]\n", dest);
+        /* Not fatal */
+    }
+
+    /* Start with absolutely restrictive permissions */
+    dest_flags = O_CREAT | O_WRONLY | O_NOFOLLOW;
+    if (!force) {
+        dest_flags |= O_EXCL;
+    }
+
+    ofd = open(dest, dest_flags, mode);
+    if (ofd < 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+               "Cannot open() destination file '%s': [%d][%s].\n",
+               dest, errno, strerror(errno));
+        goto done;
+    }
+
+    ifd = sss_open_cloexec(src, O_RDONLY | O_NOFOLLOW, &ret);
+    if (ifd < 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+               "Cannot open() source file '%s': [%d][%s].\n",
+               src, ret, strerror(ret));
+        goto done;
+    }
+
+    ret = copy_file_contents(ifd, ofd, mode, uid, gid);
+
+done:
+    if (ifd != -1) close(ifd);
     if (ofd != -1) close(ofd);
     return ret;
 }
