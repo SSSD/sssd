@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>idmap_sss</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>idmap_sss</refname>
+        <refpurpose>SSSSD's idmap_sss Backend for Winbind</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            The idmap_sss module provides a way to call SSSD to map UIDs/GIDs
+            and SIDs. No database is required in this case as the mapping is
+            done by SSSD.
+        </para>
+    </refsect1>
+
+    <refsect1>
+        <title>IDMAP OPTIONS</title>
+
+        <variablelist>
+            <varlistentry>
+                <term>range = low - high</term>
+                <listitem><para>
+                  Defines the available matching uid and gid range for which the
+                  backend is authoritative.
+                </para></listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1>
+        <title>EXAMPLES</title>
+        <para>
+            This example shows how to configure idmap_sss as the default mapping
+            module.
+        </para>
+
+        <programlisting format="linespecific">
+        [global]
+        security = domain
+        workgroup = MAIN
+
+        idmap config * : backend        = sss
+        idmap config * : range          = 200000-2147483647
+
+        </programlisting>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

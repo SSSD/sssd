@@ -288,6 +288,20 @@ AC_DEFUN([WITH_CIFS_PLUGIN_PATH],
     AC_SUBST(cifspluginpath)
   ])
 
+AC_DEFUN([WITH_WINBIND_PLUGIN_PATH],
+  [ AC_ARG_WITH([winbind-plugin-path],
+                [AC_HELP_STRING([--with-winbind-plugin-path=PATH],
+                                [Path to winbind idmap plugin store [/usr/lib/samba/idmap]]
+                               )
+                ]
+               )
+    winbindpluginpath="${libdir}/samba/idmap"
+    if test x"$with_winbind_plugin_path" != x; then
+        winbindpluginpath=$with_winbind_plugin_path
+    fi
+    AC_SUBST(winbindpluginpath)
+  ])
+
 AC_DEFUN([WITH_KRB5_RCACHE_DIR],
   [ AC_ARG_WITH([krb5-rcache-dir],
                 [AC_HELP_STRING([--with-krb5-rcache-dir=PATH],

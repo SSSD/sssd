@@ -70,6 +70,9 @@ struct so {
 #ifdef HAVE_CIFS_IDMAP_PLUGIN
     { "cifs_idmap_sss.so", { LIBPFX"cifs_idmap_sss.so", NULL } },
 #endif
+    { "winbind_idmap_sss.so", { LIBPFX"libdlopen_test_winbind_idmap.so",
+                                LIBPFX"winbind_idmap_sss.so",
+                                NULL } },
     { "memberof.so", { LIBPFX"memberof.so", NULL } },
     { "libsss_child.so", { LIBPFX"libsss_util.so",
                            LIBPFX"libsss_child.so", NULL } },

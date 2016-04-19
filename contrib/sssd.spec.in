@@ -583,6 +583,15 @@ License: GPLv3+ and LGPLv3+
 %description libwbclient-devel
 Development libraries for the SSSD libwbclient implementation.
 
+%package winbind-idmap
+Summary: SSSSD's idmap_sss Backend for Winbind
+Group:  Applications/System
+License: GPLv3+ and LGPLv3+
+
+%description winbind-idmap
+The idmap_sss module provides a way for Winbind to call SSSD to map UIDs/GIDs
+and SIDs.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -1036,6 +1045,11 @@ done
 %{_includedir}/wbclient_sssd.h
 %{_libdir}/%{name}/modules/libwbclient.so
 %{_libdir}/pkgconfig/wbclient_sssd.pc
+
+%files winbind-idmap
+%dir %{_libdir}/samba/idmap
+%{_libdir}/samba/idmap/sss.so
+%{_mandir}/man8/idmap_sss.8*
 
 %pre common
 getent group sssd >/dev/null || groupadd -r sssd

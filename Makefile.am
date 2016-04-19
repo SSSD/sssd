@@ -49,6 +49,9 @@ endif
 if BUILD_CIFS_IDMAP_PLUGIN
 cifsplugindir = @cifspluginpath@
 endif
+if BUILD_SAMBA
+winbindplugindir = @winbindpluginpath@
+endif
 if BUILD_LIBWBCLIENT
 libwbclientdir = @appmodpath@
 endif
@@ -343,6 +346,12 @@ endif
 if BUILD_CIFS_IDMAP_PLUGIN
 cifsplugin_LTLIBRARIES = \
     cifs_idmap_sss.la
+endif
+
+if BUILD_SAMBA
+winbindplugin_LTLIBRARIES = \
+    winbind_idmap_sss.la \
+    $(NULL)
 endif
 
 noinst_LTLIBRARIES =
@@ -710,6 +719,7 @@ dist_noinst_HEADERS = \
     src/sss_client/nfs/nfsidmap_internal.h \
     src/lib/idmap/sss_idmap_private.h \
     src/lib/sifp/sss_sifp_private.h \
+    src/lib/winbind_idmap_sss/winbind_idmap_sss.h \
     src/tests/cmocka/test_utils.h \
     src/tools/common/sss_tools.h \
     src/tools/common/sss_colondb.h \
@@ -1553,7 +1563,10 @@ check_LTLIBRARIES += \
     $(NULL)
 
 if BUILD_SAMBA
-check_LTLIBRARIES += libsss_ad_tests.la
+check_LTLIBRARIES += \
+    libsss_ad_tests.la \
+    libdlopen_test_winbind_idmap.la \
+    $(NULL)
 endif
 
 libdlopen_test_providers_la_SOURCES = \
@@ -3670,6 +3683,40 @@ cifs_idmap_sss_la_LDFLAGS = \
     -module
 endif
 
+if BUILD_SAMBA
+winbind_idmap_sss_la_SOURCES = \
+    src/lib/winbind_idmap_sss/winbind_idmap_sss.c \
+    src/util/util_sss_idmap.c \
+    $(NULL)
+winbind_idmap_sss_la_LIBADD = \
+    libsss_idmap.la \
+    libsss_nss_idmap.la \
+    $(TALLOC_LIBS) \
+    $(NULL)
+winbind_idmap_sss_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
+    $(NULL)
+winbind_idmap_sss_la_LDFLAGS = \
+    -avoid-version \
+    -module \
+    $(NULL)
+
+libdlopen_test_winbind_idmap_la_SOURCES = \
+    src/lib/winbind_idmap_sss/libdlopen-test-winbind-idmap.c \
+    $(NULL)
+libdlopen_test_winbind_idmap_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
+    $(NULL)
+libdlopen_test_winbind_idmap_la_LDFLAGS = \
+    -shared \
+    -avoid-version \
+    -rpath $(abs_top_builddir) \
+    -export-dynamic
+    $(NULL)
+endif
+
 ################
 # TRANSLATIONS #
 ################
@@ -3899,6 +3946,7 @@ install-data-hook:
 	if [ ! $(krb5rcachedir) = "__LIBKRB5_DEFAULTS__" ]; then \
         $(MKDIR_P) $(DESTDIR)/$(krb5rcachedir) ; \
 	fi
+	mv $(DESTDIR)/$(winbindplugindir)/winbind_idmap_sss.so $(DESTDIR)/$(winbindplugindir)/sss.so
 
 uninstall-hook:
 	if [ -f $(abs_builddir)/src/config/.files2 ]; then \
@@ -3920,6 +3968,7 @@ if BUILD_PYTHON3_BINDINGS
 	cd $(DESTDIR)$(py3execdir) && \
 		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
 endif
+	rm $(DESTDIR)/$(winbindplugindir)/sss.so
 
 clean-local:
 if BUILD_PYTHON2_BINDINGS
