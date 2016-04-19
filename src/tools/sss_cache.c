@@ -121,8 +121,10 @@ struct cache_tool_ctx {
 static void free_input_values(struct input_values *values);
 static bool is_filter_valid(struct cache_tool_ctx *ctx,
                             struct input_values *values, int idb);
-errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
-errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx);
+static errno_t init_domains(struct cache_tool_ctx *ctx,
+                            const char *domain);
+static errno_t init_context(int argc, const char *argv[],
+                            struct cache_tool_ctx **tctx);
 static errno_t invalidate_entry(TALLOC_CTX *ctx,
                                 struct sss_domain_info *domain,
                                 const char *name, int entry_type);
@@ -570,7 +572,8 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
     return ret;
 }
 
-errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
+static errno_t init_domains(struct cache_tool_ctx *ctx,
+                            const char *domain)
 {
     char *confdb_path;
     int ret;
@@ -627,7 +630,8 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
     return EOK;
 }
 
-errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
+static errno_t init_context(int argc, const char *argv[],
+                            struct cache_tool_ctx **tctx)
 {
     struct cache_tool_ctx *ctx = NULL;
     int idb = INVALIDATE_NONE;
