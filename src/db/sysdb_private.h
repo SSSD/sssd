@@ -96,7 +96,9 @@ struct sysdb_ctx {
 int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
                       const char *provider, const char *name,
                       const char *base_path, char **_ldb_file);
-errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
+errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
+                          const char *filename,
+                          int flags,
                           struct ldb_context **_ldb);
 int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,

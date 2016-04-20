@@ -30,7 +30,9 @@
 
 #define LDB_MODULES_PATH "LDB_MODULES_PATH"
 
-errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
+errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
+                          const char *filename,
+                          int flags,
                           struct ldb_context **_ldb)
 {
     int ret;
@@ -57,7 +59,7 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
         ldb_set_modules_dir(ldb, mod_path);
     }
 
-    ret = ldb_connect(ldb, filename, 0, NULL);
+    ret = ldb_connect(ldb, filename, flags, NULL);
     if (ret != LDB_SUCCESS) {
         return EIO;
     }
@@ -65,6 +67,22 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
     *_ldb = ldb;
 
     return EOK;
+}
+
+static errno_t sysdb_ldb_reconnect(TALLOC_CTX *mem_ctx,
+                                   const char *ldb_file,
+                                   int flags,
+                                   struct ldb_context **ldb)
+{
+    errno_t ret;
+
+    talloc_zfree(*ldb);
+    ret = sysdb_ldb_connect(mem_ctx, ldb_file, flags, ldb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
+    }
+
+    return ret;
 }
 
 int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
@@ -89,7 +107,8 @@ int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
+static errno_t sysdb_domain_create_int(struct ldb_context *ldb,
+                                       const char *domain_name)
 {
     struct ldb_message *msg;
     TALLOC_CTX *tmp_ctx;
@@ -108,7 +127,7 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb, SYSDB_DOM_BASE, domain_name);
+    msg->dn = ldb_dn_new_fmt(msg, ldb, SYSDB_DOM_BASE, domain_name);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -119,11 +138,11 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         goto done;
     }
     /* do a synchronous add */
-    ret = ldb_add(sysdb->ldb, msg);
+    ret = ldb_add(ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize DB (%d, [%s]) "
                                      "for domain %s!\n",
-                                     ret, ldb_errstring(sysdb->ldb),
+                                     ret, ldb_errstring(ldb),
                                      domain_name);
         ret = EIO;
         goto done;
@@ -137,7 +156,7 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb,
+    msg->dn = ldb_dn_new_fmt(msg, ldb,
                              SYSDB_TMPL_USER_BASE, domain_name);
     if (!msg->dn) {
         ret = ENOMEM;
@@ -149,11 +168,11 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         goto done;
     }
     /* do a synchronous add */
-    ret = ldb_add(sysdb->ldb, msg);
+    ret = ldb_add(ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize DB (%d, [%s]) "
                                      "for domain %s!\n",
-                                     ret, ldb_errstring(sysdb->ldb),
+                                     ret, ldb_errstring(ldb),
                                      domain_name);
         ret = EIO;
         goto done;
@@ -167,7 +186,7 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = ldb_dn_new_fmt(msg, sysdb->ldb,
+    msg->dn = ldb_dn_new_fmt(msg, ldb,
                              SYSDB_TMPL_GROUP_BASE, domain_name);
     if (!msg->dn) {
         ret = ENOMEM;
@@ -179,11 +198,11 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
         goto done;
     }
     /* do a synchronous add */
-    ret = ldb_add(sysdb->ldb, msg);
+    ret = ldb_add(ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize DB (%d, [%s]) for "
                                      "domain %s!\n",
-                                     ret, ldb_errstring(sysdb->ldb),
+                                     ret, ldb_errstring(ldb),
                                      domain_name);
         ret = EIO;
         goto done;
@@ -197,6 +216,11 @@ done:
     return ret;
 }
 
+errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
+{
+    return sysdb_domain_create_int(sysdb->ldb, domain_name);
+}
+
 /* Compare versions of sysdb, returns ERRNO accordingly */
 static errno_t
 sysdb_version_check(const char *expected,
@@ -204,6 +228,10 @@ sysdb_version_check(const char *expected,
 {
     int ret;
     unsigned int exp_major, exp_minor, recv_major, recv_minor;
+
+    if (strcmp(received, expected) == 0) {
+        return EOK;
+    }
 
     ret = sscanf(expected, "%u.%u", &exp_major, &exp_minor);
     if (ret != 2) {
@@ -229,41 +257,202 @@ sysdb_version_check(const char *expected,
     return EOK;
 }
 
-int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
-                               struct sss_domain_info *domain,
-                               const char *db_path,
-                               bool allow_upgrade,
-                               struct sysdb_ctx **_ctx)
+static errno_t sysdb_cache_add_base_ldif(struct ldb_context *ldb,
+                                         const char *base_ldif,
+                                         const char *domain_name)
+{
+    int ret;
+    struct ldb_ldif *ldif;
+
+    while ((ldif = ldb_ldif_read_string(ldb, &base_ldif))) {
+        ret = ldb_add(ldb, ldif->msg);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to initialize DB (%d, [%s]) for domain %s!\n",
+                  ret, ldb_errstring(ldb), domain_name);
+            return EIO;
+        }
+        ldb_ldif_read_free(ldb, ldif);
+    }
+
+    return EOK;
+}
+
+static errno_t sysdb_cache_create_empty(struct ldb_context *ldb,
+                                        const char *base_ldif,
+                                        struct sss_domain_info *domain)
+{
+    int ret;
+
+    ret = sysdb_cache_add_base_ldif(ldb, base_ldif, domain->name);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sysdb_domain_create_int(ldb, domain->name);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
+                                          struct sysdb_ctx *sysdb,
+                                          struct ldb_context *ldb,
+                                          struct sss_domain_info *domain,
+                                          const char *cur_version,
+                                          const char **_new_version)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    const char *version;
+    struct ldb_context *save_ldb;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* The upgrade process depends on having ldb around, yet the upgrade
+     * function shouldn't set the ldb pointer, only the connect function
+     * should after it's successful. To avoid hard refactoring, save the
+     * ldb pointer here and restore in the 'done' handler
+     */
+    save_ldb = sysdb->ldb;
+
+    version = talloc_strdup(tmp_ctx, cur_version);
+    if (version == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Upgrading DB [%s] from version: %s\n",
+          domain->name, version);
+
+    if (strcmp(version, SYSDB_VERSION_0_3) == 0) {
+        ret = sysdb_upgrade_03(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_4) == 0) {
+        ret = sysdb_upgrade_04(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_5) == 0) {
+        ret = sysdb_upgrade_05(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_6) == 0) {
+        ret = sysdb_upgrade_06(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_7) == 0) {
+        ret = sysdb_upgrade_07(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_8) == 0) {
+        ret = sysdb_upgrade_08(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_9) == 0) {
+        ret = sysdb_upgrade_09(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_10) == 0) {
+        ret = sysdb_upgrade_10(sysdb, domain, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_11) == 0) {
+        ret = sysdb_upgrade_11(sysdb, domain, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_12) == 0) {
+        ret = sysdb_upgrade_12(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_13) == 0) {
+        ret = sysdb_upgrade_13(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_14) == 0) {
+        ret = sysdb_upgrade_14(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_15) == 0) {
+        ret = sysdb_upgrade_15(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (strcmp(version, SYSDB_VERSION_0_16) == 0) {
+        ret = sysdb_upgrade_16(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    sysdb->ldb = save_ldb;
+    *_new_version = talloc_steal(mem_ctx, version);
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t sysdb_cache_connect(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *domain,
+                                   const char *ldb_file,
+                                   int flags,
+                                   const char *exp_version,
+                                   const char *base_ldif,
+                                   struct ldb_context **_ldb,
+                                   const char **_version)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    struct sysdb_ctx *sysdb;
-    const char *base_ldif;
-    struct ldb_ldif *ldif;
     struct ldb_message_element *el;
     struct ldb_result *res;
     struct ldb_dn *verdn;
     const char *version = NULL;
     int ret;
-
-    sysdb = talloc_zero(mem_ctx, struct sysdb_ctx);
-    if (!sysdb) {
-        return ENOMEM;
-    }
-
-    ret = sysdb_get_db_file(sysdb, domain->provider,
-                            domain->name, db_path,
-                            &sysdb->ldb_file);
-    if (ret != EOK) {
-        goto done;
-    }
-    DEBUG(SSSDBG_FUNC_DATA,
-          "DB File for %s: %s\n", domain->name, sysdb->ldb_file);
-
-    ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
-        goto done;
-    }
+    struct ldb_context *ldb;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -271,13 +460,19 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    verdn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
+    ret = sysdb_ldb_connect(tmp_ctx, ldb_file, flags, &ldb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
+        goto done;
+    }
+
+    verdn = ldb_dn_new(tmp_ctx, ldb, SYSDB_BASE);
     if (!verdn) {
         ret = EIO;
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmp_ctx, &res,
+    ret = ldb_search(ldb, tmp_ctx, &res,
                      verdn, LDB_SCOPE_BASE,
                      NULL, NULL);
     if (ret != LDB_SUCCESS) {
@@ -308,163 +503,16 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        if (strcmp(version, SYSDB_VERSION) == 0) {
-            /* all fine, return */
-            ret = EOK;
-            goto done;
-        }
-
-        if (!allow_upgrade) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Wrong DB version (got %s expected %s)\n",
-                   version, SYSDB_VERSION);
-            ret = sysdb_version_check(SYSDB_VERSION, version);
-            goto done;
-        }
-
-        DEBUG(SSSDBG_CONF_SETTINGS, "Upgrading DB [%s] from version: %s\n",
-                  domain->name, version);
-
-        if (strcmp(version, SYSDB_VERSION_0_3) == 0) {
-            ret = sysdb_upgrade_03(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_4) == 0) {
-            ret = sysdb_upgrade_04(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_5) == 0) {
-            ret = sysdb_upgrade_05(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_6) == 0) {
-            ret = sysdb_upgrade_06(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_7) == 0) {
-            ret = sysdb_upgrade_07(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_8) == 0) {
-            ret = sysdb_upgrade_08(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_9) == 0) {
-            ret = sysdb_upgrade_09(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_10) == 0) {
-            ret = sysdb_upgrade_10(sysdb, domain, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_11) == 0) {
-            ret = sysdb_upgrade_11(sysdb, domain, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_12) == 0) {
-            ret = sysdb_upgrade_12(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_13) == 0) {
-            ret = sysdb_upgrade_13(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_14) == 0) {
-            ret = sysdb_upgrade_14(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_15) == 0) {
-            ret = sysdb_upgrade_15(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        if (strcmp(version, SYSDB_VERSION_0_16) == 0) {
-            ret = sysdb_upgrade_16(sysdb, &version);
-            if (ret != EOK) {
-                goto done;
-            }
-        }
-
-        /* The version should now match SYSDB_VERSION.
-         * If not, it means we didn't match any of the
-         * known older versions. The DB might be
-         * corrupt or generated by a newer version of
-         * SSSD.
+        ret = sysdb_version_check(exp_version, version);
+        /* This is not the latest version. Return what version it is
+         * and appropriate error
          */
-        if (strcmp(version, SYSDB_VERSION) == 0) {
-            /* The cache has been upgraded.
-             * We need to reopen the LDB to ensure that
-             * any changes made above take effect.
-             */
-            talloc_zfree(sysdb->ldb);
-            ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
-            }
-            goto done;
-        }
-
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unknown DB version [%s], expected [%s] for domain %s!\n",
-              version, SYSDB_VERSION, domain->name);
-        ret = sysdb_version_check(SYSDB_VERSION, version);
+        *_version = talloc_steal(mem_ctx, version);
         goto done;
     }
 
     /* SYSDB_BASE does not exists, means db is empty, populate */
-
-    base_ldif = SYSDB_BASE_LDIF;
-    while ((ldif = ldb_ldif_read_string(sysdb->ldb, &base_ldif))) {
-        ret = ldb_add(sysdb->ldb, ldif->msg);
-        if (ret != LDB_SUCCESS) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                      ret, ldb_errstring(sysdb->ldb), domain->name);
-            ret = EIO;
-            goto done;
-        }
-        ldb_ldif_read_free(sysdb->ldb, ldif);
-    }
-
-    ret = sysdb_domain_create(sysdb, domain->name);
+    ret = sysdb_cache_create_empty(ldb, base_ldif, domain);
     if (ret != EOK) {
         goto done;
     }
@@ -475,19 +523,128 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
      * (such as enabling the memberOf plugin and
      * the various indexes).
      */
-    talloc_zfree(sysdb->ldb);
-    ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
+    ret = sysdb_ldb_reconnect(tmp_ctx, ldb_file, flags, &ldb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
+        goto done;
+    }
+
+    /* If we connect to a new database, then the version is the
+     * latest one
+     */
+    *_version = talloc_strdup(mem_ctx, exp_version);
+    if (*_version == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+done:
+    if (ret == EOK) {
+        *_ldb = talloc_steal(mem_ctx, ldb);
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
+                                      struct sss_domain_info *domain,
+                                      bool allow_upgrade)
+{
+    errno_t ret;
+    const char *version;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_context *ldb;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_cache_connect(tmp_ctx, domain, sysdb->ldb_file, 0,
+                              SYSDB_VERSION, SYSDB_BASE_LDIF,
+                              &ldb, &version);
+    switch (ret) {
+    case ERR_SYSDB_VERSION_TOO_OLD:
+        if (allow_upgrade == false) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "DB version too old [%s], expected [%s] for domain %s!\n",
+                   version, SYSDB_VERSION, domain->name);
+            goto done;
+        }
+
+        ret = sysdb_domain_cache_upgrade(tmp_ctx, sysdb, ldb, domain, version,
+                                         &version);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        /* The version should now match SYSDB_VERSION.
+         * If not, it means we didn't match any of the
+         * known older versions. The DB might be
+         * corrupt or generated by a newer version of
+         * SSSD.
+         */
+        ret = sysdb_version_check(SYSDB_VERSION, version);
+        if (ret == EOK) {
+            /* The cache has been upgraded.
+             * We need to reopen the LDB to ensure that
+             * any changes made above take effect.
+             */
+            ret = sysdb_ldb_reconnect(tmp_ctx, sysdb->ldb_file, 0, &ldb);
+            goto done;
+        }
+        break;
+    case ERR_SYSDB_VERSION_TOO_NEW:
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "DB version too new [%s], expected [%s] for domain %s!\n",
+              version, SYSDB_VERSION, domain->name);
+        break;
+    default:
+        break;
     }
 
 done:
-    talloc_free(tmp_ctx);
     if (ret == EOK) {
-        *_ctx = sysdb;
-    } else {
-        talloc_free(sysdb);
+        sysdb->ldb = talloc_steal(sysdb, ldb);
     }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               const char *db_path,
+                               bool allow_upgrade,
+                               struct sysdb_ctx **_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sysdb_ctx *sysdb;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    sysdb = talloc_zero(mem_ctx, struct sysdb_ctx);
+    if (!sysdb) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_get_db_file(sysdb, domain->provider,
+                            domain->name, db_path,
+                            &sysdb->ldb_file);
+    if (ret != EOK) {
+        goto done;
+    }
+    DEBUG(SSSDBG_FUNC_DATA,
+          "DB File for %s: %s\n", domain->name, sysdb->ldb_file);
+
+    ret = sysdb_domain_cache_connect(sysdb, domain, allow_upgrade);
+done:
+    if (ret == EOK) {
+        *_ctx = talloc_steal(mem_ctx, sysdb);
+    }
+    talloc_free(tmp_ctx);
     return ret;
 }
 

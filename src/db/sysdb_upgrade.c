@@ -289,7 +289,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
         goto exit;
     }
 
-    ret = sysdb_ldb_connect(tmp_ctx, ldb_file, &ldb);
+    ret = sysdb_ldb_connect(tmp_ctx, ldb_file, 0, &ldb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
         return ret;
@@ -380,7 +380,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
     }
 
     /* reopen */
-    ret = sysdb_ldb_connect(tmp_ctx, ldb_file, &ldb);
+    ret = sysdb_ldb_connect(tmp_ctx, ldb_file, 0, &ldb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
         return ret;
