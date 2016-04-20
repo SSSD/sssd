@@ -265,14 +265,14 @@
           "cached credentials.\n")
 
 #define SYSDB_VERSION_LOWER_ERROR(ret) do { \
-    if (ret == EUCLEAN) { \
+    if (ret == ERR_SYSDB_VERSION_TOO_NEW) { \
         ERROR("Lower version of database is expected!\n"); \
         SYSDB_VERSION_ERROR_HINT; \
     } \
 } while(0)
 
 #define SYSDB_VERSION_HIGHER_ERROR(ret) do { \
-    if (ret == EMEDIUMTYPE) { \
+    if (ret == ERR_SYSDB_VERSION_TOO_OLD) { \
         ERROR("Higher version of database is expected!\n"); \
         ERROR("In order to upgrade the database, you must run SSSD.\n"); \
         SYSDB_VERSION_ERROR_HINT; \

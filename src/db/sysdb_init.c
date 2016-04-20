@@ -215,15 +215,15 @@ sysdb_version_check(const char *expected,
     }
 
     if (recv_major > exp_major) {
-        return EUCLEAN;
+        return ERR_SYSDB_VERSION_TOO_NEW;
     } else if (recv_major < exp_major) {
-        return EMEDIUMTYPE;
+        return ERR_SYSDB_VERSION_TOO_OLD;
     }
 
     if (recv_minor > exp_minor) {
-        return EUCLEAN;
+        return ERR_SYSDB_VERSION_TOO_NEW;
     } else if (recv_minor < exp_minor) {
-        return EMEDIUMTYPE;
+        return ERR_SYSDB_VERSION_TOO_OLD;
     }
 
     return EOK;

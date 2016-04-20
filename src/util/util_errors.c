@@ -89,6 +89,8 @@ struct err_string error_to_str[] = {
     { "Account is locked" }, /* ERR_ACCOUNT_LOCKED */
     { "AD renewal child failed" }, /* ERR_RENEWAL_CHILD */
     { "SBUS request already handled" }, /* ERR_SBUS_REQUEST_HANDLED */
+    { "Sysdb version is too old" },  /* ERR_SYSDB_VERSION_TOO_OLD */
+    { "Sysdb version is too new" },  /* ERR_SYSDB_VERSION_TOO_NEW */
     { "ERR_LAST" } /* ERR_LAST */
 };
 
