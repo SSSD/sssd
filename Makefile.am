@@ -863,6 +863,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_search.c \
     src/db/sysdb_selinux.c \
     src/db/sysdb_upgrade.c \
+    src/db/sysdb_init.c \
     src/db/sysdb_services.c \
     src/db/sysdb_autofs.c \
     src/db/sysdb_subdomains.c \
