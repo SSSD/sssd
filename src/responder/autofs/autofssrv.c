@@ -64,13 +64,7 @@ autofs_get_config(struct autofs_ctx *actx,
     ret = confdb_get_int(cdb, CONFDB_AUTOFS_CONF_ENTRY,
                          CONFDB_AUTOFS_MAP_NEG_TIMEOUT, 15,
                          &actx->neg_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot read %s from configuration [%d]: %s\n",
-              CONFDB_AUTOFS_MAP_NEG_TIMEOUT, ret, strerror(ret));
-        return ret;
-    }
-
-    return EOK;
+    return ret;
 }
 
 static void
