@@ -28,6 +28,7 @@
 #include <tevent.h>
 
 #define CACHE_SYSDB_FILE "cache_%s.ldb"
+#define CACHE_TIMESTAMPS_FILE "timestamps_%s.ldb"
 #define LOCAL_SYSDB_FILE "sssd.ldb"
 
 #define SYSDB_BASE "cn=sysdb"
@@ -309,6 +310,8 @@ struct range_info {
     char *range_type;
 };
 
+/* These attributes are stored in the timestamp cache */
+extern const char *sysdb_ts_cache_attrs[];
 
 /* values are copied in the structure, allocated on "attrs" */
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,

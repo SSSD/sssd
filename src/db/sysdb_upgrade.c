@@ -282,10 +282,10 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
         return ENOMEM;
     }
 
-    ret = sysdb_get_db_file(tmp_ctx,
-                            "local", "UPGRADE",
-                            db_path, &ldb_file);
-    if (ret != EOK) {
+    ldb_file = talloc_asprintf(tmp_ctx, "%s/"LOCAL_SYSDB_FILE,
+                               db_path);
+    if (ldb_file == NULL) {
+        ret = ENOMEM;
         goto exit;
     }
 

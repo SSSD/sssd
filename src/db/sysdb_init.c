@@ -30,6 +30,21 @@
 
 #define LDB_MODULES_PATH "LDB_MODULES_PATH"
 
+/* If an entry differs only in these attributes, they are written to
+ * the timestamp cache only. In addition, objectclass is added so that
+ * we can distinguish between users and groups.
+ */
+const char *sysdb_ts_cache_attrs[] = {
+    SYSDB_OBJECTCLASS,
+    SYSDB_LAST_UPDATE,
+    SYSDB_CACHE_EXPIRE,
+    SYSDB_ORIG_MODSTAMP,
+    SYSDB_INITGR_EXPIRE,
+    SYSDB_USN,
+
+    NULL,
+};
+
 errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
                           const char *filename,
                           int flags,
@@ -85,11 +100,43 @@ static errno_t sysdb_ldb_reconnect(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
+static errno_t sysdb_chown_db_files(struct sysdb_ctx *sysdb,
+                                    uid_t uid, gid_t gid)
+{
+    errno_t ret;
+
+    ret = chown(sysdb->ldb_file, uid, gid);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot set sysdb ownership of %s to %"SPRIuid":%"SPRIgid"\n",
+              sysdb->ldb_file, uid, gid);
+        return ret;
+    }
+
+    if (sysdb->ldb_ts_file != NULL) {
+        ret = chown(sysdb->ldb_ts_file, uid, gid);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot set sysdb ownership of %s to %"SPRIuid":%"SPRIgid"\n",
+                  sysdb->ldb_ts_file, uid, gid);
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
-                      const char *provider, const char *name,
-                      const char *base_path, char **_ldb_file)
+                      const char *provider,
+                      const char *name,
+                      const char *base_path,
+                      char **_ldb_file,
+                      char **_ts_file)
 {
     char *ldb_file;
+    char *ts_file = NULL;
 
     /* special case for the local domain */
     if (strcasecmp(provider, "local") == 0) {
@@ -98,12 +145,19 @@ int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
     } else {
         ldb_file = talloc_asprintf(mem_ctx, "%s/"CACHE_SYSDB_FILE,
                                    base_path, name);
+        ts_file = talloc_asprintf(mem_ctx, "%s/"CACHE_TIMESTAMPS_FILE,
+                                  base_path, name);
+        if (ts_file == NULL) {
+            talloc_free(ldb_file);
+            return ENOMEM;
+        }
     }
     if (!ldb_file) {
         return ENOMEM;
     }
 
     *_ldb_file = ldb_file;
+    *_ts_file = ts_file;
     return EOK;
 }
 
@@ -749,14 +803,17 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_get_db_file(sysdb, domain->provider,
-                            domain->name, db_path,
-                            &sysdb->ldb_file);
+    ret = sysdb_get_db_file(sysdb, domain->provider, domain->name, db_path,
+                            &sysdb->ldb_file, &sysdb->ldb_ts_file);
     if (ret != EOK) {
         goto done;
     }
     DEBUG(SSSDBG_FUNC_DATA,
           "DB File for %s: %s\n", domain->name, sysdb->ldb_file);
+    if (sysdb->ldb_ts_file) {
+        DEBUG(SSSDBG_FUNC_DATA,
+             "Timestamp file for %s: %s\n", domain->name, sysdb->ldb_ts_file);
+    }
 
     ret = sysdb_domain_cache_connect(sysdb, domain, allow_upgrade);
     if (ret != EOK) {
@@ -814,17 +871,19 @@ int sysdb_init_ext(TALLOC_CTX *mem_ctx,
         ret = sysdb_domain_init_internal(mem_ctx, dom, DB_PATH,
                                          allow_upgrade, &sysdb);
         if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot connect to database for %s: [%d]: %s\n",
+                  dom->name, ret, sss_strerror(ret));
             return ret;
         }
 
         if (chown_dbfile) {
-            ret = chown(sysdb->ldb_file, uid, gid);
-            if (ret != 0) {
-                ret = errno;
+            ret = sysdb_chown_db_files(sysdb, uid, gid);
+            if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Cannot set sysdb ownership to %"SPRIuid":%"SPRIgid"\n",
-                      uid, gid);
-                return ret;
+                      "Cannot chown databases for %s: [%d]: %s\n",
+                      dom->name, ret, sss_strerror(ret));
+            return ret;
             }
         }
 

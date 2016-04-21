@@ -953,7 +953,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     ret = sysdb_init(rctx, rctx->domains, false);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR_DAEMON(ret);
-        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing resp_ctx\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "fatal error initializing sysdb connection\n");
         goto fail;
     }
 

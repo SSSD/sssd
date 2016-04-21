@@ -118,8 +118,11 @@ struct sysdb_ctx {
 
 /* Internal utility functions */
 int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
-                      const char *provider, const char *name,
-                      const char *base_path, char **_ldb_file);
+                      const char *provider,
+                      const char *name,
+                      const char *base_path,
+                      char **_ldb_file,
+                      char **_ts_file);
 errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
                           const char *filename,
                           int flags,
