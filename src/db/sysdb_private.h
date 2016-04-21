@@ -84,11 +84,35 @@
      "cn: ranges\n" \
      "\n"
 
+/* The timestamp cache has its own versioning */
+#define SYSDB_TS_VERSION_0_1 "0.1"
+
+#define SYSDB_TS_VERSION SYSDB_TS_VERSION_0_1
+
+#define SYSDB_TS_BASE_LDIF \
+     "dn: @ATTRIBUTES\n" \
+     "dn: CASE_INSENSITIVE\n" \
+     "\n" \
+     "dn: @INDEXLIST\n" \
+     "@IDXATTR: lastUpdate\n" \
+     "@IDXATTR: dataExpireTimestamp\n" \
+     "@IDXONE: 1\n" \
+     "\n" \
+     "dn: cn=sysdb\n" \
+     "cn: sysdb\n" \
+     "version: " SYSDB_TS_VERSION "\n" \
+     "description: base object\n" \
+     "\n" \
+
 #include "db/sysdb.h"
 
 struct sysdb_ctx {
     struct ldb_context *ldb;
     char *ldb_file;
+
+    struct ldb_context *ldb_ts;
+    char *ldb_ts_file;
+
     int transaction_nesting;
 };
 
