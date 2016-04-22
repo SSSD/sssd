@@ -284,13 +284,6 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Set up the negative cache */
-    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
-                         &ifp_ctx->neg_timeout);
-    if (ret != EOK) {
-        goto fail;
-    }
-
     ret = responder_get_neg_timeout_from_confdb(cdb, &neg_timeout);
     if (ret != EOK) goto fail;
 

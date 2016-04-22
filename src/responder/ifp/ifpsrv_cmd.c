@@ -35,7 +35,7 @@ struct ifp_attr_req {
 
 static struct tevent_req *
 ifp_user_get_attr_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
-                       struct sss_nc_ctx *ncache, int neg_timeout,
+                       struct sss_nc_ctx *ncache,
                        enum sss_dp_acct_type search_type,
                        const char *inp, const char **attrs);
 static errno_t ifp_user_get_attr_recv(TALLOC_CTX *mem_ctx,
@@ -91,8 +91,7 @@ int ifp_user_get_attr(struct sbus_request *dbus_req, void *data)
           attr_req->name, ireq->dbus_req->client);
 
     req = ifp_user_get_attr_send(ireq, ifp_ctx->rctx,
-                                 ifp_ctx->ncache, ifp_ctx->neg_timeout,
-                                 SSS_DP_USER,
+                                 ifp_ctx->ncache, SSS_DP_USER,
                                  attr_req->name, attr_req->attrs);
     if (req == NULL) {
         return sbus_request_finish(dbus_req, NULL);
@@ -321,8 +320,7 @@ int ifp_user_get_groups(struct sbus_request *dbus_req,
           group_req->name, group_req->ireq->dbus_req->client);
 
     req = ifp_user_get_attr_send(ireq, ifp_ctx->rctx,
-                                 ifp_ctx->ncache, ifp_ctx->neg_timeout,
-                                 SSS_DP_INITGROUPS,
+                                 ifp_ctx->ncache, SSS_DP_INITGROUPS,
                                  group_req->name, group_req->attrs);
     if (req == NULL) {
         return sbus_request_finish(dbus_req, NULL);
@@ -433,7 +431,6 @@ struct ifp_user_get_attr_state {
 
     struct resp_ctx *rctx;
     struct sss_nc_ctx *ncache;
-    int neg_timeout;
 };
 
 static void ifp_user_get_attr_lookup(struct tevent_req *subreq);
@@ -441,7 +438,7 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 ifp_user_get_attr_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
-                       struct sss_nc_ctx *ncache, int neg_timeout,
+                       struct sss_nc_ctx *ncache,
                        enum sss_dp_acct_type search_type,
                        const char *inp, const char **attrs)
 {
@@ -458,7 +455,6 @@ ifp_user_get_attr_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     state->attrs = attrs;
     state->rctx = rctx;
     state->ncache = ncache;
-    state->neg_timeout = neg_timeout;
     state->search_type = search_type;
 
     subreq = sss_parse_inp_send(req, rctx, inp);

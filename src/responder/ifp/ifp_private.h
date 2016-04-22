@@ -40,7 +40,6 @@ struct ifp_ctx {
     struct resp_ctx *rctx;
     struct sss_names_ctx *snctx;
     struct sss_nc_ctx *ncache;
-    int neg_timeout;
 
     struct sysbus_ctx *sysbus;
     const char **user_whitelist;
