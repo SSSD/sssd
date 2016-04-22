@@ -684,6 +684,7 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_krb5.h \
     src/tests/cmocka/common_mock_be.h \
     src/tests/cmocka/test_expire_common.h \
+    src/tests/cmocka/data_provider/mock_dp.h \
     src/tests/sbus_codegen_tests_generated.h \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
