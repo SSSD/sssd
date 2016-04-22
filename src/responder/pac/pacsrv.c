@@ -196,16 +196,6 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     }
     responder_set_fd_limit(fd_limit);
 
-    /* Set up the negative cache */
-    ret = confdb_get_int(pac_ctx->rctx->cdb, CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
-                         &pac_ctx->neg_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to setup negative cache timeout.\n");
-        goto fail;
-    }
-
     ret = responder_get_neg_timeout_from_confdb(cdb, &neg_timeout);
     if (ret != EOK) goto fail;
 

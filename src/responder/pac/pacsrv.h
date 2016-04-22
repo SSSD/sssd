@@ -36,7 +36,6 @@ struct pac_ctx {
     struct local_mapping_ranges *range_map;
     int pac_lifetime;
 
-    int neg_timeout;
     struct sss_nc_ctx *ncache;
 };
 
