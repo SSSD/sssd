@@ -43,7 +43,6 @@ enum sss_sudo_type {
 struct sudo_ctx {
     struct resp_ctx *rctx;
 
-    int neg_timeout;
     struct sss_nc_ctx *ncache;
 
     /*

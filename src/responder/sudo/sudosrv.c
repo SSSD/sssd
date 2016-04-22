@@ -128,15 +128,6 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     sudo_ctx->rctx = rctx;
     sudo_ctx->rctx->pvt_ctx = sudo_ctx;
 
-    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
-                         &sudo_ctx->neg_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "fatal error getting ncache timeout\n");
-        goto fail;
-    }
-
     sss_ncache_prepopulate(sudo_ctx->ncache, sudo_ctx->rctx->cdb, rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
