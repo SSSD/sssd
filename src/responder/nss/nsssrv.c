@@ -230,11 +230,6 @@ static int nss_get_config(struct nss_ctx *nctx,
                          &nctx->enum_cache_timeout);
     if (ret != EOK) goto done;
 
-    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
-                         &nctx->neg_timeout);
-    if (ret != EOK) goto done;
-
     ret = confdb_get_bool(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_FILTER_USERS_IN_GROUPS, true,
                          &nctx->filter_users_in_groups);

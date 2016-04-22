@@ -896,7 +896,6 @@ struct cache_req_cache_state {
     struct tevent_context *ev;
     struct resp_ctx *rctx;
     struct sss_nc_ctx *ncache;
-    int neg_timeout;
     int cache_refresh_percent;
     struct cache_req *cr;
 

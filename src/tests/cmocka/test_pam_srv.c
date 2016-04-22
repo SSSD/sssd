@@ -180,8 +180,6 @@ struct pam_ctx *mock_pctx(TALLOC_CTX *mem_ctx)
     ret = sss_ncache_init(pctx, 10, &pctx->ncache);
     assert_int_equal(ret, EOK);
 
-    pctx->neg_timeout = 10;
-
     ret = sss_hash_create(pctx, 10, &pctx->id_table);
     assert_int_equal(ret, EOK);
 

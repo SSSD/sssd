@@ -433,6 +433,7 @@ static void set_netgr_lifetime(uint32_t lifetime,
 static errno_t create_negcache_netgr(struct setent_step_ctx *step_ctx)
 {
     errno_t ret;
+    uint32_t lifetime;
     struct getent_ctx *netgr;
 
     /* Is there already netgroup with such name? */
@@ -466,7 +467,8 @@ static errno_t create_negcache_netgr(struct setent_step_ctx *step_ctx)
     netgr->ready = true;
     netgr->found = false;
 
-    set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
+    lifetime = sss_ncache_get_timeout(step_ctx->nctx->ncache);
+    set_netgr_lifetime(lifetime, step_ctx, netgr);
 
     ret = EOK;
 
@@ -585,7 +587,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                   "Failed to convert results into entries\n");
             netgr->ready = true;
             netgr->found = false;
-            set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
+            lifetime = sss_ncache_get_timeout(step_ctx->nctx->ncache);
+            set_netgr_lifetime(lifetime, step_ctx, netgr);
             ret = EIO;
             goto done;
         }

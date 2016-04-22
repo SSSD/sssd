@@ -75,7 +75,6 @@ mock_nctx(TALLOC_CTX *mem_ctx)
         talloc_free(nctx);
         return NULL;
     }
-    nctx->neg_timeout = 10;
     nctx->pwfield = discard_const("*");
 
     err = sss_idmap_init(sss_idmap_talloc, nctx, sss_idmap_talloc_free,
