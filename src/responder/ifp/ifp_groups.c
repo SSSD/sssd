@@ -118,8 +118,7 @@ int ifp_groups_find_by_name(struct sbus_request *sbus_req,
     }
 
     req = cache_req_group_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                       ctx->ncache, ctx->neg_timeout, 0,
-                                       NULL, name);
+                                       ctx->ncache, 0, NULL, name);
     if (req == NULL) {
         return ENOMEM;
     }
@@ -189,8 +188,7 @@ int ifp_groups_find_by_id(struct sbus_request *sbus_req,
     }
 
     req = cache_req_group_by_id_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                     ctx->ncache, ctx->neg_timeout, 0,
-                                     NULL, id);
+                                     ctx->ncache, 0, NULL, id);
     if (req == NULL) {
         return ENOMEM;
     }
@@ -528,8 +526,7 @@ static struct tevent_req *resolv_ghosts_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = cache_req_group_by_name_send(state, ev, ctx->rctx,
-                                          ctx->ncache, ctx->neg_timeout, 0,
-                                          domain->name, name);
+                                          ctx->ncache, 0, domain->name, name);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -607,8 +604,7 @@ errno_t resolv_ghosts_step(struct tevent_req *req)
     }
 
     subreq = cache_req_user_by_name_send(state, state->ev, state->ctx->rctx,
-                                   state->ctx->ncache, state->ctx->neg_timeout,
-                                   0, state->domain->name,
+                                   state->ctx->ncache, 0, state->domain->name,
                                    state->ghosts[state->index]);
     if (subreq == NULL) {
         return ENOMEM;

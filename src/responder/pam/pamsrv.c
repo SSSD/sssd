@@ -251,12 +251,6 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                             pam_dp_reconnect_init, iter);
     }
 
-    /* Set up the negative cache */
-    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
-                         &pctx->neg_timeout);
-    if (ret != EOK) goto done;
-
     /* Set up the PAM identity timeout */
     ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_ID_TIMEOUT, 5,

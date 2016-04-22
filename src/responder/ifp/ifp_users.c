@@ -99,8 +99,7 @@ int ifp_users_find_by_name(struct sbus_request *sbus_req,
     }
 
     req = cache_req_user_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                      ctx->ncache, ctx->neg_timeout, 0,
-                                      NULL, name);
+                                      ctx->ncache, 0, NULL, name);
     if (req == NULL) {
         return ENOMEM;
     }
@@ -170,8 +169,7 @@ int ifp_users_find_by_id(struct sbus_request *sbus_req,
     }
 
     req = cache_req_user_by_id_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                    ctx->ncache, ctx->neg_timeout, 0,
-                                    NULL, id);
+                                    ctx->ncache, 0, NULL, id);
     if (req == NULL) {
         return ENOMEM;
     }
@@ -257,8 +255,7 @@ int ifp_users_find_by_cert(struct sbus_request *sbus_req, void *data,
     }
 
     req = cache_req_user_by_cert_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                      ctx->ncache, ctx->neg_timeout, 0,
-                                      NULL, derb64);
+                                      ctx->ncache, 0, NULL, derb64);
     if (req == NULL) {
         return ENOMEM;
     }
@@ -654,8 +651,7 @@ int ifp_users_user_update_groups_list(struct sbus_request *sbus_req,
     }
 
     req = cache_req_initgr_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                        ctx->ncache, ctx->neg_timeout, 0,
-                                        domain->name, username);
+                                        ctx->ncache, 0, domain->name, username);
     if (req == NULL) {
         return ENOMEM;
     }

@@ -1247,8 +1247,7 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
 
 
     req = cache_req_user_by_cert_send(preq, cctx->ev, cctx->rctx,
-                                      pctx->ncache, pctx->neg_timeout,
-                                      0, NULL, cert);
+                                      pctx->ncache, 0, NULL, cert);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert_send failed.\n");
         ret = ENOMEM;

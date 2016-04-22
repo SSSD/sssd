@@ -912,7 +912,6 @@ static struct tevent_req *cache_req_cache_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
                                                struct resp_ctx *rctx,
                                                struct sss_nc_ctx *ncache,
-                                               int neg_timeout,
                                                int cache_refresh_percent,
                                                struct cache_req *cr)
 {
@@ -929,7 +928,6 @@ static struct tevent_req *cache_req_cache_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->rctx = rctx;
     state->ncache = ncache;
-    state->neg_timeout = neg_timeout;
     state->cache_refresh_percent = cache_refresh_percent;
     state->cr = cr;
 
@@ -1126,7 +1124,6 @@ struct cache_req_state {
     struct tevent_context *ev;
     struct resp_ctx *rctx;
     struct sss_nc_ctx *ncache;
-    int neg_timeout;
     int cache_refresh_percent;
     struct cache_req *cr;
 
@@ -1150,7 +1147,6 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
                                   struct resp_ctx *rctx,
                                   struct sss_nc_ctx *ncache,
-                                  int neg_timeout,
                                   int cache_refresh_percent,
                                   const char *domain,
                                   struct cache_req_data *data)
@@ -1170,7 +1166,6 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->rctx = rctx;
     state->ncache = ncache;
-    state->neg_timeout = neg_timeout;
     state->cache_refresh_percent = cache_refresh_percent;
     state->cr = cr = cache_req_create(state, rctx, data);
     if (state->cr == NULL) {
@@ -1320,7 +1315,7 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
         }
 
         subreq = cache_req_cache_send(state, state->ev, state->rctx,
-                                      state->ncache, state->neg_timeout,
+                                      state->ncache,
                                       state->cache_refresh_percent,
                                       state->cr);
         if (subreq == NULL) {
@@ -1432,14 +1427,13 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               struct tevent_context *ev,
                               struct resp_ctx *rctx,
                               struct sss_nc_ctx *ncache,
-                              int neg_timeout,
                               int cache_refresh_percent,
                               const char *domain,
                               struct cache_req_data *data)
 {
     struct tevent_req *req;
 
-    req = cache_req_send(mem_ctx, ev, rctx, ncache, neg_timeout,
+    req = cache_req_send(mem_ctx, ev, rctx, ncache,
                          cache_refresh_percent, domain, data);
     if (req == NULL) {
         talloc_zfree(data);
@@ -1456,7 +1450,6 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct resp_ctx *rctx,
                             struct sss_nc_ctx *ncache,
-                            int neg_timeout,
                             int cache_refresh_percent,
                             const char *domain,
                             const char *name)
@@ -1469,8 +1462,7 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         neg_timeout, cache_refresh_percent,
-                                         domain, data);
+                                         cache_refresh_percent, domain, data);
 }
 
 struct tevent_req *
@@ -1478,7 +1470,6 @@ cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           struct resp_ctx *rctx,
                           struct sss_nc_ctx *ncache,
-                          int neg_timeout,
                           int cache_refresh_percent,
                           const char *domain,
                           uid_t uid)
@@ -1491,8 +1482,7 @@ cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         neg_timeout, cache_refresh_percent,
-                                         domain, data);
+                                         cache_refresh_percent, domain, data);
 }
 
 struct tevent_req *
@@ -1500,7 +1490,6 @@ cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct resp_ctx *rctx,
                             struct sss_nc_ctx *ncache,
-                            int neg_timeout,
                             int cache_refresh_percent,
                             const char *domain,
                             const char *pem_cert)
@@ -1513,7 +1502,7 @@ cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         neg_timeout, cache_refresh_percent,
+                                         cache_refresh_percent,
                                          domain, data);
 }
 
@@ -1522,7 +1511,6 @@ cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct resp_ctx *rctx,
                              struct sss_nc_ctx *ncache,
-                             int neg_timeout,
                              int cache_refresh_percent,
                              const char *domain,
                              const char *name)
@@ -1535,8 +1523,7 @@ cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         neg_timeout, cache_refresh_percent,
-                                         domain, data);
+                                         cache_refresh_percent, domain, data);
 }
 
 struct tevent_req *
@@ -1544,7 +1531,6 @@ cache_req_group_by_id_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct resp_ctx *rctx,
                            struct sss_nc_ctx *ncache,
-                           int neg_timeout,
                            int cache_refresh_percent,
                            const char *domain,
                            gid_t gid)
@@ -1557,8 +1543,7 @@ cache_req_group_by_id_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         neg_timeout, cache_refresh_percent,
-                                         domain, data);
+                                         cache_refresh_percent, domain, data);
 }
 
 struct tevent_req *
@@ -1566,7 +1551,6 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
                               struct tevent_context *ev,
                               struct resp_ctx *rctx,
                               struct sss_nc_ctx *ncache,
-                              int neg_timeout,
                               int cache_refresh_percent,
                               const char *domain,
                               const char *name)
@@ -1579,8 +1563,7 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         neg_timeout, cache_refresh_percent,
-                                         domain, data);
+                                         cache_refresh_percent, domain, data);
 }
 
 struct tevent_req *
@@ -1598,7 +1581,7 @@ cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, NULL,
-                                         0, 0, domain, data);
+                                         0, domain, data);
 }
 
 struct tevent_req *
@@ -1616,7 +1599,7 @@ cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, NULL,
-                                         0, 0, domain, data);
+                                         0, domain, data);
 }
 
 struct tevent_req *
@@ -1624,7 +1607,6 @@ cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct resp_ctx *rctx,
                              struct sss_nc_ctx *ncache,
-                             int neg_timeout,
                              int cache_refresh_percent,
                              const char *domain,
                              const char *sid,
@@ -1638,6 +1620,5 @@ cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         neg_timeout, cache_refresh_percent,
-                                         domain, data);
+                                         cache_refresh_percent, domain, data);
 }

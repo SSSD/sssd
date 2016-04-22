@@ -514,8 +514,7 @@ ifp_user_get_attr_lookup(struct tevent_req *subreq)
     }
 
     subreq = cache_req_send(state, state->rctx->ev, state->rctx,
-                            state->ncache, state->neg_timeout, 0,
-                            state->domname, data);
+                            state->ncache, 0, state->domname, data);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;

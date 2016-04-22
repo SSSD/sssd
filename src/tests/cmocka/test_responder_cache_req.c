@@ -72,7 +72,7 @@ struct test_group {
     check_leaks_push(req_mem_ctx);                                          \
                                                                             \
     req = send_fn(req_mem_ctx, ctx->tctx->ev, ctx->rctx,                    \
-                  ctx->ncache, 10, crp,                                     \
+                  ctx->ncache, crp,                                         \
                   (dom == NULL ? NULL : dom->name), lookup);                \
     assert_non_null(req);                                                   \
     tevent_req_set_callback(req, done_fn, ctx);                             \
@@ -367,7 +367,7 @@ static void run_object_by_sid(struct cache_req_test_ctx *test_ctx,
     check_leaks_push(req_mem_ctx);
 
     req = cache_req_object_by_sid_send(req_mem_ctx, test_ctx->tctx->ev,
-            test_ctx->rctx, test_ctx->ncache, 10, cache_refresh_percent,
+            test_ctx->rctx, test_ctx->ncache, cache_refresh_percent,
             (domain == NULL ? NULL : domain->name), sid, attrs);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_object_by_sid_test_done, test_ctx);
@@ -589,7 +589,7 @@ void test_user_by_name_multiple_domains_parse(void **state)
     check_leaks_push(req_mem_ctx);
 
     req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
-                                      test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                      test_ctx->rctx, test_ctx->ncache, 0,
                                       NULL, fqn);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
@@ -1089,7 +1089,7 @@ void test_group_by_name_multiple_domains_parse(void **state)
     mock_parse_inp(name, "responder_cache_req_test_d", ERR_OK);
 
     req = cache_req_group_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
-                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                       test_ctx->rctx, test_ctx->ncache, 0,
                                        NULL, fqn);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_group_by_name_test_done, test_ctx);
