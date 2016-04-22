@@ -29,24 +29,24 @@ int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
                     struct sss_nc_ctx **_ctx);
 
 /* check if the user is expired according to the passed in time to live */
-int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
-                          struct sss_domain_info *dom, const char *name);
-int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
-                           struct sss_domain_info *dom, const char *name);
-int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
-                           struct sss_domain_info *dom, const char *name);
-int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl,
-                         struct sss_domain_info *dom, uid_t uid);
-int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl,
-                         struct sss_domain_info *dom, gid_t gid);
-int sss_ncache_check_sid(struct sss_nc_ctx *ctx, int ttl, const char *sid);
-int sss_ncache_check_cert(struct sss_nc_ctx *ctx, int ttl, const char *cert);
+int sss_ncache_check_user(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                          const char *name);
+int sss_ncache_check_group(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                           const char *name);
+int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                           const char *name);
+int sss_ncache_check_uid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                         uid_t uid);
+int sss_ncache_check_gid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                         gid_t gid);
+int sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid);
+int sss_ncache_check_cert(struct sss_nc_ctx *ctx, const char *cert);
 
-int sss_ncache_check_service(struct sss_nc_ctx *ctx, int ttl,
+int sss_ncache_check_service(struct sss_nc_ctx *ctx,
                              struct sss_domain_info *dom,
                              const char *name,
                              const char *proto);
-int sss_ncache_check_service_port(struct sss_nc_ctx *ctx, int ttl,
+int sss_ncache_check_service_port(struct sss_nc_ctx *ctx,
                                   struct sss_domain_info *dom,
                                   uint16_t port,
                                   const char *proto);

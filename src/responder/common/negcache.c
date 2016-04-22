@@ -78,7 +78,7 @@ int sss_ncache_init(TALLOC_CTX *memctx,  uint32_t timeout,
     return EOK;
 };
 
-static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
+static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
 {
     TDB_DATA key;
     TDB_DATA data;
@@ -115,7 +115,7 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
         goto done;
     }
 
-    if (timestamp + ttl >= time(NULL)) {
+    if (timestamp >= time(NULL)) {
         /* still valid */
         ret = EEXIST;
         goto done;
@@ -140,6 +140,7 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx,
     TDB_DATA key;
     TDB_DATA data;
     char *timest;
+    unsigned long long int timell;
     int ret;
 
     ret = string_to_tdb_data(str, &key);
@@ -148,8 +149,8 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx,
     if (permanent) {
         timest = talloc_strdup(ctx, "0");
     } else {
-        timest = talloc_asprintf(ctx, "%llu",
-                                 (unsigned long long int)time(NULL));
+        timell = (unsigned long long int)time(NULL) + ctx->timeout;
+        timest = talloc_asprintf(ctx, "%llu", timell);
     }
     if (!timest) return ENOMEM;
 
@@ -171,8 +172,8 @@ done:
     return ret;
 }
 
-static int sss_ncache_check_user_int(struct sss_nc_ctx *ctx, int ttl,
-                                     const char *domain, const char *name)
+static int sss_ncache_check_user_int(struct sss_nc_ctx *ctx, const char *domain,
+                                     const char *name)
 {
     char *str;
     int ret;
@@ -182,13 +183,13 @@ static int sss_ncache_check_user_int(struct sss_nc_ctx *ctx, int ttl,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_USER_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = sss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str);
 
     talloc_free(str);
     return ret;
 }
 
-static int sss_ncache_check_group_int(struct sss_nc_ctx *ctx, int ttl,
+static int sss_ncache_check_group_int(struct sss_nc_ctx *ctx,
                                       const char *domain, const char *name)
 {
     char *str;
@@ -199,13 +200,13 @@ static int sss_ncache_check_group_int(struct sss_nc_ctx *ctx, int ttl,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_GROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = sss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str);
 
     talloc_free(str);
     return ret;
 }
 
-static int sss_ncache_check_netgr_int(struct sss_nc_ctx *ctx, int ttl,
+static int sss_ncache_check_netgr_int(struct sss_nc_ctx *ctx,
                                       const char *domain, const char *name)
 {
     char *str;
@@ -216,14 +217,13 @@ static int sss_ncache_check_netgr_int(struct sss_nc_ctx *ctx, int ttl,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_NETGROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = sss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str);
 
     talloc_free(str);
     return ret;
 }
 
 static int sss_ncache_check_service_int(struct sss_nc_ctx *ctx,
-                                        int ttl,
                                         const char *domain,
                                         const char *name)
 {
@@ -238,16 +238,16 @@ static int sss_ncache_check_service_int(struct sss_nc_ctx *ctx,
                           name);
     if (!str) return ENOMEM;
 
-    ret = sss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str);
 
     talloc_free(str);
     return ret;
 }
 
-typedef int (*ncache_check_byname_fn_t)(struct sss_nc_ctx *, int,
-                                        const char *, const char *);
+typedef int (*ncache_check_byname_fn_t)(struct sss_nc_ctx *, const char *,
+                                        const char *);
 
-static int sss_cache_check_ent(struct sss_nc_ctx *ctx, int ttl,
+static int sss_cache_check_ent(struct sss_nc_ctx *ctx,
                                struct sss_domain_info *dom, const char *name,
                                ncache_check_byname_fn_t checker)
 {
@@ -257,34 +257,31 @@ static int sss_cache_check_ent(struct sss_nc_ctx *ctx, int ttl,
     if (dom->case_sensitive == false) {
         lower = sss_tc_utf8_str_tolower(ctx, name);
         if (!lower) return ENOMEM;
-        ret = checker(ctx, ttl, dom->name, lower);
+        ret = checker(ctx, dom->name, lower);
         talloc_free(lower);
     } else {
-        ret = checker(ctx, ttl, dom->name, name);
+        ret = checker(ctx, dom->name, name);
     }
 
     return ret;
 }
 
-int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
-                          struct sss_domain_info *dom, const char *name)
+int sss_ncache_check_user(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                          const char *name)
 {
-    return sss_cache_check_ent(ctx, ttl, dom, name,
-                               sss_ncache_check_user_int);
+    return sss_cache_check_ent(ctx, dom, name, sss_ncache_check_user_int);
 }
 
-int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
-                           struct sss_domain_info *dom, const char *name)
+int sss_ncache_check_group(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                           const char *name)
 {
-    return sss_cache_check_ent(ctx, ttl, dom, name,
-                               sss_ncache_check_group_int);
+    return sss_cache_check_ent(ctx, dom, name, sss_ncache_check_group_int);
 }
 
-int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
-                           struct sss_domain_info *dom, const char *name)
+int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                           const char *name)
 {
-    return sss_cache_check_ent(ctx, ttl, dom, name,
-                               sss_ncache_check_netgr_int);
+    return sss_cache_check_ent(ctx, dom, name, sss_ncache_check_netgr_int);
 }
 
 static int sss_ncache_set_service_int(struct sss_nc_ctx *ctx, bool permanent,
@@ -321,10 +318,8 @@ int sss_ncache_set_service_name(struct sss_nc_ctx *ctx, bool permanent,
     return ret;
 }
 
-int sss_ncache_check_service(struct sss_nc_ctx *ctx, int ttl,
-                             struct sss_domain_info *dom,
-                             const char *name,
-                             const char *proto)
+int sss_ncache_check_service(struct sss_nc_ctx *ctx,struct sss_domain_info *dom,
+                             const char *name, const char *proto)
 {
     int ret;
     char *service_and_protocol = talloc_asprintf(ctx, "%s:%s",
@@ -332,7 +327,7 @@ int sss_ncache_check_service(struct sss_nc_ctx *ctx, int ttl,
                                                  proto ? proto : "<ANY>");
     if (!service_and_protocol) return ENOMEM;
 
-    ret = sss_cache_check_ent(ctx, ttl, dom, service_and_protocol,
+    ret = sss_cache_check_ent(ctx, dom, service_and_protocol,
                               sss_ncache_check_service_int);
     talloc_free(service_and_protocol);
     return ret;
@@ -355,7 +350,7 @@ int sss_ncache_set_service_port(struct sss_nc_ctx *ctx, bool permanent,
     return ret;
 }
 
-int sss_ncache_check_service_port(struct sss_nc_ctx *ctx, int ttl,
+int sss_ncache_check_service_port(struct sss_nc_ctx *ctx,
                                   struct sss_domain_info *dom,
                                   uint16_t port,
                                   const char *proto)
@@ -366,7 +361,7 @@ int sss_ncache_check_service_port(struct sss_nc_ctx *ctx, int ttl,
                                                  proto ? proto : "<ANY>");
     if (!service_and_protocol) return ENOMEM;
 
-    ret = sss_cache_check_ent(ctx, ttl, dom, service_and_protocol,
+    ret = sss_cache_check_ent(ctx, dom, service_and_protocol,
                               sss_ncache_check_service_int);
     talloc_free(service_and_protocol);
     return ret;
@@ -374,8 +369,8 @@ int sss_ncache_check_service_port(struct sss_nc_ctx *ctx, int ttl,
 
 
 
-int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl,
-                         struct sss_domain_info *dom, uid_t uid)
+int sss_ncache_check_uid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                         uid_t uid)
 {
     char *str;
     int ret;
@@ -388,14 +383,14 @@ int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl,
     }
     if (!str) return ENOMEM;
 
-    ret = sss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str);
 
     talloc_free(str);
     return ret;
 }
 
-int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl,
-                         struct sss_domain_info *dom, gid_t gid)
+int sss_ncache_check_gid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                         gid_t gid)
 {
     char *str;
     int ret;
@@ -408,13 +403,13 @@ int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl,
     }
     if (!str) return ENOMEM;
 
-    ret = sss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str);
 
     talloc_free(str);
     return ret;
 }
 
-int sss_ncache_check_sid(struct sss_nc_ctx *ctx, int ttl, const char *sid)
+int sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid)
 {
     char *str;
     int ret;
@@ -422,13 +417,13 @@ int sss_ncache_check_sid(struct sss_nc_ctx *ctx, int ttl, const char *sid)
     str = talloc_asprintf(ctx, "%s/%s", NC_SID_PREFIX, sid);
     if (!str) return ENOMEM;
 
-    ret = sss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str);
 
     talloc_free(str);
     return ret;
 }
 
-int sss_ncache_check_cert(struct sss_nc_ctx *ctx, int ttl, const char *cert)
+int sss_ncache_check_cert(struct sss_nc_ctx *ctx, const char *cert)
 {
     char *str;
     int ret;
@@ -436,7 +431,7 @@ int sss_ncache_check_cert(struct sss_nc_ctx *ctx, int ttl, const char *cert)
     str = talloc_asprintf(ctx, "%s/%s", NC_CERT_PREFIX, cert);
     if (!str) return ENOMEM;
 
-    ret = sss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str);
 
     talloc_free(str);
     return ret;

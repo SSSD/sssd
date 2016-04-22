@@ -529,8 +529,7 @@ cache_req_assume_upn(struct cache_req *cr)
 }
 
 static errno_t cache_req_check_ncache(struct cache_req *cr,
-                                      struct sss_nc_ctx *ncache,
-                                      int neg_timeout)
+                                      struct sss_nc_ctx *ncache)
 {
     errno_t ret = ERR_INTERNAL;
 
@@ -542,28 +541,26 @@ static errno_t cache_req_check_ncache(struct cache_req *cr,
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
-        ret = sss_ncache_check_user(ncache, neg_timeout,
-                                    cr->domain, cr->data->name.lookup);
+        ret = sss_ncache_check_user(ncache, cr->domain, cr->data->name.lookup);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
-        ret = sss_ncache_check_group(ncache, neg_timeout,
-                                     cr->domain, cr->data->name.lookup);
+        ret = sss_ncache_check_group(ncache, cr->domain, cr->data->name.lookup);
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_check_uid(ncache, neg_timeout, NULL, cr->data->id);
+        ret = sss_ncache_check_uid(ncache, NULL, cr->data->id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_check_gid(ncache, neg_timeout, NULL, cr->data->id);
+        ret = sss_ncache_check_gid(ncache, NULL, cr->data->id);
         break;
     case CACHE_REQ_USER_BY_CERT:
-        ret = sss_ncache_check_cert(ncache, neg_timeout, cr->data->cert);
+        ret = sss_ncache_check_cert(ncache, cr->data->cert);
         break;
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
         ret = EOK;
         break;
     case CACHE_REQ_OBJECT_BY_SID:
-        ret = sss_ncache_check_sid(ncache, neg_timeout, cr->data->sid);
+        ret = sss_ncache_check_sid(ncache, cr->data->sid);
         break;
     }
 
@@ -937,8 +934,7 @@ static struct tevent_req *cache_req_cache_send(TALLOC_CTX *mem_ctx,
     state->cr = cr;
 
     /* Check negative cache first. */
-    ret = cache_req_check_ncache(state->cr, state->ncache,
-                                 state->neg_timeout);
+    ret = cache_req_check_ncache(state->cr, state->ncache);
     if (ret == EEXIST) {
         ret = ENOENT;
         goto immediately;
