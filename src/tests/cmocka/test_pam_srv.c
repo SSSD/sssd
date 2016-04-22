@@ -177,7 +177,7 @@ struct pam_ctx *mock_pctx(TALLOC_CTX *mem_ctx)
     pctx = talloc_zero(mem_ctx, struct pam_ctx);
     assert_non_null(pctx);
 
-    ret = sss_ncache_init(pctx, &pctx->ncache);
+    ret = sss_ncache_init(pctx, 10, &pctx->ncache);
     assert_int_equal(ret, EOK);
 
     pctx->neg_timeout = 10;

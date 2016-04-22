@@ -191,6 +191,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     struct be_conn *iter;
     struct pam_ctx *pctx;
     int ret, max_retries;
+    uint32_t neg_timeout;
     int id_timeout;
     int fd_limit;
 
@@ -264,7 +265,10 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     pctx->id_timeout = (size_t)id_timeout;
 
-    ret = sss_ncache_init(pctx, &pctx->ncache);
+    ret = responder_get_neg_timeout_from_confdb(cdb, &neg_timeout);
+    if (ret != EOK) goto done;
+
+    ret = sss_ncache_init(pctx, neg_timeout, &pctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "fatal error initializing negative cache\n");

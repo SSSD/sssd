@@ -70,7 +70,7 @@ mock_nctx(TALLOC_CTX *mem_ctx)
         return NULL;
     }
 
-    ret = sss_ncache_init(nctx, &nctx->ncache);
+    ret = sss_ncache_init(nctx, 10, &nctx->ncache);
     if (ret != EOK) {
         talloc_free(nctx);
         return NULL;

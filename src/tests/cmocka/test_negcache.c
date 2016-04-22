@@ -80,7 +80,7 @@ mock_nctx(TALLOC_CTX *mem_ctx)
         return NULL;
     }
 
-    ret = sss_ncache_init(nctx, &nctx->ncache);
+    ret = sss_ncache_init(nctx, SHORTSPAN, &nctx->ncache);
     if (ret != EOK) {
         talloc_free(nctx);
         return NULL;
@@ -112,7 +112,7 @@ static int setup(void **state)
     ts = talloc(NULL, struct test_state);
     assert_non_null(ts);
 
-    ret  = sss_ncache_init(ts, &ts->ctx);
+    ret  = sss_ncache_init(ts, SHORTSPAN, &ts->ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(ts->ctx);
 
@@ -136,7 +136,7 @@ static void test_sss_ncache_init(void **state)
     memctx = talloc_new(NULL);
     assert_non_null(memctx);
 
-    ret = sss_ncache_init(memctx, &ctx );
+    ret = sss_ncache_init(memctx, SHORTSPAN, &ctx );
     assert_int_equal(ret, EOK);
     assert_non_null(ctx);
 

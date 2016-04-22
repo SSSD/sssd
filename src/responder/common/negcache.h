@@ -25,7 +25,8 @@
 struct sss_nc_ctx;
 
 /* init the in memory negative cache */
-int sss_ncache_init(TALLOC_CTX *memctx, struct sss_nc_ctx **_ctx);
+int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
+                    struct sss_nc_ctx **_ctx);
 
 /* check if the user is expired according to the passed in time to live */
 int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,

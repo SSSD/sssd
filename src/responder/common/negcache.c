@@ -39,6 +39,7 @@
 
 struct sss_nc_ctx {
     struct tdb_context *tdb;
+    uint32_t timeout;
 };
 
 typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
@@ -58,7 +59,8 @@ static int string_to_tdb_data(char *str, TDB_DATA *ret)
     return EOK;
 }
 
-int sss_ncache_init(TALLOC_CTX *memctx, struct sss_nc_ctx **_ctx)
+int sss_ncache_init(TALLOC_CTX *memctx,  uint32_t timeout,
+                    struct sss_nc_ctx **_ctx)
 {
     struct sss_nc_ctx *ctx;
 
@@ -69,6 +71,8 @@ int sss_ncache_init(TALLOC_CTX *memctx, struct sss_nc_ctx **_ctx)
     /* open a memory only tdb with default hash size */
     ctx->tdb = tdb_open("memcache", 0, TDB_INTERNAL, O_RDWR|O_CREAT, 0);
     if (!ctx->tdb) return errno;
+
+    ctx->timeout = timeout;
 
     *_ctx = ctx;
     return EOK;

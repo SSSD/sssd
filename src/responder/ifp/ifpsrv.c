@@ -227,6 +227,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     struct be_conn *iter;
     int ret;
     int max_retries;
+    uint32_t neg_timeout;
     char *uid_str;
     char *attr_list_str;
     char *wildcard_limit_str;
@@ -290,7 +291,10 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sss_ncache_init(rctx, &ifp_ctx->ncache);
+    ret = responder_get_neg_timeout_from_confdb(cdb, &neg_timeout);
+    if (ret != EOK) goto fail;
+
+    ret = sss_ncache_init(rctx, neg_timeout, &ifp_ctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "fatal error initializing negcache\n");
         goto fail;

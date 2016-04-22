@@ -344,4 +344,8 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 
 const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
                                 const char **defaults);
+
+errno_t responder_get_neg_timeout_from_confdb(struct confdb_ctx *cdb,
+                                              uint32_t *ncache_timeout);
+
 #endif /* __SSS_RESPONDER_H__ */

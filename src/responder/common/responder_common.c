@@ -1082,3 +1082,31 @@ void responder_set_fd_limit(rlim_t fd_limit)
                "Proceeding with system values\n");
     }
 }
+
+errno_t responder_get_neg_timeout_from_confdb(struct confdb_ctx *cdb,
+                                              uint32_t *ncache_timeout)
+{
+    int value;
+    int ret;
+
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
+                         &value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure of setup negative cache timeout.\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (value < 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    *ncache_timeout = value;
+    ret = EOK;
+
+done:
+    return ret;
+}
