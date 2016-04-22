@@ -116,7 +116,8 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
 enum req_input_type {
     REQ_INP_NAME,
     REQ_INP_ID,
-    REQ_INP_SECID
+    REQ_INP_SECID,
+    REQ_INP_CERT
 };
 
 struct req_input {
@@ -125,6 +126,7 @@ struct req_input {
         const char *name;
         uint32_t id;
         const char *secid;
+        const char *cert;
     } inp;
 };
 
