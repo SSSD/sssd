@@ -741,6 +741,21 @@ static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "sdap_account_expired_rhds failed.\n");
             }
+
+            if (ret == EOK &&
+                    strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_IPA) == 0) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "IPA access control succeeded, checking AD "
+                      "access control\n");
+                ret = sdap_account_expired_ad(pd, user_entry);
+                if (ret == ERR_ACCOUNT_EXPIRED || ret == ERR_ACCESS_DENIED) {
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                        "sdap_account_expired_ad: %s.\n", sss_strerror(ret));
+                } else if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sdap_account_expired_ad failed.\n");
+                }
+            }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_NDS) == 0) {
             ret = sdap_account_expired_nds(pd, user_entry);
             if (ret == ERR_ACCESS_DENIED) {
