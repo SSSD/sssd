@@ -28,6 +28,8 @@ struct sss_nc_ctx;
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
                     struct sss_nc_ctx **_ctx);
 
+uint32_t sss_ncache_get_timeout(struct sss_nc_ctx *ctx);
+
 /* check if the user is expired according to the passed in time to live */
 int sss_ncache_check_user(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
                           const char *name);

@@ -78,6 +78,11 @@ int sss_ncache_init(TALLOC_CTX *memctx,  uint32_t timeout,
     return EOK;
 };
 
+uint32_t sss_ncache_get_timeout(struct sss_nc_ctx *ctx)
+{
+    return ctx->timeout;
+}
+
 static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
 {
     TDB_DATA key;
