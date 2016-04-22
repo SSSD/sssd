@@ -528,10 +528,23 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
             }
             break;
         case BE_FILTER_CERT:
-            DEBUG(SSSDBG_OP_FAILURE, "Lookup by certificate not supported yet.\n");
-            state->dp_error = dp_error;
-            tevent_req_error(req, EINVAL);
-            return;
+            if (sdap_is_extension_supported(sdap_id_op_handle(state->op),
+                                            EXOP_SID2NAME_V1_OID)) {
+                req_input->type = REQ_INP_CERT;
+                req_input->inp.cert = talloc_strdup(req_input, state->filter);
+                if (req_input->inp.cert == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                    tevent_req_error(req, ENOMEM);
+                    return;
+                }
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Lookup by certificate not supported by the server.\n");
+                state->dp_error = DP_ERR_OK;
+                tevent_req_error(req, EINVAL);
+                return;
+            }
+            break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain filter type.\n");
             state->dp_error = dp_error;

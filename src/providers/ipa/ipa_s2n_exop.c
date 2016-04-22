@@ -36,7 +36,8 @@ enum input_types {
     INP_SID = 1,
     INP_NAME,
     INP_POSIX_UID,
-    INP_POSIX_GID
+    INP_POSIX_GID,
+    INP_CERT
 };
 
 enum request_types {
@@ -354,11 +355,22 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
             break;
         case BE_REQ_BY_SECID:
             if (req_input->type == REQ_INP_SECID) {
-            ret = ber_printf(ber, "{ees}", INP_SID, request_type,
-                                           req_input->inp.secid);
+                ret = ber_printf(ber, "{ees}", INP_SID, request_type,
+                                               req_input->inp.secid);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
-                                          req_input->type == REQ_INP_ID);
+                                         req_input->type == REQ_INP_ID);
+                ret = EINVAL;
+                goto done;
+            }
+            break;
+        case BE_REQ_BY_CERT:
+            if (req_input->type == REQ_INP_CERT) {
+            ret = ber_printf(ber, "{ees}", INP_CERT, request_type,
+                                           req_input->inp.cert);
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
+                                          req_input->type);
                 ret = EINVAL;
                 goto done;
             }
@@ -1535,6 +1547,11 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n exop request failed.\n");
+        if (state->req_input->type == REQ_INP_CERT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Maybe the server does not support lookups by "
+                  "certificates.\n");
+        }
         goto done;
     }
 
