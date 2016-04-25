@@ -255,6 +255,11 @@ SSS_NSS_GETORIGBYNAME = 0x0115, /**< Takes a zero terminated fully qualified
                                      second the value. Hence the list should
                                      have an even number of strings, if not
                                      the whole list is invalid. */
+SSS_NSS_GETNAMEBYCERT = 0x0116, /**< Takes the zero terminated string
+                                     of the base64 encoded DER representation
+                                     of a X509 certificate and returns the zero
+                                     terminated fully qualified name of the
+                                     related object. */
 };
 
 /**

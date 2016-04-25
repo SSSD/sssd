@@ -23,12 +23,14 @@
 #include "util/sss_nss.h"
 #include "util/sss_cli_cmd.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/cert.h"
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_netgroup.h"
 #include "responder/nss/nsssrv_services.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
 #include "responder/common/negcache.h"
+#include "responder/common/responder_cache_req.h"
 #include "providers/data_provider.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
@@ -5492,6 +5494,114 @@ done:
     return nss_cmd_done(cmdctx, ret);
 }
 
+static void users_find_by_cert_done(struct tevent_req *req);
+
+static int nss_cmd_getbycert(enum sss_cli_command cmd, struct cli_ctx *cctx)
+{
+
+    struct tevent_req *req;
+    uint8_t *body;
+    size_t blen;
+    int ret;
+    const char *derb64;
+    char *pem_cert = NULL;
+    size_t pem_size;
+    struct nss_ctx *nctx;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
+    if (cmd != SSS_NSS_GETNAMEBYCERT) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d][%s].\n",
+              cmd, sss_cmd2str(cmd));
+        return EINVAL;
+    }
+
+    /* get certificate to query */
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
+
+    /* if not terminated fail */
+    if (body[blen - 1] != '\0') {
+        return EINVAL;
+    }
+
+    derb64 = (const char *)body;
+
+    /* check input */
+    ret = sss_cert_derb64_to_pem(cctx, derb64, &pem_cert, &pem_size);
+    talloc_free(pem_cert);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
+        return ret;
+    }
+
+    req = cache_req_user_by_cert_send(cctx, cctx->rctx->ev, cctx->rctx,
+                                      nctx->rctx->ncache, 0, NULL, derb64);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, users_find_by_cert_done, cctx);
+
+    return EOK;
+}
+
+static void users_find_by_cert_done(struct tevent_req *req)
+{
+    struct cli_ctx *cctx;
+    struct sss_domain_info *domain;
+    struct ldb_result *result;
+    errno_t ret;
+
+    cctx = tevent_req_callback_data(req, struct cli_ctx);
+
+    ret = cache_req_user_by_cert_recv(cctx, req, &result, &domain, NULL);
+    talloc_zfree(req);
+    if (ret == ENOENT || result->count == 0) {
+        ret = ENOENT;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    if (result->count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Found more than 1 result with certficate search.\n");
+
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_packet_new failed.\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    ret = fill_name(cctx->creq->out, domain, SSS_ID_TYPE_UID, true,
+                    result->msgs[0]);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "fill_name failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        sss_packet_set_error(cctx->creq->out, EOK);
+        sss_cmd_done(cctx, NULL);
+    } else if (ret == ENOENT) {
+        sss_cmd_send_empty(cctx, NULL);
+    } else {
+        sss_cmd_send_error(cctx, ret);
+    }
+
+    return;
+}
+
 static int nss_cmd_getsidbyname(struct cli_ctx *cctx)
 {
     return nss_cmd_getbynam(SSS_NSS_GETSIDBYNAME, cctx);
@@ -5515,6 +5625,11 @@ static int nss_cmd_getidbysid(struct cli_ctx *cctx)
 static int nss_cmd_getorigbyname(struct cli_ctx *cctx)
 {
     return nss_cmd_getbynam(SSS_NSS_GETORIGBYNAME, cctx);
+}
+
+static int nss_cmd_getnamebycert(struct cli_ctx *cctx)
+{
+    return nss_cmd_getbycert(SSS_NSS_GETNAMEBYCERT, cctx);
 }
 
 struct cli_protocol_version *register_cli_protocol_version(void)
@@ -5553,6 +5668,7 @@ static struct sss_cmd_table nss_cmds[] = {
     {SSS_NSS_GETNAMEBYSID, nss_cmd_getnamebysid},
     {SSS_NSS_GETIDBYSID, nss_cmd_getidbysid},
     {SSS_NSS_GETORIGBYNAME, nss_cmd_getorigbyname},
+    {SSS_NSS_GETNAMEBYCERT, nss_cmd_getnamebycert},
     {SSS_CLI_NULL, NULL}
 };
 

@@ -32,6 +32,8 @@
 #include "responder/nss/nsssrv_private.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
 #include "util/util_sss_idmap.h"
+#include "util/crypto/sss_crypto.h"
+#include "util/crypto/nss/nss_util.h"
 #include "db/sysdb_private.h"   /* new_subdomain() */
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
@@ -184,6 +186,21 @@ int __wrap_sss_ncache_check_sid(struct sss_nc_ctx *ctx,
     int ret;
 
     ret = __real_sss_ncache_check_sid(ctx, ttl, sid);
+    if (ret == EEXIST) {
+        nss_test_ctx->ncache_hits++;
+    }
+    return ret;
+}
+
+int __real_sss_ncache_check_cert(struct sss_nc_ctx *ctx,
+                                 int ttl, const char *cert);
+
+int __wrap_sss_ncache_check_cert(struct sss_nc_ctx *ctx,
+                                 int ttl, const char *cert)
+{
+    int ret;
+
+    ret = __real_sss_ncache_check_cert(ctx, ttl, cert);
     if (ret == EEXIST) {
         nss_test_ctx->ncache_hits++;
     }
@@ -2896,6 +2913,124 @@ void test_nss_getnamebysid_update(void **state)
     assert_string_equal(shell, "/bin/ksh");
 }
 
+#define TEST_TOKEN_CERT \
+"MIIECTCCAvGgAwIBAgIBCDANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
+"REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNTA2MjMx" \
+"NjMyMDdaFw0xNzA2MjMxNjMyMDdaMDIxEjAQBgNVBAoMCUlQQS5ERVZFTDEcMBoG" \
+"A1UEAwwTaXBhLWRldmVsLmlwYS5kZXZlbDCCASIwDQYJKoZIhvcNAQEBBQADggEP" \
+"ADCCAQoCggEBALXUq56VlY+Z0aWLLpFAjFfbElPBXGQsbZb85J3cGyPjaMHC9wS+" \
+"wjB6Ve4HmQyPLx8hbINdDmbawMHYQvTScLYfsqLtj0Lqw20sUUmedk+Es5Oh9VHo" \
+"nd8MavYx25Du2u+T0iSgNIDikXguiwCmtAj8VC49ebbgITcjJGzMmiiuJkV3o93Y" \
+"vvYF0VjLGDQbQWOy7IxzYJeNVJnZWKo67CHdok6qOrm9rxQt81rzwV/mGLbCMUbr" \
+"+N4M8URtd7EmzaYZQmNm//s2owFrCYMxpLiURPj+URZVuB72504/Ix7X0HCbA/AV" \
+"26J27fPY5nc8DMwfhUDCbTqPH/JEjd3mvY8CAwEAAaOCASYwggEiMB8GA1UdIwQY" \
+"MBaAFJOq+KAQmPEnNp8Wok23eGTdE7aDMDsGCCsGAQUFBwEBBC8wLTArBggrBgEF" \
+"BQcwAYYfaHR0cDovL2lwYS1jYS5pcGEuZGV2ZWwvY2Evb2NzcDAOBgNVHQ8BAf8E" \
+"BAMCBPAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMHQGA1UdHwRtMGsw" \
+"aaAxoC+GLWh0dHA6Ly9pcGEtY2EuaXBhLmRldmVsL2lwYS9jcmwvTWFzdGVyQ1JM" \
+"LmJpbqI0pDIwMDEOMAwGA1UECgwFaXBhY2ExHjAcBgNVBAMMFUNlcnRpZmljYXRl" \
+"IEF1dGhvcml0eTAdBgNVHQ4EFgQUFaDNd5a53QGpaw5m63hnwXicMQ8wDQYJKoZI" \
+"hvcNAQELBQADggEBADH7Nj00qqGhGJeXJQAsepqSskz/wooqXh8vgVyb8SS4N0/c" \
+"0aQtVmY81xamlXE12ZFpwDX43d+EufBkwCUKFX/+8JFDd2doAyeJxv1xM22kKRpc" \
+"AqITPgMsa9ToGMWxjbVpc/X/5YfZixWPF0/eZUTotBj9oaR039UrhGfyN7OguF/G" \
+"rzmxtB5y4ZrMpcD/Oe90mkd9HY7sA/fB8OWOUgeRfQoh97HNS0UiDWsPtfxmjQG5" \
+"zotpoBIZmdH+ipYsu58HohHVlM9Wi5H4QmiiXl+Soldkq7eXYlafcmT7wv8+cKwz" \
+"Nz0Tm3+eYpFqRo3skr6QzXi525Jkg3r6r+kkhxU="
+
+static int test_nss_getnamebycert_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    size_t rp = 2 * sizeof(uint32_t); /* num_results and reserved */
+    uint32_t id_type;
+    const char *name;
+
+    assert_int_equal(status, EOK);
+
+    SAFEALIGN_COPY_UINT32(&id_type, body + rp, &rp);
+    assert_int_equal(id_type, SSS_ID_TYPE_UID);
+
+    name = (const char *)body + rp;
+    assert_string_equal(name, "testcertuser");
+
+    return EOK;
+}
+
+static void test_nss_getnamebycert(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    unsigned char *der = NULL;
+    size_t der_size;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    der = sss_base64_decode(nss_test_ctx, TEST_TOKEN_CERT, &der_size);
+    assert_non_null(der);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+    talloc_free(der);
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with a valid user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testcertuser", 23456, 6890, "test cert user",
+                         "/home/testcertuser", "/bin/sh", NULL,
+                         attrs, 300, 0);
+    assert_int_equal(ret, EOK);
+    talloc_free(attrs);
+
+    mock_input_user_or_group(TEST_TOKEN_CERT);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYCERT);
+    mock_fill_bysid();
+
+    /* Query for that user, call a callback when command finishes */
+    /* Should go straight to back end, without contacting DP */
+    set_cmd_cb(test_nss_getnamebycert_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getnamebycert_neg(void **state)
+{
+    errno_t ret;
+
+    mock_input_user_or_group(TEST_TOKEN_CERT);
+    mock_account_recv_simple();
+
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+
+    /* Test that subsequent search for a nonexistent user yields
+     * ENOENT and Account callback is not called, on the other hand
+     * the ncache functions will be called
+     */
+    nss_test_ctx->tctx->done = false;
+
+    mock_input_user_or_group(TEST_TOKEN_CERT);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    /* Negative cache was hit this time */
+    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -3009,6 +3144,10 @@ int main(int argc, const char *argv[])
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getnamebysid_update,
                                         nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getnamebycert_neg,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getnamebycert,
+                                        nss_test_setup, nss_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -3038,5 +3177,11 @@ int main(int argc, const char *argv[])
     if (rv == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }
+
+#ifdef HAVE_NSS
+    /* Cleanup NSS and NSPR to make valgrind happy. */
+    nspr_nss_cleanup();
+#endif
+
     return rv;
 }
