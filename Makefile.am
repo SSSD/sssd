@@ -1120,6 +1120,7 @@ sssd_nss_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_idmap.la \
+    libsss_cert.la \
     $(SSSD_INTERNAL_LTLIBS)
 
 sssd_pam_SOURCES = \
@@ -1912,6 +1913,7 @@ nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_ncache_check_user \
     -Wl,-wrap,sss_ncache_check_uid \
     -Wl,-wrap,sss_ncache_check_sid \
+    -Wl,-wrap,sss_ncache_check_cert \
     -Wl,-wrap,sss_packet_get_body \
     -Wl,-wrap,sss_packet_get_cmd \
     -Wl,-wrap,sss_cmd_send_empty \
@@ -1921,6 +1923,7 @@ nss_srv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
+    libsss_cert.la \
     libsss_idmap.la
 
 EXTRA_pam_srv_tests_DEPENDENCIES = \
