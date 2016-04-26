@@ -53,6 +53,7 @@
 #define CONFDB_SERVICE_PATH_TMPL "config/%s"
 #define CONFDB_SERVICE_COMMAND "command"
 #define CONFDB_SERVICE_DEBUG_LEVEL "debug_level"
+#define CONFDB_SERVICE_DEBUG_LEVEL_ALIAS "debug"
 #define CONFDB_SERVICE_DEBUG_TIMESTAMPS "debug_timestamps"
 #define CONFDB_SERVICE_DEBUG_MICROSECONDS "debug_microseconds"
 #define CONFDB_SERVICE_DEBUG_TO_FILES "debug_to_files"

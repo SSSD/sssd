@@ -567,12 +567,25 @@ int server_setup(const char *name, int flags,
         /* set debug level if any in conf_entry */
         ret = confdb_get_int(ctx->confdb_ctx, conf_entry,
                              CONFDB_SERVICE_DEBUG_LEVEL,
-                             SSSDBG_DEFAULT,
+                             SSSDBG_UNRESOLVED,
                              &debug_level);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) "
                                          "[%s]\n", ret, strerror(ret));
             return ret;
+        }
+
+        if (debug_level == SSSDBG_UNRESOLVED) {
+            /* Check for the `debug` alias */
+            ret = confdb_get_int(ctx->confdb_ctx, conf_entry,
+                    CONFDB_SERVICE_DEBUG_LEVEL_ALIAS,
+                    SSSDBG_DEFAULT,
+                    &debug_level);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) "
+                                            "[%s]\n", ret, strerror(ret));
+                return ret;
+            }
         }
 
         debug_level = debug_convert_old_level(debug_level);

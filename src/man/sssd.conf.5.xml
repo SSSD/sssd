@@ -70,6 +70,19 @@
                     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
                 </varlistentry>
                 <varlistentry>
+                    <term>debug (integer)</term>
+                    <listitem>
+                        <para>
+                            SSSD 1.14 and later also includes the
+                            <replaceable>debug</replaceable> alias for
+                            <replaceable>debug_level</replaceable> as a
+                            convenience feature. If both are specified, the
+                            value of <replaceable>debug_level</replaceable>
+                            will be used.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>debug_timestamps (bool)</term>
                     <listitem>
                         <para>

@@ -40,6 +40,7 @@ else:
 # TODO: This needs to be made external
 option_strings = {
     # [service]
+    'debug' : _('Set the verbosity of the debug logging'),
     'debug_level' : _('Set the verbosity of the debug logging'),
     'debug_timestamps' : _('Include timestamps in debug logs'),
     'debug_microseconds' : _('Include microseconds in timestamps in debug logs'),

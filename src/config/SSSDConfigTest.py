@@ -299,6 +299,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'krb5_rcache_dir',
             'user',
             'default_domain_suffix',
+            'debug',
             'debug_level',
             'debug_timestamps',
             'debug_microseconds',
@@ -497,6 +498,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_options()
         control_list = [
             'description',
+            'debug',
             'debug_level',
             'debug_timestamps',
             'min_id',
@@ -863,6 +865,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_options()
         control_list = [
             'description',
+            'debug',
             'debug_level',
             'debug_timestamps',
             'min_id',
