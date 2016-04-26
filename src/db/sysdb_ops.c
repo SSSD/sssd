@@ -2024,6 +2024,20 @@ fail:
 
 /* this function does not check that all user members are actually present */
 
+static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
+                                     const char *name,
+                                     gid_t gid,
+                                     struct sysdb_attrs *attrs,
+                                     uint64_t cache_timeout,
+                                     time_t now);
+
+static errno_t sysdb_store_group_attrs(struct sss_domain_info *domain,
+                                       const char *name,
+                                       gid_t gid,
+                                       struct sysdb_attrs *attrs,
+                                       uint64_t cache_timeout,
+                                       time_t now);
+
 int sysdb_store_group(struct sss_domain_info *domain,
                       const char *name,
                       gid_t gid,
@@ -2037,11 +2051,20 @@ int sysdb_store_group(struct sss_domain_info *domain,
     struct ldb_message *msg;
     bool new_group = false;
     int ret;
+    errno_t sret = EOK;
+    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
+
+    ret = sysdb_transaction_start(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
+        goto done;
+    }
+    in_transaction = true;
 
     ret = sysdb_search_group_by_name(tmp_ctx, domain, name, src_attrs, &msg);
     if (ret && ret != ENOENT) {
@@ -2072,71 +2095,27 @@ int sysdb_store_group(struct sss_domain_info *domain,
      * group needs any update */
 
     if (new_group) {
-        /* group doesn't exist, turn into adding a group */
-        ret = sysdb_add_group(domain, name, gid, attrs, cache_timeout,
-                              now);
-        if (ret == EEXIST) {
-            /* This may be a group rename. If there is a group with the
-             * same GID, remove it and try to add the basic group again
-             */
-            DEBUG(SSSDBG_TRACE_LIBS, "sysdb_add_group failed: [EEXIST].\n");
-            ret = sysdb_delete_group(domain, NULL, gid);
-            if (ret == ENOENT) {
-                /* Not found by GID, return the original EEXIST,
-                 * this may be a conflict in MPG domain or something
-                 * else */
-                DEBUG(SSSDBG_TRACE_LIBS,
-                      "sysdb_delete_group failed (while renaming group). Not "
-                      "found by gid: [%"SPRIgid"].\n", gid);
-                return EEXIST;
-            } else if (ret != EOK) {
-                DEBUG(SSSDBG_TRACE_LIBS, "sysdb_add_group failed.\n");
-                goto done;
-            }
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "A group with the same GID [%"SPRIgid"] was removed from "
-                  "the cache\n", gid);
-            ret = sysdb_add_group(domain, name, gid, attrs, cache_timeout,
-                                  now);
-            if (ret) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      "sysdb_add_group failed (while renaming group) for: "
-                      "%s [%"SPRIgid"].\n", name, gid);
-            }
-        }
-        goto done;
+        ret = sysdb_store_new_group(domain, name, gid, attrs, cache_timeout, now);
+    } else {
+        ret = sysdb_store_group_attrs(domain, name, gid, attrs, cache_timeout, now);
     }
 
-    /* the group exists, let's just replace attributes when set */
-    if (gid) {
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
-        if (ret) {
-            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add GID.\n");
-            goto done;
-        }
-    }
-
-    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
-    if (ret) {
-        DEBUG(SSSDBG_TRACE_LIBS, "Failed to add sysdb-last-update.\n");
+    sret = sysdb_transaction_commit(domain->sysdb);
+    if (sret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
+        ret = EIO;
         goto done;
     }
-
-    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
-                                 ((cache_timeout) ?
-                                  (now + cache_timeout) : 0));
-    if (ret) {
-        DEBUG(SSSDBG_TRACE_LIBS, "Failed to add sysdb-cache-expire.\n");
-        goto done;
-    }
-
-    ret = sysdb_set_group_attr(domain, name, attrs, SYSDB_MOD_REP);
-    if (ret) {
-        DEBUG(SSSDBG_TRACE_LIBS, "sysdb_set_group_attr failed.\n");
-        goto done;
-    }
+    in_transaction = false;
 
 done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(domain->sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
+        }
+    }
+
     if (ret) {
         DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
@@ -2144,6 +2123,92 @@ done:
     return ret;
 }
 
+
+static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
+                                     const char *name,
+                                     gid_t gid,
+                                     struct sysdb_attrs *attrs,
+                                     uint64_t cache_timeout,
+                                     time_t now)
+{
+    errno_t ret;
+
+    /* group doesn't exist, turn into adding a group */
+    ret = sysdb_add_group(domain, name, gid, attrs, cache_timeout, now);
+    if (ret == EEXIST) {
+        /* This may be a group rename. If there is a group with the
+         * same GID, remove it and try to add the basic group again
+         */
+        DEBUG(SSSDBG_TRACE_LIBS, "sysdb_add_group failed: [EEXIST].\n");
+        ret = sysdb_delete_group(domain, NULL, gid);
+        if (ret == ENOENT) {
+            /* Not found by GID, return the original EEXIST,
+             * this may be a conflict in MPG domain or something
+             * else */
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "sysdb_delete_group failed (while renaming group). Not "
+                  "found by gid: [%"SPRIgid"].\n", gid);
+            return EEXIST;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_TRACE_LIBS, "sysdb_add_group failed.\n");
+            return ret;
+        }
+
+        DEBUG(SSSDBG_MINOR_FAILURE,
+                "A group with the same GID [%"SPRIgid"] was removed from "
+                "the cache\n", gid);
+        ret = sysdb_add_group(domain, name, gid, attrs, cache_timeout, now);
+        if (ret) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                    "sysdb_add_group failed (while renaming group) for: "
+                    "%s [%"SPRIgid"].\n", name, gid);
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t sysdb_store_group_attrs(struct sss_domain_info *domain,
+                                       const char *name,
+                                       gid_t gid,
+                                       struct sysdb_attrs *attrs,
+                                       uint64_t cache_timeout,
+                                       time_t now)
+{
+    errno_t ret;
+
+    /* the group exists, let's just replace attributes when set */
+    if (gid) {
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add GID.\n");
+            return ret;
+        }
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to add sysdb-last-update.\n");
+        return ret;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 ((cache_timeout) ?
+                                  (now + cache_timeout) : 0));
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to add sysdb-cache-expire.\n");
+        return ret;
+    }
+
+    ret = sysdb_set_group_attr(domain, name, attrs, SYSDB_MOD_REP);
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "sysdb_set_group_attr failed.\n");
+        return ret;
+    }
+
+    return EOK;
+}
 
 /* =Add-User-to-Group(Native/Legacy)====================================== */
 static int
