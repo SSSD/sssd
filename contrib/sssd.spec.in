@@ -467,23 +467,23 @@ used by Python applications.
 %endif
 
 %package -n libsss_nss_idmap
-Summary: Library for SID based lookups
+Summary: Library for SID and certificate based lookups
 Group: Development/Libraries
 License: LGPLv3+
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
 %description -n libsss_nss_idmap
-Utility library for SID based lookups
+Utility library for SID and certificate based lookups
 
 %package -n libsss_nss_idmap-devel
-Summary: Library for SID based lookups
+Summary: Library for SID and certificate based lookups
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libsss_nss_idmap = %{version}-%{release}
 
 %description -n libsss_nss_idmap-devel
-Utility library for SID based lookups
+Utility library for SID and certificate based lookups
 
 %package -n python-libsss_nss_idmap
 Summary: Python2 bindings for libsss_nss_idmap

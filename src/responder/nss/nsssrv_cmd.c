@@ -5525,6 +5525,7 @@ static int nss_cmd_getbycert(enum sss_cli_command cmd, struct cli_ctx *cctx)
     }
 
     derb64 = (const char *)body;
+    DEBUG(SSSDBG_TRACE_ALL, "cert [%s]\n", derb64);
 
     /* check input */
     ret = sss_cert_derb64_to_pem(cctx, derb64, &pem_cert, &pem_size);

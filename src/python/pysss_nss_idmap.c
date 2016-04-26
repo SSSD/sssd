@@ -33,7 +33,8 @@ enum lookup_type {
     SIDBYNAME,
     SIDBYID,
     NAMEBYSID,
-    IDBYSID
+    IDBYSID,
+    NAMEBYCERT
 };
 
 static int add_dict(PyObject *py_result, PyObject *key, PyObject *res_type,
@@ -166,6 +167,28 @@ static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
     return ret;
 }
 
+static int do_getnamebycert(PyObject *py_result, PyObject *py_cert)
+{
+    int ret;
+    const char *cert;
+    char *name = NULL;
+    enum sss_id_type id_type;
+
+    cert = py_string_or_unicode_as_string(py_cert);
+    if (cert == NULL) {
+        return EINVAL;
+    }
+
+    ret = sss_nss_getnamebycert(cert, &name, &id_type);
+    if (ret == 0) {
+        ret = add_dict(py_result, py_cert, PyBytes_FromString(SSS_NAME_KEY),
+                       PyUnicode_FromString(name), PYNUMBER_FROMLONG(id_type));
+    }
+    free(name);
+
+    return ret;
+}
+
 static int do_getidbysid(PyObject *py_result, PyObject *py_sid)
 {
     const char *sid;
@@ -202,6 +225,9 @@ static int do_lookup(enum lookup_type type, PyObject *py_result,
         break;
     case IDBYSID:
         return do_getidbysid(py_result, py_inp);
+        break;
+    case NAMEBYCERT:
+        return do_getnamebycert(py_result, py_inp);
         break;
     default:
         return ENOSYS;
@@ -260,7 +286,7 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
         case ENOENT: /* nothing found, return empty dict */
             break;
         case EINVAL:
-            PyErr_Format(PyExc_ValueError, "Unable to retrieve argument\n");
+            PyErr_Format(PyExc_ValueError, "Unable to retrieve result\n");
             Py_XDECREF(py_result);
             return NULL;
             break;
@@ -339,6 +365,21 @@ static PyObject * py_getidbysid(PyObject *module, PyObject *args)
     return check_args(IDBYSID, args);
 }
 
+PyDoc_STRVAR(getnamebycert_doc,
+"getnamebycert(sid or list/tuple of certificates) -> dict(sid => dict(results))\n\
+\n\
+Returns a dictionary with a dictonary of results for each given certificates.\n\
+The result dictonary contain the name and the type of the object which can be\n\
+accessed with the key constants NAME_KEY and TYPE_KEY, respectively.\n\
+\n\
+NOTE: getnamebycert currently works only with id_provider set as \"ad\" or \"ipa\""
+);
+
+static PyObject * py_getnamebycert(PyObject *module, PyObject *args)
+{
+    return check_args(NAMEBYCERT, args);
+}
+
 static PyMethodDef methods[] = {
     { sss_py_const_p(char, "getsidbyname"), (PyCFunction) py_getsidbyname,
       METH_VARARGS, getsidbyname_doc },
@@ -348,6 +389,8 @@ static PyMethodDef methods[] = {
       METH_VARARGS, getnamebysid_doc },
     { sss_py_const_p(char, "getidbysid"), (PyCFunction) py_getidbysid,
       METH_VARARGS, getidbysid_doc },
+    { sss_py_const_p(char, "getnamebycert"), (PyCFunction) py_getnamebycert,
+      METH_VARARGS, getnamebycert_doc },
     { NULL,NULL, 0, NULL }
 };
 

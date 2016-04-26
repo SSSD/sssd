@@ -159,7 +159,8 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd ,
     case SSS_NSS_GETNAMEBYSID:
     case SSS_NSS_GETIDBYSID:
     case SSS_NSS_GETORIGBYNAME:
-        ret = sss_strnlen(inp.str, SSS_NAME_MAX, &inp_len);
+    case SSS_NSS_GETNAMEBYCERT:
+        ret = sss_strnlen(inp.str, 2048, &inp_len);
         if (ret != EOK) {
             return EINVAL;
         }
@@ -209,6 +210,7 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd ,
     case SSS_NSS_GETSIDBYID:
     case SSS_NSS_GETSIDBYNAME:
     case SSS_NSS_GETNAMEBYSID:
+    case SSS_NSS_GETNAMEBYCERT:
         if (data_len <= 1 || repbuf[replen - 1] != '\0') {
             ret = EBADMSG;
             goto done;
@@ -363,6 +365,28 @@ int sss_nss_getorigbyname(const char *fq_name, struct sss_nss_kv **kv_list,
     ret = sss_nss_getyyybyxxx(inp, SSS_NSS_GETORIGBYNAME, &out);
     if (ret == EOK) {
         *kv_list = out.d.kv_list;
+        *type = out.type;
+    }
+
+    return ret;
+}
+
+int sss_nss_getnamebycert(const char *cert, char **fq_name,
+                          enum sss_id_type *type)
+{
+    int ret;
+    union input inp;
+    struct output out;
+
+    if (fq_name == NULL || cert == NULL || *cert == '\0') {
+        return EINVAL;
+    }
+
+    inp.str = cert;
+
+    ret = sss_nss_getyyybyxxx(inp, SSS_NSS_GETNAMEBYCERT, &out);
+    if (ret == EOK) {
+        *fq_name = out.d.str;
         *type = out.type;
     }
 
