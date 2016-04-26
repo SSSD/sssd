@@ -19,3 +19,9 @@ SSS_NSS_IDMAP_0.1.0 {
         sss_nss_getorigbyname;
         sss_nss_free_kv;
 } SSS_NSS_IDMAP_0.0.1;
+
+SSS_NSS_IDMAP_0.2.0 {
+    # public functions
+    global:
+        sss_nss_getnamebycert;
+} SSS_NSS_IDMAP_0.1.0;
