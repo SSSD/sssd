@@ -84,6 +84,7 @@ struct err_string error_to_str[] = {
     { "Subdomain is inactive" }, /* ERR_SUBDOM_INACTIVE */
     { "Account is locked" }, /* ERR_ACCOUNT_LOCKED */
     { "AD renewal child failed" }, /* ERR_RENEWAL_CHILD */
+    { "SBUS request already handled" }, /* ERR_SBUS_REQUEST_HANDLED */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

@@ -74,6 +74,7 @@ sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
     }
 
     switch(ret) {
+    case ERR_SBUS_REQUEST_HANDLED:
     case EOK:
         return;
     case ENOMEM:
