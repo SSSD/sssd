@@ -86,6 +86,7 @@ struct err_string error_to_str[] = {
     { "Account is locked" }, /* ERR_ACCOUNT_LOCKED */
     { "AD renewal child failed" }, /* ERR_RENEWAL_CHILD */
     { "SBUS request already handled" }, /* ERR_SBUS_REQUEST_HANDLED */
+    { "The user is not handled by SSSD" }, /* ERR_NON_SSSD_USER */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

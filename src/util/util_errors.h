@@ -108,6 +108,7 @@ enum sssd_errors {
     ERR_ACCOUNT_LOCKED,
     ERR_RENEWAL_CHILD,
     ERR_SBUS_REQUEST_HANDLED,
+    ERR_NON_SSSD_USER,
     ERR_LAST            /* ALWAYS LAST */
 };
 
