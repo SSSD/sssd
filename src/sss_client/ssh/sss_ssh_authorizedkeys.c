@@ -86,7 +86,12 @@ int main(int argc, const char **argv)
     /* look up public keys */
     ret = sss_ssh_get_ent(mem_ctx, SSS_SSH_GET_USER_PUBKEYS,
                           pc_user, pc_domain, NULL, &ent);
-    if (ret != EOK) {
+    if (ret == ERR_NON_SSSD_USER) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "The user %s is valid, but not handled by sssd\n", pc_user);
+        ret = EXIT_SUCCESS;
+        goto fini;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error looking up public keys\n");

@@ -118,6 +118,7 @@ enum sssd_errors {
     ERR_NO_TS,
     ERR_TS_CACHE_MISS,
     ERR_DEREF_THRESHOLD,
+    ERR_NON_SSSD_USER,
     ERR_LAST            /* ALWAYS LAST */
 };
 

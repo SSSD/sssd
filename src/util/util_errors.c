@@ -96,6 +96,7 @@ struct err_string error_to_str[] = {
     { "Domain has to timestamp cache" }, /* ERR_NO_TS */
     { "No timestamp cache record" }, /* ERR_TS_CACHE_MISS */
     { "Dereference threshold reached" }, /* ERR_DEREF_THRESHOLD */
+    { "The user is not handled by SSSD" }, /* ERR_NON_SSSD_USER */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

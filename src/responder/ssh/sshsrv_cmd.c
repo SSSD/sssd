@@ -67,7 +67,7 @@ sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
            cmd_ctx->name, cmd_ctx->domname ? cmd_ctx->domname : "<ALL>");
 
     if (strcmp(cmd_ctx->name, "root") == 0) {
-        ret = ENOENT;
+        ret = ERR_NON_SSSD_USER;
         goto done;
     }
 
@@ -168,6 +168,20 @@ ssh_user_pubkeys_search_dp_callback(uint16_t err_maj,
                                     void *ptr);
 
 static errno_t
+ssh_user_handle_not_found(const char *username)
+{
+    struct passwd *pwd;
+
+    pwd = getpwnam(username);
+    if (pwd != NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "%s is a non-SSSD user\n", username);
+        return ERR_NON_SSSD_USER;
+    }
+
+    return ENOENT;
+}
+
+static errno_t
 ssh_user_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
 {
     struct tevent_req *req;
@@ -182,7 +196,7 @@ ssh_user_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
     if (!cmd_ctx->domain) {
         DEBUG(SSSDBG_OP_FAILURE,
               "No matching domain found for [%s], fail!\n", cmd_ctx->name);
-        return ENOENT;
+        return ssh_user_handle_not_found(cmd_ctx->name);
     }
 
     /* refresh the user's cache entry */
@@ -256,10 +270,10 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
             return ssh_user_pubkeys_search(cmd_ctx);
         }
 
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "No attributes for user [%s] found.\n", cmd_ctx->name);
 
-        return ENOENT;
+        return ssh_user_handle_not_found(cmd_ctx->name);
     }
 
     cmd_ctx->result = res->msgs[0];
