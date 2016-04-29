@@ -1791,3 +1791,118 @@ bool sysdb_msg_attrs_modts_differs(struct ldb_message *old_entry,
 
     return true;
 }
+
+static bool sysdb_ldb_msg_difference(struct ldb_message *db_msg,
+                                     struct ldb_message *mod_msg)
+{
+    struct ldb_message_element *mod_msg_el;
+    struct ldb_message_element *db_msg_el;
+    int el_differs;
+
+    for (unsigned i = 0; i < mod_msg->num_elements; i++) {
+        mod_msg_el = &mod_msg->elements[i];
+
+        switch (mod_msg_el->flags) {
+        case 0:
+        /* Unspecified flags are internally converted to SYSDB_MOD_REP in
+         * sysdb_set_group_attr, do the same here
+         */
+        case SYSDB_MOD_ADD:
+        case SYSDB_MOD_REP:
+            db_msg_el = ldb_msg_find_element(db_msg, mod_msg_el->name);
+            if (db_msg_el == NULL) {
+                /* The attribute to be added does not exist in the target
+                 * message, this is a modification. Special-case adding
+                 * empty elements which also do not exist in the target
+                 * message. This is how sysdb callers ensure a particular
+                 * element is not present in the database.
+                 */
+                if (mod_msg_el->num_values > 0) {
+                    /* We can ignore additions of timestamp attributes */
+                    return true;
+                }
+                break;
+            }
+
+            el_differs = ldb_msg_element_compare(db_msg_el, mod_msg_el);
+            if (el_differs) {
+                /* We are replacing or extending element, there is a difference. If
+                 * some values already exist and ldb_add is not permissive,
+                 * ldb will throw an error, but that's not our job to check..
+                 */
+                if (is_ts_cache_attr(mod_msg_el->name) == false) {
+                    /* We can ignore changes to timestamp attributes */
+                    return true;
+                }
+            }
+            break;
+        case SYSDB_MOD_DEL:
+            db_msg_el = ldb_msg_find_element(db_msg, mod_msg_el->name);
+            if (db_msg_el != NULL) {
+                /* We are deleting a valid element, there is a difference */
+                return true;
+            }
+            break;
+        }
+    }
+
+    return false;
+}
+
+bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
+                            struct ldb_dn *entry_dn,
+                            struct sysdb_attrs *attrs,
+                            int mod_op)
+{
+    struct ldb_message *new_entry_msg = NULL;
+    TALLOC_CTX *tmp_ctx;
+    bool differs = true;
+    int lret;
+    errno_t ret;
+    struct ldb_result *res;
+    const char *attrnames[attrs->num+1];
+
+    if (sysdb->ldb_ts == NULL) {
+        return true;
+    }
+
+    if (is_ts_ldb_dn(entry_dn) == false) {
+        return true;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        goto done;
+    }
+
+    new_entry_msg = sysdb_attrs2msg(tmp_ctx, entry_dn,
+                                    attrs, mod_op);
+    if (new_entry_msg == NULL) {
+        goto done;
+    }
+
+    for (int i = 0; i < attrs->num; i++) {
+        attrnames[i] = attrs->a[i].name;
+    }
+    attrnames[attrs->num] = NULL;
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, entry_dn, LDB_SCOPE_BASE,
+                      attrnames, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot search sysdb: %d\n", ret);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        return true;
+    } else if (res->count != 1) {
+        ret = EIO;
+        goto done;
+    }
+
+    differs = sysdb_ldb_msg_difference(res->msgs[0], new_entry_msg);
+done:
+    talloc_free(tmp_ctx);
+    return differs;
+}

@@ -1172,10 +1172,15 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
                          struct sysdb_attrs *attrs,
                          int mod_op)
 {
+    bool sysdb_write = true;
     errno_t ret = EOK;
     errno_t tret = EOK;
 
-    ret = sysdb_set_cache_entry_attr(sysdb->ldb, entry_dn, attrs, mod_op);
+    sysdb_write = sysdb_entry_attrs_diff(sysdb, entry_dn, attrs, mod_op);
+    if (sysdb_write == true) {
+        ret = sysdb_set_cache_entry_attr(sysdb->ldb, entry_dn, attrs, mod_op);
+    }
+
     if (ret == EOK) {
         tret = sysdb_set_ts_entry_attr(sysdb, entry_dn, attrs, mod_op);
         if (tret != EOK) {
@@ -2563,6 +2568,7 @@ static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
 static errno_t sysdb_store_group_attrs(struct sss_domain_info *domain,
                                        const char *name,
                                        gid_t gid,
+                                       struct ldb_message *cached_group,
                                        struct sysdb_attrs *attrs,
                                        uint64_t cache_timeout,
                                        time_t now);
@@ -2575,7 +2581,7 @@ int sysdb_store_group(struct sss_domain_info *domain,
                       time_t now)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *src_attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
+    static const char *src_attrs[] = { "*", NULL };
     struct ldb_message *msg;
     bool new_group = false;
     int ret;
@@ -2628,13 +2634,12 @@ int sysdb_store_group(struct sss_domain_info *domain,
         now = time(NULL);
     }
 
-    /* FIXME: use the remote modification timestamp to know if the
-     * group needs any update */
-
     if (new_group) {
-        ret = sysdb_store_new_group(domain, name, gid, attrs, cache_timeout, now);
+        ret = sysdb_store_new_group(domain, name, gid, attrs,
+                                    cache_timeout, now);
     } else {
-        ret = sysdb_store_group_attrs(domain, name, gid, attrs, cache_timeout, now);
+        ret = sysdb_store_group_attrs(domain, name, gid, msg, attrs,
+                                      cache_timeout, now);
     }
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cache update failed: %d\n", ret);
@@ -2713,6 +2718,7 @@ static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
 static errno_t sysdb_store_group_attrs(struct sss_domain_info *domain,
                                        const char *name,
                                        gid_t gid,
+                                       struct ldb_message *cached_group,
                                        struct sysdb_attrs *attrs,
                                        uint64_t cache_timeout,
                                        time_t now)

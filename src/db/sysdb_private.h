@@ -264,4 +264,15 @@ struct ldb_message *sysdb_attrs2msg(TALLOC_CTX *mem_ctx,
                                     struct sysdb_attrs *attrs,
                                     int mod_op);
 
+/* Compares the attributes between the existing attributes of entry_dn and
+ * the new_entry attributes that are about to be set. If the set would
+ * not yield into any differences (and therefore a write to the cache is
+ * not necessary), the function returns false (no diff), otherwise
+ * the function returns true (a difference exists).
+ */
+bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
+                            struct ldb_dn *entry_dn,
+                            struct sysdb_attrs *attrs,
+                            int mod_op);
+
 #endif /* __INT_SYS_DB_H__ */
