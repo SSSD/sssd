@@ -92,6 +92,8 @@ struct resp_ctx {
     const char *sock_name;
     const char *priv_sock_name;
 
+    struct sss_nc_ctx *ncache;
+
     struct sbus_connection *mon_conn;
     struct be_conn *be_conns;
 

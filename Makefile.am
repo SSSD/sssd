@@ -1799,6 +1799,7 @@ sss_idmap_tests_LDADD = \
 
 responder_socket_access_tests_SOURCES = \
     src/tests/responder_socket_access-tests.c \
+    src/responder/common/negcache.c \
     src/responder/common/responder_common.c \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_cmd.c
@@ -1974,13 +1975,14 @@ pam_srv_tests_LDADD = \
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
 responder_get_domains_tests_SOURCES = \
-     src/responder/common/responder_get_domains.c \
+     $(SSSD_RESPONDER_OBJ) \
      src/tests/cmocka/test_responder_common.c \
      src/tests/cmocka/common_mock_resp.c
 responder_get_domains_tests_CFLAGS = \
     $(AM_CFLAGS)
 responder_get_domains_tests_LDFLAGS = \
-    -Wl,-wrap,sss_parse_name_for_domains
+    -Wl,-wrap,sss_parse_name_for_domains \
+    -Wl,-wrap,sss_ncache_reset_repopulate_permanent
 responder_get_domains_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \

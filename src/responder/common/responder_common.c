@@ -756,6 +756,47 @@ static int sss_responder_ctx_destructor(void *ptr)
     return 0;
 }
 
+static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
+                                     struct confdb_ctx *cdb,
+                                     struct sss_nc_ctx **ncache)
+{
+    uint32_t neg_timeout;
+    int tmp_value;
+    int ret;
+
+    /* neg_timeout */
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_NEG_TIMEOUT,
+                         15, &tmp_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure of setup negative cache timeout.\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (tmp_value < 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    neg_timeout = tmp_value;
+    ret = EOK;
+
+    /* negative cache init */
+    ret = sss_ncache_init(mem_ctx, neg_timeout, ncache);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure of initializing negative cache.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
@@ -910,6 +951,12 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Could not create hash table for the request queue\n");
+        goto fail;
+    }
+
+    ret = responder_init_ncache(rctx, rctx->cdb, &rctx->ncache);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "fatal error initializing negcache\n");
         goto fail;
     }
 

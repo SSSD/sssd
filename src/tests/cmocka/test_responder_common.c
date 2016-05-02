@@ -35,16 +35,28 @@
 
 #define NAME "username"
 
+/* register_cli_protocol_version is required in test since it links with
+ * responder_common.c module
+ */
+struct cli_protocol_version *register_cli_protocol_version(void)
+{
+    static struct cli_protocol_version responder_test_cli_protocol_version[] = {
+        { 0, NULL, NULL }
+    };
+
+    return responder_test_cli_protocol_version;
+}
+
 static void
 mock_sss_dp_done(struct tevent_context *ev,
                  struct tevent_immediate *imm,
                  void *pvt);
 
 errno_t
-sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
-                     const char *strkey, struct sss_domain_info *dom,
-                     dbus_msg_constructor msg_create, void *pvt,
-                     struct tevent_req *nreq)
+__wrap_sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
+                            const char *strkey, struct sss_domain_info *dom,
+                            dbus_msg_constructor msg_create, void *pvt,
+                            struct tevent_req *nreq)
 {
     struct tevent_immediate *imm;
 
@@ -69,11 +81,11 @@ mock_sss_dp_done(struct tevent_context *ev,
 }
 
 errno_t
-sss_dp_req_recv(TALLOC_CTX *mem_ctx,
-                struct tevent_req *sidereq,
-                dbus_uint16_t *dp_err,
-                dbus_uint32_t *dp_ret,
-                char **err_msg)
+__wrap_sss_dp_req_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *sidereq,
+                       dbus_uint16_t *dp_err,
+                       dbus_uint32_t *dp_ret,
+                       char **err_msg)
 {
     return EOK;
 }
@@ -271,8 +283,8 @@ struct sss_nc_ctx {
     struct parse_inp_test_ctx *pctx;
 };
 
-errno_t sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
-                                              struct sss_nc_ctx *dummy_ncache_ptr)
+errno_t __wrap_sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
+                                                     struct sss_nc_ctx *dummy_ncache_ptr)
 {
     test_ev_done(dummy_ncache_ptr->pctx->tctx, EOK);
     return EOK;
