@@ -1085,6 +1085,10 @@ SYSTEMTAP_PROBES = \
 
 systemtap_tap_DATA = $(builddir)/src/systemtap/sssd.stp
 
+dist_systemtap_tap_DATA = \
+    $(builddir)/src/systemtap/sssd_functions.stp \
+    $(NULL)
+
 stap_generated_probes.h: $(srcdir)/src/systemtap/sssd_probes.d
 	$(AM_V_GEN)$(DTRACE) -C -h -s $< -o $@
 

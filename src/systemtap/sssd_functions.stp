@@ -1,0 +1,66 @@
+function acct_req_desc(entry_type)
+{
+    if (entry_type == 0x0001) {
+        str_entry_type = "user"
+    } else if (entry_type == 0x0002) {
+        str_entry_type = "group"
+    } else if (entry_type == 0x0003) {
+        str_entry_type = "initgroups"
+    } else if (entry_type == 0x0004) {
+        str_entry_type = "netgroups"
+    } else if (entry_type == 0x0005) {
+        str_entry_type = "services"
+    } else if (entry_type == 0x0006) {
+        str_entry_type = "sudo_full"
+    } else if (entry_type == 0x0007) {
+        str_entry_type = "sudo_rules"
+    # See src/providers/data_provider_req.h, no 0x0008 there..
+    } else if (entry_type == 0x0009) {
+        str_entry_type = "autofs"
+    } else if (entry_type == 0x0010) {
+        str_entry_type = "host"
+    } else if (entry_type == 0x0011) {
+        str_entry_type = "by_secid"
+    } else if (entry_type == 0x0012) {
+        str_entry_type = "user_and_group"
+    } else if (entry_type == 0x0013) {
+        str_entry_type = "by_uuid"
+    } else if (entry_type == 0x0014) {
+        str_entry_type = "by_cert"
+    } else {
+        str_entry_type = sprintf("%X", entry_type)
+    }
+
+    return str_entry_type
+}
+
+function sssd_acct_req_probestr(fc_name, entry_type, filter_type,
+                                filter_value, extra_value)
+{
+    str_entry_type = acct_req_desc(entry_type)
+
+    # Maybe we could use guru mode here and include the constants
+    # directly..
+    if (filter_type == 1) {
+        str_filter_type = "name"
+    } else if (filter_type == 2) {
+        str_filter_type = "idnum"
+    } else if (filter_type == 3) {
+        str_filter_type = "enum"
+    } else if (filter_type == 4) {
+        str_filter_type = "secid"
+    } else if (filter_type == 5) {
+        str_filter_type = "uuid"
+    } else if (filter_type == 6) {
+        str_filter_type = "cert"
+    } else if (filter_type == 7) {
+        str_filter_type = "wildcard"
+    } else {
+        str_filter_type = sprintf("%d", filter_type)
+    }
+
+    probestr = sprintf("%s(entry_type=%s, filter_type=%s, filter_value=%s, extra_value=%s)",
+                       fc_name, str_entry_type, str_filter_type,
+                       filter_value, extra_value)
+    return probestr
+}
