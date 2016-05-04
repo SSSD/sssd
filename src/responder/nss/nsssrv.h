@@ -44,8 +44,6 @@ struct sss_mc_ctx;
 struct nss_ctx {
     struct resp_ctx *rctx;
 
-    struct sss_nc_ctx *ncache;
-
     int cache_refresh_percent;
 
     int enum_cache_timeout;

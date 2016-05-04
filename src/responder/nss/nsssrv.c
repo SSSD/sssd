@@ -247,7 +247,7 @@ static int nss_get_config(struct nss_ctx *nctx,
         nctx->cache_refresh_percent = 0;
     }
 
-    ret = sss_ncache_prepopulate(nctx->ncache, cdb, nctx->rctx);
+    ret = sss_ncache_prepopulate(nctx->rctx->ncache, cdb, nctx->rctx);
     if (ret != EOK) {
         goto done;
     }
@@ -411,7 +411,6 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     enum idmap_error_code err;
     int hret;
     int fd_limit;
-    uint32_t neg_timeout;
 
     nss_cmds = get_nss_cmds();
 
@@ -433,16 +432,6 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     if (!nctx) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing nss_ctx\n");
         ret = ENOMEM;
-        goto fail;
-    }
-
-    ret = responder_get_neg_timeout_from_confdb(cdb, &neg_timeout);
-    if (ret != EOK) goto fail;
-
-    ret = sss_ncache_init(rctx, neg_timeout, &nctx->ncache);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "fatal error initializing negative cache\n");
         goto fail;
     }
 
@@ -545,7 +534,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
     responder_set_fd_limit(fd_limit);
 
-    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, nctx->ncache);
+    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, nctx->rctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
         goto fail;

@@ -174,7 +174,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
          /* If we're looking up by name */
          if (service_name) {
              /* Check the negative cache */
-             ret = sss_ncache_check_service(nctx->ncache, dom,
+             ret = sss_ncache_check_service(nctx->rctx->ncache, dom,
                                             SVC_NAME_CASED, SVC_PROTO_CASED);
              /* If negatively cached, return we didn't find it */
              if (ret == EEXIST) {
@@ -213,7 +213,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
                                        &state->res);
          } else { /* Looking up by port */
              /* Check the negative cache */
-             ret = sss_ncache_check_service_port(nctx->ncache, dom, port,
+             ret = sss_ncache_check_service_port(nctx->rctx->ncache, dom, port,
                                                  SVC_PROTO_CASED);
              /* If negatively cached, return we didn't find it */
              if (ret == EEXIST) {
@@ -262,7 +262,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
              } else {
                  /* No provider to check. Set the negative cache here */
                  if (state->name) {
-                     ret = sss_ncache_set_service_name(nctx->ncache, false,
+                     ret = sss_ncache_set_service_name(nctx->rctx->ncache, false,
                                                        dom,
                                                        SVC_NAME_CASED,
                                                        SVC_PROTO_CASED);
@@ -275,7 +275,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
                                 SVC_NAME_CASED, SVC_PROTO_CASED);
                      }
                  } else {
-                     ret = sss_ncache_set_service_port(nctx->ncache, false,
+                     ret = sss_ncache_set_service_port(nctx->rctx->ncache, false,
                                                        dom,
                                                        state->port,
                                                        SVC_PROTO_CASED);
@@ -510,7 +510,7 @@ static void lookup_service_done(struct tevent_req *subreq)
          * Set the negative cache
          */
         if (state->name) {
-            ret = sss_ncache_set_service_name(nctx->ncache, false,
+            ret = sss_ncache_set_service_name(nctx->rctx->ncache, false,
                                               dom,
                                               SVC_NAME_CASED,
                                               SVC_PROTO_CASED);
@@ -523,7 +523,7 @@ static void lookup_service_done(struct tevent_req *subreq)
                        SVC_NAME_CASED, SVC_PROTO_CASED);
             }
         } else {
-            ret = sss_ncache_set_service_port(nctx->ncache, false,
+            ret = sss_ncache_set_service_port(nctx->rctx->ncache, false,
                                               dom,
                                               state->port,
                                               SVC_PROTO_CASED);

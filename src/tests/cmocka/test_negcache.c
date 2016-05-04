@@ -71,7 +71,6 @@ static struct nss_ctx *
 mock_nctx(TALLOC_CTX *mem_ctx)
 {
     struct nss_ctx *nctx;
-    errno_t ret;
     enum idmap_error_code err;
 
     nctx = talloc_zero(mem_ctx, struct nss_ctx);
@@ -79,11 +78,6 @@ mock_nctx(TALLOC_CTX *mem_ctx)
         return NULL;
     }
 
-    ret = sss_ncache_init(nctx, SHORTSPAN, &nctx->ncache);
-    if (ret != EOK) {
-        talloc_free(nctx);
-        return NULL;
-    }
     nctx->pwfield = discard_const("*");
 
     err = sss_idmap_init(sss_idmap_talloc, nctx, sss_idmap_talloc_free,

@@ -467,7 +467,7 @@ static errno_t create_negcache_netgr(struct setent_step_ctx *step_ctx)
     netgr->ready = true;
     netgr->found = false;
 
-    lifetime = sss_ncache_get_timeout(step_ctx->nctx->ncache);
+    lifetime = sss_ncache_get_timeout(step_ctx->nctx->rctx->ncache);
     set_netgr_lifetime(lifetime, step_ctx, netgr);
 
     ret = EOK;
@@ -587,7 +587,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                   "Failed to convert results into entries\n");
             netgr->ready = true;
             netgr->found = false;
-            lifetime = sss_ncache_get_timeout(step_ctx->nctx->ncache);
+            lifetime = sss_ncache_get_timeout(step_ctx->nctx->rctx->ncache);
             set_netgr_lifetime(lifetime, step_ctx, netgr);
             ret = EIO;
             goto done;

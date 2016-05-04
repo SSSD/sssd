@@ -108,14 +108,7 @@ struct setent_ctx {
 
 static int nss_reset_negcache(struct resp_ctx *rctx)
 {
-    struct nss_ctx *nss_ctx;
-
-    nss_ctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-    if (nss_ctx == NULL) {
-        return EIO;
-    }
-
-    return sss_ncache_reset_repopulate_permanent(rctx, nss_ctx->ncache);
+    return sss_ncache_reset_repopulate_permanent(rctx, rctx->ncache);
 }
 
 /****************************************************************************
@@ -408,7 +401,7 @@ static int fill_pwent(struct sss_packet *packet,
         }
 
         if (filter_users) {
-            ncret = sss_ncache_check_user(nctx->ncache, dom, orig_name);
+            ncret = sss_ncache_check_user(nctx->rctx->ncache, dom, orig_name);
             if (ncret == EEXIST) {
                 DEBUG(SSSDBG_TRACE_FUNC,
                       "User [%s@%s] filtered out! (negative cache)\n",
@@ -1007,7 +1000,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
-        ret = sss_ncache_check_user(nctx->ncache, dom, name);
+        ret = sss_ncache_check_user(nctx->rctx->ncache, dom, name);
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
@@ -1087,7 +1080,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
+            ret = sss_ncache_set_user(nctx->rctx->ncache, false, dom, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s@%s\n",
                       name, dom->name);
@@ -1266,7 +1259,7 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
          * here. */
         switch (dctx->cmdctx->cmd) {
         case SSS_NSS_GETPWUID:
-            ret = sss_ncache_set_uid(nctx->ncache, false, dctx->domain,
+            ret = sss_ncache_set_uid(nctx->rctx->ncache, false, dctx->domain,
                                      cmdctx->id);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1276,7 +1269,7 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
             gnd_flags = SSS_GND_DESCEND;
             break;
         case SSS_NSS_GETGRGID:
-            ret = sss_ncache_set_gid(nctx->ncache, false, dctx->domain,
+            ret = sss_ncache_set_gid(nctx->rctx->ncache, false, dctx->domain,
                                      cmdctx->id);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1286,14 +1279,14 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
             gnd_flags = SSS_GND_DESCEND;
             break;
         case SSS_NSS_GETSIDBYID:
-            ret = sss_ncache_set_uid(nctx->ncache, false, dctx->domain,
+            ret = sss_ncache_set_uid(nctx->rctx->ncache, false, dctx->domain,
                                      cmdctx->id);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Cannot set negative cache for UID %"PRIu32"\n",
                        cmdctx->id);
             }
-            ret = sss_ncache_set_gid(nctx->ncache, false, dctx->domain,
+            ret = sss_ncache_set_gid(nctx->rctx->ncache, false, dctx->domain,
                                      cmdctx->id);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1876,7 +1869,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
 done:
     if (ret == ENOENT) {
         /* The entry was not found, need to set result in negative cache */
-        err = sss_ncache_set_uid(nctx->ncache, false, NULL, cmdctx->id);
+        err = sss_ncache_set_uid(nctx->rctx->ncache, false, NULL, cmdctx->id);
         if (err != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                 "Cannot set negative cache for UID %"PRIu32"\n", cmdctx->id);
@@ -1947,7 +1940,7 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
 
     switch(dctx->cmdctx->cmd) {
     case SSS_NSS_GETPWUID:
-        ret = sss_ncache_check_uid(nctx->ncache, NULL, cmdctx->id);
+        ret = sss_ncache_check_uid(nctx->rctx->ncache, NULL, cmdctx->id);
         if (ret == EEXIST) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "Uid [%"PRIu32"] does not exist! (negative cache)\n",
@@ -1957,7 +1950,7 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     case SSS_NSS_GETGRGID:
-        ret = sss_ncache_check_gid(nctx->ncache, NULL, cmdctx->id);
+        ret = sss_ncache_check_gid(nctx->rctx->ncache, NULL, cmdctx->id);
         if (ret == EEXIST) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "Gid [%"PRIu32"] does not exist! (negative cache)\n",
@@ -1967,9 +1960,9 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     case SSS_NSS_GETSIDBYID:
-        ret = sss_ncache_check_uid(nctx->ncache, NULL, cmdctx->id);
+        ret = sss_ncache_check_uid(nctx->rctx->ncache, NULL, cmdctx->id);
         if (ret != EEXIST) {
-            ret = sss_ncache_check_gid(nctx->ncache, NULL, cmdctx->id);
+            ret = sss_ncache_check_gid(nctx->rctx->ncache, NULL, cmdctx->id);
         }
         if (ret == EEXIST) {
             DEBUG(SSSDBG_TRACE_FUNC,
@@ -2823,7 +2816,7 @@ static int fill_members(struct sss_packet *packet,
         }
 
         if (nctx->filter_users_in_groups) {
-            ret = sss_ncache_check_user(nctx->ncache, dom, tmpstr);
+            ret = sss_ncache_check_user(nctx->rctx->ncache, dom, tmpstr);
             if (ret == EEXIST) {
                 DEBUG(SSSDBG_TRACE_FUNC,
                       "Group [%s] member [%s@%s] filtered out!"
@@ -2979,7 +2972,7 @@ static int fill_grent(struct sss_packet *packet,
         }
 
         if (filter_groups) {
-            ret = sss_ncache_check_group(nctx->ncache, dom, orig_name);
+            ret = sss_ncache_check_group(nctx->rctx->ncache, dom, orig_name);
             if (ret == EEXIST) {
                 DEBUG(SSSDBG_TRACE_FUNC,
                       "Group [%s@%s] filtered out! (negative cache)\n",
@@ -3216,7 +3209,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         /* verify this group has not yet been negatively cached,
         * or has been permanently filtered */
-        ret = sss_ncache_check_group(nctx->ncache, dom, name);
+        ret = sss_ncache_check_group(nctx->rctx->ncache, dom, name);
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
@@ -3262,7 +3255,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_group(nctx->ncache, false, dom, name);
+            ret = sss_ncache_set_group(nctx->rctx->ncache, false, dom, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s@%s\n",
                       name, dom->name);
@@ -3453,7 +3446,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
 done:
     if (ret == ENOENT) {
         /* The entry was not found, need to set result in negative cache */
-        err = sss_ncache_set_gid(nctx->ncache, false, NULL, cmdctx->id);
+        err = sss_ncache_set_gid(nctx->rctx->ncache, false, NULL, cmdctx->id);
         if (err != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                 "Cannot set negative cache for GID %"PRIu32"\n", cmdctx->id);
@@ -4333,7 +4326,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
-        ret = sss_ncache_check_user(nctx->ncache, dom, name);
+        ret = sss_ncache_check_user(nctx->rctx->ncache, dom, name);
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
@@ -4408,7 +4401,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
+            ret = sss_ncache_set_user(nctx->rctx->ncache, false, dom, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s@%s\n",
                       name, dom->name);
@@ -4542,9 +4535,9 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%"PRIu32"@%s]\n",
                                       cmdctx->id, dom->name);
 
-            ret = sss_ncache_check_uid(nctx->ncache, dom, cmdctx->id);
+            ret = sss_ncache_check_uid(nctx->rctx->ncache, dom, cmdctx->id);
             if (ret == EEXIST) {
-                ret = sss_ncache_check_gid(nctx->ncache, dom, cmdctx->id);
+                ret = sss_ncache_check_gid(nctx->rctx->ncache, dom, cmdctx->id);
                 if (ret == EEXIST) {
                     DEBUG(SSSDBG_TRACE_FUNC,
                           "ID [%"PRIu32"] does not exist in [%s]! (negative cache)\n",
@@ -4595,10 +4588,10 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
 
             /* verify this name has not yet been negatively cached, as user
              * and groupm, or has been permanently filtered */
-            ret = sss_ncache_check_user(nctx->ncache, dom, name);
+            ret = sss_ncache_check_user(nctx->rctx->ncache, dom, name);
 
             if (ret == EEXIST) {
-                ret = sss_ncache_check_group(nctx->ncache, dom, name);
+                ret = sss_ncache_check_group(nctx->rctx->ncache, dom, name);
                 if (ret == EEXIST) {
                     /* if neg cached, return we didn't find it */
                     DEBUG(SSSDBG_TRACE_FUNC,
@@ -4721,13 +4714,13 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         if (dctx->res->count == 0 && !dctx->check_provider) {
             if (cmdctx->cmd == SSS_NSS_GETSIDBYNAME
                     || cmdctx->cmd == SSS_NSS_GETORIGBYNAME) {
-                ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
+                ret = sss_ncache_set_user(nctx->rctx->ncache, false, dom, name);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
                           "Cannot set negcache for %s@%s\n", name, dom->name);
                 }
 
-                ret = sss_ncache_set_group(nctx->ncache, false, dom, name);
+                ret = sss_ncache_set_group(nctx->rctx->ncache, false, dom, name);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
                           "Cannot set negcache for %s@%s\n", name, dom->name);
@@ -4796,13 +4789,13 @@ done:
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                 "No matching domain found for [%"PRIu32"], fail!\n", cmdctx->id);
-            err = sss_ncache_set_uid(nctx->ncache, false, NULL, cmdctx->id);
+            err = sss_ncache_set_uid(nctx->rctx->ncache, false, NULL, cmdctx->id);
             if (err != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                     "Cannot set negative cache for UID %"PRIu32"\n", cmdctx->id);
             }
 
-            err = sss_ncache_set_gid(nctx->ncache, false, NULL, cmdctx->id);
+            err = sss_ncache_set_gid(nctx->rctx->ncache, false, NULL, cmdctx->id);
             if (err != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                     "Cannot set negative cache for GID %"PRIu32"\n", cmdctx->id);
@@ -4838,7 +4831,7 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
 
     /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
-    ret = sss_ncache_check_sid(nctx->ncache, cmdctx->secid);
+    ret = sss_ncache_check_sid(nctx->rctx->ncache, cmdctx->secid);
     if (ret == EEXIST) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "SID [%s] does not exist! (negative cache)\n", cmdctx->secid);
@@ -4852,7 +4845,7 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
             DEBUG(SSSDBG_OP_FAILURE, "No results for getbysid call.\n");
 
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_sid(nctx->ncache, false, cmdctx->secid);
+            ret = sss_ncache_set_sid(nctx->rctx->ncache, false, cmdctx->secid);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Cannot set negative cache for %s\n", cmdctx->secid);
