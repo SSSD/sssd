@@ -91,7 +91,7 @@ int ifp_user_get_attr(struct sbus_request *dbus_req, void *data)
           attr_req->name, ireq->dbus_req->client);
 
     req = ifp_user_get_attr_send(ireq, ifp_ctx->rctx,
-                                 ifp_ctx->ncache, SSS_DP_USER,
+                                 ifp_ctx->rctx->ncache, SSS_DP_USER,
                                  attr_req->name, attr_req->attrs);
     if (req == NULL) {
         return sbus_request_finish(dbus_req, NULL);
@@ -320,7 +320,7 @@ int ifp_user_get_groups(struct sbus_request *dbus_req,
           group_req->name, group_req->ireq->dbus_req->client);
 
     req = ifp_user_get_attr_send(ireq, ifp_ctx->rctx,
-                                 ifp_ctx->ncache, SSS_DP_INITGROUPS,
+                                 ifp_ctx->rctx->ncache, SSS_DP_INITGROUPS,
                                  group_req->name, group_req->attrs);
     if (req == NULL) {
         return sbus_request_finish(dbus_req, NULL);

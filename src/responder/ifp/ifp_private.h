@@ -39,7 +39,6 @@ struct sysbus_ctx {
 struct ifp_ctx {
     struct resp_ctx *rctx;
     struct sss_names_ctx *snctx;
-    struct sss_nc_ctx *ncache;
 
     struct sysbus_ctx *sysbus;
     const char **user_whitelist;
