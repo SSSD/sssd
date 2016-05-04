@@ -98,34 +98,6 @@ mock_nctx(TALLOC_CTX *mem_ctx)
     return nctx;
 }
 
-/* responder context is duplicated here because linking
- * with common_mock_resp.c would get us duplicates
- */
-
-struct resp_ctx *
-mock_rctx(TALLOC_CTX *mem_ctx,
-          struct tevent_context *ev,
-          struct sss_domain_info *domains,
-          void *pvt_ctx)
-{
-    struct resp_ctx *rctx;
-    errno_t ret;
-
-    rctx = talloc_zero(mem_ctx, struct resp_ctx);
-    if (!rctx) return NULL;
-
-    ret = sss_hash_create(rctx, 30, &rctx->dp_request_table);
-    if (ret != EOK) {
-        talloc_free(rctx);
-        return NULL;
-    }
-
-    rctx->ev = ev;
-    rctx->domains = domains;
-    rctx->pvt_ctx = pvt_ctx;
-    return rctx;
-}
-
 struct test_state {
     struct sss_nc_ctx *ctx;
     struct nss_ctx *nctx;

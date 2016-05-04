@@ -2029,6 +2029,7 @@ EXTRA_test_negcache_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
 test_negcache_SOURCES = \
     $(SSSD_RESPONDER_OBJ) \
+    src/tests/cmocka/common_mock_resp.c \
     src/tests/cmocka/test_negcache.c
 test_negcache_CFLAGS = \
     $(AM_CFLAGS) \
