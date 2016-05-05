@@ -112,6 +112,7 @@ endif
 
 responder_common_tests_SOURCES =\
     test_responder_common.c \
+    ../../../src/responder/common/negcache_files.c \
     ../../../src/responder/common/negcache.c \
     ../../../src/responder/common/responder_common.c \
     ../../../src/responder/common/responder_packet.c \

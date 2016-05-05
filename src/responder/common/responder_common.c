@@ -761,6 +761,7 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
                                      struct sss_nc_ctx **ncache)
 {
     uint32_t neg_timeout;
+    uint32_t locals_timeout;
     int tmp_value;
     int ret;
 
@@ -783,8 +784,27 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
     neg_timeout = tmp_value;
     ret = EOK;
 
+    /* local_timeout */
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_RESPONDER_LOCAL_NEG_TIMEOUT,
+                         0, &tmp_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure of setup negative cache timeout.\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (tmp_value < 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    locals_timeout = tmp_value;
+    ret = EOK;
+
     /* negative cache init */
-    ret = sss_ncache_init(mem_ctx, neg_timeout, ncache);
+    ret = sss_ncache_init(mem_ctx, neg_timeout, locals_timeout, ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Fatal failure of initializing negative cache.\n");
