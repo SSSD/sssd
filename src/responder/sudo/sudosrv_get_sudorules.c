@@ -457,7 +457,8 @@ struct tevent_req *sudosrv_get_rules_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Running initgroups for [%s]\n", username);
 
     subreq = cache_req_initgr_by_name_send(state, ev, sudo_ctx->rctx,
-                                           sudo_ctx->ncache, 0, NULL, username);
+                                           sudo_ctx->rctx->ncache, 0, NULL,
+                                           username);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;

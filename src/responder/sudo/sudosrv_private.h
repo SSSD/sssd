@@ -43,8 +43,6 @@ enum sss_sudo_type {
 struct sudo_ctx {
     struct resp_ctx *rctx;
 
-    struct sss_nc_ctx *ncache;
-
     /*
      * options
      */
