@@ -35,8 +35,6 @@ struct pac_ctx {
     struct dom_sid *my_dom_sid;
     struct local_mapping_ranges *range_map;
     int pac_lifetime;
-
-    struct sss_nc_ctx *ncache;
 };
 
 struct sss_cmd_table *get_pac_cmds(void);

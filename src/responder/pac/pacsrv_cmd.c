@@ -197,7 +197,7 @@ static errno_t pac_resolve_user_sid_next(struct pac_req_ctx *pr_ctx)
 
     req = cache_req_object_by_sid_send(pr_ctx, pr_ctx->cctx->ev,
                                        pr_ctx->cctx->rctx,
-                                       pr_ctx->pac_ctx->ncache,
+                                       pr_ctx->pac_ctx->rctx->ncache,
                                        0, pr_ctx->dom->name,
                                        pr_ctx->user_sid_str,
                                        pw_attrs);
