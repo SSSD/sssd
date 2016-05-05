@@ -191,7 +191,6 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     struct be_conn *iter;
     struct pam_ctx *pctx;
     int ret, max_retries;
-    uint32_t neg_timeout;
     int id_timeout;
     int fd_limit;
 
@@ -259,17 +258,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     pctx->id_timeout = (size_t)id_timeout;
 
-    ret = responder_get_neg_timeout_from_confdb(cdb, &neg_timeout);
-    if (ret != EOK) goto done;
-
-    ret = sss_ncache_init(pctx, neg_timeout, &pctx->ncache);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "fatal error initializing negative cache\n");
-        goto done;
-    }
-
-    ret = sss_ncache_prepopulate(pctx->ncache, cdb, pctx->rctx);
+    ret = sss_ncache_prepopulate(pctx->rctx->ncache, cdb, pctx->rctx);
     if (ret != EOK) {
         goto done;
     }
@@ -296,7 +285,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     }
     responder_set_fd_limit(fd_limit);
 
-    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, pctx->ncache);
+    ret = schedule_get_domains_task(rctx, rctx->ev, rctx, pctx->rctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
         goto done;

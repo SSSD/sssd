@@ -1142,7 +1142,8 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                 goto done;
             }
 
-            ncret = sss_ncache_check_user(pctx->ncache, preq->domain, pd->user);
+            ncret = sss_ncache_check_user(pctx->rctx->ncache,
+                                          preq->domain, pd->user);
             if (ncret == EEXIST) {
                 /* User found in the negative cache */
                 ret = ENOENT;
@@ -1154,7 +1155,8 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                  dom = get_next_domain(dom, 0)) {
                 if (dom->fqnames) continue;
 
-                ncret = sss_ncache_check_user(pctx->ncache, dom, pd->user);
+                ncret = sss_ncache_check_user(pctx->rctx->ncache,
+                                              dom, pd->user);
                 if (ncret == ENOENT) {
                     /* User not found in the negative cache
                      * Proceed with PAM actions
@@ -1247,7 +1249,7 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
 
 
     req = cache_req_user_by_cert_send(preq, cctx->ev, cctx->rctx,
-                                      pctx->ncache, 0, NULL, cert);
+                                      pctx->rctx->ncache, 0, NULL, cert);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert_send failed.\n");
         ret = ENOMEM;
@@ -1504,7 +1506,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         if (ret == ENOENT) {
             if (preq->check_provider == false) {
                 /* set negative cache only if not result of cache check */
-                ret = sss_ncache_set_user(pctx->ncache, false, dom, name);
+                ret = sss_ncache_set_user(pctx->rctx->ncache, false, dom, name);
                 if (ret != EOK) {
                     /* Should not be fatal, just slower next time */
                     DEBUG(SSSDBG_MINOR_FAILURE,
