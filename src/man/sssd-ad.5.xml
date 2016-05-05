@@ -439,6 +439,11 @@ ad_gpo_map_interactive = +my_pam_service, -login
                                 </listitem>
                                 <listitem>
                                     <para>
+                                        unity
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
                                         xdm
                                     </para>
                                 </listitem>
