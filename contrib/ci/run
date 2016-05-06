@@ -298,7 +298,7 @@ function build_coverage()
                                  --add-tracefile ci-check.info \
                                  --output-file ci-dirty.info
     stage lcov-clean        lcov --remove ci-dirty.info \
-                                 "/usr/*" "src/tests/*" \
+                                 "/usr/*" "src/tests/*" "/tmp/*" \
                                  --output-file ci.info
     stage genhtml           eval 'genhtml --output-directory \
                                           "$coverage_report_dir" \
