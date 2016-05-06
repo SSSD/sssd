@@ -115,21 +115,27 @@ void ipa_account_info_handler(struct be_req *breq)
         return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
     }
 
-    if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
-        /* if domain names do not match, this is a subdomain case
-         * subdomain lookups are handled differently on the server
-         * and the client
-         */
-        req = ipa_subdomain_account_send(breq, be_ctx->ev, ipa_ctx, breq, ar);
-
-    } else if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
+    if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
         /* netgroups are handled by a separate request function */
         if (ar->filter_type != BE_FILTER_NAME) {
             return sdap_handler_done(breq, DP_ERR_FATAL,
                                      EINVAL, "Invalid filter type");
         }
+
+        if ((strcasecmp(ar->domain, be_ctx->domain->name) != 0)) {
+            return sdap_handler_done(breq, DP_ERR_OK, EOK,
+                                     "netgroups in subdomains are "
+                                     "not handled\n");
+        }
+
         req = ipa_id_get_netgroup_send(breq, be_ctx->ev,
                                        ipa_ctx, ar->filter_value);
+    } else if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
+        /* if domain names do not match, this is a subdomain case
+         * subdomain lookups are handled differently on the server
+         * and the client
+         */
+        req = ipa_subdomain_account_send(breq, be_ctx->ev, ipa_ctx, breq, ar);
     } else {
         /* any account request is handled by sdap,
          * any invalid request is caught there. */
