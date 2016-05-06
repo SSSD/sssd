@@ -114,6 +114,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         python-ldap
         ldap-utils
         slapd
+        systemtap-sdt-dev
     )
     DEPS_INTGCHECK_SATISFIED=true
 fi

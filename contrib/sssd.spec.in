@@ -63,6 +63,11 @@
     %global with_python3_option --without-python3-bindings
 %endif
 
+%global enable_systemtap 1
+%if (0%{?enable_systemtap} == 1)
+    %global enable_systemtap_opt --enable-systemtap
+%endif
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
@@ -159,6 +164,10 @@ BuildRequires: nfs-utils-lib-devel
 
 BuildRequires: samba4-devel
 BuildRequires: libsmbclient-devel
+
+%if (0%{?enable_systemtap} == 1)
+BuildRequires: systemtap-sdt-devel
+%endif
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -596,6 +605,7 @@ autoreconf -ivf
     %{?with_cifs_utils_plugin_option} \
     %{?with_python3_option} \
     %{?enable_polkit_rules_option} \
+    %{?enable_systemtap_opt} \
     %{?experimental}
 
 make %{?_smp_mflags} all
@@ -779,6 +789,15 @@ done
 %{_mandir}/man5/sss_rpcidmapd.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*
+%if (0%{?enable_systemtap} == 1)
+%dir %{_datadir}/sssd/systemtap
+%{_datadir}/sssd/systemtap/id_perf.stp
+%{_datadir}/sssd/systemtap/nested_group_perf.stp
+%dir %{_datadir}/systemtap
+%dir %{_datadir}/systemtap/tapset
+%{_datadir}/systemtap/tapset/sssd.stp
+%{_datadir}/systemtap/tapset/sssd_functions.stp
+%endif
 
 %if (0%{?install_pcscd_polkit_rule} == 1)
 %files polkit-rules
