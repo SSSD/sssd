@@ -112,7 +112,6 @@ struct mt_svc {
     char *identity;
     pid_t pid;
 
-    char *diag_cmd;
     int kill_time;
 
     struct tevent_timer *kill_timer;
@@ -373,77 +372,6 @@ static int add_svc_conn_spy(struct mt_svc *svc)
     return EOK;
 }
 
-static char *expand_diag_cmd(struct mt_svc *svc,
-                             const char *template)
-{
-    TALLOC_CTX *tmp_ctx = NULL;
-    char *copy;
-    char *p_copy;
-    char *n;
-    char *result = NULL;
-    char action;
-    char *res = NULL;
-
-    if (template == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing template.\n");
-        return NULL;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return NULL;
-
-    copy = talloc_strdup(tmp_ctx, template);
-    if (copy == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
-        goto done;
-    }
-
-    result = talloc_strdup(tmp_ctx, "");
-    if (result == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
-        goto done;
-    }
-
-    p_copy = copy;
-    while ((n = strchr(p_copy, '%')) != NULL) {
-        *n = '\0';
-        n++;
-        if ( *n == '\0' ) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "format error, single %% at the end of the template.\n");
-            goto done;
-        }
-
-        action = *n;
-        switch (action) {
-        case 'p':
-            result = talloc_asprintf_append(result, "%s%d", p_copy, svc->pid);
-            break;
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "format error, unknown template [%%%c].\n", *n);
-            goto done;
-        }
-
-        if (result == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
-            goto done;
-        }
-
-        p_copy = n + 1;
-    }
-
-    result = talloc_asprintf_append(result, "%s", p_copy);
-    if (result == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
-        goto done;
-    }
-
-    res = talloc_move(svc, &result);
-done:
-    talloc_zfree(tmp_ctx);
-    return res;
-}
 
 static void svc_child_info(struct mt_svc *svc, int wait_status)
 {
@@ -465,82 +393,6 @@ static void svc_child_info(struct mt_svc *svc, int wait_status)
          * call to the SIGCHLD handler
          */
     }
-}
-
-static void svc_diag_cmd_exit_handler(int pid, int wait_status, void *pvt)
-{
-    struct mt_svc *svc = talloc_get_type(pvt, struct mt_svc);
-
-    svc_child_info(svc, wait_status);
-}
-
-static void svc_run_diag_cmd(struct mt_svc *svc)
-{
-    pid_t pkc_pid;
-    char **args;
-    int ret;
-    int debug_fd;
-    char *diag_cmd;
-    struct sss_child_ctx *diag_child_ctx;
-
-    if (svc->diag_cmd == NULL) {
-        return;
-    }
-
-    pkc_pid = fork();
-    if (pkc_pid != 0) {
-        /* parent, schedule SIGKILL */
-
-        ret = sss_child_register(svc,
-                                 svc->mt_ctx->sigchld_ctx,
-                                 pkc_pid,
-                                 svc_diag_cmd_exit_handler,
-                                 svc,
-                                 &diag_child_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot register child %d\n", pkc_pid);
-            /* Try to go on ... */
-        }
-
-        return;
-    }
-
-    /* child, execute diagnostics */
-    diag_cmd = expand_diag_cmd(svc, svc->diag_cmd);
-    if (diag_cmd == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to expand [%s]\n", svc->diag_cmd);
-        _exit(1);
-    }
-
-    if (debug_level >= SSSDBG_TRACE_LIBS) {
-        debug_fd = get_fd_from_debug_file();
-        ret = dup2(debug_fd, STDERR_FILENO);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                "dup2 failed for stderr [%d][%s].\n", ret, sss_strerror(ret));
-            /* failure to redirect stderr is not fatal */
-        }
-
-        ret = dup2(debug_fd, STDOUT_FILENO);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                "dup2 failed for stdout [%d][%s].\n", ret, sss_strerror(ret));
-            /* failure to redirect stdout is not fatal */
-        }
-    }
-
-    args = parse_args(diag_cmd);
-    execvp(args[0], args);
-
-    /* If we are here, exec() has failed
-     * Print errno and abort quickly */
-    ret = errno;
-    DEBUG(SSSDBG_FATAL_FAILURE,
-          "Could not exec %s, reason: %s\n", svc->diag_cmd, strerror(ret));
-    _exit(1);
 }
 
 static int mark_service_as_started(struct mt_svc *svc)
@@ -711,8 +563,6 @@ static int monitor_kill_service (struct mt_svc *svc)
         monitor_restart_service(svc);
         return EOK;
     }
-
-    svc_run_diag_cmd(svc);
 
     /* Set up a timer to send SIGKILL if this process
      * doesn't exit within the configured interval
@@ -1146,19 +996,6 @@ static errno_t get_kill_config(struct mt_ctx *ctx, const char *path,
                                struct mt_svc *svc)
 {
     errno_t ret;
-
-    ret = confdb_get_string(ctx->cdb, svc, path,
-                            CONFDB_MONITOR_PRE_KILL_CMD,
-                            NULL, &svc->diag_cmd);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to get diagnostics command for %s\n", svc->name);
-        return ret;
-    }
-    if (svc->diag_cmd) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Diagnostics command: [%s]\n", svc->diag_cmd);
-    }
 
     ret = confdb_get_int(ctx->cdb, path,
                          CONFDB_SERVICE_FORCE_TIMEOUT,
