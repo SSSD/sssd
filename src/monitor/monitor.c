@@ -114,8 +114,6 @@ struct mt_svc {
 
     int kill_time;
 
-    struct tevent_timer *kill_timer;
-
     bool svc_started;
 
     int restarts;
@@ -175,8 +173,6 @@ static int start_service(struct mt_svc *mt_svc);
 static int monitor_service_init(struct sbus_connection *conn, void *data);
 
 static int service_signal_reset_offline(struct mt_svc *svc);
-
-static int monitor_kill_service (struct mt_svc *svc);
 
 static int get_service_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg);
@@ -542,95 +538,6 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
 }
 
 static void monitor_restart_service(struct mt_svc *svc);
-static void mt_svc_sigkill(struct tevent_context *ev,
-                           struct tevent_timer *te,
-                           struct timeval t, void *ptr);
-static int monitor_kill_service (struct mt_svc *svc)
-{
-    int ret;
-    struct timeval tv;
-
-    ret = kill(svc->pid, SIGTERM);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Sending signal to child (%s:%d) failed: [%d]: %s! "
-               "Ignore and pretend child is dead.\n",
-               svc->name, svc->pid, ret, strerror(ret));
-        /* The only thing we can try here is to launch a new process
-         * and hope that it works.
-         */
-        monitor_restart_service(svc);
-        return EOK;
-    }
-
-    /* Set up a timer to send SIGKILL if this process
-     * doesn't exit within the configured interval
-     */
-    tv = tevent_timeval_current_ofs(svc->kill_time, 0);
-    svc->kill_timer = tevent_add_timer(svc->mt_ctx->ev,
-                                       svc,
-                                       tv,
-                                       mt_svc_sigkill,
-                                       svc);
-    if (svc->kill_timer == NULL) {
-        /* Nothing much we can do */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to allocate timed event: mt_svc_sigkill.\n");
-        /* We'll just have to hope that the SIGTERM succeeds */
-    }
-    return EOK;
-}
-
-static void mt_svc_sigkill(struct tevent_context *ev,
-                           struct tevent_timer *te,
-                           struct timeval t, void *ptr)
-{
-    int ret;
-    struct mt_svc *svc = talloc_get_type(ptr, struct mt_svc);
-
-    DEBUG(SSSDBG_FATAL_FAILURE,
-          "[%s][%d] is not responding to SIGTERM. Sending SIGKILL.\n",
-           svc->name, svc->pid);
-    sss_log(SSS_LOG_ERR,
-            "[%s][%d] is not responding to SIGTERM. Sending SIGKILL.\n",
-            svc->name, svc->pid);
-
-    /* timer was succesfully executed and it will be released by tevent */
-    svc->kill_timer = NULL;
-
-    ret = kill(svc->pid, SIGKILL);
-    if (ret != EOK) {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Sending signal to child (%s:%d) failed! "
-              "Ignore and pretend child is dead.\n",
-              svc->name, svc->pid);
-
-        if (ret == ESRCH) {
-            /* The process doesn't exist
-             * This most likely means we hit a race where
-             * the SIGTERM concluded just after the timer
-             * fired but before we called kill() here.
-             * We'll just do nothing, since the
-             * mt_svc_exit_handler() should be doing the
-             * necessary work.
-             */
-            return;
-        }
-
-        /* Something went really wrong.
-         * The only thing we can try here is to launch a new process
-         * and hope that it works.
-         */
-        monitor_restart_service(svc);
-    }
-
-    /* The process should terminate immediately and then be
-     * restarted by the mt_svc_exit_handler()
-     */
-    return;
-}
 
 static void reload_reply(DBusPendingCall *pending, void *data)
 {
@@ -708,7 +615,6 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Out of memory trying to allocate memory to invoke: %s\n",
                svc_signal);
-        monitor_kill_service(svc);
         return ENOMEM;
     }
 
@@ -992,32 +898,6 @@ static int get_monitor_config(struct mt_ctx *ctx)
     return EOK;
 }
 
-static errno_t get_kill_config(struct mt_ctx *ctx, const char *path,
-                               struct mt_svc *svc)
-{
-    errno_t ret;
-
-    ret = confdb_get_int(ctx->cdb, path,
-                         CONFDB_SERVICE_FORCE_TIMEOUT,
-                         MONITOR_DEF_FORCE_TIME, &svc->kill_time);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to get kill timeout for %s\n", svc->name);
-        return ret;
-    }
-
-    /* 'force_timeout = 0' should be translated to the default */
-    if (svc->kill_time == 0) {
-        svc->kill_time = MONITOR_DEF_FORCE_TIME;
-    }
-
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          "Time between SIGTERM and SIGKILL for [%s]: [%d]\n",
-           svc->name, svc->kill_time);
-
-    return EOK;
-}
-
 /* This is a temporary function that returns false if the service
  * being started was only tested when running as root.
  */
@@ -1154,14 +1034,6 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         }
     }
 
-    ret = get_kill_config(ctx, path, svc);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to get kill timeouts for %s\n", svc->name);
-        talloc_free(svc);
-        return ret;
-    }
-
     svc->last_restart = now;
 
     *svc_cfg = svc;
@@ -1245,14 +1117,6 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to find command from [%s] configuration\n", name);
-        talloc_free(svc);
-        return ret;
-    }
-
-    ret = get_kill_config(ctx, path, svc);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to get kill timeouts for %s\n", svc->name);
         talloc_free(svc);
         return ret;
     }
@@ -2539,11 +2403,6 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
     DEBUG(SSSDBG_TRACE_LIBS,
           "SIGCHLD handler of service %s called\n", svc->name);
     svc_child_info(svc, wait_status);
-
-    /* Clear the kill_timer so we don't try to SIGKILL it after it's
-     * already gone.
-     */
-    talloc_zfree(svc->kill_timer);
 
     /* Check the number of restart tries and relaunch the service */
     monitor_restart_service(svc);

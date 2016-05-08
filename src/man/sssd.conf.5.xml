@@ -549,22 +549,6 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>force_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            If a service is not responding to ping checks (see
-                            the <quote>timeout</quote> option), it is first sent
-                            the SIGTERM signal that instructs it to quit gracefully.
-                            If the service does not terminate after <quote>force_timeout</quote>
-                            seconds, the monitor will forcibly shut it down by
-                            sending a SIGKILL signal.
-                        </para>
-                        <para>
-                            Default: 60
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
                     <term>offline_timeout (integer)</term>
                     <listitem>
                         <para>
@@ -1448,23 +1432,6 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                         <para>
                             Default: none
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>force_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            If a service is not responding to ping checks (see
-                            the <quote>timeout</quote> option), it is first sent
-                            the SIGTERM signal that instructs it to quit gracefully.
-                            If the service does not terminate after <quote>force_timeout</quote>
-                            seconds, the monitor will forcibly shut it down by
-                            sending a SIGKILL signal.
-                        </para>
-                        <para>
-                            Default: 60
                         </para>
                     </listitem>
                 </varlistentry>
