@@ -14,6 +14,7 @@ AM_CPPFLAGS = \
 
 TESTS_ENVIRONMENT = \
     CWRAP_TEST_SRCDIR=$(abs_srcdir) \
+    ABS_TOP_BUILDDIR=$(abs_top_builddir) \
     . $(srcdir)/cwrap_test_setup.sh; \
     $(AUX_TESTS_ENVIRONMENT) \
     $(NULL)
@@ -35,6 +36,20 @@ SSSD_LIBS = \
     $(OPENLDAP_LIBS) \
     $(TDB_LIBS)
 
+SSSD_RESPONDER_OBJ = \
+    ../../../src/responder/common/negcache_files.c \
+    ../../../src/responder/common/negcache.c \
+    ../../../src/responder/common/responder_cmd.c \
+    ../../../src/responder/common/responder_common.c \
+    ../../../src/responder/common/responder_dp.c \
+    ../../../src/responder/common/responder_packet.c \
+    ../../../src/responder/common/responder_get_domains.c \
+    ../../../src/responder/common/responder_utils.c \
+    ../../../src/responder/common/responder_cache_req.c \
+    ../../../src/monitor/monitor_iface_generated.c \
+    ../../../src/providers/data_provider_iface_generated.c \
+    ../../../src/providers/data_provider_req.c
+
 dist_noinst_DATA = \
     group \
     passwd \
@@ -49,6 +64,7 @@ check_PROGRAMS += \
     server-tests \
     usertools-tests \
     responder_common-tests \
+    negcache-tests \
     $(NULL)
 endif # HAVE_UID_WRAPPER
 endif # HAVE_NSS_WRAPPER
@@ -122,6 +138,23 @@ responder_common_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 responder_common_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SELINUX_LIBS) \
+    $(abs_top_builddir)/libsss_util.la \
+    $(abs_top_builddir)/libsss_debug.la \
+    $(abs_top_builddir)/libsss_test_common.la \
+    $(NULL)
+
+negcache_tests_SOURCES =\
+    $(SSSD_RESPONDER_OBJ) \
+    test_negcache.c \
+    $(NULL)
+negcache_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DBASE_FILE_STEM=\"$(*F)\" \
+    $(NULL)
+negcache_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \

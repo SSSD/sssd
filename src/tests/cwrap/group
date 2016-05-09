@@ -1,1 +1,2 @@
 sssd:x:123:
+foogroup:x:10001:
