@@ -117,6 +117,8 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         ldap-utils
         slapd
         systemtap-sdt-dev
+        libhttp-parser-dev
+        libjansson-dev
     )
     DEPS_INTGCHECK_SATISFIED=true
 fi

@@ -19,79 +19,33 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/secrets/secsrv.h"
-#include "confdb/confdb.h"
-#include <http_parser.h>
+#include "responder/secrets/secsrv_private.h"
 
 #define SEC_REQUEST_MAX_SIZE 65536
 #define SEC_PACKET_MAX_RECV_SIZE 8192
 
 
-struct sec_kvp {
-    char *name;
-    char *value;
-};
-
-struct sec_data {
-    char *data;
-    size_t length;
-};
-
-struct sec_proto_ctx {
-    http_parser_settings callbacks;
-    http_parser parser;
-};
-
-struct sec_req_ctx {
-    struct cli_ctx *cctx;
-    bool complete;
-
-    size_t total_size;
-
-    char *request_url;
-    struct sec_kvp *headers;
-    int num_headers;
-    struct sec_data body;
-
-    struct sec_data reply;
-};
-
-
 /* ##### Request Handling ##### */
-
-static int error_403_reply(TALLOC_CTX *mem_ctx,
-                           struct sec_data *reply)
-{
-    reply->data = talloc_asprintf(mem_ctx,
-        "HTTP/1.1 403 Forbidden\r\n"
-        "Content-Length: 0\r\n"
-        "\r\n"
-        "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n"
-        "<html>\r\n<head>\r\n<title>403 Forbidden</title></head>\r\n"
-        "<body>\r\n<h1>Forbidden</h1>\r\n"
-        "<p>You don't have permission to access the requested "
-        "resource.</p>\r\n<hr>\r\n</body>");
-    if (!reply->data) return ENOMEM;
-
-    reply->length = strlen(reply->data);
-
-    return EOK;
-}
 
 struct sec_http_request_state {
     struct tevent_context *ev;
     struct sec_req_ctx *secreq;
 };
+static void sec_http_request_pipeline_done(struct tevent_req *subreq);
 
 static struct tevent_req *sec_http_request_send(TALLOC_CTX *mem_ctx,
                                                 struct tevent_context *ev,
                                                 struct sec_req_ctx *secreq)
 {
     struct tevent_req *req;
+    struct tevent_req *subreq;
     struct sec_http_request_state *state;
-    int ret;
+    struct provider_handle *provider_handle;
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sec_http_request_state);
     if (!req) return NULL;
@@ -99,19 +53,45 @@ static struct tevent_req *sec_http_request_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->secreq = secreq;
 
-    /* Take it form here */
+    /* Go through the pipeline */
 
-    /* For now, always return an error */
-    ret = error_403_reply(state, &state->secreq->reply);
-    if (ret != EOK) goto done;
+    /* 1. mapping and path conversion */
+    ret = sec_req_routing(state, secreq, &provider_handle);
+    if (ret) goto done;
+
+    /* 2. backend invocation */
+    subreq = provider_handle->fn(state, state->ev,
+                                 provider_handle->context, secreq);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sec_http_request_pipeline_done, req);
+    return req;
 
 done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+    return tevent_req_post(req, state->ev);
+}
+
+static void sec_http_request_pipeline_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    /* 3. reply construction */
+    ret = sec_provider_recv(subreq);
+
     if (ret != EOK) {
         tevent_req_error(req, ret);
     } else {
         tevent_req_done(req);
     }
-    return tevent_req_post(req, state->ev);
 }
 
 static int sec_http_request_recv(struct tevent_req *req)
@@ -126,10 +106,21 @@ static int sec_http_request_recv(struct tevent_req *req)
 static void
 sec_http_request_done(struct tevent_req *req)
 {
-    struct cli_ctx *cctx = tevent_req_callback_data(req, struct cli_ctx);
+    struct sec_req_ctx *secreq;
+    struct cli_ctx *cctx;
     int ret;
 
+    secreq = tevent_req_callback_data(req, struct sec_req_ctx);
+    cctx = secreq->cctx;
+
     ret = sec_http_request_recv(req);
+
+    if (ret != EOK) {
+        /* Always return an error if we get here */
+        ret = sec_http_status_reply(secreq, &secreq->reply,
+                                    sec_errno_to_http_status(ret));
+    }
+
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to find reply, aborting client!\n");
@@ -155,7 +146,7 @@ static void sec_cmd_execute(struct cli_ctx *cctx)
         talloc_free(cctx);
         return;
     }
-    tevent_req_set_callback(req, sec_http_request_done, cctx);
+    tevent_req_set_callback(req, sec_http_request_done, secreq);
 }
 
 
@@ -300,10 +291,82 @@ static int sec_on_body(http_parser *parser,
     return 0;
 }
 
+static int sec_get_parsed_filed(TALLOC_CTX *mem_ctx, int field,
+                                struct http_parser_url *parsed,
+                                char *source_buf,
+                                char **dest)
+{
+    uint16_t off = parsed->field_data[field].off;
+    uint16_t len = parsed->field_data[field].len;
+    *dest = talloc_strndup(mem_ctx, &source_buf[off], len);
+    if (!*dest) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to parse url, aborting client!\n");
+        return ENOMEM;
+    }
+    return EOK;
+}
+
 static int sec_on_message_complete(http_parser *parser)
 {
     struct sec_req_ctx *req =
         talloc_get_type(parser->data, struct sec_req_ctx);
+    struct http_parser_url parsed;
+    int ret;
+
+    /* parse url as well */
+    ret = http_parser_parse_url(req->request_url,
+                                strlen(req->request_url),
+                                0, &parsed);
+    if (ret) return ret;
+
+    if (parsed.field_set & (1 << UF_SCHEMA)) {
+        ret = sec_get_parsed_filed(req, UF_SCHEMA, &parsed,
+                                   req->request_url,
+                                   &req->parsed_url.schema);
+        if (ret) return -1;
+    }
+
+    if (parsed.field_set & (1 << UF_HOST)) {
+        ret = sec_get_parsed_filed(req, UF_HOST, &parsed,
+                                   req->request_url,
+                                   &req->parsed_url.host);
+        if (ret) return -1;
+    }
+
+    if (parsed.field_set & (1 << UF_PORT)) {
+        req->parsed_url.port = parsed.port;
+    }
+
+    if (parsed.field_set & (1 << UF_PATH)) {
+        ret = sec_get_parsed_filed(req, UF_PATH, &parsed,
+                                   req->request_url,
+                                   &req->parsed_url.path);
+        if (ret) return -1;
+    }
+
+    if (parsed.field_set & (1 << UF_QUERY)) {
+        ret = sec_get_parsed_filed(req, UF_QUERY, &parsed,
+                                   req->request_url,
+                                   &req->parsed_url.query);
+        if (ret) return -1;
+    }
+
+    if (parsed.field_set & (1 << UF_FRAGMENT)) {
+        ret = sec_get_parsed_filed(req, UF_FRAGMENT, &parsed,
+                                   req->request_url,
+                                   &req->parsed_url.fragment);
+        if (ret) return -1;
+    }
+
+    if (parsed.field_set & (1 << UF_USERINFO)) {
+        ret = sec_get_parsed_filed(req, UF_USERINFO, &parsed,
+                                   req->request_url,
+                                   &req->parsed_url.userinfo);
+        if (ret) return -1;
+    }
+
+    req->method = parser->method;
 
     req->complete = true;
 
