@@ -1,3 +1,24 @@
+/*
+    Copyright (C) 2009-2016 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef _SSS_CRYPTO_H_
+#define _SSS_CRYPTO_H_
+
+int generate_csprng_buffer(uint8_t *buf, size_t size);
 
 int s3crypt_sha512(TALLOC_CTX *mmectx,
                    const char *key, const char *salt, char **_hash);
@@ -32,3 +53,19 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
 
 int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
                          char **password);
+
+enum encmethod {
+    AES256CBC_HMAC_SHA256,
+    NUM_ENCMETHODS
+};
+
+int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
+                uint8_t *key, size_t keylen,
+                const uint8_t *plaintext, size_t plainlen,
+                uint8_t **ciphertext, size_t *cipherlen);
+int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
+                uint8_t *key, size_t keylen,
+                const uint8_t *ciphertext, size_t cipherlen,
+                uint8_t **plaintext, size_t *plainlen);
+
+#endif /* _SSS_CRYPTO_H_ */

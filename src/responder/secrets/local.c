@@ -20,9 +20,75 @@
 */
 
 #include "responder/secrets/secsrv_private.h"
+#include "util/crypto/sss_crypto.h"
 #include <ldb.h>
 
+#define MKEY_SIZE (256 / 8)
 
+struct local_context {
+    struct ldb_context *ldb;
+    struct sec_data master_key;
+};
+
+int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
+                  const char *secret, const char *enctype,
+                  char **plain_secret)
+{
+    char *output;
+
+    if (enctype && strcmp(enctype, "masterkey") == 0) {
+        struct sec_data _secret;
+        size_t outlen;
+        int ret;
+
+        _secret.data = (char *)sss_base64_decode(mem_ctx, secret,
+                                                 &_secret.length);
+        if (!_secret.data) return EINVAL;
+
+        ret = sss_decrypt(mem_ctx, AES256CBC_HMAC_SHA256,
+                          (uint8_t *)lctx->master_key.data,
+                          lctx->master_key.length,
+                          (uint8_t *)_secret.data, _secret.length,
+                          (uint8_t **)&output, &outlen);
+        if (ret) return ret;
+
+        if (((strnlen(output, outlen) + 1) != outlen) ||
+            output[outlen - 1] != '\0') {
+            return EIO;
+        }
+    } else {
+        output = talloc_strdup(mem_ctx, secret);
+        if (!output) return ENOMEM;
+    }
+
+    *plain_secret = output;
+    return EOK;
+}
+
+int local_encrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
+                  const char *secret, const char *enctype,
+                  char **ciphertext)
+{
+    struct sec_data _secret;
+    char *output;
+    int ret;
+
+    if (!enctype || strcmp(enctype, "masterkey") != 0) return EINVAL;
+
+    ret = sss_encrypt(mem_ctx, AES256CBC_HMAC_SHA256,
+                      (uint8_t *)lctx->master_key.data,
+                      lctx->master_key.length,
+                      (const uint8_t *)secret, strlen(secret) + 1,
+                      (uint8_t **)&_secret.data, &_secret.length);
+    if (ret) return ret;
+
+    output = sss_base64_encode(mem_ctx,
+                               (uint8_t *)_secret.data, _secret.length);
+    if (!output) return ENOMEM;
+
+    *ciphertext = output;
+    return EOK;
+}
 
 int local_db_dn(TALLOC_CTX *mem_ctx,
                 struct ldb_context *ldb,
@@ -101,25 +167,26 @@ char *local_dn_to_path(TALLOC_CTX *mem_ctx,
 }
 
 int local_db_get_simple(TALLOC_CTX *mem_ctx,
-                        struct ldb_context *ldb,
+                        struct local_context *lctx,
                         const char *req_path,
                         char **secret)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *attrs[] = { "secret", NULL };
+    static const char *attrs[] = { "secret", "enctype", NULL };
     const char *filter = "(type=simple)";
     struct ldb_result *res;
     struct ldb_dn *dn;
     const char *attr_secret;
+    const char *attr_enctype;
     int ret;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = local_db_dn(tmp_ctx, ldb, req_path, &dn);
+    ret = local_db_dn(tmp_ctx, lctx->ldb, req_path, &dn);
     if (ret != EOK) goto done;
 
-    ret = ldb_search(ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
                      attrs, "%s", filter);
     if (ret != EOK) {
         ret = ENOENT;
@@ -143,7 +210,14 @@ int local_db_get_simple(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    *secret = talloc_strdup(mem_ctx, attr_secret);
+    attr_enctype = ldb_msg_find_attr_as_string(res->msgs[0], "enctype", NULL);
+
+    if (attr_enctype) {
+        ret = local_decrypt(lctx, mem_ctx, attr_secret, attr_enctype, secret);
+        if (ret) goto done;
+    } else {
+        *secret = talloc_strdup(mem_ctx, attr_secret);
+    }
     ret = EOK;
 
 done:
@@ -152,7 +226,7 @@ done:
 }
 
 int local_db_list_keys(TALLOC_CTX *mem_ctx,
-                       struct ldb_context *ldb,
+                       struct local_context *lctx,
                        const char *req_path,
                        char ***_keys,
                        int *num_keys)
@@ -168,10 +242,10 @@ int local_db_list_keys(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = local_db_dn(tmp_ctx, ldb, req_path, &dn);
+    ret = local_db_dn(tmp_ctx, lctx->ldb, req_path, &dn);
     if (ret != EOK) goto done;
 
-    ret = ldb_search(ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
                      attrs, "%s", filter);
     if (ret != EOK) {
         ret = ENOENT;
@@ -189,7 +263,7 @@ int local_db_list_keys(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    for (int i = 0; i < res->count; i++) {
+    for (unsigned i = 0; i < res->count; i++) {
         keys[i] = local_dn_to_path(keys, dn, res->msgs[i]->dn);
         if (!keys[i]) {
             ret = ENOMEM;
@@ -207,11 +281,13 @@ done:
 }
 
 int local_db_put_simple(TALLOC_CTX *mem_ctx,
-                        struct ldb_context *ldb,
+                        struct local_context *lctx,
                         const char *req_path,
                         const char *secret)
 {
     struct ldb_message *msg;
+    const char *enctype = "masterkey";
+    char *enc_secret;
     int ret;
 
     msg = ldb_msg_new(mem_ctx);
@@ -220,16 +296,24 @@ int local_db_put_simple(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = local_db_dn(msg, ldb, req_path, &msg->dn);
+    /* FIXME: verify containers (except for user's namespace) exists */
+
+    ret = local_encrypt(lctx, msg, secret, enctype, &enc_secret);
+    if (ret != EOK) goto done;
+
+    ret = local_db_dn(msg, lctx->ldb, req_path, &msg->dn);
     if (ret != EOK) goto done;
 
     ret = ldb_msg_add_string(msg, "type", "simple");
     if (ret != EOK) goto done;
 
-    ret = ldb_msg_add_string(msg, "secret", secret);
+    ret = ldb_msg_add_string(msg, "enctype", enctype);
     if (ret != EOK) goto done;
 
-    ret = ldb_add(ldb, msg);
+    ret = ldb_msg_add_string(msg, "secret", enc_secret);
+    if (ret != EOK) goto done;
+
+    ret = ldb_add(lctx->ldb, msg);
     if (ret != EOK) {
         if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) ret = EEXIST;
         else ret = EIO;
@@ -244,16 +328,16 @@ done:
 }
 
 int local_db_delete(TALLOC_CTX *mem_ctx,
-                    struct ldb_context *ldb,
+                    struct local_context *lctx,
                     const char *req_path)
 {
     struct ldb_dn *dn;
     int ret;
 
-    ret = local_db_dn(mem_ctx, ldb, req_path, &dn);
+    ret = local_db_dn(mem_ctx, lctx->ldb, req_path, &dn);
     if (ret != EOK) goto done;
 
-    ret = ldb_delete(ldb, dn);
+    ret = ldb_delete(lctx->ldb, dn);
     if (ret != EOK) {
         ret = EIO;
     }
@@ -319,7 +403,7 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req;
     struct local_secret_state *state;
-    struct ldb_context *ldb;
+    struct local_context *lctx;
     struct sec_data body = { 0 };
     char *req_path;
     char *secret;
@@ -333,8 +417,8 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->secreq = secreq;
 
-    ldb = talloc_get_type(provider_ctx, struct ldb_context);
-    if (!ldb) {
+    lctx = talloc_get_type(provider_ctx, struct local_context);
+    if (!lctx) {
         ret = EIO;
         goto done;
     }
@@ -345,13 +429,13 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     switch (secreq->method) {
     case HTTP_GET:
         if (req_path[strlen(req_path) - 1] == '/') {
-            ret = local_db_list_keys(state, ldb, req_path, &keys, &nkeys);
+            ret = local_db_list_keys(state, lctx, req_path, &keys, &nkeys);
             if (ret) goto done;
 
             ret = sec_array_to_json(state, keys, nkeys, &body.data);
             if (ret) goto done;
         } else {
-            ret = local_db_get_simple(state, ldb, req_path, &secret);
+            ret = local_db_get_simple(state, lctx, req_path, &secret);
             if (ret) goto done;
 
             ret = sec_simple_secret_to_json(state, secret, &body.data);
@@ -362,15 +446,17 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         break;
 
     case HTTP_PUT:
+        /*FIXME: check fot content-type */
+
         ret = sec_json_to_simple_secret(state, secreq->body.data, &secret);
         if (ret) goto done;
 
-        ret = local_db_put_simple(state, ldb, req_path, secret);
+        ret = local_db_put_simple(state, lctx, req_path, secret);
         if (ret) goto done;
         break;
 
     case HTTP_DELETE:
-        ret = local_db_delete(state, ldb, req_path);
+        ret = local_db_delete(state, lctx, req_path);
         if (ret) goto done;
         break;
 
@@ -397,6 +483,29 @@ done:
     return tevent_req_post(req, state->ev);
 }
 
+int generate_master_key(const char *filename, size_t size)
+{
+    uint8_t buf[size];
+    ssize_t rsize;
+    int ret;
+    int fd;
+
+    ret = generate_csprng_buffer(buf, size);
+    if (ret) return ret;
+
+    fd = open(filename, O_CREAT|O_EXCL|O_WRONLY, 0600);
+    if (fd == -1) return errno;
+
+    rsize = sss_atomic_io_s(fd, buf, size, false);
+    close(fd);
+    if (rsize != size) {
+        unlink(filename);
+        return EFAULT;
+    }
+
+    return EOK;
+}
+
 /* FIXME: allocate on the responder context */
 static struct provider_handle local_secrets_handle = {
     .fn = local_secret_req,
@@ -406,20 +515,46 @@ static struct provider_handle local_secrets_handle = {
 int local_secrets_provider_handle(TALLOC_CTX *mem_ctx,
                                   struct provider_handle **handle)
 {
-    struct ldb_context *ldb;
+    struct local_context *lctx;
     int ret;
 
     if (local_secrets_handle.context == NULL) {
-        ldb = ldb_init(NULL, NULL);
-        if (!ldb) return EIO;
+        const char *mkey = SECRETS_DB_PATH"/.secrets.mkey";
+        ssize_t size;
+        int mfd;
 
-        ret = ldb_connect(ldb, SECRETS_DB_PATH"/secrets.ldb", 0, NULL);
+        lctx = talloc_zero(NULL, struct local_context);
+        if (!lctx) return ENOMEM;
+
+        lctx->ldb = ldb_init(lctx, NULL);
+        if (!lctx->ldb) return ENOMEM;
+
+        ret = ldb_connect(lctx->ldb, SECRETS_DB_PATH"/secrets.ldb", 0, NULL);
         if (ret != LDB_SUCCESS) {
-            talloc_free(ldb);
+            talloc_free(lctx->ldb);
             return EIO;
         }
 
-        local_secrets_handle.context = ldb;
+        lctx->master_key.data = talloc_size(lctx, MKEY_SIZE);
+        if (!lctx->master_key.data) return ENOMEM;
+        lctx->master_key.length = MKEY_SIZE;
+
+        ret = check_and_open_readonly(mkey, &mfd, 0, 0,
+                                      S_IFREG|S_IRUSR|S_IWUSR, 0);
+        if (ret == ENOENT) {
+            ret = generate_master_key(mkey, MKEY_SIZE);
+            if (ret) return EFAULT;
+            ret = check_and_open_readonly(mkey, &mfd, 0, 0,
+                                          S_IFREG|S_IRUSR|S_IWUSR, 0);
+        }
+        if (ret) return EFAULT;
+
+        size = sss_atomic_io_s(mfd, lctx->master_key.data,
+                               lctx->master_key.length, true);
+        close(mfd);
+        if (size < 0 || size != lctx->master_key.length) return EIO;
+
+        local_secrets_handle.context = lctx;
     }
 
     *handle = &local_secrets_handle;

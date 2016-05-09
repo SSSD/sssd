@@ -22,6 +22,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <nss.h>
 
 int nspr_nss_init(void);
 int nspr_nss_cleanup(void);

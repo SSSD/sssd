@@ -747,7 +747,8 @@ dist_noinst_HEADERS = \
 
 
 if HAVE_NSS
-    dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h
+    dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h \
+                           src/util/crypto/nss/nss_crypto.h
 endif
 
 SSSD_DOCS = \
@@ -806,7 +807,10 @@ if HAVE_NSS
                         src/util/crypto/nss/nss_hmac_sha1.c \
                         src/util/crypto/nss/nss_sha512crypt.c \
                         src/util/crypto/nss/nss_obfuscate.c \
-                        src/util/crypto/nss/nss_util.c
+                        src/util/crypto/nss/nss_nite.c \
+                        src/util/crypto/nss/nss_util.c \
+			src/util/crypto/sss_crypto.c \
+			$(NULL)
     SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
     SSS_CRYPT_LIBS = $(NSS_LIBS)
 
@@ -824,7 +828,10 @@ else
     SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
                         src/util/crypto/libcrypto/crypto_hmac_sha1.c \
                         src/util/crypto/libcrypto/crypto_sha512crypt.c \
-                        src/util/crypto/libcrypto/crypto_obfuscate.c
+                        src/util/crypto/libcrypto/crypto_obfuscate.c \
+                        src/util/crypto/libcrypto/crypto_nite.c \
+			src/util/crypto/sss_crypto.c \
+			$(NULL)
     SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
     SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
 

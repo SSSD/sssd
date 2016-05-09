@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   Secrets Local Provider
+   Secrets Proxy Provider
 
    Copyright (C) Simo Sorce <ssorce@redhat.com>	2016
 
