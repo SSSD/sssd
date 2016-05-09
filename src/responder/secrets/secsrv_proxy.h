@@ -19,10 +19,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __SECSRV_LOCAL_H__
-#define __SECSRV_LOCAL_H__
+#ifndef __SECSRV_PROXY_H__
+#define __SECSRV_PROXY_H__
 
-int local_secrets_provider_handle(struct sec_ctx *sctx,
+int proxy_secrets_provider_handle(struct sec_ctx *sctx,
                                   struct provider_handle **out_handle);
 
-#endif /* __SECSRV_LOCAL_H__ */
+#endif /* __SECSRV_PROXY_H__ */

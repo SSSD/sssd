@@ -26,6 +26,7 @@
 
 #include "responder/common/responder.h"
 #include "responder/secrets/secsrv.h"
+#include "resolv/async_resolv.h"
 
 #define DEFAULT_SEC_FD_LIMIT 2048
 
@@ -113,6 +114,12 @@ static int sec_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error getting secrets config\n");
         goto fail;
+    }
+
+    ret = resolv_init(sctx, ev, SEC_NET_TIMEOUT, &sctx->resctx);
+    if (ret != EOK) {
+        /* not fatal for now */
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize resolver library\n");
     }
 
     /* Set up file descriptor limits */

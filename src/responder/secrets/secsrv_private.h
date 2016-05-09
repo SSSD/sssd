@@ -24,6 +24,7 @@
 
 #include "config.h"
 #include "responder/common/responder.h"
+#include "responder/secrets/secsrv.h"
 #include <http_parser.h>
 
 struct sec_kvp {
@@ -58,13 +59,14 @@ struct sec_url {
     char *host;
     int port;
     char *path;
+    char *query;
     char *fragment;
     char *userinfo;
-    char *query;
 };
 
 struct sec_req_ctx {
     struct cli_ctx *cctx;
+    const char *base_path;
     const char *cfg_section;
     bool complete;
 
@@ -73,7 +75,7 @@ struct sec_req_ctx {
     char *request_url;
     char *mapped_path;
 
-    uint8_t method;
+    enum http_method method;
     struct sec_url parsed_url;
     struct sec_kvp *headers;
     int num_headers;
@@ -88,9 +90,13 @@ typedef struct tevent_req *(*sec_provider_req_t)(TALLOC_CTX *mem_ctx,
                                                  struct sec_req_ctx *secreq);
 
 struct provider_handle {
+    const char *name;
     sec_provider_req_t fn;
     void *context;
 };
+int sec_get_provider(struct sec_ctx *sctx, const char *name,
+                     struct provider_handle **out_handle);
+int sec_add_provider(struct sec_ctx *sctx, struct provider_handle *handle);
 
 #define SEC_BASEPATH "/secrets/"
 
@@ -99,12 +105,19 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
                     struct provider_handle **handle);
 int sec_provider_recv(struct tevent_req *subreq);
 
+int sec_http_append_header(TALLOC_CTX *mem_ctx, char **dest,
+                           char *field, char *value);
+
 int sec_http_status_reply(TALLOC_CTX *mem_ctx, struct sec_data *reply,
                           enum sec_http_status_codes code);
 int sec_http_reply_with_body(TALLOC_CTX *mem_ctx, struct sec_data *reply,
                              enum sec_http_status_codes code,
                              const char *content_type,
                              struct sec_data *body);
+int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
+                                int status_code, const char *reason,
+                                struct sec_kvp *headers, int num_headers,
+                                struct sec_data *body);
 enum sec_http_status_codes sec_errno_to_http_status(errno_t err);
 
 int sec_json_to_simple_secret(TALLOC_CTX *mem_ctx,
@@ -117,5 +130,12 @@ int sec_simple_secret_to_json(TALLOC_CTX *mem_ctx,
 int sec_array_to_json(TALLOC_CTX *mem_ctx,
                       char **array, int count,
                       char **output);
+
+/* secsrv_cmd.c */
+#define SEC_REQUEST_MAX_SIZE 65536
+#define SEC_PACKET_MAX_RECV_SIZE 8192
+
+int sec_send_data(int fd, struct sec_data *data);
+int sec_recv_data(int fd, struct sec_data *data);
 
 #endif /* __SECSRV_PRIVATE_H__ */

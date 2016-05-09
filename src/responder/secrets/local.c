@@ -506,57 +506,56 @@ int generate_master_key(const char *filename, size_t size)
     return EOK;
 }
 
-/* FIXME: allocate on the responder context */
-static struct provider_handle local_secrets_handle = {
-    .fn = local_secret_req,
-    .context = NULL,
-};
-
-int local_secrets_provider_handle(TALLOC_CTX *mem_ctx,
-                                  struct provider_handle **handle)
+int local_secrets_provider_handle(struct sec_ctx *sctx,
+                                  struct provider_handle **out_handle)
 {
+    const char *mkey = SECRETS_DB_PATH"/.secrets.mkey";
+    const char *dbpath = SECRETS_DB_PATH"/secrets.ldb";
+    struct provider_handle *handle;
     struct local_context *lctx;
+    ssize_t size;
+    int mfd;
     int ret;
 
-    if (local_secrets_handle.context == NULL) {
-        const char *mkey = SECRETS_DB_PATH"/.secrets.mkey";
-        ssize_t size;
-        int mfd;
+    handle = talloc_zero(sctx, struct provider_handle);
+    if (!handle) return ENOMEM;
 
-        lctx = talloc_zero(NULL, struct local_context);
-        if (!lctx) return ENOMEM;
+    handle->name = "LOCAL";
+    handle->fn = local_secret_req;
 
-        lctx->ldb = ldb_init(lctx, NULL);
-        if (!lctx->ldb) return ENOMEM;
+    lctx = talloc_zero(handle, struct local_context);
+    if (!lctx) return ENOMEM;
 
-        ret = ldb_connect(lctx->ldb, SECRETS_DB_PATH"/secrets.ldb", 0, NULL);
-        if (ret != LDB_SUCCESS) {
-            talloc_free(lctx->ldb);
-            return EIO;
-        }
+    lctx->ldb = ldb_init(lctx, NULL);
+    if (!lctx->ldb) return ENOMEM;
 
-        lctx->master_key.data = talloc_size(lctx, MKEY_SIZE);
-        if (!lctx->master_key.data) return ENOMEM;
-        lctx->master_key.length = MKEY_SIZE;
-
-        ret = check_and_open_readonly(mkey, &mfd, 0, 0,
-                                      S_IFREG|S_IRUSR|S_IWUSR, 0);
-        if (ret == ENOENT) {
-            ret = generate_master_key(mkey, MKEY_SIZE);
-            if (ret) return EFAULT;
-            ret = check_and_open_readonly(mkey, &mfd, 0, 0,
-                                          S_IFREG|S_IRUSR|S_IWUSR, 0);
-        }
-        if (ret) return EFAULT;
-
-        size = sss_atomic_io_s(mfd, lctx->master_key.data,
-                               lctx->master_key.length, true);
-        close(mfd);
-        if (size < 0 || size != lctx->master_key.length) return EIO;
-
-        local_secrets_handle.context = lctx;
+    ret = ldb_connect(lctx->ldb, dbpath, 0, NULL);
+    if (ret != LDB_SUCCESS) {
+        talloc_free(lctx->ldb);
+        return EIO;
     }
 
-    *handle = &local_secrets_handle;
+    lctx->master_key.data = talloc_size(lctx, MKEY_SIZE);
+    if (!lctx->master_key.data) return ENOMEM;
+    lctx->master_key.length = MKEY_SIZE;
+
+    ret = check_and_open_readonly(mkey, &mfd, 0, 0,
+                                  S_IFREG|S_IRUSR|S_IWUSR, 0);
+    if (ret == ENOENT) {
+        ret = generate_master_key(mkey, MKEY_SIZE);
+        if (ret) return EFAULT;
+        ret = check_and_open_readonly(mkey, &mfd, 0, 0,
+                                      S_IFREG|S_IRUSR|S_IWUSR, 0);
+    }
+    if (ret) return EFAULT;
+
+    size = sss_atomic_io_s(mfd, lctx->master_key.data,
+                           lctx->master_key.length, true);
+    close(mfd);
+    if (size < 0 || size != lctx->master_key.length) return EIO;
+
+    handle->context = lctx;
+
+    *out_handle = handle;
     return EOK;
 }

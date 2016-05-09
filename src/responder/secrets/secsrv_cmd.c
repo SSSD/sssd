@@ -25,9 +25,6 @@
 #include "responder/secrets/secsrv.h"
 #include "responder/secrets/secsrv_private.h"
 
-#define SEC_REQUEST_MAX_SIZE 65536
-#define SEC_PACKET_MAX_RECV_SIZE 8192
-
 
 /* ##### Request Handling ##### */
 
@@ -376,7 +373,7 @@ static int sec_on_message_complete(http_parser *parser)
 
 /* ##### Communications ##### */
 
-static int sec_send_data(int fd, struct sec_data *data)
+int sec_send_data(int fd, struct sec_data *data)
 {
     ssize_t len;
 
@@ -424,7 +421,7 @@ static void sec_send(struct cli_ctx *cctx)
     return;
 }
 
-static int sec_recv_data(int fd, struct sec_data *data)
+int sec_recv_data(int fd, struct sec_data *data)
 {
     ssize_t len;
 
@@ -439,6 +436,7 @@ static int sec_recv_data(int fd, struct sec_data *data)
     }
 
     if (len == 0) {
+        data->length = 0;
         return ENODATA;
     }
 

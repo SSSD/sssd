@@ -627,6 +627,7 @@ dist_noinst_HEADERS = \
     src/responder/secrets/secsrv.h \
     src/responder/secrets/secsrv_private.h \
     src/responder/secrets/secsrv_local.h \
+    src/responder/secrets/secsrv_proxy.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_meta.h \
@@ -1364,7 +1365,10 @@ sssd_secrets_SOURCES = \
     src/responder/secrets/secsrv_cmd.c \
     src/responder/secrets/providers.c \
     src/responder/secrets/local.c \
+    src/responder/secrets/proxy.c \
+    src/util/sss_sockets.c \
     $(SSSD_RESPONDER_OBJ) \
+    $(SSSD_RESOLV_OBJ) \
     $(NULL)
 sssd_secrets_LDADD = \
     $(HTTP_PARSER_LIBS) \
@@ -1372,6 +1376,7 @@ sssd_secrets_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
+    $(CARES_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 endif
