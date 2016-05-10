@@ -83,7 +83,7 @@ int ifp_user_get_attr(struct sbus_request *dbus_req, void *data)
 
     ret = ifp_user_get_attr_unpack_msg(attr_req);
     if (ret != EOK) {
-        return ret;     /* handled internally */
+        return ret;     /* internal error */
     }
 
     DEBUG(SSSDBG_FUNC_DATA,
@@ -117,7 +117,7 @@ ifp_user_get_attr_unpack_msg(struct ifp_attr_req *attr_req)
                                           DBUS_TYPE_INVALID);
     if (parsed == false) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not parse arguments\n");
-        return EOK; /* handled */
+        return ERR_SBUS_REQUEST_HANDLED;
     }
 
     /* Copy the attributes to maintain memory hierarchy with talloc */
