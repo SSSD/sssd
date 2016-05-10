@@ -1546,7 +1546,7 @@ void fo_try_next_server(struct fo_service *service)
     service->active_server = 0;
 
     if (server->port_status == PORT_WORKING) {
-        server->port_status = PORT_NEUTRAL;
+        server->port_status = PORT_NOT_WORKING;
     }
 }
 
