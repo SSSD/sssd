@@ -407,6 +407,7 @@ copy_file(int ifd,
         }
 
         if (written != cnt) {
+            ret = EINVAL;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Wrote %zd bytes, expected %zd\n", written, cnt);
             goto done;
