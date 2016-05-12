@@ -552,7 +552,7 @@ int sssm_ad_subdomains_init(struct be_ctx *bectx,
         return EINVAL;
     }
 
-    ad_domain = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
+    ad_domain = dp_opt_get_cstring(ad_options->basic, AD_DOMAIN);
 
     ret = ad_subdom_init(bectx, id_ctx, ad_domain, ops, pvt_data);
     if (ret != EOK) {
