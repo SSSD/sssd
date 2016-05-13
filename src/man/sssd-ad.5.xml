@@ -642,6 +642,11 @@ ad_gpo_map_permit = +my_pam_service, -sudo
                             <itemizedlist>
                                 <listitem>
                                     <para>
+                                        polkit-1
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
                                         sudo
                                     </para>
                                 </listitem>

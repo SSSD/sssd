@@ -194,6 +194,7 @@ int ad_gpo_process_cse_recv(struct tevent_req *req);
 #define GPO_FTP "ftp"
 #define GPO_SAMBA "samba"
 #define GPO_CROND "crond"
+#define GPO_POLKIT "polkit-1"
 #define GPO_SUDO "sudo"
 #define GPO_SUDO_I "sudo-i"
 #define GPO_SYSTEMD_USER "systemd-user"
@@ -216,7 +217,8 @@ const char *gpo_map_remote_interactive_defaults[] = {GPO_SSHD, GPO_COCKPIT,
 const char *gpo_map_network_defaults[] = {GPO_FTP, GPO_SAMBA, NULL};
 const char *gpo_map_batch_defaults[] = {GPO_CROND, NULL};
 const char *gpo_map_service_defaults[] = {NULL};
-const char *gpo_map_permit_defaults[] = {GPO_SUDO, GPO_SUDO_I,
+const char *gpo_map_permit_defaults[] = {GPO_POLKIT,
+                                         GPO_SUDO, GPO_SUDO_I,
                                          GPO_SYSTEMD_USER,  NULL};
 const char *gpo_map_deny_defaults[] = {NULL};
 
