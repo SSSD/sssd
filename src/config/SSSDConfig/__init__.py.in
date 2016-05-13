@@ -192,6 +192,7 @@ option_strings = {
 
     # [provider/ad]
     'ad_domain' : _('Active Directory domain'),
+    'ad_enabled_domains' : _('Enabled Active Directory domains'),
     'ad_server' : _('Active Directory server address'),
     'ad_backup_server' : _('Active Directory backup server address'),
     'ad_hostname' : _('Active Directory client hostname'),
