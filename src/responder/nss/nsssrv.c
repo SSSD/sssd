@@ -380,9 +380,7 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
         DEBUG(SSSDBG_CRIT_FAILURE, "Reconnected to the Data Provider.\n");
 
         /* Identify ourselves to the data provider */
-        ret = dp_common_send_id(be_conn->conn,
-                                DATA_PROVIDER_VERSION,
-                                "NSS");
+        ret = rdp_register_client(be_conn, "NSS");
         /* all fine */
         if (ret == EOK) {
             handle_requests_after_reconnect(be_conn->rctx);

@@ -227,8 +227,6 @@ bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd);
 bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd,
                             DBusError *dbus_error);
 
-int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
-                      const char *name);
 void dp_id_callback(DBusPendingCall *pending, void *ptr);
 
 /* from dp_sbus.c */

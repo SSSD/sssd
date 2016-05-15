@@ -385,39 +385,3 @@ done:
     dbus_pending_call_unref(pending);
     dbus_message_unref(reply);
 }
-
-int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
-                      const char *name)
-{
-    DBusMessage *msg;
-    dbus_bool_t ret;
-    int retval;
-
-    /* create the message */
-    msg = dbus_message_new_method_call(NULL,
-                                       DP_PATH,
-                                       DATA_PROVIDER_IFACE,
-                                       DATA_PROVIDER_IFACE_REGISTERSERVICE);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?!\n");
-        return ENOMEM;
-    }
-
-    DEBUG(SSSDBG_CONF_SETTINGS, "Sending ID to DP: (%d,%s)\n",
-              version, name);
-
-    ret = dbus_message_append_args(msg,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_STRING, &name,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
-        return EIO;
-    }
-
-    retval = sbus_conn_send(conn, msg, 30000, dp_id_callback, NULL, NULL);
-
-    dbus_message_unref(msg);
-    return retval;
-}
-

@@ -571,9 +571,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
     DLIST_ADD_END(rctx->be_conns, be_conn, struct be_conn *);
 
     /* Identify ourselves to the DP */
-    ret = dp_common_send_id(be_conn->conn,
-                            DATA_PROVIDER_VERSION,
-                            cli_name);
+    ret = rdp_register_client(be_conn, cli_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to identify to the DP!\n");
         return ret;

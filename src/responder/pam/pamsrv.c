@@ -87,9 +87,7 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
         DEBUG(SSSDBG_CRIT_FAILURE, "Reconnected to the Data Provider.\n");
 
         /* Identify ourselves to the data provider */
-        ret = dp_common_send_id(be_conn->conn,
-                                DATA_PROVIDER_VERSION,
-                                "PAM");
+        ret = rdp_register_client(be_conn, "PAM");
         /* all fine */
         if (ret == EOK) {
             handle_requests_after_reconnect(be_conn->rctx);

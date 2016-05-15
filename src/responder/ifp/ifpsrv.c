@@ -90,9 +90,7 @@ static void ifp_dp_reconnect_init(struct sbus_connection *conn,
         DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
 
         /* Identify ourselves to the data provider */
-        ret = dp_common_send_id(be_conn->conn,
-                                DATA_PROVIDER_VERSION,
-                                "InfoPipe");
+        ret = rdp_register_client(be_conn, "InfoPipe");
         /* all fine */
         if (ret == EOK) {
             handle_requests_after_reconnect(be_conn->rctx);
