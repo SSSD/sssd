@@ -1047,12 +1047,12 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
     pid = fork();
 
     if (pid == 0) { /* child */
-        ret = exec_child(state,
-                         pipefd_to_child, pipefd_from_child,
-                         SELINUX_CHILD, selinux_child_debug_fd);
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec selinux_child: [%d][%s].\n",
-              ret, sss_strerror(ret));
-        return ret;
+        exec_child(state,
+                   pipefd_to_child, pipefd_from_child,
+                   SELINUX_CHILD, selinux_child_debug_fd);
+
+        /* We should never get here */
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec selinux_child\n");
     } else if (pid > 0) { /* parent */
         state->io->read_from_child_fd = pipefd_from_child[0];
         close(pipefd_from_child[1]);

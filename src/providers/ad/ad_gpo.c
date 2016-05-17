@@ -4189,13 +4189,13 @@ gpo_fork_child(struct tevent_req *req)
     pid = fork();
 
     if (pid == 0) { /* child */
-        err = exec_child_ex(state,
-                            pipefd_to_child, pipefd_from_child,
-                            GPO_CHILD, gpo_child_debug_fd, NULL, false,
-                            STDIN_FILENO, AD_GPO_CHILD_OUT_FILENO);
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec gpo_child: [%d][%s].\n",
-              err, strerror(err));
-        return err;
+        exec_child_ex(state,
+                      pipefd_to_child, pipefd_from_child,
+                      GPO_CHILD, gpo_child_debug_fd, NULL, false,
+                      STDIN_FILENO, AD_GPO_CHILD_OUT_FILENO);
+
+        /* We should never get here */
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec gpo_child:\n");
     } else if (pid > 0) { /* parent */
         state->child_pid = pid;
         state->io->read_from_child_fd = pipefd_from_child[0];

@@ -101,18 +101,18 @@ int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 void fd_nonblocking(int fd);
 
 /* Never returns EOK, ether returns an error, or doesn't return on success */
-errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
-                      int *pipefd_to_child, int *pipefd_from_child,
-                      const char *binary, int debug_fd,
-                      const char *extra_argv[], bool extra_args_only,
-                      int child_in_fd, int child_out_fd);
+void exec_child_ex(TALLOC_CTX *mem_ctx,
+                   int *pipefd_to_child, int *pipefd_from_child,
+                   const char *binary, int debug_fd,
+                   const char *extra_argv[], bool extra_args_only,
+                   int child_in_fd, int child_out_fd);
 
 /* Same as exec_child_ex() except child_in_fd is set to STDIN_FILENO and
  * child_out_fd is set to STDOUT_FILENO and extra_argv is always NULL.
  */
-errno_t exec_child(TALLOC_CTX *mem_ctx,
-                   int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, int debug_fd);
+void exec_child(TALLOC_CTX *mem_ctx,
+                int *pipefd_to_child, int *pipefd_from_child,
+                const char *binary, int debug_fd);
 
 int child_io_destructor(void *ptr);
 
