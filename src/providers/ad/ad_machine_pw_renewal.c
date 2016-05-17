@@ -307,6 +307,15 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
     int opt_list_size;
     char *endptr;
 
+    ret = access(RENEWAL_PROG_PATH, X_OK);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "The helper program ["RENEWAL_PROG_PATH"] for renewal "
+              "doesn't exist [%d]: %s\n", ret, strerror(ret));
+        return EOK;
+    }
+
     lifetime = dp_opt_get_int(ad_opts->basic,
                               AD_MAXIMUM_MACHINE_ACCOUNT_PASSWORD_AGE);
 
