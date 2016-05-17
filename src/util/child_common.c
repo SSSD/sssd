@@ -726,11 +726,11 @@ fail:
     return ret;
 }
 
-errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
-                      int *pipefd_to_child, int *pipefd_from_child,
-                      const char *binary, int debug_fd,
-                      const char *extra_argv[], bool extra_args_only,
-                      int child_in_fd, int child_out_fd)
+void exec_child_ex(TALLOC_CTX *mem_ctx,
+                   int *pipefd_to_child, int *pipefd_from_child,
+                   const char *binary, int debug_fd,
+                   const char *extra_argv[], bool extra_args_only,
+                   int child_in_fd, int child_out_fd)
 {
     int ret;
     errno_t err;
@@ -742,7 +742,7 @@ errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "dup2 failed [%d][%s].\n", err, strerror(err));
-        return err;
+        exit(EXIT_FAILURE);
     }
 
     close(pipefd_from_child[0]);
@@ -751,7 +751,7 @@ errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "dup2 failed [%d][%s].\n", err, strerror(err));
-        return err;
+        exit(EXIT_FAILURE);
     }
 
     ret = prepare_child_argv(mem_ctx, debug_fd,
@@ -759,22 +759,22 @@ errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
                              &argv);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "prepare_child_argv.\n");
-        return ret;
+        exit(EXIT_FAILURE);
     }
 
     execv(binary, argv);
     err = errno;
     DEBUG(SSSDBG_OP_FAILURE, "execv failed [%d][%s].\n", err, strerror(err));
-    return err;
+    exit(EXIT_FAILURE);
 }
 
-errno_t exec_child(TALLOC_CTX *mem_ctx,
-                   int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, int debug_fd)
+void exec_child(TALLOC_CTX *mem_ctx,
+                int *pipefd_to_child, int *pipefd_from_child,
+                const char *binary, int debug_fd)
 {
-    return exec_child_ex(mem_ctx, pipefd_to_child, pipefd_from_child,
-                         binary, debug_fd, NULL, false,
-                         STDIN_FILENO, STDOUT_FILENO);
+    exec_child_ex(mem_ctx, pipefd_to_child, pipefd_from_child,
+                  binary, debug_fd, NULL, false,
+                  STDIN_FILENO, STDOUT_FILENO);
 }
 
 int child_io_destructor(void *ptr)

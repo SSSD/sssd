@@ -174,15 +174,13 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
 
     child_pid = fork();
     if (child_pid == 0) { /* child */
-        ret = exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                            renewal_data->prog_path, -1,
-                            extra_args, true,
-                            STDIN_FILENO, STDERR_FILENO);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec renewal child: [%d][%s].\n",
-                                       ret, strerror(ret));
-            goto done;
-        }
+        exec_child_ex(state, pipefd_to_child, pipefd_from_child,
+                      renewal_data->prog_path, -1,
+                      extra_args, true,
+                      STDIN_FILENO, STDERR_FILENO);
+
+        /* We should never get here */
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec renewal child\n");
     } else if (child_pid > 0) { /* parent */
 
         state->read_from_child_fd = pipefd_from_child[0];

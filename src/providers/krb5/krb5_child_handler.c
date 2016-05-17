@@ -309,15 +309,13 @@ static errno_t fork_child(struct tevent_req *req)
     pid = fork();
 
     if (pid == 0) { /* child */
-        err = exec_child_ex(state,
-                            pipefd_to_child, pipefd_from_child,
-                            KRB5_CHILD, state->kr->krb5_ctx->child_debug_fd,
-                            k5c_extra_args, false, STDIN_FILENO, STDOUT_FILENO);
-        if (err != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec KRB5 child: [%d][%s].\n",
-                      err, strerror(err));
-            return err;
-        }
+        exec_child_ex(state,
+                      pipefd_to_child, pipefd_from_child,
+                      KRB5_CHILD, state->kr->krb5_ctx->child_debug_fd,
+                      k5c_extra_args, false, STDIN_FILENO, STDOUT_FILENO);
+
+        /* We should never get here */
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec KRB5 child\n");
     } else if (pid > 0) { /* parent */
         state->child_pid = pid;
         state->io->read_from_child_fd = pipefd_from_child[0];

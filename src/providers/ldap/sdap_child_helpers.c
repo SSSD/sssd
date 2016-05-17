@@ -96,12 +96,12 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
     pid = fork();
 
     if (pid == 0) { /* child */
-        err = exec_child(child,
-                         pipefd_to_child, pipefd_from_child,
-                         LDAP_CHILD, ldap_child_debug_fd);
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec LDAP child: [%d][%s].\n",
-                                    err, strerror(err));
-        return err;
+        exec_child(child,
+                   pipefd_to_child, pipefd_from_child,
+                   LDAP_CHILD, ldap_child_debug_fd);
+
+        /* We should never get here */
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec LDAP child\n");
     } else if (pid > 0) { /* parent */
         child->pid = pid;
         child->io->read_from_child_fd = pipefd_from_child[0];
