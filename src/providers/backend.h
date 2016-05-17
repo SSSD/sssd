@@ -91,15 +91,6 @@ struct be_ctx {
     struct data_provider *provider;
 };
 
-struct be_acct_req {
-    int entry_type;
-    int attr_type;
-    int filter_type;
-    char *filter_value;
-    char *extra_value;
-    char *domain;
-};
-
 bool be_is_offline(struct be_ctx *ctx);
 void be_mark_offline(struct be_ctx *ctx);
 void be_mark_dom_offline(struct sss_domain_info *dom, struct be_ctx *ctx);

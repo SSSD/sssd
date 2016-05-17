@@ -69,8 +69,8 @@ static bool check_and_parse_filter(struct be_acct_req *data,
     for (i = 0; types[i].name != NULL; i++) {
         if (strncmp(filter, types[i].name, types[i].lenght) == 0) {
             data->filter_type = types[i].type;
-            data->filter_value = discard_const(&filter[types[i].lenght]); /* todo remove discard const */
-            data->extra_value = discard_const(extra); /* todo remove discard const */
+            data->filter_value = &filter[types[i].lenght];
+            data->extra_value = extra;
             return true;
         }
     }
@@ -275,7 +275,7 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
 
     data->entry_type = entry_type;
     data->attr_type = attr_type;
-    data->domain = discard_const(domain); /* todo remove discard const */
+    data->domain = domain;
 
     if (!check_and_parse_filter(data, filter, extra)) {
         ret = EINVAL;
