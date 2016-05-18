@@ -74,12 +74,6 @@ struct tevent_req *sdap_search_bases_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    if (map == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No attribute map specified!\n");
-        ret = ERR_INTERNAL;
-        goto immediately;
-    }
-
     state->ev = ev;
     state->opts = opts;
     state->sh = sh;
@@ -93,10 +87,14 @@ struct tevent_req *sdap_search_bases_send(TALLOC_CTX *mem_ctx,
                      ? dp_opt_get_int(opts->basic, SDAP_SEARCH_TIMEOUT)
                      : timeout;
 
-    for (state->map_num_attrs = 0;
-            state->map[state->map_num_attrs].opt_name != NULL;
-            state->map_num_attrs++) {
-        /* no op */;
+    if (state->map != NULL) {
+        for (state->map_num_attrs = 0;
+                state->map[state->map_num_attrs].opt_name != NULL;
+                state->map_num_attrs++) {
+            /* no op */;
+        }
+    } else {
+        state->map_num_attrs = 0;
     }
 
     if (state->attrs == NULL) {
