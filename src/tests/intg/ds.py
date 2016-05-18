@@ -20,7 +20,7 @@
 import ldap
 
 
-class DS:
+class DS(object):
     """Abstract directory server instance."""
 
     def __init__(self, dir, port, base_dn, admin_rdn, admin_pw):
