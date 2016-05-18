@@ -59,6 +59,7 @@
 #define SYSDB_DOMAIN_ID_RANGE_CLASS "domainIDRange"
 #define SYSDB_TRUSTED_AD_DOMAIN_RANGE_CLASS "TrustedADDomainRange"
 
+#define SYSDB_DN "dn"
 #define SYSDB_NAME "name"
 #define SYSDB_NAME_ALIAS "nameAlias"
 #define SYSDB_OBJECTCLASS "objectClass"

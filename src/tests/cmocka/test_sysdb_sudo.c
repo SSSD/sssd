@@ -23,9 +23,11 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <popt.h>
+#include <ldb_module.h>
 
 #include "tests/cmocka/common_mock.h"
 #include "src/db/sysdb_sudo.h"
+#include "src/db/sysdb_private.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_sysdb_sudorules.ldb"
@@ -138,6 +140,7 @@ static int test_sysdb_setup(void **state)
     create_groups(test_ctx->tctx->dom);
     create_users(test_ctx->tctx->dom);
 
+    reset_ldb_errstrings(test_ctx->tctx->dom);
     check_leaks_push(test_ctx);
 
     *state = (void *)test_ctx;
@@ -710,7 +713,6 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sudo_get_filter,
                                         test_sysdb_setup,
                                         test_sysdb_teardown),
-
         /* sysdb_get_sudo_user_info() */
         cmocka_unit_test_setup_teardown(test_get_sudo_user_info,
                                         test_sysdb_setup,

@@ -84,6 +84,8 @@ struct sss_test_conf_param {
 
 struct sss_test_ctx *create_ev_test_ctx(TALLOC_CTX *mem_ctx);
 
+void reset_ldb_errstrings(struct sss_domain_info *dom);
+
 struct sss_test_ctx *
 create_multidom_test_ctx(TALLOC_CTX *mem_ctx,
                          const char *tests_path,

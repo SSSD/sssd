@@ -91,6 +91,8 @@ struct err_string error_to_str[] = {
     { "SBUS request already handled" }, /* ERR_SBUS_REQUEST_HANDLED */
     { "Sysdb version is too old" },  /* ERR_SYSDB_VERSION_TOO_OLD */
     { "Sysdb version is too new" },  /* ERR_SYSDB_VERSION_TOO_NEW */
+    { "Domain has to timestamp cache" }, /* ERR_NO_TS */
+    { "No timestamp cache record" }, /* ERR_TS_CACHE_MISS */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

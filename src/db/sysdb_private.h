@@ -183,4 +183,60 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *forest,
                                       uint32_t trust_direction);
 
+/* Helper functions to deal with the timestamp cache should not be used
+ * outside the sysdb itself. The timestamp cache should be completely
+ * opaque to the sysdb consumers
+ */
+
+/* Returns true if the 'dn' parameter is a user or a group DN, because
+ * at the moment, the timestamps cache only handles users and groups.
+ * Returns false otherwise.
+ */
+bool is_ts_ldb_dn(struct ldb_dn *dn);
+
+/* Given a ldb_result found in the timestamp cache, merge in the
+ * corresponding full attributes from the sysdb cache. The new
+ * attributes are allocated on the messages in the ldb_result.
+ */
+errno_t sysdb_merge_res_ts_attrs(struct sysdb_ctx *ctx,
+                                 struct ldb_result *res,
+                                 const char *attrs[]);
+
+/* Given an array of ldb_message structures found in the timestamp cache,
+ * merge in the corresponding full attributes from the sysdb cache. The
+ * new attributes are allocated atop the ldb messages.
+ */
+errno_t sysdb_merge_msg_list_ts_attrs(struct sysdb_ctx *ctx,
+                                      size_t msgs_count,
+                                      struct ldb_message **msgs,
+                                      const char *attrs[]);
+
+/* Merge two sets of ldb_result structures. */
+struct ldb_result *sss_merge_ldb_results(struct ldb_result *res,
+                                         struct ldb_result *subres);
+
+/* Search Entry in the timestamp cache */
+int sysdb_search_ts_entry(TALLOC_CTX *mem_ctx,
+                          struct sysdb_ctx *sysdb,
+                          struct ldb_dn *base_dn,
+                          enum ldb_scope scope,
+                          const char *filter,
+                          const char **attrs,
+                          size_t *_msgs_count,
+                          struct ldb_message ***_msgs);
+
+int sysdb_search_ts_users(TALLOC_CTX *mem_ctx,
+                          struct sss_domain_info *domain,
+                          const char *sub_filter,
+                          const char **attrs,
+                          size_t *msgs_count,
+                          struct ldb_message ***msgs);
+
+int sysdb_search_ts_groups(TALLOC_CTX *mem_ctx,
+                           struct sss_domain_info *domain,
+                           const char *sub_filter,
+                           const char **attrs,
+                           size_t *msgs_count,
+                           struct ldb_message ***msgs);
+
 #endif /* __INT_SYS_DB_H__ */

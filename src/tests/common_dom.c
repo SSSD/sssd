@@ -173,6 +173,14 @@ done:
     return ret;
 }
 
+void reset_ldb_errstrings(struct sss_domain_info *dom)
+{
+    ldb_reset_err_string(sysdb_ctx_get_ldb(dom->sysdb));
+    if (dom->sysdb->ldb_ts) {
+        ldb_reset_err_string(dom->sysdb->ldb_ts);
+    }
+}
+
 static errno_t
 mock_domain(TALLOC_CTX *mem_ctx,
             struct confdb_ctx *cdb,
@@ -191,12 +199,7 @@ mock_domain(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* reset ldb error if any */
-    ldb_reset_err_string(sysdb_ctx_get_ldb(domain->sysdb));
-
-    if (domain->sysdb->ldb_ts != NULL) {
-        ldb_reset_err_string(domain->sysdb->ldb_ts);
-    }
+    reset_ldb_errstrings(domain);
 
     /* init with an AD-style regex to be able to test flat name */
     ret = sss_names_init_from_args(domain,
@@ -378,6 +381,7 @@ void test_multidom_suite_cleanup(const char *tests_path,
             }
 
             talloc_zfree(sysdb_path);
+
         }
     }
 

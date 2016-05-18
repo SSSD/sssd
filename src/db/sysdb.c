@@ -1683,3 +1683,35 @@ int sysdb_delete_ulong(struct ldb_message *msg,
 {
     return sysdb_ldb_msg_ulong_helper(msg, LDB_FLAG_MOD_DELETE, attr, value);
 }
+
+bool is_ts_ldb_dn(struct ldb_dn *dn)
+{
+    const char *sysdb_comp_name = NULL;
+    const struct ldb_val *sysdb_comp_val = NULL;
+
+    if (dn == NULL) {
+        return false;
+    }
+
+    sysdb_comp_name = ldb_dn_get_component_name(dn, 1);
+    if (strcasecmp("cn", sysdb_comp_name) != 0) {
+        /* The second component name is not "cn" */
+        return false;
+    }
+
+    sysdb_comp_val = ldb_dn_get_component_val(dn, 1);
+    if (strncasecmp("users",
+                    (const char *) sysdb_comp_val->data,
+                    sysdb_comp_val->length) == 0) {
+        return true;
+    }
+
+    sysdb_comp_val = ldb_dn_get_component_val(dn, 1);
+    if (strncasecmp("groups",
+                    (const char *) sysdb_comp_val->data,
+                    sysdb_comp_val->length) == 0) {
+        return true;
+    }
+
+    return false;
+}

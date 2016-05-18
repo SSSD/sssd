@@ -113,6 +113,8 @@ enum sssd_errors {
     ERR_SBUS_REQUEST_HANDLED,
     ERR_SYSDB_VERSION_TOO_OLD,
     ERR_SYSDB_VERSION_TOO_NEW,
+    ERR_NO_TS,
+    ERR_TS_CACHE_MISS,
     ERR_LAST            /* ALWAYS LAST */
 };
 

@@ -43,11 +43,14 @@ static errno_t updated_users_by_filter(TALLOC_CTX *mem_ctx,
 
     recent_filter = talloc_asprintf(mem_ctx, "(%s>=%lu)",
                                     SYSDB_LAST_UPDATE, since);
+    if (recent_filter == NULL) {
+        return ENOMEM;
+    }
+
     ret = sysdb_enumpwent_filter_with_views(mem_ctx, domain,
                                             name_filter, recent_filter,
                                             _res);
     talloc_free(recent_filter);
-
     return ret;
 }
 
@@ -62,11 +65,14 @@ static errno_t updated_groups_by_filter(TALLOC_CTX *mem_ctx,
 
     recent_filter = talloc_asprintf(mem_ctx, "(%s>=%lu)",
                                     SYSDB_LAST_UPDATE, since);
+    if (recent_filter == NULL) {
+        return ENOMEM;
+    }
+
     ret = sysdb_enumgrent_filter_with_views(mem_ctx, domain,
                                             name_filter, recent_filter,
                                             _res);
     talloc_free(recent_filter);
-
     return ret;
 }
 

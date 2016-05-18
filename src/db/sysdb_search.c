@@ -25,6 +25,158 @@
 #include <time.h>
 #include <ctype.h>
 
+/* helpers */
+static errno_t merge_ts_attr(struct ldb_message *ts_msg,
+                             struct ldb_message *sysdb_msg,
+                             const char *ts_attr,
+                             const char *want_attrs[])
+{
+    errno_t ret;
+    bool include = true;
+    struct ldb_message_element *ts_el;
+    struct ldb_message_element *sysdb_el;
+
+    if (want_attrs != NULL) {
+        /* Otherwise merge all ts attrs */
+        include = string_in_list(ts_attr, discard_const(want_attrs), true);
+    }
+    if (include == false) {
+        return EOK;
+    }
+
+    ts_el = ldb_msg_find_element(ts_msg, ts_attr);
+    if (ts_el == NULL || ts_el->num_values == 0) {
+        return EOK;
+    }
+
+    if (ts_el->num_values > 1) {
+        return EIO;
+    }
+
+    sysdb_el = ldb_msg_find_element(sysdb_msg, ts_attr);
+    if (sysdb_el == NULL || sysdb_el->num_values == 0) {
+        ret = ldb_msg_add_steal_value(sysdb_msg, ts_attr, &ts_el->values[0]);
+        if (ret != EOK) {
+            return sysdb_error_to_errno(ret);
+        }
+    } else {
+        /* Assumes the timestamps cache only holds single-valued
+         * attributes */
+        sysdb_el->values = talloc_steal(sysdb_el->values, ts_el->values);
+    }
+
+    return EOK;
+}
+
+static errno_t merge_msg_ts_attrs(struct sysdb_ctx *sysdb,
+                                  struct ldb_message *sysdb_msg,
+                                  const char *attrs[])
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    size_t msgs_count;
+    struct ldb_message **ts_msgs;
+    bool ts_dn;
+
+    ts_dn = is_ts_ldb_dn(sysdb_msg->dn);
+    if (ts_dn == false) {
+        return ERR_NO_TS;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_ts_entry(tmp_ctx, sysdb, sysdb_msg->dn,
+                                LDB_SCOPE_BASE,
+                                NULL,
+                                sysdb_ts_cache_attrs,
+                                &msgs_count,
+                                &ts_msgs);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "No such DN in the timestamp cache: %s\n",
+              ldb_dn_get_linearized(sysdb_msg->dn));
+        ret = ERR_TS_CACHE_MISS;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Cannot find TS cache entry for [%s]: [%d]: %s\n",
+              ldb_dn_get_linearized(sysdb_msg->dn),
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (msgs_count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected 1 result for base search, got %zu\n", msgs_count);
+        return EIO;
+    }
+
+    /* Deliberately start from 1 in order to not merge objectclass and avoid
+     * breaking MPGs where the OC might be made up
+     */
+    for (size_t c = 1; sysdb_ts_cache_attrs[c]; c++) {
+        ret = merge_ts_attr(ts_msgs[0], sysdb_msg,
+                            sysdb_ts_cache_attrs[c], attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Canot merge ts attr %s\n", sysdb_ts_cache_attrs[c]);
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_merge_res_ts_attrs(struct sysdb_ctx *ctx,
+                                 struct ldb_result *res,
+                                 const char *attrs[])
+{
+    errno_t ret;
+
+    if (res == NULL || ctx->ldb_ts == NULL) {
+        return EOK;
+    }
+
+    for (size_t c = 0; c < res->count; c++) {
+        ret = merge_msg_ts_attrs(ctx, res->msgs[c], attrs);
+        if (ret == ERR_NO_TS) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "TS cache doesn't handle this DN type, skipping\n");
+            continue;
+        } else if (ret == ERR_TS_CACHE_MISS) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "TS cache doesn't contain this DN, skipping\n");
+            continue;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot merge timestamp cache values for %s\n",
+                  ldb_dn_get_linearized(res->msgs[c]->dn));
+            /* non-fatal */
+            continue;
+        }
+    }
+
+    return EOK;
+}
+
+errno_t sysdb_merge_msg_list_ts_attrs(struct sysdb_ctx *ctx,
+                                      size_t msgs_count,
+                                      struct ldb_message **msgs,
+                                      const char *attrs[])
+{
+    struct ldb_result res;
+
+    res.count = msgs_count;
+    res.msgs = msgs;
+    return sysdb_merge_res_ts_attrs(ctx, &res, attrs);
+}
+
 /* users */
 
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
@@ -73,6 +225,13 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
+    }
+
+    /* Merge in the timestamps from the fast ts db */
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
     }
 
     *_res = talloc_steal(mem_ctx, res);
@@ -178,6 +337,13 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
+    }
+
+    /* Merge in the timestamps from the fast ts db */
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
     }
 
     *_res = talloc_steal(mem_ctx, res);
@@ -324,6 +490,73 @@ done:
     return ret;
 }
 
+static errno_t search_ts_matches(TALLOC_CTX *mem_ctx,
+                                 struct sysdb_ctx *sysdb,
+                                 const char *attrs[],
+                                 struct ldb_result *ts_res,
+                                 const char *filter,
+                                 struct ldb_result **_res)
+{
+    char *dn_filter;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_result *res;
+    errno_t ret;
+
+    if (ts_res->count == 0) {
+        *_res = NULL;
+        ret = EOK;
+        goto done;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    res = talloc_zero(tmp_ctx, struct ldb_result);
+    if (res == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dn_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|", SYSDB_NAME, filter);
+    if (dn_filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (size_t i = 0; i < ts_res->count; i++) {
+        dn_filter = talloc_asprintf_append(
+                                  dn_filter,
+                                  "(%s=%s)",
+                                  SYSDB_DN,
+                                  ldb_dn_get_linearized(ts_res->msgs[i]->dn));
+        if (dn_filter == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    dn_filter = talloc_asprintf_append(dn_filter, "))");
+    if (dn_filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, NULL,
+                     LDB_SCOPE_SUBTREE, attrs, "%s", dn_filter);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+    *_res = talloc_steal(mem_ctx, res);
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
                            const char *name_filter,
@@ -333,8 +566,11 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_PW_ATTRS;
     char *filter = NULL;
+    const char *ts_filter = NULL;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
+    struct ldb_result ts_res;
+    struct ldb_result *ts_cache_res;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -345,6 +581,28 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
     base_dn = sysdb_user_base_dn(tmp_ctx, domain);
     if (!base_dn) {
         ret = ENOMEM;
+        goto done;
+    }
+
+    ts_filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
+                            NULL, addtl_filter);
+    if (ts_filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp cache with [%s]\n", ts_filter);
+
+    ZERO_STRUCT(ts_res);
+    ret = sysdb_search_ts_users(tmp_ctx, domain, ts_filter,
+                                sysdb_ts_cache_attrs,
+                                (size_t *) &ts_res.count, &ts_res.msgs);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    ret = search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
+                            name_filter, &ts_cache_res);
+    if (ret != EOK && ret != ENOENT) {
         goto done;
     }
 
@@ -360,6 +618,19 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
                      LDB_SCOPE_SUBTREE, attrs, "%s", filter);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    /* Merge in the timestamps from the fast ts db */
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
+    }
+
+    res = sss_merge_ldb_results(res, ts_cache_res);
+    if (res == NULL) {
+        ret = ENOMEM;
         goto done;
     }
 
@@ -618,6 +889,12 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
+    }
+
     *_res = talloc_steal(mem_ctx, res);
 
 done:
@@ -755,6 +1032,12 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
+    }
+
     *_res = talloc_steal(mem_ctx, res);
 
 done:
@@ -771,10 +1054,18 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
     const char *filter = NULL;
+    const char *ts_filter = NULL;
     const char *base_filter;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
-    int ret;
+    struct ldb_result ts_res;
+    struct ldb_result *ts_cache_res;
+    int ret, lret;
+
+    if (_res == NULL) {
+        return EINVAL;
+    }
+    *_res = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -794,6 +1085,28 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ts_filter = enum_filter(tmp_ctx, base_filter,
+                            NULL, addtl_filter);
+    if (ts_filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp cache with [%s]\n", ts_filter);
+
+    ZERO_STRUCT(ts_res);
+    ret = sysdb_search_ts_groups(tmp_ctx, domain, ts_filter,
+                                 sysdb_ts_cache_attrs,
+                                 (size_t *) &ts_res.count, &ts_res.msgs);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    ret = search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
+                            name_filter, &ts_cache_res);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
     filter = enum_filter(tmp_ctx, base_filter,
                          name_filter, addtl_filter);
     if (filter == NULL) {
@@ -802,15 +1115,28 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     }
     DEBUG(SSSDBG_TRACE_LIBS, "Searching cache with [%s]\n", filter);
 
-    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, "%s", filter);
-    if (ret) {
-        ret = sysdb_error_to_errno(ret);
+    lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
+                      LDB_SCOPE_SUBTREE, attrs, "%s", filter);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
         goto done;
     }
 
     ret = mpg_res_convert(res);
     if (ret) {
+        goto done;
+    }
+
+    /* Merge in the timestamps from the fast ts db */
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
+    }
+
+    res = sss_merge_ldb_results(res, ts_cache_res);
+    if (res == NULL) {
+        ret = ENOMEM;
         goto done;
     }
 
@@ -1210,6 +1536,13 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
+    }
+
+    /* Merge in the timestamps from the fast ts db */
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attributes);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
     }
 
     *_res = talloc_steal(mem_ctx, res);
@@ -1908,4 +2241,55 @@ done:
 
     talloc_free(tmp_ctx);
     return ret;
+}
+
+struct ldb_result *sss_merge_ldb_results(struct ldb_result *sysdb_res,
+                                         struct ldb_result *ts_res)
+{
+    size_t i, ii, count, total;
+    int ret;
+
+    if (ts_res == NULL || ts_res->count == 0) {
+        return sysdb_res;
+    }
+
+    total = sysdb_res->count + ts_res->count;
+    sysdb_res->msgs = talloc_realloc(sysdb_res, sysdb_res->msgs,
+                                     struct ldb_message *,
+                                     total);
+    if (sysdb_res->msgs == NULL) {
+        return NULL;
+    }
+
+    /* FIXME - this is O(2), so inefficient for large sets! */
+    count = sysdb_res->count;
+    for (i = 0; i < ts_res->count; i++) {
+        for (ii = 0; ii < sysdb_res->count; ii++) {
+            ret = ldb_dn_compare(ts_res->msgs[i]->dn, sysdb_res->msgs[ii]->dn);
+            if (ret == 0) {
+                break;
+            }
+        }
+
+        if (ii < sysdb_res->count) {
+            /* We already have this DN but ts_res might be more up-to-date
+             * wrt timestamps  */
+            sysdb_res->msgs[ii] = talloc_steal(sysdb_res, ts_res->msgs[i]);
+            continue;
+        }
+        /* new DN, merge */
+        sysdb_res->msgs[count] = talloc_steal(sysdb_res, ts_res->msgs[i]);
+        count++;
+    }
+
+    if (count < total) {
+        sysdb_res->msgs = talloc_realloc(sysdb_res, sysdb_res->msgs,
+                                         struct ldb_message *,
+                                         count);
+        if (sysdb_res->msgs == NULL) {
+            return NULL;
+        }
+    }
+    sysdb_res->count = count;
+    return sysdb_res;
 }

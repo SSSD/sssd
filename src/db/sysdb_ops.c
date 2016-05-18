@@ -186,14 +186,14 @@ done:
 
 /* =Search-Entry========================================================== */
 
-int sysdb_search_entry(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
-                       struct ldb_dn *base_dn,
-                       enum ldb_scope scope,
-                       const char *filter,
-                       const char **attrs,
-                       size_t *_msgs_count,
-                       struct ldb_message ***_msgs)
+static int sysdb_cache_search_entry(TALLOC_CTX *mem_ctx,
+                                    struct ldb_context *ldb,
+                                    struct ldb_dn *base_dn,
+                                    enum ldb_scope scope,
+                                    const char *filter,
+                                    const char **attrs,
+                                    size_t *_msgs_count,
+                                    struct ldb_message ***_msgs)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
@@ -205,7 +205,7 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmp_ctx, &res,
+    ret = ldb_search(ldb, tmp_ctx, &res,
                      base_dn, scope, attrs,
                      filter?"%s":NULL, filter);
     if (ret != EOK) {
@@ -224,6 +224,51 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+int sysdb_search_entry(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *sysdb,
+                       struct ldb_dn *base_dn,
+                       enum ldb_scope scope,
+                       const char *filter,
+                       const char **attrs,
+                       size_t *_msgs_count,
+                       struct ldb_message ***_msgs)
+{
+    errno_t ret;
+
+    ret = sysdb_cache_search_entry(mem_ctx, sysdb->ldb, base_dn, scope,
+                                   filter, attrs, _msgs_count, _msgs);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return sysdb_merge_msg_list_ts_attrs(sysdb, *_msgs_count, *_msgs,
+                                         attrs);
+}
+
+int sysdb_search_ts_entry(TALLOC_CTX *mem_ctx,
+                          struct sysdb_ctx *sysdb,
+                          struct ldb_dn *base_dn,
+                          enum ldb_scope scope,
+                          const char *filter,
+                          const char **attrs,
+                          size_t *_msgs_count,
+                          struct ldb_message ***_msgs)
+{
+    if (sysdb->ldb_ts == NULL) {
+        if (_msgs_count != NULL) {
+            *_msgs_count = 0;
+        }
+        if (_msgs != NULL) {
+            *_msgs = NULL;
+        }
+
+        return EOK;
+    }
+
+    return sysdb_cache_search_entry(mem_ctx, sysdb->ldb_ts, base_dn, scope,
+                                    filter, attrs, _msgs_count, _msgs);
 }
 
 /* =Search-Entry-by-SID-string============================================ */
@@ -355,6 +400,11 @@ static int sysdb_search_by_name(TALLOC_CTX *mem_ctx,
                              &msgs_count, &msgs);
     if (ret) {
         goto done;
+    }
+
+    ret = sysdb_merge_msg_list_ts_attrs(domain->sysdb, msgs_count, msgs, attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot retrieve timestamp attributes\n");
     }
 
     *msg = talloc_steal(mem_ctx, msgs[0]);
@@ -491,6 +541,14 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
               "Search for upn [%s] returns more than one result.\n", upn);
         ret = EINVAL;
         goto done;
+    }
+
+    /* Merge in the timestamps from the fast ts db */
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res,
+                                   attrs ? attrs : def_attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
     }
 
     *out_res = talloc_steal(mem_ctx, res);
@@ -2707,12 +2765,13 @@ fail:
 
 /* =Search-Users-with-Custom-Filter====================================== */
 
-int sysdb_search_users(TALLOC_CTX *mem_ctx,
-                       struct sss_domain_info *domain,
-                       const char *sub_filter,
-                       const char **attrs,
-                       size_t *msgs_count,
-                       struct ldb_message ***msgs)
+static int sysdb_cache_search_users(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    struct ldb_context *ldb,
+                                    const char *sub_filter,
+                                    const char **attrs,
+                                    size_t *msgs_count,
+                                    struct ldb_message ***msgs)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *basedn;
@@ -2741,9 +2800,9 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Search users with filter: %s\n", filter);
 
-    ret = sysdb_search_entry(mem_ctx, domain->sysdb, basedn,
-                             LDB_SCOPE_SUBTREE, filter, attrs,
-                             msgs_count, msgs);
+    ret = sysdb_cache_search_entry(mem_ctx, ldb, basedn,
+                                   LDB_SCOPE_SUBTREE, filter, attrs,
+                                   msgs_count, msgs);
     if (ret) {
         goto fail;
     }
@@ -2760,6 +2819,40 @@ fail:
     }
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+int sysdb_search_users(TALLOC_CTX *mem_ctx,
+                       struct sss_domain_info *domain,
+                       const char *sub_filter,
+                       const char **attrs,
+                       size_t *msgs_count,
+                       struct ldb_message ***msgs)
+{
+    errno_t ret;
+
+    ret = sysdb_cache_search_users(mem_ctx, domain, domain->sysdb->ldb,
+                                   sub_filter, attrs, msgs_count, msgs);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return sysdb_merge_msg_list_ts_attrs(domain->sysdb, *msgs_count, *msgs,
+                                         attrs);
+}
+
+int sysdb_search_ts_users(TALLOC_CTX *mem_ctx,
+                          struct sss_domain_info *domain,
+                          const char *sub_filter,
+                          const char **attrs,
+                          size_t *msgs_count,
+                          struct ldb_message ***msgs)
+{
+    if (domain->sysdb->ldb_ts == NULL) {
+        return ENOENT;
+    }
+
+    return sysdb_cache_search_users(mem_ctx, domain, domain->sysdb->ldb_ts,
+                                    sub_filter, attrs, msgs_count, msgs);
 }
 
 /* =Delete-User-by-Name-OR-uid============================================ */
@@ -2874,12 +2967,13 @@ fail:
 
 /* =Search-Groups-with-Custom-Filter===================================== */
 
-int sysdb_search_groups(TALLOC_CTX *mem_ctx,
-                        struct sss_domain_info *domain,
-                        const char *sub_filter,
-                        const char **attrs,
-                        size_t *msgs_count,
-                        struct ldb_message ***msgs)
+static int sysdb_cache_search_groups(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *domain,
+                                     struct ldb_context *ldb,
+                                     const char *sub_filter,
+                                     const char **attrs,
+                                     size_t *msgs_count,
+                                     struct ldb_message ***msgs)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *basedn;
@@ -2908,9 +3002,9 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Search groups with filter: %s\n", filter);
 
-    ret = sysdb_search_entry(mem_ctx, domain->sysdb, basedn,
-                             LDB_SCOPE_SUBTREE, filter, attrs,
-                             msgs_count, msgs);
+    ret = sysdb_cache_search_entry(mem_ctx, ldb, basedn,
+                                   LDB_SCOPE_SUBTREE, filter, attrs,
+                                   msgs_count, msgs);
     if (ret) {
         goto fail;
     }
@@ -2927,6 +3021,40 @@ fail:
     }
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+int sysdb_search_groups(TALLOC_CTX *mem_ctx,
+                        struct sss_domain_info *domain,
+                        const char *sub_filter,
+                        const char **attrs,
+                        size_t *msgs_count,
+                        struct ldb_message ***msgs)
+{
+    errno_t ret;
+
+    ret = sysdb_cache_search_groups(mem_ctx, domain, domain->sysdb->ldb,
+                                    sub_filter, attrs, msgs_count, msgs);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return sysdb_merge_msg_list_ts_attrs(domain->sysdb, *msgs_count, *msgs,
+                                         attrs);
+}
+
+int sysdb_search_ts_groups(TALLOC_CTX *mem_ctx,
+                           struct sss_domain_info *domain,
+                           const char *sub_filter,
+                           const char **attrs,
+                           size_t *msgs_count,
+                           struct ldb_message ***msgs)
+{
+    if (domain->sysdb->ldb_ts == NULL) {
+        return ENOENT;
+    }
+
+    return sysdb_cache_search_groups(mem_ctx, domain, domain->sysdb->ldb_ts,
+                                     sub_filter, attrs, msgs_count, msgs);
 }
 
 /* =Delete-Group-by-Name-OR-gid=========================================== */
@@ -3728,6 +3856,13 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
     } else if (res->count == 0) {
         ret = ENOENT;
         goto done;
+    }
+
+    /* Merge in the timestamps from the fast ts db */
+    ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
+        /* non-fatal */
     }
 
     *_res = talloc_steal(mem_ctx, res);
