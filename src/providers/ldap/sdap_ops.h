@@ -41,4 +41,21 @@ int sdap_search_bases_recv(struct tevent_req *req,
                            size_t *reply_count,
                            struct sysdb_attrs ***reply);
 
+struct tevent_req *
+sdap_search_bases_return_first_send(TALLOC_CTX *mem_ctx,
+                                    struct tevent_context *ev,
+                                    struct sdap_options *opts,
+                                    struct sdap_handle *sh,
+                                    struct sdap_search_base **bases,
+                                    struct sdap_attr_map *map,
+                                    bool allow_paging,
+                                    int timeout,
+                                    const char *filter,
+                                    const char **attrs);
+
+int sdap_search_bases_return_first_recv(struct tevent_req *req,
+                                        TALLOC_CTX *mem_ctx,
+                                        size_t *_reply_count,
+                                        struct sysdb_attrs ***_reply);
+
 #endif /* _SDAP_OPS_H_ */

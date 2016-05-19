@@ -26,7 +26,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/ldap_common.h"
 
-struct sdap_search_bases_state {
+struct sdap_search_bases_ex_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
@@ -36,6 +36,7 @@ struct sdap_search_bases_state {
     int map_num_attrs;
     int timeout;
     bool allow_paging;
+    bool return_first_reply;
 
     size_t base_iter;
     struct sdap_search_base *cur_base;
@@ -45,25 +46,27 @@ struct sdap_search_bases_state {
     struct sysdb_attrs **reply;
 };
 
-static errno_t sdap_search_bases_next_base(struct tevent_req *req);
-static void sdap_search_bases_done(struct tevent_req *subreq);
+static errno_t sdap_search_bases_ex_next_base(struct tevent_req *req);
+static void sdap_search_bases_ex_done(struct tevent_req *subreq);
 
-struct tevent_req *sdap_search_bases_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct sdap_options *opts,
-                                          struct sdap_handle *sh,
-                                          struct sdap_search_base **bases,
-                                          struct sdap_attr_map *map,
-                                          bool allow_paging,
-                                          int timeout,
-                                          const char *filter,
-                                          const char **attrs)
+static struct tevent_req *
+sdap_search_bases_ex_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct sdap_options *opts,
+                          struct sdap_handle *sh,
+                          struct sdap_search_base **bases,
+                          struct sdap_attr_map *map,
+                          bool allow_paging,
+                          bool return_first_reply,
+                          int timeout,
+                          const char *filter,
+                          const char **attrs)
 {
     struct tevent_req *req;
-    struct sdap_search_bases_state *state;
+    struct sdap_search_bases_ex_state *state;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sdap_search_bases_state);
+    req = tevent_req_create(mem_ctx, &state, struct sdap_search_bases_ex_state);
     if (req == NULL) {
         return NULL;
     }
@@ -82,6 +85,7 @@ struct tevent_req *sdap_search_bases_send(TALLOC_CTX *mem_ctx,
     state->filter = filter;
     state->attrs = attrs;
     state->allow_paging = allow_paging;
+    state->return_first_reply = return_first_reply;
 
     state->timeout = timeout == 0
                      ? dp_opt_get_int(opts->basic, SDAP_SEARCH_TIMEOUT)
@@ -108,7 +112,7 @@ struct tevent_req *sdap_search_bases_send(TALLOC_CTX *mem_ctx,
     }
 
     state->base_iter = 0;
-    ret = sdap_search_bases_next_base(req);
+    ret = sdap_search_bases_ex_next_base(req);
     if (ret == EAGAIN) {
         /* asynchronous processing */
         return req;
@@ -125,13 +129,13 @@ immediately:
     return req;
 }
 
-static errno_t sdap_search_bases_next_base(struct tevent_req *req)
+static errno_t sdap_search_bases_ex_next_base(struct tevent_req *req)
 {
-    struct sdap_search_bases_state *state;
+    struct sdap_search_bases_ex_state *state;
     struct tevent_req *subreq;
     char *filter;
 
-    state = tevent_req_data(req, struct sdap_search_bases_state);
+    state = tevent_req_data(req, struct sdap_search_bases_ex_state);
     state->cur_base = state->bases[state->base_iter];
     if (state->cur_base == NULL) {
         return EOK;
@@ -157,23 +161,23 @@ static errno_t sdap_search_bases_next_base(struct tevent_req *req)
         return ENOMEM;
     }
 
-    tevent_req_set_callback(subreq, sdap_search_bases_done, req);
+    tevent_req_set_callback(subreq, sdap_search_bases_ex_done, req);
 
     state->base_iter++;
     return EAGAIN;
 }
 
-static void sdap_search_bases_done(struct tevent_req *subreq)
+static void sdap_search_bases_ex_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
-    struct sdap_search_bases_state *state;
+    struct sdap_search_bases_ex_state *state;
     struct sysdb_attrs **attrs;
     size_t count;
     size_t i;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_search_bases_state);
+    state = tevent_req_data(req, struct sdap_search_bases_ex_state);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Receiving data from base [%s]\n",
                              state->cur_base->basedn);
@@ -187,23 +191,33 @@ static void sdap_search_bases_done(struct tevent_req *subreq)
 
     /* Add rules to result. */
     if (count > 0) {
-        state->reply = talloc_realloc(state, state->reply, struct sysdb_attrs *,
-                                      state->reply_count + count);
-        if (state->reply == NULL) {
-            tevent_req_error(req, ENOMEM);
+        if (state->return_first_reply == false) {
+            /* Merge with previous reply. */
+            state->reply = talloc_realloc(state, state->reply,
+                                          struct sysdb_attrs *,
+                                          state->reply_count + count);
+            if (state->reply == NULL) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+
+            for (i = 0; i < count; i++) {
+                state->reply[state->reply_count + i] = talloc_steal(state->reply,
+                                                                    attrs[i]);
+            }
+
+            state->reply_count += count;
+        } else {
+            /* Return the first successful search result. */
+            state->reply_count = count;
+            state->reply = attrs;
+            tevent_req_done(req);
             return;
         }
-
-        for (i = 0; i < count; i++) {
-            state->reply[state->reply_count + i] = talloc_steal(state->reply,
-                                                                attrs[i]);
-        }
-
-        state->reply_count += count;
     }
 
     /* Try next search base. */
-    ret = sdap_search_bases_next_base(req);
+    ret = sdap_search_bases_ex_next_base(req);
     if (ret == EOK) {
         tevent_req_done(req);
     } else if (ret != EAGAIN) {
@@ -213,13 +227,13 @@ static void sdap_search_bases_done(struct tevent_req *subreq)
     return;
 }
 
-int sdap_search_bases_recv(struct tevent_req *req,
-                              TALLOC_CTX *mem_ctx,
-                              size_t *reply_count,
-                              struct sysdb_attrs ***reply)
+static int sdap_search_bases_ex_recv(struct tevent_req *req,
+                                     TALLOC_CTX *mem_ctx,
+                                     size_t *reply_count,
+                                     struct sysdb_attrs ***reply)
 {
-    struct sdap_search_bases_state *state =
-                tevent_req_data(req, struct sdap_search_bases_state);
+    struct sdap_search_bases_ex_state *state =
+                tevent_req_data(req, struct sdap_search_bases_ex_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -227,4 +241,54 @@ int sdap_search_bases_recv(struct tevent_req *req,
     *reply = talloc_steal(mem_ctx, state->reply);
 
     return EOK;
+}
+
+struct tevent_req *
+sdap_search_bases_send(TALLOC_CTX *mem_ctx,
+                       struct tevent_context *ev,
+                       struct sdap_options *opts,
+                       struct sdap_handle *sh,
+                       struct sdap_search_base **bases,
+                       struct sdap_attr_map *map,
+                       bool allow_paging,
+                       int timeout,
+                       const char *filter,
+                       const char **attrs)
+{
+    return sdap_search_bases_ex_send(mem_ctx, ev, opts, sh, bases, map,
+                                     allow_paging, false, timeout,
+                                     filter, attrs);
+}
+
+int sdap_search_bases_recv(struct tevent_req *req,
+                           TALLOC_CTX *mem_ctx,
+                           size_t *_reply_count,
+                           struct sysdb_attrs ***_reply)
+{
+    return sdap_search_bases_ex_recv(req, mem_ctx, _reply_count, _reply);
+}
+
+struct tevent_req *
+sdap_search_bases_return_first_send(TALLOC_CTX *mem_ctx,
+                                    struct tevent_context *ev,
+                                    struct sdap_options *opts,
+                                    struct sdap_handle *sh,
+                                    struct sdap_search_base **bases,
+                                    struct sdap_attr_map *map,
+                                    bool allow_paging,
+                                    int timeout,
+                                    const char *filter,
+                                    const char **attrs)
+{
+    return sdap_search_bases_ex_send(mem_ctx, ev, opts, sh, bases, map,
+                                     allow_paging, true, timeout,
+                                     filter, attrs);
+}
+
+int sdap_search_bases_return_first_recv(struct tevent_req *req,
+                                        TALLOC_CTX *mem_ctx,
+                                        size_t *_reply_count,
+                                        struct sysdb_attrs ***_reply)
+{
+    return sdap_search_bases_ex_recv(req, mem_ctx, _reply_count, _reply);
 }
