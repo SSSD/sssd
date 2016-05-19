@@ -4082,8 +4082,7 @@ static void gpo_cse_step(struct tevent_req *subreq)
         return;
     }
 
-    close(state->io->write_to_child_fd);
-    state->io->write_to_child_fd = -1;
+    PIPE_FD_CLOSE(state->io->write_to_child_fd);
 
     subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
 
@@ -4113,8 +4112,7 @@ static void gpo_cse_done(struct tevent_req *subreq)
         return;
     }
 
-    close(state->io->read_from_child_fd);
-    state->io->read_from_child_fd = -1;
+    PIPE_FD_CLOSE(state->io->read_from_child_fd);
 
     ret = ad_gpo_parse_gpo_child_response(state->buf, state->len,
                                           &sysvol_gpt_version, &child_result);
@@ -4156,28 +4154,27 @@ int ad_gpo_process_cse_recv(struct tevent_req *req)
 static errno_t
 gpo_fork_child(struct tevent_req *req)
 {
-    int pipefd_to_child[2];
-    int pipefd_from_child[2];
+    int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
     pid_t pid;
-    int ret;
-    errno_t err;
+    errno_t ret;
     struct ad_gpo_process_cse_state *state;
 
     state = tevent_req_data(req, struct ad_gpo_process_cse_state);
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pipe failed [%d][%s].\n", errno, strerror(errno));
-        return err;
+        goto fail;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pipe failed [%d][%s].\n", errno, strerror(errno));
-        return err;
+        goto fail;
     }
 
     pid = fork();
@@ -4193,9 +4190,9 @@ gpo_fork_child(struct tevent_req *req)
     } else if (pid > 0) { /* parent */
         state->child_pid = pid;
         state->io->read_from_child_fd = pipefd_from_child[0];
-        close(pipefd_from_child[1]);
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
         state->io->write_to_child_fd = pipefd_to_child[1];
-        close(pipefd_to_child[0]);
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
         sss_fd_nonblocking(state->io->read_from_child_fd);
         sss_fd_nonblocking(state->io->write_to_child_fd);
 
@@ -4203,16 +4200,21 @@ gpo_fork_child(struct tevent_req *req)
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Could not set up child signal handler\n");
-            return ret;
+            goto fail;
         }
     } else { /* error */
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "fork failed [%d][%s].\n", errno, strerror(errno));
-        return err;
+        goto fail;
     }
 
     return EOK;
+
+fail:
+    PIPE_CLOSE(pipefd_from_child);
+    PIPE_CLOSE(pipefd_to_child);
+    return ret;
 }
 
 struct ad_gpo_get_sd_referral_state {

@@ -123,8 +123,8 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     pid_t child_pid;
     struct timeval tv;
-    int pipefd_to_child[2];
-    int pipefd_from_child[2];
+    int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
     int ret;
     const char **extra_args;
     const char *server_name;
@@ -190,11 +190,11 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     } else if (child_pid > 0) { /* parent */
 
         state->io->read_from_child_fd = pipefd_from_child[0];
-        close(pipefd_from_child[1]);
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
         sss_fd_nonblocking(state->io->read_from_child_fd);
 
         state->io->write_to_child_fd = pipefd_to_child[1];
-        close(pipefd_to_child[0]);
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
         sss_fd_nonblocking(state->io->write_to_child_fd);
 
         /* Set up SIGCHLD handler */
@@ -239,6 +239,8 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
+        PIPE_CLOSE(pipefd_from_child);
+        PIPE_CLOSE(pipefd_to_child);
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }

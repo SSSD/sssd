@@ -752,6 +752,7 @@ nsupdate_child_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct nsupdate_child_state);
     if (req == NULL) {
+        close(pipefd_to_child);
         return NULL;
     }
     state->pipefd_to_child = pipefd_to_child;
@@ -835,8 +836,7 @@ nsupdate_child_stdin_done(struct tevent_req *subreq)
         return;
     }
 
-    close(state->pipefd_to_child);
-    state->pipefd_to_child = -1;
+    PIPE_FD_CLOSE(state->pipefd_to_child);
 
     /* Now either wait for the timeout to fire or the child
      * to finish
@@ -880,6 +880,8 @@ nsupdate_child_recv(struct tevent_req *req, int *child_status)
 
     *child_status = state->child_status;
 
+    PIPE_FD_CLOSE(state->pipefd_to_child);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return ERR_OK;
@@ -903,7 +905,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
                                     char *nsupdate_msg,
                                     bool force_tcp)
 {
-    int pipefd_to_child[2];
+    int pipefd_to_child[2] = PIPE_INIT;
     pid_t child_pid;
     errno_t ret;
     struct tevent_req *req = NULL;
@@ -929,7 +931,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     child_pid = fork();
 
     if (child_pid == 0) { /* child */
-        close(pipefd_to_child[1]);
+        PIPE_FD_CLOSE(pipefd_to_child[1]);
         ret = dup2(pipefd_to_child[0], STDIN_FILENO);
         if (ret == -1) {
             ret = errno;
@@ -962,8 +964,11 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "execv failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     } else if (child_pid > 0) { /* parent */
-        close(pipefd_to_child[0]);
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
 
+        /* the nsupdate_child request now owns the pipefd and is responsible
+         * for closing it
+         */
         subreq = nsupdate_child_send(state, ev, pipefd_to_child[1],
                                      child_pid, nsupdate_msg);
         if (subreq == NULL) {
@@ -981,6 +986,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     ret = EOK;
 done:
     if (ret != EOK) {
+        PIPE_CLOSE(pipefd_to_child);
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }
