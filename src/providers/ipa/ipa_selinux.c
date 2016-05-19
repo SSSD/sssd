@@ -1023,8 +1023,8 @@ static errno_t selinux_child_create_buffer(struct selinux_child_state *state)
 
 static errno_t selinux_fork_child(struct selinux_child_state *state)
 {
-    int pipefd_to_child[2];
-    int pipefd_from_child[2];
+    int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
     pid_t pid;
     errno_t ret;
 
@@ -1033,7 +1033,7 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pipe failed [%d][%s].\n", errno, sss_strerror(errno));
-        return ret;
+        goto fail;
     }
 
     ret = pipe(pipefd_to_child);
@@ -1041,7 +1041,7 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pipe failed [%d][%s].\n", errno, sss_strerror(errno));
-        return ret;
+        goto fail;
     }
 
     pid = fork();
@@ -1055,9 +1055,9 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
         DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec selinux_child\n");
     } else if (pid > 0) { /* parent */
         state->io->read_from_child_fd = pipefd_from_child[0];
-        close(pipefd_from_child[1]);
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
         state->io->write_to_child_fd = pipefd_to_child[1];
-        close(pipefd_to_child[0]);
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
         sss_fd_nonblocking(state->io->read_from_child_fd);
         sss_fd_nonblocking(state->io->write_to_child_fd);
 
@@ -1065,16 +1065,21 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Could not set up child signal handler\n");
-            return ret;
+            goto fail;
         }
     } else { /* error */
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "fork failed [%d][%s].\n", errno, sss_strerror(errno));
-        return ret;
+        goto fail;
     }
 
     return EOK;
+
+fail:
+    PIPE_CLOSE(pipefd_from_child);
+    PIPE_CLOSE(pipefd_to_child);
+    return ret;
 }
 
 static void selinux_child_step(struct tevent_req *subreq)
@@ -1094,8 +1099,7 @@ static void selinux_child_step(struct tevent_req *subreq)
         return;
     }
 
-    close(state->io->write_to_child_fd);
-    state->io->write_to_child_fd = -1;
+    PIPE_FD_CLOSE(state->io->write_to_child_fd);
 
     subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
     if (subreq == NULL) {
@@ -1124,8 +1128,7 @@ static void selinux_child_done(struct tevent_req *subreq)
         return;
     }
 
-    close(state->io->read_from_child_fd);
-    state->io->read_from_child_fd = -1;
+    PIPE_FD_CLOSE(state->io->read_from_child_fd);
 
     ret = selinux_child_parse_response(buf, len, &child_result);
     if (ret != EOK) {

@@ -72,25 +72,24 @@ static void sdap_close_fd(int *fd)
 static errno_t sdap_fork_child(struct tevent_context *ev,
                                struct sdap_child *child)
 {
-    int pipefd_to_child[2];
-    int pipefd_from_child[2];
+    int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
     pid_t pid;
-    int ret;
-    errno_t err;
+    errno_t ret;
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", err, strerror(err));
-        return err;
+              "pipe failed [%d][%s].\n", ret, strerror(ret));
+        goto fail;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "pipe failed [%d][%s].\n", err, strerror(err));
-        return err;
+              "pipe failed [%d][%s].\n", ret, strerror(ret));
+        goto fail;
     }
 
     pid = fork();
@@ -105,25 +104,30 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
     } else if (pid > 0) { /* parent */
         child->pid = pid;
         child->io->read_from_child_fd = pipefd_from_child[0];
-        close(pipefd_from_child[1]);
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
         child->io->write_to_child_fd = pipefd_to_child[1];
-        close(pipefd_to_child[0]);
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
         sss_fd_nonblocking(child->io->read_from_child_fd);
         sss_fd_nonblocking(child->io->write_to_child_fd);
 
         ret = child_handler_setup(ev, pid, NULL, NULL, NULL);
         if (ret != EOK) {
-            return ret;
+            goto fail;
         }
 
     } else { /* error */
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "fork failed [%d][%s].\n", err, strerror(err));
-        return err;
+              "fork failed [%d][%s].\n", ret, strerror(ret));
+        goto fail;
     }
 
     return EOK;
+
+fail:
+    PIPE_CLOSE(pipefd_from_child);
+    PIPE_CLOSE(pipefd_to_child);
+    return ret;
 }
 
 static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
