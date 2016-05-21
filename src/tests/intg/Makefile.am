@@ -21,6 +21,10 @@ config.py: config.py.m4
 	   -D "pidpath=\`$(pidpath)'" \
 	   -D "logpath=\`$(logpath)'" \
 	   -D "mcpath=\`$(mcpath)'" \
+	   -D "py2execdir=\`$(py2execdir)'" \
+	   -D "py3execdir=\`$(py3execdir)'" \
+	   -D "python2dir=\`$(python2dir)'" \
+	   -D "python3dir=\`$(python3dir)'" \
 	   $< > $@
 
 root:
