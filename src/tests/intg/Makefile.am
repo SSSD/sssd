@@ -31,6 +31,10 @@ config.py: config.py.m4
 	   -D "secdbpath=\`$(secdbpath)'" \
 	   -D "libexecpath=\`$(libexecdir)'" \
 	   -D "runstatedir=\`$(runstatedir)'" \
+	   -D "py2execdir=\`$(py2execdir)'" \
+	   -D "py3execdir=\`$(py3execdir)'" \
+	   -D "python2dir=\`$(python2dir)'" \
+	   -D "python3dir=\`$(python3dir)'" \
 	   $< > $@
 
 root:
