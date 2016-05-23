@@ -194,6 +194,18 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
  */
 bool is_ts_ldb_dn(struct ldb_dn *dn);
 
+/* Returns true if the attrname is an attribute we store to the timestamp
+ * cache, false if it's a sysdb-only attribute
+ */
+bool is_ts_cache_attr(const char *attrname);
+
+/* Returns a subset of attrs that only contains the attributes we store to
+ * the timestamps cache. Useful in generic functions that set some attributes
+ * and we want to mirror that change in the timestamps cache
+ */
+struct sysdb_attrs *sysdb_filter_ts_attrs(TALLOC_CTX *mem_ctx,
+                                          struct sysdb_attrs *attrs);
+
 /* Given a ldb_result found in the timestamp cache, merge in the
  * corresponding full attributes from the sysdb cache. The new
  * attributes are allocated on the messages in the ldb_result.
@@ -238,5 +250,18 @@ int sysdb_search_ts_groups(TALLOC_CTX *mem_ctx,
                            const char **attrs,
                            size_t *msgs_count,
                            struct ldb_message ***msgs);
+
+/* Compares the modifyTimestamp attribute between old_entry and
+ * new_entry. Returns true if they differ (or either entry is missing
+ * the attribute) and false if the attribute is the same
+ */
+bool sysdb_msg_attrs_modts_differs(struct ldb_message *old_entry,
+                                   struct sysdb_attrs *new_entry);
+
+/* Given a sysdb_attrs pointer, returns a corresponding ldb_message */
+struct ldb_message *sysdb_attrs2msg(TALLOC_CTX *mem_ctx,
+                                    struct ldb_dn *entry_dn,
+                                    struct sysdb_attrs *attrs,
+                                    int mod_op);
 
 #endif /* __INT_SYS_DB_H__ */

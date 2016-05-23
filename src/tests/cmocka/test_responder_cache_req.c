@@ -483,6 +483,7 @@ static int test_multi_domain_setup(void **state)
     ret = sss_ncache_init(test_ctx, 10, 0, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
+    reset_ldb_errstrings(test_ctx->tctx->dom);
     check_leaks_push(test_ctx);
 
     return 0;
@@ -497,6 +498,7 @@ static int test_multi_domain_teardown(void **state)
     talloc_zfree(test_ctx->result);
     talloc_zfree(test_ctx->name);
 
+    reset_ldb_errstrings(test_ctx->tctx->dom);
     assert_true(check_leaks_pop(test_ctx));
     talloc_zfree(test_ctx);
     test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);

@@ -2293,3 +2293,50 @@ struct ldb_result *sss_merge_ldb_results(struct ldb_result *sysdb_res,
     sysdb_res->count = count;
     return sysdb_res;
 }
+
+bool is_ts_cache_attr(const char *attrname)
+{
+    size_t i;
+
+    for (i = 0; sysdb_ts_cache_attrs[i] != NULL; i++) {
+        if (strcmp(attrname, sysdb_ts_cache_attrs[i]) == 0) {
+            break;
+        }
+    }
+
+    if (sysdb_ts_cache_attrs[i] == NULL) {
+        return false;
+    }
+
+    return true;
+}
+
+struct sysdb_attrs *sysdb_filter_ts_attrs(TALLOC_CTX *mem_ctx,
+                                          struct sysdb_attrs *attrs)
+{
+    struct sysdb_attrs *ts_attrs;
+    int ti = 0;
+
+    ts_attrs = sysdb_new_attrs(mem_ctx);
+    if (ts_attrs == NULL) {
+        return NULL;
+    }
+
+    ts_attrs->a = talloc_zero_array(ts_attrs,
+                                    struct ldb_message_element,
+                                    attrs->num);
+    if (ts_attrs->a == NULL) {
+        talloc_free(ts_attrs);
+        return NULL;
+    }
+
+    for (int i = 0; i < attrs->num; i++) {
+        if (is_ts_cache_attr(attrs->a[i].name)) {
+            ts_attrs->a[ti] = attrs->a[i];
+            ti++;
+        }
+    }
+    ts_attrs->num = ti;
+
+    return ts_attrs;
+}

@@ -1524,6 +1524,42 @@ errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
     return EOK;
 }
 
+struct ldb_message *sysdb_attrs2msg(TALLOC_CTX *mem_ctx,
+                                    struct ldb_dn *entry_dn,
+                                    struct sysdb_attrs *attrs,
+                                    int mod_op)
+{
+    struct ldb_message *msg;
+    errno_t ret;
+
+    msg = ldb_msg_new(mem_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = entry_dn;
+
+    msg->elements = talloc_array(msg, struct ldb_message_element, attrs->num);
+    if (msg->elements == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (int i = 0; i < attrs->num; i++) {
+        msg->elements[i] = attrs->a[i];
+        msg->elements[i].flags = mod_op;
+    }
+    msg->num_elements = attrs->num;
+
+    ret = EOK;
+done:
+    if (ret != EOK) {
+        talloc_zfree(msg);
+    }
+    return msg;
+}
+
 int sysdb_compare_usn(const char *a, const char *b)
 {
     size_t len_a;
@@ -1714,4 +1750,44 @@ bool is_ts_ldb_dn(struct ldb_dn *dn)
     }
 
     return false;
+}
+
+bool sysdb_msg_attrs_modts_differs(struct ldb_message *old_entry,
+                                   struct sysdb_attrs *new_entry)
+{
+    const char *old_entry_ts_attr = NULL;
+    const char *new_entry_ts_attr = NULL;
+    errno_t ret;
+
+    old_entry_ts_attr = ldb_msg_find_attr_as_string(old_entry,
+                                                    SYSDB_ORIG_MODSTAMP,
+                                                    NULL);
+    if (old_entry_ts_attr == NULL) {
+        /* we didn't know the originalModifyTimestamp earlier. Regardless
+         * of whether the new_entry has the timestamp, we should do
+         * a comparison of the attributes
+         */
+        return true;
+    }
+
+    if (new_entry == NULL) {
+        return false;
+    }
+
+    ret = sysdb_attrs_get_string(new_entry, SYSDB_ORIG_MODSTAMP,
+                                 &new_entry_ts_attr);
+    if (ret != EOK) {
+        /* Nothing to compare against in the new entry either, do
+         * a comparison of the attributes
+         */
+        return true;
+    }
+
+    if (old_entry_ts_attr != NULL
+            && new_entry_ts_attr != NULL
+            && strcmp(old_entry_ts_attr, new_entry_ts_attr) == 0) {
+        return false;
+    }
+
+    return true;
 }

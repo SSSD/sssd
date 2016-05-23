@@ -314,6 +314,9 @@ struct range_info {
 /* These attributes are stored in the timestamp cache */
 extern const char *sysdb_ts_cache_attrs[];
 
+/* These attributes are stored in the timestamp cache */
+extern const char *sysdb_ts_cache_attrs[];
+
 /* values are copied in the structure, allocated on "attrs" */
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val);

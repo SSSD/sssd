@@ -155,6 +155,7 @@ static int test_sysdb_teardown(void **state)
 
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
 
+    reset_ldb_errstrings(test_ctx->tctx->dom);
     assert_true(check_leaks_pop(test_ctx));
     talloc_zfree(test_ctx);
     assert_true(leak_check_teardown());
