@@ -82,6 +82,8 @@ sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
         sbus_request_finish(dbus_req, NULL);
         break;
     default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Handler failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         dbus_error_init(&error);
         dbus_set_error_const(&error, DBUS_ERROR_FAILED, INTERNAL_ERROR);
         sbus_request_fail_and_finish(dbus_req, &error);
