@@ -27,19 +27,6 @@
 #include "util/cert.h"
 #include <time.h>
 
-int add_string(struct ldb_message *msg, int flags,
-               const char *attr, const char *value)
-{
-    int ret;
-
-    ret = ldb_msg_add_empty(msg, attr, flags, NULL);
-    if (ret == LDB_SUCCESS) {
-        ret = ldb_msg_add_string(msg, attr, value);
-        if (ret == LDB_SUCCESS) return EOK;
-    }
-    return ENOMEM;
-}
-
 int add_ulong(struct ldb_message *msg, int flags,
               const char *attr, unsigned long value)
 {
