@@ -2142,3 +2142,16 @@ int sysdb_delete_string(struct ldb_message *msg,
 {
     return sysdb_ldb_msg_string_helper(msg, LDB_FLAG_MOD_DELETE, attr, value);
 }
+
+int add_ulong(struct ldb_message *msg, int flags,
+              const char *attr, unsigned long value)
+{
+    int ret;
+
+    ret = ldb_msg_add_empty(msg, attr, flags, NULL);
+    if (ret == LDB_SUCCESS) {
+        ret = ldb_msg_add_fmt(msg, attr, "%lu", value);
+        if (ret == LDB_SUCCESS) return EOK;
+    }
+    return ENOMEM;
+}
