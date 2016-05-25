@@ -460,13 +460,11 @@ sysdb_svc_add(TALLOC_CTX *mem_ctx,
     }
 
     /* Objectclass */
-    ret = add_string(msg, LDB_FLAG_MOD_ADD,
-                     SYSDB_OBJECTCLASS, SYSDB_SVC_CLASS);
+    ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_SVC_CLASS);
     if (ret != EOK) goto done;
 
     /* Set the primary name */
-    ret = add_string(msg, LDB_FLAG_MOD_ADD,
-                     SYSDB_NAME, primary_name);
+    ret = sysdb_add_string(msg, SYSDB_NAME, primary_name);
     if (ret != EOK) goto done;
 
     /* Set the port number */
@@ -623,8 +621,7 @@ sysdb_svc_remove_alias(struct sysdb_ctx *sysdb,
 
     msg->dn = dn;
 
-    ret = add_string(msg, SYSDB_MOD_DEL,
-                     SYSDB_NAME_ALIAS, alias);
+    ret = sysdb_delete_string(msg, SYSDB_NAME_ALIAS, alias);
     if (ret != EOK) goto done;
 
     lret = ldb_modify(sysdb->ldb, msg);

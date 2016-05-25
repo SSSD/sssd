@@ -198,13 +198,12 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
         goto done;
     }
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS,
-                     SYSDB_ID_RANGE_CLASS);
+    ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_ID_RANGE_CLASS);
     if (ret) goto done;
 
     if (range->trusted_dom_sid == NULL && range->secondary_base_rid != 0) {
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS,
-                         SYSDB_DOMAIN_ID_RANGE_CLASS);
+        ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS,
+                               SYSDB_DOMAIN_ID_RANGE_CLASS);
         if (ret) goto done;
 
         ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_SECONDARY_BASE_RID,
@@ -212,16 +211,15 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
         if (ret) goto done;
     } else if (range->trusted_dom_sid != NULL &&
                range->secondary_base_rid == 0) {
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS,
-                         SYSDB_TRUSTED_AD_DOMAIN_RANGE_CLASS);
+        ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS,
+                               SYSDB_TRUSTED_AD_DOMAIN_RANGE_CLASS);
         if (ret) goto done;
 
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_DOMAIN_ID,
-                         range->trusted_dom_sid);
+        ret = sysdb_add_string(msg, SYSDB_DOMAIN_ID, range->trusted_dom_sid);
         if (ret) goto done;
     }
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, range->name);
+    ret = sysdb_add_string(msg, SYSDB_NAME, range->name);
     if (ret) goto done;
 
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_BASE_ID,
@@ -240,8 +238,7 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
                     (unsigned long)time(NULL));
     if (ret) goto done;
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_ID_RANGE_TYPE,
-                     range->range_type);
+    ret = sysdb_add_string(msg, SYSDB_ID_RANGE_TYPE, range->range_type);
     if (ret) goto done;
 
     ret = ldb_add(sysdb->ldb, msg);

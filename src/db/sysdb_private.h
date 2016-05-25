@@ -124,8 +124,12 @@ int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_15(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_16(struct sysdb_ctx *sysdb, const char **ver);
 
-int add_string(struct ldb_message *msg, int flags,
-               const char *attr, const char *value);
+int sysdb_add_string(struct ldb_message *msg,
+                     const char *attr, const char *value);
+int sysdb_replace_string(struct ldb_message *msg,
+                         const char *attr, const char *value);
+int sysdb_delete_string(struct ldb_message *msg,
+                        const char *attr, const char *value);
 int add_ulong(struct ldb_message *msg, int flags,
               const char *attr, unsigned long value);
 

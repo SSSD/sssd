@@ -1037,10 +1037,10 @@ int sysdb_add_basic_user(struct sss_domain_info *domain,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS, SYSDB_USER_CLASS);
+    ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_USER_CLASS);
     if (ret) goto done;
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
+    ret = sysdb_add_string(msg, SYSDB_NAME, name);
     if (ret) goto done;
 
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_UIDNUM, (unsigned long)uid);
@@ -1054,19 +1054,19 @@ int sysdb_add_basic_user(struct sss_domain_info *domain,
      * admins to decide if they want to keep it in sync if they change
      * one of the 2 */
     if (gecos && *gecos) {
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_FULLNAME, gecos);
+        ret = sysdb_add_string(msg, SYSDB_FULLNAME, gecos);
         if (ret) goto done;
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_GECOS, gecos);
+        ret = sysdb_add_string(msg, SYSDB_GECOS, gecos);
         if (ret) goto done;
     }
 
     if (homedir && *homedir) {
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_HOMEDIR, homedir);
+        ret = sysdb_add_string(msg, SYSDB_HOMEDIR, homedir);
         if (ret) goto done;
     }
 
     if (shell && *shell) {
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_SHELL, shell);
+        ret = sysdb_add_string(msg, SYSDB_SHELL, shell);
         if (ret) goto done;
     }
 
@@ -1137,11 +1137,11 @@ sysdb_remove_ghost_from_group(struct sss_domain_info *dom,
     }
 
     if (add_member) {
-        ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_MEMBER, userdn);
+        ret = sysdb_add_string(msg, SYSDB_MEMBER, userdn);
         if (ret) goto done;
     }
 
-    ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_GHOST, name);
+    ret = sysdb_delete_string(msg, SYSDB_GHOST, name);
     if (ret) goto done;
 
     /* Delete aliases from the ghost attribute as well */
@@ -1452,10 +1452,10 @@ int sysdb_add_basic_group(struct sss_domain_info *domain,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS);
+    ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS);
     if (ret) goto done;
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
+    ret = sysdb_add_string(msg, SYSDB_NAME, name);
     if (ret) goto done;
 
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_GIDNUM, (unsigned long)gid);
@@ -1765,16 +1765,14 @@ int sysdb_add_basic_netgroup(struct sss_domain_info *domain,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD,
-                     SYSDB_OBJECTCLASS, SYSDB_NETGROUP_CLASS);
+    ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_NETGROUP_CLASS);
     if (ret) goto done;
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
+    ret = sysdb_add_string(msg, SYSDB_NAME, name);
     if (ret) goto done;
 
     if (description && *description) {
-        ret = add_string(msg, LDB_FLAG_MOD_ADD,
-                         SYSDB_DESCRIPTION, description);
+        ret = sysdb_add_string(msg, SYSDB_DESCRIPTION, description);
         if (ret) goto done;
     }
 
@@ -2794,7 +2792,7 @@ int sysdb_delete_user(struct sss_domain_info *domain,
 
             msg->dn = msgs[i]->dn;
 
-            ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_GHOST, name);
+            ret = sysdb_delete_string(msg, SYSDB_GHOST, name);
             if (ret) goto fail;
 
             ret = ldb_modify(domain->sysdb->ldb, msg);

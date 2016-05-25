@@ -2112,8 +2112,8 @@ done:
     return EOK;
 }
 
-int add_string(struct ldb_message *msg, int flags,
-               const char *attr, const char *value)
+static int sysdb_ldb_msg_string_helper(struct ldb_message *msg, int flags,
+                                       const char *attr, const char *value)
 {
     int ret;
 
@@ -2123,4 +2123,22 @@ int add_string(struct ldb_message *msg, int flags,
         if (ret == LDB_SUCCESS) return EOK;
     }
     return ENOMEM;
+}
+
+int sysdb_add_string(struct ldb_message *msg,
+                     const char *attr, const char *value)
+{
+    return sysdb_ldb_msg_string_helper(msg, LDB_FLAG_MOD_ADD, attr, value);
+}
+
+int sysdb_replace_string(struct ldb_message *msg,
+                         const char *attr, const char *value)
+{
+    return sysdb_ldb_msg_string_helper(msg, LDB_FLAG_MOD_REPLACE, attr, value);
+}
+
+int sysdb_delete_string(struct ldb_message *msg,
+                        const char *attr, const char *value)
+{
+    return sysdb_ldb_msg_string_helper(msg, LDB_FLAG_MOD_DELETE, attr, value);
 }
