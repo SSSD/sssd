@@ -219,8 +219,7 @@ struct pam_check_cert_state {
     struct tevent_timer *timeout_handler;
     struct tevent_context *ev;
 
-    int write_to_child_fd;
-    int read_from_child_fd;
+    struct child_io_fds *io;
     char *cert;
     char *token_name;
 };
@@ -245,8 +244,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct pam_check_cert_state *state;
     pid_t child_pid;
     struct timeval tv;
-    int pipefd_to_child[2];
-    int pipefd_from_child[2];
+    int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
     const char *extra_args[7] = { NULL };
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
@@ -295,10 +294,17 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->child_status = EFAULT;
-    state->read_from_child_fd = -1;
-    state->write_to_child_fd = -1;
     state->cert = NULL;
     state->token_name = NULL;
+    state->io = talloc(state, struct child_io_fds);
+    if (state->io == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    state->io->write_to_child_fd = -1;
+    state->io->read_from_child_fd = -1;
+    talloc_set_destructor((void *) state->io, child_io_destructor);
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
@@ -329,13 +335,13 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec p11 child\n");
     } else if (child_pid > 0) { /* parent */
 
-        state->read_from_child_fd = pipefd_from_child[0];
-        close(pipefd_from_child[1]);
-        sss_fd_nonblocking(state->read_from_child_fd);
+        state->io->read_from_child_fd = pipefd_from_child[0];
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
+        sss_fd_nonblocking(state->io->read_from_child_fd);
 
-        state->write_to_child_fd = pipefd_to_child[1];
-        close(pipefd_to_child[0]);
-        sss_fd_nonblocking(state->write_to_child_fd);
+        state->io->write_to_child_fd = pipefd_to_child[1];
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
+        sss_fd_nonblocking(state->io->write_to_child_fd);
 
         /* Set up SIGCHLD handler */
         ret = child_handler_setup(ev, child_pid, NULL, NULL, &state->child_ctx);
@@ -367,7 +373,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
 
         if (write_buf_len != 0) {
             subreq = write_pipe_send(state, ev, write_buf, write_buf_len,
-                                     state->write_to_child_fd);
+                                     state->io->write_to_child_fd);
             if (subreq == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "write_pipe_send failed.\n");
                 ret = ERR_P11_CHILD;
@@ -375,7 +381,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
             }
             tevent_req_set_callback(subreq, p11_child_write_done, req);
         } else {
-            subreq = read_pipe_send(state, ev, state->read_from_child_fd);
+            subreq = read_pipe_send(state, ev, state->io->read_from_child_fd);
             if (subreq == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "read_pipe_send failed.\n");
                 ret = ERR_P11_CHILD;
@@ -398,6 +404,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
+        PIPE_CLOSE(pipefd_from_child);
+        PIPE_CLOSE(pipefd_to_child);
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }
@@ -419,10 +427,9 @@ static void p11_child_write_done(struct tevent_req *subreq)
         return;
     }
 
-    close(state->write_to_child_fd);
-    state->write_to_child_fd = -1;
+    PIPE_FD_CLOSE(state->io->write_to_child_fd);
 
-    subreq = read_pipe_send(state, state->ev, state->read_from_child_fd);
+    subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -449,8 +456,7 @@ static void p11_child_done(struct tevent_req *subreq)
         return;
     }
 
-    close(state->read_from_child_fd);
-    state->read_from_child_fd = -1;
+    PIPE_FD_CLOSE(state->io->read_from_child_fd);
 
     ret = parse_p11_child_response(state, buf, buf_len, &state->cert,
                                    &state->token_name);

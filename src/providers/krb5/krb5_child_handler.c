@@ -275,11 +275,10 @@ static errno_t activate_child_timeout_handler(struct tevent_req *req,
 
 static errno_t fork_child(struct tevent_req *req)
 {
-    int pipefd_to_child[2];
-    int pipefd_from_child[2];
+    int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
     pid_t pid;
-    int ret;
-    errno_t err;
+    errno_t ret;
     struct handle_child_state *state = tevent_req_data(req,
                                                      struct handle_child_state);
     const char *k5c_extra_args[3];
@@ -293,17 +292,17 @@ static errno_t fork_child(struct tevent_req *req)
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pipe failed [%d][%s].\n", errno, strerror(errno));
-        return err;
+        goto fail;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pipe failed [%d][%s].\n", errno, strerror(errno));
-        return err;
+        goto fail;
     }
 
     pid = fork();
@@ -319,9 +318,9 @@ static errno_t fork_child(struct tevent_req *req)
     } else if (pid > 0) { /* parent */
         state->child_pid = pid;
         state->io->read_from_child_fd = pipefd_from_child[0];
-        close(pipefd_from_child[1]);
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
         state->io->write_to_child_fd = pipefd_to_child[1];
-        close(pipefd_to_child[0]);
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
         sss_fd_nonblocking(state->io->read_from_child_fd);
         sss_fd_nonblocking(state->io->write_to_child_fd);
 
@@ -329,24 +328,29 @@ static errno_t fork_child(struct tevent_req *req)
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Could not set up child signal handler\n");
-            return ret;
+            goto fail;
         }
 
-        err = activate_child_timeout_handler(req, state->ev,
+        ret = activate_child_timeout_handler(req, state->ev,
                   dp_opt_get_int(state->kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
-        if (err != EOK) {
+        if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "activate_child_timeout_handler failed.\n");
         }
 
     } else { /* error */
-        err = errno;
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "fork failed [%d][%s].\n", errno, strerror(errno));
-        return err;
+              "fork failed [%d][%s].\n", errno, strerror(ret));
+        goto fail;
     }
 
     return EOK;
+
+fail:
+    PIPE_CLOSE(pipefd_from_child);
+    PIPE_CLOSE(pipefd_to_child);
+    return ret;
 }
 
 static void handle_child_step(struct tevent_req *subreq);
@@ -426,8 +430,7 @@ static void handle_child_step(struct tevent_req *subreq)
         return;
     }
 
-    close(state->io->write_to_child_fd);
-    state->io->write_to_child_fd = -1;
+    PIPE_FD_CLOSE(state->io->write_to_child_fd);
 
     subreq = read_pipe_send(state, state->ev, state->io->read_from_child_fd);
     if (!subreq) {
@@ -454,8 +457,7 @@ static void handle_child_done(struct tevent_req *subreq)
         return;
     }
 
-    close(state->io->read_from_child_fd);
-    state->io->read_from_child_fd = -1;
+    PIPE_FD_CLOSE(state->io->read_from_child_fd);
 
     tevent_req_done(req);
     return;

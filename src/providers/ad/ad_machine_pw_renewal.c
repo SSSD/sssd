@@ -101,8 +101,7 @@ struct renewal_state {
     struct tevent_timer *timeout_handler;
     struct tevent_context *ev;
 
-    int write_to_child_fd;
-    int read_from_child_fd;
+    struct child_io_fds *io;
 };
 
 static void ad_machine_account_password_renewal_done(struct tevent_req *subreq);
@@ -124,8 +123,8 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     pid_t child_pid;
     struct timeval tv;
-    int pipefd_to_child[2];
-    int pipefd_from_child[2];
+    int pipefd_to_child[2] = PIPE_INIT;
+    int pipefd_from_child[2] = PIPE_INIT;
     int ret;
     const char **extra_args;
     const char *server_name;
@@ -140,8 +139,15 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->child_status = EFAULT;
-    state->read_from_child_fd = -1;
-    state->write_to_child_fd = -1;
+    state->io = talloc(state, struct child_io_fds);
+    if (state->io == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    state->io->write_to_child_fd = -1;
+    state->io->read_from_child_fd = -1;
+    talloc_set_destructor((void *) state->io, child_io_destructor);
 
     server_name = be_fo_get_active_server_name(be_ctx, AD_SERVICE_NAME);
     talloc_zfree(renewal_data->extra_args[0]);
@@ -183,13 +189,13 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec renewal child\n");
     } else if (child_pid > 0) { /* parent */
 
-        state->read_from_child_fd = pipefd_from_child[0];
-        close(pipefd_from_child[1]);
-        sss_fd_nonblocking(state->read_from_child_fd);
+        state->io->read_from_child_fd = pipefd_from_child[0];
+        PIPE_FD_CLOSE(pipefd_from_child[1]);
+        sss_fd_nonblocking(state->io->read_from_child_fd);
 
-        state->write_to_child_fd = pipefd_to_child[1];
-        close(pipefd_to_child[0]);
-        sss_fd_nonblocking(state->write_to_child_fd);
+        state->io->write_to_child_fd = pipefd_to_child[1];
+        PIPE_FD_CLOSE(pipefd_to_child[0]);
+        sss_fd_nonblocking(state->io->write_to_child_fd);
 
         /* Set up SIGCHLD handler */
         ret = child_handler_setup(ev, child_pid, NULL, NULL, &state->child_ctx);
@@ -210,7 +216,7 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        subreq = read_pipe_send(state, ev, state->read_from_child_fd);
+        subreq = read_pipe_send(state, ev, state->io->read_from_child_fd);
         if (subreq == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "read_pipe_send failed.\n");
             ret = ERR_RENEWAL_CHILD;
@@ -233,6 +239,8 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
+        PIPE_CLOSE(pipefd_from_child);
+        PIPE_CLOSE(pipefd_to_child);
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }
@@ -261,10 +269,6 @@ static void ad_machine_account_password_renewal_done(struct tevent_req *subreq)
                              "%.*s"
                              "---adcli output end---\n",
                              (int) buf_len, buf);
-
-    close(state->read_from_child_fd);
-    state->read_from_child_fd = -1;
-
 
     tevent_req_done(req);
     return;
