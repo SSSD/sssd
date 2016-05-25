@@ -130,8 +130,12 @@ int sysdb_replace_string(struct ldb_message *msg,
                          const char *attr, const char *value);
 int sysdb_delete_string(struct ldb_message *msg,
                         const char *attr, const char *value);
-int add_ulong(struct ldb_message *msg, int flags,
-              const char *attr, unsigned long value);
+int sysdb_add_ulong(struct ldb_message *msg,
+                    const char *attr, unsigned long value);
+int sysdb_replace_ulong(struct ldb_message *msg,
+                        const char *attr, unsigned long value);
+int sysdb_delete_ulong(struct ldb_message *msg,
+                       const char *attr, unsigned long value);
 
 /* The utility function to create a subdomain sss_domain_info object is handy
  * for unit tests, so it should be available in a header, but not a public util

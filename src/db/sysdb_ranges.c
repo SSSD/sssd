@@ -206,8 +206,8 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
                                SYSDB_DOMAIN_ID_RANGE_CLASS);
         if (ret) goto done;
 
-        ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_SECONDARY_BASE_RID,
-                        (unsigned long) range->secondary_base_rid);
+        ret = sysdb_add_ulong(msg, SYSDB_SECONDARY_BASE_RID,
+                              (unsigned long) range->secondary_base_rid);
         if (ret) goto done;
     } else if (range->trusted_dom_sid != NULL &&
                range->secondary_base_rid == 0) {
@@ -222,20 +222,18 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
     ret = sysdb_add_string(msg, SYSDB_NAME, range->name);
     if (ret) goto done;
 
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_BASE_ID,
-                    (unsigned long) range->base_id);
+    ret = sysdb_add_ulong(msg, SYSDB_BASE_ID, (unsigned long) range->base_id);
     if (ret) goto done;
 
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_ID_RANGE_SIZE,
-                    (unsigned long) range->id_range_size);
+    ret = sysdb_add_ulong(msg, SYSDB_ID_RANGE_SIZE,
+                          (unsigned long) range->id_range_size);
     if (ret) goto done;
 
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_BASE_RID,
-                    (unsigned long) range->base_rid);
+    ret = sysdb_add_ulong(msg, SYSDB_BASE_RID,
+                          (unsigned long) range->base_rid);
     if (ret) goto done;
 
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
-                    (unsigned long)time(NULL));
+    ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long)time(NULL));
     if (ret) goto done;
 
     ret = sysdb_add_string(msg, SYSDB_ID_RANGE_TYPE, range->range_type);

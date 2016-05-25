@@ -468,8 +468,7 @@ sysdb_svc_add(TALLOC_CTX *mem_ctx,
     if (ret != EOK) goto done;
 
     /* Set the port number */
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD,
-                    SYSDB_SVC_PORT, port);
+    ret = sysdb_add_ulong(msg, SYSDB_SVC_PORT, port);
     if (ret != EOK) goto done;
 
     /* If this service has any aliases, include them */
@@ -506,8 +505,7 @@ sysdb_svc_add(TALLOC_CTX *mem_ctx,
     }
 
     /* creation time */
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
-                    (unsigned long)time(NULL));
+    ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long)time(NULL));
     if (ret) goto done;
 
     lret = ldb_add(domain->sysdb->ldb, msg);
@@ -551,8 +549,7 @@ sysdb_svc_update(struct sysdb_ctx *sysdb,
     msg->dn = dn;
 
     /* Update the port */
-    ret = add_ulong(msg, SYSDB_MOD_REP,
-                    SYSDB_SVC_PORT, port);
+    ret = sysdb_replace_ulong(msg, SYSDB_SVC_PORT, port);
     if (ret != EOK) goto done;
 
     if (aliases && aliases[0]) {

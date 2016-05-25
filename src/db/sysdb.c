@@ -2143,8 +2143,8 @@ int sysdb_delete_string(struct ldb_message *msg,
     return sysdb_ldb_msg_string_helper(msg, LDB_FLAG_MOD_DELETE, attr, value);
 }
 
-int add_ulong(struct ldb_message *msg, int flags,
-              const char *attr, unsigned long value)
+static int sysdb_ldb_msg_ulong_helper(struct ldb_message *msg, int flags,
+                                      const char *attr, unsigned long value)
 {
     int ret;
 
@@ -2154,4 +2154,22 @@ int add_ulong(struct ldb_message *msg, int flags,
         if (ret == LDB_SUCCESS) return EOK;
     }
     return ENOMEM;
+}
+
+int sysdb_add_ulong(struct ldb_message *msg,
+                    const char *attr, unsigned long value)
+{
+    return sysdb_ldb_msg_ulong_helper(msg, LDB_FLAG_MOD_ADD, attr, value);
+}
+
+int sysdb_replace_ulong(struct ldb_message *msg,
+                        const char *attr, unsigned long value)
+{
+    return sysdb_ldb_msg_ulong_helper(msg, LDB_FLAG_MOD_REPLACE, attr, value);
+}
+
+int sysdb_delete_ulong(struct ldb_message *msg,
+                       const char *attr, unsigned long value)
+{
+    return sysdb_ldb_msg_ulong_helper(msg, LDB_FLAG_MOD_DELETE, attr, value);
 }

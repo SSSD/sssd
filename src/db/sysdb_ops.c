@@ -963,8 +963,7 @@ int sysdb_get_new_id(struct sss_domain_info *domain,
     }
     msg->dn = base_dn;
 
-    ret = add_ulong(msg, LDB_FLAG_MOD_REPLACE,
-                    SYSDB_NEXTID, new_id + 1);
+    ret = sysdb_replace_ulong(msg, SYSDB_NEXTID, new_id + 1);
     if (ret) {
         goto done;
     }
@@ -1030,10 +1029,10 @@ int sysdb_add_basic_user(struct sss_domain_info *domain,
     ret = sysdb_add_string(msg, SYSDB_NAME, name);
     if (ret) goto done;
 
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_UIDNUM, (unsigned long)uid);
+    ret = sysdb_add_ulong(msg, SYSDB_UIDNUM, (unsigned long)uid);
     if (ret) goto done;
 
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_GIDNUM, (unsigned long)gid);
+    ret = sysdb_add_ulong(msg, SYSDB_GIDNUM, (unsigned long)gid);
     if (ret) goto done;
 
     /* We set gecos to be the same as fullname on user creation,
@@ -1058,8 +1057,7 @@ int sysdb_add_basic_user(struct sss_domain_info *domain,
     }
 
     /* creation time */
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
-                    (unsigned long)time(NULL));
+    ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long)time(NULL));
     if (ret) goto done;
 
     ret = ldb_add(domain->sysdb->ldb, msg);
@@ -1445,12 +1443,11 @@ int sysdb_add_basic_group(struct sss_domain_info *domain,
     ret = sysdb_add_string(msg, SYSDB_NAME, name);
     if (ret) goto done;
 
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_GIDNUM, (unsigned long)gid);
+    ret = sysdb_add_ulong(msg, SYSDB_GIDNUM, (unsigned long)gid);
     if (ret) goto done;
 
     /* creation time */
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
-                    (unsigned long)time(NULL));
+    ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long)time(NULL));
     if (ret) goto done;
 
     ret = ldb_add(domain->sysdb->ldb, msg);
@@ -1764,8 +1761,7 @@ int sysdb_add_basic_netgroup(struct sss_domain_info *domain,
     }
 
     /* creation time */
-    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
-                    (unsigned long) time(NULL));
+    ret = sysdb_add_ulong(msg, SYSDB_CREATE_TIME, (unsigned long) time(NULL));
     if (ret) goto done;
 
     ret = ldb_add(domain->sysdb->ldb, msg);
