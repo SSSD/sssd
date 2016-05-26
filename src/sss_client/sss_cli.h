@@ -426,6 +426,11 @@ enum response_type {
     SSS_OTP,             /**< Indicates that the autotok was a OTP, so don't
                           * cache it. There is no message.
                           * @param None. */
+    SSS_PASSWORD_PROMPTING, /**< Indicates that password prompting is possible.
+                             * This might be used together with
+                             * SSS_PAM_OTP_INFO to determine the type of
+                             * prompting. There is no message.
+                             * @param None. */
 };
 
 /**

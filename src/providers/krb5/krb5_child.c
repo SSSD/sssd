@@ -54,6 +54,7 @@ struct krb5_req {
     char* name;
     krb5_creds *creds;
     bool otp;
+    bool password_prompting;
     char *otp_vendor;
     char *otp_token_id;
     char *otp_challenge;
@@ -586,24 +587,87 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
                                           krb5_responder_context rctx)
 {
     struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+    const char * const *question_list;
+    size_t c;
+    const char *pwd;
+    int ret;
+    krb5_error_code kerr;
 
     if (kr == NULL) {
         return EINVAL;
     }
 
+    question_list = krb5_responder_list_questions(ctx, rctx);
+
+    if (question_list != NULL) {
+        for (c = 0; question_list[c] != NULL; c++) {
+            DEBUG(SSSDBG_TRACE_ALL, "Got question [%s].\n", question_list[c]);
+
+            if (strcmp(question_list[c],
+                       KRB5_RESPONDER_QUESTION_PASSWORD) == 0) {
+                kr->password_prompting = true;
+
+                if ((kr->pd->cmd == SSS_PAM_AUTHENTICATE
+                            || kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
+                            || kr->pd->cmd == SSS_PAM_CHAUTHTOK)
+                        && sss_authtok_get_type(kr->pd->authtok)
+                                                 == SSS_AUTHTOK_TYPE_PASSWORD) {
+                    ret = sss_authtok_get_password(kr->pd->authtok, &pwd, NULL);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "sss_authtok_get_password failed.\n");
+                        return ret;
+                    }
+
+                    kerr = krb5_responder_set_answer(ctx, rctx,
+                                               KRB5_RESPONDER_QUESTION_PASSWORD,
+                                               pwd);
+                    if (kerr != 0) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "krb5_responder_set_answer failed.\n");
+                    }
+
+                    return kerr;
+                }
+            }
+        }
+    }
+
     return answer_otp(ctx, kr, rctx);
 }
+#endif /* HAVE_KRB5_GET_INIT_CREDS_OPT_SET_RESPONDER */
+
+static char *password_or_responder(const char *password)
+{
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_RESPONDER
+    /* If the new responder interface is available we will handle even simple
+     * passwords in the responder. */
+    return NULL;
+#else
+    return discard_const(password);
 #endif
+}
 
 static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
                                          const char *name, const char *banner,
                                          int num_prompts, krb5_prompt prompts[])
 {
     int ret;
+    size_t c;
     struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+
+    DEBUG(SSSDBG_TRACE_ALL,
+          "sss_krb5_prompter name [%s] banner [%s] num_prompts [%d] EINVAL.\n",
+          name, banner, num_prompts);
 
     if (num_prompts != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot handle password prompts.\n");
+        if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
+            for (c = 0; c < num_prompts; c++) {
+                DEBUG(SSSDBG_TRACE_ALL, "Prompt [%zu][%s].\n", c,
+                                        prompts[c].prompt);
+            }
+        }
         return KRB5_LIBOS_CANTREADPWD;
     }
 
@@ -1217,7 +1281,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     DEBUG(SSSDBG_TRACE_FUNC,
           "Attempting kinit for realm [%s]\n",realm_name);
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        discard_const(password),
+                                        password_or_responder(password),
                                         sss_krb5_prompter, kr, 0,
                                         NULL, kr->options);
     if (kr->pd->cmd == SSS_PAM_PREAUTH) {
@@ -1396,7 +1460,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     DEBUG(SSSDBG_TRACE_FUNC,
           "Attempting kinit for realm [%s]\n",realm_name);
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        discard_const(password),
+                                        password_or_responder(password),
                                         prompter, kr, 0,
                                         SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                         kr->options);
@@ -1518,8 +1582,15 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
      * to change them back to get a fresh TGT. */
     revert_changepw_options(kr->options);
 
+    ret = sss_authtok_set_password(kr->pd->authtok, newpassword, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set password for fresh TGT.\n");
+        return ret;
+    }
+
     kerr = get_and_save_tgt(kr, newpassword);
 
+    sss_authtok_set_empty(kr->pd->authtok);
     sss_authtok_set_empty(kr->pd->newauthtok);
 
     if (kerr == 0) {
@@ -1564,6 +1635,14 @@ static errno_t tgt_req_child(struct krb5_req *kr)
             if (kr->otp) {
                 kerr = k5c_attach_otp_info_msg(kr);
             }
+
+            if (kr->password_prompting) {
+                ret = pam_add_response(kr->pd, SSS_PASSWORD_PROMPTING, 0, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+                    goto done;
+                }
+            }
         } else {
             if (kerr == 0) {
                 kerr = k5c_attach_ccname_msg(kr);
@@ -1589,7 +1668,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
 
     set_changepw_options(kr->options);
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        discard_const(password),
+                                        password_or_responder(password),
                                         sss_krb5_prompter, kr, 0,
                                         SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                         kr->options);

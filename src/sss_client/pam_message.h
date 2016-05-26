@@ -25,6 +25,7 @@
 
 #include <unistd.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "sss_client/sss_cli.h"
 
@@ -56,6 +57,7 @@ struct pam_items {
     char *otp_token_id;
     char *otp_challenge;
     char *first_factor;
+    bool password_prompting;
 
     char *cert_user;
     char *token_name;

@@ -1014,6 +1014,10 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 D(("cert user: [%s] token name: [%s]", pi->cert_user,
                                                        pi->token_name));
                 break;
+            case SSS_PASSWORD_PROMPTING:
+                D(("Password prompting available."));
+                pi->password_prompting = true;
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -1102,6 +1106,7 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
     pi->otp_vendor = NULL;
     pi->otp_token_id = NULL;
     pi->otp_challenge = NULL;
+    pi->password_prompting = false;
 
     pi->cert_user = NULL;
     pi->token_name = NULL;
@@ -1571,8 +1576,13 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
         if (flags & FLAGS_USE_2FA
                 || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
                         && pi->otp_challenge != NULL)) {
-            ret = prompt_2fa(pamh, pi, _("First Factor: "),
-                             _("Second Factor: "));
+            if (pi->password_prompting) {
+                ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                                 _("Second Factor (optional): "));
+            } else {
+                ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                                 _("Second Factor: "));
+            }
         } else if (pi->cert_user != NULL) {
             ret = prompt_sc_pin(pamh, pi);
         } else {
