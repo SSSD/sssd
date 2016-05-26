@@ -167,8 +167,6 @@ void test_store_sudo(void **state)
 {
     errno_t ret;
     char *filter;
-    int uid = 0;
-    char **groupnames = NULL;
     const char *attrs[] = { SYSDB_SUDO_CACHE_AT_CN, SYSDB_SUDO_CACHE_AT_HOST,
                             SYSDB_SUDO_CACHE_AT_RUNASUSER,
                             SYSDB_SUDO_CACHE_AT_USER, NULL };
@@ -186,10 +184,8 @@ void test_store_sudo(void **state)
     ret = sysdb_sudo_store(test_ctx->tctx->dom, &rule, 1);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_get_sudo_filter(test_ctx, users[0].name,
-                                uid, groupnames, SYSDB_SUDO_FILTER_USERNAME,
-                                &filter);
-    assert_int_equal(ret, EOK);
+    filter = sysdb_sudo_filter_user(test_ctx, users[0].name, NULL, 0);
+    assert_non_null(filter);
 
     ret = sysdb_search_sudo_rules(test_ctx, test_ctx->tctx->dom, filter,
                                   attrs, &msgs_count, &msgs);
@@ -226,8 +222,6 @@ void test_sudo_purge_by_filter(void **state)
     errno_t ret;
     struct sysdb_attrs *rule;
     char *delete_filter;
-    int uid = 0;
-    char **groupnames = NULL;
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
@@ -239,12 +233,8 @@ void test_sudo_purge_by_filter(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(get_stored_rules_count(test_ctx), 1);
 
-    ret = sysdb_get_sudo_filter(test_ctx, users[0].name,
-                                uid, groupnames, SYSDB_SUDO_FILTER_USERNAME,
-                                &delete_filter);
-    assert_int_equal(ret, EOK);
-    assert_string_equal(delete_filter,
-                        "(&(objectClass=sudoRule)(|(sudoUser=test_user1)))");
+    delete_filter = sysdb_sudo_filter_user(test_ctx, users[0].name, NULL, 0);
+    assert_non_null(delete_filter);
 
     ret = sysdb_sudo_purge(test_ctx->tctx->dom, delete_filter, NULL, 0);
     assert_int_equal(ret, EOK);
@@ -291,25 +281,6 @@ void test_sudo_set_get_last_full_refresh(void **state)
     ret = sysdb_sudo_get_last_full_refresh(test_ctx->tctx->dom, &loaded_time);
     assert_int_equal(ret, EOK);
     assert_int_equal(now, loaded_time);
-}
-
-void test_sudo_get_filter(void **state)
-{
-    errno_t ret;
-    char *filter;
-    int uid = 0;
-    char **groupnames = NULL;
-    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
-                                                         struct sysdb_test_ctx);
-
-    ret = sysdb_get_sudo_filter(test_ctx, users[0].name,
-                                uid, groupnames, SYSDB_SUDO_FILTER_USERNAME,
-                                &filter);
-    assert_int_equal(ret, EOK);
-    assert_string_equal(filter,
-                        "(&(objectClass=sudoRule)(|(sudoUser=test_user1)))");
-
-    talloc_zfree(filter);
 }
 
 void test_get_sudo_user_info(void **state)
@@ -364,8 +335,6 @@ void test_set_sudo_rule_attr_add(void **state)
     const char *attrs[] = { SYSDB_SUDO_CACHE_AT_CN, SYSDB_SUDO_CACHE_AT_COMMAND,
                             NULL };
     char *filter;
-    int uid = 0;
-    char **groupnames = NULL;
     struct ldb_message **msgs = NULL;
     size_t msgs_count;
     const char *result;
@@ -390,10 +359,8 @@ void test_set_sudo_rule_attr_add(void **state)
                                    new_rule, SYSDB_MOD_ADD);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_get_sudo_filter(test_ctx, users[0].name,
-                                uid, groupnames, SYSDB_SUDO_FILTER_USERNAME,
-                                &filter);
-    assert_int_equal(ret, EOK);
+    filter = sysdb_sudo_filter_user(test_ctx, users[0].name, NULL, 0);
+    assert_non_null(filter);
 
     ret = sysdb_search_sudo_rules(test_ctx, test_ctx->tctx->dom, filter,
                                   attrs, &msgs_count, &msgs);
@@ -422,8 +389,6 @@ void test_set_sudo_rule_attr_replace(void **state)
     struct sysdb_attrs *new_rule;
     const char *attrs[] = { SYSDB_SUDO_CACHE_AT_CN, SYSDB_CACHE_EXPIRE, NULL };
     char *filter;
-    int uid = 0;
-    char **groupnames = NULL;
     struct ldb_message **msgs = NULL;
     size_t msgs_count;
     const char *result;
@@ -447,10 +412,8 @@ void test_set_sudo_rule_attr_replace(void **state)
                                    new_rule, SYSDB_MOD_REP);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_get_sudo_filter(test_ctx, users[0].name,
-                                uid, groupnames, SYSDB_SUDO_FILTER_USERNAME,
-                                &filter);
-    assert_int_equal(ret, EOK);
+    filter = sysdb_sudo_filter_user(test_ctx, users[0].name, NULL, 0);
+    assert_non_null(filter);
 
     ret = sysdb_search_sudo_rules(test_ctx, test_ctx->tctx->dom, filter,
                                   attrs, &msgs_count, &msgs);
@@ -479,8 +442,6 @@ void test_set_sudo_rule_attr_delete(void **state)
     const char *attrs[] = { SYSDB_SUDO_CACHE_AT_CN, SYSDB_SUDO_CACHE_AT_HOST,
                             NULL };
     char *filter;
-    int uid = 0;
-    char **groupnames = NULL;
     struct ldb_message **msgs = NULL;
     size_t msgs_count;
     const char *result;
@@ -505,10 +466,8 @@ void test_set_sudo_rule_attr_delete(void **state)
                                    new_rule, LDB_FLAG_MOD_DELETE);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_get_sudo_filter(test_ctx, users[0].name,
-                                uid, groupnames, SYSDB_SUDO_FILTER_USERNAME,
-                                &filter);
-    assert_int_equal(ret, EOK);
+    filter = sysdb_sudo_filter_user(test_ctx, users[0].name, NULL, 0);
+    assert_non_null(filter);
 
     ret = sysdb_search_sudo_rules(test_ctx, test_ctx->tctx->dom, filter,
                                   attrs, &msgs_count, &msgs);
@@ -533,7 +492,7 @@ void test_set_sudo_rule_attr_delete(void **state)
 void test_search_sudo_rules(void **state)
 {
     errno_t ret;
-    char *filter;
+    const char *filter;
     const char *attrs[] = { SYSDB_NAME, NULL };
     struct ldb_message **msgs = NULL;
     size_t msgs_count;
@@ -556,9 +515,7 @@ void test_search_sudo_rules(void **state)
     assert_int_equal(ret, EOK);
     assert_int_equal(get_stored_rules_count(test_ctx), 2);
 
-    ret = sysdb_get_sudo_filter(test_ctx, NULL, 0, NULL,
-                                SYSDB_SUDO_FILTER_NONE, &filter);
-    assert_int_equal(ret, EOK);
+    filter = "(objectClass=" SYSDB_SUDO_CACHE_OC ")";
 
     ret = sysdb_search_sudo_rules(test_ctx, test_ctx->tctx->dom, filter,
                                   attrs, &msgs_count, &msgs);
@@ -581,7 +538,6 @@ void test_search_sudo_rules(void **state)
     talloc_zfree(tmp_rules[0]);
     talloc_zfree(tmp_rules[1]);
     talloc_zfree(msgs);
-    talloc_zfree(filter);
 }
 
 void test_filter_rules_by_time(void **state)
@@ -710,10 +666,6 @@ int main(int argc, const char *argv[])
                                         test_sysdb_setup,
                                         test_sysdb_teardown),
 
-        /* sysdb_get_sudo_filter() */
-        cmocka_unit_test_setup_teardown(test_sudo_get_filter,
-                                        test_sysdb_setup,
-                                        test_sysdb_teardown),
         /* sysdb_get_sudo_user_info() */
         cmocka_unit_test_setup_teardown(test_get_sudo_user_info,
                                         test_sysdb_setup,

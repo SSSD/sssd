@@ -215,105 +215,156 @@ done:
     return ret;
 }
 
-errno_t
-sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
-                      uid_t uid, char **groupnames, unsigned int flags,
-                      char **_filter)
+static char *
+sysdb_sudo_filter_userinfo(TALLOC_CTX *mem_ctx,
+                           const char *username,
+                           char **groupnames,
+                           uid_t uid)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
-    char *filter = NULL;
-    char *specific_filter = NULL;
-    char *sanitized = NULL;
-    time_t now;
+    const char *attr = SYSDB_SUDO_CACHE_AT_USER;
+    TALLOC_CTX *tmp_ctx;
+    char *sanitized_name;
+    char *filter;
     errno_t ret;
     int i;
 
     tmp_ctx = talloc_new(NULL);
-    NULL_CHECK(tmp_ctx, ret, done);
-
-    /* build specific filter */
-
-    specific_filter = talloc_zero(tmp_ctx, char); /* assign to tmp_ctx */
-    NULL_CHECK(specific_filter, ret, done);
-
-    if (flags & SYSDB_SUDO_FILTER_INCLUDE_ALL) {
-        specific_filter = talloc_asprintf_append(specific_filter, "(%s=ALL)",
-                                                 SYSDB_SUDO_CACHE_AT_USER);
-        NULL_CHECK(specific_filter, ret, done);
+    if (tmp_ctx == NULL) {
+        return NULL;
     }
 
-    if (flags & SYSDB_SUDO_FILTER_INCLUDE_DFL) {
-        specific_filter = talloc_asprintf_append(specific_filter, "(%s=defaults)",
-                                                 SYSDB_NAME);
-        NULL_CHECK(specific_filter, ret, done);
+    filter = talloc_asprintf(tmp_ctx, "(%s=ALL)", attr);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
-    if ((flags & SYSDB_SUDO_FILTER_USERNAME) && (username != NULL)) {
-        ret = sss_filter_sanitize(tmp_ctx, username, &sanitized);
-        if (ret != EOK) {
+    ret = sss_filter_sanitize(tmp_ctx, username, &sanitized_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    filter = talloc_asprintf_append(filter, "(%s=%s)", attr, sanitized_name);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (uid != 0) {
+        filter = talloc_asprintf_append(filter, "(%s=#%"SPRIuid")", attr, uid);
+        if (filter == NULL) {
+            ret = ENOMEM;
             goto done;
         }
-
-        specific_filter = talloc_asprintf_append(specific_filter, "(%s=%s)",
-                                                 SYSDB_SUDO_CACHE_AT_USER,
-                                                 sanitized);
-        NULL_CHECK(specific_filter, ret, done);
     }
 
-    if ((flags & SYSDB_SUDO_FILTER_UID) && (uid != 0)) {
-        specific_filter = talloc_asprintf_append(specific_filter, "(%s=#%llu)",
-                                                 SYSDB_SUDO_CACHE_AT_USER,
-                                                 (unsigned long long) uid);
-        NULL_CHECK(specific_filter, ret, done);
-    }
-
-    if ((flags & SYSDB_SUDO_FILTER_GROUPS) && (groupnames != NULL)) {
+    if (groupnames != NULL) {
         for (i=0; groupnames[i] != NULL; i++) {
-            ret = sss_filter_sanitize(tmp_ctx, groupnames[i], &sanitized);
+            ret = sss_filter_sanitize(tmp_ctx, groupnames[i], &sanitized_name);
             if (ret != EOK) {
                 goto done;
             }
 
-            specific_filter = talloc_asprintf_append(specific_filter, "(%s=%%%s)",
-                                                     SYSDB_SUDO_CACHE_AT_USER,
-                                                     sanitized);
-            NULL_CHECK(specific_filter, ret, done);
+            filter = talloc_asprintf_append(filter, "(%s=%%%s)", attr,
+                                            sanitized_name);
+            if (filter == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
         }
     }
 
-    if (flags & SYSDB_SUDO_FILTER_NGRS) {
-        specific_filter = talloc_asprintf_append(specific_filter, "(%s=+*)",
-                                                 SYSDB_SUDO_CACHE_AT_USER);
-        NULL_CHECK(specific_filter, ret, done);
-    }
-
-    /* build global filter */
-
-    filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)",
-                             SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC);
-    NULL_CHECK(filter, ret, done);
-
-    if (specific_filter[0] != '\0') {
-        filter = talloc_asprintf_append(filter, "(|%s)", specific_filter);
-        NULL_CHECK(filter, ret, done);
-    }
-
-    if (flags & SYSDB_SUDO_FILTER_ONLY_EXPIRED) {
-        now = time(NULL);
-        filter = talloc_asprintf_append(filter, "(&(%s<=%lld))",
-                                        SYSDB_CACHE_EXPIRE, (long long)now);
-        NULL_CHECK(filter, ret, done);
-    }
-
-    filter = talloc_strdup_append(filter, ")");
-    NULL_CHECK(filter, ret, done);
-
-    ret = EOK;
-    *_filter = talloc_steal(mem_ctx, filter);
+    talloc_steal(mem_ctx, filter);
 
 done:
     talloc_free(tmp_ctx);
-    return ret;
+
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    return filter;
+}
+
+char *
+sysdb_sudo_filter_expired(TALLOC_CTX *mem_ctx,
+                          const char *username,
+                          char **groupnames,
+                          uid_t uid)
+{
+    char *userfilter;
+    char *filter;
+    time_t now;
+
+    userfilter = sysdb_sudo_filter_userinfo(mem_ctx, username, groupnames, uid);
+    if (userfilter == NULL) {
+        return NULL;
+    }
+
+    now = time(NULL);
+    filter = talloc_asprintf(mem_ctx,
+                             "(&(%s=%s)(%s<=%lld)(|(%s=defaults)%s(%s=+*)))",
+                             SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC,
+                             SYSDB_CACHE_EXPIRE, (long long)now,
+                             SYSDB_NAME,
+                             userfilter,
+                             SYSDB_SUDO_CACHE_AT_USER);
+    talloc_free(userfilter);
+
+    return filter;
+}
+
+char *
+sysdb_sudo_filter_defaults(TALLOC_CTX *mem_ctx)
+{
+    return talloc_asprintf(mem_ctx, "(&(%s=%s)(%s=defaults))",
+                           SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC,
+                           SYSDB_NAME);
+}
+
+char *
+sysdb_sudo_filter_user(TALLOC_CTX *mem_ctx,
+                       const char *username,
+                       char **groupnames,
+                       uid_t uid)
+{
+    char *userfilter;
+    char *filter;
+
+    userfilter = sysdb_sudo_filter_userinfo(mem_ctx, username, groupnames, uid);
+    if (userfilter == NULL) {
+        return NULL;
+    }
+
+    filter = talloc_asprintf(mem_ctx, "(&(%s=%s)(|%s))",
+                             SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC,
+                             userfilter);
+    talloc_free(userfilter);
+
+    return filter;
+}
+
+char *
+sysdb_sudo_filter_netgroups(TALLOC_CTX *mem_ctx,
+                            const char *username,
+                            char **groupnames,
+                            uid_t uid)
+{
+    char *userfilter;
+    char *filter;
+
+    userfilter = sysdb_sudo_filter_userinfo(mem_ctx, username, groupnames, uid);
+    if (userfilter == NULL) {
+        return NULL;
+    }
+
+    filter = talloc_asprintf(mem_ctx, "(&(%s=%s)(%s=+*)(!(|%s)))",
+                             SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC,
+                             SYSDB_SUDO_CACHE_AT_USER,
+                             userfilter);
+    talloc_free(userfilter);
+
+    return filter;
 }
 
 errno_t

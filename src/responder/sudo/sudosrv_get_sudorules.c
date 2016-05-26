@@ -116,16 +116,11 @@ sort_sudo_rules(struct sysdb_attrs **rules, size_t count, bool lower_wins)
 static errno_t sudosrv_query_cache(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domain,
                                    const char **attrs,
-                                   unsigned int flags,
-                                   const char *username,
-                                   uid_t uid,
-                                   char **groupnames,
-                                   bool inverse_order,
+                                   const char *filter,
                                    struct sysdb_attrs ***_rules,
                                    uint32_t *_count)
 {
     TALLOC_CTX *tmp_ctx;
-    char *filter;
     errno_t ret;
     size_t count;
     struct sysdb_attrs **rules;
@@ -134,14 +129,6 @@ static errno_t sudosrv_query_cache(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
-    }
-
-    ret = sysdb_get_sudo_filter(tmp_ctx, username, uid, groupnames,
-                                flags, &filter);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not construct the search filter "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
     }
 
     DEBUG(SSSDBG_FUNC_DATA, "Searching sysdb with [%s]\n", filter);
@@ -170,12 +157,6 @@ static errno_t sudosrv_query_cache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sort_sudo_rules(rules, count, inverse_order);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not sort rules by sudoOrder\n");
-        goto done;
-    }
-
     *_rules = talloc_steal(mem_ctx, rules);
     *_count = (uint32_t)count;
 
@@ -194,36 +175,103 @@ static errno_t sudosrv_expired_rules(TALLOC_CTX *mem_ctx,
                                      struct sysdb_attrs ***_rules,
                                      uint32_t *_num_rules)
 {
-    unsigned int flags = SYSDB_SUDO_FILTER_NONE;
     const char *attrs[] = { SYSDB_NAME, NULL };
+    char *filter;
     errno_t ret;
 
-    flags =   SYSDB_SUDO_FILTER_INCLUDE_ALL
-            | SYSDB_SUDO_FILTER_INCLUDE_DFL
-            | SYSDB_SUDO_FILTER_ONLY_EXPIRED
-            | SYSDB_SUDO_FILTER_USERINFO;
+    filter = sysdb_sudo_filter_expired(NULL, username, groups, uid);
+    if (filter == NULL) {
+        return ENOMEM;
+    }
 
-    ret = sudosrv_query_cache(mem_ctx, domain, attrs, flags,
-                              username, uid, groups, false,
+    ret = sudosrv_query_cache(mem_ctx, domain, attrs, filter,
                               _rules, _num_rules);
+    talloc_free(filter);
 
     return ret;
 }
 
-static errno_t sudosrv_cached_rules(TALLOC_CTX *mem_ctx,
-                                    enum sss_sudo_type type,
-                                    struct sss_domain_info *domain,
-                                    uid_t uid,
-                                    const char *username,
-                                    char **groups,
-                                    bool inverse_order,
-                                    struct sysdb_attrs ***_rules,
-                                    uint32_t *_num_rules)
+static errno_t sudosrv_cached_rules_by_user(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *domain,
+                                            uid_t uid,
+                                            const char *username,
+                                            char **groupnames,
+                                            struct sysdb_attrs ***_rules,
+                                            uint32_t *_num_rules)
 {
-    unsigned int flags = SYSDB_SUDO_FILTER_NONE;
+    TALLOC_CTX *tmp_ctx;
     struct sysdb_attrs **rules;
-    const char *debug_name = "unknown";
     uint32_t num_rules;
+    uint32_t i;
+    const char *filter;
+    const char *val;
+    errno_t ret;
+    const char *attrs[] = { SYSDB_OBJECTCLASS,
+                            SYSDB_SUDO_CACHE_AT_CN,
+                            SYSDB_SUDO_CACHE_AT_HOST,
+                            SYSDB_SUDO_CACHE_AT_COMMAND,
+                            SYSDB_SUDO_CACHE_AT_OPTION,
+                            SYSDB_SUDO_CACHE_AT_RUNAS,
+                            SYSDB_SUDO_CACHE_AT_RUNASUSER,
+                            SYSDB_SUDO_CACHE_AT_RUNASGROUP,
+                            SYSDB_SUDO_CACHE_AT_NOTBEFORE,
+                            SYSDB_SUDO_CACHE_AT_NOTAFTER,
+                            SYSDB_SUDO_CACHE_AT_ORDER,
+                            NULL };
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    filter = sysdb_sudo_filter_user(tmp_ctx, username, groupnames, uid);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sudosrv_query_cache(tmp_ctx, domain, attrs, filter,
+                              &rules, &num_rules);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    val = talloc_asprintf(tmp_ctx, "#%"SPRIuid, uid);
+    if (val == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Add sudoUser: #uid to prevent conflicts with fqnames. */
+    DEBUG(SSSDBG_TRACE_FUNC, "Replacing sudoUser attribute with "
+          "sudoUser: %s\n", val);
+    for (i = 0; i < num_rules; i++) {
+        ret = sysdb_attrs_add_string(rules[i], SYSDB_SUDO_CACHE_AT_USER, val);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to alter sudoUser attribute "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+        }
+    }
+
+    *_rules = talloc_steal(mem_ctx, rules);
+    *_num_rules = num_rules;
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t sudosrv_cached_rules_by_ng(TALLOC_CTX *mem_ctx,
+                                          struct sss_domain_info *domain,
+                                          uid_t uid,
+                                          const char *username,
+                                          char **groupnames,
+                                          struct sysdb_attrs ***_rules,
+                                          uint32_t *_num_rules)
+{
+    char *filter;
     errno_t ret;
     const char *attrs[] = { SYSDB_OBJECTCLASS,
                             SYSDB_SUDO_CACHE_AT_CN,
@@ -239,31 +287,168 @@ static errno_t sudosrv_cached_rules(TALLOC_CTX *mem_ctx,
                             SYSDB_SUDO_CACHE_AT_ORDER,
                             NULL };
 
+    filter = sysdb_sudo_filter_netgroups(NULL, username, groupnames, uid);
+    if (filter == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sudosrv_query_cache(mem_ctx, domain, attrs, filter,
+                              _rules, _num_rules);
+    talloc_free(filter);
+
+    return ret;
+}
+
+static errno_t sudosrv_cached_rules(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    uid_t uid,
+                                    const char *username,
+                                    char **groups,
+                                    bool inverse_order,
+                                    struct sysdb_attrs ***_rules,
+                                    uint32_t *_num_rules)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_attrs **user_rules;
+    struct sysdb_attrs **ng_rules;
+    struct sysdb_attrs **rules;
+    uint32_t num_user_rules;
+    uint32_t num_ng_rules;
+    uint32_t num_rules;
+    uint32_t rule_iter, i;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sudosrv_cached_rules_by_user(tmp_ctx, domain, uid, username, groups,
+                                       &user_rules, &num_user_rules);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sudosrv_cached_rules_by_ng(tmp_ctx, domain, uid, username, groups,
+                                     &ng_rules, &num_ng_rules);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    num_rules = num_user_rules + num_ng_rules;
+    if (num_rules == 0) {
+        *_rules = NULL;
+        *_num_rules = 0;
+        ret = EOK;
+        goto done;
+    }
+
+    rules = talloc_array(tmp_ctx, struct sysdb_attrs *, num_rules);
+    if (rules == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    rule_iter = 0;
+    for (i = 0; i < num_user_rules; rule_iter++, i++) {
+        rules[rule_iter] = talloc_steal(rules, user_rules[i]);
+    }
+
+    for (i = 0; i < num_ng_rules; rule_iter++, i++) {
+        rules[rule_iter] = talloc_steal(rules, ng_rules[i]);
+    }
+
+    ret = sort_sudo_rules(rules, num_rules, inverse_order);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not sort rules by sudoOrder\n");
+        goto done;
+    }
+
+    *_rules = talloc_steal(mem_ctx, rules);
+    *_num_rules = num_rules;
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t sudosrv_cached_defaults(TALLOC_CTX *mem_ctx,
+                                       struct sss_domain_info *domain,
+                                       struct sysdb_attrs ***_rules,
+                                       uint32_t *_num_rules)
+{
+    char *filter;
+    errno_t ret;
+    const char *attrs[] = { SYSDB_OBJECTCLASS,
+                            SYSDB_SUDO_CACHE_AT_CN,
+                            SYSDB_SUDO_CACHE_AT_USER,
+                            SYSDB_SUDO_CACHE_AT_HOST,
+                            SYSDB_SUDO_CACHE_AT_COMMAND,
+                            SYSDB_SUDO_CACHE_AT_OPTION,
+                            SYSDB_SUDO_CACHE_AT_RUNAS,
+                            SYSDB_SUDO_CACHE_AT_RUNASUSER,
+                            SYSDB_SUDO_CACHE_AT_RUNASGROUP,
+                            SYSDB_SUDO_CACHE_AT_NOTBEFORE,
+                            SYSDB_SUDO_CACHE_AT_NOTAFTER,
+                            SYSDB_SUDO_CACHE_AT_ORDER,
+                            NULL };
+
+    filter = sysdb_sudo_filter_defaults(NULL);
+    if (filter == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sudosrv_query_cache(mem_ctx, domain, attrs, filter,
+                              _rules, _num_rules);
+    talloc_free(filter);
+
+    return ret;
+}
+
+static errno_t sudosrv_fetch_rules(TALLOC_CTX *mem_ctx,
+                                   enum sss_sudo_type type,
+                                   struct sss_domain_info *domain,
+                                   uid_t uid,
+                                   const char *username,
+                                   char **groups,
+                                   bool inverse_order,
+                                   struct sysdb_attrs ***_rules,
+                                   uint32_t *_num_rules)
+{
+    struct sysdb_attrs **rules;
+    const char *debug_name = "unknown";
+    uint32_t num_rules;
+    errno_t ret;
+
     switch (type) {
     case SSS_SUDO_USER:
         DEBUG(SSSDBG_TRACE_FUNC, "Retrieving rules for [%s@%s]\n",
               username, domain->name);
         debug_name = "rules";
-        flags = SYSDB_SUDO_FILTER_USERINFO | SYSDB_SUDO_FILTER_INCLUDE_ALL;
+
+        ret = sudosrv_cached_rules(mem_ctx, domain, uid, username, groups,
+                                   inverse_order, &rules, &num_rules);
+
         break;
     case SSS_SUDO_DEFAULTS:
         debug_name = "default options";
         DEBUG(SSSDBG_TRACE_FUNC, "Retrieving default options for [%s@%s]\n",
               username, domain->name);
-        flags = SYSDB_SUDO_FILTER_INCLUDE_DFL;
+
+        ret = sudosrv_cached_defaults(mem_ctx, domain, &rules, &num_rules);
+
         break;
     }
 
-    ret = sudosrv_query_cache(mem_ctx, domain, attrs, flags,
-                              username, uid, groups,
-                              inverse_order, &rules, &num_rules);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to retrieve sudo rules [%d]: %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve %s [%d]: %s\n",
+              debug_name, ret, sss_strerror(ret));
         return ret;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Returning %d %s for [%s@%s]\n",
+    DEBUG(SSSDBG_TRACE_FUNC, "Returning %u %s for [%s@%s]\n",
           num_rules, debug_name, username, domain->name);
 
     *_rules = rules;
@@ -541,10 +726,10 @@ static void sudosrv_get_rules_done(struct tevent_req *subreq)
               "in cache.\n");
     }
 
-    ret = sudosrv_cached_rules(state, state->type, state->domain, state->uid,
-                               state->username, state->groups,
-                               state->inverse_order,
-                               &state->rules, &state->num_rules);
+    ret = sudosrv_fetch_rules(state, state->type, state->domain, state->uid,
+                              state->username, state->groups,
+                              state->inverse_order,
+                              &state->rules, &state->num_rules);
 
     if (ret != EOK) {
         tevent_req_error(req, ret);

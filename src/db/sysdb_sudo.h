@@ -96,6 +96,27 @@ errno_t sysdb_sudo_filter_rules_by_time(TALLOC_CTX *mem_ctx,
                                         uint32_t *_num_rules,
                                         struct sysdb_attrs ***_rules);
 
+char *
+sysdb_sudo_filter_expired(TALLOC_CTX *mem_ctx,
+                          const char *username,
+                          char **groupnames,
+                          uid_t uid);
+
+char *
+sysdb_sudo_filter_defaults(TALLOC_CTX *mem_ctx);
+
+char *
+sysdb_sudo_filter_user(TALLOC_CTX *mem_ctx,
+                       const char *username,
+                       char **groupnames,
+                       uid_t uid);
+
+char *
+sysdb_sudo_filter_netgroups(TALLOC_CTX *mem_ctx,
+                            const char *username,
+                            char **groupnames,
+                            uid_t uid);
+
 errno_t
 sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
                       uid_t uid, char **groupnames, unsigned int flags,
