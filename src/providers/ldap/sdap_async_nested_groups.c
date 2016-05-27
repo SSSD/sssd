@@ -552,6 +552,7 @@ sdap_nested_member_is_group(struct sdap_nested_group_ctx *group_ctx,
 static errno_t
 sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
                                 struct sdap_nested_group_ctx *group_ctx,
+                                int threshold,
                                 int nesting_level,
                                 struct ldb_message_element *members,
                                 struct sdap_nested_group_member **_missing,
@@ -687,6 +688,14 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
         missing[num_missing].group_filter = talloc_steal(missing, group_filter);
 
         num_missing++;
+        if (threshold > 0 && num_missing > threshold) {
+            if (_num_missing) {
+                *_num_missing = num_missing;
+            }
+
+            ret = ERR_DEREF_THRESHOLD;
+            goto done;
+        }
 
         if (type != SDAP_NESTED_GROUP_DN_USER) {
             num_groups++;
@@ -996,9 +1005,11 @@ struct sdap_nested_group_process_state {
     int num_missing_total;
     int num_missing_groups;
     struct ldb_message_element *ext_members;
+    struct ldb_message_element *members;
     int nesting_level;
     char *group_dn;
     bool deref;
+    bool deref_shortcut;
 };
 
 static void sdap_nested_group_process_done(struct tevent_req *subreq);
@@ -1014,9 +1025,9 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
     struct sdap_attr_map *group_map = NULL;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
-    struct ldb_message_element *members = NULL;
     const char *orig_dn = NULL;
     errno_t ret;
+    int split_threshold;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_process_state);
@@ -1052,7 +1063,7 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
                                                        group);
 
     ret = sysdb_attrs_get_el_ext(group, group_map[SDAP_AT_GROUP_MEMBER].sys_name,
-                                 false, &members);
+                                 false, &state->members);
     if (ret == ENOENT && state->ext_members == NULL) {
         ret = EOK; /* no members, direct or external */
         goto immediately;
@@ -1062,15 +1073,25 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
+    split_threshold = state->group_ctx->try_deref ? \
+                            state->group_ctx->deref_treshold : \
+                            -1;
+
     /* get members that need to be refreshed */
     PROBE(SDAP_NESTED_GROUP_PROCESS_SPLIT_PRE);
     ret = sdap_nested_group_split_members(state, state->group_ctx,
-                                          state->nesting_level, members,
+                                          split_threshold,
+                                          state->nesting_level,
+                                          state->members,
                                           &state->missing,
                                           &state->num_missing_total,
                                           &state->num_missing_groups);
     PROBE(SDAP_NESTED_GROUP_PROCESS_SPLIT_POST);
-    if (ret != EOK) {
+    if (ret == ERR_DEREF_THRESHOLD) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "More members were missing than the deref threshold\n");
+        state->deref_shortcut = true;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to split member list "
                                     "[%d]: %s\n", ret, sss_strerror(ret));
         goto immediately;
@@ -1095,10 +1116,11 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
      * proceed and let the direct lookup code just fall through.
      */
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Looking up %d/%d members of group [%s]\n",
-                                 state->num_missing_total,
-                                 members ? members->num_values : 0,
-                                 orig_dn);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Looking up %d/%d members of group [%s]\n",
+          state->num_missing_total,
+          state->members ? state->members->num_values : 0,
+          orig_dn);
 
     /* process members */
     if (group_ctx->try_deref
@@ -1106,8 +1128,8 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_INTERNAL, "Dereferencing members of group [%s]\n",
                                       orig_dn);
         state->deref = true;
-        subreq = sdap_nested_group_deref_send(state, ev, group_ctx, members,
-                                              orig_dn,
+        subreq = sdap_nested_group_deref_send(state, ev, group_ctx,
+                                              state->members, orig_dn,
                                               state->nesting_level);
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL, "Members of group [%s] will be "
@@ -1158,6 +1180,27 @@ static void sdap_nested_group_process_done(struct tevent_req *subreq)
 
             DEBUG(SSSDBG_TRACE_INTERNAL, "Members of group [%s] will be "
                   "processed individually\n", state->group_dn);
+
+            if (state->deref_shortcut == true) {
+                /* If we previously short-cut dereference, we need to split the
+                 * members again to get full list of missing member types
+                 */
+                PROBE(SDAP_NESTED_GROUP_PROCESS_SPLIT_PRE);
+                ret = sdap_nested_group_split_members(state, state->group_ctx,
+                                                      -1,
+                                                      state->nesting_level,
+                                                      state->members,
+                                                      &state->missing,
+                                                      &state->num_missing_total,
+                                                      &state->num_missing_groups);
+                PROBE(SDAP_NESTED_GROUP_PROCESS_SPLIT_POST);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Unable to split member list "
+                                                "[%d]: %s\n",
+                                                ret, sss_strerror(ret));
+                    goto done;
+                }
+            }
 
             subreq = sdap_nested_group_single_send(state,
                                                    state->ev,

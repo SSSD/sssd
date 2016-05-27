@@ -115,6 +115,7 @@ enum sssd_errors {
     ERR_SYSDB_VERSION_TOO_NEW,
     ERR_NO_TS,
     ERR_TS_CACHE_MISS,
+    ERR_DEREF_THRESHOLD,
     ERR_LAST            /* ALWAYS LAST */
 };
 

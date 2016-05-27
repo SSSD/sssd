@@ -144,6 +144,21 @@ def format_interactive_conf(ldap_conn, schema):
             entry_cache_timeout                 = {0}
         """).format(INTERACTIVE_TIMEOUT)
 
+def format_rfc2307bis_deref_conf(ldap_conn, schema):
+    """Format an SSSD configuration with all caches refreshing in 4 seconds"""
+    return \
+        format_basic_conf(ldap_conn, schema, enum=False) + \
+        unindent("""
+            [nss]
+            memcache_timeout                    = 0
+            enum_cache_timeout                  = {0}
+            entry_negative_timeout              = 0
+
+            [domain/LDAP]
+            entry_cache_timeout                 = {0}
+            ldap_deref_threshold                = 1
+        """).format(INTERACTIVE_TIMEOUT)
+
 
 def create_conf_file(contents):
     """Create sssd.conf with specified contents"""
@@ -459,6 +474,26 @@ def user_and_groups_rfc2307_bis(request, ldap_conn):
     return None
 
 
+@pytest.fixture
+def rfc2307bis_deref_group_with_users(request, ldap_conn):
+    """
+    Create an RFC2307bis directory fixture with interactive SSSD conf,
+    one user and two groups
+    """
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2000)
+    ent_list.add_user("user2", 1001, 2000)
+    ent_list.add_user("user3", 1001, 2000)
+    ent_list.add_group_bis("group1", 20000, member_uids=("user1", "user2"))
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    create_conf_fixture(request,
+                        format_rfc2307bis_deref_conf(
+                            ldap_conn,
+                            SCHEMA_RFC2307_BIS))
+    create_sssd_fixture(request)
+    return None
+
+
 def test_add_remove_user(ldap_conn, blank_rfc2307):
     """Test user addition and removal are reflected by SSSD"""
     e = ldap_ent.user(ldap_conn.ds_inst.base_dn, "user", 2001, 2000)
@@ -554,6 +589,11 @@ def test_add_remove_membership_rfc2307_bis(ldap_conn,
     time.sleep(INTERACTIVE_TIMEOUT)
     ent.assert_group_by_name("group1", dict(mem=ent.contains_only()))
 
+
+def test_ldap_group_dereference(ldap_conn, rfc2307bis_deref_group_with_users):
+    ent.assert_group_by_name("group1",
+                             dict(mem=ent.contains_only(
+                                                "user1", "user2")))
 
 @pytest.fixture
 def override_homedir(request, ldap_conn):
