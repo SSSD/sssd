@@ -109,6 +109,7 @@ enum sssd_errors {
     ERR_RENEWAL_CHILD,
     ERR_SBUS_REQUEST_HANDLED,
     ERR_NON_SSSD_USER,
+    ERR_DEREF_THRESHOLD,
     ERR_LAST            /* ALWAYS LAST */
 };
 

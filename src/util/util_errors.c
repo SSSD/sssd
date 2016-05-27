@@ -87,6 +87,7 @@ struct err_string error_to_str[] = {
     { "AD renewal child failed" }, /* ERR_RENEWAL_CHILD */
     { "SBUS request already handled" }, /* ERR_SBUS_REQUEST_HANDLED */
     { "The user is not handled by SSSD" }, /* ERR_NON_SSSD_USER */
+    { "Dereference threshold reached" }, /* ERR_DEREF_THRESHOLD */
     { "ERR_LAST" } /* ERR_LAST */
 };
 
