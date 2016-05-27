@@ -284,6 +284,10 @@ if BUILD_IFP
 non_interactive_cmocka_based_tests += ifp_tests
 endif   # BUILD_IFP
 
+if HAVE_INOTIFY
+non_interactive_cmocka_based_tests += test_inotify
+endif   # HAVE_INOTIFY
+
 if BUILD_SAMBA
 non_interactive_cmocka_based_tests += \
     ad_access_filter_tests \
@@ -642,6 +646,7 @@ dist_noinst_HEADERS = \
     src/util/util_safealign.h \
     src/util/util_sss_idmap.h \
     src/util/util_creds.h \
+    src/util/inotify.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/monitor/monitor_iface_generated.h \
@@ -3165,6 +3170,21 @@ krb5_common_test_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    $(NULL)
+
+test_inotify_SOURCES = \
+    src/util/inotify.c \
+    src/tests/cmocka/test_inotify.c \
+    $(NULL)
+test_inotify_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_inotify_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(LIBADD_DL) \
+    libsss_test_common.la \
     $(NULL)
 
 endif # HAVE_CMOCKA
