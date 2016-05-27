@@ -29,4 +29,6 @@ int main () {
     AS_IF([test x"$inotify_works" = xyes],
           [AC_DEFINE_UNQUOTED([HAVE_INOTIFY], [1], [Inotify works])])
     AC_SUBST(INOTIFY_LIBS)
+
+    AM_CONDITIONAL([HAVE_INOTIFY], [test x"$inotify_works" = xyes])
 ])
