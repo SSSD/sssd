@@ -96,3 +96,26 @@ struct dp_method *mock_dp_get_methods(struct data_provider *provider,
 
     return methods;
 }
+
+struct dp_req_params *mock_dp_req_params(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct be_ctx *be_ctx,
+                                         struct sss_domain_info *domain,
+                                         enum dp_targets target,
+                                         enum dp_methods method)
+{
+    struct dp_req_params *params;
+
+    params = talloc_zero(mem_ctx, struct dp_req_params);
+    if (params == NULL) {
+        return NULL;
+    }
+
+    params->ev = ev;
+    params->be_ctx = be_ctx;
+    params->domain = domain;
+    params->target = target;
+    params->method = method;
+
+    return params;
+}

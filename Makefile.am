@@ -254,6 +254,7 @@ if HAVE_CMOCKA
         test_data_provider_be \
         test_dp_request_table \
         test_dp_request \
+        test_dp_builtin \
         test_ipa_dn \
         $(NULL)
 
@@ -2825,6 +2826,29 @@ test_dp_request_LDFLAGS = \
     -Wl,-wrap,be_is_offline \
     $(NULL)
 test_dp_request_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(LIBADD_DL) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_dp_builtin_SOURCES = \
+    src/providers/data_provider/dp_modules.c \
+    src/providers/data_provider/dp_targets.c \
+    src/providers/data_provider/dp_methods.c \
+    src/providers/data_provider/dp_builtin.c \
+    src/tests/cmocka/data_provider/mock_dp.c \
+    src/tests/cmocka/data_provider/test_dp_builtin.c \
+    src/tests/cmocka/common_mock_be.c \
+    $(NULL)
+test_dp_builtin_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING \
+    $(NULL)
+test_dp_builtin_LDFLAGS = \
+    $(NULL)
+test_dp_builtin_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \

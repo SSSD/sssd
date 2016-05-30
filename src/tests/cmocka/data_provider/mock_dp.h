@@ -32,4 +32,11 @@ struct data_provider *mock_dp(TALLOC_CTX *mem_ctx,
 struct dp_method *mock_dp_get_methods(struct data_provider *provider,
                                       enum dp_targets target);
 
+struct dp_req_params *mock_dp_req_params(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct be_ctx *be_ctx,
+                                         struct sss_domain_info *domain,
+                                         enum dp_targets target,
+                                         enum dp_methods method);
+
 #endif /* _MOCK_DP_H_ */
