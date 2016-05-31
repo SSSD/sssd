@@ -252,6 +252,7 @@ if HAVE_CMOCKA
         test_cert_utils \
         test_ldap_id_cleanup \
         test_data_provider_be \
+        test_dp_request_table \
         test_ipa_dn \
         $(NULL)
 
@@ -2786,6 +2787,23 @@ test_data_provider_be_LDADD = \
     $(LIBADD_DL) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    $(NULL)
+
+test_dp_request_table_SOURCES = \
+    src/providers/data_provider/dp_request_table.c \
+    src/tests/cmocka/data_provider/test_dp_request_table.c \
+    $(NULL)
+test_dp_request_table_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING \
+    $(NULL)
+test_dp_request_table_LDFLAGS = \
+    $(NULL)
+test_dp_request_table_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
     $(NULL)
 
 test_ipa_dn_SOURCES = \
