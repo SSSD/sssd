@@ -2386,6 +2386,32 @@ done:
 
 /* =Store-Users-(Native/Legacy)-(replaces-existing-data)================== */
 
+static errno_t sysdb_store_new_user(struct sss_domain_info *domain,
+                                    const char *name,
+                                    uid_t uid,
+                                    gid_t gid,
+                                    const char *gecos,
+                                    const char *homedir,
+                                    const char *shell,
+                                    const char *orig_dn,
+                                    struct sysdb_attrs *attrs,
+                                    uint64_t cache_timeout,
+                                    time_t now);
+
+
+static errno_t sysdb_store_user_attrs(struct sss_domain_info *domain,
+                                      const char *name,
+                                      uid_t uid,
+                                      gid_t gid,
+                                      const char *gecos,
+                                      const char *homedir,
+                                      const char *shell,
+                                      const char *orig_dn,
+                                      struct sysdb_attrs *attrs,
+                                      char **remove_attrs,
+                                      uint64_t cache_timeout,
+                                      time_t now);
+
 /* if one of the basic attributes is empty ("") as opposed to NULL,
  * this will just remove it */
 
@@ -2417,26 +2443,29 @@ int sysdb_store_user(struct sss_domain_info *domain,
         attrs = sysdb_new_attrs(tmp_ctx);
         if (!attrs) {
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
     }
 
     if (pwd && (domain->legacy_passwords || !*pwd)) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_PWD, pwd);
-        if (ret) goto fail;
+        if (ret) goto done;
     }
 
     ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
-        goto fail;
+        goto done;
     }
 
     in_transaction = true;
 
     ret = sysdb_search_user_by_name(tmp_ctx, domain, name, NULL, &msg);
     if (ret && ret != ENOENT) {
-        goto fail;
+        goto done;
+    }
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS, "User %s does not exist.\n", name);
     }
 
     /* get transaction timestamp */
@@ -2445,101 +2474,29 @@ int sysdb_store_user(struct sss_domain_info *domain,
     }
 
     if (ret == ENOENT) {
-        /* users doesn't exist, turn into adding a user */
-        ret = sysdb_add_user(domain, name, uid, gid, gecos, homedir,
-                             shell, orig_dn, attrs, cache_timeout, now);
-        if (ret == EEXIST) {
-            /* This may be a user rename. If there is a user with the
-             * same UID, remove it and try to add the basic user again
-             */
-            ret = sysdb_delete_user(domain, NULL, uid);
-            if (ret == ENOENT) {
-                /* Not found by UID, return the original EEXIST,
-                 * this may be a conflict in MPG domain or something
-                 * else */
-                ret = EEXIST;
-                goto fail;
-            } else if (ret != EOK) {
-                goto fail;
-            }
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "A user with the same UID [%llu] was removed from the "
-                   "cache\n", (unsigned long long) uid);
-            ret = sysdb_add_user(domain, name, uid, gid, gecos, homedir,
-                                 shell, orig_dn, attrs, cache_timeout, now);
-        }
-
-        /* Handle the result of sysdb_add_user */
-        if (ret == EOK) {
-            goto done;
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not add user\n");
-            goto fail;
-        }
+        /* the user doesn't exist, turn into adding a user */
+        ret = sysdb_store_new_user(domain, name, uid, gid, gecos, homedir,
+                                   shell, orig_dn, attrs, cache_timeout, now);
+    } else {
+        /* the user exists, let's just replace attributes when set */
+        ret = sysdb_store_user_attrs(domain, name, uid, gid, gecos, homedir,
+                                     shell, orig_dn, attrs, remove_attrs,
+                                     cache_timeout, now);
     }
-
-    /* the user exists, let's just replace attributes when set */
-    if (uid) {
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_UIDNUM, uid);
-        if (ret) goto fail;
-    }
-
-    if (gid) {
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
-        if (ret) goto fail;
-    }
-
-    if (uid && !gid && domain->mpg) {
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, uid);
-        if (ret) goto fail;
-    }
-
-    if (gecos) {
-        ret = sysdb_attrs_add_string(attrs, SYSDB_GECOS, gecos);
-        if (ret) goto fail;
-    }
-
-    if (homedir) {
-        ret = sysdb_attrs_add_string(attrs, SYSDB_HOMEDIR, homedir);
-        if (ret) goto fail;
-    }
-
-    if (shell) {
-        ret = sysdb_attrs_add_string(attrs, SYSDB_SHELL, shell);
-        if (ret) goto fail;
-    }
-
-    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
-    if (ret) goto fail;
-
-    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
-                                 ((cache_timeout) ?
-                                  (now + cache_timeout) : 0));
-    if (ret) goto fail;
-
-    ret = sysdb_set_user_attr(domain, name, attrs, SYSDB_MOD_REP);
-    if (ret != EOK) goto fail;
-
-    if (remove_attrs) {
-        ret = sysdb_remove_attrs(domain, name,
-                                 SYSDB_MEMBER_USER,
-                                 remove_attrs);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CONF_SETTINGS,
-                  "Could not remove missing attributes\n");
-        }
-    }
-
-done:
-    ret = sysdb_transaction_commit(domain->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
-        goto fail;
+        DEBUG(SSSDBG_OP_FAILURE, "Cache update failed: %d\n", ret);
+        goto done;
     }
 
+    sret = sysdb_transaction_commit(domain->sysdb);
+    if (sret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
+        ret = EIO;
+        goto done;
+    }
     in_transaction = false;
 
-fail:
+done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(domain->sysdb);
         if (sret != EOK) {
@@ -2552,6 +2509,121 @@ fail:
     }
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+static errno_t sysdb_store_new_user(struct sss_domain_info *domain,
+                                    const char *name,
+                                    uid_t uid,
+                                    gid_t gid,
+                                    const char *gecos,
+                                    const char *homedir,
+                                    const char *shell,
+                                    const char *orig_dn,
+                                    struct sysdb_attrs *attrs,
+                                    uint64_t cache_timeout,
+                                    time_t now)
+{
+    errno_t ret;
+
+    ret = sysdb_add_user(domain, name, uid, gid, gecos, homedir,
+                         shell, orig_dn, attrs, cache_timeout, now);
+    if (ret == EEXIST) {
+        /* This may be a user rename. If there is a user with the
+            * same UID, remove it and try to add the basic user again
+            */
+        ret = sysdb_delete_user(domain, NULL, uid);
+        if (ret == ENOENT) {
+            /* Not found by UID, return the original EEXIST,
+                * this may be a conflict in MPG domain or something
+                * else */
+            return EEXIST;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_user failed.\n");
+            return ret;
+        }
+        DEBUG(SSSDBG_TRACE_FUNC,
+                "A user with the same UID [%llu] was removed from the "
+                "cache\n", (unsigned long long) uid);
+        ret = sysdb_add_user(domain, name, uid, gid, gecos, homedir,
+                             shell, orig_dn, attrs, cache_timeout, now);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                    "sysdb_add_user failed (while renaming user) for: "
+                    "%s [%"SPRIgid"].\n", name, gid);
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t sysdb_store_user_attrs(struct sss_domain_info *domain,
+                                      const char *name,
+                                      uid_t uid,
+                                      gid_t gid,
+                                      const char *gecos,
+                                      const char *homedir,
+                                      const char *shell,
+                                      const char *orig_dn,
+                                      struct sysdb_attrs *attrs,
+                                      char **remove_attrs,
+                                      uint64_t cache_timeout,
+                                      time_t now)
+{
+    errno_t ret;
+
+    if (uid) {
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_UIDNUM, uid);
+        if (ret) return ret;
+    }
+
+    if (gid) {
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
+        if (ret) return ret;
+    }
+
+    if (uid && !gid && domain->mpg) {
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, uid);
+        if (ret) return ret;
+    }
+
+    if (gecos) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_GECOS, gecos);
+        if (ret) return ret;
+    }
+
+    if (homedir) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_HOMEDIR, homedir);
+        if (ret) return ret;
+    }
+
+    if (shell) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_SHELL, shell);
+        if (ret) return ret;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) return ret;
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 ((cache_timeout) ?
+                                  (now + cache_timeout) : 0));
+    if (ret) return ret;
+
+    ret = sysdb_set_user_attr(domain, name, attrs, SYSDB_MOD_REP);
+    if (ret) return ret;
+
+    if (remove_attrs) {
+        ret = sysdb_remove_attrs(domain, name,
+                                 SYSDB_MEMBER_USER,
+                                 remove_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Could not remove missing attributes\n");
+        }
+    }
+
+    return EOK;
 }
 
 /* =Store-Group-(Native/Legacy)-(replaces-existing-data)================== */
