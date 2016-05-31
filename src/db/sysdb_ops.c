@@ -1101,6 +1101,16 @@ done:
     return ret;
 }
 
+static errno_t sysdb_check_and_update_ts_usr(struct sss_domain_info *domain,
+                                             const char *grp_name,
+                                             struct sysdb_attrs *attrs,
+                                             uint64_t cache_timeout,
+                                             time_t now)
+{
+    return sysdb_check_and_update_ts_obj(domain, SYSDB_USER, grp_name,
+                                         attrs, cache_timeout, now);
+}
+
 static errno_t sysdb_check_and_update_ts_grp(struct sss_domain_info *domain,
                                              const char *grp_name,
                                              struct sysdb_attrs *attrs,
@@ -1117,6 +1127,15 @@ static errno_t sysdb_create_ts_grp(struct sss_domain_info *domain,
                                    time_t now)
 {
     return sysdb_create_ts_obj(domain, SYSDB_GROUP, grp_name,
+                               cache_timeout, now);
+}
+
+static errno_t sysdb_create_ts_usr(struct sss_domain_info *domain,
+                                   const char *usr_name,
+                                   uint64_t cache_timeout,
+                                   time_t now)
+{
+    return sysdb_create_ts_obj(domain, SYSDB_USER, usr_name,
                                cache_timeout, now);
 }
 
@@ -1862,6 +1881,13 @@ int sysdb_add_user(struct sss_domain_info *domain,
     ret = sysdb_add_basic_user(domain, name, uid, gid, gecos, homedir, shell);
     if (ret) goto done;
 
+    ret = sysdb_create_ts_usr(domain, name, cache_timeout, now);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot create user timestamp entry\n");
+        /* Not fatal */
+    }
+
     if (uid == 0) {
         ret = sysdb_get_new_id(domain, &id);
         if (ret) goto done;
@@ -2433,6 +2459,15 @@ int sysdb_store_user(struct sss_domain_info *domain,
     int ret;
     errno_t sret = EOK;
     bool in_transaction = false;
+
+    ret = sysdb_check_and_update_ts_usr(domain, name, attrs,
+                                        cache_timeout, now);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "The user record of %s did not change, only updated "
+              "the timestamp cache\n", name);
+        return EOK;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
