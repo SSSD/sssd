@@ -40,7 +40,7 @@ static void sss_tool_print_common_opts(void)
 {
     fprintf(stderr, _("Common options:\n"));
     fprintf(stderr, "  --debug=INT            %s\n",
-                    _("Enable debug at level"));
+                    _("The debug level to run with"));
     fprintf(stderr, "\n");
     fprintf(stderr, _("Help options:\n"));
     fprintf(stderr, "  -?, --help             %s\n",
