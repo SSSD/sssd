@@ -43,8 +43,11 @@ typedef int
                 struct sss_tool_ctx *tool_ctx,
                 void *pvt);
 
+#define SSS_TOOL_COMMAND(cmd, msg, fn) {cmd, _(msg), fn}
+
 struct sss_route_cmd {
     const char *command;
+    const char *description;
     sss_route_fn fn;
 };
 

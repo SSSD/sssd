@@ -1905,19 +1905,19 @@ static int override_group_export(struct sss_cmdline *cmdline,
 int main(int argc, const char **argv)
 {
     struct sss_route_cmd commands[] = {
-        {"user-add", override_user_add},
-        {"user-del", override_user_del},
-        {"user-find", override_user_find},
-        {"user-show", override_user_show},
-        {"user-import", override_user_import},
-        {"user-export", override_user_export},
-        {"group-add", override_group_add},
-        {"group-del", override_group_del},
-        {"group-find", override_group_find},
-        {"group-show", override_group_show},
-        {"group-import", override_group_import},
-        {"group-export", override_group_export},
-        {NULL, NULL}
+        {"user-add", NULL, override_user_add},
+        {"user-del", NULL, override_user_del},
+        {"user-find", NULL, override_user_find},
+        {"user-show", NULL, override_user_show},
+        {"user-import", NULL, override_user_import},
+        {"user-export", NULL, override_user_export},
+        {"group-add", NULL, override_group_add},
+        {"group-del", NULL, override_group_del},
+        {"group-find", NULL, override_group_find},
+        {"group-show", NULL, override_group_show},
+        {"group-import", NULL, override_group_import},
+        {"group-export", NULL, override_group_export},
+        {NULL, NULL, NULL}
     };
 
     return sss_tool_main(argc, argv, commands, NULL);

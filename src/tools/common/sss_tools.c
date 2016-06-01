@@ -228,7 +228,12 @@ int sss_tool_usage(const char *tool_name,
     fprintf(stderr, _("Available commands:\n"));
 
     for (i = 0; commands[i].command != NULL; i++) {
-        fprintf(stderr, "* %s\n", commands[i].command);
+        if (commands[i].description == NULL) {
+            fprintf(stderr, "* %s\n", commands[i].command);
+        } else {
+            fprintf(stderr, "* %s\t\t %s\n",
+                    commands[i].command, commands[i].description);
+        }
     }
 
     fprintf(stderr, _("\n"));
