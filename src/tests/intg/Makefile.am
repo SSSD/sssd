@@ -1,6 +1,7 @@
 dist_noinst_DATA = \
     config.py.m4 \
     sssd_id.py \
+    sssd_ldb.py \
     ds.py \
     ds_openldap.py \
     ent.py \
@@ -11,6 +12,7 @@ dist_noinst_DATA = \
     test_local_domain.py \
     util.py \
     test_memory_cache.py \
+    test_ts_cache.py \
     $(NULL)
 
 config.py: config.py.m4
