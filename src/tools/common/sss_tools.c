@@ -41,6 +41,12 @@ static void sss_tool_print_common_opts(void)
     fprintf(stderr, _("Common options:\n"));
     fprintf(stderr, "  --debug=INT            %s\n",
                     _("Enable debug at level"));
+    fprintf(stderr, "\n");
+    fprintf(stderr, _("Help options:\n"));
+    fprintf(stderr, "  -?, --help             %s\n",
+                    _("Show this for a command"));
+    fprintf(stderr, "  --usage                %s\n",
+                    _("Show brief usage message for a command"));
 }
 
 static struct poptOption *sss_tool_common_opts_table(void)
