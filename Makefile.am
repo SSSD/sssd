@@ -130,6 +130,7 @@ sbin_PROGRAMS = \
     sss_debuglevel \
     sss_override \
     sss_seed \
+    sssctl \
     $(NULL)
 
 sssdlibexec_PROGRAMS = \
@@ -728,6 +729,7 @@ dist_noinst_HEADERS = \
     src/tools/common/sss_tools.h \
     src/tools/common/sss_process.h \
     src/tools/common/sss_colondb.h \
+    src/tools/sssctl/sssctl.h \
     src/util/probes.h \
     $(NULL)
 
@@ -1505,6 +1507,25 @@ sss_override_LDADD = \
     $(NULL)
 sss_override_CFLAGS = \
     $(AM_CFLAGS) \
+    $(NULL)
+
+sssctl_SOURCES = \
+    src/tools/sssctl/sssctl.c \
+    src/tools/sssctl/sssctl_cache.c \
+    src/tools/sssctl/sssctl_data.c \
+    src/tools/sssctl/sssctl_logs.c \
+    src/tools/sssctl/sssctl_domains.c \
+    src/tools/sssctl/sssctl_sifp.c \
+    $(SSSD_TOOLS_OBJ) \
+    $(NULL)
+sssctl_LDADD = \
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_simpleifp.la \
+    $(NULL)
+sssctl_CFLAGS = \
+    $(AM_CFLAGS) \
+    -I$(top_srcdir)/src/lib/sifp
     $(NULL)
 
 if BUILD_SUDO

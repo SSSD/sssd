@@ -212,6 +212,11 @@ WITH_INITSCRIPT
 if test x$initscript = xsystemd; then
     WITH_SYSTEMD_UNIT_DIR
     WITH_SYSTEMD_CONF_DIR
+else
+    AC_CHECK_PROG(HAVE_SERVICE, service, yes, no)
+    AS_IF([test x$HAVE_SERVICE = xyes],
+          [AC_DEFINE(HAVE_SERVICE, 1,
+                     [Whether the service command is available])])
 fi
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])

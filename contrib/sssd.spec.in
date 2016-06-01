@@ -262,6 +262,7 @@ Also provides several other administrative tools:
     * sss_debuglevel to change the debug level on the fly
     * sss_seed which pre-creates a user entry for use in kickstarts
     * sss_obfuscate for generating an obfuscated LDAP password
+    * sssctl -- an sssd status and control utility
 
 %package -n python-sssdconfig
 Summary: SSSD and IPA configuration file manipulation classes and functions
@@ -932,6 +933,7 @@ done
 %{_sbindir}/sss_override
 %{_sbindir}/sss_debuglevel
 %{_sbindir}/sss_seed
+%{_sbindir}/sssctl
 %{_mandir}/man8/sss_groupadd.8*
 %{_mandir}/man8/sss_groupdel.8*
 %{_mandir}/man8/sss_groupmod.8*

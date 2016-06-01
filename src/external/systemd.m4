@@ -17,6 +17,10 @@ AS_IF([test x$HAVE_LIBSYSTEMD = xyes],
       [login_lib_name=libsystemd-login])
 
 AM_COND_IF([HAVE_SYSTEMD],
+           [AC_DEFINE_UNQUOTED([HAVE_SYSTEMD], 1, [Build with libsystemd support])],
+           [AC_MSG_NOTICE([Build without libsystemd support])])
+
+AM_COND_IF([HAVE_SYSTEMD],
            [PKG_CHECK_MODULES([SYSTEMD_LOGIN],
                               [$login_lib_name],
                               [AC_DEFINE_UNQUOTED([HAVE_SYSTEMD_LOGIN], 1,
