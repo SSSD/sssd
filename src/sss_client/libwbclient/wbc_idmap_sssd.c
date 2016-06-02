@@ -172,15 +172,14 @@ wbcErr wbcSidsToUnixIds(const struct wbcDomainSid *sids, uint32_t num_sids,
     wbcErr wbc_status;
 
     for (c = 0; c < num_sids; c++) {
+        type = SSS_ID_TYPE_NOT_SPECIFIED;
         wbc_status = wbcSidToString(&sids[c], &sid_str);
-        if (!WBC_ERROR_IS_OK(wbc_status)) {
-            return wbc_status;
-        }
-
-        ret = sss_nss_getidbysid(sid_str, &id, &type);
-        wbcFreeMemory(sid_str);
-        if (ret != 0) {
-            return WBC_ERR_UNKNOWN_FAILURE;
+        if (WBC_ERROR_IS_OK(wbc_status)) {
+            ret = sss_nss_getidbysid(sid_str, &id, &type);
+            wbcFreeMemory(sid_str);
+            if (ret != 0) {
+                type = SSS_ID_TYPE_NOT_SPECIFIED;
+            }
         }
 
         switch (type) {
