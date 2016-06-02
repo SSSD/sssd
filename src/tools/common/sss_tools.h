@@ -71,9 +71,10 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
                      enum sss_tool_opt require_option,
                      sss_popt_fn popt_fn,
                      void *popt_fn_pvt,
-                     const char *free_opt_name,
-                     const char *free_opt_help,
-                     const char **_free_opt);
+                     const char *fopt_name,
+                     const char *fopt_help,
+                     const char **_fopt,
+                     bool *_opt_set);
 
 int sss_tool_popt(struct sss_cmdline *cmdline,
                   struct poptOption *options,

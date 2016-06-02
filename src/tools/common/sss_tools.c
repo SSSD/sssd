@@ -301,7 +301,8 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
                      void *popt_fn_pvt,
                      const char *fopt_name,
                      const char *fopt_help,
-                     const char **_fopt)
+                     const char **_fopt,
+                     bool *_opt_set)
 {
     struct poptOption opts_table[] = {
         {NULL, '\0', POPT_ARG_INCLUDE_TABLE, nonnull_popt_table(options), \
@@ -314,6 +315,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
     const char *fopt;
     char *help;
     poptContext pc;
+    bool opt_set;
     int ret;
 
     /* Create help option string. We always need to append command name since
@@ -383,13 +385,21 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         goto done;
     }
 
-    /* If at least one option is required and not provided, print error. */
-    if (require_option == SSS_TOOL_OPT_REQUIRED
-            && ((_fopt != NULL && cmdline->argc < 2) || cmdline->argc < 1)) {
-        fprintf(stderr, _("At least one option is required!\n\n"));
-        poptPrintHelp(pc, stderr, 0);
-        ret = EXIT_FAILURE;
-        goto done;
+    opt_set = true;
+    if ((_fopt != NULL && cmdline->argc < 2) || cmdline->argc < 1) {
+        opt_set = false;
+
+        /* If at least one option is required and not provided, print error. */
+        if (require_option == SSS_TOOL_OPT_REQUIRED) {
+            fprintf(stderr, _("At least one option is required!\n\n"));
+            poptPrintHelp(pc, stderr, 0);
+            ret = EXIT_FAILURE;
+            goto done;
+        }
+    }
+
+    if (_opt_set != NULL) {
+        *_opt_set = opt_set;
     }
 
     ret = EXIT_SUCCESS;
@@ -407,7 +417,7 @@ int sss_tool_popt(struct sss_cmdline *cmdline,
                   void *popt_fn_pvt)
 {
     return sss_tool_popt_ex(cmdline, options, require_option,
-                            popt_fn, popt_fn_pvt, NULL, NULL, NULL);
+                            popt_fn, popt_fn_pvt, NULL, NULL, NULL, NULL);
 }
 
 int sss_tool_main(int argc, const char **argv,
