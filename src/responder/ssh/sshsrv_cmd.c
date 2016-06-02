@@ -781,9 +781,102 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     return EOK;
 }
 
+static errno_t get_valid_certs_keys(TALLOC_CTX *mem_ctx,
+                                    struct ssh_cmd_ctx *cmd_ctx,
+                                    struct ldb_message_element *el_cert,
+                                    struct ssh_ctx *ssh_ctx,
+                                    struct ldb_message_element **_el_res)
+{
+    TALLOC_CTX *tmp_ctx;
+    uint8_t *key;
+    size_t key_len;
+    char *cert_verification_opts;
+    struct cert_verify_opts *cert_verify_opts;
+    int ret;
+    struct ldb_message_element *el_res;
+    struct cli_ctx *cctx = cmd_ctx->cctx;
+    size_t d;
+
+    if (el_cert == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Mssing element, nothing to do.\n");
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(cctx->rctx->cdb, tmp_ctx,
+                            CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_CERT_VERIFICATION, NULL,
+                            &cert_verification_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read p11_child_timeout from confdb: [%d] %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (cert_verification_opts != NULL) {
+        ret = parse_cert_verify_opts(tmp_ctx, cert_verification_opts,
+                                     &cert_verify_opts);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to parse verifiy option.\n");
+            goto done;
+        }
+    }
+
+    el_res = talloc_zero(tmp_ctx, struct ldb_message_element);
+    if (el_res == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    el_res->values = talloc_array(el_res, struct ldb_val, el_cert->num_values);
+    if (el_res->values == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (d = 0; d < el_cert->num_values; d++) {
+            ret = cert_to_ssh_key(tmp_ctx, ssh_ctx->ca_db,
+                                  el_cert->values[d].data,
+                                  el_cert->values[d].length,
+                                  cert_verify_opts, &key, &key_len);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key failed, ignoring.\n");
+                continue;
+            }
+
+            el_res->values[el_res->num_values].data =
+                                              talloc_steal(el_res->values, key);
+            el_res->values[el_res->num_values].length = key_len;
+            el_res->num_values++;
+    }
+
+    if (el_res->num_values == 0) {
+        *_el_res = NULL;
+    } else {
+        *_el_res = talloc_steal(mem_ctx, el_res);
+    }
+
+    ret = EOK;
+
+done:
+
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
                                           struct ldb_message_element *el,
-                                          bool cert_data,
+                                          bool skip_base64_decode,
                                           struct ssh_ctx *ssh_ctx,
                                           size_t fqname_len,
                                           const char *fqname,
@@ -797,8 +890,6 @@ static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
     int ret;
     size_t d;
     TALLOC_CTX *tmp_ctx;
-    char *cert_verification_opts;
-    struct cert_verify_opts *cert_verify_opts;
 
     if (el == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "Mssing element, nothing to do.\n");
@@ -812,36 +903,9 @@ static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
     }
 
     for (d = 0; d < el->num_values; d++) {
-        if (cert_data) {
-
-            ret = confdb_get_string(cctx->rctx->cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_CERT_VERIFICATION, NULL,
-                                    &cert_verification_opts);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to read p11_child_timeout from confdb: [%d] %s\n",
-                      ret, sss_strerror(ret));
-                return ret;
-            }
-
-            if (cert_verification_opts != NULL) {
-                ret = parse_cert_verify_opts(tmp_ctx, cert_verification_opts,
-                                             &cert_verify_opts);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_FATAL_FAILURE,
-                          "Failed to parse verifiy option.\n");
-                    return ret;
-                }
-            }
-
-            ret = cert_to_ssh_key(tmp_ctx, ssh_ctx->ca_db,
-                                  el->values[d].data, el->values[d].length,
-                                  cert_verify_opts, &key, &key_len);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key failed.\n");
-                return ret;
-            }
+        if (skip_base64_decode) {
+            key = el->values[d].data;
+            key_len = el->values[d].length;
         } else  {
             key = sss_base64_decode(tmp_ctx, (const char *) el->values[d].data,
                                     &key_len);
@@ -888,18 +952,26 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     struct ldb_message_element *el_override = NULL;
     struct ldb_message_element *el_orig = NULL;
     struct ldb_message_element *el_user_cert = NULL;
+    struct ldb_message_element *el_user_cert_keys = NULL;
     uint32_t count = 0;
     const char *name;
     char *fqname;
     uint32_t fqname_len;
     struct ssh_ctx *ssh_ctx = talloc_get_type(cctx->rctx->pvt_ctx,
                                               struct ssh_ctx);
+    TALLOC_CTX *tmp_ctx;
 
     ret = sss_packet_new(cctx->creq, 0,
                          sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         return ret;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
     }
 
     el = ldb_msg_find_element(cmd_ctx->result, SYSDB_SSH_PUBKEY);
@@ -923,13 +995,21 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
 
     el_user_cert = ldb_msg_find_element(cmd_ctx->result, SYSDB_USER_CERT);
     if (el_user_cert) {
-        /* TODO check if cert is valid */
-        count += el_user_cert->num_values;
+        ret = get_valid_certs_keys(cmd_ctx, cmd_ctx, el_user_cert, ssh_ctx,
+                                   &el_user_cert_keys);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_valid_certs_keys failed.\n");
+            goto done;
+        }
+
+        if (el_user_cert_keys) {
+            count += el_user_cert_keys->num_values;
+        }
     }
 
     ret = sss_packet_grow(cctx->creq->out, 2*sizeof(uint32_t));
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
     sss_packet_get_body(cctx->creq->out, &body, &body_len);
 
@@ -937,7 +1017,8 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     SAFEALIGN_SET_UINT32(body+c, 0, &c);
 
     if (count == 0) {
-        return EOK;
+        ret = EOK;
+        goto done;
     }
 
     name = ldb_msg_find_attr_as_string(cmd_ctx->result, SYSDB_NAME, NULL);
@@ -945,13 +1026,15 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
         DEBUG(SSSDBG_OP_FAILURE,
               "Got unnamed result for [%s@%s]\n",
                cmd_ctx->name, cmd_ctx->domain->name);
-        return ENOENT;
+        ret = ENOENT;
+        goto done;
     }
 
     fqname = talloc_asprintf(cmd_ctx, "%s@%s",
                              name, cmd_ctx->domain->name);
     if (!fqname) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     fqname_len = strlen(fqname)+1;
@@ -960,31 +1043,37 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
                                      fqname_len, fqname, &c);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
-        return ret;
+        goto done;
     }
 
     ret = decode_and_add_base64_data(cmd_ctx, el_orig, false, ssh_ctx,
                                      fqname_len, fqname, &c);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
-        return ret;
+        goto done;
     }
 
     ret = decode_and_add_base64_data(cmd_ctx, el_override, false, ssh_ctx,
                                      fqname_len, fqname, &c);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
-        return ret;
+        goto done;
     }
 
-    ret = decode_and_add_base64_data(cmd_ctx, el_user_cert, true, ssh_ctx,
+    ret = decode_and_add_base64_data(cmd_ctx, el_user_cert_keys, true, ssh_ctx,
                                      fqname_len, fqname, &c);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
 static errno_t
