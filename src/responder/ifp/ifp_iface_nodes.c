@@ -23,11 +23,12 @@
 #include "responder/ifp/ifp_users.h"
 #include "responder/ifp/ifp_groups.h"
 #include "responder/ifp/ifp_cache.h"
+#include "responder/ifp/ifp_domains.h"
 
 static const char **
 nodes_ifp(TALLOC_CTX *mem_ctx, const char *path, void *data)
 {
-    static const char *nodes[] = {"Users", "Groups", NULL};
+    static const char *nodes[] = {"Users", "Groups", "Domains", NULL};
 
     return nodes;
 }
@@ -106,6 +107,45 @@ nodes_groups(TALLOC_CTX *mem_ctx, const char *path, void *data)
                                 IFP_PATH_GROUPS "/");
 }
 
+static const char **
+nodes_domains(TALLOC_CTX *mem_ctx, const char *path, void *data)
+{
+    struct ifp_ctx *ctx;
+    struct sss_domain_info *domain;
+    const char **nodes;
+    size_t count;
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+
+    count = 0;
+    domain = ctx->rctx->domains;
+    do {
+        count++;
+    } while ((domain = get_next_domain(domain, SSS_GND_ALL_DOMAINS)) != NULL);
+
+    nodes = talloc_zero_array(mem_ctx, const char *, count + 1);
+    if (nodes == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
+        return NULL;
+    }
+
+    count = 0;
+    domain = ctx->rctx->domains;
+    do {
+        nodes[count] = sbus_opath_escape_part(nodes, domain->name);
+        if (nodes == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sbus_opath_escape_part() failed\n");
+            talloc_free(nodes);
+            return NULL;
+        }
+
+        count++;
+    } while ((domain = get_next_domain(domain, SSS_GND_ALL_DOMAINS)) != NULL);
+
+
+    return nodes;
+}
+
 struct nodes_map {
     const char *path;
     sbus_nodes_fn fn;
@@ -115,6 +155,7 @@ static struct nodes_map nodes_map[] = {
     { IFP_PATH, nodes_ifp },
     { IFP_PATH_USERS, nodes_users },
     { IFP_PATH_GROUPS, nodes_groups },
+    { IFP_PATH_DOMAINS, nodes_domains },
     { NULL, NULL}
 };
 

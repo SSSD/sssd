@@ -143,6 +143,7 @@ struct iface_ifp_cache_object iface_ifp_cache_object_group = {
 
 static struct sbus_iface_map iface_map[] = {
     { IFP_PATH, &iface_ifp.vtable },
+    { IFP_PATH_DOMAINS, &iface_ifp_domains.vtable },
     { IFP_PATH_DOMAINS_TREE, &iface_ifp_domains.vtable },
     { IFP_PATH_COMPONENTS_TREE, &iface_ifp_components.vtable },
     { IFP_PATH_USERS, &iface_ifp_users.vtable },
