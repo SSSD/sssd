@@ -21,11 +21,8 @@
 #ifndef _IFP_COMPONENTS_H_
 #define _IFP_COMPONENTS_H_
 
-#include "responder/ifp/ifp_iface_generated.h"
+#include "responder/ifp/ifp_iface.h"
 #include "responder/ifp/ifp_private.h"
-
-#define IFP_PATH_COMPONENTS IFP_PATH "/Components"
-#define IFP_PATH_COMPONENTS_TREE IFP_PATH_COMPONENTS SBUS_SUBTREE_SUFFIX
 
 /* org.freedesktop.sssd.infopipe */
 

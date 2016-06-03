@@ -605,6 +605,7 @@ dist_noinst_HEADERS = \
     src/responder/autofs/autofs_private.h \
     src/responder/ssh/sshsrv_private.h \
     src/responder/ifp/ifp_iface_generated.h \
+    src/responder/ifp/ifp_iface.h \
     src/responder/ifp/ifp_private.h \
     src/responder/ifp/ifp_domains.h \
     src/responder/ifp/ifp_components.h \

@@ -27,9 +27,7 @@
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
 #include "providers/data_provider.h"
-#include "responder/ifp/ifp_iface_generated.h"
-
-#define IFP_PATH "/org/freedesktop/sssd/infopipe"
+#include "responder/ifp/ifp_iface.h"
 
 struct sysbus_ctx {
     struct sbus_connection *conn;

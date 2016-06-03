@@ -21,11 +21,8 @@
 #ifndef IFP_USERS_H_
 #define IFP_USERS_H_
 
-#include "responder/ifp/ifp_iface_generated.h"
+#include "responder/ifp/ifp_iface.h"
 #include "responder/ifp/ifp_private.h"
-
-#define IFP_PATH_USERS "/org/freedesktop/sssd/infopipe/Users"
-#define IFP_PATH_USERS_TREE IFP_PATH_USERS SBUS_SUBTREE_SUFFIX
 
 /* Utility functions */
 

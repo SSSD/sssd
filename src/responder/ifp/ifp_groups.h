@@ -21,11 +21,8 @@
 #ifndef IFP_GROUPS_H_
 #define IFP_GROUPS_H_
 
-#include "responder/ifp/ifp_iface_generated.h"
+#include "responder/ifp/ifp_iface.h"
 #include "responder/ifp/ifp_private.h"
-
-#define IFP_PATH_GROUPS "/org/freedesktop/sssd/infopipe/Groups"
-#define IFP_PATH_GROUPS_TREE IFP_PATH_GROUPS SBUS_SUBTREE_SUFFIX
 
 /* Utility functions */
 

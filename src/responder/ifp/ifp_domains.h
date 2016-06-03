@@ -22,11 +22,8 @@
 #ifndef IFP_DOMAINS_H_
 #define IFP_DOMAINS_H_
 
-#include "responder/ifp/ifp_iface_generated.h"
+#include "responder/ifp/ifp_iface.h"
 #include "responder/ifp/ifp_private.h"
-
-#define IFP_PATH_DOMAINS IFP_PATH "/Domains"
-#define IFP_PATH_DOMAINS_TREE IFP_PATH_DOMAINS SBUS_SUBTREE_SUFFIX
 
 /* org.freedesktop.sssd.infopipe */
 
