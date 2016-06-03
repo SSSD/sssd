@@ -83,6 +83,8 @@ sss_sifp_init_ex(void *alloc_pvt,
         goto done;
     }
 
+    *_ctx = ctx;
+
     dbus_error_init(ctx->io_error);
 
     conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
@@ -93,7 +95,6 @@ sss_sifp_init_ex(void *alloc_pvt,
     }
 
     ctx->conn = conn;
-    *_ctx = ctx;
 
     ret = SSS_SIFP_OK;
 
