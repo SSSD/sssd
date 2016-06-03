@@ -1105,7 +1105,7 @@ libsss_simpleifp_la_LIBADD = \
     $(DHASH_LIBS)
 libsss_simpleifp_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/sifp/sss_simpleifp.exports \
-    -version-info 0:1:0
+    -version-info 1:0:1
 
 dist_noinst_DATA += src/lib/sifp/sss_simpleifp.exports
 
