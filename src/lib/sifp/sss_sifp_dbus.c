@@ -27,6 +27,8 @@
 #include "lib/sifp/sss_sifp_private.h"
 
 static sss_sifp_error sss_sifp_ifp_call(sss_sifp_ctx *ctx,
+                                        const char *object_path,
+                                        const char *interface,
                                         const char *method,
                                         int first_arg_type,
                                         va_list ap,
@@ -35,7 +37,11 @@ static sss_sifp_error sss_sifp_ifp_call(sss_sifp_ctx *ctx,
    DBusMessage *msg = NULL;
    sss_sifp_error ret;
 
-   msg = sss_sifp_create_message(SSS_SIFP_PATH_IFP, SSS_SIFP_IFACE_IFP, method);
+   if (object_path == NULL || interface == NULL || method == NULL) {
+       return SSS_SIFP_INVALID_ARGUMENT;
+   }
+
+   msg = sss_sifp_create_message(object_path, interface, method);
    if (msg == NULL) {
        ret = SSS_SIFP_OUT_OF_MEMORY;
        goto done;
@@ -60,7 +66,7 @@ sss_sifp_create_message(const char *object_path,
                         const char *interface,
                         const char *method)
 {
-    return dbus_message_new_method_call(SSS_SIFP_IFP, object_path,
+    return dbus_message_new_method_call(SSS_SIFP_ADDRESS, object_path,
                                         interface, method);
 }
 
@@ -109,17 +115,18 @@ done:
     return ret;
 }
 
-sss_sifp_error
-sss_sifp_invoke_list(sss_sifp_ctx *ctx,
-                     const char *method,
-                     char ***_object_paths,
-                     int first_arg_type,
-                     ...)
+static sss_sifp_error
+sss_sifp_invoke_list_va(sss_sifp_ctx *ctx,
+                        const char *object_path,
+                        const char *interface,
+                        const char *method,
+                        char ***_object_paths,
+                        int first_arg_type,
+                        va_list ap)
 {
     DBusMessage *reply = NULL;
     char *dbus_method = NULL;
     sss_sifp_error ret;
-    va_list ap;
 
     if (ctx == NULL || method == NULL || _object_paths == NULL) {
         return SSS_SIFP_INVALID_ARGUMENT;
@@ -131,9 +138,8 @@ sss_sifp_invoke_list(sss_sifp_ctx *ctx,
         goto done;
     }
 
-    va_start(ap, first_arg_type);
-    ret = sss_sifp_ifp_call(ctx, dbus_method, first_arg_type, ap, &reply);
-    va_end(ap);
+    ret = sss_sifp_ifp_call(ctx, object_path, interface, dbus_method,
+                            first_arg_type, ap, &reply);
     if (ret != SSS_SIFP_OK) {
         goto done;
     }
@@ -151,16 +157,53 @@ done:
 }
 
 sss_sifp_error
-sss_sifp_invoke_find(sss_sifp_ctx *ctx,
+sss_sifp_invoke_list_ex(sss_sifp_ctx *ctx,
+                        const char *object_path,
+                        const char *interface,
+                        const char *method,
+                        char ***_object_paths,
+                        int first_arg_type,
+                        ...)
+{
+    va_list ap;
+    sss_sifp_error ret;
+
+    va_start(ap, first_arg_type);
+    ret = sss_sifp_invoke_list_va(ctx, object_path, interface, method,
+                                  _object_paths, first_arg_type, ap);
+    va_end(ap);
+    return ret;
+}
+
+sss_sifp_error
+sss_sifp_invoke_list(sss_sifp_ctx *ctx,
                      const char *method,
-                     char **_object_path,
+                     char ***_object_paths,
                      int first_arg_type,
                      ...)
+{
+    va_list ap;
+    sss_sifp_error ret;
+
+    va_start(ap, first_arg_type);
+    ret = sss_sifp_invoke_list_ex(ctx, SSS_SIFP_PATH, SSS_SIFP_IFACE, method,
+                                  _object_paths, first_arg_type, ap);
+    va_end(ap);
+    return ret;
+}
+
+static sss_sifp_error
+sss_sifp_invoke_find_va(sss_sifp_ctx *ctx,
+                        const char *object_path,
+                        const char *interface,
+                        const char *method,
+                        char **_object_path,
+                        int first_arg_type,
+                        va_list ap)
 {
    DBusMessage *reply = NULL;
    char *dbus_method = NULL;
    sss_sifp_error ret;
-   va_list ap;
 
    if (ctx == NULL || method == NULL || _object_path == NULL) {
        return SSS_SIFP_INVALID_ARGUMENT;
@@ -172,9 +215,8 @@ sss_sifp_invoke_find(sss_sifp_ctx *ctx,
        goto done;
    }
 
-   va_start(ap, first_arg_type);
-   ret = sss_sifp_ifp_call(ctx, dbus_method, first_arg_type, ap, &reply);
-   va_end(ap);
+   ret = sss_sifp_ifp_call(ctx, object_path, interface, dbus_method,
+                           first_arg_type, ap, &reply);
    if (ret != SSS_SIFP_OK) {
        goto done;
    }
@@ -188,5 +230,41 @@ done:
        dbus_message_unref(reply);
    }
 
+   return ret;
+}
+
+sss_sifp_error
+sss_sifp_invoke_find_ex(sss_sifp_ctx *ctx,
+                        const char *object_path,
+                        const char *interface,
+                        const char *method,
+                        char **_object_path,
+                        int first_arg_type,
+                        ...)
+{
+   va_list ap;
+   sss_sifp_error ret;
+
+   va_start(ap, first_arg_type);
+   ret = sss_sifp_invoke_find_va(ctx, object_path, interface, method,
+                                 _object_path, first_arg_type, ap);
+   va_end(ap);
+   return ret;
+}
+
+sss_sifp_error
+sss_sifp_invoke_find(sss_sifp_ctx *ctx,
+                     const char *method,
+                     char **_object_path,
+                     int first_arg_type,
+                     ...)
+{
+   va_list ap;
+   sss_sifp_error ret;
+
+   va_start(ap, first_arg_type);
+   ret = sss_sifp_invoke_find_va(ctx, SSS_SIFP_PATH, SSS_SIFP_IFACE, method,
+                                 _object_path, first_arg_type, ap);
+   va_end(ap);
    return ret;
 }

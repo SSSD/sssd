@@ -42,15 +42,30 @@
  */
 
 /** SSSD InfoPipe bus address */
-#define SSS_SIFP_IFP "org.freedesktop.sssd.infopipe"
+#define SSS_SIFP_ADDRESS "org.freedesktop.sssd.infopipe"
 
-/** SSSD InfoPipe interface */
+/* Backwards-compatible address */
+#define SSS_SIFP_IFP SSS_SIFP_ADDRESS
+
+/* Backwards-compatible interface definitions */
 #define SSS_SIFP_IFACE_IFP SSS_SIFP_IFP
 #define SSS_SIFP_IFACE_COMPONENTS "org.freedesktop.sssd.infopipe.Components"
 #define SSS_SIFP_IFACE_SERVICES "org.freedesktop.sssd.infopipe.Services"
 #define SSS_SIFP_IFACE_DOMAINS "org.freedesktop.sssd.infopipe.Domains"
 #define SSS_SIFP_IFACE_USERS "org.freedesktop.sssd.infopipe.Users"
 #define SSS_SIFP_IFACE_GROUPS "org.freedesktop.sssd.infopipe.Groups"
+
+/**
+ * SSSD InfoPipe object path.
+ * Look at InfoPipe introspection and SSSD documentation for more objects.
+ */
+#define SSS_SIFP_PATH "/org/freedesktop/sssd/infopipe"
+
+/**
+ * SSSD InfoPipe object path.
+ * Look at InfoPipe introspection and SSSD documentation for more interfaces.
+ */
+#define SSS_SIFP_IFACE "org.freedesktop.sssd.infopipe"
 
 /**
  * Opaque libsss_sifp context. One context shall not be used by multiple
@@ -162,6 +177,15 @@ sss_sifp_get_last_io_error_name(sss_sifp_ctx *ctx);
  */
 const char *
 sss_sifp_get_last_io_error_message(sss_sifp_ctx *ctx);
+
+/**
+ * @brief Translate error code into human readable message.
+ *
+ * @param[in] error sss_sifp error code
+ * @return Error message.
+ */
+const char *
+sss_sifp_strerr(sss_sifp_error error);
 
 /**
  * @brief Fetch selected attributes of given object.

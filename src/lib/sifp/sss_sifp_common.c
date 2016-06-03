@@ -23,11 +23,15 @@
 #include "lib/sifp/sss_sifp.h"
 #include "lib/sifp/sss_sifp_dbus.h"
 #include "lib/sifp/sss_sifp_private.h"
+#include "responder/ifp/ifp_iface.h"
 
 #define SSS_SIFP_ATTR_NAME "name"
 
 static sss_sifp_error
 sss_sifp_fetch_object_by_attr(sss_sifp_ctx *ctx,
+                              const char *path,
+                              const char *iface_find,
+                              const char *iface_object,
                               const char *method,
                               int attr_type,
                               const void *attr,
@@ -35,26 +39,19 @@ sss_sifp_fetch_object_by_attr(sss_sifp_ctx *ctx,
 {
     sss_sifp_object *object = NULL;
     char *object_path = NULL;
-    const char *interface = NULL;
     sss_sifp_error ret;
 
     if (method == NULL || attr == NULL || attr_type == DBUS_TYPE_INVALID) {
         return SSS_SIFP_INVALID_ARGUMENT;
     }
 
-    ret = sss_sifp_invoke_find(ctx, method, &object_path,
-                               attr_type, attr,
-                               DBUS_TYPE_INVALID);
+    ret = sss_sifp_invoke_find_ex(ctx, path, iface_find, method, &object_path,
+                                  attr_type, attr, DBUS_TYPE_INVALID);
     if (ret != SSS_SIFP_OK) {
         goto done;
     }
 
-    interface = sss_sifp_get_iface_for_object(object_path);
-    if (interface == NULL) {
-        return SSS_SIFP_INTERNAL_ERROR;
-    }
-
-    ret = sss_sifp_fetch_object(ctx, object_path, interface, &object);
+    ret = sss_sifp_fetch_object(ctx, object_path, iface_object, &object);
     if (ret != SSS_SIFP_OK) {
         goto done;
     }
@@ -71,11 +68,15 @@ done:
 
 static sss_sifp_error
 sss_sifp_fetch_object_by_name(sss_sifp_ctx *ctx,
+                              const char *path,
+                              const char *iface_find,
+                              const char *iface_object,
                               const char *method,
                               const char *name,
                               sss_sifp_object **_object)
 {
-    return sss_sifp_fetch_object_by_attr(ctx, method, DBUS_TYPE_STRING, &name,
+    return sss_sifp_fetch_object_by_attr(ctx, path, iface_find, iface_object,
+                                         method, DBUS_TYPE_STRING, &name,
                                          _object);
 }
 
@@ -95,8 +96,8 @@ sss_sifp_list_domains(sss_sifp_ctx *ctx,
         return SSS_SIFP_INVALID_ARGUMENT;
     }
 
-    ret = sss_sifp_invoke_list(ctx, "Domains", &object_paths,
-                               DBUS_TYPE_INVALID);
+    ret = sss_sifp_invoke_list_ex(ctx, IFP_PATH, IFACE_IFP, "Domains",
+                                  &object_paths, DBUS_TYPE_INVALID);
     if (ret != SSS_SIFP_OK) {
         goto done;
     }
@@ -112,8 +113,7 @@ sss_sifp_list_domains(sss_sifp_ctx *ctx,
 
     /* fetch domain name */
     for (i = 0; i < size; i++) {
-        ret = sss_sifp_fetch_attr(ctx, object_paths[i],
-                                  SSS_SIFP_IFACE_DOMAINS,
+        ret = sss_sifp_fetch_attr(ctx, object_paths[i], IFACE_IFP_DOMAINS,
                                   SSS_SIFP_ATTR_NAME, &attrs);
         if (ret != SSS_SIFP_OK) {
             goto done;
@@ -155,7 +155,9 @@ sss_sifp_fetch_domain_by_name(sss_sifp_ctx *ctx,
                               const char *name,
                               sss_sifp_object **_domain)
 {
-    return sss_sifp_fetch_object_by_name(ctx, "DomainByName", name, _domain);
+    return sss_sifp_fetch_object_by_name(ctx, IFP_PATH, IFACE_IFP,
+                                         IFACE_IFP_DOMAINS, "DomainByName",
+                                         name, _domain);
 }
 
 sss_sifp_error
@@ -165,7 +167,8 @@ sss_sifp_fetch_user_by_uid(sss_sifp_ctx *ctx,
 {
     uint64_t _uid = uid;
 
-    return sss_sifp_fetch_object_by_attr(ctx, "UserByID",
+    return sss_sifp_fetch_object_by_attr(ctx, IFP_PATH_USERS, IFACE_IFP_USERS,
+                                         IFACE_IFP_USERS_USER, "UserByID",
                                          DBUS_TYPE_UINT64, &_uid, _user);
 }
 
@@ -174,5 +177,7 @@ sss_sifp_fetch_user_by_name(sss_sifp_ctx *ctx,
                             const char *name,
                             sss_sifp_object **_user)
 {
-    return sss_sifp_fetch_object_by_name(ctx, "UserByName", name, _user);
+    return sss_sifp_fetch_object_by_name(ctx, IFP_PATH_USERS, IFACE_IFP_USERS,
+                                         IFACE_IFP_USERS_USER, "UserByName",
+                                         name, _user);
 }

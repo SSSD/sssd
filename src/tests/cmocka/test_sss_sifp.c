@@ -25,6 +25,7 @@
 #include "lib/sifp/sss_sifp.h"
 #include "lib/sifp/sss_sifp_dbus.h"
 #include "lib/sifp/sss_sifp_private.h"
+#include "responder/ifp/ifp_iface.h"
 
 struct {
     sss_sifp_ctx *dbus_ctx;
@@ -1619,32 +1620,6 @@ void test_sss_sifp_parse_attr_list_empty(void **state)
     assert_null(attrs);
 }
 
-void test_sss_sifp_get_iface_for_object(void **state)
-{
-    int i;
-    const char *iface = NULL;
-    static struct {
-        const char *path;
-        const char *iface;
-    } data[] = {{SSS_SIFP_PATH_IFP "/Components/Monitor",
-                 SSS_SIFP_IFACE_COMPONENTS},
-                {SSS_SIFP_PATH_IFP "/Domains/LDAP",
-                 SSS_SIFP_IFACE_DOMAINS},
-                {SSS_SIFP_PATH_IFP "/Services/NSS",
-                 SSS_SIFP_IFACE_SERVICES},
-                {SSS_SIFP_PATH_IFP "/Users/2154",
-                 SSS_SIFP_IFACE_USERS},
-                {SSS_SIFP_PATH_IFP "/Groups/3441",
-                 SSS_SIFP_IFACE_GROUPS},
-                {NULL, NULL}};
-
-    for (i = 0; data[i].path != NULL; i++) {
-        iface = sss_sifp_get_iface_for_object(data[i].path);
-        assert_non_null(iface);
-        assert_string_equal(data[i].iface, iface);
-    }
-}
-
 void test_sss_sifp_fetch_attr(void **state)
 {
     sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
@@ -1870,7 +1845,8 @@ void test_sss_sifp_invoke_list_zeroargs(void **state)
     will_return(__wrap_dbus_connection_send_with_reply_and_block, reply);
 
     /* test */
-    ret = sss_sifp_invoke_list(ctx, "MyMethod", &path_out, DBUS_TYPE_INVALID);
+    ret = sss_sifp_invoke_list_ex(ctx, SSS_SIFP_PATH, SSS_SIFP_IFACE,
+                                  "MyMethod", &path_out, DBUS_TYPE_INVALID);
     assert_int_equal(ret, SSS_SIFP_OK);
     assert_non_null(path_out);
 
@@ -1906,9 +1882,10 @@ void test_sss_sifp_invoke_list_withargs(void **state)
     will_return(__wrap_dbus_connection_send_with_reply_and_block, reply);
 
     /* test */
-    ret = sss_sifp_invoke_list(ctx, "MyMethod", &path_out,
-                               DBUS_TYPE_STRING, &arg,
-                               DBUS_TYPE_INVALID);
+    ret = sss_sifp_invoke_list_ex(ctx, SSS_SIFP_PATH, SSS_SIFP_IFACE,
+                                  "MyMethod", &path_out,
+                                  DBUS_TYPE_STRING, &arg,
+                                  DBUS_TYPE_INVALID);
     assert_int_equal(ret, SSS_SIFP_OK);
     assert_non_null(path_out);
 
@@ -1938,7 +1915,8 @@ void test_sss_sifp_invoke_find_zeroargs(void **state)
     will_return(__wrap_dbus_connection_send_with_reply_and_block, reply);
 
     /* test */
-    ret = sss_sifp_invoke_find(ctx, "MyMethod", &path_out, DBUS_TYPE_INVALID);
+    ret = sss_sifp_invoke_find_ex(ctx, SSS_SIFP_PATH, SSS_SIFP_IFACE,
+                                  "MyMethod", &path_out, DBUS_TYPE_INVALID);
     assert_int_equal(ret, SSS_SIFP_OK);
     assert_non_null(path_out);
     assert_string_equal(path_in, path_out);
@@ -1964,9 +1942,10 @@ void test_sss_sifp_invoke_find_withargs(void **state)
     will_return(__wrap_dbus_connection_send_with_reply_and_block, reply);
 
     /* test */
-    ret = sss_sifp_invoke_find(ctx, "MyMethod", &path_out,
-                               DBUS_TYPE_STRING, &arg,
-                               DBUS_TYPE_INVALID);
+    ret = sss_sifp_invoke_find_ex(ctx, SSS_SIFP_PATH, SSS_SIFP_IFACE,
+                                  "MyMethod", &path_out,
+                                  DBUS_TYPE_STRING, &arg,
+                                  DBUS_TYPE_INVALID);
     assert_int_equal(ret, SSS_SIFP_OK);
     assert_non_null(path_out);
     assert_string_equal(path_in, path_out);
@@ -1983,8 +1962,8 @@ void test_sss_sifp_list_domains(void **state)
     DBusMessage *msg_ipa = NULL;
     dbus_bool_t bret;
     sss_sifp_error ret;
-    const char *in[] = {SSS_SIFP_PATH_IFP "/Domains/LDAP",
-                        SSS_SIFP_PATH_IFP "/Domains/IPA"};
+    const char *in[] = {SSS_SIFP_PATH "/Domains/LDAP",
+                        SSS_SIFP_PATH "/Domains/IPA"};
     const char **paths = in;
     const char *names[] = {"LDAP", "IPA"};
     char **out = NULL;
@@ -2043,7 +2022,7 @@ void test_sss_sifp_fetch_domain_by_name(void **state)
     DBusMessageIter var_iter;
     dbus_bool_t bret;
     sss_sifp_error ret;
-    const char *in =SSS_SIFP_PATH_IFP "/Domains/LDAP";
+    const char *in =SSS_SIFP_PATH "/Domains/LDAP";
     const char *name = "LDAP";
     const char *prop = NULL;
     sss_sifp_object *out = NULL;
@@ -2118,7 +2097,7 @@ void test_sss_sifp_fetch_domain_by_name(void **state)
 
     assert_string_equal(out->name, name);
     assert_string_equal(out->object_path, in);
-    assert_string_equal(out->interface, SSS_SIFP_IFACE_DOMAINS);
+    assert_string_equal(out->interface, IFACE_IFP_DOMAINS);
 
     for (i = 0; props[i].name != NULL; i++) {
         assert_non_null(out->attrs[i]);
@@ -2228,7 +2207,6 @@ int main(int argc, const char *argv[])
                                         test_setup, test_teardown_parser),
         cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_list_empty,
                                         test_setup, test_teardown_parser),
-        cmocka_unit_test(test_sss_sifp_get_iface_for_object),
         cmocka_unit_test_setup_teardown(test_sss_sifp_fetch_attr,
                                         test_setup, test_teardown_api),
         cmocka_unit_test_setup_teardown(test_sss_sifp_fetch_all_attrs,

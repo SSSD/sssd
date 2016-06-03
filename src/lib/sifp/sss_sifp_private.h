@@ -21,8 +21,6 @@
 #ifndef SSS_SIFP_PRIVATE_H_
 #define SSS_SIFP_PRIVATE_H_
 
-#define SSS_SIFP_PATH_IFP "/org/freedesktop/sssd/infopipe"
-
 #include <dbus/dbus.h>
 #include "lib/sifp/sss_sifp.h"
 
@@ -80,9 +78,6 @@ struct sss_sifp_attr {
 void
 sss_sifp_set_io_error(sss_sifp_ctx *ctx,
                       DBusError *error);
-
-const char *
-sss_sifp_get_iface_for_object(const char *object_path);
 
 char *
 sss_sifp_strdup(sss_sifp_ctx *ctx,

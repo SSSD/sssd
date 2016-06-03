@@ -44,33 +44,6 @@ void sss_sifp_set_io_error(sss_sifp_ctx *ctx, DBusError *error)
     dbus_set_error(ctx->io_error, error->name, error->message);
 }
 
-const char *
-sss_sifp_get_iface_for_object(const char *object_path)
-{
-    int i;
-    const char *path;
-    static struct {
-        const char *path;
-        const char *iface;
-    } known_types[] = {
-        {SSS_SIFP_PATH_IFP "/Components/", SSS_SIFP_IFACE_COMPONENTS},
-        {SSS_SIFP_PATH_IFP "/Domains/", SSS_SIFP_IFACE_DOMAINS},
-        {SSS_SIFP_PATH_IFP "/Services/", SSS_SIFP_IFACE_SERVICES},
-        {SSS_SIFP_PATH_IFP "/Users/", SSS_SIFP_IFACE_USERS},
-        {SSS_SIFP_PATH_IFP "/Groups/", SSS_SIFP_IFACE_GROUPS},
-        {NULL, NULL}
-    };
-
-    for (i = 0; known_types[i].path != NULL; i++) {
-        path = known_types[i].path;
-        if (strncmp(path, object_path, strlen(path)) == 0) {
-            return known_types[i].iface;
-        }
-    }
-
-    return NULL;
-}
-
 char * sss_sifp_strdup(sss_sifp_ctx *ctx, const char *str)
 {
     char *result = NULL;

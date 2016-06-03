@@ -46,3 +46,11 @@ SSS_SIMPLEIFP_0.0 {
     local:
         *;
 };
+
+SSS_SIMPLEIFP_0.1 {
+    # public functions
+    global:
+        sss_sifp_strerr;
+        sss_sifp_invoke_list_ex;
+        sss_sifp_invoke_find_ex;
+} SSS_SIMPLEIFP_0.0;

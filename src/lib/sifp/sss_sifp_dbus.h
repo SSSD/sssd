@@ -86,6 +86,30 @@ sss_sifp_send_message_ex(sss_sifp_ctx *ctx,
 
 /**
  * @brief List objects that satisfies given conditions. This routine will
+ * invoke List<method> D-Bus method on given interface and object path. If
+ * no interface or object path is given, /org/freedesktop/sssd/infopipe and
+ * org.freedesktop.sssd.infopipe is used. Arguments to this method are given
+ * as standard variadic D-Bus arguments.
+ *
+ * @param[in] ctx            sss_sifp context
+ * @param[in] object_path    D-Bus object path
+ * @param[in] interface      D-Bus interface
+ * @param[in] method         D-Bus method to call without the 'List' prefix
+ * @param[out] _object_paths List of object paths
+ * @param[in] first_arg_type Type of the first D-Bus argument
+ * @param[in] ...            D-Bus arguments
+ */
+sss_sifp_error
+sss_sifp_invoke_list_ex(sss_sifp_ctx *ctx,
+                        const char *object_path,
+                        const char *interface,
+                        const char *method,
+                        char ***_object_paths,
+                        int first_arg_type,
+                        ...);
+
+/**
+ * @brief List objects that satisfies given conditions. This routine will
  * invoke List<method> D-Bus method on SSSD InfoPipe interface. Arguments
  * to this method are given as standard variadic D-Bus arguments.
  *
@@ -101,6 +125,30 @@ sss_sifp_invoke_list(sss_sifp_ctx *ctx,
                      char ***_object_paths,
                      int first_arg_type,
                      ...);
+
+/**
+ * @brief Find single object that satisfies given conditions. This routine will
+ * invoke Find<method> D-Bus method on given interface and object path. If
+ * no interface or object path is given, /org/freedesktop/sssd/infopipe and
+ * org.freedesktop.sssd.infopipe is used. Arguments to this method are given
+ * as standard variadic D-Bus arguments.
+ *
+ * @param[in] ctx            sss_sifp context
+ * @param[in] object_path    D-Bus object path
+ * @param[in] interface      D-Bus interface
+ * @param[in] method         D-Bus method to call without the 'Find' prefix
+ * @param[out] _object_path  Object path
+ * @param[in] first_arg_type Type of the first D-Bus argument
+ * @param[in] ...            D-Bus arguments
+ */
+sss_sifp_error
+sss_sifp_invoke_find_ex(sss_sifp_ctx *ctx,
+                        const char *object_path,
+                        const char *interface,
+                        const char *method,
+                        char **_object_path,
+                        int first_arg_type,
+                        ...);
 
 /**
  * @brief Find single object that satisfies given conditions. This routine will
