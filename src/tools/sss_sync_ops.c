@@ -37,13 +37,6 @@
 #define ATTR_NAME_SEP      '='
 #define ATTR_VAL_SEP       ','
 
-#define VAR_CHECK(var, val, attr, msg) do { \
-        if (var != (val)) { \
-            DEBUG(SSSDBG_CRIT_FAILURE, msg" attribute: %s\n", attr); \
-            return val; \
-        } \
-} while(0)
-
 static int attr_name_val_split(TALLOC_CTX *mem_ctx, const char *nameval,
                                char **_name, char ***_values, int *_nvals)
 {
@@ -200,8 +193,9 @@ static int usermod_build_attrs(TALLOC_CTX *mem_ctx,
                                int lock,
                                struct sysdb_attrs **_attrs)
 {
-    int ret;
+    int ret = EOK;
     struct sysdb_attrs *attrs;
+    const char *attr_name = NULL;
 
     attrs = sysdb_new_attrs(mem_ctx);
     if (attrs == NULL) {
@@ -209,60 +203,59 @@ static int usermod_build_attrs(TALLOC_CTX *mem_ctx,
     }
 
     if (shell) {
+        attr_name = SYSDB_SHELL;
         ret = sysdb_attrs_add_string(attrs,
-                                     SYSDB_SHELL,
+                                     attr_name,
                                      shell);
-        VAR_CHECK(ret, EOK, SYSDB_SHELL,
-                  "Could not add attribute to changeset\n");
     }
 
-    if (home) {
+    if (ret == EOK && home) {
+        attr_name = SYSDB_HOMEDIR;
         ret = sysdb_attrs_add_string(attrs,
-                                     SYSDB_HOMEDIR,
+                                     attr_name,
                                      home);
-        VAR_CHECK(ret, EOK, SYSDB_HOMEDIR,
-                  "Could not add attribute to changeset\n");
     }
 
-    if (gecos) {
+    if (ret == EOK && gecos) {
+        attr_name = SYSDB_GECOS;
         ret = sysdb_attrs_add_string(attrs,
-                                     SYSDB_GECOS,
+                                     attr_name,
                                      gecos);
-        VAR_CHECK(ret, EOK, SYSDB_GECOS,
-                  "Could not add attribute to changeset\n");
     }
 
-    if (uid) {
+    if (ret == EOK && uid) {
+        attr_name = SYSDB_UIDNUM;
         ret = sysdb_attrs_add_long(attrs,
-                                   SYSDB_UIDNUM,
+                                   attr_name,
                                    uid);
-        VAR_CHECK(ret, EOK, SYSDB_UIDNUM,
-                  "Could not add attribute to changeset\n");
     }
 
-    if (gid) {
+    if (ret == EOK && gid) {
+        attr_name = SYSDB_GIDNUM;
         ret = sysdb_attrs_add_long(attrs,
-                                   SYSDB_GIDNUM,
+                                   attr_name,
                                    gid);
-        VAR_CHECK(ret, EOK, SYSDB_GIDNUM,
-                  "Could not add attribute to changeset\n");
     }
 
-    if (lock == DO_LOCK) {
+    if (ret == EOK && lock == DO_LOCK) {
+        attr_name = SYSDB_DISABLED;
         ret = sysdb_attrs_add_string(attrs,
-                                     SYSDB_DISABLED,
+                                     attr_name,
                                      "true");
-        VAR_CHECK(ret, EOK, SYSDB_DISABLED,
-                  "Could not add attribute to changeset\n");
     }
 
-    if (lock == DO_UNLOCK) {
+    if (ret == EOK && lock == DO_UNLOCK) {
+        attr_name = SYSDB_DISABLED;
         /* PAM code checks for 'false' value in SYSDB_DISABLED attribute */
         ret = sysdb_attrs_add_string(attrs,
-                                     SYSDB_DISABLED,
+                                     attr_name,
                                      "false");
-        VAR_CHECK(ret, EOK, SYSDB_DISABLED,
-                  "Could not add attribute to changeset\n");
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not add attribute [%s] to changeset.\n", attr_name);
+        return ret;
     }
 
     *_attrs = attrs;
