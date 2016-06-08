@@ -772,7 +772,9 @@ static errno_t cache_req_cache_search(struct tevent_req *req)
 
     /* Verify that the cache is up to date. */
     ret = cache_req_cache_check(req);
-    if (req != EOK) {
+    if (ret != EOK) {
+        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, state->cr,
+                        "Cannot find info for [%s]\n", state->cr->debugobj);
         return ret;
     }
 
