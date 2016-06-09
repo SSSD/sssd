@@ -36,16 +36,16 @@ struct sss_cmdline {
     const char **argv;
 };
 
-static void sss_tool_print_common_opts(void)
+static void sss_tool_print_common_opts(int min_len)
 {
     fprintf(stderr, _("Common options:\n"));
-    fprintf(stderr, "  --debug=INT            %s\n",
+    fprintf(stderr, "  %-*s\t %s\n", min_len, "--debug=INT",
                     _("The debug level to run with"));
     fprintf(stderr, "\n");
     fprintf(stderr, _("Help options:\n"));
-    fprintf(stderr, "  -?, --help             %s\n",
+    fprintf(stderr, "  %-*s\t %s\n", min_len, "-?, --help",
                     _("Show this for a command"));
-    fprintf(stderr, "  --usage                %s\n",
+    fprintf(stderr, "  %-*s\t %s\n", min_len, "--usage",
                     _("Show brief usage message for a command"));
 }
 
@@ -234,13 +234,36 @@ static bool sss_tool_is_delimiter(struct sss_route_cmd *command)
     return false;
 }
 
+static size_t sss_tool_max_length(struct sss_route_cmd *commands)
+{
+    size_t max = 0;
+    size_t len;
+    int i;
+
+    for (i = 0; commands[i].command != NULL; i++) {
+        if (sss_tool_is_delimiter(&commands[i])) {
+            continue;
+        }
+
+        len = strlen(commands[i].command);
+        if (max < len) {
+            max = len;
+        }
+    }
+
+    return max;
+}
+
 int sss_tool_usage(const char *tool_name,
                    struct sss_route_cmd *commands)
 {
+    int min_len;
     int i;
 
     fprintf(stderr, _("Usage:\n%s COMMAND COMMAND-ARGS\n\n"), tool_name);
     fprintf(stderr, _("Available commands:\n"));
+
+    min_len = sss_tool_max_length(commands);
 
     for (i = 0; commands[i].command != NULL; i++) {
         if (sss_tool_is_delimiter(&commands[i])) {
@@ -249,15 +272,15 @@ int sss_tool_usage(const char *tool_name,
         }
 
         if (commands[i].description == NULL) {
-            fprintf(stderr, "* %s\n", commands[i].command);
+            fprintf(stderr, "* %40s\n", commands[i].command);
         } else {
-            fprintf(stderr, "* %s\t\t %s\n",
-                    commands[i].command, commands[i].description);
+            fprintf(stderr, "* %-*s\t %s\n",
+                    min_len, commands[i].command, commands[i].description);
         }
     }
 
     fprintf(stderr, _("\n"));
-    sss_tool_print_common_opts();
+    sss_tool_print_common_opts(min_len);
 
     return EXIT_FAILURE;
 }
