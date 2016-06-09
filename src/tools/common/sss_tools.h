@@ -44,6 +44,7 @@ typedef int
                 void *pvt);
 
 #define SSS_TOOL_COMMAND(cmd, msg, fn) {cmd, _(msg), fn}
+#define SSS_TOOL_DELIMITER(message) {"", (message), NULL}
 
 struct sss_route_cmd {
     const char *command;

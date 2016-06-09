@@ -225,6 +225,15 @@ done:
     return tool_ctx;
 }
 
+static bool sss_tool_is_delimiter(struct sss_route_cmd *command)
+{
+    if (command->command != NULL && command->command[0] == '\0') {
+        return true;
+    }
+
+    return false;
+}
+
 int sss_tool_usage(const char *tool_name,
                    struct sss_route_cmd *commands)
 {
@@ -234,6 +243,11 @@ int sss_tool_usage(const char *tool_name,
     fprintf(stderr, _("Available commands:\n"));
 
     for (i = 0; commands[i].command != NULL; i++) {
+        if (sss_tool_is_delimiter(&commands[i])) {
+            fprintf(stderr, "\n%s\n", commands[i].description);
+            continue;
+        }
+
         if (commands[i].description == NULL) {
             fprintf(stderr, "* %s\n", commands[i].command);
         } else {
@@ -268,6 +282,10 @@ int sss_tool_route(int argc, const char **argv,
 
     cmd = argv[1];
     for (i = 0; commands[i].command != NULL; i++) {
+        if (sss_tool_is_delimiter(&commands[i])) {
+            continue;
+        }
+
         if (strcmp(commands[i].command, cmd) == 0) {
             cmdline.exec = argv[0];
             cmdline.command = argv[1];
