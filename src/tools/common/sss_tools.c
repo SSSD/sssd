@@ -254,8 +254,7 @@ static size_t sss_tool_max_length(struct sss_route_cmd *commands)
     return max;
 }
 
-int sss_tool_usage(const char *tool_name,
-                   struct sss_route_cmd *commands)
+void sss_tool_usage(const char *tool_name, struct sss_route_cmd *commands)
 {
     int min_len;
     int i;
@@ -281,14 +280,12 @@ int sss_tool_usage(const char *tool_name,
 
     fprintf(stderr, _("\n"));
     sss_tool_print_common_opts(min_len);
-
-    return EXIT_FAILURE;
 }
 
-int sss_tool_route(int argc, const char **argv,
-                   struct sss_tool_ctx *tool_ctx,
-                   struct sss_route_cmd *commands,
-                   void *pvt)
+errno_t sss_tool_route(int argc, const char **argv,
+                       struct sss_tool_ctx *tool_ctx,
+                       struct sss_route_cmd *commands,
+                       void *pvt)
 {
     struct sss_cmdline cmdline;
     const char *cmd;
@@ -296,11 +293,12 @@ int sss_tool_route(int argc, const char **argv,
 
     if (commands == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: commands can't be NULL!\n");
-        return EXIT_FAILURE;
+        return EINVAL;
     }
 
     if (argc < 2) {
-        return sss_tool_usage(argv[0], commands);
+        sss_tool_usage(argv[0], commands);
+        return EINVAL;
     }
 
     cmd = argv[1];
@@ -319,7 +317,8 @@ int sss_tool_route(int argc, const char **argv,
         }
     }
 
-    return sss_tool_usage(argv[0], commands);
+    sss_tool_usage(argv[0], commands);
+    return EINVAL;
 }
 
 static struct poptOption *nonnull_popt_table(struct poptOption *options)
@@ -335,15 +334,15 @@ static struct poptOption *nonnull_popt_table(struct poptOption *options)
     return options;
 }
 
-int sss_tool_popt_ex(struct sss_cmdline *cmdline,
-                     struct poptOption *options,
-                     enum sss_tool_opt require_option,
-                     sss_popt_fn popt_fn,
-                     void *popt_fn_pvt,
-                     const char *fopt_name,
-                     const char *fopt_help,
-                     const char **_fopt,
-                     bool *_opt_set)
+errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
+                         struct poptOption *options,
+                         enum sss_tool_opt require_option,
+                         sss_popt_fn popt_fn,
+                         void *popt_fn_pvt,
+                         const char *fopt_name,
+                         const char *fopt_help,
+                         const char **_fopt,
+                         bool *_opt_set)
 {
     struct poptOption opts_table[] = {
         {NULL, '\0', POPT_ARG_INCLUDE_TABLE, nonnull_popt_table(options), \
@@ -370,7 +369,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
     }
     if (help == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
-        return EXIT_FAILURE;
+        return ENOMEM;
     }
 
     /* Create popt context. This function is supposed to be called on
@@ -387,14 +386,13 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         if (popt_fn != NULL) {
             ret = popt_fn(pc, ret, popt_fn_pvt);
             if (ret != EOK) {
-                ret = EXIT_FAILURE;
                 goto done;
             }
         } else {
             fprintf(stderr, _("Invalid option %s: %s\n\n"),
                     poptBadOption(pc, 0), poptStrerror(ret));
             poptPrintHelp(pc, stderr, 0);
-            ret = EXIT_FAILURE;
+            ret = EINVAL;
             goto done;
         }
     }
@@ -405,7 +403,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         if (fopt == NULL) {
             fprintf(stderr, _("Missing option: %s\n\n"), fopt_help);
             poptPrintHelp(pc, stderr, 0);
-            ret = EXIT_FAILURE;
+            ret = EINVAL;
             goto done;
         }
 
@@ -413,7 +411,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         if (poptGetArg(pc)) {
             fprintf(stderr, _("Only one free argument is expected!\n\n"));
             poptPrintHelp(pc, stderr, 0);
-            ret = EXIT_FAILURE;
+            ret = EINVAL;
             goto done;
         }
 
@@ -422,7 +420,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         /* Unexpected free argument. */
         fprintf(stderr, _("Unexpected parameter: %s\n\n"), fopt);
         poptPrintHelp(pc, stderr, 0);
-        ret = EXIT_FAILURE;
+        ret = EINVAL;
         goto done;
     }
 
@@ -434,7 +432,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         if (require_option == SSS_TOOL_OPT_REQUIRED) {
             fprintf(stderr, _("At least one option is required!\n\n"));
             poptPrintHelp(pc, stderr, 0);
-            ret = EXIT_FAILURE;
+            ret = EINVAL;
             goto done;
         }
     }
@@ -443,7 +441,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         *_opt_set = opt_set;
     }
 
-    ret = EXIT_SUCCESS;
+    ret = EOK;
 
 done:
     poptFreeContext(pc);
@@ -451,11 +449,11 @@ done:
     return ret;
 }
 
-int sss_tool_popt(struct sss_cmdline *cmdline,
-                  struct poptOption *options,
-                  enum sss_tool_opt require_option,
-                  sss_popt_fn popt_fn,
-                  void *popt_fn_pvt)
+errno_t sss_tool_popt(struct sss_cmdline *cmdline,
+                      struct poptOption *options,
+                      enum sss_tool_opt require_option,
+                      sss_popt_fn popt_fn,
+                      void *popt_fn_pvt)
 {
     return sss_tool_popt_ex(cmdline, options, require_option,
                             popt_fn, popt_fn_pvt, NULL, NULL, NULL, NULL);
@@ -467,7 +465,7 @@ int sss_tool_main(int argc, const char **argv,
 {
     struct sss_tool_ctx *tool_ctx;
     uid_t uid;
-    int ret;
+    errno_t ret;
 
     uid = getuid();
     if (uid != 0) {
@@ -485,14 +483,18 @@ int sss_tool_main(int argc, const char **argv,
     ret = sss_tool_route(argc, argv, tool_ctx, commands, pvt);
     talloc_free(tool_ctx);
 
-    return ret;
+    if (ret != EOK) {
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
 
-int sss_tool_parse_name(TALLOC_CTX *mem_ctx,
-                        struct sss_tool_ctx *tool_ctx,
-                        const char *input,
-                        const char **_username,
-                        struct sss_domain_info **_domain)
+errno_t sss_tool_parse_name(TALLOC_CTX *mem_ctx,
+                            struct sss_tool_ctx *tool_ctx,
+                            const char *input,
+                            const char **_username,
+                            struct sss_domain_info **_domain)
 {
     char *username = NULL;
     char *domname = NULL;
