@@ -1074,7 +1074,12 @@ static errno_t list_overrides(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_search_entry(tmp_ctx, domain->sysdb, dn, LDB_SCOPE_SUBTREE,
                              filter, attrs, &count, &msgs);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        *_msgs = NULL;
+        *_count = 0;
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry() failed [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
