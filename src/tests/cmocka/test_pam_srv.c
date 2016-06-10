@@ -320,6 +320,7 @@ static int pam_test_setup(void **state)
     return 0;
 }
 
+#ifdef HAVE_NSS
 static int pam_test_setup_no_verification(void **state)
 {
     struct sss_test_conf_param dom_params[] = {
@@ -343,6 +344,7 @@ static int pam_test_setup_no_verification(void **state)
     pam_test_setup_common();
     return 0;
 }
+#endif /* HAVE_NSS */
 
 static int pam_cached_test_setup(void **state)
 {
