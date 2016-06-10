@@ -71,8 +71,8 @@
 "zotpoBIZmdH+ipYsu58HohHVlM9Wi5H4QmiiXl+Soldkq7eXYlafcmT7wv8+cKwz" \
 "Nz0Tm3+eYpFqRo3skr6QzXi525Jkg3r6r+kkhxU=" \
 
-static char CACHED_AUTH_TIMEOUT_STR[] = "2";
-static const int CACHED_AUTH_TIMEOUT = 2;
+static char CACHED_AUTH_TIMEOUT_STR[] = "4";
+static const int CACHED_AUTH_TIMEOUT = 4;
 
 struct pam_test_ctx {
     struct sss_test_ctx *tctx;
