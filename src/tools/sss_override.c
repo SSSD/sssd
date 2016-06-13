@@ -1573,6 +1573,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
     db = sss_colondb_open(tool_ctx, SSS_COLONDB_READ, filename);
     if (db == NULL) {
         fprintf(stderr, _("Unable to open %s.\n"), filename);
+        ret = EIO;
         goto done;
     }
 
@@ -1823,6 +1824,7 @@ static int override_group_import(struct sss_cmdline *cmdline,
     db = sss_colondb_open(tool_ctx, SSS_COLONDB_READ, filename);
     if (db == NULL) {
         fprintf(stderr, _("Unable to open %s.\n"), filename);
+        ret = EIO;
         goto done;
     }
 
