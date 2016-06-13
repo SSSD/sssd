@@ -396,7 +396,6 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
     char *upn;
     const char *user_name;
     struct ldb_dn *base_dn;
-    const struct ldb_val *user_dom_val;
     char *user_dom;
 
     tmp_ctx = talloc_new(NULL);
@@ -434,26 +433,15 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
         if (user_name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "No user name found, this is a severe error, "
-                      "but we ignore it here.\n");
+                  "but we ignore it here.\n");
             continue;
         }
 
-        /* The DNs of users in sysdb looks like
-         * name=username,cn=users,cn=domain.name,cn=sysdb
-         * the value of the third component (index 2) is the domain name. */
-
-        user_dom_val = ldb_dn_get_component_val(msgs[c]->dn, 2);
-        if (user_dom_val == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Invalid user DN [%s].\n",
-                                      ldb_dn_get_linearized(msgs[c]->dn));
-            ret = EINVAL;
-            goto done;
-        }
-        user_dom = talloc_strndup(tmp_ctx, (char *) user_dom_val->data,
-                                 user_dom_val->length);
-        if (user_dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed,\n");
-            ret = ENOMEM;
+        ret = sss_parse_internal_fqname(tmp_ctx, user_name, NULL, &user_dom);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot parse internal fqname [%d]: %s\n",
+                  ret, sss_strerror(ret));
             goto done;
         }
 
