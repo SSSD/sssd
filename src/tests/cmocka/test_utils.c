@@ -1650,6 +1650,35 @@ static void test_sss_create_internal_fqname(void **state)
     assert_true(check_leaks_pop(global_talloc_context) == true);
 }
 
+static void test_sss_create_internal_fqname_list(void **state)
+{
+    char **fqlist = NULL;
+    const char *in_list1[] = { "aaa", "bbb", NULL };
+
+    check_leaks_push(global_talloc_context);
+
+    fqlist = sss_create_internal_fqname_list(global_talloc_context,
+                                             in_list1, "DOM");
+    assert_string_equal(fqlist[0], "aaa@dom");
+    assert_string_equal(fqlist[1], "bbb@dom");
+    assert_null(fqlist[2]);
+    talloc_zfree(fqlist);
+
+    fqlist = sss_create_internal_fqname_list(global_talloc_context,
+                                             in_list1, NULL);
+    assert_null(fqlist);
+
+    fqlist = sss_create_internal_fqname_list(global_talloc_context,
+                                             NULL, "DOM");
+    assert_null(fqlist);
+
+    fqlist = sss_create_internal_fqname_list(global_talloc_context,
+                                             NULL, NULL);
+    assert_null(fqlist);
+
+    assert_true(check_leaks_pop(global_talloc_context) == true);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1736,6 +1765,9 @@ int main(int argc, const char *argv[])
                                         setup_leak_tests,
                                         teardown_leak_tests),
         cmocka_unit_test_setup_teardown(test_sss_create_internal_fqname,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_create_internal_fqname_list,
                                         setup_leak_tests,
                                         teardown_leak_tests),
     };

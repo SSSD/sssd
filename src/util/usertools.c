@@ -797,3 +797,37 @@ char *sss_create_internal_fqname(TALLOC_CTX *mem_ctx,
 done:
     return fqname;
 }
+
+/* Creates a list of internal fqnames in format shortname@domname.
+ * The domain portion is lowercased. */
+char **sss_create_internal_fqname_list(TALLOC_CTX *mem_ctx,
+                                       const char * const *shortname_list,
+                                       const char *dom_name)
+{
+    char **fqname_list = NULL;
+    size_t c;
+
+    if (shortname_list == NULL || dom_name == NULL) {
+        /* Avoid allocating null@null */
+        return NULL;
+    }
+
+    for (c = 0; shortname_list[c] != NULL; c++);
+    fqname_list = talloc_zero_array(mem_ctx, char *, c+1);
+    if (fqname_list == NULL) {
+        talloc_free(fqname_list);
+        return NULL;
+    }
+
+    for (size_t i = 0; shortname_list[i] != NULL; i++) {
+        fqname_list[i] = sss_create_internal_fqname(fqname_list,
+                                                    shortname_list[i],
+                                                    dom_name);
+        if (fqname_list == NULL) {
+            talloc_free(fqname_list);
+            return NULL;
+        }
+    }
+
+    return fqname_list;
+}

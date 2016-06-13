@@ -284,6 +284,12 @@ char *sss_create_internal_fqname(TALLOC_CTX *mem_ctx,
                                  const char *shortname,
                                  const char *dom_name);
 
+/* Creates internal fqnames list in format shortname@domname.
+ * The domain portion is lowercased. */
+char **sss_create_internal_fqname_list(TALLOC_CTX *mem_ctx,
+                                       const char * const *shortname_list,
+                                       const char *dom_name);
+
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 
