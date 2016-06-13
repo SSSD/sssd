@@ -195,6 +195,7 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
     pam_handle_t *pamh=NULL;
     struct authtok_conv *auth_data;
     struct pam_conv conv;
+    char *shortname;
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
         conv.conv=proxy_chauthtok_conv;
@@ -222,7 +223,12 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
 
     conv.appdata_ptr=auth_data;
 
-    ret = pam_start(pam_target, pd->user, &conv, &pamh);
+    ret = sss_parse_internal_fqname(auth_data, pd->user, &shortname, NULL);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = pam_start(pam_target, shortname, &conv, &pamh);
     if (ret == PAM_SUCCESS) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "Pam transaction started with service name [%s].\n",

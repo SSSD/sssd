@@ -44,7 +44,7 @@ delete_user(struct sss_domain_info *domain,
 
 static int get_pw_name(struct proxy_id_ctx *ctx,
                        struct sss_domain_info *dom,
-                       const char *name)
+                       const char *i_name)
 {
     TALLOC_CTX *tmpctx;
     struct passwd *pwd;
@@ -56,12 +56,18 @@ static int get_pw_name(struct proxy_id_ctx *ctx,
     bool del_user;
     struct ldb_result *cached_pwd = NULL;
     const char *real_name = NULL;
+    char *shortname_or_alias;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Searching user by name (%s)\n", name);
+    DEBUG(SSSDBG_TRACE_FUNC, "Searching user by name (%s)\n", i_name);
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
+    }
+
+    ret = sss_parse_internal_fqname(tmpctx, i_name, &shortname_or_alias, NULL);
+    if (ret != EOK) {
+        goto done;
     }
 
     pwd = talloc_zero(tmpctx, struct passwd);
@@ -79,7 +85,7 @@ static int get_pw_name(struct proxy_id_ctx *ctx,
 
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
-    status = ctx->ops.getpwnam_r(name, pwd, buffer, buflen, &ret);
+    status = ctx->ops.getpwnam_r(shortname_or_alias, pwd, buffer, buflen, &ret);
     ret = handle_getpw_result(status, pwd, dom, &del_user);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -88,7 +94,7 @@ static int get_pw_name(struct proxy_id_ctx *ctx,
     }
 
     if (del_user) {
-        ret = delete_user(dom, name, 0);
+        ret = delete_user(dom, i_name, 0);
         goto done;
     }
 
@@ -124,24 +130,28 @@ static int get_pw_name(struct proxy_id_ctx *ctx,
             goto done;
         }
 
-        real_name = pwd->pw_name;
+        real_name = sss_create_internal_fqname(tmpctx, pwd->pw_name, dom->name);
+        if (real_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     if (del_user) {
-        ret = delete_user(dom, name, uid);
+        ret = delete_user(dom, i_name, uid);
         goto done;
     }
 
     /* Both lookups went fine, we can save the user now */
     ret = save_user(dom, !dom->case_sensitive, pwd,
-                    real_name, name, dom->user_timeout);
+                    real_name, i_name, dom->user_timeout);
 
 done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "proxy -> getpwnam_r failed for '%s' <%d>: %s\n",
-               name, ret, strerror(ret));
+               i_name, ret, strerror(ret));
     }
     return ret;
 }
@@ -315,6 +325,7 @@ static int get_pw_uid(struct proxy_id_ctx *ctx,
     size_t buflen;
     bool del_user = false;
     int ret;
+    char *name;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Searching user by uid (%"SPRIuid")\n", uid);
 
@@ -349,8 +360,14 @@ static int get_pw_uid(struct proxy_id_ctx *ctx,
         goto done;
     }
 
+    name = sss_create_internal_fqname(tmpctx, pwd->pw_name, dom->name);
+    if (name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to qualify name '%s'\n",
+              pwd->pw_name);
+        goto done;
+    }
     ret = save_user(dom, !dom->case_sensitive, pwd,
-                    pwd->pw_name, NULL, dom->user_timeout);
+                    name, NULL, dom->user_timeout);
 
 done:
     talloc_zfree(tmpctx);
@@ -379,6 +396,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
     int ret;
     errno_t sret;
     bool again;
+    char *name;
 
     DEBUG(SSSDBG_TRACE_LIBS, "Enumerating users\n");
 
@@ -472,8 +490,15 @@ static int enum_users(TALLOC_CTX *mem_ctx,
                     break;
                 }
 
+                name = sss_create_internal_fqname(tmpctx, pwd->pw_name, dom->name);
+                if (name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "failed to create internal name '%s'\n",
+                          pwd->pw_name);
+                    goto done;
+                }
                 ret = save_user(dom, !dom->case_sensitive, pwd,
-                        pwd->pw_name, NULL, dom->user_timeout);
+                                name, NULL, dom->user_timeout);
                 if (ret) {
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */
@@ -531,11 +556,13 @@ done:
 static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
                                            struct sss_domain_info *domain,
                                            struct sysdb_attrs *group_attrs,
-                                           struct group *grp,
+                                           const char *const*fq_gr_mem,
                                            time_t now);
 static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
-                      struct group *grp, const char *real_name,
-                      const char *alias, uint64_t cache_timeout)
+                      struct group *grp,
+                      const char *real_name, /* already qualified */
+                      const char *alias, /* already qualified */
+                      uint64_t cache_timeout)
 {
     errno_t ret, sret;
     struct sysdb_attrs *attrs = NULL;
@@ -544,6 +571,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     TALLOC_CTX *tmp_ctx;
     time_t now = time(NULL);
     bool in_transaction = false;
+    char **fq_gr_mem;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -567,16 +595,26 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
             goto done;
         }
 
+        fq_gr_mem = sss_create_internal_fqname_list(
+                                            tmp_ctx,
+                                            (const char *const*) grp->gr_mem,
+                                            dom->name);
+        if (fq_gr_mem == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
         ret = sysdb_attrs_users_from_str_list(
                 attrs, SYSDB_MEMBER, dom->name,
-                (const char *const *)grp->gr_mem);
+                (const char *const *) fq_gr_mem);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not add group members\n");
             goto done;
         }
 
         /* Create ghost users */
-        ret = proxy_process_missing_users(sysdb, dom, attrs, grp, now);
+        ret = proxy_process_missing_users(sysdb, dom, attrs,
+                                          (const char *const*) fq_gr_mem, now);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not add missing members\n");
             goto done;
@@ -595,7 +633,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     }
 
     if (dom->case_sensitive == false) {
-        lc_gr_name = sss_tc_utf8_str_tolower(attrs, grp->gr_name);
+        lc_gr_name = sss_tc_utf8_str_tolower(attrs, real_name);
         if (lc_gr_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
             ret = ENOMEM;
@@ -659,7 +697,7 @@ done:
 static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
                                            struct sss_domain_info *domain,
                                            struct sysdb_attrs *group_attrs,
-                                           struct group *grp,
+                                           const char *const*fq_gr_mem,
                                            time_t now)
 {
     errno_t ret;
@@ -667,18 +705,18 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_message *msg;
 
-    if (!sysdb || !grp) return EINVAL;
+    if (!sysdb || !fq_gr_mem) return EINVAL;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    for (i = 0; grp->gr_mem[i]; i++) {
-        ret = sysdb_search_user_by_name(tmp_ctx, domain, grp->gr_mem[i],
+    for (i = 0; fq_gr_mem[i]; i++) {
+        ret = sysdb_search_user_by_name(tmp_ctx, domain, fq_gr_mem[i],
                                         NULL, &msg);
         if (ret == EOK) {
             /* Member already exists in the cache */
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  "Member [%s] already cached\n", grp->gr_mem[i]);
+                  "Member [%s] already cached\n", fq_gr_mem[i]);
             /* clean up */
             talloc_zfree(msg);
             continue;
@@ -686,9 +724,9 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
             /* No entry for this user. Create a ghost user */
             DEBUG(SSSDBG_TRACE_LIBS,
                   "Member [%s] not cached, creating ghost user entry\n",
-                   grp->gr_mem[i]);
+                   fq_gr_mem[i]);
 
-            ret = sysdb_attrs_add_string(group_attrs, SYSDB_GHOST, grp->gr_mem[i]);
+            ret = sysdb_attrs_add_string(group_attrs, SYSDB_GHOST, fq_gr_mem[i]);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Cannot store ghost user entry: [%d]: %s\n",
@@ -699,7 +737,7 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
             /* Unexpected error */
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Error searching cache for user [%s]: [%s]\n",
-                   grp->gr_mem[i], strerror(ret));
+                   fq_gr_mem[i], strerror(ret));
             goto done;
         }
     }
@@ -781,7 +819,7 @@ handle_getgr_result(enum nss_status status, struct group *grp,
 static int get_gr_name(struct proxy_id_ctx *ctx,
                        struct sysdb_ctx *sysdb,
                        struct sss_domain_info *dom,
-                       const char *name)
+                       const char *i_name)
 {
     TALLOC_CTX *tmpctx;
     struct group *grp;
@@ -793,12 +831,18 @@ static int get_gr_name(struct proxy_id_ctx *ctx,
     gid_t gid;
     struct ldb_result *cached_grp = NULL;
     const char *real_name = NULL;
+    char *shortname_or_alias;
 
-    DEBUG(SSSDBG_FUNC_DATA, "Searching group by name (%s)\n", name);
+    DEBUG(SSSDBG_FUNC_DATA, "Searching group by name (%s)\n", i_name);
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
+    }
+
+    ret = sss_parse_internal_fqname(tmpctx, i_name, &shortname_or_alias, NULL);
+    if (ret != EOK) {
+        goto done;
     }
 
     grp = talloc(tmpctx, struct group);
@@ -806,7 +850,7 @@ static int get_gr_name(struct proxy_id_ctx *ctx,
         ret = ENOMEM;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "proxy -> getgrnam_r failed for '%s': [%d] %s\n",
-              name, ret, strerror(ret));
+              i_name, ret, strerror(ret));
         goto done;
     }
 
@@ -819,14 +863,26 @@ static int get_gr_name(struct proxy_id_ctx *ctx,
             goto done;
         }
 
-        status = ctx->ops.getgrnam_r(name, grp, buffer, buflen, &ret);
-
+        status = ctx->ops.getgrnam_r(shortname_or_alias, grp, buffer,
+                                     buflen, &ret);
         ret = handle_getgr_result(status, grp, dom, &delete_group);
     } while (ret == EAGAIN);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "getgrnam failed [%d]: %s\n", ret, strerror(ret));
+        goto done;
+    }
+
+    if (delete_group) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Group %s does not exist (or is invalid) on remote server,"
+               " deleting!\n", i_name);
+
+        ret = sysdb_delete_group(dom, i_name, 0);
+        if (ret == ENOENT) {
+            ret = EOK;
+        }
         goto done;
     }
 
@@ -873,22 +929,28 @@ static int get_gr_name(struct proxy_id_ctx *ctx,
             goto done;
         }
 
-        real_name = grp->gr_name;
+        real_name = sss_create_internal_fqname(tmpctx, grp->gr_name, dom->name);
+        if (real_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to create fqdn '%s'\n",
+                  grp->gr_name);
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     if (delete_group) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Group %s does not exist (or is invalid) on remote server,"
-               " deleting!\n", name);
+               " deleting!\n", i_name);
 
-        ret = sysdb_delete_group(dom, NULL, gid);
+        ret = sysdb_delete_group(dom, i_name, gid);
         if (ret == ENOENT) {
             ret = EOK;
         }
         goto done;
     }
 
-    ret = save_group(sysdb, dom, grp, real_name, name, dom->group_timeout);
+    ret = save_group(sysdb, dom, grp, real_name, i_name, dom->group_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot save group [%d]: %s\n", ret, strerror(ret));
@@ -900,7 +962,7 @@ done:
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "proxy -> getgrnam_r failed for '%s' <%d>: %s\n",
-              name, ret, strerror(ret));
+              i_name, ret, strerror(ret));
     }
     return ret;
 }
@@ -920,6 +982,7 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
     size_t buflen = 0;
     bool delete_group = false;
     int ret;
+    char *name;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Searching group by gid (%"SPRIgid")\n", gid);
 
@@ -966,7 +1029,13 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = save_group(sysdb, dom, grp, grp->gr_name, NULL, dom->group_timeout);
+    name = sss_create_internal_fqname(tmpctx, grp->gr_name, dom->name);
+    if (name == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = save_group(sysdb, dom, grp, name, NULL, dom->group_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot save user [%d]: %s\n", ret, strerror(ret));
@@ -1000,6 +1069,7 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
     int ret;
     errno_t sret;
     bool again;
+    char *name;
 
     DEBUG(SSSDBG_TRACE_LIBS, "Enumerating groups\n");
 
@@ -1091,7 +1161,14 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
                     break;
                 }
 
-                ret = save_group(sysdb, dom, grp, grp->gr_name,
+                name = sss_create_internal_fqname(tmpctx, grp->gr_name,
+                                                  dom->name);
+                if (name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "Failed to create internal fqname "
+                          "Ignoring\n");
+                    ret = ENOMEM;
+                }
+                ret = save_group(sysdb, dom, grp, name,
                         NULL, dom->group_timeout);
                 if (ret) {
                     /* Do not fail completely on errors.
@@ -1140,7 +1217,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
                       struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom,
-                      const char *name)
+                      const char *i_name)
 {
     TALLOC_CTX *tmpctx;
     bool in_transaction = false;
@@ -1154,10 +1231,16 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     uid_t uid;
     struct ldb_result *cached_pwd = NULL;
     const char *real_name = NULL;
+    char *shortname_or_alias;
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
         return ENOMEM;
+    }
+
+    ret = sss_parse_internal_fqname(tmpctx, i_name, &shortname_or_alias, NULL);
+    if (ret != EOK) {
+        goto done;
     }
 
     pwd = talloc_zero(tmpctx, struct passwd);
@@ -1182,7 +1265,8 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
 
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
-    status = ctx->ops.getpwnam_r(name, pwd, buffer, buflen, &ret);
+    status = ctx->ops.getpwnam_r(shortname_or_alias, pwd,
+                                 buffer, buflen, &ret);
     ret = handle_getpw_result(status, pwd, dom, &del_user);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1191,7 +1275,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(dom, name, 0);
+        ret = delete_user(dom, i_name, 0);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not delete user\n");
             goto fail;
@@ -1231,11 +1315,15 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        real_name = pwd->pw_name;
+        real_name = sss_create_internal_fqname(tmpctx, pwd->pw_name, dom->name);
+        if (real_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     if (del_user) {
-        ret = delete_user(dom, name, uid);
+        ret = delete_user(dom, i_name, uid);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not delete user\n");
             goto fail;
@@ -1244,7 +1332,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     }
 
     ret = save_user(dom, !dom->case_sensitive, pwd,
-                    real_name, name, dom->user_timeout);
+                    real_name, i_name, dom->user_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not save user\n");
         goto fail;
