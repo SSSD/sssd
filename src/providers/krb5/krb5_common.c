@@ -1040,28 +1040,27 @@ errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         }
     }
 
-    /* Subdomains already have a fully qualified name, which contains
-     * the domain name. We need to replace it with the realm name
+    /* The internal username is qualified, but we are only interested in
+     * the name part
      */
-    ret = sss_parse_name(tmp_ctx, dom->names, username, NULL, &name);
+    ret = sss_parse_internal_fqname(tmp_ctx, username, &name, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not parse [%s] into name and "
-               "domain components, login might fail\n", username);
-        name = discard_const(username);
+              "domain components, login might fail\n", username);
+        upn = talloc_strdup(tmp_ctx, username);
+    } else {
+        /* NOTE: this is a hack, works only in some environments */
+        upn = talloc_asprintf(tmp_ctx, "%s@%s",
+                              name, realm != NULL ? realm : uc_dom);
     }
 
-    /* NOTE: this is a hack, works only in some environments */
-    upn = talloc_asprintf(tmp_ctx, "%s@%s",  name,
-                                             realm != NULL ? realm : uc_dom);
     if (upn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "Using simple UPN [%s].\n", upn);
-
     *_upn = talloc_steal(mem_ctx, upn);
     ret = EOK;
 done:
