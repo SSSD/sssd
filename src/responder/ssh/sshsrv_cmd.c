@@ -199,11 +199,18 @@ ssh_user_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
         return ssh_user_handle_not_found(cmd_ctx->name);
     }
 
+    talloc_zfree(cmd_ctx->fqdn);
+    cmd_ctx->fqdn = sss_resp_create_fqname(cmd_ctx, cmd_ctx->cctx->rctx,
+                                           cmd_ctx->domain, false, cmd_ctx->name);
+    if (cmd_ctx->fqdn == NULL) {
+        return ENOMEM;
+    }
+
     /* refresh the user's cache entry */
     if (NEED_CHECK_PROVIDER(cmd_ctx->domain->provider)) {
         req = sss_dp_get_account_send(cmd_ctx, cmd_ctx->cctx->rctx,
                                       cmd_ctx->domain, false, SSS_DP_USER,
-                                      cmd_ctx->name, 0, NULL);
+                                      cmd_ctx->fqdn, 0, NULL);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
@@ -249,7 +256,7 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
     }
 
     ret = sysdb_get_user_attr_with_views(cmd_ctx, cmd_ctx->domain,
-                                         cmd_ctx->name, attrs, &res);
+                                         cmd_ctx->fqdn, attrs, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to make request to our cache!\n");

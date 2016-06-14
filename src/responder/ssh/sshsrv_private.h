@@ -44,6 +44,7 @@ struct ssh_cmd_ctx {
 
     struct sss_domain_info *domain;
     bool check_next;
+    char *fqdn;
 
     struct ldb_message *result;
 };
