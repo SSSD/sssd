@@ -280,12 +280,12 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 if (kr->pd->user == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Cannot expand user name template "
-                              "because user name is empty.\n");
+                          "because user name is empty.\n");
                     goto done;
                 }
-                name = sss_get_cased_name(tmp_ctx, kr->pd->user,
-                                          case_sensitive);
-                if (!name) {
+
+                name = sss_output_name(tmp_ctx, kr->pd->user, case_sensitive, 0);
+                if (name == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "sss_get_cased_name failed\n");
                     goto done;

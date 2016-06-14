@@ -38,6 +38,8 @@
 #define FILENAME "ghi"
 
 #define USERNAME "testuser"
+#define USERNAME_CASE "TestUser"
+#define DOMAIN_NAME "testdomain"
 #define UID "12345"
 #define PRINCIPAL_NAME "testuser@EXAMPLE.COM"
 #define REALM "REALM.ORG"
@@ -297,7 +299,8 @@ void setup_talloc_context(void)
     krb5_ctx = talloc_zero(tmp_ctx, struct krb5_ctx);
     fail_unless(pd != NULL, "Cannot create krb5_ctx structure.");
 
-    pd->user = discard_const(USERNAME);
+    pd->user = sss_create_internal_fqname(pd, USERNAME, DOMAIN_NAME);
+    fail_unless(pd->user != NULL);
     kr->uid = atoi(UID);
     kr->upn = discard_const(PRINCIPAL_NAME);
     pd->cli_pid = atoi(PID);
@@ -370,7 +373,8 @@ START_TEST(test_case_sensitive)
     const char *expected_cs = BASE"_TestUser";
     const char *expected_ci = BASE"_testuser";
 
-    kr->pd->user = discard_const("TestUser");
+    kr->pd->user = sss_create_internal_fqname(kr, USERNAME_CASE, DOMAIN_NAME);
+    fail_unless(kr->pd->user != NULL);
     ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR, CCACHE_DIR);
     fail_unless(ret == EOK, "Failed to set Ccache dir");
 
