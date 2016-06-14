@@ -27,6 +27,8 @@ struct err_string {
 struct err_string error_to_str[] = {
     { "Invalid Error" },        /* ERR_INVALID */
     { "Internal Error" },       /* ERR_INTERNAL */
+    { "SSSD is running" },  /* ERR_SSSD_RUNNING */
+    { "SSSD is not running" },  /* ERR_SSSD_NOT_RUNNING */
     { "SSSD is offline" },       /* ERR_OFFLINE */
     { "Terminated" },       /* ERR_TERMINATED */
     { "Invalid data type" },       /* ERR_INVALID_DATA_TYPE */
