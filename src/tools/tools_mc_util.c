@@ -29,6 +29,7 @@
 #include "util/mmap_cache.h"
 #include "util/sss_cli_cmd.h"
 #include "sss_client/sss_cli.h"
+#include "tools/common/sss_process.h"
 
 /* This is a copy of sss_mc_set_recycled present in
  * src/responder/nss/nsssrv_mmap_cache.c. If you modify this function,
@@ -219,7 +220,7 @@ errno_t sss_memcache_clear_all(void)
             return EIO;
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Sending SIGHUP to monitor.\n");
-        ret = signal_sssd(SIGHUP);
+        ret = sss_signal(SIGHUP);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to send SIGHUP to monitor.\n");

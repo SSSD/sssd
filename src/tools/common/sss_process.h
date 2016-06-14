@@ -1,8 +1,8 @@
 /*
     Authors:
-        Jakub Hrozek <jhrozek@redhat.com>
+        Pavel Březina <pbrezina@redhat.com>
 
-    Copyright (C) 2014 Red Hat
+    Copyright (C) 2016 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,20 +18,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
+#ifndef _SSS_PROCESS_H_
+#define _SSS_PROCESS_H_
 
-#include "config.h"
-#include "tools/common/sss_process.h"
+#include "util/util.h"
 
-int main(int argc, const char **argv)
-{
-    int ret;
+bool sss_deamon_running(void);
+errno_t sss_signal(int signum);
 
-    ret = sss_signal(SIGUSR2);
-    if (ret != EOK) {
-        ERROR("Could not signal SSSD. Is SSSD running?\n");
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
-}
+#endif /* _SSS_PROCESS_H_ */

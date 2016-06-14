@@ -33,6 +33,7 @@
 #include "config.h"
 #include "util/util.h"
 #include "tools/tools_util.h"
+#include "tools/common/sss_process.h"
 #include "confdb/confdb.h"
 
 #define CHECK(expr, done, msg) do { \
@@ -142,7 +143,7 @@ int main(int argc, const char **argv)
     ret = set_debug_level(ctx, debug_to_set, config_file);
     CHECK(ret != EOK, fini, "Could not set debug level.");
 
-    ret = signal_sssd(SIGHUP);
+    ret = sss_signal(SIGHUP);
     CHECK(ret != EOK, fini,
           "Could not force sssd processes to reload configuration. "
           "Is sssd running?");

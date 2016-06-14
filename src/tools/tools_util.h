@@ -102,7 +102,7 @@ int remove_homedir(TALLOC_CTX *mem_ctx,
 
 int run_userdel_cmd(struct tools_ctx *tctx);
 
-errno_t signal_sssd(int signum);
+errno_t sss_signal(int signum);
 
 /* tools_mc_util.c */
 errno_t sss_memcache_invalidate(const char *mc_filename);

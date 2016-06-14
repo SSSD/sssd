@@ -491,6 +491,7 @@ SSSD_TOOLS_OBJ = \
     src/tools/files.c \
     src/tools/selinux.c \
     src/tools/common/sss_tools.c \
+    src/tools/common/sss_process.c \
     src/util/nscd.c \
     $(NULL)
 
@@ -724,6 +725,7 @@ dist_noinst_HEADERS = \
     src/lib/winbind_idmap_sss/winbind_idmap_sss.h \
     src/tests/cmocka/test_utils.h \
     src/tools/common/sss_tools.h \
+    src/tools/common/sss_process.h \
     src/tools/common/sss_colondb.h \
     src/util/probes.h \
     $(NULL)
