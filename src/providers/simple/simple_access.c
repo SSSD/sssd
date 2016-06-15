@@ -41,11 +41,12 @@ static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     char **out = NULL;
-    char *domain = NULL;
-    char *name = NULL;
     size_t size;
     size_t i;
     errno_t ret;
+    char *domname = NULL;
+    char *shortname = NULL;
+    struct sss_domain_info *domain;
 
     if (list == NULL) {
         *_out = NULL;
@@ -74,28 +75,27 @@ static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
      * allow unauthorized access. */
     for (i = 0; i < size; i++) {
         ret = sss_parse_name(tmp_ctx, be_ctx->domain->names, list[i],
-                             &domain, &name);
+                             &domname, &shortname);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
-                                        list[i], ret, sss_strerror(ret));
+            DEBUG(SSSDBG_OP_FAILURE, "sss_parse_name failed [%d]: %s\n",
+                ret, sss_strerror(ret));
             goto done;
         }
 
-        if (domain == NULL || strcasecmp(domain, be_ctx->domain->name) == 0 ||
-            (be_ctx->domain->flat_name != NULL &&
-             strcasecmp(domain, be_ctx->domain->flat_name) == 0)) {
-            /* This object belongs to main SSSD domain. Those users and groups
-             * are stored without domain part, so we will strip it off.
-             * */
-            out[i] = talloc_move(out, &name);
+        if (domname != NULL) {
+            domain = find_domain_by_name(be_ctx->domain, domname, true);
+            if (domain == NULL) {
+                ret = ERR_DOMAIN_NOT_FOUND;
+                goto done;
+            }
         } else {
-            /* Subdomain users and groups are stored as fully qualified names,
-             * thus we will remember the domain part.
-             *
-             * Since subdomains may come and go, we will look for their
-             * existence later, during each access check.
-             */
-            out[i] = talloc_move(out, &list[i]);
+            domain = be_ctx->domain;
+        }
+
+        out[i] = sss_create_internal_fqname(out, shortname, domain->name);
+        if (out[i] == NULL) {
+            ret = EIO;
+            goto done;
         }
     }
 
