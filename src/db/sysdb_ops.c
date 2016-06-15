@@ -2875,16 +2875,36 @@ sysdb_group_membership_mod(struct sss_domain_info *domain,
 {
     struct ldb_dn *group_dn;
     struct ldb_dn *member_dn;
+    char *member_domname;
+    struct sss_domain_info *member_dom;
     int ret;
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
+    ret = sss_parse_internal_fqname(tmp_ctx, member,
+                                    NULL, &member_domname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parser internal fqname '%s' [%d]: %s\n",
+              member, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    member_dom = find_domain_by_name(get_domains_head(domain),
+                                     member_domname, false);
+    if (member_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Domain [%s] was not found\n", member_domname);
+        ret = EINVAL;
+        goto done;
+    }
+
     if (type == SYSDB_MEMBER_USER) {
-        member_dn = sysdb_user_dn(tmp_ctx, domain, member);
+        member_dn = sysdb_user_dn(tmp_ctx, member_dom, member);
     } else if (type == SYSDB_MEMBER_GROUP) {
-        member_dn = sysdb_group_dn(tmp_ctx, domain, member);
+        member_dn = sysdb_group_dn(tmp_ctx, member_dom, member);
     } else {
         ret = EINVAL;
         goto done;
