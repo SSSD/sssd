@@ -121,7 +121,7 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Storing info for netgroup %s\n", name);
 
-    ret = sdap_save_all_names(name, attrs, dom,
+    ret = sdap_save_all_names(name, attrs, dom, SYSDB_MEMBER_NETGROUP,
                               netgroup_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to save netgroup names\n");

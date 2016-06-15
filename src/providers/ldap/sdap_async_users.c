@@ -467,7 +467,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
     cache_timeout = dom->user_timeout;
 
-    ret = sdap_save_all_names(user_name, attrs, dom, user_attrs);
+    ret = sdap_save_all_names(user_name, attrs, dom,
+                              SYSDB_MEMBER_USER, user_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to save user names\n");
         goto done;

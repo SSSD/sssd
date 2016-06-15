@@ -739,7 +739,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sdap_save_all_names(group_name, attrs, dom, group_attrs);
+    ret = sdap_save_all_names(group_name, attrs, dom,
+                              SYSDB_MEMBER_GROUP, group_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to save group names\n");
         goto done;
@@ -2583,6 +2584,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             key.type = HASH_KEY_STRING;
             key.str = talloc_steal(ghosts, discard_const(original_dn));
             value.type = HASH_VALUE_PTR;
+            /* Already qualified from sdap_get_user_primary_name() */
             value.ptr = talloc_steal(ghosts, discard_const(username));
             ret = hash_enter(ghosts, &key, &value);
             if (ret != HASH_SUCCESS) {
