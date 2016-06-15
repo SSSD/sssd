@@ -239,6 +239,8 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     parameters.length =  sizeof (parameters);
     SECStatus rv;
     SECStatus rv_verify;
+    size_t exponent_prefix_len;
+    size_t modulus_prefix_len;
 
     if (der_blob == NULL || der_size == 0) {
         return EINVAL;
@@ -341,10 +343,21 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
         goto done;
     }
 
+    /* Looks like nss drops the leading 00 which afaik is added to make sure
+     * the bigint is handled as positive number if the leading bit is set. */
+    exponent_prefix_len = 0;
+    if (cert_pub_key->u.rsa.publicExponent.data[0] & 0x80) {
+        exponent_prefix_len = 1;
+    }
+
+    modulus_prefix_len = 0;
+    if (cert_pub_key->u.rsa.modulus.data[0] & 0x80) {
+        modulus_prefix_len = 1;
+    }
     size = SSH_RSA_HEADER_LEN + 3 * sizeof(uint32_t)
                 + cert_pub_key->u.rsa.modulus.len
                 + cert_pub_key->u.rsa.publicExponent.len
-                + 1; /* see comment about missing 00 below */
+                + exponent_prefix_len + modulus_prefix_len;
 
     buf = talloc_size(mem_ctx, size);
     if (buf == NULL) {
@@ -358,17 +371,20 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     SAFEALIGN_SET_UINT32(buf, htobe32(SSH_RSA_HEADER_LEN), &c);
     safealign_memcpy(&buf[c], SSH_RSA_HEADER, SSH_RSA_HEADER_LEN, &c);
     SAFEALIGN_SET_UINT32(&buf[c],
-                         htobe32(cert_pub_key->u.rsa.publicExponent.len), &c);
+                         htobe32(cert_pub_key->u.rsa.publicExponent.len
+                                    + exponent_prefix_len), &c);
+    if (exponent_prefix_len == 1) {
+        SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
+    }
     safealign_memcpy(&buf[c], cert_pub_key->u.rsa.publicExponent.data,
                      cert_pub_key->u.rsa.publicExponent.len, &c);
 
-    /* Looks like nss drops the leading 00 which afaik is added to make sure
-     * the bigint is handled as positive number */
-    /* TODO: make a better check if 00 must be added or not, e.g. ... & 0x80)
-     */
     SAFEALIGN_SET_UINT32(&buf[c],
-                         htobe32(cert_pub_key->u.rsa.modulus.len + 1 ), &c);
-    SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
+                         htobe32(cert_pub_key->u.rsa.modulus.len
+                                    + modulus_prefix_len ), &c);
+    if (modulus_prefix_len == 1) {
+        SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
+    }
     safealign_memcpy(&buf[c], cert_pub_key->u.rsa.modulus.data,
                      cert_pub_key->u.rsa.modulus.len, &c);
 
