@@ -1892,52 +1892,10 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = confdb_init(ctx, &ctx->cdb, cdb_file);
+    ret = confdb_setup(ctx, cdb_file, config_file, &ctx->cdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"The confdb initialization failed\n");
-        goto done;
-    }
-
-    /* Initialize the CDB from the configuration file */
-    ret = confdb_test(ctx->cdb);
-    if (ret == ENOENT) {
-        /* First-time setup */
-
-        /* Purge any existing confdb in case an old
-         * misconfiguration gets in the way
-         */
-        talloc_zfree(ctx->cdb);
-        ret = unlink(cdb_file);
-        if (ret != EOK && errno != ENOENT) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Purging existing confdb failed: %d [%s].\n",
-                  ret, sss_strerror(ret));
-            goto done;
-        }
-
-        ret = confdb_init(ctx, &ctx->cdb, cdb_file);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,"The confdb initialization failed\n");
-            goto done;
-        }
-
-        /* Load special entries */
-        ret = confdb_create_base(ctx->cdb);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Unable to load special entries into confdb\n");
-            goto done;
-        }
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error initializing confdb\n");
-        goto done;
-    }
-
-    ret = confdb_init_db(config_file, ctx->cdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "ConfDB initialization has failed [%s]\n",
-              sss_strerror(ret));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",
+             ret, sss_strerror(ret));
         goto done;
     }
 

@@ -29,7 +29,6 @@
 #include "tests/common.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_ssh.h"

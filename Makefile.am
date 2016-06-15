@@ -492,6 +492,7 @@ SSSD_TOOLS_OBJ = \
     src/tools/selinux.c \
     src/tools/common/sss_tools.c \
     src/tools/common/sss_process.c \
+    src/confdb/confdb_setup.c \
     src/util/nscd.c \
     $(NULL)
 
@@ -1202,7 +1203,9 @@ sssd_SOURCES = \
     src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
     src/monitor/monitor_iface_generated.c \
-    $(SSSD_TOOLS_OBJ) \
+    src/util/nscd.c \
+    src/tools/files.c \
+    src/tools/selinux.c \
     $(NULL)
 sssd_LDADD = \
     $(SSSD_LIBS) \

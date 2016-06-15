@@ -26,6 +26,7 @@
 #include "config.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
+#include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "tools/common/sss_tools.h"
 
@@ -102,11 +103,11 @@ static errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = confdb_init(mem_ctx, &confdb, path);
+    ret = confdb_setup(mem_ctx, path, SSSD_CONFIG_FILE, &confdb);
+    talloc_zfree(path);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not initialize connection to the confdb\n");
-        talloc_free(path);
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup ConfDB [%d]: %s\n",
+              ret, sss_strerror(ret));
         return ret;
     }
 

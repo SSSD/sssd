@@ -45,8 +45,9 @@
      "version: "CONFDB_VERSION"\n" \
      "\n"
 
-int confdb_create_base(struct confdb_ctx *cdb);
-int confdb_test(struct confdb_ctx *cdb);
-int confdb_init_db(const char *config_file, struct confdb_ctx *cdb);
+errno_t confdb_setup(TALLOC_CTX *mem_ctx,
+                     const char *cdb_file,
+                     const char *config_file,
+                     struct confdb_ctx **_cdb);
 
 #endif /* CONFDB_SETUP_H_ */

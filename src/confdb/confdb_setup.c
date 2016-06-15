@@ -31,7 +31,7 @@
 #include "tools/tools_util.h"
 
 
-int confdb_test(struct confdb_ctx *cdb)
+static int confdb_test(struct confdb_ctx *cdb)
 {
     char **values;
     int ret;
@@ -106,7 +106,7 @@ done:
     return ret;
 }
 
-int confdb_create_base(struct confdb_ctx *cdb)
+static int confdb_create_base(struct confdb_ctx *cdb)
 {
     int ret;
     struct ldb_ldif *ldif;
@@ -127,7 +127,7 @@ int confdb_create_base(struct confdb_ctx *cdb)
     return EOK;
 }
 
-int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
+static int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
@@ -352,5 +352,79 @@ done:
     sss_ini_close_file(init_data);
 
     talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+errno_t confdb_setup(TALLOC_CTX *mem_ctx,
+                     const char *cdb_file,
+                     const char *config_file,
+                     struct confdb_ctx **_cdb)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct confdb_ctx *cdb;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    ret = confdb_init(tmp_ctx, &cdb, cdb_file);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "The confdb initialization failed "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Initialize the CDB from the configuration file */
+    ret = confdb_test(cdb);
+    if (ret == ENOENT) {
+        /* First-time setup */
+
+        /* Purge any existing confdb in case an old
+         * misconfiguration gets in the way
+         */
+        talloc_zfree(cdb);
+        ret = unlink(cdb_file);
+        if (ret != EOK && errno != ENOENT) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Purging existing confdb failed: %d [%s].\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+
+        ret = confdb_init(tmp_ctx, &cdb, cdb_file);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "The confdb initialization failed "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+        }
+
+        /* Load special entries */
+        ret = confdb_create_base(cdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to load special entries into confdb\n");
+            goto done;
+        }
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error initializing confdb\n");
+        goto done;
+    }
+
+    ret = confdb_init_db(config_file, cdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "ConfDB initialization has failed "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    *_cdb = talloc_steal(mem_ctx, cdb);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }

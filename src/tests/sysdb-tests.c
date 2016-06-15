@@ -28,7 +28,6 @@
 #include <sys/types.h>
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
-#include "confdb/confdb_setup.h"
 #include "db/sysdb_private.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
