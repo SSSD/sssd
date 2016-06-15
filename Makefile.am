@@ -196,7 +196,6 @@ if HAVE_CHECK
         auth-tests \
         ipa_ldap_opt-tests \
         ad_ldap_opt-tests \
-        #simple_access-tests \
         crypto-tests \
         util-tests \
         debug-tests \
@@ -268,6 +267,7 @@ if HAVE_CMOCKA
         test_dp_request \
         test_dp_builtin \
         test_ipa_dn \
+        simple-access-tests \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -1904,24 +1904,6 @@ ad_ldap_opt_tests_LDADD = \
     $(TALLOC_LIBS) \
     libsss_test_common.la
 
-#simple_access_tests_SOURCES = \
-#    src/tests/simple_access-tests.c \
-#    src/providers/simple/simple_access.c \
-#    src/providers/simple/simple_access_check.c \
-#    $(NULL)
-#simple_access_tests_CFLAGS = \
-#    $(AM_CFLAGS) \
-#    $(CHECK_CFLAGS) \
-#    -DUNIT_TESTING
-#simple_access_tests_LDADD = \
-#    $(LIBADD_DL) \
-#    $(CHECK_LIBS) \
-#    $(SSSD_LIBS) \
-#    $(SSSD_INTERNAL_LTLIBS) \
-#    libsss_test_common.la \
-#    libdlopen_test_providers.la \
-#    $(NULL)
-
 util_tests_SOURCES = \
     src/tests/util-tests.c \
     $(NULL)
@@ -3015,6 +2997,27 @@ test_ipa_dn_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(LIBADD_DL) \
     libsss_test_common.la \
+    $(NULL)
+
+EXTRA_simple_access_tests_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES)
+simple_access_tests_SOURCES = \
+    src/tests/cmocka/test_simple_access.c \
+    src/tests/cmocka/common_mock_be.c \
+    src/providers/simple/simple_access.c \
+    src/providers/simple/simple_access_check.c \
+    $(NULL)
+simple_access_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+simple_access_tests_LDFLAGS = \
+    $(NULL)
+simple_access_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 endif # HAVE_CMOCKA
