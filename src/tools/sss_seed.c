@@ -532,12 +532,6 @@ static int seed_init(TALLOC_CTX *mem_ctx,
         BAD_POPT_PARAMS(pc, _("Username must be specified\n"), ret, fini);
     }
 
-    sctx->uctx->name = talloc_strdup(sctx->uctx, pc_name);
-    if (sctx->uctx->name == NULL) {
-        ret = ENOMEM;
-        goto fini;
-    }
-
     /* check domain is provided */
     if (pc_domain == NULL) {
         BAD_POPT_PARAMS(pc, _("Domain must be specified.\n"), ret, fini);
@@ -545,6 +539,13 @@ static int seed_init(TALLOC_CTX *mem_ctx,
 
     sctx->uctx->domain_name = talloc_strdup(sctx->uctx, pc_domain);
     if (sctx->uctx->domain_name == NULL) {
+        ret = ENOMEM;
+        goto fini;
+    }
+
+    sctx->uctx->name = sss_create_internal_fqname(sctx->uctx,
+                                                  pc_name, pc_domain);
+    if (sctx->uctx->name == NULL) {
         ret = ENOMEM;
         goto fini;
     }
@@ -657,7 +658,6 @@ static int seed_domain_user_info(const char *name,
                                  bool *is_cached)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    char *fq_name = NULL;
     struct passwd *passwd = NULL;
     struct ldb_result *res = NULL;
     int ret = EOK;
@@ -668,14 +668,8 @@ static int seed_domain_user_info(const char *name,
         goto done;
     }
 
-    fq_name = talloc_asprintf(tmp_ctx, "%s@%s", name, domain_name);
-    if (fq_name == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     errno = 0;
-    passwd = getpwnam(fq_name);
+    passwd = getpwnam(name);
     if (passwd == NULL) {
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE, "getpwnam failed [%d] [%s]\n",
@@ -707,7 +701,7 @@ static int seed_domain_user_info(const char *name,
         *is_cached = true;
 
         errno = 0;
-        ret = initgroups(fq_name, passwd->pw_gid);
+        ret = initgroups(name, passwd->pw_gid);
         if (ret != EOK) {
             ret = errno;
             DEBUG(SSSDBG_MINOR_FAILURE, "initgroups failed [%d] [%s]\n",
