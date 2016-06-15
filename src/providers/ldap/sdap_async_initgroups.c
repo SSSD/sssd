@@ -52,7 +52,6 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     char *sid_str = NULL;
     bool use_id_mapping;
     bool need_filter;
-    char *tmp_name;
 
     /* There are no groups in LDAP but we should add user to groups ?? */
     if (ldap_groups_count == 0) return EOK;
@@ -68,20 +67,12 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     mi = 0;
 
     for (i=0; groupnames[i]; i++) {
-        tmp_name = sss_get_domain_name(tmp_ctx, groupnames[i], domain);
-        if (tmp_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to format original name [%s]\n", groupnames[i]);
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_search_group_by_name(tmp_ctx, domain, tmp_name, NULL,
+        ret = sysdb_search_group_by_name(tmp_ctx, domain, groupnames[i], NULL,
                                          &msg);
         if (ret == EOK) {
             continue;
         } else if (ret == ENOENT) {
-            missing[mi] = talloc_steal(missing, tmp_name);
+            missing[mi] = talloc_strdup(missing, groupnames[i]);
             DEBUG(SSSDBG_TRACE_LIBS, "Group #%d [%s][%s] is not cached, " \
                       "need to add a fake entry\n",
                       i, groupnames[i], missing[mi]);

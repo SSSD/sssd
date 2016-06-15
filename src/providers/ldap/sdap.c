@@ -1565,15 +1565,9 @@ sdap_get_primary_name(TALLOC_CTX *memctx,
         return EINVAL;
     }
 
-    name = sss_get_domain_name(memctx, orig_name, dom);
-    if (name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to format original name [%s]\n", orig_name);
-        return ENOMEM;
-    }
-    DEBUG(SSSDBG_TRACE_FUNC, "Processing object %s\n", name);
+    DEBUG(SSSDBG_TRACE_FUNC, "Processing object %s\n", orig_name);
 
-    *_primary_name = name;
+    *_primary_name = talloc_steal(memctx, name);
     return EOK;
 }
 
