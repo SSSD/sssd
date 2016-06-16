@@ -397,14 +397,20 @@ sss_dp_req_recv(TALLOC_CTX *mem_ctx,
             tevent_req_data(sidereq, struct sss_dp_req_state);
 
     enum tevent_req_state TRROEstate;
-    uint64_t TRROEerr;
+    uint64_t TRROEuint64;
+    errno_t TRROEerr;
 
     *dp_err = state->dp_err;
     *dp_ret = state->dp_ret;
     *err_msg = talloc_steal(mem_ctx, state->err_msg);
 
-    if (tevent_req_is_error(sidereq, &TRROEstate, &TRROEerr)) {
+    if (tevent_req_is_error(sidereq, &TRROEstate, &TRROEuint64)) {
+        TRROEerr = (errno_t)TRROEuint64;
+
         if (TRROEstate == TEVENT_REQ_USER_ERROR) {
+            if (TRROEerr == 0) {
+                return ERR_INTERNAL;
+            }
             *dp_err = DP_ERR_FATAL;
             *dp_ret = TRROEerr;
         } else {

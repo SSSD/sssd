@@ -112,10 +112,15 @@
 
 #define TEVENT_REQ_RETURN_ON_ERROR(req) do { \
     enum tevent_req_state TRROEstate; \
-    uint64_t TRROEerr; \
+    uint64_t TRROEuint64; \
+    errno_t TRROEerr; \
     \
-    if (tevent_req_is_error(req, &TRROEstate, &TRROEerr)) { \
+    if (tevent_req_is_error(req, &TRROEstate, &TRROEuint64)) { \
+        TRROEerr = (errno_t)TRROEuint64; \
         if (TRROEstate == TEVENT_REQ_USER_ERROR) { \
+            if (TRROEerr == 0) { \
+                return ERR_INTERNAL; \
+            } \
             return TRROEerr; \
         } \
         return ERR_INTERNAL; \

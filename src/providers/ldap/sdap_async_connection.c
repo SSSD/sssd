@@ -1254,10 +1254,15 @@ static errno_t sdap_kinit_recv(struct tevent_req *req,
     struct sdap_kinit_state *state = tevent_req_data(req,
                                                      struct sdap_kinit_state);
     enum tevent_req_state tstate;
-    uint64_t err = ERR_INTERNAL;
+    uint64_t err_uint64 = ERR_INTERNAL;
+    errno_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
+    if (tevent_req_is_error(req, &tstate, &err_uint64)) {
         if (tstate != TEVENT_REQ_IN_PROGRESS) {
+            err = (errno_t)err_uint64;
+            if (err == EOK) {
+                return ERR_INTERNAL;
+            }
             return err;
         }
     }
@@ -2027,16 +2032,17 @@ int sdap_cli_connect_recv(struct tevent_req *req,
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err_uint64;
+    int err;
 
     if (can_retry) {
         *can_retry = true;
     }
-    if (tevent_req_is_error(req, &tstate, &err)) {
+    if (tevent_req_is_error(req, &tstate, &err_uint64)) {
         /* mark the server as bad if connection failed */
         if (state->srv) {
             DEBUG(SSSDBG_OP_FAILURE, "Unable to establish connection "
-                  "[%"PRIu64"]: %s\n", err, sss_strerror(err));
+                  "[%"PRIu64"]: %s\n", err_uint64, sss_strerror(err_uint64));
 
             be_fo_set_port_status(state->be, state->service->name,
                                   state->srv, PORT_NOT_WORKING);
@@ -2047,6 +2053,10 @@ int sdap_cli_connect_recv(struct tevent_req *req,
         }
 
         if (tstate == TEVENT_REQ_USER_ERROR) {
+            err = (int)err_uint64;
+            if (err == EOK) {
+                return EINVAL;
+            }
             return err;
         }
         return EIO;
