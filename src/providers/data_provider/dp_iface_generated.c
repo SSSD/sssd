@@ -51,6 +51,47 @@ const struct sbus_interface_meta iface_dp_client_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+/* arguments for org.freedesktop.sssd.DataProvider.Backend.IsOnline */
+const struct sbus_arg_meta iface_dp_backend_IsOnline__in[] = {
+    { "domain_name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.DataProvider.Backend.IsOnline */
+const struct sbus_arg_meta iface_dp_backend_IsOnline__out[] = {
+    { "status", "b" },
+    { NULL, }
+};
+
+int iface_dp_backend_IsOnline_finish(struct sbus_request *req, bool arg_status)
+{
+    dbus_bool_t cast_status = arg_status;
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_BOOLEAN, &cast_status,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.DataProvider.Backend */
+const struct sbus_method_meta iface_dp_backend__methods[] = {
+    {
+        "IsOnline", /* name */
+        iface_dp_backend_IsOnline__in,
+        iface_dp_backend_IsOnline__out,
+        offsetof(struct iface_dp_backend, IsOnline),
+        invoke_s_method,
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.DataProvider.Backend */
+const struct sbus_interface_meta iface_dp_backend_meta = {
+    "org.freedesktop.sssd.DataProvider.Backend", /* name */
+    iface_dp_backend__methods,
+    NULL, /* no signals */
+    NULL, /* no properties */
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* arguments for org.freedesktop.sssd.dataprovider.autofsHandler */
 const struct sbus_arg_meta iface_dp_autofsHandler__in[] = {
     { "dp_flags", "u" },

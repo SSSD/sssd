@@ -15,6 +15,10 @@
 #define IFACE_DP_CLIENT "org.freedesktop.sssd.DataProvider.Client"
 #define IFACE_DP_CLIENT_REGISTER "Register"
 
+/* constants for org.freedesktop.sssd.DataProvider.Backend */
+#define IFACE_DP_BACKEND "org.freedesktop.sssd.DataProvider.Backend"
+#define IFACE_DP_BACKEND_ISONLINE "IsOnline"
+
 /* constants for org.freedesktop.sssd.dataprovider */
 #define IFACE_DP "org.freedesktop.sssd.dataprovider"
 #define IFACE_DP_PAMHANDLER "pamHandler"
@@ -51,6 +55,15 @@ struct iface_dp_client {
 /* finish function for Register */
 int iface_dp_client_Register_finish(struct sbus_request *req);
 
+/* vtable for org.freedesktop.sssd.DataProvider.Backend */
+struct iface_dp_backend {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*IsOnline)(struct sbus_request *req, void *data, const char *arg_domain_name);
+};
+
+/* finish function for IsOnline */
+int iface_dp_backend_IsOnline_finish(struct sbus_request *req, bool arg_status);
+
 /* vtable for org.freedesktop.sssd.dataprovider */
 struct iface_dp {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
@@ -86,6 +99,9 @@ int iface_dp_getAccountInfo_finish(struct sbus_request *req, uint16_t arg_dp_err
 
 /* interface info for org.freedesktop.sssd.DataProvider.Client */
 extern const struct sbus_interface_meta iface_dp_client_meta;
+
+/* interface info for org.freedesktop.sssd.DataProvider.Backend */
+extern const struct sbus_interface_meta iface_dp_backend_meta;
 
 /* interface info for org.freedesktop.sssd.dataprovider */
 extern const struct sbus_interface_meta iface_dp_meta;

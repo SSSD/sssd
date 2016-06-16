@@ -59,4 +59,9 @@ errno_t dp_subdomains_handler(struct sbus_request *sbus_req,
                               void *dp_cli,
                               const char *domain_hint);
 
+/* org.freedesktop.sssd.DataProvider.Backend */
+errno_t dp_backend_is_online(struct sbus_request *sbus_req,
+                             void *dp_cli,
+                             const char *domain);
+
 #endif /* DP_IFACE_H_ */

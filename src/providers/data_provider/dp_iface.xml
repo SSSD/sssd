@@ -8,6 +8,14 @@
         </method>
     </interface>
 
+    <interface name="org.freedesktop.sssd.DataProvider.Backend">
+        <annotation value="iface_dp_backend" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <method name="IsOnline">
+            <arg name="domain_name" type="s" direction="in" />
+            <arg name="status" type="b" direction="out" />
+        </method>
+    </interface>
+
     <interface name="org.freedesktop.sssd.dataprovider">
         <annotation value="iface_dp" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="pamHandler">

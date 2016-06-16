@@ -36,8 +36,14 @@ struct iface_dp iface_dp = {
     .getAccountInfo = dp_get_account_info_handler
 };
 
+struct iface_dp_backend iface_dp_backend = {
+    {&iface_dp_backend_meta, 0},
+    .IsOnline = dp_backend_is_online
+};
+
 static struct sbus_iface_map dp_map[] = {
     { DP_PATH, &iface_dp.vtable },
+    { DP_PATH, &iface_dp_backend.vtable },
     { NULL, NULL }
 };
 
