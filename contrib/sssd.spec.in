@@ -1,3 +1,7 @@
+# SSSD is running as root user by default.
+# Set --with sssd_user or bcond_without to run SSSD as non-root user(sssd).
+%bcond_with sssd_user
+
 %global rhel6_minor %(%{__grep} -o "6.[0-9]*" /etc/redhat-release |%{__sed} -s 's/6.//')
 %global rhel7_minor %(%{__grep} -o "7.[0-9]*" /etc/redhat-release |%{__sed} -s 's/7.//')
 
@@ -21,7 +25,7 @@
 
 # on Fedora and RHEL7 p11_child needs a polkit config snippet to be allowed to
 # talk to pcscd if SSSD runs as unpriviledged user
-%if (0%{?fedora} || 0%{?rhel} >= 7)
+%if (%{with sssd_user} && (0%{?fedora} || 0%{?rhel} >= 7))
     %global install_pcscd_polkit_rule 1
 %else
     %global enable_polkit_rules_option --disable-polkit-rules-path
@@ -599,7 +603,9 @@ autoreconf -ivf
     --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
     --disable-static \
     --disable-rpath \
+%if %{with sssd_user}
     --with-sssd-user=sssd \
+%endif
     %{with_initscript} \
     %{?with_syslog} \
     %{?with_cifs_utils_plugin_option} \
