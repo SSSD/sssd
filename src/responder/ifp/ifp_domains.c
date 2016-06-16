@@ -28,6 +28,9 @@
 #include "confdb/confdb.h"
 #include "responder/common/responder.h"
 #include "responder/ifp/ifp_domains.h"
+#include "responder/common/data_provider/rdp.h"
+#include "sbus/sssd_dbus_errors.h"
+#include "providers/data_provider/dp_responder_iface.h"
 
 #define RETURN_DOM_PROP_AS_STRING(dbus_req, pvt_data, out, property) do { \
     struct sss_domain_info *__dom;                                        \
@@ -533,4 +536,117 @@ void ifp_dom_get_parent_domain(struct sbus_request *dbus_req,
 
     *_out = sbus_opath_compose(dbus_req, IFP_PATH_DOMAINS,
                                dom->parent->name);
+}
+
+static void ifp_domains_domain_is_online_done(struct tevent_req *req);
+
+int ifp_domains_domain_is_online(struct sbus_request *sbus_req,
+                                 void *data)
+{
+    struct ifp_ctx *ifp_ctx;
+    struct sss_domain_info *dom;
+    struct tevent_req *req;
+    DBusError *error;
+
+    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+
+    dom = get_domain_info_from_req(sbus_req, data);
+    if (dom == NULL) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
+                               "Unknown domain");
+        sbus_request_fail_and_finish(sbus_req, error);
+        return EOK;
+    }
+
+    req = rdp_message_send(sbus_req, ifp_ctx->rctx, dom, DP_PATH,
+                           IFACE_DP_BACKEND, IFACE_DP_BACKEND_ISONLINE,
+                           DBUS_TYPE_STRING, &dom->name);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ifp_domains_domain_is_online_done, sbus_req);
+
+    return EOK;
+}
+
+static void ifp_domains_domain_is_online_done(struct tevent_req *req)
+{
+    struct sbus_request *sbus_req;
+    DBusError *error;
+    bool is_online;
+    errno_t ret;
+
+    sbus_req = tevent_req_callback_data(req, struct sbus_request);
+
+    ret = rdp_message_recv(req, DBUS_TYPE_BOOLEAN, &is_online);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get online status [%d]: %s\n",
+              ret, sss_strerror(ret));
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
+                               "Unable to get online status [%d]: %s",
+                               ret, sss_strerror(ret));
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    iface_ifp_domains_domain_IsOnline_finish(sbus_req, is_online);
+}
+
+static void ifp_domains_domain_list_services_done(struct tevent_req *req);
+
+int ifp_domains_domain_list_services(struct sbus_request *sbus_req,
+                                     void *data)
+{
+    struct ifp_ctx *ifp_ctx;
+    struct sss_domain_info *dom;
+    struct tevent_req *req;
+    DBusError *error;
+
+    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+
+    dom = get_domain_info_from_req(sbus_req, data);
+    if (dom == NULL) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
+                               "Unknown domain");
+        sbus_request_fail_and_finish(sbus_req, error);
+        return EOK;
+    }
+
+    req = rdp_message_send(sbus_req, ifp_ctx->rctx, dom, DP_PATH,
+                           IFACE_DP_FAILOVER, IFACE_DP_FAILOVER_LISTSERVICES,
+                           DBUS_TYPE_STRING, &dom->name);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ifp_domains_domain_list_services_done, sbus_req);
+
+    return EOK;
+}
+
+static void ifp_domains_domain_list_services_done(struct tevent_req *req)
+{
+    struct sbus_request *sbus_req;
+    DBusError *error;
+    int num_services;
+    const char **services;
+    errno_t ret;
+
+    sbus_req = tevent_req_callback_data(req, struct sbus_request);
+
+    ret = rdp_message_recv(req, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING,
+                           &services, &num_services);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get failover services [%d]: %s\n",
+              ret, sss_strerror(ret));
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
+                               "Unable to get failover services [%d]: %s",
+                               ret, sss_strerror(ret));
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    iface_ifp_domains_domain_ListServices_finish(sbus_req, services,
+                                                 num_services);
 }

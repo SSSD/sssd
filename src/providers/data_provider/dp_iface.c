@@ -42,7 +42,7 @@ struct iface_dp_backend iface_dp_backend = {
 };
 
 struct iface_dp_failover iface_dp_failover = {
-    {&iface_dp_backend_meta, 0},
+    {&iface_dp_failover_meta, 0},
     .ListServices = dp_failover_list_services
 };
 

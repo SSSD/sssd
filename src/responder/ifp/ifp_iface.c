@@ -78,6 +78,12 @@ struct iface_ifp_domains iface_ifp_domains = {
     .get_parent_domain = ifp_dom_get_parent_domain
 };
 
+struct iface_ifp_domains_domain iface_ifp_domains_domain = {
+    { &iface_ifp_domains_domain_meta, 0 },
+    .IsOnline = ifp_domains_domain_is_online,
+    .ListServices = ifp_domains_domain_list_services
+};
+
 struct iface_ifp_users iface_ifp_users = {
     { &iface_ifp_users_meta, 0 },
     .FindByName = ifp_users_find_by_name,
@@ -145,6 +151,7 @@ static struct sbus_iface_map iface_map[] = {
     { IFP_PATH, &iface_ifp.vtable },
     { IFP_PATH_DOMAINS, &iface_ifp_domains.vtable },
     { IFP_PATH_DOMAINS_TREE, &iface_ifp_domains.vtable },
+    { IFP_PATH_DOMAINS_TREE, &iface_ifp_domains_domain.vtable },
     { IFP_PATH_COMPONENTS_TREE, &iface_ifp_components.vtable },
     { IFP_PATH_USERS, &iface_ifp_users.vtable },
     { IFP_PATH_USERS, &iface_ifp_cache_user.vtable },

@@ -102,6 +102,18 @@
         <property name="parent_domain" type="o" access="read"/>
     </interface>
 
+    <interface name="org.freedesktop.sssd.infopipe.Domains.Domain">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_domains_domain"/>
+
+        <method name="IsOnline">
+            <arg name="status" type="b" direction="out" />
+        </method>
+
+        <method name="ListServices">
+            <arg name="services" type="as" direction="out" />
+        </method>
+    </interface>
+
     <interface name="org.freedesktop.sssd.infopipe.Cache">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_cache"/>
 

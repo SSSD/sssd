@@ -94,4 +94,10 @@ void ifp_dom_get_parent_domain(struct sbus_request *dbus_req,
                               void *data,
                               const char **_out);
 
+int ifp_domains_domain_is_online(struct sbus_request *sbus_req,
+                                 void *data);
+
+int ifp_domains_domain_list_services(struct sbus_request *sbus_req,
+                                     void *data);
+
 #endif /* IFP_DOMAINS_H_ */
