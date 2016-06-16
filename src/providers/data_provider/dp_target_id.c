@@ -205,14 +205,12 @@ static errno_t dp_initgroups(struct sbus_request *sbus_req,
                              struct be_acct_req *data)
 {
     struct be_ctx *be_ctx;
-    struct data_provider *provider;
     struct sss_domain_info *domain;
     struct dp_initgr_ctx *ctx;
     struct ldb_result *res;
     errno_t ret;
 
-    provider = dp_client_provider(dp_cli);
-    be_ctx = provider->be_ctx;
+    be_ctx = dp_client_be(dp_cli);
 
     if (data->domain == NULL) {
         domain = be_ctx->domain;

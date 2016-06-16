@@ -242,6 +242,7 @@ void _dp_req_with_reply(struct dp_client *dp_cli,
 
 errno_t dp_client_init(struct sbus_connection *conn, void *data);
 struct data_provider *dp_client_provider(struct dp_client *dp_cli);
+struct be_ctx *dp_client_be(struct dp_client *dp_cli);
 struct sbus_connection *dp_client_conn(struct dp_client *dp_cli);
 
 #endif /* _DP_PRIVATE_H_ */

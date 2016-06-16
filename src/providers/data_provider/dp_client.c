@@ -238,6 +238,16 @@ dp_client_provider(struct dp_client *dp_cli)
     return dp_cli->provider;
 }
 
+struct be_ctx *
+dp_client_be(struct dp_client *dp_cli)
+{
+    if (dp_cli == NULL || dp_cli->provider == NULL) {
+        return NULL;
+    }
+
+    return dp_cli->provider->be_ctx;
+}
+
 struct sbus_connection *
 dp_client_conn(struct dp_client *dp_cli)
 {
