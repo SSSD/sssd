@@ -25,6 +25,7 @@
 
 #define SBUS_ERROR_INTERNAL "org.freedesktop.sssd.Error.Internal"
 #define SBUS_ERROR_NOT_FOUND "org.freedesktop.sssd.Error.NotFound"
+#define SBUS_ERROR_UNKNOWN_DOMAIN "org.freedesktop.sssd.Error.UnknownDomain"
 
 #define SBUS_ERROR_DP_FATAL "org.freedesktop.sssd.Error.DataProvider.Fatal"
 #define SBUS_ERROR_DP_OFFLINE "org.freedesktop.sssd.Error.DataProvider.Offline"
