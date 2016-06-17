@@ -172,7 +172,7 @@ static void revert_changepw_options(krb5_get_init_creds_opt *options)
 
     kerr = set_lifetime_options(options);
     if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("set_lifetime_options failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "set_lifetime_options failed.\n");
     }
 }
 

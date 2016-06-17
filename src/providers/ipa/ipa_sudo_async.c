@@ -415,7 +415,7 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_sudo_fetch_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -872,7 +872,7 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_sudo_refresh_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 

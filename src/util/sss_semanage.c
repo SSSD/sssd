@@ -203,7 +203,7 @@ static int sss_semanage_user_mod(semanage_handle_t *handle,
     ret = semanage_seuser_modify_local(handle, key, seuser);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not modify login mapping for %s\n"), login_name);
+              "Could not modify login mapping for %s\n", login_name);
         ret = EIO;
         goto done;
     }

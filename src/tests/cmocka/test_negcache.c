@@ -83,7 +83,7 @@ mock_nctx(TALLOC_CTX *mem_ctx)
     err = sss_idmap_init(sss_idmap_talloc, nctx, sss_idmap_talloc_free,
                          &nctx->idmap_ctx);
     if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_init failed.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "sss_idmap_init failed.\n");
         talloc_free(nctx);
         return NULL;
     }

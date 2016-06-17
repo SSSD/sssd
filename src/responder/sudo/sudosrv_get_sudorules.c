@@ -444,7 +444,7 @@ struct tevent_req *sudosrv_get_rules_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct sudosrv_get_rules_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 

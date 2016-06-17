@@ -227,7 +227,7 @@ int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
     ret = split_on_separator(mem_ctx, extra_attrs, ',', true, true,
                              &extra_attrs_list, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to parse server list!\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse server list!\n");
         return ret;
     }
 

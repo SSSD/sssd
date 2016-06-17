@@ -920,7 +920,7 @@ static struct tevent_req *cache_req_cache_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct cache_req_cache_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -1160,7 +1160,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct cache_req_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 

@@ -39,7 +39,7 @@ mock_confdb(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -85,7 +85,7 @@ mock_confdb_domain(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 

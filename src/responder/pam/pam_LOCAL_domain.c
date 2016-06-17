@@ -75,22 +75,22 @@ static void do_successful_login(struct LOCAL_request *lreq)
     int ret;
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
-    NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
+    NULL_CHECK_OR_JUMP(lreq->mod_attrs, "sysdb_new_attrs failed.\n",
                        lreq->error, ENOMEM, done);
 
     ret = sysdb_attrs_add_long(lreq->mod_attrs,
                                SYSDB_LAST_LOGIN, (long)time(NULL));
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_attrs_add_long failed.\n",
                       lreq->error, ret, done);
 
     ret = sysdb_attrs_add_long(lreq->mod_attrs, SYSDB_FAILED_LOGIN_ATTEMPTS, 0L);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_attrs_add_long failed.\n",
                       lreq->error, ret, done);
 
     ret = sysdb_set_user_attr(lreq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_set_user_attr failed.\n",
                       lreq->error, ret, done);
 
 done:
@@ -109,12 +109,12 @@ static void do_failed_login(struct LOCAL_request *lreq)
     pd->response_delay = 3;
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
-    NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
+    NULL_CHECK_OR_JUMP(lreq->mod_attrs, "sysdb_new_attrs failed.\n",
                        lreq->error, ENOMEM, done);
 
     ret = sysdb_attrs_add_long(lreq->mod_attrs,
                                SYSDB_LAST_FAILED_LOGIN, (long)time(NULL));
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_attrs_add_long failed.\n",
                       lreq->error, ret, done);
 
     failedLoginAttempts = ldb_msg_find_attr_as_int(lreq->res->msgs[0],
@@ -125,13 +125,13 @@ static void do_failed_login(struct LOCAL_request *lreq)
     ret = sysdb_attrs_add_long(lreq->mod_attrs,
                                SYSDB_FAILED_LOGIN_ATTEMPTS,
                                (long)failedLoginAttempts);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_attrs_add_long failed.\n",
                       lreq->error, ret, done);
 
     ret = sysdb_set_user_attr(lreq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_set_user_attr failed.\n",
                       lreq->error, ret, done);
 
 done:
@@ -175,32 +175,32 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     }
 
     ret = s3crypt_gen_salt(lreq, &salt);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("Salt generation failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "Salt generation failed.\n",
                       lreq->error, ret, done);
     DEBUG(SSSDBG_CONF_SETTINGS, "Using salt [%s]\n", salt);
 
     ret = s3crypt_sha512(lreq, password, salt, &new_hash);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("Hash generation failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "Hash generation failed.\n",
                       lreq->error, ret, done);
     DEBUG(SSSDBG_CONF_SETTINGS, "New hash [%s]\n", new_hash);
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
-    NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
+    NULL_CHECK_OR_JUMP(lreq->mod_attrs, "sysdb_new_attrs failed.\n",
                        lreq->error, ENOMEM, done);
 
     ret = sysdb_attrs_add_string(lreq->mod_attrs, SYSDB_PWD, new_hash);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_string failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_attrs_add_string failed.\n",
                       lreq->error, ret, done);
 
     ret = sysdb_attrs_add_long(lreq->mod_attrs,
                                "lastPasswordChange", (long)time(NULL));
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_attrs_add_long failed.\n",
                       lreq->error, ret, done);
 
     ret = sysdb_set_user_attr(lreq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
+    NEQ_CHECK_OR_JUMP(ret, EOK, "sysdb_set_user_attr failed.\n",
                       lreq->error, ret, done);
 
 done:
@@ -294,17 +294,17 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
                 break;
             }
             ret = sss_authtok_get_password(pd->authtok, &password, NULL);
-            NEQ_CHECK_OR_JUMP(ret, EOK, ("Failed to get password.\n"),
-                               lreq->error, ret, done);
+            NEQ_CHECK_OR_JUMP(ret, EOK, "Failed to get password.\n",
+                              lreq->error, ret, done);
 
             pwdhash = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PWD, NULL);
-            NULL_CHECK_OR_JUMP(pwdhash, ("No password stored.\n"),
+            NULL_CHECK_OR_JUMP(pwdhash, "No password stored.\n",
                                lreq->error, LDB_ERR_NO_SUCH_ATTRIBUTE, done);
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "user: [%s], password hash: [%s]\n", username, pwdhash);
 
             ret = s3crypt_sha512(lreq, password, pwdhash, &new_hash);
-            NEQ_CHECK_OR_JUMP(ret, EOK, ("nss_sha512_crypt failed.\n"),
+            NEQ_CHECK_OR_JUMP(ret, EOK, "nss_sha512_crypt failed.\n",
                               lreq->error, ret, done);
 
             DEBUG(SSSDBG_CONF_SETTINGS,

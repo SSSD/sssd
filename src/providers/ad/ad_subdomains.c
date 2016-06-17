@@ -1055,7 +1055,7 @@ static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
                                 ctx->reply_count, ctx->reply,
                                 ctx->root_domain_attrs, &nsubdoms, &subdoms);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot process subdomain list\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot process subdomain list\n");
         tevent_req_error(req, ret);
         return;
     }
