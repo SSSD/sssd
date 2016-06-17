@@ -843,14 +843,12 @@ static errno_t get_valid_certs_keys(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (cert_verification_opts != NULL) {
-        ret = parse_cert_verify_opts(tmp_ctx, cert_verification_opts,
-                                     &cert_verify_opts);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Failed to parse verifiy option.\n");
-            goto done;
-        }
+    ret = parse_cert_verify_opts(tmp_ctx, cert_verification_opts,
+                                 &cert_verify_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to parse verifiy option.\n");
+        goto done;
     }
 
     el_res = talloc_zero(tmp_ctx, struct ldb_message_element);
