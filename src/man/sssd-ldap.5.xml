@@ -828,6 +828,19 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_email (string)</term>
+                    <listitem>
+                        <para>
+                            Name of the LDAP attribute containing the email
+                            address of the user.
+                        </para>
+                        <para>
+                            Default: mail
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_group_object_class (string)</term>
                     <listitem>
                         <para>

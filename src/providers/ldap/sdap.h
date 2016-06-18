@@ -284,6 +284,7 @@ enum sdap_user_attrs {
     SDAP_AT_USER_SSH_PUBLIC_KEY,
     SDAP_AT_USER_AUTH_TYPE,
     SDAP_AT_USER_CERT,
+    SDAP_AT_USER_EMAIL,
 
     SDAP_OPTS_USER /* attrs counter */
 };

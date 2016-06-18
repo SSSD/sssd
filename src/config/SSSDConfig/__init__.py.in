@@ -325,6 +325,7 @@ option_strings = {
     'ldap_user_ssh_public_key' : _('SSH public key attribute'),
     'ldap_user_auth_type' : _('attribute listing allowed authentication types for a user'),
     'ldap_user_certificate' : _('attribute containing the X509 certificate of the user'),
+    'ldap_user_email' : _('attribute containing the email address of the user'),
 
     'ldap_user_extra_attrs' : _('A list of extra attributes to download along with the user entry'),
 

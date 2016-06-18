@@ -204,6 +204,7 @@ struct sdap_attr_map ipa_user_map[] = {
     { "ldap_user_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL },
     { "ldap_user_auth_type", "ipaUserAuthType", SYSDB_AUTH_TYPE, NULL },
     { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
+    { "ldap_user_email", "mail", SYSDB_USER_EMAIL, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
