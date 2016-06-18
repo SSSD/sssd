@@ -142,7 +142,15 @@ struct tevent_req *sssd_async_connect_send(TALLOC_CTX *mem_ctx,
     switch (ret) {
     case EINPROGRESS:
     case EINTR:
-        state->fde = tevent_add_fd(ev, state, fd, TEVENT_FD_WRITE,
+
+        /* Despite the connect() man page says waiting on a non-blocking
+         * connect should be done by checking for writability, we need to check
+         * also for readability.
+         * With TEVENT_FD_READ, connect fails much faster in offline mode with
+         * errno 113/No route to host.
+         */
+        state->fde = tevent_add_fd(ev, state, fd,
+                                   TEVENT_FD_READ | TEVENT_FD_WRITE,
                                    sssd_async_connect_done, req);
         if (state->fde == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd failed.\n");
