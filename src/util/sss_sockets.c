@@ -192,6 +192,7 @@ static void sssd_async_connect_done(struct tevent_context *ev,
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "connect failed [%d][%s].\n", ret, strerror(ret));
         tevent_req_error(req, ret);
