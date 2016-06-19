@@ -494,9 +494,7 @@ selinux_child_setup(TALLOC_CTX *mem_ctx,
     char *seuser;
     const char *mls_range;
     char *ptr;
-    char *username;
     char *username_final;
-    char *domain_name = NULL;
     TALLOC_CTX *tmp_ctx;
     struct selinux_child_input *sci;
 
@@ -527,33 +525,14 @@ selinux_child_setup(TALLOC_CTX *mem_ctx,
     /* pam_selinux needs the username in the same format getpwnam() would
      * return it
      */
-    username = sss_get_cased_name(tmp_ctx, orig_name, dom->case_preserve);
-    if (username == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
+    username_final = sss_output_name(tmp_ctx, orig_name,
+                                     dom->case_preserve, 0);
     if (dom->fqnames) {
-        ret = sss_parse_name(tmp_ctx, dom->names, username, &domain_name,
-                             NULL);
-        if (ret == EOK && domain_name != NULL) {
-            /* username is already a fully qualified name */
-            username_final = username;
-        } else if ((ret == EOK && domain_name == NULL)
-                   || ret == ERR_REGEX_NOMATCH) {
-            username_final = talloc_asprintf(tmp_ctx, dom->names->fq_fmt,
-                                             username, dom->name);
-            if (username_final == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "sss_parse_name failed: [%d] %s\n", ret, sss_strerror(ret));
+        username_final = sss_tc_fqname(tmp_ctx, dom->names, dom, username_final);
+        if (username_final == NULL) {
+            ret = ENOMEM;
             goto done;
         }
-    } else {
-        username_final = username;
     }
 
     sci = talloc(tmp_ctx, struct selinux_child_input);
