@@ -347,35 +347,14 @@ add_name_and_aliases_for_name_override(struct sss_domain_info *domain,
                                        bool add_name,
                                        const char *name_override)
 {
-    char *fq_name = NULL;
     int ret;
-
-    if (strchr(name_override, '@') == NULL) {
-        fq_name = sss_tc_fqname(attrs, domain->names, domain, name_override);
-        if (fq_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "sss_tc_fqname failed.\n");
-            return ENOMEM;
-        }
-
-        if (!domain->case_sensitive) {
-            ret = sysdb_attrs_add_lc_name_alias(attrs, fq_name);
-        } else {
-            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS,
-                                         fq_name);
-        }
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "sysdb_attrs_add_lc_name_alias failed.\n");
-            goto done;
-        }
-    }
 
     if (add_name) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_DEFAULT_OVERRIDE_NAME,
-                                     fq_name == NULL ? name_override : fq_name);
+                                     name_override);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_lc_name_alias failed.\n");
-            goto done;
+            return ret;
         }
     }
 
@@ -386,14 +365,10 @@ add_name_and_aliases_for_name_override(struct sss_domain_info *domain,
     }
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_lc_name_alias failed.\n");
-        goto done;
+        return ret;
     }
 
-    ret = EOK;
-
-done:
-    talloc_free(fq_name);
-    return ret;
+    return EOK;
 }
 
 errno_t sysdb_store_override(struct sss_domain_info *domain,
@@ -957,7 +932,6 @@ static errno_t sysdb_search_override_by_name(TALLOC_CTX *mem_ctx,
     struct ldb_result *orig_res;
     char *sanitized_name;
     char *lc_sanitized_name;
-    const char *src_name;
     int ret;
     const char *orig_obj_dn;
 
@@ -974,16 +948,7 @@ static errno_t sysdb_search_override_by_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* If this is a subdomain we need to use fully qualified names for the
-     * search as well by default */
-    src_name = sss_get_domain_name(tmp_ctx, name, domain);
-    if (src_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_get_domain_name failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sss_filter_sanitize_for_dom(tmp_ctx, src_name, domain,
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, name, domain,
                                       &sanitized_name, &lc_sanitized_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize_for_dom failed.\n");
