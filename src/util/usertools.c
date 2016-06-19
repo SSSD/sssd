@@ -831,3 +831,43 @@ char **sss_create_internal_fqname_list(TALLOC_CTX *mem_ctx,
 
     return fqname_list;
 }
+
+char *sss_output_name(TALLOC_CTX *mem_ctx,
+                      const char *name,
+                      bool case_sensitive,
+                      const char replace_space)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
+    char *shortname;
+    char *outname = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return NULL;
+
+    ret = sss_parse_internal_fqname(tmp_ctx, name, &shortname, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_parse_internal_fqname failed\n");
+        goto done;
+    }
+
+    outname = sss_get_cased_name(tmp_ctx, shortname, case_sensitive);
+    if (outname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "sss_get_cased_name failed, skipping\n");
+        ret = EIO;
+        goto done;
+    }
+
+    outname = sss_replace_space(tmp_ctx, outname, replace_space);
+    if (outname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
+        ret = EIO;
+        goto done;
+    }
+
+    outname = talloc_steal(mem_ctx, outname);
+done:
+    talloc_free(tmp_ctx);
+    return outname;
+}

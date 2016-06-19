@@ -290,6 +290,12 @@ char **sss_create_internal_fqname_list(TALLOC_CTX *mem_ctx,
                                        const char * const *shortname_list,
                                        const char *dom_name);
 
+/* Turn fqname into cased shortname with replaced space. */
+char *sss_output_name(TALLOC_CTX *mem_ctx,
+                      const char *fqname,
+                      bool case_sensitive,
+                      const char replace_space);
+
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 
