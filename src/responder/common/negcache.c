@@ -679,6 +679,11 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     char *conf_path = NULL;
     TALLOC_CTX *tmpctx = talloc_new(NULL);
     int i;
+    char *fqname = NULL;
+
+    if (tmpctx == NULL) {
+        return ENOMEM;
+    }
 
     /* Populate domain-specific negative cache entries */
     for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
@@ -721,7 +726,13 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            ret = sss_ncache_set_user(ncache, true, dom, name);
+            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
+            if (fqname == NULL) {
+                continue;
+            }
+
+            ret = sss_ncache_set_user(ncache, true, dom, fqname);
+            talloc_zfree(fqname);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to store permanent user filter for [%s]"
@@ -773,7 +784,13 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            ret = sss_ncache_set_user(ncache, true, dom, name);
+            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
+            if (fqname == NULL) {
+                continue;
+            }
+
+            ret = sss_ncache_set_user(ncache, true, dom, fqname);
+            talloc_zfree(fqname);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to store permanent user filter for [%s]"
@@ -783,7 +800,13 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             }
         } else {
             for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
-                ret = sss_ncache_set_user(ncache, true, dom, name);
+                fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
+                if (fqname == NULL) {
+                    continue;
+                }
+
+                ret = sss_ncache_set_user(ncache, true, dom, fqname);
+                talloc_zfree(fqname);
                 if (ret != EOK) {
                    DEBUG(SSSDBG_CRIT_FAILURE,
                          "Failed to store permanent user filter for"
@@ -829,7 +852,13 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            ret = sss_ncache_set_group(ncache, true, dom, name);
+            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
+            if (fqname == NULL) {
+                continue;
+            }
+
+            ret = sss_ncache_set_group(ncache, true, dom, fqname);
+            talloc_zfree(fqname);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to store permanent group filter for [%s]"
@@ -881,7 +910,13 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
-            ret = sss_ncache_set_group(ncache, true, dom, name);
+            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
+            if (fqname == NULL) {
+                continue;
+            }
+
+            ret = sss_ncache_set_group(ncache, true, dom, fqname);
+            talloc_zfree(fqname);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to store permanent group filter for"
@@ -891,7 +926,13 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             }
         } else {
             for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
-                ret = sss_ncache_set_group(ncache, true, dom, name);
+                fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
+                if (fqname == NULL) {
+                    continue;
+                }
+
+                ret = sss_ncache_set_group(ncache, true, dom, fqname);
+                talloc_zfree(fqname);
                 if (ret != EOK) {
                    DEBUG(SSSDBG_CRIT_FAILURE,
                          "Failed to store permanent group filter for"

@@ -34,8 +34,15 @@ bool is_user_local_by_name(const char *name)
     char buffer[BUFFER_SIZE];
     bool is_local = false;
     int ret;
+    char *shortname = NULL;
 
-    ret = getpwnam_r(name, &pwd, buffer, BUFFER_SIZE, &pwd_result);
+    ret = sss_parse_internal_fqname(NULL, name, &shortname, NULL);
+    if (ret != EOK) {
+        return false;
+    }
+
+    ret = getpwnam_r(shortname, &pwd, buffer, BUFFER_SIZE, &pwd_result);
+    talloc_free(shortname);
     if (ret == EOK && pwd_result != NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "User %s is a local user\n", name);
         is_local = true;
@@ -69,8 +76,15 @@ bool is_group_local_by_name(const char *name)
     char buffer[BUFFER_SIZE];
     bool is_local = false;
     int ret;
+    char *shortname = NULL;
 
-    ret = getgrnam_r(name, &grp, buffer, BUFFER_SIZE, &grp_result);
+    ret = sss_parse_internal_fqname(NULL, name, &shortname, NULL);
+    if (ret != EOK) {
+        return false;
+    }
+
+    ret = getgrnam_r(shortname, &grp, buffer, BUFFER_SIZE, &grp_result);
+    talloc_free(shortname);
     if (ret == EOK && grp_result != NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "Group %s is a local group\n", name);
         is_local = true;

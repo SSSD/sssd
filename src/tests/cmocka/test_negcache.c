@@ -305,13 +305,16 @@ static void test_sss_ncache_user(void **state)
 {
     int ret;
     bool permanent;
-    const char *name = NAME;
+    char *name;
     struct test_state *ts;
     struct sss_domain_info *dom;
 
     ts = talloc_get_type_abort(*state, struct test_state);
     dom = talloc(ts, struct sss_domain_info);
     dom->name = discard_const_p(char, TEST_DOM_NAME);
+
+    name = sss_create_internal_fqname(ts, NAME, dom->name);
+    assert_non_null(name);
 
     /* test when domain name is not present in database */
     dom->case_sensitive = false;
@@ -336,6 +339,8 @@ static void test_sss_ncache_user(void **state)
 
     ret = sss_ncache_check_user(ts->ctx, dom, name);
     assert_int_equal(ret, EEXIST);
+
+    talloc_free(name);
 }
 
 /* @test_sss_ncache_group : test following functions
@@ -346,13 +351,16 @@ static void test_sss_ncache_group(void **state)
 {
     int ret;
     bool permanent;
-    const char *name = NAME;
+    char *name;
     struct test_state *ts;
     struct sss_domain_info *dom;
 
     ts = talloc_get_type_abort(*state, struct test_state);
     dom = talloc(ts, struct sss_domain_info);
     dom->name = discard_const_p(char, TEST_DOM_NAME);
+
+    name = sss_create_internal_fqname(ts, NAME, dom->name);
+    assert_non_null(name);
 
     /* test when domain name is not present in database */
     dom->case_sensitive = false;
@@ -377,6 +385,8 @@ static void test_sss_ncache_group(void **state)
 
     ret = sss_ncache_check_group(ts->ctx, dom, name);
     assert_int_equal(ret, EEXIST);
+
+    talloc_free(name);
 }
 
 /* @test_sss_ncache_netgr : test following functions
@@ -529,6 +539,32 @@ static void test_sss_ncache_reset_permanent(void **state)
     assert_int_equal(ret, ENOENT);
 }
 
+static int check_user_in_ncache(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom,
+                                const char *name)
+{
+    char *fqdn;
+    int ret;
+
+    fqdn = sss_create_internal_fqname(ctx, name, dom->name);
+    ret = sss_ncache_check_user(ctx, dom, fqdn);
+    talloc_free(fqdn);
+    return ret;
+}
+
+static int check_group_in_ncache(struct sss_nc_ctx *ctx,
+                                 struct sss_domain_info *dom,
+                                 const char *name)
+{
+    char *fqdn;
+    int ret;
+
+    fqdn = sss_create_internal_fqname(ctx, name, dom->name);
+    ret = sss_ncache_check_group(ctx, dom, fqdn);
+    talloc_free(fqdn);
+    return ret;
+}
+
 static void test_sss_ncache_prepopulate(void **state)
 {
     int ret;
@@ -572,28 +608,28 @@ static void test_sss_ncache_prepopulate(void **state)
 
     sleep(SHORTSPAN);
 
-    ret = sss_ncache_check_user(ncache, dom, "testuser1");
+    ret = check_user_in_ncache(ncache, dom, "testuser1");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup1");
+    ret = check_group_in_ncache(ncache, dom, "testgroup1");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_user(ncache, dom, "testuser2");
+    ret = check_user_in_ncache(ncache, dom, "testuser2");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup2");
+    ret = check_group_in_ncache(ncache, dom, "testgroup2");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_user(ncache, dom, "testuser3");
+    ret = check_user_in_ncache(ncache, dom, "testuser3");
     assert_int_equal(ret, ENOENT);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup3");
+    ret = check_group_in_ncache(ncache, dom, "testgroup3");
     assert_int_equal(ret, ENOENT);
 
-    ret = sss_ncache_check_user(ncache, dom, "testuser3@somedomain");
+    ret = check_user_in_ncache(ncache, dom, "testuser3@somedomain");
     assert_int_equal(ret, ENOENT);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup3@somedomain");
+    ret = check_group_in_ncache(ncache, dom, "testgroup3@somedomain");
     assert_int_equal(ret, ENOENT);
 }
 
@@ -639,22 +675,22 @@ static void test_sss_ncache_default_domain_suffix(void **state)
     ret = sss_ncache_prepopulate(ncache, tc->confdb, ts->rctx);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_user(ncache, dom, "testuser1");
+    ret = check_user_in_ncache(ncache, dom, "testuser1");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup1");
+    ret = check_group_in_ncache(ncache, dom, "testgroup1");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_user(ncache, dom, "testuser2");
+    ret = check_user_in_ncache(ncache, dom, "testuser2");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup2");
+    ret = check_group_in_ncache(ncache, dom, "testgroup2");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_user(ncache, dom, "testuser3");
+    ret = check_user_in_ncache(ncache, dom, "testuser3");
     assert_int_equal(ret, ENOENT);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup3");
+    ret = check_group_in_ncache(ncache, dom, "testgroup3");
     assert_int_equal(ret, ENOENT);
 
 }
@@ -722,32 +758,32 @@ static void test_sss_ncache_reset_prepopulate(void **state)
     dom2->names = dom->names;
 
     /* First domain should not be known, the second not */
-    ret = sss_ncache_check_user(ncache, dom, "testuser1");
+    ret = check_user_in_ncache(ncache, dom, "testuser1");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup1");
+    ret = check_group_in_ncache(ncache, dom, "testgroup1");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_user(ncache, dom2, "testuser2");
+    ret = check_user_in_ncache(ncache, dom2, "testuser2");
     assert_int_equal(ret, ENOENT);
 
-    ret = sss_ncache_check_group(ncache, dom2, "testgroup2");
+    ret = check_group_in_ncache(ncache, dom2, "testgroup2");
     assert_int_equal(ret, ENOENT);
 
     ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
     assert_int_equal(ret, EOK);
 
     /* First domain should not be known, the second not */
-    ret = sss_ncache_check_user(ncache, dom, "testuser1");
+    ret = check_user_in_ncache(ncache, dom, "testuser1");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_group(ncache, dom, "testgroup1");
+    ret = check_group_in_ncache(ncache, dom, "testgroup1");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_user(ncache, dom2, "testuser2");
+    ret = check_user_in_ncache(ncache, dom2, "testuser2");
     assert_int_equal(ret, EEXIST);
 
-    ret = sss_ncache_check_group(ncache, dom2, "testgroup2");
+    ret = check_group_in_ncache(ncache, dom2, "testgroup2");
     assert_int_equal(ret, EEXIST);
 }
 int main(void)
