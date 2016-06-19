@@ -884,12 +884,11 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Construct the filter */
-    /* Subdomain users are identified by FQDN. We need to use just the username */
-    ret = sss_parse_name(state, domain->names, username, NULL, &name);
+    ret = sss_parse_internal_fqname(state, username, &name, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not parse [%s] into name and "
-               "domain components, access might fail\n", username);
+              "domain components, access might fail\n", username);
         name = discard_const(username);
     }
 
