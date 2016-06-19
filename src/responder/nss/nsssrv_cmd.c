@@ -221,10 +221,10 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
      */
     if (dom->override_homedir) {
         return expand_homedir_template(mem_ctx, dom->override_homedir,
-                                       homedir_ctx);
+                                       dom->case_preserve, homedir_ctx);
     } else if (nctx->override_homedir) {
         return expand_homedir_template(mem_ctx, nctx->override_homedir,
-                                       homedir_ctx);
+                                       dom->case_preserve, homedir_ctx);
     }
 
     if (!homedir || *homedir == '\0') {
@@ -233,15 +233,16 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
          */
         if (dom->fallback_homedir) {
             return expand_homedir_template(mem_ctx, dom->fallback_homedir,
-                                           homedir_ctx);
+                                           dom->case_preserve, homedir_ctx);
         } else if (nctx->fallback_homedir) {
             return expand_homedir_template(mem_ctx, nctx->fallback_homedir,
-                                           homedir_ctx);
+                                           dom->case_preserve, homedir_ctx);
         }
     }
 
     /* Provider can also return template, try to expand it.*/
-    return expand_homedir_template(mem_ctx, homedir, homedir_ctx);
+    return expand_homedir_template(mem_ctx, homedir,
+                                   dom->case_preserve, homedir_ctx);
 }
 
 static const char *get_shell_override(TALLOC_CTX *mem_ctx,

@@ -22,7 +22,9 @@
 #include "util/util.h"
 #include "util/sss_nss.h"
 
-char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
+char *expand_homedir_template(TALLOC_CTX *mem_ctx,
+                              const char *template,
+                              bool case_sensitive,
                               struct sss_nss_homedir_ctx *homedir_ctx)
 {
     char *copy;
@@ -32,6 +34,7 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
     char *res = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     const char *orig = NULL;
+    char *username = NULL;
 
     if (template == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing template.\n");
@@ -75,8 +78,14 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                           "is empty.\n");
                     goto done;
                 }
-                result = talloc_asprintf_append(result, "%s%s", p,
-                                                homedir_ctx->username);
+                username = sss_output_name(tmp_ctx, homedir_ctx->username,
+                                           case_sensitive, 0);
+                if (username == NULL) {
+                    goto done;
+                }
+
+                result = talloc_asprintf_append(result, "%s%s", p, username);
+                talloc_free(username);
                 break;
 
             case 'U':
@@ -108,9 +117,15 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                                                 "or user name is empty.\n");
                     goto done;
                 }
+                username = sss_output_name(tmp_ctx, homedir_ctx->username,
+                                           case_sensitive, 0);
+                if (username == NULL) {
+                    goto done;
+                }
+
                 result = talloc_asprintf_append(result, "%s%s@%s", p,
-                                                homedir_ctx->username,
-                                                homedir_ctx->domain);
+                                                username, homedir_ctx->domain);
+                talloc_free(username);
                 break;
 
             case 'o':

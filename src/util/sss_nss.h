@@ -22,6 +22,7 @@
 #ifndef __SSS_NSS_H__
 #define __SSS_NSS_H__
 
+#include <stdbool.h>
 #include <sys/types.h>
 #include <talloc.h>
 
@@ -36,5 +37,6 @@ struct sss_nss_homedir_ctx {
 };
 
 char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
+                              bool case_sensitive,
                               struct sss_nss_homedir_ctx *homedir_ctx);
 #endif

@@ -1947,6 +1947,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
 
                 attrs->a.user.pw_dir = expand_homedir_template(attrs,
                                                   dom->subdomain_homedir,
+                                                  dom->case_preserve,
                                                   &homedir_ctx);
                 if (attrs->a.user.pw_dir == NULL) {
                     ret = ENOMEM;

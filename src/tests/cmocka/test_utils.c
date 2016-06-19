@@ -963,7 +963,7 @@ void check_expanded_value(TALLOC_CTX *tmp_ctx,
 {
     char *homedir;
 
-    homedir = expand_homedir_template(tmp_ctx, template, homedir_ctx);
+    homedir = expand_homedir_template(tmp_ctx, template, false, homedir_ctx);
     if (exp_val != NULL) {
         assert_string_equal(homedir, exp_val);
     } else {
@@ -983,7 +983,13 @@ static int setup_homedir_ctx(void **state)
                              struct sss_nss_homedir_ctx);
     assert_non_null(homedir_ctx);
 
-    homedir_ctx->username = USERNAME;
+    homedir_ctx->username = sss_create_internal_fqname(homedir_ctx,
+                                                       USERNAME, DOMAIN);
+    if (homedir_ctx->username == NULL) {
+        talloc_free(homedir_ctx);
+        return 1;
+    }
+
     homedir_ctx->uid = UID;
     homedir_ctx->original = ORIGINAL_HOME;
     homedir_ctx->domain = DOMAIN;
@@ -1027,10 +1033,10 @@ void test_expand_homedir_template_NULL(void **state)
     homedir_ctx = talloc_zero(tmp_ctx, struct sss_nss_homedir_ctx);
     assert_non_null(homedir_ctx);
 
-    homedir = expand_homedir_template(tmp_ctx, NULL, NULL);
+    homedir = expand_homedir_template(tmp_ctx, NULL, false, NULL);
     assert_null(homedir);
 
-    homedir = expand_homedir_template(tmp_ctx, "template", NULL);
+    homedir = expand_homedir_template(tmp_ctx, "template", false, NULL);
     assert_null(homedir);
 
     /* missing data in homedir_ctx */
