@@ -1458,11 +1458,11 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                                     NULL);
 
             if (memberuid != NULL) {
-                ret = sss_parse_name(tmp_ctx, domain->names, orig_name,
-                                     &orig_domain, NULL);
+                ret = sss_parse_internal_fqname(tmp_ctx, orig_name,
+                                                NULL, &orig_domain);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
-                         "sss_parse_name failed to split original name [%s].\n",
+                         "sss_parse_internal_fqname failed to split [%s].\n",
                          orig_name);
                     goto done;
                 }
@@ -1474,14 +1474,14 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                         DEBUG(SSSDBG_CRIT_FAILURE,
                               "Cannot find domain with name [%s].\n",
                               orig_domain);
-                        ret = EINVAL;
+                        ret = ERR_DOMAIN_NOT_FOUND;
                         goto done;
                     }
-                    memberuid = sss_get_domain_name(tmp_ctx, memberuid,
-                                                    orig_dom);
+                    memberuid = sss_create_internal_fqname(tmp_ctx, memberuid,
+                                                           orig_dom->name);
                     if (memberuid == NULL) {
                         DEBUG(SSSDBG_OP_FAILURE,
-                              "sss_get_domain_name failed.\n");
+                              "sss_create_internal_fqname failed.\n");
                         ret = ENOMEM;
                         goto done;
                     }
