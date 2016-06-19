@@ -36,7 +36,6 @@ static errno_t find_user_entry(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
                                  NULL };
     struct ldb_message *msg;
     struct ldb_result *res;
-    char *user_name;
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
 
@@ -77,16 +76,8 @@ static errno_t find_user_entry(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
             }
             break;
         case BE_FILTER_NAME:
-
-            user_name = sss_get_domain_name(tmp_ctx, ar->filter_value, dom);
-            if (user_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "sss_get_domain_name failed.\n");
-                ret = EINVAL;
-                goto done;
-            } else {
-                ret = sysdb_search_user_by_name(tmp_ctx, dom, user_name,
-                                                user_attrs, &msg);
-            }
+            ret = sysdb_search_user_by_name(tmp_ctx, dom, ar->filter_value,
+                                            user_attrs, &msg);
             break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, "Unsupported filter type [%d].\n",
