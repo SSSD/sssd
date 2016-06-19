@@ -543,16 +543,22 @@ static errno_t get_extra_attrs(BerElement *ber, struct resp_attrs *resp_attrs)
     return EOK;
 }
 
-static errno_t add_v1_user_data(BerElement *ber, struct resp_attrs *attrs)
+static errno_t add_v1_user_data(struct sss_domain_info *dom,
+                                BerElement *ber,
+                                struct resp_attrs *attrs)
 {
     ber_tag_t tag;
     ber_len_t ber_len;
     int ret;
     char *gecos = NULL;
     char *homedir = NULL;
+    char *name = NULL;
+    char *domain = NULL;
     char *shell = NULL;
     char **list = NULL;
-    size_t c;
+    size_t c, gc;
+    struct sss_domain_info *parent_domain;
+    struct sss_domain_info *obj_domain;
 
     tag = ber_scanf(ber, "aaa", &gecos, &homedir, &shell);
     if (tag == LBER_ERROR) {
@@ -612,14 +618,35 @@ static errno_t add_v1_user_data(BerElement *ber, struct resp_attrs *attrs)
             goto done;
         }
 
-        for (c = 0; c < attrs->ngroups; c++) {
-            attrs->groups[c] = talloc_strdup(attrs->groups,
-                                             list[c]);
-            if (attrs->groups[c] == NULL) {
+        parent_domain = get_domains_head(dom);
+
+        for (c = 0, gc = 0; c < attrs->ngroups; c++) {
+            ret = sss_parse_name(attrs, dom->names, list[c],
+                                 &domain, &name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                        "Cannot parse member %s\n", list[c]);
+                continue;
+            }
+
+            if (domain != NULL) {
+                obj_domain = find_domain_by_name(parent_domain, domain, true);
+                if (obj_domain == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
+                    return ENOMEM;
+                }
+            } else {
+                obj_domain = parent_domain;
+            }
+
+            attrs->groups[gc] = sss_create_internal_fqname(attrs->groups,
+                                                           name, obj_domain->name);
+            if (attrs->groups[gc] == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
+            gc++;
         }
     }
 
@@ -645,13 +672,17 @@ done:
     return ret;
 }
 
-static errno_t add_v1_group_data(BerElement *ber, struct resp_attrs *attrs)
+static errno_t add_v1_group_data(BerElement *ber,
+                                 struct sss_domain_info *dom,
+                                 struct resp_attrs *attrs)
 {
     ber_tag_t tag;
     ber_len_t ber_len;
     int ret;
     char **list = NULL;
-    size_t c;
+    size_t c, mc;
+    char *name = NULL;
+    char *domain = NULL;
 
     tag = ber_scanf(ber, "{v}", &list);
     if (tag == LBER_ERROR) {
@@ -673,15 +704,28 @@ static errno_t add_v1_group_data(BerElement *ber, struct resp_attrs *attrs)
                 goto done;
             }
 
-            for (c = 0; c < attrs->ngroups; c++) {
-                attrs->a.group.gr_mem[c] =
-                                    talloc_strdup(attrs->a.group.gr_mem,
-                                                  list[c]);
-                if (attrs->a.group.gr_mem[c] == NULL) {
+            for (c = 0, mc=0; c < attrs->ngroups; c++) {
+                ret = sss_parse_name(attrs, dom->names, list[c],
+                                     &domain, &name);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Cannot parse member %s\n", list[c]);
+                    continue;
+                }
+
+                if (domain == NULL) {
+                    domain = dom->name;
+                }
+
+                attrs->a.group.gr_mem[mc] =
+                            sss_create_internal_fqname(attrs->a.group.gr_mem,
+                                                       name, domain);
+                if (attrs->a.group.gr_mem[mc] == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                     ret = ENOMEM;
                     goto done;
                 }
+                mc++;
             }
         }
     } else {
@@ -720,6 +764,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     bool update_initgr_timeout);
 
 static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *dom,
                                      char *retoid,
                                      struct berval *retdata,
                                      struct resp_attrs **resp_attrs)
@@ -730,6 +775,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     enum response_types type;
     char *domain_name = NULL;
     char *name = NULL;
+    char *lc_name = NULL;
     uid_t uid;
     gid_t gid;
     struct resp_attrs *attrs = NULL;
@@ -787,7 +833,16 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
              * bug in some version of winbind which might lead to upper case
              * letters in the name. To be on the safe side we explicitly
              * lowercase the name. */
-            attrs->a.user.pw_name = sss_tc_utf8_str_tolower(attrs, name);
+            lc_name = sss_tc_utf8_str_tolower(attrs, name);
+            if (lc_name == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            attrs->a.user.pw_name = sss_create_internal_fqname(attrs,
+                                                               lc_name,
+                                                               domain_name);
+            talloc_free(lc_name);
             if (attrs->a.user.pw_name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
@@ -798,7 +853,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
             attrs->a.user.pw_gid = gid;
 
             if (is_v1 && type == RESP_USER_GROUPLIST) {
-                ret = add_v1_user_data(ber, attrs);
+                ret = add_v1_user_data(dom, ber, attrs);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_v1_user_data failed.\n");
                     goto done;
@@ -827,7 +882,16 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
              * bug in some version of winbind which might lead to upper case
              * letters in the name. To be on the safe side we explicitly
              * lowercase the name. */
-            attrs->a.group.gr_name = sss_tc_utf8_str_tolower(attrs, name);
+            lc_name = sss_tc_utf8_str_tolower(attrs, name);
+            if (lc_name == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            attrs->a.group.gr_name = sss_create_internal_fqname(attrs,
+                                                                lc_name,
+                                                                domain_name);
+            talloc_free(lc_name);
             if (attrs->a.group.gr_name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
@@ -837,7 +901,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
             attrs->a.group.gr_gid = gid;
 
             if (is_v1 && type == RESP_GROUP_MEMBERS) {
-                ret = add_v1_group_data(ber, attrs);
+                ret = add_v1_group_data(ber, dom, attrs);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_v1_group_data failed.\n");
                     goto done;
@@ -1011,8 +1075,7 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
     switch (state->req_input.type) {
     case REQ_INP_NAME:
 
-        ret = sss_parse_name(state, parent_domain->names,
-                             state->list[state->list_idx],
+        ret = sss_parse_name(state, state->dom->names, state->list[state->list_idx],
                              &domain_name, &short_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
@@ -1108,7 +1171,8 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
     }
 
     talloc_zfree(state->attrs);
-    ret = s2n_response_to_attrs(state, retoid, retdata, &state->attrs);
+    ret = s2n_response_to_attrs(state, state->dom, retoid, retdata,
+                                &state->attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
         goto fail;
@@ -1558,7 +1622,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     switch (state->request_type) {
     case REQ_FULL_WITH_MEMBERS:
     case REQ_FULL:
-        ret = s2n_response_to_attrs(state, retoid, retdata, &attrs);
+        ret = s2n_response_to_attrs(state, state->dom, retoid, retdata,
+                                    &attrs);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
             goto done;
@@ -1664,7 +1729,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         return;
 
     case REQ_SIMPLE:
-        ret = s2n_response_to_attrs(state, retoid, retdata,
+        ret = s2n_response_to_attrs(state, state->dom, retoid, retdata,
                                     &state->simple_attrs);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
@@ -1849,7 +1914,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     bool in_transaction = false;
     int tret;
     struct sysdb_attrs *gid_override_attrs = NULL;
-    char ** exop_grouplist;
     struct ldb_message *msg;
     struct ldb_message_element *el = NULL;
     const char *missing[] = {NULL, NULL};
@@ -1956,14 +2020,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             }
 
             if (name == NULL) {
-                /* we always use the fully qualified name for subdomain users */
-                name = sss_tc_fqname(tmp_ctx, dom->names, dom,
-                                     attrs->a.user.pw_name);
-                if (!name) {
-                    DEBUG(SSSDBG_OP_FAILURE, "failed to format user name.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
+                name = attrs->a.user.pw_name;
             }
 
             ret = sysdb_attrs_add_lc_name_alias_safe(attrs->sysdb_attrs, name);
@@ -2162,17 +2219,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                     goto done;
                 }
 
-                /* names returned by extdom exop will be all lower case, since
-                 * we handle domain names case sensitve in the cache we have
-                 * to make sure we use the right case. */
-                ret = fix_domain_in_name_list(tmp_ctx, dom, attrs->groups,
-                                              &exop_grouplist);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "fix_domain_name failed.\n");
-                    goto done;
-                }
-
-                ret = diff_string_lists(tmp_ctx, exop_grouplist,
+                ret = diff_string_lists(tmp_ctx, attrs->groups,
                                         sysdb_grouplist, &add_groups,
                                         &del_groups, NULL);
                 if (ret != EOK) {
@@ -2220,15 +2267,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 name = attrs->a.group.gr_name;
             }
 
-            if (IS_SUBDOMAIN(dom)) {
-                /* we always use the fully qualified name for subdomain users */
-                name = sss_get_domain_name(tmp_ctx, name, dom);
-                if (!name) {
-                    DEBUG(SSSDBG_OP_FAILURE, "failed to format user name,\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
-            }
             DEBUG(SSSDBG_TRACE_FUNC, "Processing group %s\n", name);
 
             ret = sysdb_attrs_add_lc_name_alias_safe(attrs->sysdb_attrs, name);

@@ -440,6 +440,7 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
     int ret;
     char *endptr;
     struct req_input *req_input;
+    char *shortname;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
@@ -498,7 +499,10 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
     switch (state->filter_type) {
         case BE_FILTER_NAME:
             req_input->type = REQ_INP_NAME;
-            req_input->inp.name = talloc_strdup(req_input, state->filter);
+            /* The extdom plugin expects the shortname and domain separately */
+            ret = sss_parse_internal_fqname(req_input, state->filter,
+                                            &shortname, NULL);
+            req_input->inp.name = talloc_steal(req_input, shortname);
             if (req_input->inp.name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 tevent_req_error(req, ENOMEM);
@@ -949,7 +953,6 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
                             SYSDB_GHOST,
                             SYSDB_HOMEDIR,
                             NULL };
-    char *name;
 
     if (ar->filter_type == BE_FILTER_SECID) {
         ret = sysdb_search_object_by_sid(mem_ctx, dom, ar->filter_value, attrs,
@@ -1022,24 +1025,19 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
             goto done;
         }
     } else if (ar->filter_type == BE_FILTER_NAME) {
-        name = sss_get_domain_name(mem_ctx, ar->filter_value, dom);
-        if (name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "sss_get_domain_name failed\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
         switch (ar->entry_type & BE_REQ_TYPE_MASK) {
         case BE_REQ_GROUP:
-            ret = sysdb_search_group_by_name(mem_ctx, dom, name, attrs, &msg);
+            ret = sysdb_search_group_by_name(mem_ctx, dom, ar->filter_value,
+                                             attrs, &msg);
             break;
         case BE_REQ_INITGROUPS:
         case BE_REQ_USER:
         case BE_REQ_USER_AND_GROUP:
-            ret = sysdb_search_user_by_name(mem_ctx, dom, name, attrs, &msg);
+            ret = sysdb_search_user_by_name(mem_ctx, dom, ar->filter_value,
+                                            attrs, &msg);
             if (ret == ENOENT && (ar->entry_type & BE_REQ_TYPE_MASK)
                                                      == BE_REQ_USER_AND_GROUP) {
-                ret = sysdb_search_group_by_name(mem_ctx, dom, name,
+                ret = sysdb_search_group_by_name(mem_ctx, dom, ar->filter_value,
                                                  attrs, &msg);
             }
             break;

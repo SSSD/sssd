@@ -38,23 +38,30 @@ static errno_t be_acct_req_to_override_filter(TALLOC_CTX *mem_ctx,
     char *endptr;
     char *cert_filter;
     int ret;
+    char *shortname;
 
     switch (ar->filter_type) {
     case BE_FILTER_NAME:
+        ret = sss_parse_internal_fqname(mem_ctx, ar->filter_value,
+                                        &shortname, NULL);
+        if (ret != EOK) {
+            return ret;
+        }
+
         switch ((ar->entry_type & BE_REQ_TYPE_MASK)) {
         case BE_REQ_USER:
         case BE_REQ_INITGROUPS:
             filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(%s=%s))",
                          ipa_opts->override_map[IPA_OC_OVERRIDE_USER].name,
                          ipa_opts->override_map[IPA_AT_OVERRIDE_USER_NAME].name,
-                         ar->filter_value);
+                         shortname);
             break;
 
          case BE_REQ_GROUP:
             filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(%s=%s))",
                         ipa_opts->override_map[IPA_OC_OVERRIDE_GROUP].name,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_GROUP_NAME].name,
-                        ar->filter_value);
+                        shortname);
             break;
 
          case BE_REQ_USER_AND_GROUP:
@@ -63,13 +70,15 @@ static errno_t be_acct_req_to_override_filter(TALLOC_CTX *mem_ctx,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_USER_NAME].name,
                         ar->filter_value,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_GROUP_NAME].name,
-                        ar->filter_value);
+                        shortname);
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected entry type [%d] for name filter.\n",
                                        ar->entry_type);
+            talloc_free(shortname);
             return EINVAL;
         }
+        talloc_free(shortname);
         break;
 
     case BE_FILTER_IDNUM:
@@ -266,6 +275,8 @@ struct ipa_get_ad_override_state {
 };
 
 static void ipa_get_ad_override_connect_done(struct tevent_req *subreq);
+static errno_t ipa_get_ad_override_qualify_name(
+                                struct ipa_get_ad_override_state *state);
 static void ipa_get_ad_override_done(struct tevent_req *subreq);
 
 struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
@@ -448,8 +459,14 @@ static void ipa_get_ad_override_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_ALL, "Found override for object with filter [%s].\n",
                             state->filter);
-
     state->override_attrs = reply[0];
+
+    ret = ipa_get_ad_override_qualify_name(state);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot qualify object name\n");
+        goto fail;
+    }
+
     state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
@@ -458,6 +475,33 @@ fail:
     state->dp_error = DP_ERR_FATAL;
     tevent_req_error(req, ret);
     return;
+}
+
+static errno_t ipa_get_ad_override_qualify_name(
+                                struct ipa_get_ad_override_state *state)
+{
+    int ret;
+    struct ldb_message_element *name;
+    char *fqdn;
+
+    ret = sysdb_attrs_get_el_ext(state->override_attrs, SYSDB_NAME,
+                                 false, &name);
+    if (ret == ENOENT) {
+        return EOK; /* Does not override name */
+    } else if (ret != EOK && ret != ENOENT) {
+        return ret;
+    }
+
+    fqdn = sss_create_internal_fqname(name->values,
+                                      (const char *) name->values[0].data,
+                                      state->ar->domain);
+    if (fqdn == NULL) {
+        return ENOMEM;
+    }
+
+    name->values[0].data = (uint8_t *) fqdn;
+    name->values[0].length = strlen(fqdn);
+    return EOK;
 }
 
 errno_t ipa_get_ad_override_recv(struct tevent_req *req, int *dp_error_out,
