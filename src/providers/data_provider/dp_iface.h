@@ -64,4 +64,9 @@ errno_t dp_backend_is_online(struct sbus_request *sbus_req,
                              void *dp_cli,
                              const char *domain);
 
+/* org.freedesktop.sssd.DataProvider.Failover */
+errno_t dp_failover_list_services(struct sbus_request *sbus_req,
+                                  void *dp_cli,
+                                  const char *domname);
+
 #endif /* DP_IFACE_H_ */

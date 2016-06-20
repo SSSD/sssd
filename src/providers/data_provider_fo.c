@@ -34,29 +34,6 @@ struct be_svc_callback {
     void *private_data;
 };
 
-struct be_svc_data {
-    struct be_svc_data *prev;
-    struct be_svc_data *next;
-
-    const char *name;
-    struct fo_service *fo_service;
-
-    struct fo_server *last_good_srv;
-    time_t last_status_change;
-    bool run_callbacks;
-
-    struct be_svc_callback *callbacks;
-    struct fo_server *first_resolved;
-};
-
-struct be_failover_ctx {
-    struct fo_ctx *fo_ctx;
-    struct be_resolv_ctx *be_res;
-
-    struct be_svc_data *svcs;
-    struct tevent_timer *primary_server_handler;
-};
-
 static const char *proto_table[] = { FO_PROTO_TCP, FO_PROTO_UDP, NULL };
 
 int be_fo_is_srv_identifier(const char *server)

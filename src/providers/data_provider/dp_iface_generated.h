@@ -19,6 +19,10 @@
 #define IFACE_DP_BACKEND "org.freedesktop.sssd.DataProvider.Backend"
 #define IFACE_DP_BACKEND_ISONLINE "IsOnline"
 
+/* constants for org.freedesktop.sssd.DataProvider.Failover */
+#define IFACE_DP_FAILOVER "org.freedesktop.sssd.DataProvider.Failover"
+#define IFACE_DP_FAILOVER_LISTSERVICES "ListServices"
+
 /* constants for org.freedesktop.sssd.dataprovider */
 #define IFACE_DP "org.freedesktop.sssd.dataprovider"
 #define IFACE_DP_PAMHANDLER "pamHandler"
@@ -64,6 +68,15 @@ struct iface_dp_backend {
 /* finish function for IsOnline */
 int iface_dp_backend_IsOnline_finish(struct sbus_request *req, bool arg_status);
 
+/* vtable for org.freedesktop.sssd.DataProvider.Failover */
+struct iface_dp_failover {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*ListServices)(struct sbus_request *req, void *data, const char *arg_domain_name);
+};
+
+/* finish function for ListServices */
+int iface_dp_failover_ListServices_finish(struct sbus_request *req, const char *arg_services[], int len_services);
+
 /* vtable for org.freedesktop.sssd.dataprovider */
 struct iface_dp {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
@@ -102,6 +115,9 @@ extern const struct sbus_interface_meta iface_dp_client_meta;
 
 /* interface info for org.freedesktop.sssd.DataProvider.Backend */
 extern const struct sbus_interface_meta iface_dp_backend_meta;
+
+/* interface info for org.freedesktop.sssd.DataProvider.Failover */
+extern const struct sbus_interface_meta iface_dp_failover_meta;
 
 /* interface info for org.freedesktop.sssd.dataprovider */
 extern const struct sbus_interface_meta iface_dp_meta;

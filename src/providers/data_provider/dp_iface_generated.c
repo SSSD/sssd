@@ -92,6 +92,46 @@ const struct sbus_interface_meta iface_dp_backend_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+/* arguments for org.freedesktop.sssd.DataProvider.Failover.ListServices */
+const struct sbus_arg_meta iface_dp_failover_ListServices__in[] = {
+    { "domain_name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.DataProvider.Failover.ListServices */
+const struct sbus_arg_meta iface_dp_failover_ListServices__out[] = {
+    { "services", "as" },
+    { NULL, }
+};
+
+int iface_dp_failover_ListServices_finish(struct sbus_request *req, const char *arg_services[], int len_services)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &arg_services, len_services,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.DataProvider.Failover */
+const struct sbus_method_meta iface_dp_failover__methods[] = {
+    {
+        "ListServices", /* name */
+        iface_dp_failover_ListServices__in,
+        iface_dp_failover_ListServices__out,
+        offsetof(struct iface_dp_failover, ListServices),
+        invoke_s_method,
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.DataProvider.Failover */
+const struct sbus_interface_meta iface_dp_failover_meta = {
+    "org.freedesktop.sssd.DataProvider.Failover", /* name */
+    iface_dp_failover__methods,
+    NULL, /* no signals */
+    NULL, /* no properties */
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* arguments for org.freedesktop.sssd.dataprovider.autofsHandler */
 const struct sbus_arg_meta iface_dp_autofsHandler__in[] = {
     { "dp_flags", "u" },

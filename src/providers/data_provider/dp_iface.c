@@ -41,9 +41,15 @@ struct iface_dp_backend iface_dp_backend = {
     .IsOnline = dp_backend_is_online
 };
 
+struct iface_dp_failover iface_dp_failover = {
+    {&iface_dp_backend_meta, 0},
+    .ListServices = dp_failover_list_services
+};
+
 static struct sbus_iface_map dp_map[] = {
     { DP_PATH, &iface_dp.vtable },
     { DP_PATH, &iface_dp_backend.vtable },
+    { DP_PATH, &iface_dp_failover.vtable },
     { NULL, NULL }
 };
 

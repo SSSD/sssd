@@ -16,6 +16,14 @@
         </method>
     </interface>
 
+    <interface name="org.freedesktop.sssd.DataProvider.Failover">
+        <annotation value="iface_dp_failover" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <method name="ListServices">
+            <arg name="domain_name" type="s" direction="in" />
+            <arg name="services" type="as" direction="out" />
+        </method>
+    </interface>
+
     <interface name="org.freedesktop.sssd.dataprovider">
         <annotation value="iface_dp" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="pamHandler">
