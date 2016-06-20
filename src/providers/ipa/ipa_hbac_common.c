@@ -515,6 +515,7 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
     struct ldb_message *msg;
     struct ldb_message_element *el;
     const char *attrs[] = { SYSDB_ORIG_MEMBEROF, NULL };
+    char *shortname;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -525,13 +526,18 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    users->name = username;
+    ret = sss_parse_internal_fqname(tmp_ctx, username, &shortname, NULL);
+    if (ret != EOK) {
+        ret = ERR_WRONG_NAME_FORMAT;
+        goto done;
+    }
+    users->name = talloc_steal(users, shortname);
 
     /* Read the originalMemberOf attribute
      * This will give us the list of both POSIX and
      * non-POSIX groups that this user belongs to.
      */
-    ret = sysdb_search_user_by_name(tmp_ctx, domain, users->name,
+    ret = sysdb_search_user_by_name(tmp_ctx, domain, username,
                                     attrs, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,

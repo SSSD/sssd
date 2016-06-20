@@ -53,6 +53,8 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
      */
     *groupname = NULL;
 
+    DEBUG(SSSDBG_TRACE_LIBS, "Parsing %s\n", group_dn);
+
     dn = ldb_dn_new(mem_ctx, sysdb_ctx_get_ldb(sysdb), group_dn);
     if (dn == NULL) {
         ret = ENOMEM;
@@ -60,6 +62,7 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
     }
 
     if (!ldb_dn_validate(dn)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "DN %s does not validate\n", group_dn);
         ret = ERR_MALFORMED_ENTRY;
         goto done;
     }
@@ -67,6 +70,7 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
     if (ldb_dn_get_comp_num(dn) < 4) {
         /* RDN, groups, accounts, and at least one DC= */
         /* If it's fewer, it's not a group DN */
+        DEBUG(SSSDBG_CRIT_FAILURE, "DN %s has too few components\n", group_dn);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
@@ -77,6 +81,7 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
         /* Shouldn't happen if ldb_dn_validate()
          * passed, but we'll be careful.
          */
+        DEBUG(SSSDBG_CRIT_FAILURE, "No RDN name in %s\n", group_dn);
         ret = ERR_MALFORMED_ENTRY;
         goto done;
     }
@@ -85,6 +90,8 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
         /* RDN has the wrong attribute name.
          * It's not a group.
          */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected cn in RDN, got %s\n", rdn_name);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
@@ -93,6 +100,8 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
     group_comp_name = ldb_dn_get_component_name(dn, 1);
     if (strcasecmp("cn", group_comp_name) != 0) {
         /* The second component name is not "cn" */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected cn in second component, got %s\n", group_comp_name);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
@@ -102,6 +111,9 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
                     (const char *) group_comp_val->data,
                     group_comp_val->length) != 0) {
         /* The second component value is not "groups" */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected groups second component, got %s\n",
+              (const char *) group_comp_val->data);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
@@ -110,6 +122,8 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
     account_comp_name = ldb_dn_get_component_name(dn, 2);
     if (strcasecmp("cn", account_comp_name) != 0) {
         /* The third component name is not "cn" */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected cn in second component, got %s\n", account_comp_name);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
@@ -119,6 +133,9 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
                     (const char *) account_comp_val->data,
                     account_comp_val->length) != 0) {
         /* The third component value is not "accounts" */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected cn accounts second component, got %s\n",
+              (const char *) account_comp_val->data);
         ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
@@ -132,6 +149,7 @@ get_ipa_groupname(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+    DEBUG(SSSDBG_TRACE_LIBS, "Parsed %s out of the DN\n", *groupname);
 
     ret = EOK;
 
