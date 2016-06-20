@@ -127,10 +127,20 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         break;
     case BE_FILTER_NAME:
         if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
-            attr_name = ctx->opts->user_map[SDAP_AT_USER_PRINC].name;
-
             ret = sss_filter_sanitize(state, filter_value, &clean_value);
             if (ret != EOK) {
+                goto done;
+            }
+            /* TODO: Do we have to check the attribute names more carefully? */
+            user_filter = talloc_asprintf(state, "(|(%s=%s)(%s=%s))",
+                                   ctx->opts->user_map[SDAP_AT_USER_PRINC].name,
+                                   clean_value,
+                                   ctx->opts->user_map[SDAP_AT_USER_EMAIL].name,
+                                   clean_value);
+            talloc_zfree(clean_value);
+            if (user_filter == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+                ret = ENOMEM;
                 goto done;
             }
         } else {
@@ -242,8 +252,8 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    if (attr_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing search attribute name.\n");
+    if (attr_name == NULL && user_filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing search attribute name or filter.\n");
         ret = EINVAL;
         goto done;
     }

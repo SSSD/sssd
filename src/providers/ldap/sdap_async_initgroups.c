@@ -2736,10 +2736,22 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         break;
     case BE_FILTER_NAME:
         if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
-            search_attr =  state->opts->user_map[SDAP_AT_USER_PRINC].name;
 
             ret = sss_filter_sanitize(state, state->filter_value, &clean_name);
             if (ret != EOK) {
+                talloc_zfree(req);
+                return NULL;
+            }
+
+            state->user_base_filter =
+                    talloc_asprintf(state,
+                                 "(&(|(%s=%s)(%s=%s))(objectclass=%s)",
+                                 state->opts->user_map[SDAP_AT_USER_PRINC].name,
+                                 clean_name,
+                                 state->opts->user_map[SDAP_AT_USER_EMAIL].name,
+                                 clean_name,
+                                 state->opts->user_map[SDAP_OC_USER].name);
+            if (state->user_base_filter == NULL) {
                 talloc_zfree(req);
                 return NULL;
             }
@@ -2766,13 +2778,21 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    state->user_base_filter =
-            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)",
-                            search_attr, clean_name,
-                            state->opts->user_map[SDAP_OC_USER].name);
-    if (!state->user_base_filter) {
+    if (search_attr == NULL && state->user_base_filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing search attribute name or filter.\n");
         talloc_zfree(req);
         return NULL;
+    }
+
+    if (state->user_base_filter == NULL) {
+        state->user_base_filter =
+                talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)",
+                                search_attr, clean_name,
+                                state->opts->user_map[SDAP_OC_USER].name);
+        if (!state->user_base_filter) {
+            talloc_zfree(req);
+            return NULL;
+        }
     }
 
     if (use_id_mapping) {
