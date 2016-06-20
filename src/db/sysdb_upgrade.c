@@ -443,12 +443,23 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
             goto done;
         }
 
-        users_dn = sysdb_user_base_dn(tmp_ctx, dom);
+        /*
+         * dom->sysdb->ldb is not initialized,
+         * so ldb_dn_new_fmt() shouldn't be changed to sysdb_*_base_dn()
+         */
+        users_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                                  SYSDB_TMPL_USER_BASE, dom->name);
         if (!users_dn) {
             ret = ENOMEM;
             goto done;
         }
-        groups_dn = sysdb_group_base_dn(tmp_ctx, dom);
+
+        /*
+         * dom->sysdb->ldb is not initialized,
+         * so ldb_dn_new_fmt() shouldn't be changed to sysdb_*_base_dn()
+         */
+        groups_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                                   SYSDB_TMPL_GROUP_BASE, dom->name);
         if (!groups_dn) {
             ret = ENOMEM;
             goto done;
@@ -1045,7 +1056,12 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
         return ret;
     }
 
-    basedn = sysdb_user_base_dn(tmp_ctx, domain);
+    /*
+     * dom->sysdb->ldb is not initialized,
+     * so ldb_dn_new_fmt() shouldn't be changed to sysdb_*_base_dn()
+     */
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                            SYSDB_TMPL_USER_BASE, domain->name);
     if (basedn == NULL) {
         ret = EIO;
         goto done;
