@@ -51,6 +51,7 @@ struct users_get_state {
 
     const char *filter_value;
     int filter_type;
+    bool name_is_upn;
 
     char *filter;
     const char **attrs;
@@ -445,6 +446,8 @@ static void users_get_done(struct tevent_req *subreq)
     uid_t uid;
     int dp_error = DP_ERR_FATAL;
     int ret;
+    const char *del_name;
+    struct ldb_message *msg;
 
     ret = sdap_get_users_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
@@ -508,6 +511,22 @@ static void users_get_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         case BE_FILTER_NAME:
+            if (state->name_is_upn == true) {
+                ret = sysdb_search_user_by_upn(state, state->domain,
+                                               state->filter_value,
+                                               NULL, &msg);
+                if (ret != EOK) {
+                    break;
+                }
+                del_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+            } else {
+                del_name = state->filter_value;
+            }
+
+            if (del_name == NULL) {
+                break;
+            }
+
             ret = sysdb_delete_user(state->domain, state->filter_value, 0);
             if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
