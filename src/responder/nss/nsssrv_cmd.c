@@ -4421,6 +4421,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                                    SYSDB_AD_USER_ACCOUNT_CONTROL,
                                    SYSDB_SSH_PUBKEY,
                                    SYSDB_USER_CERT,
+                                   SYSDB_USER_EMAIL,
                                    SYSDB_ORIG_DN,
                                    SYSDB_ORIG_MEMBEROF,
                                    SYSDB_DEFAULT_ATTRS, NULL};
@@ -4977,6 +4978,7 @@ static errno_t fill_orig(struct sss_packet *packet,
                                     SYSDB_AD_USER_ACCOUNT_CONTROL,
                                     SYSDB_SSH_PUBKEY,
                                     SYSDB_USER_CERT,
+                                    SYSDB_USER_EMAIL,
                                     SYSDB_ORIG_DN,
                                     SYSDB_ORIG_MEMBEROF,
                                     NULL};
