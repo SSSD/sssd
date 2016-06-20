@@ -514,6 +514,7 @@ struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
 enum sss_domain_state sss_domain_get_state(struct sss_domain_info *dom);
 void sss_domain_set_state(struct sss_domain_info *dom,
                           enum sss_domain_state state);
+bool is_email_from_domain(const char *email, struct sss_domain_info *dom);
 
 struct sss_domain_info*
 sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,

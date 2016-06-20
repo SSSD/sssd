@@ -824,3 +824,30 @@ void sss_domain_set_state(struct sss_domain_info *dom,
 {
     dom->state = state;
 }
+
+bool is_email_from_domain(const char *email, struct sss_domain_info *dom)
+{
+    const char *p;
+
+    if (email == NULL || dom == NULL) {
+        return false;
+    }
+
+    p = strchr(email, '@');
+    if (p == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Input [%s] does not look like an email address.\n", email);
+        return false;
+    }
+
+    if (strcasecmp(p+1, dom->name) == 0) {
+        DEBUG(SSSDBG_TRACE_ALL, "Email [%s] is from domain [%s].\n", email,
+                                                                     dom->name);
+        return true;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Email [%s] is not from domain [%s].\n", email,
+                                                                     dom->name);
+
+    return false;
+}
