@@ -1170,6 +1170,7 @@ static void ad_subdomains_refresh_connect_done(struct tevent_req *subreq)
         return;
     }
 
+    /* connect to the DC we are a member of */
     subreq = ad_master_domain_send(state, state->ev, state->id_ctx->conn,
                                    state->sdap_op, state->sd_ctx->domain_name);
     if (subreq == NULL) {
@@ -1216,6 +1217,21 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
+    }
+
+    /*
+     * If ad_enabled_domains contains only master domain
+     * we shouldn't lookup other domains.
+     */
+    if (state->sd_ctx->ad_enabled_domains != NULL) {
+        if (talloc_array_length(state->sd_ctx->ad_enabled_domains) == 2) {
+            if (strcasecmp(state->sd_ctx->ad_enabled_domains[0],
+                           state->be_ctx->domain->name) == 0) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "No other enabled domain than master.\n");
+                goto done;
+            }
+        }
     }
 
     subreq = ad_get_root_domain_send(state, state->ev, forest,
