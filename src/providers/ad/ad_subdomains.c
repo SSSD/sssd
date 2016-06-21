@@ -63,6 +63,7 @@ struct ad_subdomains_ctx {
     struct sdap_id_conn_ctx *ldap_ctx;
     struct sss_idmap_ctx *idmap_ctx;
     char *domain_name;
+    const char **ad_enabled_domains;
 
     time_t last_refreshed;
     struct tevent_timer *timer_event;
@@ -90,6 +91,79 @@ struct ad_subdomains_req_ctx {
     char *flat_name;
     char *forest;
 };
+
+static errno_t ad_get_enabled_domains(TALLOC_CTX *mem_ctx,
+                                      struct ad_id_ctx *ad_id_ctx,
+                                      const char *ad_domain,
+                                      const char ***_ad_enabled_domains)
+{
+    int ret;
+    const char *str;
+    const char *option_name;
+    const char **domains = NULL;
+    int count;
+    bool is_ad_in_domains;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    str = dp_opt_get_cstring(ad_id_ctx->ad_options->basic, AD_ENABLED_DOMAINS);
+    if (str == NULL) {
+        *_ad_enabled_domains = NULL;
+        ret = EOK;
+        goto done;
+    }
+
+    count = 0;
+    ret = split_on_separator(tmp_ctx, str, ',', true, true,
+                             discard_const_p(char **, &domains), &count);
+    if (ret != EOK) {
+        option_name = ad_id_ctx->ad_options->basic[AD_ENABLED_DOMAINS].opt_name;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse option [%s], [%i] [%s]!\n",
+                                   option_name, ret, sss_strerror(ret));
+        ret = EINVAL;
+        goto done;
+    }
+
+    is_ad_in_domains = false;
+    for (int i = 0; i < count; i++) {
+        is_ad_in_domains += strcmp(ad_domain, domains[i]) == 0 ? true : false;
+    }
+
+    if (is_ad_in_domains == false) {
+        domains = talloc_realloc(tmp_ctx, domains, const char*, count + 2);
+        if (domains == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        domains[count] = talloc_strdup(domains, ad_domain);
+        if (domains[count] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        domains[count + 1] = NULL;
+    } else {
+        domains = talloc_realloc(tmp_ctx, domains, const char*, count + 1);
+        if (domains == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        domains[count] = NULL;
+    }
+
+    *_ad_enabled_domains = talloc_steal(mem_ctx, domains);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 
 static errno_t
 ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
@@ -1182,6 +1256,7 @@ int ad_subdom_init(struct be_ctx *be_ctx,
                    void **pvt_data)
 {
     struct ad_subdomains_ctx *ctx;
+    const char **ad_enabled_domains = NULL;
     int ret;
     enum idmap_error_code err;
 
@@ -1189,6 +1264,11 @@ int ad_subdom_init(struct be_ctx *be_ctx,
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
+    }
+
+    ret = ad_get_enabled_domains(ctx, id_ctx, ad_domain, &ad_enabled_domains);
+    if (ret != EOK) {
+        return EINVAL;
     }
 
     ctx->be_ctx = be_ctx;
@@ -1200,6 +1280,7 @@ int ad_subdom_init(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
         return ENOMEM;
     }
+    ctx->ad_enabled_domains = ad_enabled_domains;
     ctx->ad_id_ctx = id_ctx;
     *ops = &ad_subdomains_ops;
     *pvt_data = ctx;
