@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   NSS Configuratoin DB
+   SSSD Configuration DB
 
    Copyright (C) Simo Sorce <ssorce@redhat.com>	2008
 

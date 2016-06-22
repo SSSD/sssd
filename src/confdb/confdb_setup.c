@@ -141,7 +141,6 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
     struct ldb_ldif *ldif;
     struct sss_ini_initdata *init_data;
 
-
     tmp_ctx = talloc_new(cdb);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory.\n");
@@ -232,6 +231,14 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to load configuration\n");
         goto done;
+    }
+
+    /* FIXME: Do not hardcode the path */
+    ret = sss_ini_call_validators(init_data,
+                                  "/var/lib/sss/cfg_rules.ini");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to call validators\n");
+        /* This is not fatal, continue */
     }
 
     /* Make sure that the config file version matches the confdb version */

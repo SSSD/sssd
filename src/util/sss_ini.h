@@ -79,4 +79,8 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
                            struct sss_ini_initdata *init_data,
                            const char **config_ldif);
 
+/* Validate sssd.conf if libini_config support it */
+int sss_ini_call_validators(struct sss_ini_initdata *data,
+                            const char *rules_path);
+
 #endif /* __SSS_INI_H__ */

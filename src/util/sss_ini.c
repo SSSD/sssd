@@ -59,8 +59,6 @@ struct sss_ini_initdata {
 #define sss_ini_get_const_string_config_value  ini_get_const_string_config_value
 #define sss_ini_get_config_obj                 ini_get_config_valueobj
 
-
-
 #else
 
 struct sss_ini_initdata {
@@ -544,4 +542,51 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 error:
     talloc_free(ldif);
     return ret;
+}
+
+int sss_ini_call_validators(struct sss_ini_initdata *data,
+                            const char *rules_path)
+{
+#ifdef HAVE_LIBINI_CONFIG_V1_3
+    int ret;
+    struct ini_cfgobj *rules_cfgobj = NULL;
+    struct ini_errobj *errobj = NULL;
+
+    ret = ini_errobj_create(&errobj);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to create error list\n");
+        goto done;
+    }
+
+    ret = ini_rules_read_from_file(rules_path, &rules_cfgobj);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to read sssd.conf schema %d [%s]\n", ret, strerror(ret));
+        goto done;
+    }
+
+    ret = ini_rules_check(rules_cfgobj, data->sssd_config, NULL, errobj);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "ini_rules_check failed %d [%s]\n", ret, strerror(ret));
+        goto done;
+    }
+
+    /* Do not error out when validators find some issue */
+    while (!ini_errobj_no_more_msgs(errobj)) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "%s\n", ini_errobj_get_msg(errobj));
+        ini_errobj_next(errobj);
+    }
+
+done:
+    if (rules_cfgobj) ini_config_destroy(rules_cfgobj);
+    ini_errobj_destroy(&errobj);
+
+    return ret;
+#else
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "libini_config does not support configuration file validataion\n");
+    return EOK;
+#endif /* HAVE_LIBINI_CONFIG_V1_3 */
 }
