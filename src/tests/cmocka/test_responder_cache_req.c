@@ -632,7 +632,7 @@ void test_user_by_name_multiple_domains_parse(void **state)
     check_user(test_ctx, &users[0], domain);
 
     assert_non_null(test_ctx->name);
-    assert_string_equal(users[0].short_name, test_ctx->name);
+    assert_string_equal(input_fqn, test_ctx->name);
 
     talloc_free(input_fqn);
 }
@@ -1145,7 +1145,7 @@ void test_group_by_name_multiple_domains_parse(void **state)
     check_group(test_ctx, &groups[0], domain);
 
     assert_non_null(test_ctx->name);
-    assert_string_equal(groups[0].short_name, test_ctx->name);
+    assert_string_equal(input_fqn, test_ctx->name);
 
     talloc_free(input_fqn);
 }

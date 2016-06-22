@@ -1478,7 +1478,7 @@ errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
         if (state->cr->data->name.lookup == NULL) {
             *_name = NULL;
         } else {
-            name = talloc_strdup(mem_ctx, state->cr->data->name.name);
+            name = talloc_strdup(mem_ctx, state->cr->data->name.lookup);
             if (name == NULL) {
                 return ENOMEM;
             }
