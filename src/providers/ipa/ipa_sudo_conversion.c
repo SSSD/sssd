@@ -47,7 +47,7 @@
 #define MATCHRDN_HOSTGROUP(map) (map)[IPA_AT_HOSTGROUP_NAME].name, "cn", "hostgroups", "cn", "accounts"
 
 struct ipa_sudo_conv {
-    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *dom;
 
     struct sdap_attr_map *map_rule;
     struct sdap_attr_map *map_cmdgroup;
@@ -189,7 +189,7 @@ done:
 
 static bool is_ipacmdgroup(struct ipa_sudo_conv *conv, const char *dn)
 {
-    if (ipa_check_rdn_bool(conv->sysdb, dn,
+    if (ipa_check_rdn_bool(conv->dom->sysdb, dn,
             MATCHRDN_CMDGROUPS(conv->map_cmdgroup))) {
         return true;
     }
@@ -199,13 +199,13 @@ static bool is_ipacmdgroup(struct ipa_sudo_conv *conv, const char *dn)
 
 static bool is_ipacmd(struct ipa_sudo_conv *conv, const char *dn)
 {
-    if (ipa_check_rdn_bool(conv->sysdb, dn,
+    if (ipa_check_rdn_bool(conv->dom->sysdb, dn,
             MATCHRDN_CMDS(IPA_AT_SUDOCMD_UUID, conv->map_cmd))) {
         return true;
     }
 
     /* For older versions of FreeIPA than 3.1. */
-    if (ipa_check_rdn_bool(conv->sysdb, dn,
+    if (ipa_check_rdn_bool(conv->dom->sysdb, dn,
             MATCHRDN_CMDS(IPA_AT_SUDOCMD_CMD, conv->map_cmd))) {
         return true;
     }
@@ -342,7 +342,7 @@ done:
 
 struct ipa_sudo_conv *
 ipa_sudo_conv_init(TALLOC_CTX *mem_ctx,
-                   struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *dom,
                    struct sdap_attr_map *map_rule,
                    struct sdap_attr_map *map_cmdgroup,
                    struct sdap_attr_map *map_cmd,
@@ -359,7 +359,7 @@ ipa_sudo_conv_init(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    conv->sysdb = sysdb;
+    conv->dom = dom;
     conv->map_rule = map_rule;
     conv->map_cmdgroup = map_cmdgroup;
     conv->map_cmd = map_cmd;
@@ -724,7 +724,7 @@ char *
 ipa_sudo_conv_cmdgroup_filter(TALLOC_CTX *mem_ctx,
                               struct ipa_sudo_conv *conv)
 {
-    return build_filter(mem_ctx, conv->sysdb, conv->cmdgroups,
+    return build_filter(mem_ctx, conv->dom->sysdb, conv->cmdgroups,
                         conv->map_cmdgroup, get_sudo_cmdgroup_rdn);
 }
 
@@ -732,7 +732,7 @@ char *
 ipa_sudo_conv_cmd_filter(TALLOC_CTX *mem_ctx,
                          struct ipa_sudo_conv *conv)
 {
-    return build_filter(mem_ctx, conv->sysdb, conv->cmds,
+    return build_filter(mem_ctx, conv->dom->sysdb, conv->cmds,
                             conv->map_cmd, get_sudo_cmd_rdn);
 }
 
@@ -752,7 +752,7 @@ convert_host(TALLOC_CTX *mem_ctx,
     const char *group;
     errno_t ret;
 
-    ret = ipa_get_rdn(mem_ctx, conv->sysdb, value, &rdn,
+    ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_HOST(conv->map_host));
     if (ret == EOK) {
         return rdn;
@@ -762,7 +762,7 @@ convert_host(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = ipa_get_rdn(mem_ctx, conv->sysdb, value, &rdn,
+    ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_HOSTGROUP(conv->map_hostgroup));
     if (ret == ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s\n", value);
@@ -788,7 +788,7 @@ convert_user(TALLOC_CTX *mem_ctx,
     const char *group;
     errno_t ret;
 
-    ret = ipa_get_rdn(mem_ctx, conv->sysdb, value, &rdn,
+    ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_USER(conv->map_user));
     if (ret == EOK) {
         return rdn;
@@ -798,7 +798,7 @@ convert_user(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = ipa_get_rdn(mem_ctx, conv->sysdb, value, &rdn,
+    ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_GROUP(conv->map_group));
     if (ret == ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s\n", value);
@@ -816,6 +816,24 @@ convert_user(TALLOC_CTX *mem_ctx,
 }
 
 static const char *
+convert_user_fqdn(TALLOC_CTX *mem_ctx,
+                  struct ipa_sudo_conv *conv,
+                  const char *value)
+{
+    const char *shortname = NULL;
+    char *fqdn = NULL;
+
+    shortname = convert_user(mem_ctx, conv, value);
+    if (shortname == NULL) {
+        return NULL;
+    }
+
+    fqdn = sss_create_internal_fqname(mem_ctx, shortname, conv->dom->name);
+    talloc_free(discard_const(shortname));
+    return fqdn;
+}
+
+static const char *
 convert_group(TALLOC_CTX *mem_ctx,
               struct ipa_sudo_conv *conv,
               const char *value)
@@ -823,7 +841,7 @@ convert_group(TALLOC_CTX *mem_ctx,
     char *rdn;
     errno_t ret;
 
-    ret = ipa_get_rdn(mem_ctx, conv->sysdb, value, &rdn,
+    ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_GROUP(conv->map_group));
     if (ret == ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s\n", value);
@@ -875,7 +893,7 @@ convert_attributes(struct ipa_sudo_conv *conv,
                                const char *value);
     } table[] = {{SYSDB_NAME,                            SYSDB_SUDO_CACHE_AT_CN         , NULL},
                  {SYSDB_IPA_SUDORULE_HOST,               SYSDB_SUDO_CACHE_AT_HOST       , convert_host},
-                 {SYSDB_IPA_SUDORULE_USER,               SYSDB_SUDO_CACHE_AT_USER       , convert_user},
+                 {SYSDB_IPA_SUDORULE_USER,               SYSDB_SUDO_CACHE_AT_USER       , convert_user_fqdn},
                  {SYSDB_IPA_SUDORULE_RUNASUSER,          SYSDB_SUDO_CACHE_AT_RUNASUSER  , convert_user},
                  {SYSDB_IPA_SUDORULE_RUNASGROUP,         SYSDB_SUDO_CACHE_AT_RUNASGROUP , convert_group},
                  {SYSDB_IPA_SUDORULE_OPTION,             SYSDB_SUDO_CACHE_AT_OPTION     , NULL},

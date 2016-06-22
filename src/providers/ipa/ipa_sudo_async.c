@@ -363,7 +363,6 @@ done:
 
 struct ipa_sudo_fetch_state {
     struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     struct ipa_sudo_ctx *sudo_ctx;
     struct sdap_options *sdap_opts;
@@ -397,7 +396,6 @@ static struct tevent_req *
 ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     struct sss_domain_info *domain,
-                    struct sysdb_ctx *sysdb,
                     struct ipa_sudo_ctx *sudo_ctx,
                     struct ipa_hostinfo *host,
                     struct sdap_attr_map *map_user,
@@ -420,7 +418,6 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    state->sysdb = sysdb;
     state->domain = domain;
     state->sudo_ctx = sudo_ctx;
     state->sdap_opts = sudo_ctx->sdap_opts;
@@ -434,7 +431,7 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
     state->map_cmd = sudo_ctx->sudocmd_map;
     state->sudo_sb = sudo_ctx->sudo_sb;
 
-    state->conv = ipa_sudo_conv_init(state, sysdb, state->map_rule,
+    state->conv = ipa_sudo_conv_init(state, domain, state->map_rule,
                                      state->map_cmdgroup, state->map_cmd,
                                      map_user, map_group, map_host,
                                      map_hostgroup);
@@ -1022,7 +1019,7 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = ipa_sudo_fetch_send(state, state->ev, state->domain, state->sysdb,
+    subreq = ipa_sudo_fetch_send(state, state->ev, state->domain,
                                  state->sudo_ctx, host,
                                  state->sdap_opts->user_map,
                                  state->sdap_opts->group_map,

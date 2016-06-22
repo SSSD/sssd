@@ -75,7 +75,7 @@ struct ipa_sudo_conv;
 
 struct ipa_sudo_conv *
 ipa_sudo_conv_init(TALLOC_CTX *mem_ctx,
-                   struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *dom,
                    struct sdap_attr_map *map_rule,
                    struct sdap_attr_map *map_cmdgroup,
                    struct sdap_attr_map *map_cmd,
