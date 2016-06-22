@@ -492,6 +492,61 @@ static errno_t sdap_sudo_refresh_sudoers(struct tevent_req *req)
     return EAGAIN;
 }
 
+static errno_t sdap_sudo_qualify_names(struct sss_domain_info *dom,
+                                       struct sysdb_attrs **rules,
+                                       size_t rules_count)
+{
+    errno_t ret;
+    bool qualify;
+    struct ldb_message_element *el;
+    char *domain;
+    char *name;
+    const char *orig_name;
+
+    for (size_t i = 0; i < rules_count; i++) {
+        ret = sysdb_attrs_get_el_ext(rules[i], SYSDB_SUDO_CACHE_AT_USER,
+                                     false, &el);
+        if (ret != EOK) {
+            continue;
+        }
+
+        for (size_t ii = 0; ii < el->num_values; ii++) {
+            orig_name = (const char *) el->values[ii].data;
+
+            qualify = is_user_or_group_name(orig_name);
+            if (qualify) {
+                ret = sss_parse_name(rules, dom->names, orig_name,
+                                     &domain, &name);
+                if (ret != EOK) {
+                    continue;
+                }
+
+                if (domain == NULL) {
+                    domain = talloc_strdup(rules, dom->name);
+                    if (domain == NULL) {
+                        talloc_zfree(name);
+                        return ENOMEM;
+                    }
+                }
+
+                el->values[ii].data = (uint8_t * ) sss_create_internal_fqname(
+                                                                    rules,
+                                                                    name,
+                                                                    domain);
+                talloc_zfree(domain);
+                talloc_zfree(name);
+                if (el->values[ii].data == NULL) {
+                    return ENOMEM;
+                }
+                el->values[ii].length = strlen(
+                                        (const char *) el->values[ii].data);
+            }
+        }
+    }
+
+    return EOK;
+}
+
 static void sdap_sudo_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
@@ -524,6 +579,13 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Received %zu rules\n", rules_count);
+
+    /* Save users and groups fully qualified */
+    ret = sdap_sudo_qualify_names(state->domain, rules, rules_count);
+    if (ret != EOK) {
+        goto done;
+    }
+
 
     /* start transaction */
     ret = sysdb_transaction_start(state->sysdb);

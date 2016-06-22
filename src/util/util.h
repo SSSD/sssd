@@ -381,6 +381,9 @@ errno_t sss_hash_create_ex(TALLOC_CTX *mem_ctx,
                            hash_delete_callback *delete_callback,
                            void *delete_private_data);
 
+/* Returns true if sudoUser value is a username or a groupname */
+bool is_user_or_group_name(const char *sudo_user_value);
+
 /**
  * @brief Add two list of strings
  *

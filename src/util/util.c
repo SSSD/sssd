@@ -1244,3 +1244,34 @@ done:
 
     return ret;
 }
+
+bool is_user_or_group_name(const char *sudo_user_value)
+{
+    if (sudo_user_value == NULL) {
+        return false;
+    }
+
+    /* See man sudoers.ldap for explanation */
+    if (strcmp(sudo_user_value, "ALL") == 0) {
+        return false;
+    }
+
+    switch (sudo_user_value[0]) {
+    case '#':           /* user id */
+    case '+':           /* netgroup */
+    case '\0':          /* empty value */
+        return false;
+    }
+
+    if (sudo_user_value[0] == '%') {
+        switch (sudo_user_value[1]) {
+        case '#':           /* POSIX group ID */
+        case ':':           /* non-POSIX group */
+        case '\0':          /* empty value */
+            return false;
+        }
+    }
+
+    /* Now it's either a username or a groupname */
+    return true;
+}
