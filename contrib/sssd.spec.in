@@ -796,6 +796,7 @@ done
 %{_sysconfdir}/pam.d/sssd-shadowutils
 %{_libdir}/%{name}/conf/sssd.conf
 
+%{_datadir}/sssd/cfg_rules.ini
 %{_datadir}/sssd/sssd.api.conf
 %{_datadir}/sssd/sssd.api.d
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*

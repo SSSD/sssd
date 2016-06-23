@@ -453,6 +453,7 @@ AM_CPPFLAGS = \
     -DSSS_STATEDIR=\"$(sss_statedir)\" \
     -DSYSCONFDIR=\"$(sysconfdir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
+    -DSSSDDATADIR=\"$(sssddatadir)\" \
     -DSSSD_LIBEXEC_PATH=\"$(sssdlibexecdir)\" \
     -DSSSD_CONF_DIR=\"$(sssdconfdir)\" \
     -DSSSD_DEFAULT_CONF_DIR=\"$(sssddefaultconfdir)\" \
@@ -3804,7 +3805,9 @@ endif
 
 
 dist_sssddata_DATA = \
-    src/config/etc/sssd.api.conf
+    src/config/etc/sssd.api.conf \
+    src/config/cfg_rules.ini \
+    $(NULL)
 dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-ipa.conf \
     src/config/etc/sssd.api.d/sssd-ad.conf \

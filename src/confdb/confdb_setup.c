@@ -233,9 +233,8 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
         goto done;
     }
 
-    /* FIXME: Do not hardcode the path */
     ret = sss_ini_call_validators(init_data,
-                                  "/var/lib/sss/cfg_rules.ini");
+                                  SSSDDATADIR"/cfg_rules.ini");
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to call validators\n");
         /* This is not fatal, continue */
