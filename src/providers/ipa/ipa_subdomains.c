@@ -40,6 +40,7 @@
 #define IPA_SID "ipaNTSecurityIdentifier"
 #define IPA_TRUSTED_DOMAIN_SID "ipaNTTrustedDomainSID"
 #define IPA_RANGE_TYPE "ipaRangeType"
+#define IPA_ADDITIONAL_SUFFIXES "ipaNTAdditionalSuffixes"
 
 #define IPA_BASE_ID "ipaBaseID"
 #define IPA_ID_RANGE_SIZE "ipaIDRangeSize"
@@ -788,7 +789,8 @@ ipa_subdomains_master_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
-    const char *attrs[] = { IPA_CN, IPA_FLATNAME, IPA_SID, NULL };
+    const char *attrs[] = { IPA_CN, IPA_FLATNAME, IPA_SID,
+                            IPA_ADDITIONAL_SUFFIXES, NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_master_state);
@@ -939,7 +941,8 @@ ipa_subdomains_slave_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     errno_t ret;
     const char *attrs[] = { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID,
-                            IPA_TRUST_DIRECTION, NULL };
+                            IPA_TRUST_DIRECTION, IPA_ADDITIONAL_SUFFIXES,
+                            NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_slave_state);
