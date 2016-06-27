@@ -130,6 +130,16 @@ done:
     return ret;
 }
 
+static bool is_domain_enabled(const char *domain,
+                              const char **enabled_doms)
+{
+    if (enabled_doms == NULL) {
+        return true;
+    }
+
+    return string_in_list(domain, discard_const_p(char *, enabled_doms), false);
+}
+
 static errno_t
 ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
                      struct ad_id_ctx *id_ctx,
@@ -492,6 +502,7 @@ done:
 
 static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
                                      struct sss_domain_info *domain,
+                                     const char **enabled_domains_list,
                                      size_t nsd, struct sysdb_attrs **sd,
                                      struct sysdb_attrs *root,
                                      size_t *_nsd_out,
@@ -500,9 +511,10 @@ static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
     size_t i, sdi;
     struct sysdb_attrs **sd_out;
     const char *sd_name;
+    const char *root_name;
     errno_t ret;
 
-    if (root == NULL) {
+    if (root == NULL && enabled_domains_list == NULL) {
         /* We are connected directly to the root domain. The 'sd'
          * list is complete and we can just use it
          */
@@ -529,6 +541,13 @@ static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
+        if (is_domain_enabled(sd_name, enabled_domains_list) == false) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Disabling subdomain %s\n", sd_name);
+            continue;
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, "Enabling subdomain %s\n", sd_name);
+        }
+
         if (strcasecmp(sd_name, domain->name) == 0) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Not including primary domain %s in the subdomain list\n",
@@ -541,9 +560,23 @@ static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
     }
 
     /* Now include the root */
-    sd_out[sdi] = talloc_steal(sd_out, root);
+    if (root != NULL) {
+        ret = sysdb_attrs_get_string(root, AD_AT_TRUST_PARTNER, &root_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto fail;
+        }
 
-    *_nsd_out = sdi+1;
+        if (is_domain_enabled(root_name, enabled_domains_list) == true) {
+            sd_out[sdi] = talloc_steal(sd_out, root);
+            sdi++;
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, "Disabling forest root domain %s\n",
+                                     root_name);
+        }
+    }
+
+    *_nsd_out = sdi;
     *_sd_out = sd_out;
     return EOK;
 
@@ -789,6 +822,7 @@ static void ad_get_slave_domain_done(struct tevent_req *subreq)
      * subdomains.
      */
     ret = ad_subdomains_process(state, state->be_ctx->domain,
+                                state->sd_ctx->ad_enabled_domains,
                                 reply_count, reply, state->root_attrs,
                                 &nsubdoms, &subdoms);
     if (ret != EOK) {
