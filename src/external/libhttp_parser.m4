@@ -9,7 +9,12 @@ AS_IF([test x"$found_http_parser" != xyes],
         [AC_CHECK_LIB([http_parser_strict],
                       [http_parser_init],
                       [HTTP_PARSER_LIBS="-L$sss_extra_libdir -lhttp_parser_strict"],
-                      [AC_MSG_ERROR([libhttp_parser_strict missing http_parser_init])],
+                      [AC_CHECK_LIB([http_parser],
+                                    [http_parser_init],
+                                    [HTTP_PARSER_LIBS="-L$sss_extra_libdir -lhttp_parser"],
+                                    [AC_MSG_ERROR([libhttp_parser missing http_parser_init])],
+                                    [-L$sss_extra_libdir -lhttp_parser])
+                      ],
                       [-L$sss_extra_libdir -lhttp_parser_strict])],
         [AC_MSG_ERROR([http_parser header files are not installed])])]
 )
