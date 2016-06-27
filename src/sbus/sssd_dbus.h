@@ -56,10 +56,12 @@ struct sbus_request;
 
 /**
  * Note: internal functions do not rely on the value of this constant to
- * simplify implementation. If this connstant change, some functions in
+ * simplify implementation. If this constant change, some functions in
  * sssd_dbus_interface.c needs to be amended.
  */
 #define SBUS_SUBTREE_SUFFIX "/*"
+
+
 
 typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,
                                    void *handler_data);
