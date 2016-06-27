@@ -361,8 +361,6 @@ int sss_ini_get_cfgobj(struct sss_ini_initdata *init_data,
                                   INI_GET_FIRST_VALUE, &init_data->obj);
 }
 
-
-
 /* Check configuration object */
 
 int sss_ini_check_config_obj(struct sss_ini_initdata *init_data)

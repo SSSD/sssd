@@ -271,6 +271,10 @@ int main(int argc, const char **argv)
         SSS_TOOL_DELIMITER("Log files tools:"),
         SSS_TOOL_COMMAND("remove-logs", "Remove existing SSSD log files", 0, sssctl_remove_logs),
         SSS_TOOL_COMMAND("fetch-logs", "Archive SSSD log files in tarball", 0, sssctl_fetch_logs),
+#ifdef HAVE_LIBINI_CONFIG_V1_3
+        SSS_TOOL_DELIMITER("Configuration files tools:"),
+        SSS_TOOL_COMMAND("config-check", "Perform static analysis of SSSD configuration", 0, sssctl_config_check),
+#endif
         {NULL, NULL, 0, NULL}
     };
 

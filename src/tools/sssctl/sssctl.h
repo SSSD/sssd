@@ -100,4 +100,8 @@ errno_t sssctl_netgroup(struct sss_cmdline *cmdline,
                         struct sss_tool_ctx *tool_ctx,
                         void *pvt);
 
+errno_t sssctl_config_check(struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt);
+
 #endif /* _SSSCTL_H_ */

@@ -1566,6 +1566,7 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_logs.c \
     src/tools/sssctl/sssctl_domains.c \
     src/tools/sssctl/sssctl_sifp.c \
+    src/tools/sssctl/sssctl_config.c \
     $(SSSD_TOOLS_OBJ) \
     $(NULL)
 sssctl_LDADD = \
