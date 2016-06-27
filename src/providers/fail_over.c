@@ -1660,6 +1660,48 @@ bool fo_svc_has_server(struct fo_service *service, struct fo_server *server)
     return false;
 }
 
+const char **fo_svc_server_list(TALLOC_CTX *mem_ctx,
+                                struct fo_service *service,
+                                size_t *_count)
+{
+    const char **list;
+    const char *server;
+    struct fo_server *srv;
+    size_t count;
+
+    count = 0;
+    DLIST_FOR_EACH(srv, service->server_list) {
+        count++;
+    }
+
+    list = talloc_zero_array(mem_ctx, const char *, count + 1);
+    if (list == NULL) {
+        return NULL;
+    }
+
+    count = 0;
+    DLIST_FOR_EACH(srv, service->server_list) {
+        server = fo_get_server_name(srv);
+        if (server == NULL) {
+            /* _srv_ */
+            continue;
+        }
+
+        list[count] = talloc_strdup(list, server);
+        if (list[count] == NULL) {
+            talloc_free(list);
+            return NULL;
+        }
+        count++;
+    }
+
+    if (_count != NULL) {
+        *_count = count;
+    }
+
+    return list;
+}
+
 bool fo_set_srv_lookup_plugin(struct fo_ctx *ctx,
                               fo_srv_lookup_plugin_send_t send_fn,
                               fo_srv_lookup_plugin_recv_t recv_fn,

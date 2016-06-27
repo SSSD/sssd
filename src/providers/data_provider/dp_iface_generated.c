@@ -111,6 +111,44 @@ int iface_dp_failover_ListServices_finish(struct sbus_request *req, const char *
                                          DBUS_TYPE_INVALID);
 }
 
+/* arguments for org.freedesktop.sssd.DataProvider.Failover.ActiveServer */
+const struct sbus_arg_meta iface_dp_failover_ActiveServer__in[] = {
+    { "service_name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.DataProvider.Failover.ActiveServer */
+const struct sbus_arg_meta iface_dp_failover_ActiveServer__out[] = {
+    { "server", "s" },
+    { NULL, }
+};
+
+int iface_dp_failover_ActiveServer_finish(struct sbus_request *req, const char *arg_server)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_STRING, &arg_server,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.DataProvider.Failover.ListServers */
+const struct sbus_arg_meta iface_dp_failover_ListServers__in[] = {
+    { "service_name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.DataProvider.Failover.ListServers */
+const struct sbus_arg_meta iface_dp_failover_ListServers__out[] = {
+    { "servers", "as" },
+    { NULL, }
+};
+
+int iface_dp_failover_ListServers_finish(struct sbus_request *req, const char *arg_servers[], int len_servers)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &arg_servers, len_servers,
+                                         DBUS_TYPE_INVALID);
+}
+
 /* methods for org.freedesktop.sssd.DataProvider.Failover */
 const struct sbus_method_meta iface_dp_failover__methods[] = {
     {
@@ -118,6 +156,20 @@ const struct sbus_method_meta iface_dp_failover__methods[] = {
         iface_dp_failover_ListServices__in,
         iface_dp_failover_ListServices__out,
         offsetof(struct iface_dp_failover, ListServices),
+        invoke_s_method,
+    },
+    {
+        "ActiveServer", /* name */
+        iface_dp_failover_ActiveServer__in,
+        iface_dp_failover_ActiveServer__out,
+        offsetof(struct iface_dp_failover, ActiveServer),
+        invoke_s_method,
+    },
+    {
+        "ListServers", /* name */
+        iface_dp_failover_ListServers__in,
+        iface_dp_failover_ListServers__out,
+        offsetof(struct iface_dp_failover, ListServers),
         invoke_s_method,
     },
     { NULL, }

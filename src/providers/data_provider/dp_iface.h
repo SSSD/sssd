@@ -69,4 +69,12 @@ errno_t dp_failover_list_services(struct sbus_request *sbus_req,
                                   void *dp_cli,
                                   const char *domname);
 
+errno_t dp_failover_active_server(struct sbus_request *sbus_req,
+                                  void *dp_cli,
+                                  const char *service_name);
+
+errno_t dp_failover_list_servers(struct sbus_request *sbus_req,
+                                 void *dp_cli,
+                                 const char *service_name);
+
 #endif /* DP_IFACE_H_ */

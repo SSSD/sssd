@@ -42,8 +42,10 @@ struct iface_dp_backend iface_dp_backend = {
 };
 
 struct iface_dp_failover iface_dp_failover = {
-    {&iface_dp_failover_meta, 0},
-    .ListServices = dp_failover_list_services
+    { &iface_dp_failover_meta, 0 },
+    .ListServices = dp_failover_list_services,
+    .ActiveServer = dp_failover_active_server,
+    .ListServers = dp_failover_list_servers
 };
 
 static struct sbus_iface_map dp_map[] = {

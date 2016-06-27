@@ -558,6 +558,44 @@ int iface_ifp_domains_domain_ListServices_finish(struct sbus_request *req, const
                                          DBUS_TYPE_INVALID);
 }
 
+/* arguments for org.freedesktop.sssd.infopipe.Domains.Domain.ActiveServer */
+const struct sbus_arg_meta iface_ifp_domains_domain_ActiveServer__in[] = {
+    { "service", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Domains.Domain.ActiveServer */
+const struct sbus_arg_meta iface_ifp_domains_domain_ActiveServer__out[] = {
+    { "server", "s" },
+    { NULL, }
+};
+
+int iface_ifp_domains_domain_ActiveServer_finish(struct sbus_request *req, const char *arg_server)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_STRING, &arg_server,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Domains.Domain.ListServers */
+const struct sbus_arg_meta iface_ifp_domains_domain_ListServers__in[] = {
+    { "service_name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Domains.Domain.ListServers */
+const struct sbus_arg_meta iface_ifp_domains_domain_ListServers__out[] = {
+    { "servers", "as" },
+    { NULL, }
+};
+
+int iface_ifp_domains_domain_ListServers_finish(struct sbus_request *req, const char *arg_servers[], int len_servers)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &arg_servers, len_servers,
+                                         DBUS_TYPE_INVALID);
+}
+
 /* methods for org.freedesktop.sssd.infopipe.Domains.Domain */
 const struct sbus_method_meta iface_ifp_domains_domain__methods[] = {
     {
@@ -573,6 +611,20 @@ const struct sbus_method_meta iface_ifp_domains_domain__methods[] = {
         iface_ifp_domains_domain_ListServices__out,
         offsetof(struct iface_ifp_domains_domain, ListServices),
         NULL, /* no invoker */
+    },
+    {
+        "ActiveServer", /* name */
+        iface_ifp_domains_domain_ActiveServer__in,
+        iface_ifp_domains_domain_ActiveServer__out,
+        offsetof(struct iface_ifp_domains_domain, ActiveServer),
+        invoke_s_method,
+    },
+    {
+        "ListServers", /* name */
+        iface_ifp_domains_domain_ListServers__in,
+        iface_ifp_domains_domain_ListServers__out,
+        offsetof(struct iface_ifp_domains_domain, ListServers),
+        invoke_s_method,
     },
     { NULL, }
 };

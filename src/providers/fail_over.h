@@ -212,6 +212,10 @@ struct fo_server *fo_get_active_server(struct fo_service *service);
 
 bool fo_svc_has_server(struct fo_service *service, struct fo_server *server);
 
+const char **fo_svc_server_list(TALLOC_CTX *mem_ctx,
+                                struct fo_service *service,
+                                size_t *_count);
+
 /*
  * pvt will be talloc_stealed to ctx
  */

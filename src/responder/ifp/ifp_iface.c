@@ -81,7 +81,9 @@ struct iface_ifp_domains iface_ifp_domains = {
 struct iface_ifp_domains_domain iface_ifp_domains_domain = {
     { &iface_ifp_domains_domain_meta, 0 },
     .IsOnline = ifp_domains_domain_is_online,
-    .ListServices = ifp_domains_domain_list_services
+    .ListServices = ifp_domains_domain_list_services,
+    .ActiveServer = ifp_domains_domain_active_server,
+    .ListServers = ifp_domains_domain_list_servers
 };
 
 struct iface_ifp_users iface_ifp_users = {

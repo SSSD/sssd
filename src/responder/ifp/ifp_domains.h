@@ -100,4 +100,12 @@ int ifp_domains_domain_is_online(struct sbus_request *sbus_req,
 int ifp_domains_domain_list_services(struct sbus_request *sbus_req,
                                      void *data);
 
+int ifp_domains_domain_active_server(struct sbus_request *sbus_req,
+                                     void *data,
+                                     const char *service);
+
+int ifp_domains_domain_list_servers(struct sbus_request *sbus_req,
+                                    void *data,
+                                    const char *service);
+
 #endif /* IFP_DOMAINS_H_ */

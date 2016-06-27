@@ -22,6 +22,8 @@
 /* constants for org.freedesktop.sssd.DataProvider.Failover */
 #define IFACE_DP_FAILOVER "org.freedesktop.sssd.DataProvider.Failover"
 #define IFACE_DP_FAILOVER_LISTSERVICES "ListServices"
+#define IFACE_DP_FAILOVER_ACTIVESERVER "ActiveServer"
+#define IFACE_DP_FAILOVER_LISTSERVERS "ListServers"
 
 /* constants for org.freedesktop.sssd.dataprovider */
 #define IFACE_DP "org.freedesktop.sssd.dataprovider"
@@ -72,10 +74,18 @@ int iface_dp_backend_IsOnline_finish(struct sbus_request *req, bool arg_status);
 struct iface_dp_failover {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
     int (*ListServices)(struct sbus_request *req, void *data, const char *arg_domain_name);
+    int (*ActiveServer)(struct sbus_request *req, void *data, const char *arg_service_name);
+    int (*ListServers)(struct sbus_request *req, void *data, const char *arg_service_name);
 };
 
 /* finish function for ListServices */
 int iface_dp_failover_ListServices_finish(struct sbus_request *req, const char *arg_services[], int len_services);
+
+/* finish function for ActiveServer */
+int iface_dp_failover_ActiveServer_finish(struct sbus_request *req, const char *arg_server);
+
+/* finish function for ListServers */
+int iface_dp_failover_ListServers_finish(struct sbus_request *req, const char *arg_servers[], int len_servers);
 
 /* vtable for org.freedesktop.sssd.dataprovider */
 struct iface_dp {

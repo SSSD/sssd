@@ -22,6 +22,14 @@
             <arg name="domain_name" type="s" direction="in" />
             <arg name="services" type="as" direction="out" />
         </method>
+        <method name="ActiveServer">
+            <arg name="service_name" type="s" direction="in" />
+            <arg name="server" type="s" direction="out" />
+        </method>
+        <method name="ListServers">
+            <arg name="service_name" type="s" direction="in" />
+            <arg name="servers" type="as" direction="out" />
+        </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.dataprovider">
