@@ -257,6 +257,7 @@ if HAVE_CMOCKA
         test_sbus_opath \
         test_fo_srv \
         pam-srv-tests \
+        test_ad_subdom \
         test_ipa_subdom_util \
         test_tools_colondb \
         test_krb5_wait_queue \
@@ -2800,6 +2801,25 @@ test_fo_srv_LDADD = \
     $(DHASH_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
+    $(NULL)
+
+test_ad_subdom_SOURCES = \
+    src/tests/cmocka/test_ad_subdomains.c \
+    $(NULL)
+test_ad_subdom_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NDR_NBT_CFLAGS) \
+    $(NULL)
+test_ad_subdom_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_ad_tests.la \
+    libsss_idmap.la \
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 test_ipa_subdom_util_SOURCES = \
