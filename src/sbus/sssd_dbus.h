@@ -61,6 +61,12 @@ struct sbus_request;
  */
 #define SBUS_SUBTREE_SUFFIX "/*"
 
+/**
+ * It is not possible to send NULL over D-Bus. We can only test if it
+ * is empty or not.
+ */
+#define SBUS_IS_STRING_EMPTY(str) ((str) == NULL || (str)[0] == '\0')
+#define SBUS_SET_STRING(str) (SBUS_IS_STRING_EMPTY(str) ? NULL : (str))
 
 
 typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,

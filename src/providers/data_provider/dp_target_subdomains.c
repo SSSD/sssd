@@ -40,7 +40,7 @@ errno_t dp_subdomains_handler(struct sbus_request *sbus_req,
     }
 
     data->domain_hint = domain_hint;
-    key = domain_hint[0] == '\0' ? "<ALL>" : domain_hint;
+    key = SBUS_IS_STRING_EMPTY(domain_hint) ? "<ALL>" : domain_hint;
 
     dp_req_with_reply(dp_cli, NULL, "Subdomains", key, sbus_req,
                       DPT_SUBDOMAINS, DPM_DOMAINS_HANDLER, 0, data,

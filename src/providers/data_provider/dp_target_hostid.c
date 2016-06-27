@@ -46,7 +46,7 @@ errno_t dp_host_handler(struct sbus_request *sbus_req,
     }
 
     data->name = name;
-    data->alias = alias[0] == '\0' ? NULL : alias;
+    data->alias = SBUS_SET_STRING(alias);
 
     key = talloc_asprintf(data, "%s:%s", name,
                           (data->alias == NULL ? "(null)" : data->alias));
