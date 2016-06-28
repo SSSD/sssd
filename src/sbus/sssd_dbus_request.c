@@ -199,31 +199,70 @@ int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
     return ret;
 }
 
+static DBusError *sbus_error_new_va(TALLOC_CTX *mem_ctx,
+                                    const char *error_name,
+                                    const char *fmt,
+                                    va_list ap)
+{
+    DBusError *error;
+    const char *error_msg;
+
+    error = talloc_zero(mem_ctx, DBusError);
+    if (error == NULL) {
+        return NULL;
+    }
+
+    if (fmt != NULL) {
+        error_msg = talloc_vasprintf(error, fmt, ap);
+        if (error_msg == NULL) {
+            talloc_free(error);
+            return NULL;
+        }
+    } else {
+        error_msg = NULL;
+    }
+
+    dbus_error_init(error);
+    dbus_set_error_const(error, error_name, error_msg);
+
+    return error;
+}
+
 DBusError *sbus_error_new(TALLOC_CTX *mem_ctx,
-                          const char *dbus_err_name,
+                          const char *dbus_error_name,
                           const char *fmt,
                           ...)
 {
-    DBusError *dberr;
-    const char *err_msg_dup = NULL;
+    DBusError *error;
     va_list ap;
 
-    dberr = talloc(mem_ctx, DBusError);
-    if (dberr == NULL) return NULL;
+    va_start(ap, fmt);
+    error = sbus_error_new_va(mem_ctx, dbus_error_name, fmt, ap);
+    va_end(ap);
 
-    if (fmt) {
-        va_start(ap, fmt);
-        err_msg_dup = talloc_vasprintf(dberr, fmt, ap);
-        va_end(ap);
-        if (err_msg_dup == NULL) {
-            talloc_free(dberr);
-            return NULL;
-        }
+    return error;
+}
+
+void sbus_request_reply_error(struct sbus_request *sbus_req,
+                              const char *error_name,
+                              const char *fmt,
+                              ...)
+{
+    DBusError *error;
+    va_list ap;
+
+    va_start(ap, fmt);
+    error = sbus_error_new_va(sbus_req, error_name, fmt, ap);
+    va_end(ap);
+
+    if (error == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to create D-Bus error, killing request!\n");
+        talloc_free(sbus_req);
+        return;
     }
 
-    dbus_error_init(dberr);
-    dbus_set_error_const(dberr, dbus_err_name, err_msg_dup);
-    return dberr;
+    sbus_request_fail_and_finish(sbus_req, error);
 }
 
 struct array_arg {

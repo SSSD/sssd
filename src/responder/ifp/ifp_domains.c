@@ -543,15 +543,13 @@ int ifp_domains_domain_is_online(struct sbus_request *sbus_req,
 {
     struct ifp_ctx *ifp_ctx;
     struct sss_domain_info *dom;
-    DBusError *error;
 
     ifp_ctx = talloc_get_type(data, struct ifp_ctx);
 
     dom = get_domain_info_from_req(sbus_req, data);
     if (dom == NULL) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                               "Unknown domain");
-        sbus_request_fail_and_finish(sbus_req, error);
+        sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
+                                 "Unknown domain");
         return EOK;
     }
 
@@ -567,15 +565,13 @@ int ifp_domains_domain_list_services(struct sbus_request *sbus_req,
 {
     struct ifp_ctx *ifp_ctx;
     struct sss_domain_info *dom;
-    DBusError *error;
 
     ifp_ctx = talloc_get_type(data, struct ifp_ctx);
 
     dom = get_domain_info_from_req(sbus_req, data);
     if (dom == NULL) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                               "Unknown domain");
-        sbus_request_fail_and_finish(sbus_req, error);
+        sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
+                                 "Unknown domain");
         return EOK;
     }
 

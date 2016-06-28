@@ -34,7 +34,6 @@ errno_t dp_backend_is_online(struct sbus_request *sbus_req,
 {
     struct be_ctx *be_ctx;
     struct sss_domain_info *domain;
-    DBusError *error;
     bool online;
 
     be_ctx = dp_client_be(dp_cli);
@@ -44,13 +43,9 @@ errno_t dp_backend_is_online(struct sbus_request *sbus_req,
     } else {
         domain = find_domain_by_name(be_ctx->domain, domname, false);
         if (domain == NULL) {
-            error = sbus_error_new(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                                   "Unknown domain %s", domname);
-            if (error == NULL) {
-                return ENOMEM;
-            }
-
-            return sbus_request_fail_and_finish(sbus_req, error);
+            sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
+                                     "Unknown domain %s", domname);
+            return EOK;
         }
     }
 

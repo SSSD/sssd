@@ -357,6 +357,11 @@ int sbus_request_return_and_finish(struct sbus_request *dbus_req,
 int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
                                  const DBusError *error);
 
+void sbus_request_reply_error(struct sbus_request *sbus_req,
+                              const char *error_name,
+                              const char *fmt,
+                              ...) SSS_ATTRIBUTE_PRINTF(3, 4);
+
 /*
  * Construct a new DBusError instance which can be consumed by functions such
  * as @sbus_request_fail_and_finish().
@@ -368,9 +373,9 @@ int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
  * is duplicated using the returned DBusError instance as a talloc parent.
  */
 DBusError *sbus_error_new(TALLOC_CTX *mem_ctx,
-                          const char *dbus_err_name,
+                          const char *dbus_error_name,
                           const char *fmt,
-                          ...) SSS_ATTRIBUTE_PRINTF(3,4);
+                          ...) SSS_ATTRIBUTE_PRINTF(3, 4);
 
 /*
  * Parse a DBus method call request.
