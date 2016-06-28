@@ -1,32 +1,31 @@
-dnl There are no module libsystemd-journal and libsystem-login
-dnl up systemd version 209
+dnl A macro to check presence of systemd on the system
+PKG_CHECK_EXISTS([systemd],
+                 [HAVE_SYSTEMD=yes],
+                 [HAVE_SYSTEMD=no])
+
+dnl Libraries libsystemd-journal and libsystem-login are deprecarted
+dnl since systemd 209 and are removed in systemd 230. The library libsystemd
+dnl is replacement of libsystemd-{login,journal,daemon,id128} libraries
 PKG_CHECK_EXISTS([libsystemd],
                  [HAVE_LIBSYSTEMD=yes],
                  [HAVE_LIBSYSTEMD=no])
-
-dnl A macro to check presence of systemd on the system
-AC_DEFUN([AM_CHECK_SYSTEMD],
-[
-    PKG_CHECK_EXISTS(systemd,
-                     [ HAVE_SYSTEMD=1, AC_SUBST(HAVE_SYSTEMD) ],
-                     [AC_MSG_ERROR([Could not detect systemd presence])])
-])
 
 AS_IF([test x$HAVE_LIBSYSTEMD = xyes],
       [login_lib_name=libsystemd],
       [login_lib_name=libsystemd-login])
 
-AM_COND_IF([HAVE_SYSTEMD],
-           [AC_DEFINE_UNQUOTED([HAVE_SYSTEMD], 1, [Build with libsystemd support])],
-           [AC_MSG_NOTICE([Build without libsystemd support])])
+AS_IF([test x$HAVE_SYSTEMD = xyes],
+      [AC_DEFINE_UNQUOTED([HAVE_SYSTEMD], 1, [Build with systemd support])],
+      [AC_MSG_NOTICE([Build without systemd support])])
 
-AM_COND_IF([HAVE_SYSTEMD],
-           [PKG_CHECK_MODULES([SYSTEMD_LOGIN],
-                              [$login_lib_name],
-                              [AC_DEFINE_UNQUOTED([HAVE_SYSTEMD_LOGIN], 1,
-                                          [Build with libsystemdlogin support])
-                              ],
-           [AC_MSG_NOTICE([Build without libsystemd-login support])])])
+AS_IF([test x$HAVE_SYSTEMD = xyes],
+      [PKG_CHECK_MODULES(
+          [SYSTEMD_LOGIN],
+          [$login_lib_name],
+          [AC_DEFINE_UNQUOTED([HAVE_SYSTEMD_LOGIN], 1,
+                              [Build with $login_lib_name support])],
+          [AC_MSG_NOTICE([Build without $login_lib_name support])])],
+      [AC_MSG_NOTICE([Build without $login_lib_name support])])
 
 dnl A macro to check presence of journald on the system
 AC_DEFUN([AM_CHECK_JOURNALD],

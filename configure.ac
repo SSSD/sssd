@@ -350,10 +350,6 @@ if test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x; then
     AM_CHECK_SEMANAGE
 fi
 
-if test x$HAVE_SYSTEMD_UNIT != x; then
-    AM_CHECK_SYSTEMD
-fi
-
 dnl If journald was selected for logging, configure journald
 if test x$syslog = xjournald; then
     AM_CHECK_JOURNALD
