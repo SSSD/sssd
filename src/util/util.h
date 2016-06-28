@@ -221,10 +221,6 @@ int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **_domain, char **_name);
 
-int sss_parse_name_const(TALLOC_CTX *memctx,
-                         struct sss_names_ctx *snctx, const char *orig,
-                         const char **_domain, const char **_name);
-
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                                struct sss_domain_info *domains,
                                const char *default_domain,
@@ -265,12 +261,6 @@ int
 sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
            struct sss_domain_info *domain, const char *name);
 
-/* Subdomains use fully qualified names in the cache while primary domains use
- * just the name. Return either of these for a specified domain or subdomain
- */
-char *
-sss_get_domain_name(TALLOC_CTX *mem_ctx, const char *orig_name,
-                    struct sss_domain_info *dom);
 
 /* Accepts fqname in the format shortname@domname only. */
 errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
@@ -559,9 +549,6 @@ errno_t get_dom_names(TALLOC_CTX *mem_ctx,
                       char ***_dom_names,
                       int *_dom_names_count);
 
-errno_t fix_domain_in_name_list(TALLOC_CTX *mem_ctx,
-                                struct sss_domain_info *dom,
-                                char **in, char ***_out);
 /* from util_lock.c */
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait);

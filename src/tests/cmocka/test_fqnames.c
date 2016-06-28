@@ -337,9 +337,6 @@ void sss_parse_name_check(struct parse_name_test_ctx *test_ctx,
     errno_t ret;
     char *domain = NULL;
     char *name = NULL;
-    const char *domain_const = NULL;
-    const char *name_const = NULL;
-
 
     check_leaks_push(test_ctx);
     ret = sss_parse_name(test_ctx, test_ctx->nctx, input_name,
@@ -359,23 +356,6 @@ void sss_parse_name_check(struct parse_name_test_ctx *test_ctx,
     talloc_zfree(name);
     talloc_zfree(domain);
 
-    ret = sss_parse_name_const(test_ctx, test_ctx->nctx, input_name,
-                               &domain_const, &name_const);
-    assert_int_equal(ret, exp_ret);
-
-    if (exp_name) {
-        assert_non_null(name_const);
-        assert_string_equal(name_const, exp_name);
-    }
-
-    if (exp_domain) {
-        assert_non_null(domain_const);
-        assert_string_equal(domain_const, exp_domain);
-    }
-
-    talloc_free(discard_const(name_const));
-    talloc_free(discard_const(domain_const));
-
     assert_true(check_leaks_pop(test_ctx) == true);
 }
 
@@ -389,9 +369,6 @@ void parse_name_plain(void **state)
 
     ret = sss_parse_name(test_ctx, test_ctx->nctx, NAME,
                          NULL, NULL);
-    assert_int_equal(ret, EOK);
-    ret = sss_parse_name_const(test_ctx, test_ctx->nctx, NAME,
-                               NULL, NULL);
     assert_int_equal(ret, EOK);
 
     sss_parse_name_check(test_ctx, NAME, EOK, NAME, NULL);
@@ -484,29 +461,6 @@ void sss_parse_name_fail(void **state)
     sss_parse_name_check(test_ctx, NAME"\\", ERR_REGEX_NOMATCH, NULL, NULL);
 }
 
-void test_sss_get_domain_name(void **state)
-{
-    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
-                                                   struct parse_name_test_ctx);
-    struct {
-        const char *input;
-        struct sss_domain_info *domain;
-        const char *expected;
-    } data[] = {{"user", test_ctx->dom, "user"},
-                {"user", test_ctx->subdom, "user@" SUBDOMNAME},
-                {"user@" SUBDOMNAME, test_ctx->subdom, "user@" SUBDOMNAME},
-                {NULL, NULL, NULL}};
-    char *name;
-    int i;
-
-    for (i = 0; data[i].input != NULL; i++) {
-        name = sss_get_domain_name(test_ctx, data[i].input, data[i].domain);
-        assert_non_null(name);
-        assert_string_equal(name, data[i].expected);
-        talloc_free(name);
-    }
-}
-
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -545,10 +499,6 @@ int main(int argc, const char *argv[])
                                         parse_name_test_setup,
                                         parse_name_test_teardown),
         cmocka_unit_test_setup_teardown(sss_parse_name_fail,
-                                        parse_name_test_setup,
-                                        parse_name_test_teardown),
-
-        cmocka_unit_test_setup_teardown(test_sss_get_domain_name,
                                         parse_name_test_setup,
                                         parse_name_test_teardown),
     };

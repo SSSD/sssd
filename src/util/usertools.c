@@ -365,30 +365,6 @@ int sss_parse_name(TALLOC_CTX *memctx,
     return EOK;
 }
 
-int sss_parse_name_const(TALLOC_CTX *memctx,
-                         struct sss_names_ctx *snctx, const char *orig,
-                         const char **_domain, const char **_name)
-{
-    char *domain;
-    char *name;
-    int ret;
-
-    ret = sss_parse_name(memctx, snctx, orig,
-                         (_domain == NULL) ? NULL : &domain,
-                         (_name == NULL) ? NULL : &name);
-    if (ret == EOK) {
-        if (_domain != NULL) {
-            *_domain = domain;
-        }
-
-        if (_name != NULL) {
-            *_name = name;
-        }
-    }
-
-    return ret;
-}
-
 static struct sss_domain_info * match_any_domain_or_subdomain_name(
                                                 struct sss_domain_info *dom,
                                                 const char *dmatch)
@@ -639,41 +615,6 @@ sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
 
     return safe_format_string(str, size, nctx->fq_fmt,
                               name, domain->name, calc_flat_name (domain), NULL);
-}
-
-char *
-sss_get_domain_name(TALLOC_CTX *mem_ctx,
-                    const char *orig_name,
-                    struct sss_domain_info *dom)
-{
-    char *user_name;
-    char *domain = NULL;
-    int ret;
-
-    /* check if the name already contains domain part */
-    if (dom->names != NULL) {
-        ret = sss_parse_name(mem_ctx, dom->names, orig_name, &domain, NULL);
-        if (ret == ERR_REGEX_NOMATCH) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "sss_parse_name could not parse domain from [%s]. "
-                  "Assuming it is not FQDN.\n", orig_name);
-        } else if (ret != EOK) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "sss_parse_name failed [%d]: %s\n", ret, sss_strerror(ret));
-            return NULL;
-        }
-    }
-
-    if (IS_SUBDOMAIN(dom) && dom->fqnames && domain == NULL) {
-        /* we always use the fully qualified name for subdomain users */
-        user_name = sss_tc_fqname(mem_ctx, dom->names, dom, orig_name);
-    } else {
-        user_name = talloc_strdup(mem_ctx, orig_name);
-    }
-
-    talloc_free(domain);
-
-    return user_name;
 }
 
 errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid)

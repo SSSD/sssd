@@ -1291,48 +1291,6 @@ void test_sss_write_krb5_conf_snippet(void **state)
 }
 
 
-void test_fix_domain_in_name_list(void **state)
-{
-    struct name_init_test_ctx *test_ctx;
-
-    int ret;
-    struct sss_domain_info *sd;
-    struct sss_domain_info *dom;
-    const char *in[] = { "abc@test.case.dom", "def@TEST.case.DOM", NULL};
-    char **out = NULL;
-
-    test_ctx = talloc_get_type(*state, struct name_init_test_ctx);
-    assert_non_null(test_ctx);
-
-    ret = confdb_get_domains(test_ctx->confdb, &dom);
-    assert_int_equal(ret, EOK);
-
-    ret = sss_names_init(dom, test_ctx->confdb, NULL, &dom->names);
-    assert_int_equal(ret, EOK);
-
-    sd = talloc_zero(test_ctx, struct sss_domain_info);
-    assert_non_null(sd);
-    sd->name = talloc_strdup(sd, "TesT.CasE.DoM");
-    assert_non_null(sd->name);
-    sd->names = dom->names;
-    sd->fqnames = true;
-    DLIST_ADD(dom->subdomains, sd);
-    sd->parent = dom;
-
-    ret = fix_domain_in_name_list(test_ctx, dom, discard_const(in), &out);
-    assert_int_equal(ret, EOK);
-    assert_non_null(out);
-    assert_non_null(out[0]);
-    assert_string_equal(out[0], "abc@TesT.CasE.DoM");
-    assert_non_null(out[1]);
-    assert_string_equal(out[1], "def@TesT.CasE.DoM");
-    assert_null(out[2]);
-
-    talloc_free(out);
-    talloc_free(sd);
-    talloc_free(dom);
-}
-
 struct unique_file_test_ctx {
     char *filename;
 };
@@ -1778,9 +1736,6 @@ int main(int argc, const char *argv[])
                                         setup_leak_tests,
                                         teardown_leak_tests),
         cmocka_unit_test(test_sss_write_krb5_conf_snippet),
-        cmocka_unit_test_setup_teardown(test_fix_domain_in_name_list,
-                                        confdb_test_setup,
-                                        confdb_test_teardown),
         cmocka_unit_test_setup_teardown(test_sss_unique_file,
                                         unique_file_test_setup,
                                         unique_file_test_teardown),
