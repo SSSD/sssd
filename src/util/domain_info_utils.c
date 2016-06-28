@@ -187,8 +187,8 @@ find_domain_by_object_name(struct sss_domain_info *domain,
         return NULL;
     }
 
-    ret = sss_parse_name(tmp_ctx, domain->names, object_name,
-                         &domainname, NULL);
+    ret = sss_parse_internal_fqname(tmp_ctx, object_name,
+                                    NULL, &domainname);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
                                     object_name, ret, sss_strerror(ret));
