@@ -30,15 +30,22 @@
 
 #define NOT_FOUND_MSG(obj) _(obj " %s is not present in cache.\n")
 
-#define SSSCTL_CACHE_NAME   {_("Name"), SYSDB_NAME, attr_string}
+#define SSSCTL_CACHE_NAME   {_("Name"), SYSDB_NAME, attr_name}
 #define SSSCTL_CACHE_CREATE {_("Cache entry creation date"), SYSDB_CREATE_TIME, attr_time}
 #define SSSCTL_CACHE_UPDATE {_("Cache entry last update time"), SYSDB_LAST_UPDATE, attr_time}
 #define SSSCTL_CACHE_EXPIRE {_("Cache entry expiration time"), SYSDB_CACHE_EXPIRE, attr_expire}
 #define SSSCTL_CACHE_IFP    {_("Cached in InfoPipe"), SYSDB_IFP_CACHED, attr_yesno}
 #define SSSCTL_CACHE_NULL   {NULL, NULL, NULL}
 
+enum cache_object {
+    CACHED_USER,
+    CACHED_GROUP,
+    CACHED_NETGROUP,
+};
+
 typedef errno_t (*sssctl_attr_fn)(TALLOC_CTX *mem_ctx,
                                   struct sysdb_attrs *entry,
+                                  struct sss_domain_info *dom,
                                   const char *attr,
                                   const char **_value);
 
@@ -80,16 +87,45 @@ static errno_t time_to_string(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t attr_string(TALLOC_CTX *mem_ctx,
+static errno_t attr_name(TALLOC_CTX *mem_ctx,
                            struct sysdb_attrs *entry,
+                           struct sss_domain_info *dom,
                            const char *attr,
                            const char **_value)
 {
-    return sysdb_attrs_get_string(entry, attr, _value);
+    errno_t ret;
+    const char *orig_name;
+    char *tmp_name;
+    char *outname;
+
+    ret = sysdb_attrs_get_string(entry, attr, &orig_name);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    tmp_name = sss_output_name(mem_ctx, orig_name, dom->case_preserve, 0);
+    if (tmp_name == NULL) {
+        return ENOMEM;
+    }
+
+    if (dom->fqnames) {
+        outname = sss_tc_fqname(mem_ctx, dom->names, dom, tmp_name);
+        talloc_free(tmp_name);
+        if (outname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
+            return ENOMEM;
+        }
+    } else {
+        outname = tmp_name;
+    }
+
+    *_value = outname;
+    return EOK;
 }
 
 static errno_t attr_time(TALLOC_CTX *mem_ctx,
                          struct sysdb_attrs *entry,
+                         struct sss_domain_info *dom,
                          const char *attr,
                          const char **_value)
 {
@@ -106,6 +142,7 @@ static errno_t attr_time(TALLOC_CTX *mem_ctx,
 
 static errno_t attr_expire(TALLOC_CTX *mem_ctx,
                            struct sysdb_attrs *entry,
+                           struct sss_domain_info *dom,
                            const char *attr,
                            const char **_value)
 {
@@ -127,6 +164,7 @@ static errno_t attr_expire(TALLOC_CTX *mem_ctx,
 
 static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
                            struct sysdb_attrs *entry,
+                           struct sss_domain_info *dom,
                            const char *attr,
                            const char **_value)
 {
@@ -151,6 +189,7 @@ static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
 
 static errno_t attr_yesno(TALLOC_CTX *mem_ctx,
                           struct sysdb_attrs *entry,
+                          struct sss_domain_info *dom,
                           const char *attr,
                           const char **_value)
 {
@@ -250,16 +289,45 @@ static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *domains,
                                   struct sss_domain_info *domain,
                                   sssctl_basedn_fn basedn_fn,
-                                  const char *filter,
+                                  enum cache_object obj_type,
+                                  const char *attr_name,
+                                  const char *attr_value,
                                   const char **attrs,
-                                  struct sysdb_attrs **_entry)
+                                  struct sysdb_attrs **_entry,
+                                  struct sss_domain_info **_dom)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom;
     struct sysdb_attrs *entry;
     struct ldb_dn *base_dn;
     bool fqn_provided;
+    bool qualify_attr = false;
+    char *filter;
     errno_t ret;
+    const char *class;
+    char *filter_value;
+
+    if (strcmp(attr_name, SYSDB_NAME) == 0 &&
+            (obj_type == CACHED_USER ||
+             obj_type == CACHED_GROUP)) {
+        qualify_attr = true;
+    }
+
+    switch (obj_type) {
+    case CACHED_USER:
+        class = SYSDB_USER_CLASS;
+        break;
+    case CACHED_GROUP:
+        class = SYSDB_GROUP_CLASS;
+        break;
+    case CACHED_NETGROUP:
+        class = SYSDB_NETGROUP_CLASS;
+        break;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "sssctl doesn't handle this object type (type=%d)\n", obj_type);
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -281,11 +349,32 @@ static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        if (qualify_attr) {
+            filter_value = sss_create_internal_fqname(tmp_ctx,
+                                                      attr_value,
+                                                      dom->name);
+        } else {
+            filter_value = talloc_strdup(tmp_ctx, attr_value);
+        }
+        if (filter_value == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        filter = talloc_asprintf(tmp_ctx, "(&(objectClass=%s)(%s=%s))",
+                                 class, attr_name, filter_value);
+        talloc_free(filter_value);
+        if (filter_value == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
+            goto done;
+        }
+
         ret = sssctl_query_cache(tmp_ctx, dom->sysdb, base_dn, filter,
                                  attrs, &entry);
         if (ret == EOK) {
             /* Entry was found. */
             *_entry = talloc_steal(mem_ctx, entry);
+            *_dom = dom;
             goto done;
         } else if (ret == ENOENT && fqn_provided) {
             /* Not found but a domain was provided in input. We're done. */
@@ -312,14 +401,15 @@ static errno_t sssctl_fetch_object(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domains,
                                    struct sss_domain_info *domain,
                                    sssctl_basedn_fn basedn_fn,
-                                   const char *class,
+                                   enum cache_object obj_type,
                                    const char *attr_name,
                                    const char *attr_value,
-                                   struct sysdb_attrs **_entry)
+                                   struct sysdb_attrs **_entry,
+                                   struct sss_domain_info **_dom)
 {
     TALLOC_CTX *tmp_ctx;
     struct sysdb_attrs *entry;
-    const char *filter;
+    struct sss_domain_info *dom;
     const char **attrs;
     char *sanitized;
     errno_t ret;
@@ -337,13 +427,6 @@ static errno_t sssctl_fetch_object(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(&(objectClass=%s)(%s=%s))",
-                             class, attr_name, sanitized);
-    if (filter == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
-        goto done;
-    }
-
     attrs = sssctl_build_attrs(tmp_ctx, info);
     if (attrs == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get attribute list!\n");
@@ -352,7 +435,8 @@ static errno_t sssctl_fetch_object(TALLOC_CTX *mem_ctx,
     }
 
     ret = sssctl_find_object(tmp_ctx, domains, domain, basedn_fn,
-                             filter, attrs, &entry);
+                             obj_type, attr_name, sanitized, attrs,
+                             &entry, &dom);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to query cache [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -360,6 +444,7 @@ static errno_t sssctl_fetch_object(TALLOC_CTX *mem_ctx,
     }
 
     *_entry = talloc_steal(mem_ctx, entry);
+    *_dom = dom;
 
 done:
     talloc_free(tmp_ctx);
@@ -372,7 +457,7 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
                                    struct sss_domain_info *domain,
                                    sssctl_basedn_fn basedn_fn,
                                    const char *noent_fmt,
-                                   const char *class,
+                                   enum cache_object obj_type,
                                    const char *attr_name,
                                    const char *attr_value)
 {
@@ -381,6 +466,7 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
     const char *value;
     errno_t ret;
     int i;
+    struct sss_domain_info *dom = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -389,7 +475,8 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
     }
 
     ret = sssctl_fetch_object(tmp_ctx, info, domains, domain, basedn_fn,
-                              class, attr_name, attr_value, &entry);
+                              obj_type, attr_name, attr_value,
+                              &entry, &dom);
     if (ret == ENOENT) {
         printf(noent_fmt, attr_value);
         ret = EOK;
@@ -400,8 +487,14 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
         goto done;
     }
 
+    if (dom == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine object domain\n");
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
+
     for (i = 0; info[i].attr != NULL; i++) {
-        ret = info[i].attr_fn(tmp_ctx, entry, info[i].attr, &value);
+        ret = info[i].attr_fn(tmp_ctx, entry, dom, info[i].attr, &value);
         if (ret == ENOENT) {
             continue;
         } else if (ret != EOK) {
@@ -498,7 +591,7 @@ errno_t sssctl_user(struct sss_cmdline *cmdline,
 
     ret = sssctl_print_object(info, tool_ctx->domains, opts.domain,
                               sysdb_user_base_dn, NOT_FOUND_MSG("User"),
-                              SYSDB_USER_CLASS, attr, opts.value);
+                              CACHED_USER, attr, opts.value);
     if (ret != EOK) {
         return ret;
     }
@@ -544,7 +637,7 @@ errno_t sssctl_group(struct sss_cmdline *cmdline,
 
     ret = sssctl_print_object(info, tool_ctx->domains, opts.domain,
                               sysdb_group_base_dn, NOT_FOUND_MSG("Group"),
-                              SYSDB_GROUP_CLASS, attr, opts.value);
+                              CACHED_GROUP, attr, opts.value);
     if (ret != EOK) {
         return ret;
     }
@@ -575,7 +668,7 @@ errno_t sssctl_netgroup(struct sss_cmdline *cmdline,
 
     ret = sssctl_print_object(info, tool_ctx->domains, opts.domain,
                               sysdb_netgroup_base_dn, NOT_FOUND_MSG("Netgroup"),
-                              SYSDB_NETGROUP_CLASS, SYSDB_NAME, opts.value);
+                              CACHED_NETGROUP, SYSDB_NAME, opts.value);
     if (ret != EOK) {
         return ret;
     }
