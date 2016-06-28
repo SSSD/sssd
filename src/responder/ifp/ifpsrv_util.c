@@ -323,3 +323,99 @@ size_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
         return entries;
     }
 }
+
+errno_t ifp_ldb_el_output_name(struct resp_ctx *rctx,
+                               struct ldb_message *msg,
+                               const char *el_name,
+                               struct sss_domain_info *dom)
+{
+    struct ldb_message_element *el;
+    char *in_name;
+    char *out_name;
+    errno_t ret;
+    char *name;
+    TALLOC_CTX *tmp_ctx;
+
+    el = ldb_msg_find_element(msg, el_name);
+    if (el == NULL) {
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    for (size_t c = 0; c < el->num_values; c++) {
+        in_name = (char *) el->values[c].data;
+        ret = sss_parse_internal_fqname(tmp_ctx, in_name, &name, NULL);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        out_name = sss_output_name(tmp_ctx, in_name, dom->case_preserve,
+                                   rctx->override_space);
+        if (out_name == NULL) {
+            ret = EIO;
+            goto done;
+        }
+
+        if (dom->fqnames) {
+            out_name = sss_tc_fqname(tmp_ctx, dom->names, dom, out_name);
+            if (out_name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "sss_tc_fqname failed\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        talloc_free(el->values[c].data);
+        el->values[c].data = (uint8_t *) talloc_steal(el->values, out_name);
+        el->values[c].length = strlen(out_name);
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+char *ifp_format_name_attr(TALLOC_CTX *mem_ctx, struct ifp_ctx *ifp_ctx,
+                           const char *in_name, struct sss_domain_info *dom)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *out_name;
+    char *ret_name = NULL;
+    char *shortname;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
+    }
+
+    ret = sss_parse_internal_fqname(tmp_ctx, in_name, &shortname, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unparseable name %s\n", in_name);
+        goto done;
+    }
+
+    out_name = sss_output_name(tmp_ctx, in_name, dom->case_preserve,
+                               ifp_ctx->rctx->override_space);
+    if (out_name == NULL) {
+        goto done;
+    }
+
+    if (dom->fqnames) {
+        out_name = sss_tc_fqname(tmp_ctx, dom->names, dom, out_name);
+        if (out_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_tc_fqname failed\n");
+            goto done;
+        }
+    }
+
+    ret_name = talloc_steal(mem_ctx, out_name);
+done:
+    talloc_free(tmp_ctx);
+    return ret_name;
+}

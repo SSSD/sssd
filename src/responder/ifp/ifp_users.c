@@ -588,6 +588,45 @@ static void ifp_users_get_as_string(struct sbus_request *sbus_req,
     return;
 }
 
+static void ifp_users_get_name(struct sbus_request *sbus_req,
+                               void *data,
+                               const char *attr,
+                               const char **_out)
+{
+    struct ifp_ctx *ifp_ctx;
+    struct ldb_message *msg;
+    struct sss_domain_info *domain;
+    const char *in_name;
+    errno_t ret;
+
+    *_out = NULL;
+
+    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ifp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return;
+    }
+
+    if (!ifp_is_user_attr_allowed(ifp_ctx, attr)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Attribute %s is not allowed\n", attr);
+        return;
+    }
+
+    ret = ifp_users_user_get(sbus_req, ifp_ctx, NULL, &domain, &msg);
+    if (ret != EOK) {
+        return;
+    }
+
+    in_name = sss_view_ldb_msg_find_attr_as_string(domain, msg, attr, NULL);
+    if (in_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "No name?\n");
+        return;
+    }
+
+    *_out = ifp_format_name_attr(sbus_req, ifp_ctx, in_name, domain);
+    return;
+}
+
 static void ifp_users_get_as_uint32(struct sbus_request *sbus_req,
                                     void *data,
                                     const char *attr,
@@ -697,7 +736,7 @@ void ifp_users_user_get_name(struct sbus_request *sbus_req,
                              void *data,
                              const char **_out)
 {
-    ifp_users_get_as_string(sbus_req, data, SYSDB_NAME, _out);
+    ifp_users_get_name(sbus_req, data, SYSDB_NAME, _out);
 }
 
 void ifp_users_user_get_uid_number(struct sbus_request *sbus_req,

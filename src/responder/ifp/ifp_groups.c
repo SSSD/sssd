@@ -701,9 +701,19 @@ void ifp_groups_group_get_name(struct sbus_request *sbus_req,
                                void *data,
                                const char **_out)
 {
+    struct ifp_ctx *ifp_ctx;
     struct ldb_message *msg;
     struct sss_domain_info *domain;
+    const char *in_name;
     errno_t ret;
+
+    *_out = NULL;
+
+    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ifp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return;
+    }
 
     ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &msg);
     if (ret != EOK) {
@@ -711,8 +721,14 @@ void ifp_groups_group_get_name(struct sbus_request *sbus_req,
         return;
     }
 
-    *_out = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_NAME, NULL);
+    in_name = sss_view_ldb_msg_find_attr_as_string(domain, msg,
+                                                   SYSDB_NAME, NULL);
+    if (in_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "No name?\n");
+        return;
+    }
 
+    *_out = ifp_format_name_attr(sbus_req, ifp_ctx, in_name, domain);
     return;
 }
 

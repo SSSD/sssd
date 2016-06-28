@@ -372,7 +372,7 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
     int i, num;
     const char *name;
     const char **groupnames;
-    const char *tmpstr;
+    char *out_name;
 
     /* one less, the first one is the user entry */
     num = res->count - 1;
@@ -390,23 +390,21 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
             continue;
         }
 
-        if (ireq->ifp_ctx->rctx->override_space != '\0') {
-            tmpstr = sss_replace_space(ireq, name,
-                                       ireq->ifp_ctx->rctx->override_space);
-            if (tmpstr == NULL) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot normalize %s\n", name);
+        out_name = sss_output_name(ireq, name, domain->case_preserve,
+                                   ireq->ifp_ctx->rctx->override_space);
+        if (out_name == NULL) {
+            continue;
+        }
+
+        if (domain->fqnames) {
+            groupnames[i] = sss_tc_fqname(groupnames, domain->names,
+                                          domain, out_name);
+            if (out_name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "sss_tc_fqname failed\n");
                 continue;
             }
         } else {
-            tmpstr = name;
-        }
-
-        groupnames[i] = sss_get_cased_name(groupnames, tmpstr,
-                                           domain->case_preserve);
-        if (groupnames[i] == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_get_cased_name failed, skipping\n");
-            continue;
+            groupnames[i] = talloc_steal(groupnames, out_name);
         }
 
         DEBUG(SSSDBG_TRACE_FUNC, "Adding group %s\n", groupnames[i]);
@@ -422,7 +420,7 @@ struct ifp_user_get_attr_state {
 
     enum sss_dp_acct_type search_type;
 
-    char *name;
+    char *inp_name;
     char *domname;
 
     struct sss_domain_info *dom;
@@ -483,7 +481,8 @@ ifp_user_get_attr_lookup(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ifp_user_get_attr_state);
 
-    ret = sss_parse_inp_recv(subreq, state, &state->name, &state->domname);
+    ret = sss_parse_inp_recv(subreq, state,
+                             &state->inp_name, &state->domname);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -492,10 +491,12 @@ ifp_user_get_attr_lookup(struct tevent_req *subreq)
 
     switch (state->search_type) {
     case SSS_DP_USER:
-        data = cache_req_data_name(state, CACHE_REQ_USER_BY_NAME, state->name);
+        data = cache_req_data_name(state, CACHE_REQ_USER_BY_NAME,
+                                   state->inp_name);
         break;
     case SSS_DP_INITGROUPS:
-        data = cache_req_data_name(state, CACHE_REQ_INITGROUPS, state->name);
+        data = cache_req_data_name(state, CACHE_REQ_INITGROUPS,
+                                   state->inp_name);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported search type [%d]!\n",
@@ -524,6 +525,7 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
     struct ifp_user_get_attr_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
+    char *fqdn;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ifp_user_get_attr_state);
@@ -535,11 +537,18 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
         return;
     }
 
+    fqdn = sss_create_internal_fqname(state, state->inp_name,
+                                      state->dom->name);
+    if (fqdn == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     if (state->search_type == SSS_DP_USER) {
         /* throw away the result and perform attr search */
         talloc_zfree(state->res);
 
-        ret = sysdb_get_user_attr_with_views(state, state->dom, state->name,
+        ret = sysdb_get_user_attr_with_views(state, state->dom, fqdn,
                                              state->attrs, &state->res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_get_user_attr_with_views() "
@@ -555,6 +564,20 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
             tevent_req_error(req, ENOENT);
             return;
         }
+    }
+
+    ret = ifp_ldb_el_output_name(state->rctx, state->res->msgs[0],
+                                 SYSDB_NAME, state->dom);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = ifp_ldb_el_output_name(state->rctx, state->res->msgs[0],
+                                 SYSDB_NAME_ALIAS, state->dom);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
     tevent_req_done(req);
