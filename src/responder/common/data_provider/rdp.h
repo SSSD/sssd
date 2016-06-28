@@ -54,6 +54,26 @@ errno_t _rdp_message_recv(struct tevent_req *req,
 #define rdp_message_recv(req, ...)                                         \
     _rdp_message_recv(req, ##__VA_ARGS__, DBUS_TYPE_INVALID)
 
+/**
+ * Send D-Bus message to Data Provider but instead of returning the reply
+ * to the caller it forwards the reply to the client request. No further
+ * processing is required by the caller. In case of a failure the client
+ * request is freed since there is nothing we can do.
+ */
+void _rdp_message_send_and_reply(struct sbus_request *sbus_req,
+                                 struct resp_ctx *rctx,
+                                 struct sss_domain_info *domain,
+                                 const char *path,
+                                 const char *iface,
+                                 const char *method,
+                                 int first_arg_type,
+                                 ...);
+
+#define rdp_message_send_and_reply(sbus_req, rctx, domain, path, iface,       \
+                                   method, ...)                               \
+    _rdp_message_send_and_reply(sbus_req, rctx, domain, path, iface, method,  \
+                                ##__VA_ARGS__, DBUS_TYPE_INVALID)
+
 errno_t rdp_register_client(struct be_conn *be_conn,
                             const char *client_name);
 
