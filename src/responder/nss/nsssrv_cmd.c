@@ -978,6 +978,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     struct ldb_message *msg;
     const char *extra_flag = NULL;
     char *neg_cache_name;
+    const char *sysdb_name;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1080,6 +1081,23 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
                 }
 
                 dctx->res->msgs[0] = talloc_steal(dctx->res->msgs, msg);
+
+                /* Since sysdb_search_user_by_upn() searches the whole cache we
+                 * have to set the domain so that it matches the result. */
+                sysdb_name = ldb_msg_find_attr_as_string(dctx->res->msgs[0],
+                                                         SYSDB_NAME, NULL);
+                if (sysdb_name == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cached entry has no name.\n");
+                    return EINVAL;
+                }
+                dctx->domain = find_domain_by_object_name(get_domains_head(dom),
+                                                          sysdb_name);
+                if (dctx->domain == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Cannot find matching domain for [%s].\n",
+                          sysdb_name);
+                    return EINVAL;
+                }
             }
         } else {
             ret = sysdb_getpwnam_with_views(cmdctx, dom, name, &dctx->res);
@@ -4406,6 +4424,17 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
                 if (sysdb_name == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE,
                         "Sysdb entry does not have a name.\n");
+                    return EINVAL;
+                }
+
+                /* Since sysdb_search_user_by_upn() searches the whole cache we
+                 * have to set the domain so that it matches the result. */
+                dctx->domain = find_domain_by_object_name(get_domains_head(dom),
+                                                          sysdb_name);
+                if (dctx->domain == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Cannot find matching domain for [%s].\n",
+                          sysdb_name);
                     return EINVAL;
                 }
 
