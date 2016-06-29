@@ -116,3 +116,49 @@ void _sssctl_sifp_error(sss_sifp_ctx *sifp,
         break;
     }
 }
+
+sss_sifp_error _sssctl_sifp_send(TALLOC_CTX *mem_ctx,
+                                 sss_sifp_ctx *sifp,
+                                 DBusMessage **_reply,
+                                 const char *path,
+                                 const char *iface,
+                                 const char *method,
+                                 int first_arg_type,
+                                 ...)
+{
+    sss_sifp_error error;
+    DBusMessage *msg;
+    dbus_bool_t bret;
+    errno_t ret;
+    va_list va;
+
+    msg = sss_sifp_create_message(path, iface, method);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create D-Bus message\n");
+        return SSS_SIFP_OUT_OF_MEMORY;
+    }
+
+    va_start(va, first_arg_type);
+    bret = dbus_message_append_args_valist(msg, first_arg_type, va);
+    va_end(va);
+    if (!bret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
+        error = SSS_SIFP_OUT_OF_MEMORY;
+        goto done;
+    }
+
+    error = sss_sifp_send_message(sifp, msg, _reply);
+    if (error != SSS_SIFP_OK) {
+        goto done;
+    }
+
+    ret = sbus_talloc_bound_message(mem_ctx, *_reply);
+    if (ret != EOK) {
+        error = SSS_SIFP_OUT_OF_MEMORY;
+        goto done;
+    }
+
+done:
+    dbus_message_unref(msg);
+    return error;
+}

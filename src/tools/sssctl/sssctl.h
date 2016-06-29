@@ -24,6 +24,7 @@
 #include "lib/sifp/sss_sifp.h"
 #include "lib/sifp/sss_sifp_dbus.h"
 #include "tools/common/sss_tools.h"
+#include "sbus/sssd_dbus.h"
 
 enum sssctl_prompt_result {
     SSSCTL_PROMPT_YES,
@@ -55,6 +56,19 @@ void _sssctl_sifp_error(sss_sifp_ctx *sifp,
 
 #define sssctl_sifp_error(sifp, error, message) \
     _sssctl_sifp_error(sifp, error, _(message))
+
+sss_sifp_error _sssctl_sifp_send(TALLOC_CTX *mem_ctx,
+                                 sss_sifp_ctx *sifp,
+                                 DBusMessage **_reply,
+                                 const char *path,
+                                 const char *iface,
+                                 const char *method,
+                                 int first_arg_type,
+                                 ...);
+
+#define sssctl_sifp_send(mem_ctx, sifp, reply, path, iface, method, ...) \
+    _sssctl_sifp_send(mem_ctx, sifp, reply, path, iface, method,         \
+                      ##__VA_ARGS__, DBUS_TYPE_INVALID);
 
 errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,

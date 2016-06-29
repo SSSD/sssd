@@ -74,47 +74,32 @@ errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
 }
 
 static errno_t sssctl_domain_status_online(struct sss_tool_ctx *tool_ctx,
-                                           const char *domain_path,
-                                           bool force_start)
+                                           sss_sifp_ctx *sifp,
+                                           const char *domain_path)
 {
-    sss_sifp_ctx *sifp;
-    sss_sifp_error sifp_error;
-    DBusMessage *reply = NULL;
-    DBusMessage *msg;
+    TALLOC_CTX *tmp_ctx;
+    sss_sifp_error error;
+    DBusMessage *reply;
     bool is_online;
     errno_t ret;
 
-    if (!sssctl_start_sssd(force_start)) {
-        ret = ERR_SSSD_NOT_RUNNING;
-        goto done;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
     }
 
-    sifp_error = sssctl_sifp_init(tool_ctx, &sifp);
-    if (sifp_error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, sifp_error, "Unable to connect to the InfoPipe");
-        ret = EFAULT;
-        goto done;
-    }
-
-    msg = sbus_create_message(tool_ctx, SSS_SIFP_ADDRESS, domain_path,
-                              IFACE_IFP_DOMAINS_DOMAIN,
-                              IFACE_IFP_DOMAINS_DOMAIN_ISONLINE);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create D-Bus message\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    sifp_error = sss_sifp_send_message(sifp, msg, &reply);
-    if (sifp_error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, sifp_error, "Unable to get online status");
+    error = sssctl_sifp_send(tmp_ctx, sifp, &reply, domain_path,
+                             IFACE_IFP_DOMAINS_DOMAIN,
+                             IFACE_IFP_DOMAINS_DOMAIN_ISONLINE);
+    if (error != SSS_SIFP_OK) {
+        sssctl_sifp_error(sifp, error, "Unable to get online status");
         ret = EIO;
         goto done;
     }
 
     ret = sbus_parse_reply(reply, DBUS_TYPE_BOOLEAN, &is_online);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to get information from SSSD\n"));
         goto done;
     }
 
@@ -123,10 +108,7 @@ static errno_t sssctl_domain_status_online(struct sss_tool_ctx *tool_ctx,
     ret = EOK;
 
 done:
-    if (reply != NULL) {
-        dbus_message_unref(reply);
-    }
-
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -144,6 +126,8 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
                              void *pvt)
 {
     struct sssctl_domain_status_opts opts = {0};
+    sss_sifp_ctx *sifp;
+    sss_sifp_error error;
     const char *path;
     bool opt_set;
     errno_t ret;
@@ -181,7 +165,17 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
         return ENOMEM;
     }
 
-    ret = sssctl_domain_status_online(tool_ctx, path, opts.force_start);
+    if (!sssctl_start_sssd(opts.force_start)) {
+        return ERR_SSSD_NOT_RUNNING;
+    }
+
+    error = sssctl_sifp_init(tool_ctx, &sifp);
+    if (error != SSS_SIFP_OK) {
+        sssctl_sifp_error(sifp, error, "Unable to connect to the InfoPipe");
+        return EFAULT;
+    }
+
+    ret = sssctl_domain_status_online(tool_ctx, sifp, path);
     if (ret != EOK) {
         fprintf(stderr, _("Unable to get online status\n"));
         return ret;
