@@ -2873,6 +2873,11 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
     struct ldb_request *search;
     int ret;
 
+    if (getenv("SSSD_UPGRADE_DB")) {
+        /* do not do anything during upgrade */
+        return ldb_next_request(module, req);
+    }
+
     if (ldb_dn_is_special(req->op.mod.message->dn)) {
         /* do not manipulate our control entries */
         return ldb_next_request(module, req);
