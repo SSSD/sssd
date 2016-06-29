@@ -612,6 +612,22 @@ done:
     return ret;
 }
 
+static errno_t remove_ts_cache(struct sysdb_ctx *sysdb)
+{
+    errno_t ret;
+
+    if (sysdb->ldb_ts_file == NULL) {
+        return EOK;
+    }
+
+    ret = unlink(sysdb->ldb_ts_file);
+    if (ret != EOK && errno != ENOENT) {
+        return errno;
+    }
+
+    return EOK;
+}
+
 static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
                                       struct sss_domain_info *domain,
                                       struct sysdb_dom_upgrade_ctx *upgrade_ctx)
@@ -643,6 +659,18 @@ static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
         if (ret != EOK) {
             goto done;
         }
+
+        /* To be on the safe side, nuke the timestamp cache on upgrades.
+         * This is just a one-time performance hit after an upgrade
+         */
+        ret = remove_ts_cache(sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not delete the timestamp ldb file (%d) (%s)\n",
+                  ret, sss_strerror(ret));
+            return ret;
+        }
+
 
         /* The version should now match SYSDB_VERSION.
          * If not, it means we didn't match any of the
@@ -755,9 +783,8 @@ static int sysdb_timestamp_cache_connect(struct sysdb_ctx *sysdb,
               "The timestamps cache could not be opened. "
               "Throwing away the database and opening a new one\n");
 
-        ret = unlink(sysdb->ldb_ts_file);
-        if (ret != EOK && errno != ENOENT) {
-            ret = errno;
+        ret = remove_ts_cache(sysdb);
+        if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Could not delete the timestamp ldb file (%d) (%s)\n",
                   ret, sss_strerror(ret));
