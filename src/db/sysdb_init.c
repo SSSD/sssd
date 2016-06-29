@@ -386,6 +386,7 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
      * ldb pointer here and restore in the 'done' handler
      */
     save_ldb = sysdb->ldb;
+    sysdb->ldb = ldb;
 
     version = talloc_strdup(tmp_ctx, cur_version);
     if (version == NULL) {
@@ -498,7 +499,7 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
     ret = EOK;
 done:
     sysdb->ldb = save_ldb;
-    *_new_version = talloc_steal(mem_ctx, version);
+    *_new_version = version;
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -573,6 +574,7 @@ static errno_t sysdb_cache_connect(TALLOC_CTX *mem_ctx,
         /* This is not the latest version. Return what version it is
          * and appropriate error
          */
+        *_ldb = talloc_steal(mem_ctx, ldb);
         *_version = talloc_steal(mem_ctx, version);
         goto done;
     }
