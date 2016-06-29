@@ -2768,6 +2768,7 @@ int main(int argc, const char *argv[])
     poptContext pc;
     int opt_daemon = 0;
     int opt_interactive = 0;
+    int opt_genconf = 0;
     int opt_version = 0;
     char *opt_config_file = NULL;
     char *config_file = NULL;
@@ -2787,8 +2788,11 @@ int main(int argc, const char *argv[])
          _("Run interactive (not a daemon)"), NULL}, \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
          _("Specify a non-default config file"), NULL}, \
-         {"version", '\0', POPT_ARG_NONE, &opt_version, 0, \
-          _("Print version number and exit"), NULL }, \
+        {"genconf", 'g', POPT_ARG_NONE, &opt_genconf, 0, \
+         _("Refresh the configuration database, then exit"), \
+         NULL}, \
+        {"version", '\0', POPT_ARG_NONE, &opt_version, 0, \
+         _("Print version number and exit"), NULL }, \
         POPT_TABLEEND
     };
 
@@ -2826,7 +2830,13 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    if (!opt_daemon && !opt_interactive) {
+    if (opt_genconf && (opt_daemon || opt_interactive)) {
+        fprintf(stderr, "Option -g is incompatible with -D or -i\n");
+        poptPrintUsage(pc, stderr, 0);
+        return 1;
+    }
+
+    if (!opt_daemon && !opt_interactive && !opt_genconf) {
         opt_daemon = 1;
     }
 
@@ -2848,6 +2858,10 @@ int main(int argc, const char *argv[])
     if (opt_daemon) flags |= FLAGS_DAEMON;
     if (opt_interactive) {
         flags |= FLAGS_INTERACTIVE;
+        debug_to_stderr = 1;
+    }
+    if (opt_genconf) {
+        flags |= FLAGS_GEN_CONF;
         debug_to_stderr = 1;
     }
 
@@ -2955,6 +2969,10 @@ int main(int argc, const char *argv[])
         }
         return 4;
     }
+
+    /* at this point we are done generating the config file, we may exit
+     * if that's all we were asked to do */
+    if (opt_genconf) return 0;
 
     /* set up things like debug , signals, daemonization, etc... */
     monitor->conf_path = CONFDB_MONITOR_CONF_ENTRY;

@@ -83,6 +83,7 @@
 #define FLAGS_DAEMON 0x0001
 #define FLAGS_INTERACTIVE 0x0002
 #define FLAGS_PID_FILE 0x0004
+#define FLAGS_GEN_CONF 0x0008
 
 #define PIPE_INIT { -1, -1 }
 
