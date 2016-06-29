@@ -203,6 +203,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     struct ad_options *ad_options;
     struct ad_id_ctx *ad_id_ctx;
     const char *gc_service_name;
+    const char *service_name;
     struct ad_srv_plugin_ctx *srv_ctx;
     const char *ad_domain;
     const char *ad_site_override;
@@ -250,8 +251,14 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_TRACE_ALL, "No extra attrs set.\n");
     }
 
-    gc_service_name = talloc_asprintf(ad_options, "%s%s", "gc_", subdom->forest);
+    gc_service_name = talloc_asprintf(ad_options, "sd_gc_%s", subdom->forest);
     if (gc_service_name == NULL) {
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+
+    service_name = talloc_asprintf(ad_options, "sd_%s", subdom->name);
+    if (service_name == NULL) {
         talloc_free(ad_options);
         return ENOMEM;
     }
@@ -260,7 +267,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
      * is able to attach PAC. For testing, use hardcoded. */
     ret = ad_failover_init(ad_options, be_ctx, NULL, NULL,
                            id_ctx->server_mode->realm,
-                           subdom->name, gc_service_name,
+                           service_name, gc_service_name,
                            subdom->name, &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD failover\n");

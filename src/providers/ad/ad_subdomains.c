@@ -66,6 +66,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     struct ad_options *ad_options;
     struct ad_id_ctx *ad_id_ctx;
     const char *gc_service_name;
+    const char *service_name;
     struct ad_srv_plugin_ctx *srv_ctx;
     char *ad_domain;
     char *ad_site_override;
@@ -94,14 +95,20 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
 
     ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
 
-    gc_service_name = talloc_asprintf(ad_options, "%s%s", "gc_", subdom->name);
+    gc_service_name = talloc_asprintf(ad_options, "sd_gc_%s", subdom->name);
     if (gc_service_name == NULL) {
         talloc_free(ad_options);
         return ENOMEM;
     }
 
+    service_name = talloc_asprintf(ad_options, "sd_%s", subdom->name);
+    if (service_name == NULL) {
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+
     ret = ad_failover_init(ad_options, be_ctx, NULL, NULL, realm,
-                           subdom->name, gc_service_name,
+                           service_name, gc_service_name,
                            subdom->name, &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD failover\n");
