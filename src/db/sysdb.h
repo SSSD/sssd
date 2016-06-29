@@ -616,10 +616,15 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
                struct sss_domain_info *domains);
 
 /* Same as sysdb_init, but additionally allows to change
- * file ownership of the sysdb databases. */
+ * file ownership of the sysdb databases and allow the
+ * upgrade via passing a context. */
+struct sysdb_upgrade_ctx {
+    int unused;
+};
+
 int sysdb_init_ext(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domains,
-                   bool allow_upgrade,
+                   struct sysdb_upgrade_ctx *upgrade_ctx,
                    bool chown_dbfile,
                    uid_t uid, gid_t gid);
 

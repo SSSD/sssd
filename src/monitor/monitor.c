@@ -2352,6 +2352,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
     int num_providers;
     int ret;
     int error;
+    struct sysdb_upgrade_ctx db_up_ctx;
 
     /* Set up the environment variable for the Kerberos Replay Cache */
     ret = confdb_get_string(ctx->cdb, ctx,
@@ -2453,7 +2454,8 @@ static int monitor_process_init(struct mt_ctx *ctx,
     if (!tmp_ctx) {
         return ENOMEM;
     }
-    ret = sysdb_init_ext(tmp_ctx, ctx->domains, true,
+
+    ret = sysdb_init_ext(tmp_ctx, ctx->domains, &db_up_ctx,
                          true, ctx->uid, ctx->gid);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR_DAEMON(ret);

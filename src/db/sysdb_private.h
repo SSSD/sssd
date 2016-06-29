@@ -127,10 +127,15 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx,
                           const char *filename,
                           int flags,
                           struct ldb_context **_ldb);
+
+struct sysdb_dom_upgrade_ctx {
+    int unused;
+};
+
 int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                const char *db_path,
-                               bool allow_upgrade,
+                               struct sysdb_dom_upgrade_ctx *upgrade_ctx,
                                struct sysdb_ctx **_ctx);
 
 /* Upgrade routines */

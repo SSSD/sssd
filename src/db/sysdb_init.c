@@ -364,6 +364,7 @@ static errno_t sysdb_ts_cache_upgrade(TALLOC_CTX *mem_ctx,
 
 static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
                                           struct sysdb_ctx *sysdb,
+                                          struct sysdb_dom_upgrade_ctx *upgrade_ctx,
                                           struct ldb_context *ldb,
                                           struct sss_domain_info *domain,
                                           const char *cur_version,
@@ -611,7 +612,7 @@ done:
 
 static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
                                       struct sss_domain_info *domain,
-                                      bool allow_upgrade)
+                                      struct sysdb_dom_upgrade_ctx *upgrade_ctx)
 {
     errno_t ret;
     const char *version;
@@ -628,15 +629,15 @@ static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
                               &ldb, &version);
     switch (ret) {
     case ERR_SYSDB_VERSION_TOO_OLD:
-        if (allow_upgrade == false) {
+        if (upgrade_ctx == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "DB version too old [%s], expected [%s] for domain %s!\n",
                    version, SYSDB_VERSION, domain->name);
             goto done;
         }
 
-        ret = sysdb_domain_cache_upgrade(tmp_ctx, sysdb, ldb, domain, version,
-                                         &version);
+        ret = sysdb_domain_cache_upgrade(tmp_ctx, sysdb, upgrade_ctx,
+                                         ldb, domain, version, &version);
         if (ret != EOK) {
             goto done;
         }
@@ -676,7 +677,7 @@ done:
 
 static int sysdb_timestamp_cache_connect(struct sysdb_ctx *sysdb,
                                          struct sss_domain_info *domain,
-                                         bool allow_upgrade)
+                                         struct sysdb_dom_upgrade_ctx *upgrade_ctx)
 {
     errno_t ret;
     const char *version;
@@ -699,7 +700,7 @@ static int sysdb_timestamp_cache_connect(struct sysdb_ctx *sysdb,
                               &ldb, &version);
     switch (ret) {
     case ERR_SYSDB_VERSION_TOO_OLD:
-        if (allow_upgrade == false) {
+        if (upgrade_ctx == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "DB version too old [%s], expected [%s] for domain %s!\n",
                    version, SYSDB_VERSION, domain->name);
@@ -785,7 +786,7 @@ static int sysdb_timestamp_cache_connect(struct sysdb_ctx *sysdb,
 int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *domain,
                                const char *db_path,
-                               bool allow_upgrade,
+                               struct sysdb_dom_upgrade_ctx *upgrade_ctx,
                                struct sysdb_ctx **_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -815,7 +816,7 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
              "Timestamp file for %s: %s\n", domain->name, sysdb->ldb_ts_file);
     }
 
-    ret = sysdb_domain_cache_connect(sysdb, domain, allow_upgrade);
+    ret = sysdb_domain_cache_connect(sysdb, domain, upgrade_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not open the sysdb cache [%d]: %s\n",
@@ -823,7 +824,7 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_timestamp_cache_connect(sysdb, domain, allow_upgrade);
+    ret = sysdb_timestamp_cache_connect(sysdb, domain, upgrade_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not open the timestamp cache [%d]: %s\n",
@@ -842,12 +843,12 @@ done:
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct sss_domain_info *domains)
 {
-    return sysdb_init_ext(mem_ctx, domains, false, false, 0, 0);
+    return sysdb_init_ext(mem_ctx, domains, NULL, false, 0, 0);
 }
 
 int sysdb_init_ext(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domains,
-                   bool allow_upgrade,
+                   struct sysdb_upgrade_ctx *upgrade_ctx,
                    bool chown_dbfile,
                    uid_t uid,
                    gid_t gid)
@@ -855,8 +856,10 @@ int sysdb_init_ext(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
     int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_dom_upgrade_ctx *dom_upgrade_ctx;
 
-    if (allow_upgrade) {
+    if (upgrade_ctx != NULL) {
         /* check if we have an old sssd.ldb to upgrade */
         ret = sysdb_check_upgrade_02(domains, DB_PATH);
         if (ret != EOK) {
@@ -864,16 +867,27 @@ int sysdb_init_ext(TALLOC_CTX *mem_ctx,
         }
     }
 
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
     /* open a db for each domain */
     for (dom = domains; dom; dom = dom->next) {
+        if (upgrade_ctx) {
+            dom_upgrade_ctx = talloc_zero(tmp_ctx,
+                                          struct sysdb_dom_upgrade_ctx);
+        } else {
+            dom_upgrade_ctx = NULL;
+        }
 
-        ret = sysdb_domain_init_internal(mem_ctx, dom, DB_PATH,
-                                         allow_upgrade, &sysdb);
+        ret = sysdb_domain_init_internal(tmp_ctx, dom, DB_PATH,
+                                         dom_upgrade_ctx, &sysdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot connect to database for %s: [%d]: %s\n",
                   dom->name, ret, sss_strerror(ret));
-            return ret;
+            goto done;
         }
 
         if (chown_dbfile) {
@@ -882,14 +896,17 @@ int sysdb_init_ext(TALLOC_CTX *mem_ctx,
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Cannot chown databases for %s: [%d]: %s\n",
                       dom->name, ret, sss_strerror(ret));
-            return ret;
+                goto done;
             }
         }
 
         dom->sysdb = talloc_move(dom, &sysdb);
     }
 
-    return EOK;
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 int sysdb_domain_init(TALLOC_CTX *mem_ctx,
