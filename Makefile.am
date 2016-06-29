@@ -634,6 +634,7 @@ dist_noinst_HEADERS = \
     src/sbus/sssd_dbus_private.h \
     src/sbus/sssd_dbus_invokers.h \
     src/sbus/sssd_dbus_errors.h \
+    src/sbus/sssd_dbus_utils.h \
     src/db/sysdb.h \
     src/db/sysdb_sudo.h \
     src/db/sysdb_autofs.h \
@@ -915,6 +916,7 @@ libsss_util_la_SOURCES = \
     src/sbus/sssd_dbus_server.c \
     src/sbus/sssd_dbus_signals.c \
     src/sbus/sssd_dbus_common_signals.c \
+    src/sbus/sssd_dbus_utils.c \
     src/util/util.c \
     src/util/memory.c \
     src/util/safe-format-string.c \

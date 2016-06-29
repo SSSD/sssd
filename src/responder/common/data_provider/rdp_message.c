@@ -26,33 +26,6 @@
 #include "sbus/sssd_dbus_errors.h"
 #include "util/util.h"
 
-static errno_t rdp_error_to_errno(DBusError *error)
-{
-    static struct {
-        const char *name;
-        errno_t ret;
-    } list[] = {{SBUS_ERROR_INTERNAL, ERR_INTERNAL},
-                {SBUS_ERROR_NOT_FOUND, ENOENT},
-                {SBUS_ERROR_DP_FATAL, ERR_TERMINATED},
-                {SBUS_ERROR_DP_OFFLINE, ERR_OFFLINE},
-                {SBUS_ERROR_DP_NOTSUP, ENOTSUP},
-                {NULL, ERR_INTERNAL}
-    };
-    int i;
-
-    if (!dbus_error_is_set(error)) {
-        return EOK;
-    }
-
-    for (i = 0; list[i].name != NULL; i ++) {
-        if (dbus_error_has_name(error, list[i].name)) {
-            return list[i].ret;
-        }
-    }
-
-    return EIO;
-}
-
 static errno_t
 rdp_message_send_internal(struct resp_ctx *rctx,
                           struct sss_domain_info *domain,
@@ -110,7 +83,8 @@ done:
     return ret;
 }
 
-static errno_t rdp_process_pending_call(DBusPendingCall *pending,
+static errno_t rdp_process_pending_call(TALLOC_CTX *mem_ctx,
+                                        DBusPendingCall *pending,
                                         DBusMessage **_reply)
 {
     DBusMessage *reply;
@@ -130,6 +104,11 @@ static errno_t rdp_process_pending_call(DBusPendingCall *pending,
         goto done;
     }
 
+    ret = sbus_talloc_bound_message(mem_ctx, reply);
+    if (ret != EOK) {
+        return ret;
+    }
+
     switch (dbus_message_get_type(reply)) {
     case DBUS_MESSAGE_TYPE_METHOD_RETURN:
         DEBUG(SSSDBG_TRACE_FUNC, "DP Success\n");
@@ -146,10 +125,9 @@ static errno_t rdp_process_pending_call(DBusPendingCall *pending,
 
         DEBUG(SSSDBG_CRIT_FAILURE, "DP Error [%s]: %s\n",
               error.name, (error.message == NULL ? "(null)" : error.message));
-        ret = rdp_error_to_errno(&error);
+        ret = sbus_error_to_errno(&error);
         break;
     default:
-        dbus_message_unref(reply);
         DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected type?\n");
         ret = ERR_INTERNAL;
         goto done;
@@ -167,15 +145,6 @@ done:
 struct rdp_message_state {
     struct DBusMessage *reply;
 };
-
-static int rdp_message_state_destructor(struct rdp_message_state *state)
-{
-    if (state->reply != NULL) {
-        dbus_message_unref(state->reply);
-    }
-
-    return 0;
-}
 
 static void rdp_message_done(DBusPendingCall *pending, void *ptr);
 
@@ -198,8 +167,6 @@ struct tevent_req *_rdp_message_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
-
-    talloc_set_destructor(state, rdp_message_state_destructor);
 
     va_start(va, first_arg_type);
     ret = rdp_message_send_internal(rctx, domain, rdp_message_done, req,
@@ -233,14 +200,8 @@ static void rdp_message_done(DBusPendingCall *pending, void *ptr)
     req = talloc_get_type(ptr, struct tevent_req);
     state = tevent_req_data(req, struct rdp_message_state);
 
-    ret = rdp_process_pending_call(pending, &state->reply);
+    ret = rdp_process_pending_call(state, pending, &state->reply);
     if (ret != EOK) {
-        if (state->reply != NULL) {
-            dbus_message_unref(state->reply);
-        }
-
-        state->reply = NULL;
-
         tevent_req_error(req, ret);
         return;
     }
@@ -253,35 +214,17 @@ errno_t _rdp_message_recv(struct tevent_req *req,
                           ...)
 {
     struct rdp_message_state *state;
-    DBusError error;
-    dbus_bool_t bret;
     errno_t ret;
     va_list va;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     state = tevent_req_data(req, struct rdp_message_state);
-    dbus_error_init(&error);
 
     va_start(va, first_arg_type);
-    bret = dbus_message_get_args_valist(state->reply, &error, first_arg_type, va);
+    ret = sbus_parse_message_valist(state->reply, false, first_arg_type, va);
     va_end(va);
 
-    if (bret == false) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse reply\n");
-        ret = EIO;
-        goto done;
-    }
-
-    ret = rdp_error_to_errno(&error);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse message [%s]: %s\n",
-              error.name, error.message);
-        goto done;
-    }
-
-done:
-    dbus_error_free(&error);
     return ret;
 }
 
@@ -317,7 +260,7 @@ static void rdp_message_send_and_reply_done(DBusPendingCall *pending,
                                             void *ptr)
 {
     struct sbus_request *sbus_req;
-    DBusMessage *reply = NULL;
+    DBusMessage *reply;
     dbus_uint32_t serial;
     const char *sender;
     dbus_bool_t dbret;
@@ -325,7 +268,7 @@ static void rdp_message_send_and_reply_done(DBusPendingCall *pending,
 
     sbus_req = talloc_get_type(ptr, struct sbus_request);
 
-    ret = rdp_process_pending_call(pending, &reply);
+    ret = rdp_process_pending_call(sbus_req, pending, &reply);
     if (reply == NULL) {
         /* Something bad happened. Just kill the request. */
         ret = EIO;
@@ -358,10 +301,6 @@ static void rdp_message_send_and_reply_done(DBusPendingCall *pending,
     ret = EOK;
 
 done:
-    if (reply != NULL) {
-        dbus_message_unref(reply);
-    }
-
     if (ret != EOK) {
         /* Something bad happend, just kill the request. */
         talloc_free(sbus_req);

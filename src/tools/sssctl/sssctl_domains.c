@@ -79,14 +79,10 @@ static errno_t sssctl_domain_status_online(struct sss_tool_ctx *tool_ctx,
 {
     sss_sifp_ctx *sifp;
     sss_sifp_error sifp_error;
-    DBusError dbus_error;
     DBusMessage *reply = NULL;
-    DBusMessage *msg = NULL;
+    DBusMessage *msg;
     bool is_online;
-    dbus_bool_t dbret;
     errno_t ret;
-
-    dbus_error_init(&dbus_error);
 
     if (!sssctl_start_sssd(force_start)) {
         ret = ERR_SSSD_NOT_RUNNING;
@@ -100,15 +96,14 @@ static errno_t sssctl_domain_status_online(struct sss_tool_ctx *tool_ctx,
         goto done;
     }
 
-
-    msg = sss_sifp_create_message(domain_path, IFACE_IFP_DOMAINS_DOMAIN,
-                                  IFACE_IFP_DOMAINS_DOMAIN_ISONLINE);
+    msg = sbus_create_message(tool_ctx, SSS_SIFP_ADDRESS, domain_path,
+                              IFACE_IFP_DOMAINS_DOMAIN,
+                              IFACE_IFP_DOMAINS_DOMAIN_ISONLINE);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create D-Bus message\n");
         ret = ENOMEM;
         goto done;
     }
-
 
     sifp_error = sss_sifp_send_message(sifp, msg, &reply);
     if (sifp_error != SSS_SIFP_OK) {
@@ -117,16 +112,9 @@ static errno_t sssctl_domain_status_online(struct sss_tool_ctx *tool_ctx,
         goto done;
     }
 
-    dbret = dbus_message_get_args(reply, &dbus_error,
-                                  DBUS_TYPE_BOOLEAN, &is_online,
-                                  DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse D-Bus reply\n");
-        if (dbus_error_is_set(&dbus_error)) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "%s: %s\n",
-                  dbus_error.name, dbus_error.message);
-        }
-        ret = EIO;
+    ret = sbus_parse_reply(reply, DBUS_TYPE_BOOLEAN, &is_online);
+    if (ret != EOK) {
+        fprintf(stderr, _("Unable to get information from SSSD\n"));
         goto done;
     }
 
@@ -135,15 +123,9 @@ static errno_t sssctl_domain_status_online(struct sss_tool_ctx *tool_ctx,
     ret = EOK;
 
 done:
-    if (msg != NULL) {
-        dbus_message_unref(msg);
-    }
-
     if (reply != NULL) {
         dbus_message_unref(reply);
     }
-
-    dbus_error_free(&dbus_error);
 
     return ret;
 }

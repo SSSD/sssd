@@ -29,6 +29,8 @@ struct sbus_request;
 #include <dbus/dbus.h>
 #include <sys/types.h>
 #include "util/util.h"
+#include "sbus/sssd_dbus_errors.h"
+#include "sbus/sssd_dbus_utils.h"
 
 /* Older platforms (such as RHEL-6) might not have these error constants
  * defined */
