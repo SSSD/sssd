@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2016-06-20 21:24+0200\n"
+"POT-Creation-Date: 2016-06-29 23:29+0200\n"
 "PO-Revision-Date: 2014-06-04 02:04-0400\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
@@ -38,7 +38,8 @@ msgid "Write debug messages to logfiles"
 msgstr "デバッグメッセージをログファイルに書き込む"
 
 #: src/config/SSSDConfig/__init__.py.in:48
-msgid "Ping timeout before restarting service"
+#, fuzzy
+msgid "Watchdog timeout before restarting service"
 msgstr "サービス再起動前の Ping タイムアウト"
 
 #: src/config/SSSDConfig/__init__.py.in:49
@@ -1324,19 +1325,23 @@ msgstr "可能ならばキャッシュから正規化されたグループ名を
 msgid "PAM stack to use"
 msgstr "使用する PAM スタック"
 
-#: src/monitor/monitor.c:3045
+#: src/monitor/monitor.c:2786
 msgid "Become a daemon (default)"
 msgstr "デーモンとして実行（デフォルト）"
 
-#: src/monitor/monitor.c:3047
+#: src/monitor/monitor.c:2788
 msgid "Run interactive (not a daemon)"
 msgstr "対話的に実行（デーモンではない）"
 
-#: src/monitor/monitor.c:3049 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2790 src/tools/sss_debuglevel.c:72
 msgid "Specify a non-default config file"
 msgstr "非標準の設定ファイルの指定"
 
-#: src/monitor/monitor.c:3051
+#: src/monitor/monitor.c:2792
+msgid "Refresh the configuration database, then exit"
+msgstr ""
+
+#: src/monitor/monitor.c:2795
 msgid "Print version number and exit"
 msgstr "バージョン番号を表示して終了する"
 
@@ -1482,7 +1487,7 @@ msgstr "パスワードの期限が切れました。いますぐパスワード
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:642 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_cache.c:642 src/tools/sss_debuglevel.c:70
 msgid "The debug level to run with"
 msgstr "実行するデバッグレベル"
 
@@ -2051,15 +2056,15 @@ msgstr ""
 msgid "Could not open available domains\n"
 msgstr "利用可能なドメインを開けませんでした\n"
 
-#: src/tools/sss_debuglevel.c:40
+#: src/tools/sss_debuglevel.c:41
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sss_debuglevel.c:96
+#: src/tools/sss_debuglevel.c:97
 msgid "Specify debug level you want to set\n"
 msgstr "設定したいデバッグレベルを指定する\n"
 
-#: src/tools/sss_debuglevel.c:102
+#: src/tools/sss_debuglevel.c:103
 msgid "Only one argument expected\n"
 msgstr "引数が一つのみ期待されます\n"
 

@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 1.12.90\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2016-06-20 21:22+0200\n"
+"POT-Creation-Date: 2016-06-29 23:28+0200\n"
 "PO-Revision-Date: 2016-03-19 03:04-0400\n"
 "Last-Translator: Jibec <jean-baptiste@holcroft.fr>\n"
 "Language-Team: French (http://www.transifex.com/projects/p/sssd/language/"
@@ -37,7 +37,7 @@ msgstr ""
 #: sss_groupshow.8.xml:5 sss_usermod.8.xml:5 sss_cache.8.xml:5
 #: sss_debuglevel.8.xml:5 sss_seed.8.xml:5 sssd-ifp.5.xml:5
 #: sss_rpcidmapd.5.xml:5 sss_ssh_authorizedkeys.1.xml:5
-#: sss_ssh_knownhostsproxy.1.xml:5
+#: sss_ssh_knownhostsproxy.1.xml:5 idmap_sss.8.xml:5
 msgid "SSSD Manual pages"
 msgstr "Pages de manuel de SSSD"
 
@@ -52,6 +52,7 @@ msgstr "sss_groupmod"
 #: sss_useradd.8.xml:11 sss_groupadd.8.xml:11 sss_userdel.8.xml:11
 #: sss_groupdel.8.xml:11 sss_groupshow.8.xml:11 sss_usermod.8.xml:11
 #: sss_cache.8.xml:11 sss_debuglevel.8.xml:11 sss_seed.8.xml:11
+#: idmap_sss.8.xml:11
 msgid "8"
 msgstr "8"
 
@@ -80,6 +81,7 @@ msgstr ""
 #: sss_groupshow.8.xml:30 sss_usermod.8.xml:30 sss_cache.8.xml:29
 #: sss_debuglevel.8.xml:30 sss_seed.8.xml:31 sssd-ifp.5.xml:21
 #: sss_ssh_authorizedkeys.1.xml:30 sss_ssh_knownhostsproxy.1.xml:31
+#: idmap_sss.8.xml:20
 msgid "DESCRIPTION"
 msgstr "DESCRIPTION"
 
@@ -12734,6 +12736,71 @@ msgid ""
 msgstr ""
 "Rechercher les clés publiques dans le domaine SSSD <replaceable>DOMAINE</"
 "replaceable> hôte."
+
+#. type: Content of: <reference><refentry><refnamediv><refname>
+#: idmap_sss.8.xml:10 idmap_sss.8.xml:15
+#, fuzzy
+#| msgid "pam_sss"
+msgid "idmap_sss"
+msgstr "pam_sss"
+
+#. type: Content of: <reference><refentry><refnamediv><refpurpose>
+#: idmap_sss.8.xml:16
+msgid "SSSSD's idmap_sss Backend for Winbind"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: idmap_sss.8.xml:22
+msgid ""
+"The idmap_sss module provides a way to call SSSD to map UIDs/GIDs and SIDs. "
+"No database is required in this case as the mapping is done by SSSD."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><title>
+#: idmap_sss.8.xml:29
+#, fuzzy
+#| msgid "SUDO OPTIONS"
+msgid "IDMAP OPTIONS"
+msgstr "OPTIONS DE SUDO"
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: idmap_sss.8.xml:33
+msgid "range = low - high"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: idmap_sss.8.xml:35
+msgid ""
+"Defines the available matching uid and gid range for which the backend is "
+"authoritative."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><title>
+#: idmap_sss.8.xml:43
+#, fuzzy
+#| msgid "EXAMPLE"
+msgid "EXAMPLES"
+msgstr "EXEMPLE"
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: idmap_sss.8.xml:45
+msgid ""
+"This example shows how to configure idmap_sss as the default mapping module."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><programlisting>
+#: idmap_sss.8.xml:50
+#, no-wrap
+msgid ""
+"        [global]\n"
+"        security = domain\n"
+"        workgroup = MAIN\n"
+"\n"
+"        idmap config * : backend        = sss\n"
+"        idmap config * : range          = 200000-2147483647\n"
+"\n"
+"        "
+msgstr ""
 
 #. type: Content of: <refsect1><title>
 #: include/service_discovery.xml:2

@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2016-06-20 21:24+0200\n"
+"POT-Creation-Date: 2016-06-29 23:29+0200\n"
 "PO-Revision-Date: 2014-06-04 02:04-0400\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/sssd/language/"
@@ -47,7 +47,8 @@ msgid "Write debug messages to logfiles"
 msgstr "Escribir los mensajes de depuración a archivos log"
 
 #: src/config/SSSDConfig/__init__.py.in:48
-msgid "Ping timeout before restarting service"
+#, fuzzy
+msgid "Watchdog timeout before restarting service"
 msgstr "Tiempo máximo de ping antes de reiniciar el servicio"
 
 #: src/config/SSSDConfig/__init__.py.in:49
@@ -1360,19 +1361,23 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Pila PAM a usar"
 
-#: src/monitor/monitor.c:3045
+#: src/monitor/monitor.c:2786
 msgid "Become a daemon (default)"
 msgstr "Convertirse en demonio (predeterminado)"
 
-#: src/monitor/monitor.c:3047
+#: src/monitor/monitor.c:2788
 msgid "Run interactive (not a daemon)"
 msgstr "Ejecutarse en forma interactiva (no un demonio)"
 
-#: src/monitor/monitor.c:3049 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2790 src/tools/sss_debuglevel.c:72
 msgid "Specify a non-default config file"
 msgstr "Indicar un archivo de configuración diferente al predeterminado"
 
-#: src/monitor/monitor.c:3051
+#: src/monitor/monitor.c:2792
+msgid "Refresh the configuration database, then exit"
+msgstr ""
+
+#: src/monitor/monitor.c:2795
 msgid "Print version number and exit"
 msgstr "Muestra el número de versión y finaliza"
 
@@ -1519,7 +1524,7 @@ msgstr "La contraseña ha expirado. Modifíquela en este preciso momento."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:642 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_cache.c:642 src/tools/sss_debuglevel.c:70
 msgid "The debug level to run with"
 msgstr "Nivel de depuración en que se debe ejecutar"
 
@@ -2079,15 +2084,15 @@ msgstr ""
 msgid "Could not open available domains\n"
 msgstr ""
 
-#: src/tools/sss_debuglevel.c:40
+#: src/tools/sss_debuglevel.c:41
 msgid "\n"
 msgstr ""
 
-#: src/tools/sss_debuglevel.c:96
+#: src/tools/sss_debuglevel.c:97
 msgid "Specify debug level you want to set\n"
 msgstr ""
 
-#: src/tools/sss_debuglevel.c:102
+#: src/tools/sss_debuglevel.c:103
 msgid "Only one argument expected\n"
 msgstr ""
 

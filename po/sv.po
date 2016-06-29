@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2016-06-20 21:24+0200\n"
+"POT-Creation-Date: 2016-06-29 23:29+0200\n"
 "PO-Revision-Date: 2014-06-07 05:40-0400\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish (http://www.transifex.com/projects/p/sssd/language/"
@@ -38,7 +38,8 @@ msgid "Write debug messages to logfiles"
 msgstr "Skriv felmeddelanden till loggfiler"
 
 #: src/config/SSSDConfig/__init__.py.in:48
-msgid "Ping timeout before restarting service"
+#, fuzzy
+msgid "Watchdog timeout before restarting service"
 msgstr "Ping-tidsgräns före tjänst startas om"
 
 #: src/config/SSSDConfig/__init__.py.in:49
@@ -1344,19 +1345,23 @@ msgstr "Huruvida kanoniska gruppnamn skall slås upp från cachen om möjligt"
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: src/monitor/monitor.c:3045
+#: src/monitor/monitor.c:2786
 msgid "Become a daemon (default)"
 msgstr "Bli en demon (standard)"
 
-#: src/monitor/monitor.c:3047
+#: src/monitor/monitor.c:2788
 msgid "Run interactive (not a daemon)"
 msgstr "Kör interaktivt (inte en demon)"
 
-#: src/monitor/monitor.c:3049 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2790 src/tools/sss_debuglevel.c:72
 msgid "Specify a non-default config file"
 msgstr "Ange en konfigurationsfil annan än standard"
 
-#: src/monitor/monitor.c:3051
+#: src/monitor/monitor.c:2792
+msgid "Refresh the configuration database, then exit"
+msgstr ""
+
+#: src/monitor/monitor.c:2795
 msgid "Print version number and exit"
 msgstr "Skriv ut versionsnumret och avsluta"
 
@@ -1504,7 +1509,7 @@ msgstr "Lösenordet har gått ut.  Ändra ditt lösenord nu."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:642 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_cache.c:642 src/tools/sss_debuglevel.c:70
 msgid "The debug level to run with"
 msgstr "Felsökningsnivån att köra med"
 
@@ -2073,15 +2078,15 @@ msgstr ""
 msgid "Could not open available domains\n"
 msgstr "Kunde inte öppna tillgängliga domäner\n"
 
-#: src/tools/sss_debuglevel.c:40
+#: src/tools/sss_debuglevel.c:41
 msgid "\n"
 msgstr "\n"
 
-#: src/tools/sss_debuglevel.c:96
+#: src/tools/sss_debuglevel.c:97
 msgid "Specify debug level you want to set\n"
 msgstr "Ange felsökningsnivån du vill ställa in\n"
 
-#: src/tools/sss_debuglevel.c:102
+#: src/tools/sss_debuglevel.c:103
 msgid "Only one argument expected\n"
 msgstr "Endast ett argument förväntades\n"
 
