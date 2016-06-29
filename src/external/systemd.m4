@@ -27,6 +27,19 @@ AS_IF([test x$HAVE_SYSTEMD = xyes],
           [AC_MSG_NOTICE([Build without $login_lib_name support])])],
       [AC_MSG_NOTICE([Build without $login_lib_name support])])
 
+AS_IF([test x$HAVE_LIBSYSTEMD = xyes],
+      [daemon_lib_name=libsystemd],
+      [daemon_lib_name=libsystemd-daemon])
+
+AS_IF([test x$HAVE_SYSTEMD = xyes],
+      [PKG_CHECK_MODULES(
+          [SYSTEMD_DAEMON],
+          [$daemon_lib_name],
+          [AC_DEFINE_UNQUOTED([HAVE_SYSTEMD_DAEMON], 1,
+                              [Build with $daemon_lib_name support])],
+          [AC_MSG_NOTICE([Build without $daemon_lib_name support])])],
+      [AC_MSG_NOTICE([Build without $daemon_lib_name support])])
+
 dnl A macro to check presence of journald on the system
 AC_DEFUN([AM_CHECK_JOURNALD],
 [
