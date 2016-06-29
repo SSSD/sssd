@@ -840,10 +840,9 @@ done:
 }
 
 int sysdb_init(TALLOC_CTX *mem_ctx,
-               struct sss_domain_info *domains,
-               bool allow_upgrade)
+               struct sss_domain_info *domains)
 {
-    return sysdb_init_ext(mem_ctx, domains, allow_upgrade, false, 0, 0);
+    return sysdb_init_ext(mem_ctx, domains, false, false, 0, 0);
 }
 
 int sysdb_init_ext(TALLOC_CTX *mem_ctx,

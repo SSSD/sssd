@@ -622,7 +622,7 @@ static errno_t init_domains(struct cache_tool_ctx *ctx,
             return ret;
         }
 
-        ret = sysdb_init(ctx, ctx->domains, false);
+        ret = sysdb_init(ctx, ctx->domains);
         SYSDB_VERSION_ERROR(ret);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,

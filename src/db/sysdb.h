@@ -613,8 +613,7 @@ uint64_t sss_view_ldb_msg_find_attr_as_uint64(struct sss_domain_info *dom,
  * call this function *only* once to initialize the database and get
  * the sysdb ctx */
 int sysdb_init(TALLOC_CTX *mem_ctx,
-               struct sss_domain_info *domains,
-               bool allow_upgrade);
+               struct sss_domain_info *domains);
 
 /* Same as sysdb_init, but additionally allows to change
  * file ownership of the sysdb databases. */
