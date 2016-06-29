@@ -21,6 +21,7 @@
 
 #include "responder/secrets/secsrv_private.h"
 #include "util/crypto/sss_crypto.h"
+#include <time.h>
 #include <ldb.h>
 
 #define MKEY_SIZE (256 / 8)
@@ -166,6 +167,8 @@ char *local_dn_to_path(TALLOC_CTX *mem_ctx,
     return path;
 }
 
+#define LOCAL_SIMPLE_FILTER "(type=simple)"
+
 int local_db_get_simple(TALLOC_CTX *mem_ctx,
                         struct local_context *lctx,
                         const char *req_path,
@@ -173,7 +176,6 @@ int local_db_get_simple(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { "secret", "enctype", NULL };
-    const char *filter = "(type=simple)";
     struct ldb_result *res;
     struct ldb_dn *dn;
     const char *attr_secret;
@@ -187,7 +189,7 @@ int local_db_get_simple(TALLOC_CTX *mem_ctx,
     if (ret != EOK) goto done;
 
     ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
-                     attrs, "%s", filter);
+                     attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
         ret = ENOENT;
         goto done;
@@ -233,7 +235,6 @@ int local_db_list_keys(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { "secret", NULL };
-    const char *filter = "(type=simple)";
     struct ldb_result *res;
     struct ldb_dn *dn;
     char **keys;
@@ -246,7 +247,7 @@ int local_db_list_keys(TALLOC_CTX *mem_ctx,
     if (ret != EOK) goto done;
 
     ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
-                     attrs, "%s", filter);
+                     attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
         ret = ENOENT;
         goto done;
@@ -280,6 +281,40 @@ done:
     return ret;
 }
 
+int local_db_check_containers(TALLOC_CTX *mem_ctx,
+                              struct local_context *lctx,
+                              struct ldb_dn *leaf_dn)
+{
+    static const char *attrs[] = { NULL};
+    struct ldb_result *res = NULL;
+    struct ldb_dn *dn;
+    int num;
+    int ret;
+
+    dn = ldb_dn_copy(mem_ctx, leaf_dn);
+    if (!dn) return ENOMEM;
+
+    /* We need to exclude the leaf as that will be the new child entry,
+     * We also do not care for the synthetic containers that constitute the
+     * base path (cn=<uidnumber>,cn=users,cn=secrets), so in total we remove
+     * 4 components */
+    num = ldb_dn_get_comp_num(dn) - 4;
+
+    for (int i = 0; i < num; i++) {
+        /* remove the child first (we do not want to check the leaf) */
+        if (!ldb_dn_remove_child_components(dn, 1)) return EFAULT;
+
+        /* and check the parent container exists */
+        ret = ldb_search(lctx->ldb, mem_ctx, &res, dn, LDB_SCOPE_BASE,
+                         attrs, LOCAL_SIMPLE_FILTER);
+        if (ret != LDB_SUCCESS) return ENOENT;
+        if (res->count != 1) return ENOENT;
+        talloc_free(res);
+    }
+
+    return EOK;
+}
+
 int local_db_put_simple(TALLOC_CTX *mem_ctx,
                         struct local_context *lctx,
                         const char *req_path,
@@ -296,12 +331,14 @@ int local_db_put_simple(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* FIXME: verify containers (except for user's namespace) exists */
-
-    ret = local_encrypt(lctx, msg, secret, enctype, &enc_secret);
+    ret = local_db_dn(msg, lctx->ldb, req_path, &msg->dn);
     if (ret != EOK) goto done;
 
-    ret = local_db_dn(msg, lctx->ldb, req_path, &msg->dn);
+    /* make sure containers exist */
+    ret = local_db_check_containers(msg, lctx, msg->dn);
+    if (ret != EOK) goto done;
+
+    ret = local_encrypt(lctx, msg, secret, enctype, &enc_secret);
     if (ret != EOK) goto done;
 
     ret = ldb_msg_add_string(msg, "type", "simple");
@@ -311,6 +348,9 @@ int local_db_put_simple(TALLOC_CTX *mem_ctx,
     if (ret != EOK) goto done;
 
     ret = ldb_msg_add_string(msg, "secret", enc_secret);
+    if (ret != EOK) goto done;
+
+    ret = ldb_msg_add_fmt(msg, "creationTime", "%lu", time(NULL));
     if (ret != EOK) goto done;
 
     ret = ldb_add(lctx->ldb, msg);
@@ -343,6 +383,46 @@ int local_db_delete(TALLOC_CTX *mem_ctx,
     }
 
 done:
+    return ret;
+}
+
+int local_db_create(TALLOC_CTX *mem_ctx,
+                    struct local_context *lctx,
+                    const char *req_path)
+{
+    struct ldb_message *msg;
+    int ret;
+
+    msg = ldb_msg_new(mem_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = local_db_dn(msg, lctx->ldb, req_path, &msg->dn);
+    if (ret != EOK) goto done;
+
+    /* make sure containers exist */
+    ret = local_db_check_containers(msg, lctx, msg->dn);
+    if (ret != EOK) goto done;
+
+    ret = ldb_msg_add_string(msg, "type", "container");
+    if (ret != EOK) goto done;
+
+    ret = ldb_msg_add_fmt(msg, "creationTime", "%lu", time(NULL));
+    if (ret != EOK) goto done;
+
+    ret = ldb_add(lctx->ldb, msg);
+    if (ret != EOK) {
+        if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) ret = EEXIST;
+        else ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(msg);
     return ret;
 }
 
@@ -411,6 +491,7 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     char *secret;
     char **keys;
     int nkeys;
+    int plen;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct local_secret_state);
@@ -487,6 +568,20 @@ struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
 
     case HTTP_DELETE:
         ret = local_db_delete(state, lctx, req_path);
+        if (ret) goto done;
+        break;
+
+    case HTTP_POST:
+        plen = strlen(req_path);
+
+        if (req_path[plen - 1] != '/') {
+            ret = EINVAL;
+            goto done;
+        }
+
+        req_path[plen - 1] = '\0';
+
+        ret = local_db_create(state, lctx, req_path);
         if (ret) goto done;
         break;
 
