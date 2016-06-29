@@ -766,6 +766,7 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     ZERO_STRUCT(homedir_ctx);
 
     homedir_ctx.uid = uid;
+    homedir_ctx.username = fqname;
     homedir_ctx.domain = dom->name;
     homedir_ctx.flatname = dom->flat_name;
     homedir_ctx.config_homedir_substr = dom->homedir_substr;
