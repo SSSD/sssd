@@ -147,6 +147,7 @@
 #define SYSDB_SUBDOMAIN_ENUM "enumerate"
 #define SYSDB_SUBDOMAIN_FOREST "memberOfForest"
 #define SYSDB_SUBDOMAIN_TRUST_DIRECTION "trustDirection"
+#define SYSDB_UPN_SUFFIXES "upnSuffixes"
 
 #define SYSDB_BASE_ID "baseID"
 #define SYSDB_ID_RANGE_SIZE "idRangeSize"
@@ -475,7 +476,8 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
                                      const char *realm,
                                      const char *flat,
                                      const char *id,
-                                     const char* forest);
+                                     const char *forest,
+                                     struct ldb_message_element *alt_dom_suf);
 
 errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name);
 

@@ -631,7 +631,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     }
 
     ret = sysdb_master_domain_add_info(state->sdom->dom, state->realm,
-                                       flat_name, master_sid, forest);
+                                       flat_name, master_sid, forest, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info\n");
         tevent_req_error(req, ret);

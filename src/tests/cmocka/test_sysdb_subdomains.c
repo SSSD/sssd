@@ -165,7 +165,8 @@ static void test_sysdb_master_domain_ops(void **state)
         talloc_get_type(*state, struct subdom_test_ctx);
 
     ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
-                                       "realm1", "flat1", "id1", "forest1");
+                                       "realm1", "flat1", "id1", "forest1",
+                                       NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_master_domain_update(test_ctx->tctx->dom);
@@ -177,7 +178,8 @@ static void test_sysdb_master_domain_ops(void **state)
     assert_string_equal(test_ctx->tctx->dom->forest, "forest1");
 
     ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
-                                       "realm2", "flat2", "id2", "forest2");
+                                       "realm2", "flat2", "id2", "forest2",
+                                       NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_master_domain_update(test_ctx->tctx->dom);
@@ -298,7 +300,8 @@ static void test_sysdb_link_forest_root_ad(void **state)
                                        TEST_REALM,
                                        TEST_FLAT_NAME,
                                        TEST_SID,
-                                       TEST_FOREST);
+                                       TEST_FOREST,
+                                       NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
@@ -374,7 +377,8 @@ static void test_sysdb_link_forest_member_ad(void **state)
                                        child_dom[1],
                                        child_dom[2],
                                        child_dom[3],
-                                       TEST_FOREST);
+                                       TEST_FOREST,
+                                       NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
@@ -457,7 +461,8 @@ static void test_sysdb_link_ad_multidom(void **state)
                                        TEST_REALM,
                                        TEST_FLAT_NAME,
                                        TEST_SID,
-                                       TEST_FOREST);
+                                       TEST_FOREST,
+                                       NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(main_dom1->sysdb,
@@ -477,7 +482,8 @@ static void test_sysdb_link_ad_multidom(void **state)
                                        TEST_REALM2,
                                        TEST_FLAT_NAME2,
                                        TEST_SID2,
-                                       TEST_FOREST2);
+                                       TEST_FOREST2,
+                                       NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(main_dom2->sysdb,

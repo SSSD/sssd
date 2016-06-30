@@ -855,6 +855,7 @@ static void ipa_subdomains_master_done(struct tevent_req *subreq)
     const char *flat = NULL;
     const char *id = NULL;
     const char *realm = NULL;
+    struct ldb_message_element *alternative_domain_suffixes = NULL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -879,6 +880,12 @@ static void ipa_subdomains_master_done(struct tevent_req *subreq)
         if (ret != EOK) {
             goto done;
         }
+
+        ret = sysdb_attrs_get_el_ext(reply[0], IPA_ADDITIONAL_SUFFIXES, false,
+                                     &alternative_domain_suffixes);
+        if (ret != EOK && ret != ENOENT) {
+            goto done;
+        }
     } else {
         /* All search paths are searched and no master domain record was
          * found.
@@ -896,7 +903,8 @@ static void ipa_subdomains_master_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_master_domain_add_info(state->domain, realm, flat, id, NULL);
+    ret = sysdb_master_domain_add_info(state->domain, realm, flat, id, NULL,
+                                       alternative_domain_suffixes);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add master domain info "
               "[%d]: %s\n", ret, sss_strerror(ret));

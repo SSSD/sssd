@@ -448,6 +448,7 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     const char *tmp_str;
+    struct ldb_message_element **tmp_el;
     struct ldb_dn *basedn;
     struct ldb_result *res;
     const char *attrs[] = {"cn",
@@ -455,6 +456,7 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_FOREST,
+                           SYSDB_UPN_SUFFIXES,
                            NULL};
     char *view_name = NULL;
 
@@ -537,6 +539,19 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
             ret = ENOMEM;
             goto done;
         }
+    }
+
+    tmp_el = ldb_msg_find_element(res->msgs[0], SYSDB_UPN_SUFFIXES);
+    if (tmp_el != NULL) {
+        talloc_free(domain->upn_suffixes);
+        domain->upn_suffixes = sss_ldb_el_to_string_list(domain, tmp_el);
+        if (domain->upn_suffixes == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_ldb_el_to_string_list failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        talloc_zfree(domain->upn_suffixes);
     }
 
     ret = sysdb_get_view_name(tmp_ctx, domain->sysdb, &view_name);
@@ -633,7 +648,8 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
                                      const char *realm,
                                      const char *flat,
                                      const char *id,
-                                     const char* forest)
+                                     const char *forest,
+                                     struct ldb_message_element *upn_suffixes)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -720,11 +736,40 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
-
         ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_REALM, realm);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
+        }
+
+        do_update = true;
+    }
+
+    if (upn_suffixes != NULL) {
+        talloc_free(discard_const(upn_suffixes->name));
+        upn_suffixes->name = talloc_strdup(upn_suffixes, SYSDB_UPN_SUFFIXES);
+        if (upn_suffixes->name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_msg_add(msg, upn_suffixes, LDB_FLAG_MOD_REPLACE);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        do_update = true;
+    } else {
+        /* Remove alternative_domain_suffixes from the cache */
+        if (domain->upn_suffixes != NULL) {
+            ret = ldb_msg_add_empty(msg, SYSDB_UPN_SUFFIXES,
+                                    LDB_FLAG_MOD_DELETE, NULL);
+            if (ret != LDB_SUCCESS) {
+                ret = sysdb_error_to_errno(ret);
+                goto done;
+            }
         }
 
         do_update = true;

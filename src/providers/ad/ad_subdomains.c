@@ -1131,7 +1131,7 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
     }
 
     ret = sysdb_master_domain_add_info(state->be_ctx->domain, realm,
-                                       flat_name, master_sid, forest);
+                                       flat_name, master_sid, forest, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info [%d]: %s\n",
               ret, sss_strerror(ret));
