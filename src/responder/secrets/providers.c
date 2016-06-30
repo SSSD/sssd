@@ -203,7 +203,7 @@ int sec_http_reply_with_body(TALLOC_CTX *mem_ctx, struct sec_data *reply,
     reply->data = talloc_asprintf(mem_ctx,
                         "HTTP/1.1 %d %s\r\n"
                         "Content-Type: %s\r\n"
-                        "Content-Length: %lu\r\n"
+                        "Content-Length: %zu\r\n"
                         "\r\n",
                         sec_http_status_format_table[code].status,
                         sec_http_status_format_table[code].text,
