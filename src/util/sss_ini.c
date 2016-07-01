@@ -332,7 +332,25 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
 #endif
 }
 
+struct ref_array *
+sss_ini_get_ra_success_list(struct sss_ini_initdata *init_data)
+{
+#ifdef HAVE_LIBINI_CONFIG_V1_3
+    return init_data->ra_success_list;
+#else
+    return NULL;
+#endif /* HAVE_LIBINI_CONFIG_V1_3 */
+}
 
+struct ref_array *
+sss_ini_get_ra_error_list(struct sss_ini_initdata *init_data)
+{
+#ifdef HAVE_LIBINI_CONFIG_V1_3
+    return init_data->ra_error_list;
+#else
+    return NULL;
+#endif /* HAVE_LIBINI_CONFIG_V1_3 */
+}
 
 /* Get configuration object */
 
@@ -544,19 +562,13 @@ error:
     return ret;
 }
 
-int sss_ini_call_validators(struct sss_ini_initdata *data,
-                            const char *rules_path)
-{
 #ifdef HAVE_LIBINI_CONFIG_V1_3
+static int sss_ini_call_validators_errobj(struct sss_ini_initdata *data,
+                                          const char *rules_path,
+                                          struct ini_errobj *errobj)
+{
     int ret;
     struct ini_cfgobj *rules_cfgobj = NULL;
-    struct ini_errobj *errobj = NULL;
-
-    ret = ini_errobj_create(&errobj);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to create error list\n");
-        goto done;
-    }
 
     ret = ini_rules_read_from_file(rules_path, &rules_cfgobj);
     if (ret != EOK) {
@@ -572,6 +584,35 @@ int sss_ini_call_validators(struct sss_ini_initdata *data,
         goto done;
     }
 
+done:
+    if (rules_cfgobj) ini_config_destroy(rules_cfgobj);
+
+    return ret;
+}
+#endif /* HAVE_LIBINI_CONFIG_V1_3 */
+
+int sss_ini_call_validators(struct sss_ini_initdata *data,
+                            const char *rules_path)
+{
+#ifdef HAVE_LIBINI_CONFIG_V1_3
+    int ret;
+    struct ini_errobj *errobj = NULL;
+
+    ret = ini_errobj_create(&errobj);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to create error list\n");
+        goto done;
+    }
+
+    ret = sss_ini_call_validators_errobj(data,
+                                         rules_path,
+                                         errobj);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to get errors from validators.\n");
+        goto done;
+    }
+
     /* Do not error out when validators find some issue */
     while (!ini_errobj_no_more_msgs(errobj)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -579,14 +620,93 @@ int sss_ini_call_validators(struct sss_ini_initdata *data,
         ini_errobj_next(errobj);
     }
 
-done:
-    if (rules_cfgobj) ini_config_destroy(rules_cfgobj);
-    ini_errobj_destroy(&errobj);
+    ret = EOK;
 
+done:
+    ini_errobj_destroy(&errobj);
     return ret;
 #else
     DEBUG(SSSDBG_TRACE_FUNC,
           "libini_config does not support configuration file validataion\n");
+    return EOK;
+#endif /* HAVE_LIBINI_CONFIG_V1_3 */
+}
+
+int sss_ini_call_validators_strs(TALLOC_CTX *mem_ctx,
+                                 struct sss_ini_initdata *data,
+                                 const char *rules_path,
+                                 char ***_errors,
+                                 size_t *_num_errors)
+{
+#ifdef HAVE_LIBINI_CONFIG_V1_3
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ini_errobj *errobj = NULL;
+    int ret;
+    size_t num_errors;
+    char **errors = NULL;
+
+    if (_num_errors == NULL || _errors == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = ini_errobj_create(&errobj);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sss_ini_call_validators_errobj(data,
+                                         rules_path,
+                                         errobj);
+    if (ret != EOK) {
+        goto done;
+    }
+    num_errors = ini_errobj_count(errobj);
+    if (num_errors == 0) {
+        *_num_errors = num_errors;
+        goto done;
+    }
+
+    errors = talloc_array(tmp_ctx, char *, num_errors);
+    if (errors == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (int i = 0; i < num_errors; i++) {
+        errors[i] = talloc_strdup(errors, ini_errobj_get_msg(errobj));
+        if (errors[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ini_errobj_next(errobj);
+    }
+
+    *_num_errors = num_errors;
+    *_errors = talloc_steal(mem_ctx, errors);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    ini_errobj_destroy(&errobj);
+
+    return ret;
+
+#else
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "libini_config does not support configuration file validataion\n");
+
+    if (_num_errors == NULL || _errors == NULL) {
+        return EINVAL;
+    }
+
+    _num_errors = 0;
     return EOK;
 #endif /* HAVE_LIBINI_CONFIG_V1_3 */
 }
