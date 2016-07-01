@@ -267,6 +267,7 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("backup-local-data", "Backup local data", 0, sssctl_backup_local_data),
         SSS_TOOL_COMMAND("restore-local-data", "Restore local data from backup", 0, sssctl_restore_local_data),
         SSS_TOOL_COMMAND("remove-cache", "Backup local data and remove cached content", 0, sssctl_remove_cache),
+        SSS_TOOL_COMMAND("upgrade-cache", "Perform cache upgrade", ERR_SYSDB_VERSION_TOO_OLD, sssctl_upgrade_cache),
         SSS_TOOL_DELIMITER("Log files tools:"),
         SSS_TOOL_COMMAND("remove-logs", "Remove existing SSSD log files", 0, sssctl_remove_logs),
         SSS_TOOL_COMMAND("fetch-logs", "Archive SSSD log files in tarball", 0, sssctl_fetch_logs),

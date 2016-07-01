@@ -22,7 +22,9 @@
 #include <stdio.h>
 
 #include "util/util.h"
+#include "db/sysdb.h"
 #include "tools/common/sss_tools.h"
+#include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
 
 #define CACHE_FILE(db) " " DB_PATH "/" db
@@ -252,6 +254,34 @@ errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
         sssctl_restore(opts.start, opts.start);
     } else {
         sssctl_start_sssd(opts.start);
+    }
+
+    return EOK;
+}
+
+errno_t sssctl_upgrade_cache(struct sss_cmdline *cmdline,
+                             struct sss_tool_ctx *tool_ctx,
+                             void *pvt)
+{
+    struct sysdb_upgrade_ctx db_up_ctx;
+    errno_t ret;
+
+    if (sss_deamon_running()) {
+        return ERR_SSSD_RUNNING;
+    }
+
+    ret = confdb_get_domains(tool_ctx->confdb, &tool_ctx->domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured.\n");
+        return ret;
+    }
+
+    db_up_ctx.cdb = tool_ctx->confdb;
+    ret = sysdb_init_ext(tool_ctx, tool_ctx->domains, &db_up_ctx,
+                         true, 0, 0);
+    if (ret != EOK) {
+        SYSDB_VERSION_ERROR_DAEMON(ret);
+        return ret;
     }
 
     return EOK;

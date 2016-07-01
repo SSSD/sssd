@@ -76,6 +76,10 @@ errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt);
 
+errno_t sssctl_upgrade_cache(struct sss_cmdline *cmdline,
+                             struct sss_tool_ctx *tool_ctx,
+                             void *pvt);
+
 errno_t sssctl_remove_logs(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt);
