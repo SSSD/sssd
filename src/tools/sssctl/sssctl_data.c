@@ -34,6 +34,7 @@
 
 struct sssctl_data_opts {
     int override;
+    int restore;
     int start;
     int stop;
     int restart;
@@ -148,6 +149,39 @@ errno_t sssctl_backup_local_data(struct sss_cmdline *cmdline,
     return ret;
 }
 
+static errno_t sssctl_restore(bool force_start, bool force_restart)
+{
+    errno_t ret;
+
+    if (!sssctl_start_sssd(force_start)) {
+        return ERR_SSSD_NOT_RUNNING;
+    }
+
+    if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
+        ret = sssctl_run_command("sss_override user-import "
+                                 SSS_BACKUP_USER_OVERRIDES);
+        if (ret != EOK) {
+            fprintf(stderr, _("Unable to import user overrides\n"));
+            return ret;
+        }
+    }
+
+    if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
+        ret = sssctl_run_command("sss_override group-import "
+                                 SSS_BACKUP_GROUP_OVERRIDES);
+        if (ret != EOK) {
+            fprintf(stderr, _("Unable to import group overrides\n"));
+            return ret;
+        }
+    }
+
+    sssctl_restart_sssd(force_restart);
+
+    ret = EOK;
+
+    return ret;
+}
+
 errno_t sssctl_restore_local_data(struct sss_cmdline *cmdline,
                                   struct sss_tool_ctx *tool_ctx,
                                   void *pvt)
@@ -168,32 +202,7 @@ errno_t sssctl_restore_local_data(struct sss_cmdline *cmdline,
         return ret;
     }
 
-    if (!sssctl_start_sssd(opts.start)) {
-        return ERR_SSSD_NOT_RUNNING;
-    }
-
-
-    if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
-        ret = sssctl_run_command("sss_override user-import "
-                                 SSS_BACKUP_USER_OVERRIDES);
-        if (ret != EOK) {
-            fprintf(stderr, _("Unable to import user overrides\n"));
-            return ret;
-        }
-    }
-
-    if (sssctl_backup_file_exists(SSS_BACKUP_USER_OVERRIDES)) {
-        ret = sssctl_run_command("sss_override group-import "
-                                 SSS_BACKUP_GROUP_OVERRIDES);
-        if (ret != EOK) {
-            fprintf(stderr, _("Unable to import group overrides\n"));
-            return ret;
-        }
-    }
-
-    sssctl_restart_sssd(opts.restart);
-
-    return ret;
+    return sssctl_restore(opts.start, opts.restart);
 }
 
 errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
@@ -206,7 +215,9 @@ errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
     /* Parse command line. */
     struct poptOption options[] = {
         {"override", 'o', POPT_ARG_NONE, &opts.override, 0, _("Override existing backup"), NULL },
-        {"stop", 's', POPT_ARG_NONE, &opts.stop, 0, _("Stop SSSD if it is running"), NULL },
+        {"restore", 'r', POPT_ARG_NONE, &opts.restore, 0, _("Create clean cache files and import local data"), NULL },
+        {"stop", 'p', POPT_ARG_NONE, &opts.stop, 0, _("Stop SSSD before removing the cache"), NULL },
+        {"start", 's', POPT_ARG_NONE, &opts.start, 0, _("Start SSSD when the cache is removed"), NULL },
         POPT_TABLEEND
     };
 
@@ -217,6 +228,7 @@ errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
     }
 
     if (!sssctl_stop_sssd(opts.stop)) {
+        fprintf(stderr, "Unable to remove the cache unless SSSD is stopped.\n");
         return ERR_SSSD_RUNNING;
     }
 
@@ -233,6 +245,13 @@ errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
     if (ret != EOK) {
         fprintf(stderr, _("Unable to remove cache files\n"));
         return ret;
+    }
+
+    if (opts.restore) {
+        printf(_("Restoring local data...\n"));
+        sssctl_restore(opts.start, opts.start);
+    } else {
+        sssctl_start_sssd(opts.start);
     }
 
     return EOK;
