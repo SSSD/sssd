@@ -176,7 +176,7 @@
                         Smartcard is inserted the login manager will call a PAM
                         stack which includes a line like
                         <programlisting>
-                            auth sufficient pam_sss.so allow_missing_name
+auth sufficient pam_sss.so allow_missing_name
                         </programlisting>
                         In this case SSSD will try to determine the user name
                         based on the content of the Smartcard, returns it to

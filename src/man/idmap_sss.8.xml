@@ -47,13 +47,12 @@
         </para>
 
         <programlisting format="linespecific">
-        [global]
-        security = domain
-        workgroup = MAIN
+[global]
+security = domain
+workgroup = MAIN
 
-        idmap config * : backend        = sss
-        idmap config * : range          = 200000-2147483647
-
+idmap config * : backend        = sss
+idmap config * : range          = 200000-2147483647
         </programlisting>
     </refsect1>
 
