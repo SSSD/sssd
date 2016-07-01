@@ -257,20 +257,20 @@ int main(int argc, const char **argv)
 {
     struct sss_route_cmd commands[] = {
         SSS_TOOL_DELIMITER("SSSD Status:"),
-        SSS_TOOL_COMMAND("list-domains", "List available domains", sssctl_list_domains),
-        SSS_TOOL_COMMAND("domain-status", "Print information about domain", sssctl_domain_status),
+        SSS_TOOL_COMMAND("list-domains", "List available domains", 0, sssctl_list_domains),
+        SSS_TOOL_COMMAND("domain-status", "Print information about domain", 0, sssctl_domain_status),
         SSS_TOOL_DELIMITER("Information about cached content:"),
-        SSS_TOOL_COMMAND("user", "Information about cached user", sssctl_user),
-        SSS_TOOL_COMMAND("group", "Information about cached group", sssctl_group),
-        SSS_TOOL_COMMAND("netgroup", "Information about cached netgroup", sssctl_netgroup),
+        SSS_TOOL_COMMAND("user", "Information about cached user", 0, sssctl_user),
+        SSS_TOOL_COMMAND("group", "Information about cached group", 0, sssctl_group),
+        SSS_TOOL_COMMAND("netgroup", "Information about cached netgroup", 0, sssctl_netgroup),
         SSS_TOOL_DELIMITER("Local data tools:"),
-        SSS_TOOL_COMMAND("backup-local-data", "Backup local data", sssctl_backup_local_data),
-        SSS_TOOL_COMMAND("restore-local-data", "Restore local data from backup", sssctl_restore_local_data),
-        SSS_TOOL_COMMAND("remove-cache", "Backup local data and remove cached content", sssctl_remove_cache),
+        SSS_TOOL_COMMAND("backup-local-data", "Backup local data", 0, sssctl_backup_local_data),
+        SSS_TOOL_COMMAND("restore-local-data", "Restore local data from backup", 0, sssctl_restore_local_data),
+        SSS_TOOL_COMMAND("remove-cache", "Backup local data and remove cached content", 0, sssctl_remove_cache),
         SSS_TOOL_DELIMITER("Log files tools:"),
-        SSS_TOOL_COMMAND("remove-logs", "Remove existing SSSD log files", sssctl_remove_logs),
-        SSS_TOOL_COMMAND("fetch-logs", "Archive SSSD log files in tarball", sssctl_fetch_logs),
-        {NULL, NULL, NULL}
+        SSS_TOOL_COMMAND("remove-logs", "Remove existing SSSD log files", 0, sssctl_remove_logs),
+        SSS_TOOL_COMMAND("fetch-logs", "Archive SSSD log files in tarball", 0, sssctl_fetch_logs),
+        {NULL, NULL, 0, NULL}
     };
 
     return sss_tool_main(argc, argv, commands, NULL);

@@ -29,12 +29,14 @@
 struct sss_tool_ctx {
     struct confdb_ctx *confdb;
 
+    errno_t init_err;
     char *default_domain;
     struct sss_domain_info *domains;
 };
 
-struct sss_tool_ctx *sss_tool_init(TALLOC_CTX *mem_ctx,
-                                   int *argc, const char **argv);
+errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
+                      int *argc, const char **argv,
+                      struct sss_tool_ctx **_tool_ctx);
 
 struct sss_cmdline;
 
@@ -43,12 +45,13 @@ typedef errno_t
                 struct sss_tool_ctx *tool_ctx,
                 void *pvt);
 
-#define SSS_TOOL_COMMAND(cmd, msg, fn) {cmd, _(msg), fn}
-#define SSS_TOOL_DELIMITER(message) {"", (message), NULL}
+#define SSS_TOOL_COMMAND(cmd, msg, err, fn) {cmd, _(msg), err, fn}
+#define SSS_TOOL_DELIMITER(message) {"", (message), 0, NULL}
 
 struct sss_route_cmd {
     const char *command;
     const char *description;
+    errno_t handles_init_err;
     sss_route_fn fn;
 };
 

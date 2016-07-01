@@ -136,7 +136,6 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_init(mem_ctx, domains);
-    SYSDB_VERSION_ERROR(ret);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not initialize connection to the sysdb\n");
@@ -178,8 +177,9 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-struct sss_tool_ctx *sss_tool_init(TALLOC_CTX *mem_ctx,
-                                   int *argc, const char **argv)
+errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
+                      int *argc, const char **argv,
+                      struct sss_tool_ctx **_tool_ctx)
 {
     struct sss_tool_ctx *tool_ctx;
     errno_t ret;
@@ -187,7 +187,7 @@ struct sss_tool_ctx *sss_tool_init(TALLOC_CTX *mem_ctx,
     tool_ctx = talloc_zero(mem_ctx, struct sss_tool_ctx);
     if (tool_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
-        return NULL;
+        return ENOMEM;
     }
 
     sss_tool_common_opts(tool_ctx, argc, argv);
@@ -221,11 +221,16 @@ struct sss_tool_ctx *sss_tool_init(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
 done:
-    if (ret != EOK) {
-        talloc_zfree(tool_ctx);
+    switch (ret) {
+    case EOK:
+    case ERR_SYSDB_VERSION_TOO_OLD:
+        *_tool_ctx = tool_ctx;
+        break;
+    default:
+        break;
     }
 
-    return tool_ctx;
+    return ret;
 }
 
 static bool sss_tool_is_delimiter(struct sss_route_cmd *command)
@@ -235,6 +240,16 @@ static bool sss_tool_is_delimiter(struct sss_route_cmd *command)
     }
 
     return false;
+}
+
+static bool sss_tools_handles_init_error(struct sss_route_cmd *command,
+                                         errno_t init_err)
+{
+    if (init_err == EOK) {
+        return true;
+    }
+
+    return command->handles_init_err == init_err;
 }
 
 static size_t sss_tool_max_length(struct sss_route_cmd *commands)
@@ -315,6 +330,14 @@ errno_t sss_tool_route(int argc, const char **argv,
             cmdline.command = argv[1];
             cmdline.argc = argc - 2;
             cmdline.argv = argv + 2;
+
+            if (!sss_tools_handles_init_error(&commands[i], tool_ctx->init_err)) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "Command %s does not handle initialization error [%d] %s\n",
+                      cmdline.command, tool_ctx->init_err,
+                      sss_strerror(tool_ctx->init_err));
+                return tool_ctx->init_err;
+            }
 
             return commands[i].fn(&cmdline, tool_ctx, pvt);
         }
@@ -477,15 +500,17 @@ int sss_tool_main(int argc, const char **argv,
         return EXIT_FAILURE;
     }
 
-    tool_ctx = sss_tool_init(NULL, &argc, argv);
-    if (tool_ctx == NULL) {
+    ret = sss_tool_init(NULL, &argc, argv, &tool_ctx);
+    if (ret == ERR_SYSDB_VERSION_TOO_OLD) {
+        tool_ctx->init_err = ret;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tool context\n");
         return EXIT_FAILURE;
     }
 
     ret = sss_tool_route(argc, argv, tool_ctx, commands, pvt);
+    SYSDB_VERSION_ERROR(ret);
     talloc_free(tool_ctx);
-
     if (ret != EOK) {
         return EXIT_FAILURE;
     }
