@@ -70,12 +70,13 @@ class SssdLdb(object):
             raise ValueError("Unknown entry type\n")
         return "cn=%s,cn=%s,cn=sysdb" % (rdn, self._domain_name)
 
-    def _basedn(self, name, entry_type):
-        return "name=%s,%s" % (name, self._entry_basedn(entry_type))
+    def _basedn(self, name, domain, entry_type):
+        return "name=%s@%s,%s" % (name, domain.lower(), self._entry_basedn(entry_type))
 
-    def get_entry_attr(self, cache_type, entry_type, name, attr):
+    def get_entry_attr(self, cache_type, entry_type, name, domain, attr):
         dbconn = self._get_dbconn(cache_type)
-        basedn = self._basedn(name, entry_type)
+        basedn = self._basedn(name, domain, entry_type)
+        print basedn
 
         res = dbconn.search(base=basedn, scope=ldb.SCOPE_BASE, attrs=[attr])
         if res.count != 1:

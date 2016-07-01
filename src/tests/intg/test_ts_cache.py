@@ -36,6 +36,7 @@ from util import unindent
 from util import run_shell
 
 LDAP_BASE_DN = "dc=example,dc=com"
+SSSD_DOMAIN = "LDAP"
 
 SCHEMA_RFC2307 = "rfc2307"
 SCHEMA_RFC2307_BIS = "rfc2307bis"
@@ -207,26 +208,28 @@ def invalidate_user(name):
     subprocess.call(["sss_cache", "-u", name])
 
 
-def get_attrs(ldb_conn, type, name, attr_list):
+def get_attrs(ldb_conn, type, name, domain, attr_list):
     sysdb_attrs = dict()
     ts_attrs = dict()
 
     for attr in attr_list:
         sysdb_attrs[attr] = ldb_conn.get_entry_attr(
                                      sssd_ldb.CacheType.sysdb,
-                                     type, name, attr)
+                                     type, name, domain, attr)
         ts_attrs[attr] = ldb_conn.get_entry_attr(
                                      sssd_ldb.CacheType.timestamps,
-                                     type, name, attr)
+                                     type, name, domain, attr)
     return (sysdb_attrs, ts_attrs)
 
 
-def get_group_attrs(ldb_conn, name, attr_list):
-    return get_attrs(ldb_conn, sssd_ldb.TsCacheEntry.group, name, attr_list)
+def get_group_attrs(ldb_conn, name, domain, attr_list):
+    return get_attrs(ldb_conn, sssd_ldb.TsCacheEntry.group,
+                     name, domain, attr_list)
 
 
-def get_user_attrs(ldb_conn, name, attr_list):
-    return get_attrs(ldb_conn, sssd_ldb.TsCacheEntry.user, name, attr_list)
+def get_user_attrs(ldb_conn, name, domain, attr_list):
+    return get_attrs(ldb_conn, sssd_ldb.TsCacheEntry.user,
+                     name, domain, attr_list)
 
 
 def assert_same_attrval(adict1, adict2, attr_name):
@@ -243,7 +246,8 @@ def prime_cache_group(ldb_conn, name, members):
     ent.assert_group_by_name(
         name,
         dict(mem=ent.contains_only(*members)))
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, name, TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, name,
+                                            SSSD_DOMAIN, TS_ATTRLIST)
     assert_same_attrval(sysdb_attrs, ts_attrs, "dataExpireTimestamp")
     assert_same_attrval(sysdb_attrs, ts_attrs, "originalModifyTimestamp")
 
@@ -260,7 +264,8 @@ def prime_cache_user(ldb_conn, name, primary_gid):
     (res, errno, gids) = sssd_id.call_sssd_initgroups(name, primary_gid)
     assert res == sssd_id.NssReturnCode.SUCCESS
 
-    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, name, TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, name,
+                                           SSSD_DOMAIN, TS_ATTRLIST)
     assert_same_attrval(sysdb_attrs, ts_attrs, "dataExpireTimestamp")
     assert_same_attrval(sysdb_attrs, ts_attrs, "originalModifyTimestamp")
 
@@ -286,7 +291,8 @@ def test_group_2307bis_update_same_modstamp(ldap_conn,
     ent.assert_group_by_name(
         "group1",
         dict(mem=ent.contains_only("user1", "user11", "user21")))
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
@@ -318,7 +324,8 @@ def test_group_2307bis_update_same_attrs(ldap_conn,
     ent.assert_group_by_name(
         "group1",
         dict(mem=ent.contains_only("user1", "user11", "user21")))
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
@@ -347,7 +354,8 @@ def test_group_2307bis_update_diff_attrs(ldap_conn,
     ent.assert_group_by_name(
         "group1",
         dict(mem=ent.contains_only("user11", "user21")))
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
@@ -375,7 +383,8 @@ def test_group_2307bis_delete_group(ldap_conn,
     with pytest.raises(KeyError):
         grp.getgrnam("group1")
 
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
     assert sysdb_attrs.get("dataExpireTimestamp") is None
     assert sysdb_attrs.get("originalModifyTimestamp") is None
     assert ts_attrs.get("dataExpireTimestamp") is None
@@ -397,7 +406,8 @@ def test_group_2307_update_same_modstamp(ldap_conn,
     ent.assert_group_by_name(
         "group1",
         dict(mem=ent.contains_only("user1", "user11", "user21")))
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
@@ -429,7 +439,8 @@ def test_group_2307_update_same_attrs(ldap_conn,
     ent.assert_group_by_name(
         "group1",
         dict(mem=ent.contains_only("user1", "user11", "user21")))
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
@@ -457,7 +468,8 @@ def test_group_2307_update_diff_attrs(ldap_conn,
     ent.assert_group_by_name(
         "group1",
         dict(mem=ent.contains_only("user11", "user21")))
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
@@ -485,7 +497,8 @@ def test_group_2307_delete_group(ldap_conn,
     with pytest.raises(KeyError):
         grp.getgrnam("group1")
 
-    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
     assert sysdb_attrs.get("dataExpireTimestamp") is None
     assert sysdb_attrs.get("originalModifyTimestamp") is None
     assert ts_attrs.get("dataExpireTimestamp") is None
@@ -504,7 +517,8 @@ def test_user_update_same_modstamp(ldap_conn,
 
     ent.assert_passwd_by_name("user1", dict(name="user1"))
 
-    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
+                                           SSSD_DOMAIN, TS_ATTRLIST)
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
 
@@ -531,7 +545,9 @@ def test_user_update_same_attrs(ldap_conn,
     time.sleep(1)
 
     ent.assert_passwd_by_name("user1", dict(name="user1"))
-    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1", TS_ATTRLIST)
+
+    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
+                                           SSSD_DOMAIN, TS_ATTRLIST)
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
 
@@ -558,7 +574,8 @@ def test_user_update_diff_attrs(ldap_conn,
     time.sleep(1)
 
     ent.assert_passwd_by_name("user1", dict(name="user1"))
-    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
+                                           SSSD_DOMAIN, TS_ATTRLIST)
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
 
@@ -582,7 +599,8 @@ def test_user_2307bis_delete_user(ldap_conn,
 
     with pytest.raises(KeyError):
         pwd.getpwnam("user1")
-    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1", TS_ATTRLIST)
+    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
+                                           SSSD_DOMAIN, TS_ATTRLIST)
     assert sysdb_attrs.get("dataExpireTimestamp") is None
     assert sysdb_attrs.get("originalModifyTimestamp") is None
     assert ts_attrs.get("dataExpireTimestamp") is None

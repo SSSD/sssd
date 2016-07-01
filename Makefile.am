@@ -3048,27 +3048,27 @@ endif
 
 intgcheck:
 	echo "temporarily disabled"
-#	set -e; \
-#	rm -Rf intg; \
-#	$(MKDIR_P) intg/bld; \
-#	: Use /hopefully/ short prefix to keep D-Bus socket path short; \
-#	prefix=`mktemp --tmpdir --directory sssd-intg.XXXXXXXX`; \
-#	$(LN_S) "$$prefix" intg/pfx; \
-#	cd intg/bld; \
-#	$(abs_top_srcdir)/configure \
-#	    --prefix="$$prefix" \
-#	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
-#	    --enable-intgcheck-reqs \
-#	    --without-semanage \
-#	    $(INTGCHECK_CONFIGURE_FLAGS); \
-#	$(MAKE) $(AM_MAKEFLAGS); \
-#	: Force single-thread install to workaround concurrency issues; \
-#	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
-#	: Remove .la files from LDB module directory to avoid loader warnings; \
-#	rm "$$prefix"/lib/ldb/*.la; \
-#	$(MAKE) $(AM_MAKEFLAGS) -C src/tests/intg intgcheck-installed; \
-#	cd ../..; \
-#	rm -Rf "$$prefix" intg
+	set -e; \
+	rm -Rf intg; \
+	$(MKDIR_P) intg/bld; \
+	: Use /hopefully/ short prefix to keep D-Bus socket path short; \
+	prefix=`mktemp --tmpdir --directory sssd-intg.XXXXXXXX`; \
+	$(LN_S) "$$prefix" intg/pfx; \
+	cd intg/bld; \
+	$(abs_top_srcdir)/configure \
+	    --prefix="$$prefix" \
+	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
+	    --enable-intgcheck-reqs \
+	    --without-semanage \
+	    $(INTGCHECK_CONFIGURE_FLAGS); \
+	$(MAKE) $(AM_MAKEFLAGS); \
+	: Force single-thread install to workaround concurrency issues; \
+	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
+	: Remove .la files from LDB module directory to avoid loader warnings; \
+	rm "$$prefix"/lib/ldb/*.la; \
+	$(MAKE) $(AM_MAKEFLAGS) -C src/tests/intg intgcheck-installed; \
+	cd ../..; \
+	rm -Rf "$$prefix" intg
 
 ####################
 # Client Libraries #
