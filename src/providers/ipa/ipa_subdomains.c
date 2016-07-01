@@ -375,6 +375,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     bool mpg;
     bool enumerate;
     uint32_t direction;
+    struct ldb_message_element *alternative_domain_suffixes = NULL;
 
     tmp_ctx = talloc_new(parent);
     if (tmp_ctx == NULL) {
@@ -405,6 +406,12 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
         goto done;
     }
 
+    ret = sysdb_attrs_get_el_ext(attrs, IPA_ADDITIONAL_SUFFIXES, false,
+                                 &alternative_domain_suffixes);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
     mpg = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx, name, id);
 
     ret = ipa_subdom_get_forest(tmp_ctx, sysdb_ctx_get_ldb(parent->sysdb),
@@ -431,7 +438,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
           "Trust direction of %s is %s\n", name, ipa_trust_dir2str(direction));
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
                                 id, mpg, enumerate, forest,
-                                direction);
+                                direction, alternative_domain_suffixes);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;

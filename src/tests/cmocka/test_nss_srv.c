@@ -3089,7 +3089,7 @@ static int nss_subdom_test_setup(void **state)
 
     ret = sysdb_subdomain_store(nss_test_ctx->tctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
-                                false, false, NULL, 0);
+                                false, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom);

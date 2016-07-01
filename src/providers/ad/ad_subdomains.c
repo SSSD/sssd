@@ -252,7 +252,7 @@ ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
     mpg = sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, name, sid_str);
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
-                                mpg, enumerate, domain->forest, 0);
+                                mpg, enumerate, domain->forest, 0, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;

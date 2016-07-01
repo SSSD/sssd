@@ -315,7 +315,7 @@ struct sss_domain_info {
      */
     char *forest;
     struct sss_domain_info *forest_root;
-    char **upn_suffixes;
+    const char **upn_suffixes;
 };
 
 /**
