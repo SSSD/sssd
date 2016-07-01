@@ -573,7 +573,7 @@ int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
  * @brief Convenience function to retrieve a list of subsections given a
  * configuration section name
  *
- * @param[in] memctx The parent memory context for the returned list
+ * @param[in] mem_ctx The parent memory context for the returned list
  * @param[in] cdb The connection object to the confdb
  * @param[in] section The ConfDB section to look for.
  *                    All sections should start with 'config/'.

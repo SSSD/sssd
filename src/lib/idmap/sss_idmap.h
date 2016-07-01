@@ -333,7 +333,7 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
  *                        domain all ranges must be of the same type. It is
  *                        not possible to mix algorithmic and external
  *                        mapping.
- * @param[in] s_cv        The callback for storing mapping of dynamically
+ * @param[in] cb          The callback for storing mapping of dynamically
  *                        created domains.
  * @param[in] pvt         Private data for callback cb.
  *
