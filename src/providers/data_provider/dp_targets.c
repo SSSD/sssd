@@ -88,6 +88,11 @@ struct dp_module *dp_target_module(struct data_provider *provider,
     return provider->targets[target]->module;
 }
 
+void *dp_get_module_data(struct dp_module *dp_module)
+{
+    return dp_module == NULL ? NULL : dp_module->module_data;
+}
+
 const char *dp_target_to_string(enum dp_targets target)
 {
     switch (target) {

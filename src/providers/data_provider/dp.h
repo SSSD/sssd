@@ -118,6 +118,8 @@ bool _dp_target_enabled(struct data_provider *provider,
 struct dp_module *dp_target_module(struct data_provider *provider,
                                    enum dp_targets target);
 
+void *dp_get_module_data(struct dp_module *dp_module);
+
 void _dp_set_method(struct dp_method *methods,
                     enum dp_methods method,
                     dp_req_send_fn send_fn,
