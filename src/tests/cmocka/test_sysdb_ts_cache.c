@@ -795,6 +795,7 @@ static void test_merge_ldb_results(void **state)
     struct ldb_result *res;
     struct ldb_result *res1;
     struct ldb_result *res2;
+    size_t msgs_count;
 
     res1 = talloc_zero(test_ctx, struct ldb_result);
     assert_non_null(res1);
@@ -831,7 +832,8 @@ static void test_merge_ldb_results(void **state)
     assert_non_null(filter);
     ret = sysdb_search_groups(res1, test_ctx->tctx->dom,
                               filter, gr_fetch_attrs,
-                              (size_t *) &res1->count, &res1->msgs);
+                              &msgs_count, &res1->msgs);
+    res1->count = (unsigned)msgs_count;
     talloc_free(filter);
     assert_int_equal(ret, EOK);
     assert_int_equal(res1->count, 2);
@@ -842,7 +844,8 @@ static void test_merge_ldb_results(void **state)
     assert_non_null(filter);
     ret = sysdb_search_groups(res2, test_ctx->tctx->dom,
                               filter, gr_fetch_attrs,
-                              (size_t *) &res2->count, &res2->msgs);
+                              &msgs_count, &res2->msgs);
+    res2->count = (unsigned)msgs_count;
     talloc_free(filter);
     assert_int_equal(ret, EOK);
     assert_int_equal(res2->count, 2);
