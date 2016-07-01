@@ -58,6 +58,19 @@ struct ipa_init_ctx {
     struct ipa_auth_ctx *auth_ctx;
 };
 
+
+struct krb5_ctx *ipa_init_get_krb5_auth_ctx(void *data)
+{
+    struct ipa_init_ctx *ipa_init_ctx;
+
+    ipa_init_ctx = talloc_get_type(data, struct ipa_init_ctx);
+    if (ipa_init_ctx == NULL || ipa_init_ctx->auth_ctx == NULL) {
+        return NULL;
+    }
+
+    return ipa_init_ctx->auth_ctx->krb5_auth_ctx;
+}
+
 static bool srv_in_server_list(const char *servers)
 {
     TALLOC_CTX *tmp_ctx;

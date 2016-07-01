@@ -34,6 +34,8 @@ struct ipa_service {
     struct krb5_service *krb5_service;
 };
 
+struct ipa_init_ctx;
+
 enum ipa_basic_opt {
     IPA_DOMAIN = 0,
     IPA_SERVER,
@@ -287,4 +289,7 @@ errno_t ipa_idmap_get_ranges_from_sysdb(struct sdap_idmap_ctx *idmap_ctx,
 errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
                        struct sdap_id_ctx *id_ctx,
                        struct sdap_idmap_ctx **_idmap_ctx);
+
+
+struct krb5_ctx *ipa_init_get_krb5_auth_ctx(void *data);
 #endif /* _IPA_COMMON_H_ */
