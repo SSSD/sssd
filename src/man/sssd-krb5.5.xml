@@ -513,6 +513,12 @@
                         <para>
                             Default: false (AD provider: true)
                         </para>
+                        <para>
+                            The IPA provider will set to option to 'true' if it
+                            detects that the server is capable of handling
+                            enterprise principals and the option is not set
+                            explicitly in the config file.
+                        </para>
                     </listitem>
                 </varlistentry>
 

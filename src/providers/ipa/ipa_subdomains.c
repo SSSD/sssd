@@ -28,6 +28,7 @@
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_id.h"
+#include "providers/ipa/ipa_opts.h"
 
 #include <ctype.h>
 
@@ -999,6 +1000,84 @@ immediately:
     return req;
 }
 
+static errno_t ipa_enable_enterprise_principals(struct be_ctx *be_ctx)
+{
+    int ret;
+    struct sss_domain_info *d;
+    TALLOC_CTX *tmp_ctx;
+    char **vals = NULL;
+    struct dp_module *auth;
+    struct krb5_ctx *krb5_auth_ctx;
+
+    d = get_domains_head(be_ctx->domain);
+
+    while (d != NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "checking [%s].\n", d->name);
+        if (d->upn_suffixes != NULL) {
+            break;
+        }
+        d = get_next_domain(d, SSS_GND_DESCEND);
+    }
+
+    if (d == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "No UPN suffixes found, "
+              "no need to enable enterprise principals.\n");
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = confdb_get_param(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
+                     ipa_def_krb5_opts[KRB5_USE_ENTERPRISE_PRINCIPAL].opt_name,
+                     &vals);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "confdb_get_param failed.\n");
+        goto done;
+    }
+
+    if (vals[0]) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Parameter [%s] set in config file and will not be changed.\n",
+              ipa_def_krb5_opts[KRB5_USE_ENTERPRISE_PRINCIPAL].opt_name);
+        return EOK;
+    }
+
+    auth = dp_target_module(be_ctx->provider, DPT_AUTH);
+    if (auth == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to find auth proivder.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    krb5_auth_ctx = ipa_init_get_krb5_auth_ctx(dp_get_module_data(auth));
+    if (krb5_auth_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to find auth proivder data.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = dp_opt_set_bool(krb5_auth_ctx->opts,
+                          KRB5_USE_ENTERPRISE_PRINCIPAL, true);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "dp_opt_set_bool failed.\n");
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "Enterprise principals enabled.\n");
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static void ipa_subdomains_slave_search_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_slave_state *state;
@@ -1035,6 +1114,13 @@ static void ipa_subdomains_slave_search_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
         goto done;
+    }
+
+    ret = ipa_enable_enterprise_principals(state->sd_ctx->be_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_enable_enterprise_principals failed. "
+                                 "Enterprise principals might not work as "
+                                 "expected.\n");
     }
 
     if (state->sd_ctx->ipa_id_ctx->server_mode == NULL) {
