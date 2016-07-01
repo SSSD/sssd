@@ -522,8 +522,7 @@ static void test_sysdb_group_delete(void **state)
                                  test_ctx->tctx->dom,
                                  TS_FILTER_ALL,
                                  sysdb_ts_cache_attrs,
-                                 (size_t *) &ts_res->count,
-                                 &ts_res->msgs);
+                                 ts_res);
     assert_int_equal(ret, ENOENT);
 
     group_attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
@@ -542,8 +541,7 @@ static void test_sysdb_group_delete(void **state)
                                  test_ctx->tctx->dom,
                                  TS_FILTER_ALL,
                                  sysdb_ts_cache_attrs,
-                                 (size_t *) &ts_res->count,
-                                 &ts_res->msgs);
+                                 ts_res);
     assert_int_equal(ret, EOK);
     assert_int_equal(ts_res->count, 1);
 
@@ -562,8 +560,7 @@ static void test_sysdb_group_delete(void **state)
                                  test_ctx->tctx->dom,
                                  TS_FILTER_ALL,
                                  sysdb_ts_cache_attrs,
-                                 (size_t *) &ts_res->count,
-                                 &ts_res->msgs);
+                                 ts_res);
     assert_int_equal(ret, ENOENT);
 
     res = sysdb_getgrnam_res(test_ctx, test_ctx->tctx->dom, TEST_GROUP_NAME);
@@ -610,8 +607,7 @@ static void test_sysdb_group_rename(void **state)
                                  test_ctx->tctx->dom,
                                  filter,
                                  sysdb_ts_cache_attrs,
-                                 (size_t *) &ts_res->count,
-                                 &ts_res->msgs);
+                                 ts_res);
     assert_int_equal(ret, ENOENT);
     talloc_free(filter);
 
@@ -866,9 +862,8 @@ static void test_group_bysid(void **state)
     const char *gr_fetch_attrs[] = SYSDB_GRSRC_ATTRS;
     struct sysdb_attrs *group_attrs = NULL;
     struct ldb_result *res;
-    size_t msgs_count;
     struct ldb_message *msg = NULL;
-    struct ldb_message **msgs = NULL;
+    struct ldb_result ts_res;
 
     group_attrs = create_sidstr_attrs(test_ctx, TEST_GROUP_SID);
     assert_non_null(group_attrs);
@@ -931,8 +926,7 @@ static void test_group_bysid(void **state)
                                  test_ctx->tctx->dom,
                                  TS_FILTER_ALL,
                                  sysdb_ts_cache_attrs,
-                                 &msgs_count,
-                                 &msgs);
+                                 &ts_res);
     assert_int_equal(ret, ENOENT);
 }
 
@@ -1062,8 +1056,7 @@ static void test_sysdb_user_delete(void **state)
                                 test_ctx->tctx->dom,
                                 TS_FILTER_ALL,
                                 sysdb_ts_cache_attrs,
-                                (size_t *) &ts_res->count,
-                                &ts_res->msgs);
+                                ts_res);
     assert_int_equal(ret, ENOENT);
 
     user_attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
@@ -1085,8 +1078,7 @@ static void test_sysdb_user_delete(void **state)
                                 test_ctx->tctx->dom,
                                 TS_FILTER_ALL,
                                 sysdb_ts_cache_attrs,
-                                (size_t *) &ts_res->count,
-                                &ts_res->msgs);
+                                ts_res);
     assert_int_equal(ret, EOK);
     assert_int_equal(ts_res->count, 1);
 
@@ -1109,8 +1101,7 @@ static void test_sysdb_user_delete(void **state)
                                 test_ctx->tctx->dom,
                                 TS_FILTER_ALL,
                                 sysdb_ts_cache_attrs,
-                                (size_t *) &ts_res->count,
-                                &ts_res->msgs);
+                                ts_res);
     assert_int_equal(ret, ENOENT);
 
     get_pw_timestamp_attrs(test_ctx, TEST_USER_NAME,
@@ -1235,9 +1226,8 @@ static void test_user_bysid(void **state)
     const char *pw_fetch_attrs[] = SYSDB_PW_ATTRS;
     struct sysdb_attrs *user_attrs = NULL;
     struct ldb_result *res;
-    size_t msgs_count;
     struct ldb_message *msg = NULL;
-    struct ldb_message **msgs = NULL;
+    struct ldb_result ts_res;
 
     user_attrs = create_sidstr_attrs(test_ctx, TEST_USER_SID);
     assert_non_null(user_attrs);
@@ -1298,8 +1288,7 @@ static void test_user_bysid(void **state)
                                 test_ctx->tctx->dom,
                                 TS_FILTER_ALL,
                                 sysdb_ts_cache_attrs,
-                                &msgs_count,
-                                &msgs);
+                                &ts_res);
     assert_int_equal(ret, ENOENT);
 }
 

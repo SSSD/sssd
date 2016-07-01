@@ -241,15 +241,13 @@ int sysdb_search_ts_users(TALLOC_CTX *mem_ctx,
                           struct sss_domain_info *domain,
                           const char *sub_filter,
                           const char **attrs,
-                          size_t *msgs_count,
-                          struct ldb_message ***msgs);
+                          struct ldb_result *res);
 
 int sysdb_search_ts_groups(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
                            const char *sub_filter,
                            const char **attrs,
-                           size_t *msgs_count,
-                           struct ldb_message ***msgs);
+                           struct ldb_result *res);
 
 /* Compares the modifyTimestamp attribute between old_entry and
  * new_entry. Returns true if they differ (or either entry is missing

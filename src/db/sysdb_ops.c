@@ -3440,15 +3440,30 @@ int sysdb_search_ts_users(TALLOC_CTX *mem_ctx,
                           struct sss_domain_info *domain,
                           const char *sub_filter,
                           const char **attrs,
-                          size_t *msgs_count,
-                          struct ldb_message ***msgs)
+                          struct ldb_result *res)
 {
+    size_t msgs_count;
+    struct ldb_message **msgs;
+    int ret;
+
+    if (res == NULL) {
+        return EINVAL;
+    }
+
+    ZERO_STRUCT(*res);
+
     if (domain->sysdb->ldb_ts == NULL) {
         return ENOENT;
     }
 
-    return sysdb_cache_search_users(mem_ctx, domain, domain->sysdb->ldb_ts,
-                                    sub_filter, attrs, msgs_count, msgs);
+    ret = sysdb_cache_search_users(mem_ctx, domain, domain->sysdb->ldb_ts,
+                                    sub_filter, attrs, &msgs_count, &msgs);
+    if (ret == EOK) {
+        res->count = (unsigned)msgs_count;
+        res->msgs = msgs;
+    }
+
+    return ret;
 }
 
 /* =Delete-User-by-Name-OR-uid============================================ */
@@ -3642,15 +3657,30 @@ int sysdb_search_ts_groups(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
                            const char *sub_filter,
                            const char **attrs,
-                           size_t *msgs_count,
-                           struct ldb_message ***msgs)
+                           struct ldb_result *res)
 {
+    size_t msgs_count;
+    struct ldb_message **msgs;
+    int ret;
+
+    if (res == NULL) {
+        return EINVAL;
+    }
+
+    ZERO_STRUCT(*res);
+
     if (domain->sysdb->ldb_ts == NULL) {
         return ENOENT;
     }
 
-    return sysdb_cache_search_groups(mem_ctx, domain, domain->sysdb->ldb_ts,
-                                     sub_filter, attrs, msgs_count, msgs);
+    ret = sysdb_cache_search_groups(mem_ctx, domain, domain->sysdb->ldb_ts,
+                                    sub_filter, attrs, &msgs_count, &msgs);
+    if (ret == EOK) {
+        res->count = (unsigned)msgs_count;
+        res->msgs = msgs;
+    }
+
+    return ret;
 }
 
 /* =Delete-Group-by-Name-OR-gid=========================================== */

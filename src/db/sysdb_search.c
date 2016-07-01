@@ -592,10 +592,9 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
     }
     DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp cache with [%s]\n", ts_filter);
 
-    ZERO_STRUCT(ts_res);
     ret = sysdb_search_ts_users(tmp_ctx, domain, ts_filter,
                                 sysdb_ts_cache_attrs,
-                                (size_t *) &ts_res.count, &ts_res.msgs);
+                                &ts_res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
@@ -1093,10 +1092,9 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     }
     DEBUG(SSSDBG_TRACE_LIBS, "Searching timestamp cache with [%s]\n", ts_filter);
 
-    ZERO_STRUCT(ts_res);
     ret = sysdb_search_ts_groups(tmp_ctx, domain, ts_filter,
                                  sysdb_ts_cache_attrs,
-                                 (size_t *) &ts_res.count, &ts_res.msgs);
+                                 &ts_res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
