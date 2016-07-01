@@ -74,11 +74,12 @@ static void watchdog_event_handler(struct tevent_context *ev,
 
 int setup_watchdog(struct tevent_context *ev, int interval)
 {
-    struct sigevent sev = { 0 };
+    struct sigevent sev;
     struct itimerspec its;
     int signum = SIGRTMIN;
     int ret;
 
+    ZERO_STRUCT(sev);
     CatchSignal(signum, watchdog_handler);
 
     sev.sigev_notify = SIGEV_SIGNAL;
