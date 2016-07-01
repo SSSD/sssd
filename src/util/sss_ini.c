@@ -211,7 +211,7 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
     int ret;
 #ifdef HAVE_LIBINI_CONFIG_V1
 #ifdef HAVE_LIBINI_CONFIG_V1_3
-    const char *patterns[] = { "^[^\\.].*\\.conf", NULL };
+    const char *patterns[] = { "^[^\\.].*\\.conf$", NULL };
     const char *sections[] = { ".*", NULL };
     uint32_t i = 0;
     char *msg = NULL;
