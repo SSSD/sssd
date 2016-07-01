@@ -74,7 +74,8 @@ static int confdb_test(struct confdb_ctx *cdb)
 
 static int confdb_purge(struct confdb_ctx *cdb)
 {
-    int ret, i;
+    int ret;
+    unsigned int i;
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     struct ldb_dn *dn;
@@ -216,7 +217,7 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
     errno = 0;
 
     ret = sss_ini_get_mtime(init_data, sizeof(timestr), timestr);
-    if (ret <= 0 || ret >= sizeof(timestr)) {
+    if (ret <= 0 || ret >= (int)sizeof(timestr)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to convert time_t to string ??\n");
         ret = errno ? errno : EFAULT;
