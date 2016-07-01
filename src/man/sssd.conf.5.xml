@@ -55,6 +55,45 @@
         </para>
     </refsect1>
 
+    <refsect1 id='config-snippets'>
+        <title>CONFIGURATION SNIPPETS FROM INCLUDE DIRECTORY</title>
+
+        <para>
+            The configuration file <filename>sssd.conf</filename> will
+            include configuration snippets using the include directory
+            <filename>conf.d</filename>. This feature is available if
+            SSSD was compiled with libini version 1.3.0 or later.
+        </para>
+
+        <para>
+            Any file placed in <filename>conf.d</filename>
+            that ends in <quote><filename>.conf</filename></quote>
+            and does not begin with a dot (<quote>.</quote>) will
+            be used together with <filename>sssd.conf</filename>
+            to configure SSSD.
+        </para>
+
+        <para>
+            The configuration snippets from <filename>conf.d</filename>
+            have higher priority than <filename>sssd.conf</filename>
+            and will override <filename>sssd.conf</filename> when
+            conflicts occur. If several snippets are present in
+            <filename>conf.d</filename>, then they are included in
+            alphabetical order (based on locale).
+            Files included later have higher priority. Numerical
+            prefixes (<filename>01_snippet.conf</filename>,
+            <filename>02_snippet.conf</filename> etc.) can help
+            visualize the priority (higher number means higher
+            priority).
+        </para>
+
+        <para>
+            The snippet files require the same owner and permissions
+            as <filename>sssd.conf</filename>. Which are by default
+            root:root and 0600.
+        </para>
+    </refsect1>
+
     <refsect1 id='general-options'>
         <title>GENERAL OPTIONS</title>
         <para>
