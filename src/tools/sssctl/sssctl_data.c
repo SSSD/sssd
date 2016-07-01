@@ -26,7 +26,7 @@
 #include "tools/sssctl/sssctl.h"
 
 #define CACHE_FILE(db) " " DB_PATH "/" db
-#define CACHE_FILES CACHE_FILE("*.ldb")
+#define CACHE_FILES CACHE_FILE("*.ldb") CACHE_FILE("ccache_*")
 
 #define SSS_BACKUP_DIR SSS_STATEDIR "/backup"
 #define SSS_BACKUP_USER_OVERRIDES SSS_BACKUP_DIR "/sssd_user_overrides.bak"
