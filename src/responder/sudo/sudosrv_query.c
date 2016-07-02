@@ -83,8 +83,9 @@ static int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
     uint8_t *response_body = *_response_body;
     size_t response_len = *_response_len;
     TALLOC_CTX *tmp_ctx = NULL;
-    int i = 0;
+    unsigned int i = 0;
     int ret = EOK;
+    const char *strval;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -108,16 +109,19 @@ static int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
 
     /* values */
     for (i = 0; i < values_num; i++) {
-        if (strlen((char*)(values[i].data)) != values[i].length) {
+        strval = (const char *) values[i].data;
+
+        if (strlen((strval)) != values[i].length) {
             DEBUG(SSSDBG_CRIT_FAILURE, "value is not a string\n");
             ret = EINVAL;
             goto done;
         }
 
         ret = sudosrv_response_append_string(tmp_ctx,
-                                             (const char*)values[i].data,
+                                             strval,
                                              values[i].length + 1,
                                              &response_body, &response_len);
+        DEBUG(SSSDBG_TRACE_INTERNAL, "%s:%s\n", name, strval);
         if (ret != EOK) {
             goto done;
         }
@@ -211,6 +215,7 @@ errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto fail;
     }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "error: [%"PRIu32"]\n", error);
 
     if (error != SSS_SUDO_ERROR_OK) {
         goto done;
@@ -230,9 +235,11 @@ errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto fail;
     }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "rules_num: [%"PRIu32"]\n", error);
 
     /* rules */
     for (i = 0; i < rules_num; i++) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "rule [%"PRIu32"]/[%"PRIu32"]\n", i+1, rules_num);
         ret = sudosrv_response_append_rule(tmp_ctx, rules[i]->num, rules[i]->a,
                                            &response_body, &response_len);
         if (ret != EOK) {
