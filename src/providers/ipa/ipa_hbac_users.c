@@ -176,7 +176,8 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
     const char *attrs[] = { SYSDB_NAME, NULL };
     size_t num_users = 0;
     size_t num_groups = 0;
-    const char *name;
+    const char *sysdb_name;
+    char *shortname;
 
     size_t count;
     size_t i;
@@ -260,21 +261,29 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
             }
 
             /* Original DN matched a single user. Get the username */
-            name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
-            if (name == NULL) {
+            sysdb_name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
+            if (sysdb_name == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Attribute is missing!\n");
                 ret = EFAULT;
                 goto done;
             }
 
+            ret = sss_parse_internal_fqname(tmp_ctx, sysdb_name,
+                                            &shortname, NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Cannot parse %s, skipping\n", sysdb_name);
+                continue;
+            }
+
             new_users->names[num_users] = talloc_strdup(new_users->names,
-                                                        name);
+                                                        shortname);
             if (new_users->names[num_users] == NULL) {
                 ret = ENOMEM;
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_INTERNAL, "Added user [%s] to rule [%s]\n",
-                      name, rule_name);
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Added user [%s] to rule [%s]\n", sysdb_name, rule_name);
             num_users++;
         } else {
             /* Check if it is a group instead */
@@ -295,22 +304,31 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 }
 
                 /* Original DN matched a single group. Get the groupname */
-                name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
-                if (name == NULL) {
+                sysdb_name = ldb_msg_find_attr_as_string(msgs[0],
+                                                         SYSDB_NAME, NULL);
+                if (sysdb_name == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "Attribute is missing!\n");
                     ret = EFAULT;
                     goto done;
                 }
 
+                ret = sss_parse_internal_fqname(tmp_ctx, sysdb_name,
+                                                &shortname, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                        "Cannot parse %s, skipping\n", sysdb_name);
+                    continue;
+                }
+
                 new_users->groups[num_groups] =
-                        talloc_strdup(new_users->groups, name);
+                        talloc_strdup(new_users->groups, shortname);
                 if (new_users->groups[num_groups] == NULL) {
                     ret = ENOMEM;
                     goto done;
                 }
                 DEBUG(SSSDBG_TRACE_INTERNAL,
                       "Added POSIX group [%s] to rule [%s]\n",
-                          name, rule_name);
+                       sysdb_name, rule_name);
                 num_groups++;
             } else {
                 /* If the group still matches the group pattern,
