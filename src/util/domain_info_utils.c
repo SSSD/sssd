@@ -531,8 +531,7 @@ done:
 "[plugins]\n" \
 " localauth = {\n" \
 "  module = sssd:"APP_MODULES_PATH"/sssd_krb5_localauth_plugin.so\n" \
-"  enable_only = sssd\n" \
-" }"
+" }\n"
 
 static errno_t sss_write_krb5_localauth_snippet(const char *path)
 {
