@@ -950,6 +950,7 @@ done
 %{_mandir}/man8/sss_override.8*
 %{_mandir}/man8/sss_debuglevel.8*
 %{_mandir}/man8/sss_seed.8*
+%{_mandir}/man8/sssctl.8*
 
 %files -n python-sssdconfig -f python2_sssdconfig.lang
 %defattr(-,root,root,-)
