@@ -49,7 +49,8 @@ static krb5_error_code sss_userok(krb5_context context,
 
     kerr = krb5_unparse_name(context, aname, &princ_str);
     if (kerr != 0) {
-        return kerr;
+        ret = kerr;
+        goto done;
     }
 
     if (strcasecmp(princ_str, lname) == 0) {
@@ -97,6 +98,10 @@ static krb5_error_code sss_userok(krb5_context context,
 done:
     krb5_free_unparsed_name(context, princ_str);
     free(buffer);
+
+    if (ret != 0) {
+        return KRB5_PLUGIN_NO_HANDLE;
+    }
 
     return ret;
 }
