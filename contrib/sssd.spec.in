@@ -595,6 +595,16 @@ License: GPLv3+ and LGPLv3+
 The idmap_sss module provides a way for Winbind to call SSSD to map UIDs/GIDs
 and SIDs.
 
+%package nfs-idmap
+Summary: SSSD plug-in for NFSv4 rpc.idmapd
+Group:  Applications/System
+License: GPLv3+
+
+%description nfs-idmap
+The libnfsidmap sssd module provides a way for rpc.idmapd to call SSSD to map
+UIDs/GIDs to names and vice versa. It can be also used for mapping principal
+(user) name to IDs(UID or GID) or to obtain groups which user are member of.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -762,9 +772,6 @@ done
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
 %{_libdir}/%{name}/libsss_semanage.so
-
-# 3rd party application libraries
-%{_libdir}/libnfsidmap/sss.so
 
 %{ldb_modulesdir}/memberof.so
 %{_bindir}/sss_ssh_authorizedkeys
@@ -1058,6 +1065,9 @@ done
 %dir %{_libdir}/samba/idmap
 %{_libdir}/samba/idmap/sss.so
 %{_mandir}/man8/idmap_sss.8*
+
+%files nfs-idmap
+%{_libdir}/libnfsidmap/sss.so
 
 %pre common
 getent group sssd >/dev/null || groupadd -r sssd
