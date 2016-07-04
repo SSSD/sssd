@@ -312,7 +312,7 @@ static void ipa_pam_auth_handler_connect_done(struct tevent_req *subreq)
 {
     struct ipa_pam_auth_handler_state *state;
     struct tevent_req *req;
-    struct sdap_handle *sh;
+    struct sdap_handle *sh = NULL;
     const char *attrs[] = {SYSDB_ORIG_DN, NULL};
     struct ldb_message *msg;
     const char *dn;
