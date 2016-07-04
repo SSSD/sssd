@@ -151,60 +151,56 @@ int __wrap_sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
 }
 
 /* Intercept negative cache lookups */
-int __real_sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
+int __real_sss_ncache_check_user(struct sss_nc_ctx *ctx,
                                  struct sss_domain_info *dom, const char *name);
 
-int __wrap_sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
+int __wrap_sss_ncache_check_user(struct sss_nc_ctx *ctx,
                                  struct sss_domain_info *dom, const char *name)
 {
     int ret;
 
-    ret = __real_sss_ncache_check_user(ctx, ttl, dom, name);
+    ret = __real_sss_ncache_check_user(ctx, dom, name);
     if (ret == EEXIST) {
         nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
 
-int __real_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl,
+int __real_sss_ncache_check_uid(struct sss_nc_ctx *ctx,
                                 struct sss_domain_info *dom, uid_t uid);
 
-int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl,
+int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx,
                                 struct sss_domain_info *dom, uid_t uid)
 {
     int ret;
 
-    ret = __real_sss_ncache_check_uid(ctx, ttl, dom, uid);
+    ret = __real_sss_ncache_check_uid(ctx, dom, uid);
     if (ret == EEXIST) {
         nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
 
-int __real_sss_ncache_check_sid(struct sss_nc_ctx *ctx,
-                                int ttl, const char *sid);
+int __real_sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid);
 
-int __wrap_sss_ncache_check_sid(struct sss_nc_ctx *ctx,
-                                int ttl, const char *sid)
+int __wrap_sss_ncache_check_sid(struct sss_nc_ctx *ctx, const char *sid)
 {
     int ret;
 
-    ret = __real_sss_ncache_check_sid(ctx, ttl, sid);
+    ret = __real_sss_ncache_check_sid(ctx, sid);
     if (ret == EEXIST) {
         nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
 
-int __real_sss_ncache_check_cert(struct sss_nc_ctx *ctx,
-                                 int ttl, const char *cert);
+int __real_sss_ncache_check_cert(struct sss_nc_ctx *ctx, const char *cert);
 
-int __wrap_sss_ncache_check_cert(struct sss_nc_ctx *ctx,
-                                 int ttl, const char *cert)
+int __wrap_sss_ncache_check_cert(struct sss_nc_ctx *ctx, const char *cert)
 {
     int ret;
 
-    ret = __real_sss_ncache_check_cert(ctx, ttl, cert);
+    ret = __real_sss_ncache_check_cert(ctx, cert);
     if (ret == EEXIST) {
         nss_test_ctx->ncache_hits++;
     }
