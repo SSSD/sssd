@@ -43,7 +43,7 @@
                 </term>
                 <listitem>
                     <para>
-                        Invalidate all cached entries except for sudo rules.
+                        Invalidate all cached entries.
                     </para>
                 </listitem>
             </varlistentry>
