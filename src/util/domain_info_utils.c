@@ -527,20 +527,13 @@ done:
     return ret;
 }
 
-#define LOCALAUTH_PLUGIN_CONFIG \
-"[plugins]\n" \
-" localauth = {\n" \
-"  module = sssd:"APP_MODULES_PATH"/sssd_krb5_localauth_plugin.so\n" \
-" }\n"
-
-static errno_t sss_write_krb5_localauth_snippet(const char *path)
+static errno_t sss_write_krb5_snippet_common(const char *file_name,
+                                             const char *content)
 {
-#ifdef HAVE_KRB5_LOCALAUTH_PLUGIN
     int ret;
     errno_t err;
     TALLOC_CTX *tmp_ctx = NULL;
     char *tmp_file = NULL;
-    const char *file_name;
     int fd = -1;
     mode_t old_mode;
     ssize_t written;
@@ -551,16 +544,6 @@ static errno_t sss_write_krb5_localauth_snippet(const char *path)
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
-
-    file_name = talloc_asprintf(tmp_ctx, "%s/localauth_plugin", path);
-    if (file_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_FUNC_DATA, "File for localauth plugin configuration is [%s]\n",
-                             file_name);
 
     tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", file_name);
     if (tmp_file == NULL) {
@@ -574,15 +557,14 @@ static errno_t sss_write_krb5_localauth_snippet(const char *path)
     umask(old_mode);
     if (fd < 0) {
         DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for "
-                                 "domain-realm mappings failed.\n", tmp_file);
+                                 "krb5 config snippet failed.\n", tmp_file);
         ret = EIO;
         talloc_zfree(tmp_ctx);
         goto done;
     }
 
-    size = sizeof(LOCALAUTH_PLUGIN_CONFIG) -1;
-    written = sss_atomic_write_s(fd, discard_const(LOCALAUTH_PLUGIN_CONFIG),
-                                 size);
+    size = strlen(content);
+    written = sss_atomic_write_s(fd, discard_const(content), size);
     close(fd);
     if (written == -1) {
         ret = errno;
@@ -628,6 +610,48 @@ done:
 
     talloc_free(tmp_ctx);
     return ret;
+}
+
+#define LOCALAUTH_PLUGIN_CONFIG \
+"[plugins]\n" \
+" localauth = {\n" \
+"  module = sssd:"APP_MODULES_PATH"/sssd_krb5_localauth_plugin.so\n" \
+" }\n"
+
+static errno_t sss_write_krb5_localauth_snippet(const char *path)
+{
+#ifdef HAVE_KRB5_LOCALAUTH_PLUGIN
+    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *file_name;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    file_name = talloc_asprintf(tmp_ctx, "%s/localauth_plugin", path);
+    if (file_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "File for localauth plugin configuration is [%s]\n",
+                             file_name);
+
+    ret = sss_write_krb5_snippet_common(file_name, LOCALAUTH_PLUGIN_CONFIG);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_write_krb5_snippet_common failed.\n");
+        goto done;
+    }
+
+done:
+
+    talloc_free(tmp_ctx);
+    return ret;
+
 #else
     DEBUG(SSSDBG_TRACE_ALL, "Kerberos localauth plugin not available.\n");
     return EOK;
