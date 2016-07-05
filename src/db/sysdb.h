@@ -619,7 +619,7 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
  * file ownership of the sysdb databases and allow the
  * upgrade via passing a context. */
 struct sysdb_upgrade_ctx {
-    int unused;
+    struct confdb_ctx *cdb;
 };
 
 int sysdb_init_ext(TALLOC_CTX *mem_ctx,

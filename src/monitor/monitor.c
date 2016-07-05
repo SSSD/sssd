@@ -2455,6 +2455,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
         return ENOMEM;
     }
 
+    db_up_ctx.cdb = ctx->cdb;
     ret = sysdb_init_ext(tmp_ctx, ctx->domains, &db_up_ctx,
                          true, ctx->uid, ctx->gid);
     if (ret != EOK) {

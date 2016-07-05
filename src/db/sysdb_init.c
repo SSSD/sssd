@@ -496,6 +496,13 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
         }
     }
 
+    if (strcmp(version, SYSDB_VERSION_0_17) == 0) {
+        ret = sysdb_upgrade_17(sysdb, upgrade_ctx, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
     ret = EOK;
 done:
     sysdb->ldb = save_ldb;
@@ -906,6 +913,14 @@ int sysdb_init_ext(TALLOC_CTX *mem_ctx,
         if (upgrade_ctx) {
             dom_upgrade_ctx = talloc_zero(tmp_ctx,
                                           struct sysdb_dom_upgrade_ctx);
+
+            ret = sss_names_init(tmp_ctx,
+                                 upgrade_ctx->cdb,
+                                 dom->name,
+                                 &dom_upgrade_ctx->names);
+            if (ret != EOK) {
+                goto done;
+            }
         } else {
             dom_upgrade_ctx = NULL;
         }

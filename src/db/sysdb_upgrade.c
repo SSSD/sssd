@@ -1634,6 +1634,587 @@ done:
     return ret;
 }
 
+static char *object_domain_from_dn(TALLOC_CTX *mem_ctx,
+                                   struct ldb_dn *dn,
+                                   unsigned domain_index)
+{
+    const struct ldb_val *val;
+
+    val = ldb_dn_get_component_val(dn, domain_index);
+    if (val == NULL) {
+        return NULL;
+    }
+    return talloc_strdup(mem_ctx, (const char *) val->data);
+}
+
+static char *object_domain(TALLOC_CTX *mem_ctx,
+                           struct ldb_context *ldb,
+                           struct ldb_message *msg,
+                           const char *domain_attr,
+                           unsigned domain_index)
+{
+    struct ldb_dn *dom_dn;
+
+    if (domain_attr != NULL) {
+        dom_dn = ldb_msg_find_attr_as_dn(ldb, mem_ctx, msg, domain_attr);
+    } else {
+        /* If no specific attribute to take the domain from is specified,
+         * use the DN */
+        dom_dn = msg->dn;
+    }
+
+    if (dom_dn == NULL) {
+        return NULL;
+    }
+
+    return object_domain_from_dn(mem_ctx, dom_dn, domain_index);
+}
+
+/* Used for attributes like sudoUser which contain group or user name or
+ * ID, depending on the value prefix */
+typedef bool (*should_qualify_val_fn)(const char *val);
+
+/* Qualifies a string attribute using domain_name. Optionally, if qfn is
+ * given, only qualifies the name if qfn returns true */
+static errno_t qualify_attr(struct ldb_message *msg,
+                            struct ldb_message *mod_msg,
+                            struct sss_names_ctx *names,
+                            const char *domain_name,
+                            const char *attrname,
+                            should_qualify_val_fn qfn)
+{
+    struct ldb_message_element *el;
+    struct ldb_message_element *mod_el;
+    char *fqval;
+    char *shortname;
+    const char *rawname;
+    int ret;
+    struct ldb_val val;
+
+    el = ldb_msg_find_element(msg, attrname);
+    if (el == NULL) {
+        /* This entry does not have this element, fine */
+        return EOK;
+    }
+
+    for (size_t c = 0; c < el->num_values; c++) {
+        rawname = (const char *) el->values[c].data;
+
+        if (qfn != NULL && qfn(rawname) == false) {
+            continue;
+        }
+
+        ret = sss_parse_name(mod_msg, names, rawname, NULL, &shortname);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot parse raw attribute %s\n", rawname);
+            continue;
+        }
+
+        fqval = sss_create_internal_fqname(el->values, shortname, domain_name);
+        talloc_free(shortname);
+        if (fqval == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot qualify %s@%s\n",
+                  shortname, domain_name);
+            continue;
+        }
+
+
+        mod_el = ldb_msg_find_element(mod_msg, attrname);
+        if (mod_el != NULL) {
+            val.data = (uint8_t *) fqval;
+            val.length = strlen(fqval);
+
+            if (ldb_msg_find_val(mod_el, &val) != NULL) {
+                return true;
+            }
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Qualified %s:%s into %s\n",
+              attrname, rawname, fqval);
+
+        ret = ldb_msg_add_empty(mod_msg, attrname, LDB_FLAG_MOD_REPLACE, NULL);
+        if (ret != LDB_SUCCESS) {
+            continue;
+        }
+
+        ret = ldb_msg_add_steal_string(mod_msg, attrname, fqval);
+        if (ret != LDB_SUCCESS) {
+            continue;
+        }
+    }
+
+    return EOK;
+}
+
+/* Returns a copy of old_dn_val with RDN qualified. The domain name
+ * is read from the DN itself
+ */
+static struct ldb_dn *qualify_rdn(TALLOC_CTX *mem_ctx,
+                                  struct ldb_context *ldb,
+                                  struct sss_names_ctx *names,
+                                  struct ldb_dn *old_dn_val)
+{
+    struct ldb_dn *parent_dn = NULL;
+    const struct ldb_val *val = NULL;
+    const char *rdn_name = NULL;
+    struct ldb_dn *new_dn = NULL;
+    char *fqrdn = NULL;
+    char *shortname = NULL;
+    char *dn_domain = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    int ret;
+
+    rdn_name = ldb_dn_get_rdn_name(old_dn_val);
+    if (rdn_name == NULL) {
+        return NULL;
+    }
+
+    if (strcmp(rdn_name, SYSDB_NAME) != 0) {
+        /* Only qualify DNs with name= rdn. This applies to overrideDNs mostly,
+         * because those can contain either names or UUIDs
+         */
+        return ldb_dn_copy(mem_ctx, old_dn_val);
+    }
+
+    val = ldb_dn_get_rdn_val(old_dn_val);
+    if (val == NULL) {
+        return NULL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
+    }
+
+    dn_domain = object_domain_from_dn(tmp_ctx, old_dn_val, 2);
+    if (dn_domain == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot determine domain of %s\n",
+              ldb_dn_get_linearized(old_dn_val));
+        goto done;
+    }
+
+    ret = sss_parse_name(tmp_ctx, names, (const char *) val->data,
+                         NULL, &shortname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot parse raw RDN %s\n", (const char *) val->data);
+        goto done;
+    }
+
+    fqrdn = sss_create_internal_fqname(tmp_ctx, shortname, dn_domain);
+    if (fqrdn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot qualify %s@%s\n",
+              shortname, dn_domain);
+        goto done;
+    }
+
+    parent_dn = ldb_dn_get_parent(tmp_ctx, old_dn_val);
+    if (parent_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get parent of %s\n",
+              ldb_dn_get_linearized(old_dn_val));
+        goto done;
+    }
+
+    new_dn = ldb_dn_new_fmt(mem_ctx, ldb, "%s=%s,%s",
+                            rdn_name, fqrdn,
+                            ldb_dn_get_linearized(parent_dn));
+done:
+    talloc_free(tmp_ctx);
+    return new_dn;
+}
+
+static errno_t qualify_dn_attr(struct ldb_context *ldb,
+                               struct ldb_message *msg,
+                               struct ldb_message *mod_msg,
+                               struct sss_names_ctx *names,
+                               const char *attrname)
+{
+    struct ldb_message_element *el;
+    struct ldb_message_element *mod_el;
+    struct ldb_dn *attr_dn;
+    struct ldb_dn *fqdn;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    el = ldb_msg_find_element(msg, attrname);
+    if (el == NULL || el->num_values == 0) {
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    for (size_t c = 0; c < el->num_values; c++) {
+        attr_dn = ldb_dn_new(tmp_ctx, ldb, (const char *) el->values[c].data);
+        if (attr_dn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot create DN from %s\n",
+                  (const char *) el->values[c].data);
+            continue;
+        }
+
+        if (!ldb_dn_validate(attr_dn)) {
+            DEBUG(SSSDBG_OP_FAILURE, "DN %s does not validate\n",
+                  (const char *) el->values[c].data);
+            continue;
+        }
+
+        fqdn = qualify_rdn(tmp_ctx, ldb, names, attr_dn);
+        if (fqdn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot qualify %s\n",
+                  (const char *) el->values[c].data);
+            continue;
+        }
+
+        ret = ldb_msg_add_linearized_dn(mod_msg, attrname, fqdn);
+        if (ret != LDB_SUCCESS) {
+            continue;
+        }
+
+        talloc_free(attr_dn);
+        talloc_free(fqdn);
+    }
+
+    mod_el = ldb_msg_find_element(mod_msg, attrname);
+    if (mod_el != NULL) {
+        mod_el->flags = LDB_FLAG_MOD_REPLACE;
+    }
+
+    talloc_free(tmp_ctx);
+    return EOK;
+}
+
+static errno_t expire_object(struct ldb_message *object,
+                             struct ldb_message *mod_msg)
+{
+    errno_t ret;
+    struct ldb_message_element *el;
+    const char *attrs[] = { SYSDB_CACHE_EXPIRE,
+                            SYSDB_LAST_UPDATE,
+                            SYSDB_INITGR_EXPIRE,
+                            NULL
+    };
+
+    for (size_t c = 0; attrs[c] != NULL; c++) {
+        el = ldb_msg_find_element(object, attrs[c]);
+        if (el == NULL) {
+            continue;
+        }
+
+        ret = ldb_msg_add_empty(mod_msg, attrs[c], LDB_FLAG_MOD_REPLACE, NULL);
+        if (ret != LDB_SUCCESS) {
+            return ret;
+        }
+
+        ret = ldb_msg_add_fmt(mod_msg, attrs[c], "%d", 1);
+        if (ret != LDB_SUCCESS) {
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t qualify_object(TALLOC_CTX *mem_ctx,
+                              struct ldb_context *ldb,
+                              struct sss_names_ctx *names,
+                              struct ldb_message *object,
+                              bool qualify_dn,
+                              const char *domain_attr,
+                              unsigned domain_index,
+                              const char *name_attrs[],
+                              const char *dn_attrs[],
+                              should_qualify_val_fn qfn)
+{
+    int ret;
+    struct ldb_message *mod_msg = NULL;
+    struct ldb_dn *new_object_dn = NULL;
+    const char *dom_name;
+
+    mod_msg = ldb_msg_new(mem_ctx);
+    if (mod_msg == NULL) {
+        return ENOMEM;
+    }
+    mod_msg->dn = object->dn;
+
+    dom_name = object_domain(mod_msg, ldb, object, domain_attr, domain_index);
+    if (dom_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot determine domain of %s\n",
+              ldb_dn_get_linearized(mod_msg->dn));
+        return EINVAL;
+    }
+
+    if (name_attrs != NULL) {
+        for (size_t c = 0; name_attrs[c]; c++) {
+            ret = qualify_attr(object, mod_msg, names,
+                               dom_name, name_attrs[c], qfn);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Cannot qualify %s of %s\n",
+                      name_attrs[c], ldb_dn_get_linearized(object->dn));
+                continue;
+            }
+        }
+    }
+
+    if (dn_attrs != NULL) {
+        for (size_t c = 0; dn_attrs[c]; c++) {
+            ret = qualify_dn_attr(ldb, object, mod_msg,
+                                  names, dn_attrs[c]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Cannot qualify %s of %s\n",
+                      dn_attrs[c], ldb_dn_get_linearized(object->dn));
+            }
+        }
+    }
+
+    ret = expire_object(object, mod_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot expire %s\n", ldb_dn_get_linearized(object->dn));
+    }
+
+    /* Override objects can contain both qualified and non-qualified names.
+     * Need to use permissive modification here, otherwise we might attempt
+     * to store duplicate qualified names
+     */
+    ret = sss_ldb_modify_permissive(ldb, mod_msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot modify %s\n",  ldb_dn_get_linearized(object->dn));
+        goto done;
+    }
+
+    if (qualify_dn) {
+        new_object_dn = qualify_rdn(mod_msg, ldb, names, mod_msg->dn);
+        if (new_object_dn == NULL) {
+            ret = EIO;
+            goto done;
+        }
+
+        ret = ldb_rename(ldb, object->dn, new_object_dn);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot rename %s to %s\n",
+                  ldb_dn_get_linearized(object->dn),
+                  ldb_dn_get_linearized(new_object_dn));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(mod_msg);
+    return ret;
+}
+
+static void qualify_objects(struct upgrade_ctx *ctx,
+                            struct ldb_context *ldb,
+                            struct sss_names_ctx *names,
+                            struct ldb_dn *base_dn,
+                            bool qualify_dn,
+                            const char *domain_attr,
+                            unsigned domain_index,
+                            const char *filter,
+                            const char *name_attrs[],
+                            const char *dn_attrs[],
+                            should_qualify_val_fn qfn)
+{
+    errno_t ret;
+    struct ldb_result *objects = NULL;
+    const char *attrs[] = { "*", NULL };
+
+    ret = ldb_search(ldb, ctx, &objects, base_dn,
+                     LDB_SCOPE_SUBTREE, attrs, "%s", filter);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to search objects: %d\n", ret);
+        return;
+    }
+
+    if (objects == NULL || objects->count == 0) {
+        DEBUG(SSSDBG_TRACE_LIBS, "No match for: %s\n", filter);
+        return;
+    }
+
+    for (size_t c = 0; c < objects->count; c++) {
+        ret = qualify_object(ctx, ldb, names, objects->msgs[c],
+                             qualify_dn, domain_attr, domain_index,
+                             name_attrs, dn_attrs, qfn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not qualify object %s: %d\n",
+                  ldb_dn_get_linearized(objects->msgs[c]->dn), ret);
+            continue;
+        }
+    }
+    talloc_free(objects);
+}
+
+static void qualify_users(struct upgrade_ctx *ctx,
+                          struct ldb_context *ldb,
+                          struct sss_names_ctx *names,
+                          struct ldb_dn *base_dn)
+{
+    const char *user_filter = "objectclass=user";
+    const char *user_name_attrs[] = { SYSDB_NAME,
+                                      SYSDB_NAME_ALIAS,
+                                      SYSDB_DEFAULT_OVERRIDE_NAME,
+                                      ORIGINALAD_PREFIX SYSDB_NAME,
+                                      NULL
+    };
+    const char *user_dn_attrs[] = { SYSDB_MEMBEROF,
+                                    SYSDB_OVERRIDE_DN,
+                                    NULL
+    };
+
+    return qualify_objects(ctx, ldb, names, base_dn,
+                           true,        /* qualify dn */
+                           NULL,        /* no special domain attr, use DN */
+                           2,           /* DN's domain is third RDN from top */
+                           user_filter,
+                           user_name_attrs, user_dn_attrs, NULL);
+}
+
+static void qualify_groups(struct upgrade_ctx *ctx,
+                           struct ldb_context *ldb,
+                           struct sss_names_ctx *names,
+                           struct ldb_dn *base_dn)
+{
+    const char *group_filter = "objectclass=group";
+    const char *group_name_attrs[] = { SYSDB_NAME,
+                                       SYSDB_NAME_ALIAS,
+                                       SYSDB_DEFAULT_OVERRIDE_NAME,
+                                       ORIGINALAD_PREFIX SYSDB_NAME,
+                                       SYSDB_MEMBERUID,
+                                       SYSDB_GHOST,
+                                       NULL
+    };
+    const char *group_dn_attrs[] = { SYSDB_MEMBER,
+                                     SYSDB_MEMBEROF,
+                                     SYSDB_OVERRIDE_DN,
+                                     NULL
+    };
+
+    return qualify_objects(ctx, ldb, names, base_dn, true,
+                           NULL, 2, group_filter,
+                           group_name_attrs, group_dn_attrs, NULL);
+}
+
+static void qualify_user_overrides(struct upgrade_ctx *ctx,
+                                   struct ldb_context *ldb,
+                                   struct sss_names_ctx *names,
+                                   struct ldb_dn *base_dn)
+{
+    const char *user_override_filter = "objectclass=userOverride";
+    const char *user_ovr_name_attrs[] = { SYSDB_NAME,
+                                          SYSDB_NAME_ALIAS,
+                                          NULL
+    };
+    const char *user_ovr_dn_attrs[] = { SYSDB_OVERRIDE_OBJECT_DN,
+                                        NULL
+    };
+
+    return qualify_objects(ctx, ldb, names, base_dn,
+                           /* Don't qualify RDN of override DN */
+                           false,
+                           /* Read domain from override DN */
+                           SYSDB_OVERRIDE_OBJECT_DN,
+                           2, /* Third RDN from top is domain */
+                           user_override_filter, user_ovr_name_attrs,
+                           user_ovr_dn_attrs, NULL);
+}
+
+static void qualify_group_overrides(struct upgrade_ctx *ctx,
+                                    struct ldb_context *ldb,
+                                    struct sss_names_ctx *names,
+                                    struct ldb_dn *base_dn)
+{
+    const char *group_override_filter = "objectclass=groupOverride";
+    const char *group_ovr_name_attrs[] = { SYSDB_NAME,
+                                           SYSDB_NAME_ALIAS,
+                                           NULL
+    };
+    const char *group_ovr_dn_attrs[] = { SYSDB_OVERRIDE_OBJECT_DN,
+                                         NULL
+    };
+
+    return qualify_objects(ctx, ldb, names, base_dn,
+                           false, SYSDB_OVERRIDE_OBJECT_DN, 2,
+                           group_override_filter, group_ovr_name_attrs,
+                           group_ovr_dn_attrs, NULL);
+}
+
+static void qualify_sudo_rules(struct upgrade_ctx *ctx,
+                               struct ldb_context *ldb,
+                               struct sss_names_ctx *names,
+                               struct ldb_dn *base_dn)
+{
+    const char *group_override_filter = "objectclass=sudoRule";
+    const char *sudo_rule_name_attrs[] = { "sudoUser",
+                                            NULL
+    };
+
+    return qualify_objects(ctx, ldb, names, base_dn,
+                           false, NULL, 3,
+                           group_override_filter, sudo_rule_name_attrs,
+                           NULL, is_user_or_group_name);
+}
+
+
+int sysdb_upgrade_17(struct sysdb_ctx *sysdb,
+                     struct sysdb_dom_upgrade_ctx *upgrade_ctx,
+                     const char **ver)
+{
+    struct upgrade_ctx *ctx;
+    errno_t ret, envret;
+    struct ldb_dn *base_dn;
+    struct sss_names_ctx *names = upgrade_ctx->names;
+
+    if (names == NULL) {
+        return EINVAL;
+    }
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_18, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    /* Disable memberof plugin during this update */
+    ret = setenv("SSSD_UPGRADE_DB", "1", 1);
+    if (ret != 0) {
+        goto done;
+    }
+
+    base_dn = ldb_dn_new_fmt(ctx, sysdb->ldb, SYSDB_BASE);
+    if (base_dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    qualify_users(ctx, sysdb->ldb, names, base_dn);
+    qualify_groups(ctx, sysdb->ldb, names, base_dn);
+    qualify_user_overrides(ctx, sysdb->ldb, names, base_dn);
+    qualify_group_overrides(ctx, sysdb->ldb, names, base_dn);
+    qualify_sudo_rules(ctx, sysdb->ldb, names, base_dn);
+
+    /* conversion done, update version number */
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    envret = unsetenv("SSSD_UPGRADE_DB");
+    if (envret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot unset SSSD_UPGRADE_DB, SSSD might not work correctly\n");
+    }
+    return ret;
+}
 /*
  * Example template for future upgrades.
  * Copy and change version numbers as appropriate.
