@@ -2759,6 +2759,11 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                 return NULL;
             }
         }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported filter type [%d].\n",
+                                   filter_type);
+        return NULL;
     }
 
     state->user_base_filter =

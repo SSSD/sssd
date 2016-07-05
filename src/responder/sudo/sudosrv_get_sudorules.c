@@ -440,6 +440,8 @@ static errno_t sudosrv_fetch_rules(TALLOC_CTX *mem_ctx,
         ret = sudosrv_cached_defaults(mem_ctx, domain, &rules, &num_rules);
 
         break;
+    default:
+        ret = EINVAL;
     }
 
     if (ret != EOK) {
