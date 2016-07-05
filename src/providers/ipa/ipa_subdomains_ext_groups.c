@@ -829,6 +829,8 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
     int ret;
     const struct ldb_val *val;
     bool missing_groups;
+    const char *fq_name;
+    char *tmp_str;
 
     while (state->groups[state->iter] != NULL
             && state->groups[state->iter][0] == '\0') {
@@ -870,12 +872,22 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
         goto fail;
     }
 
+    fq_name = (const char *) val->data;
+    if (strchr(fq_name, '@') == NULL) {
+        tmp_str = sss_create_internal_fqname(state, fq_name,
+                                             state->group_dom->name);
+        /* keep using val->data if sss_create_internal_fqname() fails */
+        if (tmp_str != NULL) {
+            fq_name = tmp_str;
+        }
+    }
+
 /* TODO: here is would be useful for have a filter type like BE_FILTER_DN to
  * directly fetch the group with the corresponding DN. */
     subreq = groups_get_send(state, state->ev,
                                  state->sdap_id_ctx, state->group_sdom,
                                  state->sdap_id_ctx->conn,
-                                 (const char *) val->data,
+                                 fq_name,
                                  BE_FILTER_NAME, BE_ATTR_CORE,
                                  false, false);
     if (subreq == NULL) {
