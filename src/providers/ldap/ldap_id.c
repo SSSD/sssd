@@ -697,7 +697,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         ret = sss_parse_internal_fqname(state, filter_value,
                                         &shortname, NULL);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", shortname);
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", filter_value);
             goto done;
         }
 
