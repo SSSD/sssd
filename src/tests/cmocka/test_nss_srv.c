@@ -2153,7 +2153,6 @@ void test_nss_getorigbyname(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
-    char *fqorigname;
 
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
@@ -2161,13 +2160,8 @@ void test_nss_getorigbyname(void **state)
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
     assert_int_equal(ret, EOK);
 
-    fqorigname = sss_create_internal_fqname(attrs, "orig_name",
-                                            nss_test_ctx->tctx->dom->name);
-    assert_non_null(fqorigname);
-
     ret = sysdb_attrs_add_string(attrs, ORIGINALAD_PREFIX SYSDB_NAME,
-                                 fqorigname);
-    talloc_free(fqorigname);
+                                 "orig_name");
     assert_int_equal(ret, EOK);
 
     ret = sysdb_attrs_add_uint32(attrs, ORIGINALAD_PREFIX SYSDB_UIDNUM, 1234);
@@ -2273,7 +2267,6 @@ void test_nss_getorigbyname_extra_attrs(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
-    char *fqorigname;
 
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
@@ -2281,13 +2274,8 @@ void test_nss_getorigbyname_extra_attrs(void **state)
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
     assert_int_equal(ret, EOK);
 
-    fqorigname = sss_create_internal_fqname(attrs, "orig_name",
-                                            nss_test_ctx->tctx->dom->name);
-    assert_non_null(fqorigname);
-
     ret = sysdb_attrs_add_string(attrs, ORIGINALAD_PREFIX SYSDB_NAME,
-                                 fqorigname);
-    talloc_free(fqorigname);
+                                 "orig_name");
     assert_int_equal(ret, EOK);
 
     ret = sysdb_attrs_add_uint32(attrs, ORIGINALAD_PREFIX SYSDB_UIDNUM, 1234);
@@ -2411,7 +2399,6 @@ void test_nss_getorigbyname_multi_value_attrs(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
-    char *fqorigname;
 
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
@@ -2419,13 +2406,8 @@ void test_nss_getorigbyname_multi_value_attrs(void **state)
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
     assert_int_equal(ret, EOK);
 
-    fqorigname = sss_create_internal_fqname(attrs, "orig_name",
-                                            nss_test_ctx->tctx->dom->name);
-    assert_non_null(fqorigname);
-
     ret = sysdb_attrs_add_string(attrs, ORIGINALAD_PREFIX SYSDB_NAME,
-                                 fqorigname);
-    talloc_free(fqorigname);
+                                 "orig_name");
     assert_int_equal(ret, EOK);
 
     ret = sysdb_attrs_add_uint32(attrs, ORIGINALAD_PREFIX SYSDB_UIDNUM, 1234);
