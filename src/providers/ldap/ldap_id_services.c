@@ -89,6 +89,9 @@ services_get_send(TALLOC_CTX *mem_ctx,
     state->sysdb = sdom->dom->sysdb;
     state->name = name;
     state->protocol = protocol;
+    if (state->protocol != NULL && state->protocol[0] == '\0') {
+        state->protocol = NULL;
+    }
     state->filter_type = filter_type;
     state->noexist_delete = noexist_delete;
 
@@ -114,8 +117,8 @@ services_get_send(TALLOC_CTX *mem_ctx,
     ret = sss_filter_sanitize(state, name, &clean_name);
     if (ret != EOK)  goto error;
 
-    if (protocol) {
-        ret = sss_filter_sanitize(state, protocol, &clean_protocol);
+    if (state->protocol != NULL) {
+        ret = sss_filter_sanitize(state, state->protocol, &clean_protocol);
         if (ret != EOK)  goto error;
     }
 
