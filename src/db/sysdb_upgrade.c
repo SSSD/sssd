@@ -1690,6 +1690,7 @@ static errno_t qualify_attr(struct ldb_message *msg,
     const char *rawname;
     int ret;
     struct ldb_val val;
+    bool exists = false;
 
     el = ldb_msg_find_element(msg, attrname);
     if (el == NULL) {
@@ -1733,9 +1734,13 @@ static errno_t qualify_attr(struct ldb_message *msg,
         DEBUG(SSSDBG_TRACE_FUNC, "Qualified %s:%s into %s\n",
               attrname, rawname, fqval);
 
-        ret = ldb_msg_add_empty(mod_msg, attrname, LDB_FLAG_MOD_REPLACE, NULL);
-        if (ret != LDB_SUCCESS) {
-            continue;
+        if (!exists) {
+            ret = ldb_msg_add_empty(mod_msg, attrname, LDB_FLAG_MOD_REPLACE, NULL);
+            if (ret != LDB_SUCCESS) {
+                continue;
+            }
+
+            exists = true;
         }
 
         ret = ldb_msg_add_steal_string(mod_msg, attrname, fqval);
