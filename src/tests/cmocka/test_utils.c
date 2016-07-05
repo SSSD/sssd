@@ -1247,16 +1247,16 @@ void test_sss_write_krb5_conf_snippet(void **state)
     char *path;
     char *file;
 
-    ret = sss_write_krb5_conf_snippet(NULL);
+    ret = sss_write_krb5_conf_snippet(NULL, false);
     assert_int_equal(ret, EINVAL);
 
-    ret = sss_write_krb5_conf_snippet("abc");
+    ret = sss_write_krb5_conf_snippet("abc", false);
     assert_int_equal(ret, EINVAL);
 
-    ret = sss_write_krb5_conf_snippet("");
+    ret = sss_write_krb5_conf_snippet("", false);
     assert_int_equal(ret, EOK);
 
-    ret = sss_write_krb5_conf_snippet("none");
+    ret = sss_write_krb5_conf_snippet("none", false);
     assert_int_equal(ret, EOK);
 
     cwd = getcwd(buf, PATH_MAX);
@@ -1268,11 +1268,11 @@ void test_sss_write_krb5_conf_snippet(void **state)
     ret = asprintf(&file, "%s/%s/localauth_plugin", cwd, TESTS_PATH);
     assert_true(ret > 0);
 
-    ret = sss_write_krb5_conf_snippet(path);
+    ret = sss_write_krb5_conf_snippet(path, true);
     assert_int_equal(ret, EOK);
 
     /* Check if writing a second time will work as well */
-    ret = sss_write_krb5_conf_snippet(path);
+    ret = sss_write_krb5_conf_snippet(path, true);
     assert_int_equal(ret, EOK);
 
 #ifdef HAVE_KRB5_LOCALAUTH_PLUGIN

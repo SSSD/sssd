@@ -504,11 +504,16 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
 {
     const char *path;
     errno_t ret;
+    bool canonicalize;
 
     path = dp_opt_get_string(subdoms_ctx->ad_id_ctx->ad_options->basic,
                              AD_KRB5_CONFD_PATH);
 
-    ret = sss_write_krb5_conf_snippet(path);
+    canonicalize = dp_opt_get_bool(
+                             subdoms_ctx->ad_id_ctx->ad_options->auth_ctx->opts,
+                             KRB5_CANONICALIZE);
+
+    ret = sss_write_krb5_conf_snippet(path, canonicalize);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
         /* Just continue */
