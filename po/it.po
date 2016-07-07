@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2016-06-29 23:29+0200\n"
+"POT-Creation-Date: 2016-07-07 19:29+0200\n"
 "PO-Revision-Date: 2014-06-04 02:04-0400\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Italian (http://www.transifex.com/projects/p/sssd/language/"
@@ -1318,51 +1318,51 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Stack PAM da usare"
 
-#: src/monitor/monitor.c:2786
+#: src/monitor/monitor.c:2789
 msgid "Become a daemon (default)"
 msgstr "Esegui come demone (default)"
 
-#: src/monitor/monitor.c:2788
+#: src/monitor/monitor.c:2791
 msgid "Run interactive (not a daemon)"
 msgstr "Esegui interattivamente (non come demone)"
 
-#: src/monitor/monitor.c:2790 src/tools/sss_debuglevel.c:72
+#: src/monitor/monitor.c:2793 src/tools/sss_debuglevel.c:72
 msgid "Specify a non-default config file"
 msgstr "Specificare un file di configurazione specifico"
 
-#: src/monitor/monitor.c:2792
+#: src/monitor/monitor.c:2795
 msgid "Refresh the configuration database, then exit"
 msgstr ""
 
-#: src/monitor/monitor.c:2795
+#: src/monitor/monitor.c:2798
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:2617 src/providers/ldap/ldap_child.c:590
+#: src/providers/krb5/krb5_child.c:2696 src/providers/ldap/ldap_child.c:590
 msgid "Debug level"
 msgstr "Livello debug"
 
-#: src/providers/krb5/krb5_child.c:2619 src/providers/ldap/ldap_child.c:592
+#: src/providers/krb5/krb5_child.c:2698 src/providers/ldap/ldap_child.c:592
 msgid "Add debug timestamps"
 msgstr "Includi timestamp di debug"
 
-#: src/providers/krb5/krb5_child.c:2621 src/providers/ldap/ldap_child.c:594
+#: src/providers/krb5/krb5_child.c:2700 src/providers/ldap/ldap_child.c:594
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:2623 src/providers/ldap/ldap_child.c:596
+#: src/providers/krb5/krb5_child.c:2702 src/providers/ldap/ldap_child.c:596
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descrittore di file aperto per l'output di debug"
 
-#: src/providers/krb5/krb5_child.c:2626 src/providers/ldap/ldap_child.c:598
+#: src/providers/krb5/krb5_child.c:2705 src/providers/ldap/ldap_child.c:598
 msgid "Send the debug output to stderr directly."
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:2628
+#: src/providers/krb5/krb5_child.c:2707
 msgid "The user to create FAST ccache as"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:2630
+#: src/providers/krb5/krb5_child.c:2709
 msgid "The group to create FAST ccache as"
 msgstr ""
 
@@ -1447,31 +1447,35 @@ msgstr ""
 msgid "Password change failed. "
 msgstr "Cambio password fallito."
 
-#: src/sss_client/pam_sss.c:1467
+#: src/sss_client/pam_sss.c:1472
 msgid "New Password: "
 msgstr "Nuova password: "
 
-#: src/sss_client/pam_sss.c:1468
+#: src/sss_client/pam_sss.c:1473
 msgid "Reenter new Password: "
 msgstr "Conferma nuova password: "
 
-#: src/sss_client/pam_sss.c:1574
+#: src/sss_client/pam_sss.c:1580 src/sss_client/pam_sss.c:1583
 msgid "First Factor: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:1575
+#: src/sss_client/pam_sss.c:1581
+msgid "Second Factor (optional): "
+msgstr ""
+
+#: src/sss_client/pam_sss.c:1584
 msgid "Second Factor: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:1579
+#: src/sss_client/pam_sss.c:1589
 msgid "Password: "
 msgstr "Password: "
 
-#: src/sss_client/pam_sss.c:1619
+#: src/sss_client/pam_sss.c:1629
 msgid "Current Password: "
 msgstr "Password corrente: "
 
-#: src/sss_client/pam_sss.c:1818
+#: src/sss_client/pam_sss.c:1828
 msgid "Password expired. Change your password now."
 msgstr "Password scaduta. Cambiare la password ora."
 
@@ -1480,7 +1484,7 @@ msgstr "Password scaduta. Cambiare la password ora."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:642 src/tools/sss_debuglevel.c:70
+#: src/tools/sss_cache.c:658 src/tools/sss_debuglevel.c:70
 msgid "The debug level to run with"
 msgstr "Il livello di debug da utilizzare"
 
@@ -1493,7 +1497,7 @@ msgstr ""
 #: src/tools/sss_groupadd.c:59 src/tools/sss_groupdel.c:54
 #: src/tools/sss_groupmod.c:66 src/tools/sss_groupshow.c:663
 #: src/tools/sss_userdel.c:152 src/tools/sss_usermod.c:79
-#: src/tools/sss_cache.c:688
+#: src/tools/sss_cache.c:704
 msgid "Error setting the locale\n"
 msgstr "Errore di impostazione del locale\n"
 
@@ -1505,7 +1509,7 @@ msgstr ""
 msgid "User not specified\n"
 msgstr ""
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:92
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:97
 msgid "Error looking up public keys\n"
 msgstr ""
 
@@ -1942,96 +1946,96 @@ msgstr "Impossibile modificare l'utente - utente già membro di gruppi?\n"
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Errore nella transazione. Impossibile modificare l'utente.\n"
 
-#: src/tools/sss_cache.c:212
+#: src/tools/sss_cache.c:214
 msgid "No cache object matched the specified search\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:484
+#: src/tools/sss_cache.c:498
 #, c-format
 msgid "Couldn't invalidate %1$s\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:491
+#: src/tools/sss_cache.c:505
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:644
+#: src/tools/sss_cache.c:660
 msgid "Invalidate all cached entries"
 msgstr ""
 
-#: src/tools/sss_cache.c:646
+#: src/tools/sss_cache.c:662
 msgid "Invalidate particular user"
 msgstr ""
 
-#: src/tools/sss_cache.c:648
+#: src/tools/sss_cache.c:664
 msgid "Invalidate all users"
 msgstr ""
 
-#: src/tools/sss_cache.c:650
+#: src/tools/sss_cache.c:666
 msgid "Invalidate particular group"
 msgstr ""
 
-#: src/tools/sss_cache.c:652
+#: src/tools/sss_cache.c:668
 msgid "Invalidate all groups"
 msgstr ""
 
-#: src/tools/sss_cache.c:654
+#: src/tools/sss_cache.c:670
 msgid "Invalidate particular netgroup"
 msgstr ""
 
-#: src/tools/sss_cache.c:656
+#: src/tools/sss_cache.c:672
 msgid "Invalidate all netgroups"
 msgstr ""
 
-#: src/tools/sss_cache.c:658
+#: src/tools/sss_cache.c:674
 msgid "Invalidate particular service"
 msgstr ""
 
-#: src/tools/sss_cache.c:660
+#: src/tools/sss_cache.c:676
 msgid "Invalidate all services"
 msgstr ""
 
-#: src/tools/sss_cache.c:663
+#: src/tools/sss_cache.c:679
 msgid "Invalidate particular autofs map"
 msgstr ""
 
-#: src/tools/sss_cache.c:665
+#: src/tools/sss_cache.c:681
 msgid "Invalidate all autofs maps"
 msgstr ""
 
-#: src/tools/sss_cache.c:669
+#: src/tools/sss_cache.c:685
 msgid "Invalidate particular SSH host"
 msgstr ""
 
-#: src/tools/sss_cache.c:671
+#: src/tools/sss_cache.c:687
 msgid "Invalidate all SSH hosts"
 msgstr ""
 
-#: src/tools/sss_cache.c:675
+#: src/tools/sss_cache.c:691
 msgid "Invalidate particular sudo rule"
 msgstr ""
 
-#: src/tools/sss_cache.c:677
+#: src/tools/sss_cache.c:693
 msgid "Invalidate all cached sudo rules"
 msgstr ""
 
-#: src/tools/sss_cache.c:680
+#: src/tools/sss_cache.c:696
 msgid "Only invalidate entries from a particular domain"
 msgstr ""
 
-#: src/tools/sss_cache.c:736
+#: src/tools/sss_cache.c:752
 msgid "Please select at least one object to invalidate\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:816
+#: src/tools/sss_cache.c:832
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:820
+#: src/tools/sss_cache.c:836
 msgid "Could not open available domains\n"
 msgstr ""
 
