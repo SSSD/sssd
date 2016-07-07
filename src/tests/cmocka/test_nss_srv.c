@@ -1128,6 +1128,43 @@ void test_nss_getgrnam_no_members(void **state)
     assert_int_equal(ret, EOK);
 }
 
+struct passwd testmember1 = {
+    .pw_name = discard_const("testmember1"),
+    .pw_uid = 2001,
+    .pw_gid = 456,
+    .pw_dir = discard_const("/home/testmember1"),
+    .pw_gecos = discard_const("test member1"),
+    .pw_shell = discard_const("/bin/sh"),
+    .pw_passwd = discard_const("*"),
+};
+
+struct passwd testmember2 = {
+    .pw_name = discard_const("testmember2"),
+    .pw_uid = 2002,
+    .pw_gid = 456,
+    .pw_dir = discard_const("/home/testmember2"),
+    .pw_gecos = discard_const("test member2"),
+    .pw_shell = discard_const("/bin/sh"),
+    .pw_passwd = discard_const("*"),
+};
+
+struct passwd submember1 = {
+    .pw_name = discard_const("submember1"),
+    .pw_uid = 4001,
+    .pw_gid = 456,
+    .pw_dir = discard_const("/home/submember1"),
+    .pw_gecos = discard_const("sub member1"),
+    .pw_shell = discard_const("/bin/sh"),
+    .pw_passwd = discard_const("*"),
+};
+
+struct group testgroup_members = {
+    .gr_gid = 1124,
+    .gr_name = discard_const("testgroup_members"),
+    .gr_passwd = discard_const("*"),
+    .gr_mem = NULL,
+};
+
 static int test_nss_getgrnam_members_check(uint32_t status,
                                            uint8_t *body, size_t blen)
 {
@@ -1361,6 +1398,16 @@ static int test_nss_getgrnam_check_mix_dom(uint32_t status,
         .gr_passwd = discard_const("*"),
         .gr_mem = discard_const(exp_members)
     };
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(nss_test_ctx);
+    assert_non_null(tmp_ctx);
+
+    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom, submember1.pw_name);
+    assert_non_null(exp_members[0]);
+    exp_members[1] = testmember1.pw_name;
+    exp_members[2] = testmember2.pw_name;
 
     assert_int_equal(status, EOK);
 
@@ -1423,6 +1470,26 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
         .gr_passwd = discard_const("*"),
         .gr_mem = discard_const(exp_members)
     };
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(nss_test_ctx);
+    assert_non_null(tmp_ctx);
+
+    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom, submember1.pw_name);
+    assert_non_null(exp_members[0]);
+    exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
+                                   nss_test_ctx->tctx->dom, testmember1.pw_name);
+    assert_non_null(exp_members[1]);
+    exp_members[2] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
+                                   nss_test_ctx->tctx->dom, testmember2.pw_name);
+    assert_non_null(exp_members[2]);
+
+    expected.gr_name = sss_tc_fqname(tmp_ctx,
+                                     nss_test_ctx->tctx->dom->names,
+                                     nss_test_ctx->tctx->dom,
+                                     testgroup_members.gr_name);
+    assert_non_null(expected.gr_name);
 
     assert_int_equal(status, EOK);
 
