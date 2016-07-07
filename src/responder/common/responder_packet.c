@@ -75,7 +75,7 @@ int sss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
     if (!packet) return ENOMEM;
 
     if (size) {
-        int n = (size + SSS_NSS_HEADER_SIZE) % SSSSRV_PACKET_MEM_SIZE;
+        int n = (size + SSS_NSS_HEADER_SIZE) / SSSSRV_PACKET_MEM_SIZE;
         packet->memsize = (n + 1) * SSSSRV_PACKET_MEM_SIZE;
     } else {
         packet->memsize = SSSSRV_PACKET_MEM_SIZE;
