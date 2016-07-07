@@ -2976,7 +2976,12 @@ static int fill_grent(struct sss_packet *packet,
 
         memnum = 0;
         if (!dom->ignore_group_members) {
-            el = sss_view_ldb_msg_find_element(dom, msg, SYSDB_MEMBERUID);
+            /* unconditionally prefer OVERRIDE_PREFIX SYSDB_MEMBERUID, it
+             * might contain override names from the default view */
+            el = ldb_msg_find_element(msg, OVERRIDE_PREFIX SYSDB_MEMBERUID);
+            if (el == NULL) {
+                el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+            }
             if (el) {
                 ret = fill_members(packet, nctx->rctx, dom, nctx, el,
                                    &rzero, &rsize, &memnum);

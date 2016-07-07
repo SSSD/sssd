@@ -771,28 +771,33 @@ int sysdb_getgrnam_with_views(TALLOC_CTX *mem_ctx,
 
     /* If there are views we have to check if override values must be added to
      * the original object. */
-    if (DOM_HAS_VIEWS(domain) && orig_obj->count == 1) {
-        if (!is_local_view(domain->view_name)) {
-            el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
-            if (el != NULL && el->num_values != 0) {
-                DEBUG(SSSDBG_TRACE_ALL, "Group object [%s], contains ghost "
-                      "entries which must be resolved before overrides can be "
-                      "applied.\n",
-                      ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
-                ret = ENOENT;
+    if (orig_obj->count == 1) {
+        if (DOM_HAS_VIEWS(domain)) {
+            if (!is_local_view(domain->view_name)) {
+                el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
+                if (el != NULL && el->num_values != 0) {
+                    DEBUG(SSSDBG_TRACE_ALL, "Group object [%s], contains ghost "
+                          "entries which must be resolved before overrides can be "
+                          "applied.\n",
+                          ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
+                    ret = ENOENT;
+                    goto done;
+                }
+            }
+
+            ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
+                           override_obj == NULL ? NULL : override_obj ->msgs[0],
+                           NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
                 goto done;
             }
         }
 
-        ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
-                          override_obj == NULL ? NULL : override_obj ->msgs[0],
-                          NULL);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0]);
+        /* Must be called even without views to check to
+         * SYSDB_DEFAULT_OVERRIDE_NAME */
+        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0],
+                                               DOM_HAS_VIEWS(domain));
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_add_group_member_overrides failed.\n");
@@ -922,28 +927,33 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
 
     /* If there are views we have to check if override values must be added to
      * the original object. */
-    if (DOM_HAS_VIEWS(domain) && orig_obj->count == 1) {
-        if (!is_local_view(domain->view_name)) {
-            el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
-            if (el != NULL && el->num_values != 0) {
-                DEBUG(SSSDBG_TRACE_ALL, "Group object [%s], contains ghost "
-                      "entries which must be resolved before overrides can be "
-                      "applied.\n",
-                      ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
-                ret = ENOENT;
+    if (orig_obj->count == 1) {
+        if (DOM_HAS_VIEWS(domain)) {
+            if (!is_local_view(domain->view_name)) {
+                el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
+                if (el != NULL && el->num_values != 0) {
+                    DEBUG(SSSDBG_TRACE_ALL, "Group object [%s], contains ghost "
+                          "entries which must be resolved before overrides can be "
+                          "applied.\n",
+                          ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
+                    ret = ENOENT;
+                    goto done;
+                }
+            }
+
+            ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
+                              override_obj == NULL ? NULL : override_obj ->msgs[0],
+                              NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
                 goto done;
             }
         }
 
-        ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
-                          override_obj == NULL ? NULL : override_obj ->msgs[0],
-                          NULL);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
-            goto done;
-        }
-
-        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0]);
+        /* Must be called even without views to check to
+         * SYSDB_DEFAULT_OVERRIDE_NAME */
+        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0],
+                                               DOM_HAS_VIEWS(domain));
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_add_group_member_overrides failed.\n");
@@ -1157,8 +1167,8 @@ int sysdb_enumgrent_filter_with_views(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (DOM_HAS_VIEWS(domain)) {
-        for (c = 0; c < res->count; c++) {
+    for (c = 0; c < res->count; c++) {
+        if (DOM_HAS_VIEWS(domain)) {
             ret = sysdb_add_overrides_to_object(domain, res->msgs[c], NULL,
                                                 NULL);
             /* enumeration assumes that the cache is up-to-date, hence we do not
@@ -1167,13 +1177,14 @@ int sysdb_enumgrent_filter_with_views(TALLOC_CTX *mem_ctx,
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
                 goto done;
             }
+        }
 
-            ret = sysdb_add_group_member_overrides(domain, res->msgs[c]);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "sysdb_add_group_member_overrides failed.\n");
-                goto done;
-            }
+        ret = sysdb_add_group_member_overrides(domain, res->msgs[c],
+                                               DOM_HAS_VIEWS(domain));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_add_group_member_overrides failed.\n");
+            goto done;
         }
     }
 

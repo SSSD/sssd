@@ -1619,11 +1619,11 @@ static int test_nss_getgrnam_check_mix_dom(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    exp_members[0] = testmember1.pw_name;
-    exp_members[1] = testmember2.pw_name;
-    exp_members[2] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
+    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
                                    nss_test_ctx->subdom, submember1.pw_name);
-    assert_non_null(exp_members[2]);
+    assert_non_null(exp_members[0]);
+    exp_members[1] = testmember1.pw_name;
+    exp_members[2] = testmember2.pw_name;
 
     assert_int_equal(status, EOK);
 
@@ -1682,14 +1682,14 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
-                                   nss_test_ctx->tctx->dom, testmember1.pw_name);
+    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom, submember1.pw_name);
     assert_non_null(exp_members[0]);
     exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
-                                   nss_test_ctx->tctx->dom, testmember2.pw_name);
+                                   nss_test_ctx->tctx->dom, testmember1.pw_name);
     assert_non_null(exp_members[1]);
-    exp_members[2] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom, submember1.pw_name);
+    exp_members[2] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
+                                   nss_test_ctx->tctx->dom, testmember2.pw_name);
     assert_non_null(exp_members[2]);
 
     expected.gr_name = sss_tc_fqname(tmp_ctx,

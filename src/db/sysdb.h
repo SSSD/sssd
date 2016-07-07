@@ -572,7 +572,8 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
                                       const char **req_attrs);
 
 errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
-                                         struct ldb_message *obj);
+                                         struct ldb_message *obj,
+                                         bool expect_override_dn);
 
 errno_t sysdb_getpwnam_with_views(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *domain,
