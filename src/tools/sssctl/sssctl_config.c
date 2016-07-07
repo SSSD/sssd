@@ -68,7 +68,8 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     /* Check the file permissions */
     ret = sss_ini_config_access_check(init_data);
     if (ret != EOK) {
-        printf(_("Access check on sssd.conf file failed.\n"));
+        printf(_("File ownership and permissions check failed. "
+               "Expected root:root and 0600.\n"));
         ret = EPERM;
         goto done;
     }
