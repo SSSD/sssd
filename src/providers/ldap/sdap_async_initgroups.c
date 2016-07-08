@@ -301,13 +301,15 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
     /* Find the differences between the sysdb and LDAP lists
      * Groups in the sysdb only must be removed.
      */
-    ldap_fqdnlist = sss_create_internal_fqname_list(
-                                        tmp_ctx,
-                                        (const char * const *) ldap_grouplist,
-                                        domain->name);
-    if (ldap_fqdnlist == NULL) {
-        ret = ENOMEM;
-        goto done;
+    if (ldap_grouplist != NULL) {
+        ldap_fqdnlist = sss_create_internal_fqname_list(
+                                            tmp_ctx,
+                                            (const char * const *) ldap_grouplist,
+                                            domain->name);
+        if (ldap_fqdnlist == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     ret = diff_string_lists(tmp_ctx, ldap_fqdnlist, sysdb_grouplist,
@@ -1288,13 +1290,15 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
         }
     }
 
-    ldap_fqdnlist = sss_create_internal_fqname_list(
-                                tmp_ctx,
-                                (const char * const *) ldap_parent_name_list,
-                                state->dom->name);
-    if (ldap_fqdnlist == NULL) {
-        ret = ENOMEM;
-        goto done;
+    if (ldap_parent_name_list) {
+        ldap_fqdnlist = sss_create_internal_fqname_list(
+                                  tmp_ctx,
+                                  (const char * const *) ldap_parent_name_list,
+                                  state->dom->name);
+        if (ldap_fqdnlist == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     ret = sysdb_get_direct_parents(tmp_ctx, state->dom, SYSDB_MEMBER_USER,
