@@ -91,7 +91,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     }
 
     /* Output from validators */
-    printf(_("Issues identified by validators: %lu\n"), num_errors);
+    printf(_("Issues identified by validators: %zu\n"), num_errors);
     for (i = 0; i < num_errors; i++) {
         printf("%s\n", strs[i]);
     }
