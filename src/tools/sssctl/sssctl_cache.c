@@ -372,15 +372,19 @@ static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
 
         ret = sssctl_query_cache(tmp_ctx, dom->sysdb, base_dn, filter,
                                  attrs, &entry);
-        if (ret == EOK) {
+        switch(ret) {
+        case EOK:
             /* Entry was found. */
             *_entry = talloc_steal(mem_ctx, entry);
             *_dom = dom;
             goto done;
-        } else if (ret == ENOENT && fqn_provided) {
-            /* Not found but a domain was provided in input. We're done. */
-            goto done;
-        } else if (ret != ENOENT) {
+        case ENOENT:
+            if (fqn_provided) {
+                /* Not found but a domain was provided in input. We're done. */
+                goto done;
+            }
+            break;
+        default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to query cache [%d]: %s\n",
                   ret, sss_strerror(ret));
             goto done;
