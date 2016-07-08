@@ -65,8 +65,8 @@ typedef void (*hbac_debug_fn_t)(const char *file, int line,
                                 ...) HBAC_ATTRIBUTE_PRINTF(5, 6);
 
 /**
- *  HBAC uses external_debug_fn for logging messages.
- *  @param[in|out] external_debug_void Pointer to external logging function.
+ * HBAC uses external_debug_fn for logging messages.
+ * @param[in] external_debug_fn Pointer to external logging function.
  */
 void hbac_enable_debug(hbac_debug_fn_t external_debug_fn);
 
