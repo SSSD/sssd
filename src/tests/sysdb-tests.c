@@ -2737,7 +2737,7 @@ START_TEST (test_sysdb_memberof_close_loop)
     fail_unless(data->attrlist != NULL, "talloc_array failed.");
     data->attrlist[0] = test_asprintf_fqname(data, test_ctx->domain,
                                              "testgroup%d", data->gid + 9);
-    fail_unless(data->attrlist[0], "talloc_array failed.");
+    fail_unless(data->attrlist[0] != NULL, "talloc_array failed.");
     data->attrlist[1] = NULL;
 
     ret = test_memberof_store_group(data);
