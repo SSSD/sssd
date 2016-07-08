@@ -364,8 +364,9 @@ static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
         filter = talloc_asprintf(tmp_ctx, "(&(objectClass=%s)(%s=%s))",
                                  class, attr_name, filter_value);
         talloc_free(filter_value);
-        if (filter_value == NULL) {
+        if (filter == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
+            ret = ENOMEM;
             goto done;
         }
 
