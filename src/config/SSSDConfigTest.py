@@ -310,7 +310,8 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'client_idle_timeout',
             'diag_cmd',
             'description',
-            'certificate_verification']
+            'certificate_verification',
+            'override_space']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
