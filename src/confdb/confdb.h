@@ -58,7 +58,6 @@
 #define CONFDB_SERVICE_DEBUG_TIMESTAMPS "debug_timestamps"
 #define CONFDB_SERVICE_DEBUG_MICROSECONDS "debug_microseconds"
 #define CONFDB_SERVICE_DEBUG_TO_FILES "debug_to_files"
-#define CONFDB_SERVICE_TIMEOUT "timeout"
 #define CONFDB_SERVICE_FORCE_TIMEOUT "force_timeout"
 #define CONFDB_SERVICE_RECON_RETRIES "reconnection_retries"
 #define CONFDB_SERVICE_FD_LIMIT "fd_limit"
