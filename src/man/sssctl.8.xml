@@ -29,12 +29,11 @@
     <refsect1 id='description'>
         <title>DESCRIPTION</title>
         <para>
-            <command>sssctl</command> provides simple and unified way to obtain
-            information about SSSD status such as active server or list of
-            auto-discovered servers and domains or information about cached
-            objects. It also provides tools to manage SSSD data files during
-            troubleshooting such as a safe way to remove cache files or fetching
-            all SSSD log files and more.
+            <command>sssctl</command> provides a simple and unified way
+            to obtain information about SSSD status, such as active server,
+            auto-discovered servers, domains and cached objects. In addition,
+            it can manage SSSD data files for troubleshooting in such a way
+            that is safe to manipulate while SSSD is running.
         </para>
     </refsect1>
 
@@ -42,7 +41,7 @@
         <title>AVAILABLE COMMANDS</title>
         <para>
             To list all available commands run <command>sssctl</command>
-            without any parameter. To print help for selected command
+            without any parameters. To print help for selected command
             run <command>sssctl COMMAND --help</command>.
         </para>
     </refsect1>
