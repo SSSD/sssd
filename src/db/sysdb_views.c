@@ -454,15 +454,23 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
     obj_override_dn = ldb_msg_find_attr_as_string(msgs[0], SYSDB_OVERRIDE_DN,
                                                   NULL);
     if (obj_override_dn != NULL) {
+        /* obj_override_dn can either point to the object itself, i.e there is
+         * no override, or to a overide object. This means it can change from
+         * the object DN to a override DN and back but not from one override
+         * DN to a different override DN. If the new and the old DN are the
+         * same we do not need to update the original object.  */
         if (strcmp(obj_override_dn, override_dn_str) != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Existing [%s] and new [%s] override DN do not match.\n",
-                   obj_override_dn, override_dn_str);
-            ret = EINVAL;
-            goto done;
+            if (strcmp(obj_override_dn, obj_dn_str) != 0
+                    && strcmp(override_dn_str, obj_dn_str) != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Existing [%s] and new [%s] override DN do not match.\n",
+                       obj_override_dn, override_dn_str);
+                ret = EINVAL;
+                goto done;
+            }
+        } else {
+            add_ref = false;
         }
-
-        add_ref = false;
     }
 
     ret = ldb_transaction_start(domain->sysdb->ldb);
@@ -580,7 +588,9 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
 
         msg->dn = obj_dn;
 
-        ret = ldb_msg_add_empty(msg, SYSDB_OVERRIDE_DN, LDB_FLAG_MOD_ADD,
+        ret = ldb_msg_add_empty(msg, SYSDB_OVERRIDE_DN,
+                                obj_override_dn == NULL ? LDB_FLAG_MOD_ADD
+                                                        : LDB_FLAG_MOD_REPLACE,
                                 NULL);
         if (ret != LDB_SUCCESS) {
             DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_empty failed.\n");
