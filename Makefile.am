@@ -2455,6 +2455,7 @@ ad_common_tests_SOURCES = \
     src/providers/ad/ad_opts.c \
     src/providers/ad/ad_pac.c \
     src/providers/ad/ad_pac_common.c \
+    src/providers/ad/ad_domain_info.c \
     src/providers/ldap/sdap_async_initgroups_ad.c \
     $(NULL)
 ad_common_tests_CFLAGS = \
