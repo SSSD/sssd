@@ -2233,6 +2233,11 @@ ad_common_tests_SOURCES = \
     src/tests/cmocka/common_mock_krb5.c \
     src/tests/cmocka/test_ad_common.c \
     src/providers/ad/ad_opts.c \
+    src/providers/ad/ad_domain_info.c \
+    $(NULL)
+ad_common_tests_CFLAGS = \
+    $(NDR_NBT_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
     $(NULL)
 ad_common_tests_LDFLAGS = \
     -Wl,-wrap,sdap_set_sasl_options \
@@ -2244,6 +2249,7 @@ ad_common_tests_LDADD = \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(NDR_NBT_LIBS) \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \

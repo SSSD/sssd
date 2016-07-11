@@ -31,6 +31,7 @@
 
 /* In order to access opaque types */
 #include "providers/ad/ad_common.c"
+#include "util/crypto/sss_crypto.h"
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_krb5.h"
@@ -479,6 +480,84 @@ void test_user_conn_list(void **state)
     talloc_free(conn_list);
 }
 
+void test_netlogon_get_domain_info(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct ldb_val val = { 0 };
+    char *flat_name;
+    char *site;
+    char *forest;
+
+    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+                                                     struct ad_common_test_ctx);
+    assert_non_null(test_ctx);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = netlogon_get_domain_info(test_ctx, attrs, false, NULL, NULL, NULL);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sysdb_attrs_add_val(attrs, AD_AT_NETLOGON, &val);
+    assert_int_equal(ret, EOK);
+
+    ret = netlogon_get_domain_info(test_ctx, attrs, false, NULL, NULL, NULL);
+    assert_int_equal(ret, EBADMSG);
+
+    talloc_free(attrs);
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    val.data = sss_base64_decode(test_ctx, "FwAAAP0zAABsGcIYI7j2TL97Rd+TvpATAmFkBWRldmVsAMAYCWFkLXNlcnZlcsAYAkFEAAlBRC1TRVJWRVIAABdEZWZhdWx0LUZpcnN0LVNpdGUtTmFtZQDAQAUAAAD/////", &val.length);
+    assert_non_null(val.data);
+
+    ret = sysdb_attrs_add_val(attrs, AD_AT_NETLOGON, &val);
+    assert_int_equal(ret, EOK);
+
+    ret = netlogon_get_domain_info(test_ctx, attrs, false, &flat_name, &site, &forest);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(flat_name, "AD");
+    assert_string_equal(site, "Default-First-Site-Name");
+    assert_string_equal(forest, "ad.devel");
+
+    /* missing site */
+    talloc_free(flat_name);
+    talloc_free(site);
+    talloc_free(forest);
+    talloc_free(val.data);
+    talloc_free(attrs);
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    val.data = sss_base64_decode(test_ctx, "FwAAAH0zAABsGcIYI7j2TL97Rd+TvpATAmFkBWRldmVsAMAYCWFkLXNlcnZlcsAYAkFEAAlBRC1TRVJWRVIAABdEZWZhdWx0LUZpcnN0LVNpdGUtTmFtZQAABQAAAP////8=", &val.length);
+    assert_non_null(val.data);
+
+    ret = sysdb_attrs_add_val(attrs, AD_AT_NETLOGON, &val);
+    assert_int_equal(ret, EOK);
+
+    ret = netlogon_get_domain_info(test_ctx, attrs, false, &flat_name, &site, &forest);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(flat_name, "AD");
+    assert_null(site);
+    assert_string_equal(forest, "ad.devel");
+
+    talloc_free(flat_name);
+    talloc_free(site);
+    talloc_free(forest);
+    ret = netlogon_get_domain_info(test_ctx, attrs, true, &flat_name, &site, &forest);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(flat_name, "AD");
+    assert_null(site);
+    assert_string_equal(forest, "ad.devel");
+
+    talloc_free(flat_name);
+    talloc_free(site);
+    talloc_free(forest);
+    talloc_free(val.data);
+    talloc_free(attrs);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -509,6 +588,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_user_conn_list,
                                         test_ldap_conn_setup,
                                         test_ldap_conn_teardown),
+        cmocka_unit_test_setup_teardown(test_netlogon_get_domain_info,
+                                        test_ad_common_setup,
+                                        test_ad_common_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
