@@ -82,6 +82,7 @@ option_strings = {
     'shell_fallback' : _('If a shell stored in central directory is allowed but not available, use this fallback'),
     'default_shell': _('Shell to use if the provider does not list one'),
     'memcache_timeout': _('How long will be in-memory cache records valid'),
+    'user_attributes': _('List of user attributes the NSS responder is allowed to publish'),
 
     # [pam]
     'offline_credentials_expiration' : _('How long to allow cached logins between online logins (days)'),
