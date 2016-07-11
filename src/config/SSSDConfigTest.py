@@ -289,6 +289,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
 
         options = service.list_options()
         control_list = [
+            'config_file_version',
             'services',
             'domains',
             'timeout',
