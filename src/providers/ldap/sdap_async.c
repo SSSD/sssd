@@ -167,7 +167,7 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
     if (ret == 0) {
         /* this almost always means we have reached the end of
          * the list of received messages */
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Trace: ldap_result found nothing!\n");
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Trace: end of ldap_result list\n");
         return;
     }
 
