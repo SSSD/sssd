@@ -285,27 +285,16 @@ done:
     return ret;
 }
 
-static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
-                                  struct sss_domain_info *domains,
-                                  struct sss_domain_info *domain,
-                                  sssctl_basedn_fn basedn_fn,
-                                  enum cache_object obj_type,
-                                  const char *attr_name,
-                                  const char *attr_value,
-                                  const char **attrs,
-                                  struct sysdb_attrs **_entry,
-                                  struct sss_domain_info **_dom)
+static const char *sssctl_create_filter(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *dom,
+                                        enum cache_object obj_type,
+                                        const char *attr_name,
+                                        const char *attr_value)
 {
-    TALLOC_CTX *tmp_ctx;
-    struct sss_domain_info *dom;
-    struct sysdb_attrs *entry;
-    struct ldb_dn *base_dn;
-    bool fqn_provided;
-    bool qualify_attr = false;
-    char *filter;
-    errno_t ret;
     const char *class;
+    const char *filter;
     char *filter_value;
+    bool qualify_attr = false;
 
     if (strcmp(attr_name, SYSDB_NAME) == 0 &&
             (obj_type == CACHED_USER ||
@@ -326,8 +315,43 @@ static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
     default:
         DEBUG(SSSDBG_FATAL_FAILURE,
               "sssctl doesn't handle this object type (type=%d)\n", obj_type);
-        return EINVAL;
+        return NULL;
     }
+
+    if (qualify_attr) {
+        filter_value = sss_create_internal_fqname(NULL, attr_value, dom->name);
+    } else {
+        filter_value = talloc_strdup(NULL, attr_value);
+    }
+    if (filter_value == NULL) {
+        return NULL;
+    }
+
+    filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(%s=%s))",
+                             class, attr_name, filter_value);
+    talloc_free(filter_value);
+
+    return filter;
+}
+
+static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domains,
+                                  struct sss_domain_info *domain,
+                                  sssctl_basedn_fn basedn_fn,
+                                  enum cache_object obj_type,
+                                  const char *attr_name,
+                                  const char *attr_value,
+                                  const char **attrs,
+                                  struct sysdb_attrs **_entry,
+                                  struct sss_domain_info **_dom)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sss_domain_info *dom;
+    struct sysdb_attrs *entry;
+    struct ldb_dn *base_dn;
+    bool fqn_provided;
+    const char *filter;
+    errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -349,23 +373,10 @@ static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        if (qualify_attr) {
-            filter_value = sss_create_internal_fqname(tmp_ctx,
-                                                      attr_value,
-                                                      dom->name);
-        } else {
-            filter_value = talloc_strdup(tmp_ctx, attr_value);
-        }
-        if (filter_value == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        filter = talloc_asprintf(tmp_ctx, "(&(objectClass=%s)(%s=%s))",
-                                 class, attr_name, filter_value);
-        talloc_free(filter_value);
+        filter = sssctl_create_filter(tmp_ctx, dom, obj_type,
+                                      attr_name, attr_value);
         if (filter == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create filter\n");
             ret = ENOMEM;
             goto done;
         }
