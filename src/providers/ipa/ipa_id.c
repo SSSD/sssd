@@ -71,7 +71,7 @@ struct ipa_resolve_user_list_state {
 static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req);
 static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq);
 
-static struct tevent_req *
+struct tevent_req *
 ipa_resolve_user_list_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                            struct ipa_id_ctx *ipa_ctx,
                            const char *domain_name,
@@ -132,7 +132,14 @@ static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req)
 
     DEBUG(SSSDBG_TRACE_ALL, "Trying to resolve user [%s].\n", ar->filter_value);
 
-    subreq = ipa_id_get_account_info_send(state, state->ev, state->ipa_ctx, ar);
+    if (strcasecmp(state->domain_name,
+                   state->ipa_ctx->sdap_id_ctx->be->domain->name) != 0) {
+        subreq = ipa_subdomain_account_send(state, state->ev, state->ipa_ctx,
+                                            ar);
+    } else {
+        subreq = ipa_id_get_account_info_send(state, state->ev, state->ipa_ctx,
+                                              ar);
+    }
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct_req_send failed.\n");
         return ENOMEM;
@@ -151,7 +158,12 @@ static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq)
                                             struct ipa_resolve_user_list_state);
     int ret;
 
-    ret = ipa_id_get_account_info_recv(subreq, &state->dp_error);
+    if (strcasecmp(state->domain_name,
+                   state->ipa_ctx->sdap_id_ctx->be->domain->name) != 0) {
+        ret = ipa_subdomain_account_recv(subreq, &state->dp_error);
+    } else {
+        ret = ipa_id_get_account_info_recv(subreq, &state->dp_error);
+    }
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
@@ -182,7 +194,7 @@ done:
     return;
 }
 
-static int ipa_resolve_user_list_recv(struct tevent_req *req, int *dp_error)
+int ipa_resolve_user_list_recv(struct tevent_req *req, int *dp_error)
 {
     struct ipa_resolve_user_list_state *state = tevent_req_data(req,
                                             struct ipa_resolve_user_list_state);
