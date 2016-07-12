@@ -1201,6 +1201,67 @@ fail:
     return;
 }
 
+static void ipa_check_ghost_members_done(struct tevent_req *subreq);
+static errno_t ipa_check_ghost_members(struct tevent_req *req)
+{
+    struct ipa_get_ad_acct_state *state = tevent_req_data(req,
+                                                struct ipa_get_ad_acct_state);
+    errno_t ret;
+    struct tevent_req *subreq;
+    struct ldb_message_element *ghosts = NULL;
+
+
+    if (state->obj_msg == NULL) {
+        ret = get_object_from_cache(state, state->obj_dom, state->ar,
+                                    &state->obj_msg);
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Object not found, ending request\n");
+            return EOK;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
+            return ret;
+        }
+    }
+
+    ghosts = ldb_msg_find_element(state->obj_msg, SYSDB_GHOST);
+
+    if (ghosts != NULL) {
+        /* Resolve ghost members */
+        subreq = ipa_resolve_user_list_send(state, state->ev,
+                                            state->ipa_ctx,
+                                            state->obj_dom->name,
+                                            ghosts);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_resolve_user_list_send failed.\n");
+            return ENOMEM;
+        }
+        tevent_req_set_callback(subreq, ipa_check_ghost_members_done, req);
+        return EAGAIN;
+    }
+
+    return EOK;
+}
+
+static void ipa_check_ghost_members_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    int ret;
+
+    ret = ipa_resolve_user_list_recv(subreq, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_resolve_user_list request failed [%d]\n",
+                                  ret);
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
 static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
 {
     struct ipa_get_ad_acct_state *state = tevent_req_data(req,
@@ -1228,9 +1289,25 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
     entry_type = (state->ar->entry_type & BE_REQ_TYPE_MASK);
     if (entry_type != BE_REQ_INITGROUPS
             && entry_type != BE_REQ_USER
-            && entry_type != BE_REQ_BY_SECID) {
+            && entry_type != BE_REQ_BY_SECID
+            && entry_type != BE_REQ_GROUP) {
         tevent_req_done(req);
         return EOK;
+    }
+
+    /* expand ghost members, if any, to get group members with overrides
+     * right. */
+    if (entry_type == BE_REQ_GROUP) {
+        ret = ipa_check_ghost_members(req);
+        if (ret == EOK) {
+            tevent_req_done(req);
+            return EOK;
+        } else if (ret == EAGAIN) {
+            return EOK;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_check_ghost_members failed.\n");
+            return ret;
+        }
     }
 
     /* Replace ID with name in search filter */
