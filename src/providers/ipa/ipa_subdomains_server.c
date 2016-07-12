@@ -117,7 +117,7 @@ const char *ipa_trust_dir2str(uint32_t direction)
     } else if (direction & LSA_TRUST_DIRECTION_INBOUND) {
         return "one-way inbound: local domain trusts the remote domain";
     } else if (direction == 0) {
-        return "trust direction not set";
+        return "not set";
     }
 
     return "unknown";

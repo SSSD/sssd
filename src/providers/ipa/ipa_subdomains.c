@@ -435,8 +435,11 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
         goto done;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA,
-          "Trust direction of %s is %s\n", name, ipa_trust_dir2str(direction));
+    if (id_ctx->server_mode != NULL) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Trust type of [%s]: %s\n", name, ipa_trust_dir2str(direction));
+    }
+
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
                                 id, mpg, enumerate, forest,
                                 direction, alternative_domain_suffixes);
