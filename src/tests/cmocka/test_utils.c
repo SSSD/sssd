@@ -1252,6 +1252,7 @@ void test_sss_write_krb5_conf_snippet(void **state)
     char *cwd;
     char *path;
     char *file;
+    char *file_krb5_libdefaults;
 
     ret = sss_write_krb5_conf_snippet(NULL, false);
     assert_int_equal(ret, EINVAL);
@@ -1274,6 +1275,10 @@ void test_sss_write_krb5_conf_snippet(void **state)
     ret = asprintf(&file, "%s/%s/localauth_plugin", cwd, TESTS_PATH);
     assert_true(ret > 0);
 
+    ret = asprintf(&file_krb5_libdefaults,
+                   "%s/%s/krb5_libdefaults", cwd, TESTS_PATH);
+    assert_true(ret > 0);
+
     ret = sss_write_krb5_conf_snippet(path, true);
     assert_int_equal(ret, EOK);
 
@@ -1286,7 +1291,11 @@ void test_sss_write_krb5_conf_snippet(void **state)
     assert_int_equal(ret, EOK);
 #endif
 
+    ret = unlink(file_krb5_libdefaults);
+    assert_int_equal(ret, EOK);
+
     free(file);
+    free(file_krb5_libdefaults);
     free(path);
 }
 
