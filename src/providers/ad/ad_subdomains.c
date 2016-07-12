@@ -1108,14 +1108,13 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
     char *master_sid;
     char *flat_name;
     char *forest;
-    char *site;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_subdomains_refresh_state);
 
     ret = ad_master_domain_recv(subreq, state, &flat_name, &master_sid,
-                                &site, &forest);
+                                NULL, &forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get master domain information "
