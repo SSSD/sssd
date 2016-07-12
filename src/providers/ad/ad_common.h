@@ -188,6 +188,7 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
 
 errno_t netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
                                  struct sysdb_attrs *reply,
+                                 bool check_next_nearest_site_as_well,
                                  char **_flat_name,
                                  char **_site,
                                  char **_forest);

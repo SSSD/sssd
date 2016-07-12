@@ -88,7 +88,6 @@ struct ad_subdomains_req_ctx {
 
     char *master_sid;
     char *flat_name;
-    char *site;
     char *forest;
 };
 
@@ -602,7 +601,7 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
 
     ret = ad_master_domain_recv(req, ctx,
                                 &ctx->flat_name, &ctx->master_sid,
-                                &ctx->site, &ctx->forest);
+                                NULL, &ctx->forest);
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve master domain info\n");

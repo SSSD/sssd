@@ -2739,7 +2739,7 @@ ad_gpo_site_name_retrieval_done(struct tevent_req *subreq)
     ret = ad_master_domain_recv(subreq, state, NULL, NULL, &site, NULL);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
+    if (ret != EOK || site == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve master domain info\n");
         tevent_req_error(req, ENOENT);
         return;

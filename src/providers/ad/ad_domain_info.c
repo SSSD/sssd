@@ -37,6 +37,7 @@
 
 errno_t netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
                                  struct sysdb_attrs *reply,
+                                 bool check_next_nearest_site_as_well,
                                  char **_flat_name,
                                  char **_site,
                                  char **_forest)
@@ -47,9 +48,6 @@ errno_t netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
     struct ndr_pull *ndr_pull = NULL;
     enum ndr_err_code ndr_err;
     struct netlogon_samlogon_response response;
-    const char *flat_name;
-    const char *site;
-    const char *forest;
     TALLOC_CTX *tmp_ctx;
 
     ret = sysdb_attrs_get_el(reply, AD_AT_NETLOGON, &el);
@@ -102,57 +100,73 @@ errno_t netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* get flat name */
-    if (response.data.nt5_ex.domain_name != NULL &&
-        *response.data.nt5_ex.domain_name != '\0') {
-        flat_name = response.data.nt5_ex.domain_name;
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "No netlogon domain name data available\n");
-        ret = ENOENT;
-        goto done;
+    /* get flat domain name */
+    if (_flat_name != NULL) {
+        if (response.data.nt5_ex.domain_name != NULL &&
+            *response.data.nt5_ex.domain_name != '\0') {
+            *_flat_name = talloc_strdup(mem_ctx,
+                                        response.data.nt5_ex.domain_name);
+            if (*_flat_name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "No netlogon flat domain name data available.\n");
+            *_flat_name = NULL;
+        }
     }
 
-    *_flat_name = talloc_strdup(mem_ctx, flat_name);
-    if (*_flat_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
 
     /* get forest */
-    if (response.data.nt5_ex.forest != NULL &&
-        *response.data.nt5_ex.forest != '\0') {
-        forest = response.data.nt5_ex.forest;
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "No netlogon forest data available\n");
-        ret = ENOENT;
-        goto done;
-    }
-
-    *_forest = talloc_strdup(mem_ctx, forest);
-    if (*_forest == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
+    if (_forest != NULL) {
+        if (response.data.nt5_ex.forest != NULL &&
+            *response.data.nt5_ex.forest != '\0') {
+            *_forest = talloc_strdup(mem_ctx, response.data.nt5_ex.forest);
+            if (*_forest == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE, "No netlogon forest data available.\n");
+            *_forest = NULL;
+        }
     }
 
     /* get site name */
-    if (response.data.nt5_ex.client_site != NULL
-        && response.data.nt5_ex.client_site[0] != '\0') {
-        site = response.data.nt5_ex.client_site;
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "No netlogon site name data available\n");
-        ret = ENOENT;
-        goto done;
-    }
+    if (_site != NULL) {
+        if (response.data.nt5_ex.client_site != NULL
+            && response.data.nt5_ex.client_site[0] != '\0') {
+            *_site = talloc_strdup(mem_ctx, response.data.nt5_ex.client_site);
+            if (*_site == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "No netlogon site name data available.\n");
+            *_site = NULL;
 
-    *_site = talloc_strdup(mem_ctx, site);
-    if (*_site == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
+            if (check_next_nearest_site_as_well) {
+                if (response.data.nt5_ex.next_closest_site != NULL
+                        && response.data.nt5_ex.next_closest_site[0] != '\0') {
+                    *_site = talloc_strdup(mem_ctx,
+                                        response.data.nt5_ex.next_closest_site);
+                    if (*_site == NULL) {
+                        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                } else {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "No netlogon next closest site name data "
+                          "available.\n");
+                }
+            }
+        }
     }
 
     ret = EOK;
@@ -388,7 +402,7 @@ ad_master_domain_netlogon_done(struct tevent_req *subreq)
 
     /* Exactly one flat name. Carry on */
 
-    ret = netlogon_get_domain_info(state, reply[0], &state->flat,
+    ret = netlogon_get_domain_info(state, reply[0], false, &state->flat,
                                    &state->site, &state->forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
