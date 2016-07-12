@@ -386,6 +386,8 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
 
     be_ctx->ev = ev;
     be_ctx->cdb = cdb;
+    be_ctx->uid = uid;
+    be_ctx->gid = gid;
     be_ctx->identity = talloc_asprintf(be_ctx, "%%BE_%s", be_domain);
     be_ctx->conf_path = talloc_asprintf(be_ctx, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (be_ctx->identity == NULL || be_ctx->conf_path == NULL) {
