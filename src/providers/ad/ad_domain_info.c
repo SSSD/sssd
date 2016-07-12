@@ -35,12 +35,11 @@
 #include "providers/ad/ad_common.h"
 #include "util/util.h"
 
-static errno_t
-netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
-                         struct sysdb_attrs *reply,
-                         char **_flat_name,
-                         char **_site,
-                         char **_forest)
+errno_t netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
+                                 struct sysdb_attrs *reply,
+                                 char **_flat_name,
+                                 char **_site,
+                                 char **_forest)
 {
     errno_t ret;
     struct ldb_message_element *el;
@@ -51,6 +50,7 @@ netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
     const char *flat_name;
     const char *site;
     const char *forest;
+    TALLOC_CTX *tmp_ctx;
 
     ret = sysdb_attrs_get_el(reply, AD_AT_NETLOGON, &el);
     if (ret != EOK) {
@@ -66,13 +66,24 @@ netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
     blob.data = el->values[0].data;
     blob.length = el->values[0].length;
 
-    ndr_pull = ndr_pull_init_blob(&blob, mem_ctx);
+    /* The ndr_pull_* calls do not use ndr_pull as a talloc context to
+     * allocate memory but the second argument of ndr_pull_init_blob(). To
+     * make sure no memory is leaked here a temporary talloc context is
+     * needed. */
+    ndr_pull = ndr_pull_init_blob(&blob, tmp_ctx);
     if (ndr_pull == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ndr_pull_init_blob() failed.\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     ndr_err = ndr_pull_netlogon_samlogon_response(ndr_pull, NDR_SCALARS,
@@ -146,7 +157,7 @@ netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
 
     ret = EOK;
 done:
-    talloc_free(ndr_pull);
+    talloc_free(tmp_ctx);
     return ret;
 }
 
