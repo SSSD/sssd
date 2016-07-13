@@ -26,9 +26,7 @@
 #include "tools/common/sss_tools.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
-
-#define CACHE_FILE(db) " " DB_PATH "/" db
-#define CACHE_FILES CACHE_FILE("*.ldb") CACHE_FILE("ccache_*")
+#include "tools/tools_util.h"
 
 #define SSS_BACKUP_DIR SSS_STATEDIR "/backup"
 #define SSS_BACKUP_USER_OVERRIDES SSS_BACKUP_DIR "/sssd_user_overrides.bak"
@@ -243,7 +241,7 @@ errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
     }
 
     printf(_("Removing cache files...\n"));
-    ret = sssctl_run_command("rm -f " CACHE_FILES);
+    ret = remove_subtree(DB_PATH);
     if (ret != EOK) {
         fprintf(stderr, _("Unable to remove cache files\n"));
         return ret;

@@ -25,6 +25,7 @@
 #include "tools/common/sss_tools.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
+#include "tools/tools_util.h"
 
 #define LOG_FILE(file) " " LOG_PATH "/" file
 #define LOG_FILES LOG_FILE("*.log")
@@ -55,7 +56,7 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
 
     if (opts.delete) {
         printf(_("Deleting log files...\n"));
-        ret = sssctl_run_command("rm -f " LOG_FILES);
+        ret = remove_subtree(LOG_PATH);
         if (ret != EOK) {
             fprintf(stderr, _("Unable to remove log files\n"));
             return ret;
