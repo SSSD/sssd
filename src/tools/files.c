@@ -137,7 +137,8 @@ static int sss_futime_set(int fd, const struct stat *statp)
 static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
                                 int parent_fd,
                                 const char *dir_name,
-                                dev_t parent_dev);
+                                dev_t parent_dev,
+                                bool keep_root_dir);
 
 int remove_tree(const char *root)
 {
@@ -149,7 +150,22 @@ int remove_tree(const char *root)
         return ENOMEM;
     }
 
-    ret = remove_tree_with_ctx(tmp_ctx, AT_FDCWD, root, 0);
+    ret = remove_tree_with_ctx(tmp_ctx, AT_FDCWD, root, 0, false);
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int remove_subtree(const char *root)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = remove_tree_with_ctx(tmp_ctx, AT_FDCWD, root, 0, true);
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -162,7 +178,8 @@ int remove_tree(const char *root)
 static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
                                 int parent_fd,
                                 const char *dir_name,
-                                dev_t parent_dev)
+                                dev_t parent_dev,
+                                bool keep_root_dir)
 {
     struct dirent *result;
     struct stat statres;
@@ -213,7 +230,8 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
                 goto fail;
             }
 
-            ret = remove_tree_with_ctx(mem_ctx, dir_fd, result->d_name, statres.st_dev);
+            ret = remove_tree_with_ctx(mem_ctx, dir_fd, result->d_name,
+                                       statres.st_dev, false);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Removing subdirectory failed: [%d][%s]\n",
@@ -239,9 +257,12 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = unlinkat(parent_fd, dir_name, AT_REMOVEDIR);
-    if (ret == -1) {
-        ret = errno;
+    if (!keep_root_dir) {
+        /* Remove also root directory. */
+        ret = unlinkat(parent_fd, dir_name, AT_REMOVEDIR);
+        if (ret == -1) {
+            ret = errno;
+        }
     }
 
     ret = EOK;

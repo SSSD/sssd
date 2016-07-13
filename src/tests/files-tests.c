@@ -153,6 +153,58 @@ START_TEST(test_remove_tree)
 }
 END_TEST
 
+START_TEST(test_remove_subtree)
+{
+    int ret;
+    char origpath[PATH_MAX+1];
+
+    errno = 0;
+    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    fail_unless(errno == 0, "Cannot getcwd\n");
+
+    DEBUG(SSSDBG_FUNC_DATA, "About to delete %s\n", dir_path);
+
+    /* create a file */
+    ret = chdir(dir_path);
+    fail_if(ret == -1, "Cannot chdir1\n");
+
+    ret = create_simple_file("bar", "bar");
+    fail_if(ret == -1, "Cannot create file1\n");
+
+    /* create a subdir and file inside it */
+    ret = mkdir("subdir", 0700);
+    fail_if(ret == -1, "Cannot create subdir\n");
+
+    ret = chdir("subdir");
+    fail_if(ret == -1, "Cannot chdir\n");
+
+    ret = create_simple_file("foo", "foo");
+    fail_if(ret == -1, "Cannot create file\n");
+
+    /* create another subdir, empty this time */
+    ret = mkdir("subdir2", 0700);
+    fail_if(ret == -1, "Cannot create subdir\n");
+
+    ret = chdir(origpath);
+    fail_if(ret == -1, "Cannot chdir2\n");
+
+    /* go back */
+    ret = chdir(origpath);
+    fail_if(ret == -1, "Cannot chdir\n");
+
+    /* and finally wipe it out.. */
+    ret = remove_subtree(dir_path);
+    fail_unless(ret == EOK, "remove_subtree failed\n");
+
+    /* check if really gone */
+    ret = access(dir_path, F_OK);
+    fail_unless(ret == 0, "directory was deleted\n");
+
+    ret = rmdir(dir_path);
+    fail_unless(ret == 0, "unable to delete root directory\n");
+}
+END_TEST
+
 START_TEST(test_simple_copy)
 {
     int ret;
@@ -337,6 +389,7 @@ static Suite *files_suite(void)
                               teardown_files_test);
 
     tcase_add_test(tc_files, test_remove_tree);
+    tcase_add_test(tc_files, test_remove_subtree);
     tcase_add_test(tc_files, test_simple_copy);
     tcase_add_test(tc_files, test_copy_file);
     tcase_add_test(tc_files, test_copy_symlink);
