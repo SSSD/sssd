@@ -2859,6 +2859,9 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             (dp_opt_get_bool(state->opts->basic,
                              SDAP_RFC2307_FALLBACK_TO_LOCAL_USERS) == true)) {
             ret = sdap_fallback_local_user(state, state->name, -1, &usr_attrs);
+            if (ret == EOK) {
+                state->orig_user = usr_attrs[0];
+            }
         } else {
             ret = ENOENT;
         }
