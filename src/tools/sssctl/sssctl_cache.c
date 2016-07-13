@@ -296,10 +296,10 @@ static const char *sssctl_create_filter(TALLOC_CTX *mem_ctx,
     char *filter_value;
     bool qualify_attr = false;
 
-    if (strcmp(attr_name, SYSDB_NAME) == 0 &&
-            (obj_type == CACHED_USER ||
-             obj_type == CACHED_GROUP)) {
-        qualify_attr = true;
+    if (strcmp(attr_name, SYSDB_NAME) == 0) {
+        if (obj_type == CACHED_USER || obj_type == CACHED_GROUP) {
+            qualify_attr = true;
+        }
     }
 
     switch (obj_type) {
