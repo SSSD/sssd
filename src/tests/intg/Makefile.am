@@ -10,6 +10,7 @@ dist_noinst_DATA = \
     test_local_domain.py \
     util.py \
     test_enumeration.py \
+    test_ldap.py \
     test_memory_cache.py \
     $(NULL)
 
