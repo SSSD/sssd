@@ -28,6 +28,9 @@
 
 #include <netdb.h>
 #include <ares.h>
+#ifndef MIN
+#include <sys/param.h>
+#endif
 
 #include "config.h"
 #include "confdb/confdb.h"

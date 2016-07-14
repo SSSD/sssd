@@ -27,6 +27,9 @@
 #include <tevent.h>
 #include <ldb.h>
 #include <ldb_errors.h>
+#ifndef gid_t
+#include <unistd.h>
+#endif
 
 #include "config.h"
 

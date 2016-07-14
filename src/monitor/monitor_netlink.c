@@ -26,6 +26,9 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #define __USE_GNU /* needed for struct ucred */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* needed by musl to enable struct ucred */
+#endif
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
