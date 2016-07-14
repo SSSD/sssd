@@ -67,7 +67,7 @@ static errno_t time_to_string(TALLOC_CTX *mem_ctx,
     char str[255];
     size_t ret;
 
-    tm = gmtime(&timestamp);
+    tm = localtime(&timestamp);
     if (tm == NULL) {
         return ENOMEM;
     }
