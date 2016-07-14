@@ -42,7 +42,7 @@
 
 errno_t check_if_pac_is_available(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *dom,
-                                  struct be_acct_req *ar,
+                                  struct dp_id_data *ar,
                                   struct ldb_message **_msg);
 
 errno_t ad_get_data_from_pac(TALLOC_CTX *mem_ctx,
@@ -68,7 +68,7 @@ errno_t ad_get_pac_data_from_user_entry(TALLOC_CTX *mem_ctx,
 
 struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
-                                             struct be_acct_req *ar,
+                                             struct dp_id_data *ar,
                                              struct sdap_id_ctx *id_ctx,
                                              struct sdap_domain *sdom,
                                              struct sdap_id_conn_ctx *conn,

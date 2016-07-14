@@ -147,7 +147,7 @@ struct pc_init_ctx {
 struct tevent_req *
 proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
                                struct proxy_id_ctx *id_ctx,
-                               struct be_acct_req *data,
+                               struct dp_id_data *data,
                                struct dp_req_params *params);
 
 errno_t proxy_account_info_handler_recv(TALLOC_CTX *mem_ctx,

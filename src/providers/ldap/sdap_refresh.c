@@ -27,7 +27,7 @@
 struct sdap_refresh_state {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
-    struct be_acct_req *account_req;
+    struct dp_id_data *account_req;
     struct sdap_id_ctx *id_ctx;
     struct sdap_domain *sdom;
     const char *type;
@@ -88,7 +88,7 @@ static struct tevent_req *sdap_refresh_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid entry type [%d]!\n", entry_type);
     }
 
-    state->account_req = talloc_zero(state, struct be_acct_req);
+    state->account_req = talloc_zero(state, struct dp_id_data);
     if (state->account_req == NULL) {
         ret = ENOMEM;
         goto immediately;

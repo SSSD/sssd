@@ -33,11 +33,11 @@
 static struct tevent_req *
 ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                              struct ipa_id_ctx *ipa_ctx,
-                             struct be_acct_req *ar);
+                             struct dp_id_data *ar);
 
 static int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error);
 
-static bool is_object_overridable(struct be_acct_req *ar)
+static bool is_object_overridable(struct dp_id_data *ar)
 {
     bool ret = false;
 
@@ -114,7 +114,7 @@ static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req)
 {
     int ret;
     struct tevent_req *subreq;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
     struct ipa_resolve_user_list_state *state = tevent_req_data(req,
                                             struct ipa_resolve_user_list_state);
 
@@ -122,11 +122,11 @@ static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req)
         return EOK;
     }
 
-    ret = get_be_acct_req_for_user_name(state,
+    ret = get_dp_id_data_for_user_name(state,
                             (char *) state->users->values[state->user_idx].data,
                             state->domain_name, &ar);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_user_name failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_user_name failed.\n");
         return ret;
     }
 
@@ -206,7 +206,7 @@ struct ipa_initgr_get_overrides_state {
     size_t group_count;
     const char *groups_id_attr;
     size_t group_idx;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     int dp_error;
 };
@@ -299,17 +299,17 @@ static int ipa_initgr_get_overrides_step(struct tevent_req *req)
     talloc_free(state->ar); /* Avoid spiking memory with many groups */
 
     if (strcmp(state->groups_id_attr, SYSDB_UUID) == 0) {
-        ret = get_be_acct_req_for_uuid(state, ipa_uuid,
+        ret = get_dp_id_data_for_uuid(state, ipa_uuid,
                                        state->user_dom->name, &state->ar);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
             return ret;
         }
     } else if (strcmp(state->groups_id_attr, SYSDB_SID_STR) == 0) {
-        ret = get_be_acct_req_for_sid(state, ipa_uuid,
+        ret = get_dp_id_data_for_sid(state, ipa_uuid,
                                       state->user_dom->name, &state->ar);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
             return ret;
         }
     } else {
@@ -465,8 +465,8 @@ struct ipa_id_get_account_info_state {
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
-    struct be_acct_req *ar;
-    struct be_acct_req *orig_ar;
+    struct dp_id_data *ar;
+    struct dp_id_data *orig_ar;
     const char *realm;
 
     struct sysdb_attrs *override_attrs;
@@ -483,7 +483,7 @@ struct ipa_id_get_account_info_state {
 static void ipa_id_get_account_info_connected(struct tevent_req *subreq);
 static void ipa_id_get_account_info_got_override(struct tevent_req *subreq);
 static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
-                                                        struct be_acct_req *ar);
+                                                        struct dp_id_data *ar);
 static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq);
 static void ipa_id_get_account_info_done(struct tevent_req *subreq);
 static void ipa_id_get_user_list_done(struct tevent_req *subreq);
@@ -491,7 +491,7 @@ static void ipa_id_get_user_list_done(struct tevent_req *subreq);
 static struct tevent_req *
 ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                              struct ipa_id_ctx *ipa_ctx,
-                             struct be_acct_req *ar)
+                             struct dp_id_data *ar)
 {
     int ret;
     struct tevent_req *req;
@@ -645,11 +645,11 @@ static void ipa_id_get_account_info_got_override(struct tevent_req *subreq)
 
             state->orig_ar = state->ar;
 
-            ret = get_be_acct_req_for_uuid(state, ipa_uuid,
+            ret = get_dp_id_data_for_uuid(state, ipa_uuid,
                                            state->ar->domain,
                                            &state->ar);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_uuid failed.\n");
+                DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_uuid failed.\n");
                 goto fail;
             }
 
@@ -687,7 +687,7 @@ fail:
 }
 
 static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
-                                                         struct be_acct_req *ar)
+                                                         struct dp_id_data *ar)
 {
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
@@ -784,10 +784,10 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
             goto fail;
         }
 
-        ret = get_be_acct_req_for_uuid(state, uuid, state->domain->name,
+        ret = get_dp_id_data_for_uuid(state, uuid, state->domain->name,
                                        &state->ar);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
             goto fail;
         }
 
@@ -1205,7 +1205,7 @@ enum ipa_account_info_type {
 };
 
 static enum ipa_account_info_type
-ipa_decide_account_info_type(struct be_acct_req *data, struct be_ctx *be_ctx)
+ipa_decide_account_info_type(struct dp_id_data *data, struct be_ctx *be_ctx)
 {
     if (strcasecmp(data->domain, be_ctx->domain->name) != 0) {
         return IPA_ACCOUNT_INFO_SUBDOMAIN;
@@ -1226,7 +1226,7 @@ static void ipa_account_info_handler_done(struct tevent_req *subreq);
 struct tevent_req *
 ipa_account_info_handler_send(TALLOC_CTX *mem_ctx,
                               struct ipa_id_ctx *id_ctx,
-                              struct be_acct_req *data,
+                              struct dp_id_data *data,
                               struct dp_req_params *params)
 {
     struct ipa_account_info_handler_state *state;

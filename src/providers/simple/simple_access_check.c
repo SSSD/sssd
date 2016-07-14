@@ -227,7 +227,7 @@ simple_resolve_group_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct simple_resolve_group_state *state;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct simple_resolve_group_state);
@@ -252,7 +252,7 @@ simple_resolve_group_send(TALLOC_CTX *mem_ctx,
     }
     /* EAGAIN - still needs update */
 
-    ar = talloc(state, struct be_acct_req);
+    ar = talloc(state, struct dp_id_data);
     if (!ar) {
         ret = ENOMEM;
         goto done;

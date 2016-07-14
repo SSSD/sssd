@@ -51,7 +51,7 @@ disable_gc(struct ad_options *ad_options)
 }
 
 struct ad_handle_acct_info_state {
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
     struct sdap_id_ctx *ctx;
     struct sdap_id_conn_ctx **conn;
     struct sdap_domain *sdom;
@@ -68,7 +68,7 @@ static void ad_handle_acct_info_done(struct tevent_req *subreq);
 
 struct tevent_req *
 ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
-                         struct be_acct_req *ar,
+                         struct dp_id_data *ar,
                          struct sdap_id_ctx *ctx,
                          struct ad_options *ad_options,
                          struct sdap_domain *sdom,
@@ -274,7 +274,7 @@ ad_handle_acct_info_recv(struct tevent_req *req,
 
 struct sdap_id_conn_ctx **
 get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
-              struct sss_domain_info *dom, struct be_acct_req *ar)
+              struct sss_domain_info *dom, struct dp_id_data *ar)
 {
     struct sdap_id_conn_ctx **clist;
 
@@ -372,7 +372,7 @@ static void ad_account_info_handler_done(struct tevent_req *subreq);
 struct tevent_req *
 ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
                               struct ad_id_ctx *id_ctx,
-                              struct be_acct_req *data,
+                              struct dp_id_data *data,
                               struct dp_req_params *params)
 {
     struct ad_account_info_handler_state *state;

@@ -28,9 +28,9 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
 
-static errno_t be_acct_req_to_override_filter(TALLOC_CTX *mem_ctx,
+static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
                                               struct ipa_options *ipa_opts,
-                                              struct be_acct_req *ar,
+                                              struct dp_id_data *ar,
                                               char **override_filter)
 {
     char *filter;
@@ -189,14 +189,14 @@ static errno_t be_acct_req_to_override_filter(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t get_be_acct_req_for_xyz(TALLOC_CTX *mem_ctx, const char *val,
+static errno_t get_dp_id_data_for_xyz(TALLOC_CTX *mem_ctx, const char *val,
                                        const char *domain_name,
                                        int type,
-                                       struct be_acct_req **_ar)
+                                       struct dp_id_data **_ar)
 {
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
-    ar = talloc_zero(mem_ctx, struct be_acct_req);
+    ar = talloc_zero(mem_ctx, struct dp_id_data);
     if (ar == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
@@ -235,28 +235,28 @@ static errno_t get_be_acct_req_for_xyz(TALLOC_CTX *mem_ctx, const char *val,
     return EOK;
 }
 
-errno_t get_be_acct_req_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
+errno_t get_dp_id_data_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
                                 const char *domain_name,
-                                struct be_acct_req **_ar)
+                                struct dp_id_data **_ar)
 {
-    return get_be_acct_req_for_xyz(mem_ctx, sid, domain_name, BE_REQ_BY_SECID,
+    return get_dp_id_data_for_xyz(mem_ctx, sid, domain_name, BE_REQ_BY_SECID,
                                    _ar);
 }
 
-errno_t get_be_acct_req_for_uuid(TALLOC_CTX *mem_ctx, const char *uuid,
+errno_t get_dp_id_data_for_uuid(TALLOC_CTX *mem_ctx, const char *uuid,
                                  const char *domain_name,
-                                 struct be_acct_req **_ar)
+                                 struct dp_id_data **_ar)
 {
-    return get_be_acct_req_for_xyz(mem_ctx, uuid, domain_name, BE_REQ_BY_UUID,
+    return get_dp_id_data_for_xyz(mem_ctx, uuid, domain_name, BE_REQ_BY_UUID,
                                    _ar);
 }
 
-errno_t get_be_acct_req_for_user_name(TALLOC_CTX *mem_ctx,
+errno_t get_dp_id_data_for_user_name(TALLOC_CTX *mem_ctx,
                                       const char *user_name,
                                       const char *domain_name,
-                                      struct be_acct_req **_ar)
+                                      struct dp_id_data **_ar)
 {
-    return get_be_acct_req_for_xyz(mem_ctx, user_name, domain_name, BE_REQ_USER,
+    return get_dp_id_data_for_xyz(mem_ctx, user_name, domain_name, BE_REQ_USER,
                                    _ar);
 }
 
@@ -266,7 +266,7 @@ struct ipa_get_ad_override_state {
     struct ipa_options *ipa_options;
     const char *ipa_realm;
     const char *ipa_view_name;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     struct sdap_id_op *sdap_op;
     int dp_error;
@@ -285,7 +285,7 @@ struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
                                             struct ipa_options *ipa_options,
                                             const char *ipa_realm,
                                             const char *view_name,
-                                            struct be_acct_req *ar)
+                                            struct dp_id_data *ar)
 {
     int ret;
     struct tevent_req *req;
@@ -391,10 +391,10 @@ static void ipa_get_ad_override_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    ret = be_acct_req_to_override_filter(state, state->ipa_options, state->ar,
+    ret = dp_id_data_to_override_filter(state, state->ipa_options, state->ar,
                                          &state->filter);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "be_acct_req_to_override_filter failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "dp_id_data_to_override_filter failed.\n");
         goto fail;
     }
 

@@ -98,7 +98,7 @@ errno_t sdap_reinit_cleanup_recv(struct tevent_req *req);
 struct tevent_req *
 sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
                                struct sdap_id_ctx *id_ctx,
-                               struct be_acct_req *data,
+                               struct dp_id_data *data,
                                struct dp_req_params *params);
 
 errno_t sdap_account_info_handler_recv(TALLOC_CTX *mem_ctx,
@@ -115,12 +115,12 @@ int sdap_id_setup_tasks(struct be_ctx *be_ctx,
                         void *pvt);
 
 /* Allow shortcutting an enumeration request */
-bool sdap_is_enum_request(struct be_acct_req *ar);
+bool sdap_is_enum_request(struct dp_id_data *ar);
 
 struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           struct be_ctx *be_ctx,
-                          struct be_acct_req *ar,
+                          struct dp_id_data *ar,
                           struct sdap_id_ctx *id_ctx,
                           struct sdap_domain *sdom,
                           struct sdap_id_conn_ctx *conn,

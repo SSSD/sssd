@@ -43,7 +43,7 @@ static bool check_attr_type(uint32_t attr_type)
     return false;
 }
 
-static bool check_and_parse_filter(struct be_acct_req *data,
+static bool check_and_parse_filter(struct dp_id_data *data,
                                    const char *filter,
                                    const char *extra)
 {
@@ -202,7 +202,7 @@ static errno_t dp_initgroups(struct sbus_request *sbus_req,
                              struct dp_client *dp_cli,
                              const char *key,
                              uint32_t dp_flags,
-                             struct be_acct_req *data)
+                             struct dp_id_data *data)
 {
     struct be_ctx *be_ctx;
     struct sss_domain_info *domain;
@@ -258,7 +258,7 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
                                     const char *domain,
                                     const char *extra)
 {
-    struct be_acct_req *data;
+    struct dp_id_data *data;
     const char *key;
     errno_t ret;
 
@@ -266,7 +266,7 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
         return EINVAL;
     }
 
-    data = talloc_zero(sbus_req, struct be_acct_req);
+    data = talloc_zero(sbus_req, struct dp_id_data);
     if (data == NULL) {
         return ENOMEM;
     }

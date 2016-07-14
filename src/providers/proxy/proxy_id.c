@@ -1453,7 +1453,7 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
 static struct dp_reply_std
 proxy_account_info(TALLOC_CTX *mem_ctx,
                    struct proxy_id_ctx *ctx,
-                   struct be_acct_req *data,
+                   struct dp_id_data *data,
                    struct be_ctx *be_ctx,
                    struct sss_domain_info *domain)
 {
@@ -1627,7 +1627,7 @@ struct proxy_account_info_handler_state {
 struct tevent_req *
 proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
                                struct proxy_id_ctx *id_ctx,
-                               struct be_acct_req *data,
+                               struct dp_id_data *data,
                                struct dp_req_params *params)
 {
     struct proxy_account_info_handler_state *state;

@@ -130,7 +130,7 @@ struct req_input {
 
 struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
-                                        struct be_acct_req *ar,
+                                        struct dp_id_data *ar,
                                         struct ipa_server_mode_ctx *server_mode,
                                         struct sss_domain_info *user_dom,
                                         struct sdap_id_ctx *sdap_id_ctx,

@@ -43,7 +43,7 @@ struct dp_subdomains_data {
     const char *domain_hint;
 };
 
-struct be_acct_req {
+struct dp_id_data {
     uint32_t entry_type;
     uint32_t attr_type;
     uint32_t filter_type;

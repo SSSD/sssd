@@ -426,7 +426,7 @@ static errno_t ipa_add_ad_memberships_recv(struct tevent_req *req,
 
 struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
-                                        struct be_acct_req *ar,
+                                        struct dp_id_data *ar,
                                         struct ipa_server_mode_ctx *server_mode,
                                         struct sss_domain_info *user_dom,
                                         struct sdap_id_ctx *sdap_id_ctx,
@@ -1080,7 +1080,7 @@ struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
     struct ipa_ext_member_state *state;
     struct tevent_req *req;
     struct tevent_req *subreq;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_ext_member_state);
@@ -1113,7 +1113,7 @@ struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    ret = get_be_acct_req_for_sid(state, ext_member, state->dom->name, &ar);
+    ret = get_dp_id_data_for_sid(state, ext_member, state->dom->name, &ar);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot create the account request for [%s]\n", ext_member);

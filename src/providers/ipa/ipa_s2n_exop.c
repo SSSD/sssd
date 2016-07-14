@@ -1161,7 +1161,7 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
     char *retoid = NULL;
     struct berval *retdata = NULL;
     const char *sid_str;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
@@ -1197,9 +1197,9 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
         goto fail;
     }
 
-    ret = get_be_acct_req_for_sid(state, sid_str, state->obj_domain->name, &ar);
+    ret = get_dp_id_data_for_sid(state, sid_str, state->obj_domain->name, &ar);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
         goto fail;
     }
 
@@ -1605,7 +1605,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     char **missing_list = NULL;
     struct ldb_dn **group_dn_list = NULL;
     const char *sid_str;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
@@ -1772,9 +1772,9 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             goto done;
         }
     } else if (ret == EOK) {
-        ret = get_be_acct_req_for_sid(state, sid_str, state->dom->name, &ar);
+        ret = get_dp_id_data_for_sid(state, sid_str, state->dom->name, &ar);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
             goto done;
         }
 
@@ -2370,7 +2370,7 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
     struct ipa_s2n_get_user_state *state = tevent_req_data(req,
                                                 struct ipa_s2n_get_user_state);
     const char *sid_str;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     ret = ipa_s2n_get_list_recv(subreq);
     talloc_zfree(subreq);
@@ -2396,9 +2396,9 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
         goto fail;
     }
 
-    ret = get_be_acct_req_for_sid(state, sid_str, state->dom->name, &ar);
+    ret = get_dp_id_data_for_sid(state, sid_str, state->dom->name, &ar);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
         goto fail;
     }
 

@@ -41,7 +41,7 @@ ipa_srv_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
                      struct sysdb_attrs *override_attrs,
-                     struct be_acct_req *ar);
+                     struct dp_id_data *ar);
 static errno_t
 ipa_srv_ad_acct_recv(struct tevent_req *req, int *dp_error_out);
 
@@ -52,7 +52,7 @@ struct ipa_subdomain_account_state {
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     bool ipa_server_mode;
     bool server_retry;
@@ -68,12 +68,12 @@ static void ipa_subdomain_account_connected(struct tevent_req *subreq);
 static void ipa_subdomain_account_got_override(struct tevent_req *subreq);
 static void ipa_subdomain_account_done(struct tevent_req *subreq);
 static errno_t ipa_subdomain_account_get_original_step(struct tevent_req *req,
-                                                       struct be_acct_req *ar);
+                                                       struct dp_id_data *ar);
 
 struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
                                               struct ipa_id_ctx *ipa_ctx,
-                                              struct be_acct_req *ar)
+                                              struct dp_id_data *ar)
 {
     struct tevent_req *req;
     struct ipa_subdomain_account_state *state;
@@ -199,7 +199,7 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
     int dp_error = DP_ERR_FATAL;
     int ret;
     const char *anchor = NULL;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     ret = ipa_get_ad_override_recv(subreq, &dp_error, state,
                                    &state->override_attrs);
@@ -221,12 +221,12 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
         if (anchor != NULL && strncmp(OVERRIDE_ANCHOR_SID_PREFIX, anchor,
                                       OVERRIDE_ANCHOR_SID_PREFIX_LEN) == 0) {
 
-            ret = get_be_acct_req_for_sid(state,
+            ret = get_dp_id_data_for_sid(state,
                                         anchor + OVERRIDE_ANCHOR_SID_PREFIX_LEN,
                                         state->ar->domain,
                                         &ar);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+                DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
                 goto fail;
             }
 
@@ -265,7 +265,7 @@ fail:
 }
 
 static errno_t ipa_subdomain_account_get_original_step(struct tevent_req *req,
-                                                       struct be_acct_req *ar)
+                                                       struct dp_id_data *ar)
 {
     struct ipa_subdomain_account_state *state = tevent_req_data(req,
                                             struct ipa_subdomain_account_state);
@@ -357,7 +357,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
                                             struct tevent_context *ev,
                                             struct ipa_id_ctx *ipa_ctx,
                                             struct sysdb_attrs *override_attrs,
-                                            struct be_acct_req *ar)
+                                            struct dp_id_data *ar)
 {
     struct tevent_req *req;
     struct ipa_get_subdom_acct *state;
@@ -624,7 +624,7 @@ struct ipa_get_ad_acct_state {
     int dp_error;
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
     struct sss_domain_info *obj_dom;
     char *object_sid;
     struct sysdb_attrs *override_attrs;
@@ -645,7 +645,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
                      struct sysdb_attrs *override_attrs,
-                     struct be_acct_req *ar)
+                     struct dp_id_data *ar)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -939,7 +939,7 @@ done:
 
 errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *dom,
-                              struct be_acct_req *ar,
+                              struct dp_id_data *ar,
                               struct ldb_message **_msg)
 {
     errno_t ret;
@@ -1083,7 +1083,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
                                                 struct ipa_get_ad_acct_state);
     errno_t ret;
     const char *sid;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
@@ -1131,10 +1131,10 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
             goto fail;
         }
 
-        ret = get_be_acct_req_for_sid(state, state->object_sid,
+        ret = get_dp_id_data_for_sid(state, state->object_sid,
                                       state->obj_dom->name, &ar);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
             goto fail;
         }
 
@@ -1392,7 +1392,7 @@ struct ipa_srv_ad_acct_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
     struct sysdb_attrs *override_attrs;
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
 
     struct sss_domain_info *obj_dom;
     struct be_ctx *be_ctx;
@@ -1410,7 +1410,7 @@ ipa_srv_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
                      struct sysdb_attrs *override_attrs,
-                     struct be_acct_req *ar)
+                     struct dp_id_data *ar)
 {
     errno_t ret;
     struct tevent_req *req;

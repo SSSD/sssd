@@ -115,14 +115,14 @@ static void test_check_if_pac_is_available(void **state)
     int ret;
     struct ad_sysdb_test_ctx *test_ctx =
         talloc_get_type(*state, struct ad_sysdb_test_ctx);
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
     struct ldb_message *msg = NULL;
     struct sysdb_attrs *attrs;
 
     ret = check_if_pac_is_available(NULL, NULL, NULL, NULL);
     assert_int_equal(ret, EINVAL);
 
-    ar = talloc_zero(test_ctx, struct be_acct_req);
+    ar = talloc_zero(test_ctx, struct dp_id_data);
     assert_non_null(ar);
 
     ret = check_if_pac_is_available(test_ctx, test_ctx->tctx->dom, ar, &msg);

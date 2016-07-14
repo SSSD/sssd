@@ -1346,7 +1346,7 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
 errno_t sdap_get_user_and_group_recv(struct tevent_req *req,
                                      int *dp_error_out, int *sdap_ret);
 
-bool sdap_is_enum_request(struct be_acct_req *ar)
+bool sdap_is_enum_request(struct dp_id_data *ar)
 {
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER:
@@ -1362,7 +1362,7 @@ bool sdap_is_enum_request(struct be_acct_req *ar)
 
 /* A generic LDAP account info handler */
 struct sdap_handle_acct_req_state {
-    struct be_acct_req *ar;
+    struct dp_id_data *ar;
     const char *err;
     int dp_error;
     int sdap_ret;
@@ -1373,7 +1373,7 @@ static void sdap_handle_acct_req_done(struct tevent_req *subreq);
 struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           struct be_ctx *be_ctx,
-                          struct be_acct_req *ar,
+                          struct dp_id_data *ar,
                           struct sdap_id_ctx *id_ctx,
                           struct sdap_domain *sdom,
                           struct sdap_id_conn_ctx *conn,
@@ -1849,7 +1849,7 @@ static void sdap_account_info_handler_done(struct tevent_req *subreq);
 struct tevent_req *
 sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
                                struct sdap_id_ctx *id_ctx,
-                               struct be_acct_req *data,
+                               struct dp_id_data *data,
                                struct dp_req_params *params)
 {
     struct sdap_account_info_handler_state *state;
