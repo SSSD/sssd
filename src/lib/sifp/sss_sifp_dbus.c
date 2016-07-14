@@ -36,6 +36,7 @@ static sss_sifp_error sss_sifp_ifp_call(sss_sifp_ctx *ctx,
 {
    DBusMessage *msg = NULL;
    sss_sifp_error ret;
+   dbus_bool_t bret;
 
    if (object_path == NULL || interface == NULL || method == NULL) {
        return SSS_SIFP_INVALID_ARGUMENT;
@@ -48,7 +49,11 @@ static sss_sifp_error sss_sifp_ifp_call(sss_sifp_ctx *ctx,
    }
 
    if (first_arg_type != DBUS_TYPE_INVALID) {
-       dbus_message_append_args_valist(msg, first_arg_type, ap);
+       bret = dbus_message_append_args_valist(msg, first_arg_type, ap);
+       if (!bret) {
+           ret = SSS_SIFP_IO_ERROR;
+           goto done;
+       }
    }
 
    ret = sss_sifp_send_message(ctx, msg, _reply);
