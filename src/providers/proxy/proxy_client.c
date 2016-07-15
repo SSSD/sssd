@@ -22,23 +22,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "config.h"
-
-#include "util/sss_format.h"
+#include "util/util.h"
+#include "providers/proxy/proxy_iface_generated.h"
 #include "providers/proxy/proxy.h"
-
-static int client_registration(struct sbus_request *dbus_req, void *data);
-
-static struct data_provider_iface proxy_methods = {
-    { &data_provider_iface_meta, 0 },
-    .RegisterService = client_registration,
-    .pamHandler = NULL,
-    .sudoHandler = NULL,
-    .autofsHandler = NULL,
-    .hostHandler = NULL,
-    .getDomains = NULL,
-    .getAccountInfo = NULL,
-};
 
 struct proxy_client {
     struct proxy_auth_ctx *proxy_auth_ctx;
@@ -47,24 +33,22 @@ struct proxy_client {
     bool initialized;
 };
 
-static int client_registration(struct sbus_request *dbus_req, void *data)
+static int proxy_client_register(struct sbus_request *sbus_req,
+                                 void *data,
+                                 uint32_t cli_id)
 {
-    dbus_uint16_t version = DATA_PROVIDER_VERSION;
     struct sbus_connection *conn;
     struct proxy_client *proxy_cli;
-    dbus_uint16_t cli_ver;
-    uint32_t cli_id;
     int hret;
     hash_key_t key;
     hash_value_t value;
     struct tevent_req *req;
     struct proxy_child_ctx *child_ctx;
     struct pc_init_ctx *init_ctx;
-    int ret;
 
-    conn = dbus_req->conn;
+    conn = sbus_req->conn;
     proxy_cli = talloc_get_type(data, struct proxy_client);
-    if (!proxy_cli) {
+    if (proxy_cli == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
         return EINVAL;
     }
@@ -73,14 +57,6 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     DEBUG(SSSDBG_CONF_SETTINGS,
           "Cancel proxy client ID timeout [%p]\n", proxy_cli->timeout);
     talloc_zfree(proxy_cli->timeout);
-
-    if (!sbus_request_parse_or_finish(dbus_req,
-                                      DBUS_TYPE_UINT16, &cli_ver,
-                                      DBUS_TYPE_UINT32, &cli_id,
-                                      DBUS_TYPE_INVALID)) {
-        sbus_disconnect(conn);
-        return EOK; /* handled */
-    }
 
     DEBUG(SSSDBG_FUNC_DATA, "Proxy client [%"PRIu32"] connected\n", cli_id);
 
@@ -94,20 +70,14 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
         return EIO;
     }
 
-    /* reply that all is ok */
-    ret = sbus_request_return_and_finish(dbus_req,
-                                         DBUS_TYPE_UINT16, &version,
-                                         DBUS_TYPE_INVALID);
-    if (ret != EOK) {
-        sbus_disconnect(conn);
-        return ret;
-    }
+    iface_proxy_client_Register_finish(sbus_req);
 
     hret = hash_lookup(proxy_cli->proxy_auth_ctx->request_table, &key, &value);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Hash error [%d][%s]\n", hret, hash_error_string(hret));
+              "Hash error [%d]: %s\n", hret, hash_error_string(hret));
         sbus_disconnect(conn);
+        return EIO;
     }
 
     /* Signal that the child is up and ready to receive the request */
@@ -121,7 +91,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
          * break.
          */
         DEBUG(SSSDBG_CRIT_FAILURE, "Client connection from a request "
-                  "that's not marked as running\n");
+              "that's not marked as running\n");
         return EIO;
     }
 
@@ -133,9 +103,10 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     return EOK;
 }
 
-static void init_timeout(struct tevent_context *ev,
-                         struct tevent_timer *te,
-                         struct timeval t, void *ptr)
+static void proxy_client_timeout(struct tevent_context *ev,
+                                 struct tevent_timer *te,
+                                 struct timeval t,
+                                 void *ptr)
 {
     struct proxy_client *proxy_cli;
 
@@ -155,38 +126,53 @@ static void init_timeout(struct tevent_context *ev,
 
 int proxy_client_init(struct sbus_connection *conn, void *data)
 {
-    struct proxy_auth_ctx *proxy_auth_ctx;
+    struct proxy_auth_ctx *auth_ctx;
     struct proxy_client *proxy_cli;
     struct timeval tv;
+    errno_t ret;
 
-    proxy_auth_ctx = talloc_get_type(data, struct proxy_auth_ctx);
+    static struct iface_proxy_client iface_proxy_client = {
+        { &iface_proxy_client_meta, 0 },
 
-    /* hang off this memory to the connection so that when the connection
-     * is freed we can potentially call a destructor */
+        .Register = proxy_client_register,
+    };
 
+    auth_ctx = talloc_get_type(data, struct proxy_auth_ctx);
+
+    /* When connection is lost we also free the client. */
     proxy_cli = talloc_zero(conn, struct proxy_client);
-    if (!proxy_cli) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
-        talloc_zfree(conn);
+    if (proxy_cli == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, killing connection.\n");
+        talloc_free(conn);
         return ENOMEM;
     }
-    proxy_cli->proxy_auth_ctx = proxy_auth_ctx;
+
+    proxy_cli->proxy_auth_ctx = auth_ctx;
     proxy_cli->conn = conn;
     proxy_cli->initialized = false;
 
-    /* 5 seconds should be plenty */
+    /* Setup timeout in case client fails to register himself in time. */
     tv = tevent_timeval_current_ofs(5, 0);
-
-    proxy_cli->timeout = tevent_add_timer(proxy_auth_ctx->be->ev, proxy_cli,
-                                          tv, init_timeout, proxy_cli);
-    if (!proxy_cli->timeout) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
-        talloc_zfree(conn);
+    proxy_cli->timeout = tevent_add_timer(auth_ctx->be->ev, proxy_cli, tv,
+                                          proxy_client_timeout, proxy_cli);
+    if (proxy_cli->timeout == NULL) {
+        /* Connection is closed in the caller. */
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, killing connection\n");
         return ENOMEM;
     }
+
     DEBUG(SSSDBG_CONF_SETTINGS,
           "Set-up proxy client ID timeout [%p]\n", proxy_cli->timeout);
 
-    return sbus_conn_register_iface(conn, &proxy_methods.vtable,
-                                    DP_PATH, proxy_cli);
+    /* Setup D-Bus interfaces and methods. */
+    ret = sbus_conn_register_iface(conn, &iface_proxy_client.vtable,
+                                   PROXY_CHILD_PATH, proxy_cli);
+    if (ret != EOK) {
+        /* Connection is closed in the caller. */
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register D-Bus interface, "
+              "killing connection [%d]: %s\n", ret, sss_strerror(ret));
+        return ret;
+    }
+
+    return ret;
 }

@@ -42,6 +42,8 @@
 #include "sss_client/nss_compat.h"
 #include <dhash.h>
 
+#define PROXY_CHILD_PATH "/org/freedesktop/sssd/proxychild"
+
 struct proxy_nss_ops {
     enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
                                   char *buffer, size_t buflen, int *errnop);

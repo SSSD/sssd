@@ -715,6 +715,7 @@ dist_noinst_HEADERS = \
     src/providers/ad/ad_domain_info.h \
     src/providers/ad/ad_subdomains.h \
     src/providers/proxy/proxy.h \
+    src/providers/proxy/proxy_iface_generated.h \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \
     src/resolv/async_resolv.h \
@@ -1197,6 +1198,7 @@ CODEGEN_XML = \
     $(srcdir)/src/monitor/monitor_iface.xml \
     $(srcdir)/src/providers/data_provider_iface.xml \
     $(srcdir)/src/providers/data_provider/dp_iface.xml \
+    $(srcdir)/src/providers/proxy/proxy_iface.xml \
     $(srcdir)/src/responder/ifp/ifp_iface.xml
 
 SBUS_CODEGEN = src/sbus/sbus_codegen
@@ -3322,7 +3324,7 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_netgroup.c \
     src/providers/proxy/proxy_services.c \
     src/providers/proxy/proxy_auth.c \
-    src/providers/data_provider_iface_generated.c \
+    src/providers/proxy/proxy_iface_generated.c \
     $(NULL)
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
@@ -3591,7 +3593,7 @@ gpo_child_LDADD = \
 
 proxy_child_SOURCES = \
     src/providers/proxy/proxy_child.c \
-    src/providers/data_provider_iface_generated.c \
+    src/providers/proxy/proxy_iface_generated.c \
     $(NULL)
 proxy_child_CFLAGS = \
     $(AM_CFLAGS) \

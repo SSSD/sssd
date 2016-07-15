@@ -44,21 +44,9 @@
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
 #include "providers/proxy/proxy.h"
+#include "providers/proxy/proxy_iface_generated.h"
 
 #include "providers/backend.h"
-
-static int pc_pam_handler(struct sbus_request *dbus_req, void *user_data);
-
-struct data_provider_iface pc_methods = {
-    { &data_provider_iface_meta, 0 },
-    .RegisterService = NULL,
-    .pamHandler = pc_pam_handler,
-    .sudoHandler = NULL,
-    .autofsHandler = NULL,
-    .hostHandler = NULL,
-    .getDomains = NULL,
-    .getAccountInfo = NULL,
-};
 
 struct pc_ctx {
     struct tevent_context *ev;
@@ -382,17 +370,71 @@ done:
     exit(ret);
 }
 
-int proxy_child_send_id(struct sbus_connection *conn,
-                        uint16_t version,
-                        uint32_t id);
+static void proxy_child_id_callback(DBusPendingCall *pending, void *ptr)
+{
+    DBusMessage *reply;
+    errno_t ret;
+
+    reply = dbus_pending_call_steal_reply(pending);
+    if (reply == NULL) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(SSSDBG_FATAL_FAILURE, "Severe error. A reply callback was "
+              "called but no reply was received and no timeout occurred\n");
+        goto done;
+    }
+
+    ret = sbus_parse_reply(reply);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get ID ack [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Got id ack from proxy child\n");
+
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
+}
+
+static errno_t proxy_child_send_id(struct sbus_connection *conn, uint32_t id)
+{
+    DBusMessage *msg;
+    errno_t ret;
+
+    msg = sbus_create_message(NULL, NULL, PROXY_CHILD_PATH, IFACE_PROXY_CLIENT,
+                              IFACE_PROXY_CLIENT_REGISTER,
+                              DBUS_TYPE_UINT32, &id);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?!\n");
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Sending ID to Proxy Backend: (%"PRIu32")\n", id);
+
+    ret = sbus_conn_send(conn, msg, 30000, proxy_child_id_callback, NULL, NULL);
+
+    dbus_message_unref(msg);
+
+    return ret;
+}
+
 static int proxy_cli_init(struct pc_ctx *ctx)
 {
     char *sbus_address;
     int ret;
 
+    static struct iface_proxy_auth iface_proxy_auth = {
+        { &iface_proxy_auth_meta, 0 },
+
+        .PAM = pc_pam_handler,
+    };
+
     sbus_address = talloc_asprintf(ctx, "unix:path=%s/%s_%s",
-                                      PIPE_PATH, PROXY_CHILD_PIPE,
-                                      ctx->domain->name);
+                                   PIPE_PATH, PROXY_CHILD_PIPE,
+                                   ctx->domain->name);
     if (sbus_address == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         return ENOMEM;
@@ -404,55 +446,20 @@ static int proxy_cli_init(struct pc_ctx *ctx)
         return ret;
     }
 
-    ret = sbus_conn_register_iface(ctx->conn, &pc_methods.vtable, DP_PATH, ctx);
+    ret = sbus_conn_register_iface(ctx->conn, &iface_proxy_auth.vtable,
+                                   PROXY_CHILD_PATH, ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export proxy.\n");
         return ret;
     }
 
-    ret = proxy_child_send_id(ctx->conn, DATA_PROVIDER_VERSION, ctx->id);
+    ret = proxy_child_send_id(ctx->conn, ctx->id);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "dp_common_send_id failed.\n");
         return ret;
     }
 
     return EOK;
-}
-
-int proxy_child_send_id(struct sbus_connection *conn,
-                        uint16_t version,
-                        uint32_t id)
-{
-    DBusMessage *msg;
-    dbus_bool_t ret;
-    int retval;
-
-    /* create the message */
-    msg = dbus_message_new_method_call(NULL,
-                                       DP_PATH,
-                                       DATA_PROVIDER_IFACE,
-                                       DATA_PROVIDER_IFACE_REGISTERSERVICE);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?!\n");
-        return ENOMEM;
-    }
-
-    DEBUG(SSSDBG_FUNC_DATA, "Sending ID to Proxy Backend: (%d,%"PRIu32")\n",
-                             version, id);
-
-    ret = dbus_message_append_args(msg,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_UINT32, &id,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
-        return EIO;
-    }
-
-    retval = sbus_conn_send(conn, msg, 30000, dp_id_callback, NULL, NULL);
-
-    dbus_message_unref(msg);
-    return retval;
 }
 
 int proxy_child_process_init(TALLOC_CTX *mem_ctx, const char *domain,

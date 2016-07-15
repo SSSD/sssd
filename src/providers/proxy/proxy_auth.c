@@ -23,6 +23,7 @@
 */
 
 #include "providers/proxy/proxy.h"
+#include "providers/proxy/proxy_iface_generated.h"
 
 struct pc_init_ctx;
 
@@ -531,9 +532,9 @@ static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
     state->pid = pid;
 
     msg = dbus_message_new_method_call(NULL,
-                                       DP_PATH,
-                                       DATA_PROVIDER_IFACE,
-                                       DATA_PROVIDER_IFACE_PAMHANDLER);
+                                       PROXY_CHILD_PATH,
+                                       IFACE_PROXY_AUTH,
+                                       IFACE_PROXY_AUTH_PAM);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "dbus_message_new_method_call failed.\n");
         talloc_zfree(req);
@@ -847,4 +848,3 @@ proxy_pam_handler_recv(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
-
