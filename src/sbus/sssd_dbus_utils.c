@@ -25,22 +25,52 @@
 
 struct sbus_talloc_msg {
     DBusMessage *msg;
+    dbus_int32_t data_slot;
+    bool in_talloc_destructor;
 };
 
 static int sbus_talloc_msg_destructor(struct sbus_talloc_msg *talloc_msg)
 {
+    talloc_msg->in_talloc_destructor = true;
+
     if (talloc_msg->msg == NULL) {
         return 0;
     }
 
+    /* There may exist more references to this message but this talloc
+     * context is no longer valid. We remove dbus message data to invoke
+     * dbus destructor now. */
+    dbus_message_set_data(talloc_msg->msg, talloc_msg->data_slot, NULL, NULL);
     dbus_message_unref(talloc_msg->msg);
     return 0;
+}
+
+static void sbus_msg_data_destructor(void *ctx)
+{
+    struct sbus_talloc_msg *talloc_msg;
+
+    talloc_msg = talloc_get_type(ctx, struct sbus_talloc_msg);
+
+    dbus_message_free_data_slot(&talloc_msg->data_slot);
+
+    if (!talloc_msg->in_talloc_destructor) {
+        /* References to this message dropped to zero but through
+         * dbus_message_unref(), not by calling talloc_free(). We need to free
+         * the talloc context and avoid running talloc desctuctor. */
+        talloc_set_destructor(talloc_msg, NULL);
+        talloc_free(talloc_msg);
+    }
 }
 
 errno_t sbus_talloc_bound_message(TALLOC_CTX *mem_ctx, DBusMessage *msg)
 {
     struct sbus_talloc_msg *talloc_msg;
+    dbus_int32_t data_slot = -1;
+    DBusFreeFunction free_fn;
+    dbus_bool_t bret;
 
+    /* Create a talloc context that will unreference this message when
+     * the parent context is freed. */
     talloc_msg = talloc(mem_ctx, struct sbus_talloc_msg);
     if (talloc_msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -48,7 +78,28 @@ errno_t sbus_talloc_bound_message(TALLOC_CTX *mem_ctx, DBusMessage *msg)
         return ENOMEM;
     }
 
+    /* Allocate a dbus message data slot that will contain point to the
+     * talloc context so we can pick up cases when the dbus message is
+     * freed through dbus api. */
+    bret = dbus_message_allocate_data_slot(&data_slot);
+    if (!bret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to allocate data slot!\n");
+        talloc_free(talloc_msg);
+        return ENOMEM;
+    }
+
+    free_fn = sbus_msg_data_destructor;
+    bret = dbus_message_set_data(msg, data_slot, talloc_msg, free_fn);
+    if (!bret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set message data!\n");
+        talloc_free(talloc_msg);
+        dbus_message_free_data_slot(&data_slot);
+        return ENOMEM;
+    }
+
     talloc_msg->msg = msg;
+    talloc_msg->data_slot = data_slot;
+    talloc_msg->in_talloc_destructor = false;
 
     talloc_set_destructor(talloc_msg, sbus_talloc_msg_destructor);
 
