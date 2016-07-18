@@ -280,6 +280,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
     bool capaths_started = false;
     char *uc_forest;
     char *uc_parent;
+    char *parent_capaths = NULL;
 
     if (domain == NULL || domain->name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No domain name provided\n");
@@ -399,9 +400,31 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
             capaths_started = true;
         }
 
-        ret = fprintf(fstream, "%s = {\n  %s = %s\n}\n%s = {\n  %s = %s\n}\n",
-                                dom->realm, uc_parent, uc_forest,
-                                uc_parent, dom->realm, uc_forest);
+        ret = fprintf(fstream, "%s = {\n  %s = %s\n}\n",
+                                dom->realm, uc_parent, uc_forest);
+        if (ret < 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
+            goto done;
+        }
+
+        if (parent_capaths == NULL) {
+            parent_capaths = talloc_asprintf(tmp_ctx, "  %s = %s\n", dom->realm,
+                                                                     uc_forest);
+        } else {
+            parent_capaths = talloc_asprintf_append(parent_capaths,
+                                                    "  %s = %s\n", dom->realm,
+                                                    uc_forest);
+        }
+        if (parent_capaths == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "talloc_asprintf/talloc_asprintf_append failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    if (parent_capaths != NULL) {
+        ret = fprintf(fstream, "%s = {\n%s}\n", uc_parent, parent_capaths);
         if (ret < 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
             goto done;
