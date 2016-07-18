@@ -405,93 +405,10 @@ done:
     return;
 }
 
-static errno_t ad_get_client_site_parse_ndr(TALLOC_CTX *mem_ctx,
-                                            uint8_t *data,
-                                            size_t length,
-                                            char **_site_name,
-                                            char **_forest_name)
-{
-    TALLOC_CTX *tmp_ctx = NULL;
-    struct ndr_pull *ndr_pull = NULL;
-    struct netlogon_samlogon_response response;
-    enum ndr_err_code ndr_err;
-    char *site = NULL;
-    char *forest = NULL;
-    DATA_BLOB blob;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
-        return ENOMEM;
-    }
-
-    blob.data = data;
-    blob.length = length;
-
-    ndr_pull = ndr_pull_init_blob(&blob, mem_ctx);
-    if (ndr_pull == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ndr_pull_init_blob() failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ndr_err = ndr_pull_netlogon_samlogon_response(ndr_pull, NDR_SCALARS,
-                                                  &response);
-    if (!NDR_ERR_CODE_IS_SUCCESS(ndr_err)) {
-        DEBUG(SSSDBG_OP_FAILURE, "ndr_pull_netlogon_samlogon_response() "
-                                  "failed [%d]\n", ndr_err);
-        ret = EBADMSG;
-        goto done;
-    }
-
-    if (!(response.ntver & NETLOGON_NT_VERSION_5EX)) {
-        DEBUG(SSSDBG_OP_FAILURE, "This NT version does not provide site "
-                                  "information [%x]\n", response.ntver);
-        ret = EBADMSG;
-        goto done;
-    }
-
-    if (response.data.nt5_ex.client_site != NULL
-        && response.data.nt5_ex.client_site[0] != '\0') {
-        site = talloc_strdup(tmp_ctx, response.data.nt5_ex.client_site);
-    } else if (response.data.nt5_ex.next_closest_site != NULL
-               && response.data.nt5_ex.next_closest_site[0] != '\0') {
-        site = talloc_strdup(tmp_ctx, response.data.nt5_ex.next_closest_site);
-    } else {
-        ret = ENOENT;
-        goto done;
-    }
-
-    if (response.data.nt5_ex.forest != NULL
-            && response.data.nt5_ex.forest[0] != '\0') {
-        forest = talloc_strdup(tmp_ctx, response.data.nt5_ex.forest);
-    } else {
-        ret = ENOENT;
-        goto done;
-    }
-
-
-    if (site == NULL || forest == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    *_site_name = talloc_steal(mem_ctx, site);
-    *_forest_name = talloc_steal(mem_ctx, forest);
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
 static void ad_get_client_site_done(struct tevent_req *subreq)
 {
     struct ad_get_client_site_state *state = NULL;
     struct tevent_req *req = NULL;
-    struct ldb_message_element *el = NULL;
     struct sysdb_attrs **reply = NULL;
     size_t reply_count;
     errno_t ret;
@@ -520,25 +437,8 @@ static void ad_get_client_site_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_attrs_get_el(reply[0], AD_AT_NETLOGON, &el);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el() failed\n");
-        goto done;
-    }
-
-    if (el->num_values == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "netlogon has no value\n");
-        ret = ENOENT;
-        goto done;
-    } else if (el->num_values > 1) {
-        DEBUG(SSSDBG_OP_FAILURE, "More than one netlogon value?\n");
-        ret = EIO;
-        goto done;
-    }
-
-    ret = ad_get_client_site_parse_ndr(state, el->values[0].data,
-                                       el->values[0].length, &state->site,
-                                       &state->forest);
+    ret = netlogon_get_domain_info(state, reply[0], true, NULL, &state->site,
+                                   &state->forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve site name [%d]: %s\n",
                                   ret, strerror(ret));
@@ -547,6 +447,7 @@ static void ad_get_client_site_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Found site: %s\n", state->site);
+    DEBUG(SSSDBG_TRACE_FUNC, "Found forest: %s\n", state->forest);
 
 done:
     if (ret != EOK) {
@@ -803,30 +704,42 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
 
         ret = EOK;
     }
+
+    primary_domain = state->discovery_domain;
+    backup_domain = NULL;
+
     if (ret == EOK) {
         if (strcmp(state->service, "gc") == 0) {
-            primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
-                                             state->site, state->forest);
-            if (primary_domain == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
+            if (state->forest != NULL) {
+                if (state->site != NULL) {
+                    primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
+                                                     state->site,
+                                                     state->forest);
+                    if (primary_domain == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
 
-            backup_domain = state->forest;
+                    backup_domain = state->forest;
+                } else {
+                    primary_domain = state->forest;
+                    backup_domain = NULL;
+                }
+            }
         } else {
-            primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
-                                             state->site, state->discovery_domain);
-            if (primary_domain == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
+            if (state->site != NULL) {
+                primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
+                                                 state->site,
+                                                 state->discovery_domain);
+                if (primary_domain == NULL) {
+                    ret = ENOMEM;
+                    goto done;
+                }
 
-            backup_domain = state->discovery_domain;
+                backup_domain = state->discovery_domain;
+            }
         }
-    } else if (ret == ENOENT) {
-        primary_domain = state->discovery_domain;
-        backup_domain = NULL;
-    } else {
+    } else if (ret != ENOENT && ret != EOK) {
         goto done;
     }
 
