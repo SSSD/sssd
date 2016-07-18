@@ -262,11 +262,135 @@ sss_krb5_touch_config(void)
     return EOK;
 }
 
+errno_t sss_get_domain_mappings_content(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        char **content)
+{
+    int ret;
+    char *o = NULL;
+    struct sss_domain_info *dom;
+    struct sss_domain_info *parent_dom;
+    char *uc_parent = NULL;
+    char *uc_forest = NULL;
+    char *parent_capaths = NULL;
+    bool capaths_started = false;
+
+    if (domain == NULL || content == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing parameter.\n");
+        return EINVAL;
+    }
+
+    o = talloc_strdup(mem_ctx, "[domain_realm]\n");
+    if (o == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* This loops skips the starting parent and start rigth with the first
+     * subdomain. Although in all the interesting cases (AD and IPA) the
+     * default is that realm and DNS domain are the same strings (expect case)
+     * and no domain_realm mapping is needed we might consider to add this
+     * domain here as well to cover corner cases? */
+    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
+                dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+                dom = get_next_domain(dom, 0)) {
+        o = talloc_asprintf_append(o, ".%s = %s\n%s = %s\n",
+                               dom->name, dom->realm, dom->name, dom->realm);
+        if (o == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    parent_dom = domain;
+    uc_parent = get_uppercase_realm(mem_ctx, parent_dom->name);
+    if (uc_parent == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
+            dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+            dom = get_next_domain(dom, 0)) {
+
+        if (dom->forest == NULL) {
+            continue;
+        }
+
+        talloc_free(uc_forest);
+        uc_forest = get_uppercase_realm(mem_ctx, dom->forest);
+        if (uc_forest == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (!capaths_started) {
+            o = talloc_asprintf_append(o, "[capaths]\n");
+            if (o == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            capaths_started = true;
+        }
+
+        o = talloc_asprintf_append(o, "%s = {\n  %s = %s\n}\n",
+                                   dom->realm, uc_parent, uc_forest);
+        if (o == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (parent_capaths == NULL) {
+            parent_capaths = talloc_asprintf(mem_ctx, "  %s = %s\n", dom->realm,
+                                                                     uc_forest);
+        } else {
+            parent_capaths = talloc_asprintf_append(parent_capaths,
+                                                    "  %s = %s\n", dom->realm,
+                                                    uc_forest);
+        }
+        if (parent_capaths == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "talloc_asprintf/talloc_asprintf_append failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    if (parent_capaths != NULL) {
+        o = talloc_asprintf_append(o, "%s = {\n%s}\n", uc_parent,
+                                                       parent_capaths);
+        if (o == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf_append failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(parent_capaths);
+    talloc_free(uc_parent);
+    talloc_free(uc_forest);
+
+    if (ret == EOK) {
+        *content = o;
+    } else {
+        talloc_free(o);
+    }
+
+    return ret;
+}
+
 errno_t
 sss_write_domain_mappings(struct sss_domain_info *domain)
 {
-    struct sss_domain_info *dom;
-    struct sss_domain_info *parent_dom;
     errno_t ret;
     errno_t err;
     TALLOC_CTX *tmp_ctx;
@@ -277,10 +401,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
     mode_t old_mode;
     FILE *fstream = NULL;
     int i;
-    bool capaths_started = false;
-    char *uc_forest;
-    char *uc_parent;
-    char *parent_capaths = NULL;
+    char *content = NULL;
 
     if (domain == NULL || domain->name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No domain name provided\n");
@@ -289,6 +410,12 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
+
+    ret = sss_get_domain_mappings_content(tmp_ctx, domain, &content);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_get_domain_mappings_content failed.\n");
+        goto done;
+    }
 
     sanitized_domain = talloc_strdup(tmp_ctx, domain->name);
     if (sanitized_domain == NULL) {
@@ -349,86 +476,11 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
         goto done;
     }
 
-    ret = fprintf(fstream, "[domain_realm]\n");
+    ret = fprintf(fstream, "%s", content);
     if (ret < 0) {
         DEBUG(SSSDBG_OP_FAILURE, "fprintf failed\n");
         ret = EIO;
         goto done;
-    }
-
-    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
-         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-         dom = get_next_domain(dom, 0)) {
-        ret = fprintf(fstream, ".%s = %s\n%s = %s\n",
-                               dom->name, dom->realm, dom->name, dom->realm);
-        if (ret < 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
-            goto done;
-        }
-    }
-
-    parent_dom = domain;
-    uc_parent = get_uppercase_realm(tmp_ctx, parent_dom->name);
-    if (uc_parent == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
-            dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-            dom = get_next_domain(dom, 0)) {
-
-        if (dom->forest == NULL) {
-            continue;
-        }
-
-        uc_forest = get_uppercase_realm(tmp_ctx, dom->forest);
-        if (uc_forest == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        if (!capaths_started) {
-            ret = fprintf(fstream, "[capaths]\n");
-            if (ret < 0) {
-                DEBUG(SSSDBG_OP_FAILURE, "fprintf failed\n");
-                ret = EIO;
-                goto done;
-            }
-            capaths_started = true;
-        }
-
-        ret = fprintf(fstream, "%s = {\n  %s = %s\n}\n",
-                                dom->realm, uc_parent, uc_forest);
-        if (ret < 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
-            goto done;
-        }
-
-        if (parent_capaths == NULL) {
-            parent_capaths = talloc_asprintf(tmp_ctx, "  %s = %s\n", dom->realm,
-                                                                     uc_forest);
-        } else {
-            parent_capaths = talloc_asprintf_append(parent_capaths,
-                                                    "  %s = %s\n", dom->realm,
-                                                    uc_forest);
-        }
-        if (parent_capaths == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "talloc_asprintf/talloc_asprintf_append failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
-    if (parent_capaths != NULL) {
-        ret = fprintf(fstream, "%s = {\n%s}\n", uc_parent, parent_capaths);
-        if (ret < 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
-            goto done;
-        }
     }
 
     ret = fclose(fstream);
