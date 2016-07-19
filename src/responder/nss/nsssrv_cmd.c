@@ -118,66 +118,6 @@ static int nss_reset_negcache(struct resp_ctx *rctx)
  * PASSWD db related functions
  ***************************************************************************/
 
-void nss_update_pw_memcache(struct nss_ctx *nctx)
-{
-    struct sss_domain_info *dom;
-    struct ldb_result *res;
-    uint64_t exp;
-    struct sized_string key;
-    const char *id;
-    time_t now;
-    int ret;
-    int i;
-
-    now = time(NULL);
-
-    for (dom = nctx->rctx->domains; dom; dom = get_next_domain(dom, 0)) {
-        ret = sysdb_enumpwent_with_views(nctx, dom, &res);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to enumerate users for domain [%s]\n", dom->name);
-            continue;
-        }
-
-        for (i = 0; i < res->count; i++) {
-            exp = ldb_msg_find_attr_as_uint64(res->msgs[i],
-                                              SYSDB_CACHE_EXPIRE, 0);
-            if (exp >= now) {
-                continue;
-            }
-
-            /* names require more manipulation (build up fqname conditionally),
-             * but uidNumber is unique and always resolvable too, so we use
-             * that to update the cache, as it points to the same entry */
-            id = sss_view_ldb_msg_find_attr_as_string(dom, res->msgs[i],
-                                                      SYSDB_UIDNUM, NULL);
-            if (!id) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to find uidNumber in %s.\n",
-                       ldb_dn_get_linearized(res->msgs[i]->dn));
-                continue;
-            }
-            to_sized_string(&key, id);
-
-            ret = sss_mmap_cache_pw_invalidate(nctx->pwd_mc_ctx, &key);
-            if (ret != EOK && ret != ENOENT) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Internal failure in memory cache code: %d [%s]\n",
-                       ret, strerror(ret));
-            }
-
-            ret = sss_mmap_cache_pw_invalidate(nctx->initgr_mc_ctx, &key);
-            if (ret != EOK && ret != ENOENT) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Internal failure in memory cache code: %d [%s]\n",
-                      ret, strerror(ret));
-            }
-        }
-
-        talloc_zfree(res);
-    }
-}
-
 static gid_t get_gid_override(struct ldb_message *msg,
                               struct sss_domain_info *dom)
 {
@@ -2742,58 +2682,6 @@ done:
 /****************************************************************************
  * GROUP db related functions
  ***************************************************************************/
-
-void nss_update_gr_memcache(struct nss_ctx *nctx)
-{
-    struct sss_domain_info *dom;
-    struct ldb_result *res;
-    uint64_t exp;
-    struct sized_string key;
-    const char *id;
-    time_t now;
-    int ret;
-    int i;
-
-    now = time(NULL);
-
-    for (dom = nctx->rctx->domains; dom; dom = get_next_domain(dom, 0)) {
-        ret = sysdb_enumgrent_with_views(nctx, dom, &res);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to enumerate users for domain [%s]\n", dom->name);
-            continue;
-        }
-
-        for (i = 0; i < res->count; i++) {
-            exp = ldb_msg_find_attr_as_uint64(res->msgs[i],
-                                              SYSDB_CACHE_EXPIRE, 0);
-            if (exp >= now) {
-                continue;
-            }
-
-            /* names require more manipulation (build up fqname conditionally),
-             * but uidNumber is unique and always resolvable too, so we use
-             * that to update the cache, as it points to the same entry */
-            id = sss_view_ldb_msg_find_attr_as_string(dom, res->msgs[i],
-                                                      SYSDB_GIDNUM, NULL);
-            if (!id) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to find gidNumber in %s.\n",
-                       ldb_dn_get_linearized(res->msgs[i]->dn));
-                continue;
-            }
-            to_sized_string(&key, id);
-
-            ret = sss_mmap_cache_gr_invalidate(nctx->grp_mc_ctx, &key);
-            if (ret != EOK && ret != ENOENT) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Internal failure in memory cache code: %d [%s]\n",
-                       ret, strerror(ret));
-            }
-        }
-        talloc_zfree(res);
-    }
-}
 
 #define GID_ROFFSET 0
 #define MNUM_ROFFSET sizeof(uint32_t)

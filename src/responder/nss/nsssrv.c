@@ -328,17 +328,6 @@ done:
     return ret;
 }
 
-int nss_update_memcache(struct sbus_request *dbus_req, void *data)
-{
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-
-    nss_update_pw_memcache(nctx);
-    nss_update_gr_memcache(nctx);
-
-    return EOK;
-}
-
 int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
                                       void *data,
                                       const char *user,
