@@ -552,7 +552,7 @@ void idle_handler(struct tevent_context *ev,
 }
 
 static int sss_dp_init(struct resp_ctx *rctx,
-                       struct sbus_vtable *dp_intf,
+                       struct sbus_iface_map *sbus_iface,
                        const char *cli_name,
                        struct sss_domain_info *domain)
 {
@@ -580,10 +580,12 @@ static int sss_dp_init(struct resp_ctx *rctx,
         return ret;
     }
 
-    ret = sbus_conn_register_iface(be_conn->conn, dp_intf, DP_PATH, rctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export data provider.\n");
-        return ret;
+    if (sbus_iface != NULL) {
+        ret = sbus_conn_register_iface_map(be_conn->conn, sbus_iface, rctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to register D-Bus interface.\n");
+            return ret;
+        }
     }
 
     DLIST_ADD_END(rctx->be_conns, be_conn, struct be_conn *);
@@ -928,7 +930,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      uint16_t svc_version,
                      struct mon_cli_iface *monitor_intf,
                      const char *cli_name,
-                     struct sbus_vtable *dp_intf,
+                     struct sbus_iface_map *sbus_iface,
                      connection_setup_t conn_setup,
                      struct resp_ctx **responder_ctx)
 {
@@ -1043,7 +1045,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
             continue;
         }
 
-        ret = sss_dp_init(rctx, dp_intf, cli_name, dom);
+        ret = sss_dp_init(rctx, sbus_iface, cli_name, dom);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "fatal error setting up backend connector\n");

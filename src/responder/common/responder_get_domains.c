@@ -88,8 +88,8 @@ sss_dp_get_domains_msg(void *pvt)
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DATA_PROVIDER_IFACE,
-                                       DATA_PROVIDER_IFACE_GETDOMAINS);
+                                       IFACE_DP,
+                                       IFACE_DP_GETDOMAINS);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;

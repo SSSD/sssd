@@ -49,7 +49,6 @@ SSSD_RESPONDER_OBJ = \
     ../../../src/responder/common/data_provider/rdp_message.c \
     ../../../src/responder/common/data_provider/rdp_client.c \
     ../../../src/monitor/monitor_iface_generated.c \
-    ../../../src/providers/data_provider_iface_generated.c \
     ../../../src/providers/data_provider_req.c
 
 dist_noinst_DATA = \

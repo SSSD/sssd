@@ -163,11 +163,7 @@ struct mon_cli_iface;
 typedef int (*connection_setup_t)(struct cli_ctx *cctx);
 
 int sss_connection_setup(struct cli_ctx *cctx);
-/*
- * NOTE: We would like to use more strong typing for the @dp_vtable argument
- * but can't since it accepts either a struct data_provider_iface
- * or struct data_provider_rev_iface. So pass the base struct: sbus_vtable
- */
+
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
@@ -181,7 +177,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      uint16_t svc_version,
                      struct mon_cli_iface *monitor_intf,
                      const char *cli_name,
-                     struct sbus_vtable *dp_intf,
+                     struct sbus_iface_map *sbus_iface,
                      connection_setup_t conn_setup,
                      struct resp_ctx **responder_ctx);
 

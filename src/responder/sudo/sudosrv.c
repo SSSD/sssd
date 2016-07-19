@@ -42,17 +42,6 @@ struct mon_cli_iface monitor_sudo_methods = {
     .sysbusReconnect = NULL,
 };
 
-static struct data_provider_iface sudo_dp_methods = {
-    { &data_provider_iface_meta, 0 },
-    .RegisterService = NULL,
-    .pamHandler = NULL,
-    .sudoHandler = NULL,
-    .autofsHandler = NULL,
-    .hostHandler = NULL,
-    .getDomains = NULL,
-    .getAccountInfo = NULL,
-};
-
 static void sudo_dp_reconnect_init(struct sbus_connection *conn,
                                    int status,
                                    void *pvt)
@@ -98,7 +87,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                            SSS_SUDO_SBUS_SERVICE_VERSION,
                            &monitor_sudo_methods,
                            "SUDO",
-                           &sudo_dp_methods.vtable,
+                           NULL,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {

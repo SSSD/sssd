@@ -130,8 +130,8 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DATA_PROVIDER_IFACE,
-                                       DATA_PROVIDER_IFACE_PAMHANDLER);
+                                       IFACE_DP,
+                                       IFACE_DP_PAMHANDLER);
     if (msg == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
         return ENOMEM;

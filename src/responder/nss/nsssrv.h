@@ -81,4 +81,11 @@ struct nss_packet;
 
 struct sss_cmd_table *get_nss_cmds(void);
 
+int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
+                                      void *data,
+                                      const char *user,
+                                      const char *domain,
+                                      uint32_t *groups,
+                                      int num_groups);
+
 #endif /* __NSSSRV_H__ */

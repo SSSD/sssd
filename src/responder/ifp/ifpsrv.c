@@ -58,17 +58,6 @@ struct mon_cli_iface monitor_ifp_methods = {
     .sysbusReconnect = ifp_sysbus_reconnect,
 };
 
-static struct data_provider_iface ifp_dp_methods = {
-    { &data_provider_iface_meta, 0 },
-    .RegisterService = NULL,
-    .pamHandler = NULL,
-    .sudoHandler = NULL,
-    .autofsHandler = NULL,
-    .hostHandler = NULL,
-    .getDomains = NULL,
-    .getAccountInfo = NULL,
-};
-
 struct sss_cmd_table *get_ifp_cmds(void)
 {
     static struct sss_cmd_table ifp_cmds[] = {
@@ -238,7 +227,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                            SSS_IFP_SBUS_SERVICE_VERSION,
                            &monitor_ifp_methods,
                            "InfoPipe",
-                           &ifp_dp_methods.vtable,
+                           NULL,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {

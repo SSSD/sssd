@@ -37,6 +37,7 @@
 #include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
 #include "responder/nss/nsssrv_netgroup.h"
+#include "responder/nss/nss_iface.h"
 #include "responder/common/negcache.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
@@ -327,7 +328,7 @@ done:
     return ret;
 }
 
-static int nss_update_memcache(struct sbus_request *dbus_req, void *data)
+int nss_update_memcache(struct sbus_request *dbus_req, void *data)
 {
     struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
@@ -338,36 +339,23 @@ static int nss_update_memcache(struct sbus_request *dbus_req, void *data)
     return EOK;
 }
 
-static int nss_memcache_initgr_check(struct sbus_request *dbus_req, void *data)
+int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
+                                      void *data,
+                                      const char *user,
+                                      const char *domain,
+                                      uint32_t *groups,
+                                      int num_groups)
 {
     struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-    char *user;
-    char *domain;
-    uint32_t *groups;
-    int gnum;
 
-    if (!sbus_request_parse_or_finish(dbus_req,
-                                      DBUS_TYPE_STRING, &user,
-                                      DBUS_TYPE_STRING, &domain,
-                                      DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32, &groups, &gnum,
-                                      DBUS_TYPE_INVALID)) {
-        return EOK; /* handled */
-    }
+    DEBUG(SSSDBG_TRACE_LIBS, "Updating inigroups memory cache of [%s@%s]\n",
+          user, domain);
 
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "Got request for [%s@%s]\n", user, domain);
+    nss_update_initgr_memcache(nctx, user, domain, num_groups, groups);
 
-    nss_update_initgr_memcache(nctx, user, domain, gnum, groups);
-
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    return iface_nss_memorycache_UpdateInitgroups_finish(sbus_req);
 }
-
-static struct data_provider_rev_iface nss_dp_methods = {
-    { &data_provider_rev_iface_meta, 0 },
-    .updateCache = nss_update_memcache,
-    .initgrCheck = nss_memcache_initgr_check
-};
 
 static void nss_dp_reconnect_init(struct sbus_connection *conn,
                                   int status, void *pvt)
@@ -419,7 +407,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            NSS_SBUS_SERVICE_NAME,
                            NSS_SBUS_SERVICE_VERSION,
                            &monitor_nss_methods,
-                           "NSS", &nss_dp_methods.vtable,
+                           "NSS",
+                           nss_get_sbus_interface(),
                            nss_connection_setup,
                            &rctx);
     if (ret != EOK) {

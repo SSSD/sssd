@@ -41,17 +41,6 @@ struct mon_cli_iface monitor_ssh_methods = {
     .sysbusReconnect = NULL,
 };
 
-static struct data_provider_iface ssh_dp_methods = {
-    { &data_provider_iface_meta, 0 },
-    .RegisterService = NULL,
-    .pamHandler = NULL,
-    .sudoHandler = NULL,
-    .autofsHandler = NULL,
-    .hostHandler = NULL,
-    .getDomains = NULL,
-    .getAccountInfo = NULL,
-};
-
 static void ssh_dp_reconnect_init(struct sbus_connection *conn,
                                   int status, void *pvt)
 {
@@ -96,7 +85,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
                            SSS_SSH_SBUS_SERVICE_VERSION,
                            &monitor_ssh_methods,
                            "SSH",
-                           &ssh_dp_methods.vtable,
+                           NULL,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {

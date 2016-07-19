@@ -25,6 +25,7 @@
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
+#include "responder/nss/nss_iface.h"
 #include "util/util.h"
 
 #define FILTER_TYPE(str, type) {str "=", sizeof(str "=") - 1, type}
@@ -168,9 +169,9 @@ static void dp_req_initgr_pp(const char *req_name,
     }
 
     msg = dbus_message_new_method_call(NULL,
-                                       DP_PATH,
-                                       DATA_PROVIDER_REV_IFACE,
-                                       DATA_PROVIDER_REV_IFACE_INITGRCHECK);
+                                       NSS_MEMORYCACHE_PATH,
+                                       IFACE_NSS_MEMORYCACHE,
+                                       IFACE_NSS_MEMORYCACHE_UPDATEINITGROUPS);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return;

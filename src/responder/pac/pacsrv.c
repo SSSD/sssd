@@ -61,17 +61,6 @@ struct mon_cli_iface monitor_pac_methods = {
     .sysbusReconnect = NULL,
 };
 
-static struct data_provider_iface pac_dp_methods = {
-    { &data_provider_iface_meta, 0 },
-    .RegisterService = NULL,
-    .pamHandler = NULL,
-    .sudoHandler = NULL,
-    .autofsHandler = NULL,
-    .hostHandler = NULL,
-    .getDomains = NULL,
-    .getAccountInfo = NULL,
-};
-
 /* TODO: check if this can be made generic for all responders */
 static void pac_dp_reconnect_init(struct sbus_connection *conn,
                                   int status, void *pvt)
@@ -122,7 +111,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                            PAC_SBUS_SERVICE_NAME,
                            PAC_SBUS_SERVICE_VERSION,
                            &monitor_pac_methods,
-                           "PAC", &pac_dp_methods.vtable,
+                           "PAC", NULL,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {

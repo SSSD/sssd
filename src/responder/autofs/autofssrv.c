@@ -44,17 +44,6 @@ struct mon_cli_iface monitor_autofs_methods = {
     .sysbusReconnect = NULL,
 };
 
-static struct data_provider_iface autofs_dp_methods = {
-    { &data_provider_iface_meta, 0 },
-    .RegisterService = NULL,
-    .pamHandler = NULL,
-    .sudoHandler = NULL,
-    .autofsHandler = NULL,
-    .hostHandler = NULL,
-    .getDomains = NULL,
-    .getAccountInfo = NULL,
-};
-
 static errno_t
 autofs_get_config(struct autofs_ctx *actx,
                   struct confdb_ctx *cdb)
@@ -130,7 +119,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                            SSS_AUTOFS_SBUS_SERVICE_VERSION,
                            &monitor_autofs_methods,
                            "autofs",
-                           &autofs_dp_methods.vtable,
+                           NULL,
                            autofs_connection_setup,
                            &rctx);
     if (ret != EOK) {
