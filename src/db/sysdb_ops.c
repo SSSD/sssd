@@ -4711,6 +4711,67 @@ done:
     return ret;
 }
 
+errno_t sysdb_get_user_members_recursively(TALLOC_CTX *mem_ctx,
+                                           struct sss_domain_info *dom,
+                                           struct ldb_dn *group_dn,
+                                           struct ldb_result **members)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    size_t count;
+    struct ldb_result *res;
+    struct ldb_dn *base_dn;
+    char *filter;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+    struct ldb_message **msgs;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    base_dn = sysdb_base_dn(dom->sysdb, tmp_ctx);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_base_dn failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s))",
+                             ldb_dn_get_linearized(group_dn));
+    if (filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, dom->sysdb, base_dn, LDB_SCOPE_SUBTREE,
+                             filter, attrs, &count, &msgs);
+
+    res = talloc_zero(tmp_ctx, struct ldb_result);
+    if (res == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    res->count = count;
+    res->msgs = talloc_steal(res, msgs);
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *members = talloc_steal(mem_ctx, res);
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No such entry\n");
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 errno_t sysdb_handle_original_uuid(const char *orig_name,
                                    struct sysdb_attrs *src_attrs,
                                    const char *src_name,

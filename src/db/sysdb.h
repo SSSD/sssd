@@ -1257,6 +1257,11 @@ errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,
                                   const char ***_dns,
                                   size_t *_n);
 
+errno_t sysdb_get_user_members_recursively(TALLOC_CTX *mem_ctx,
+                                           struct sss_domain_info *dom,
+                                           struct ldb_dn *group_dn,
+                                           struct ldb_result **members);
+
 errno_t sysdb_handle_original_uuid(const char *orig_name,
                                    struct sysdb_attrs *src_attrs,
                                    const char *src_name,
