@@ -55,6 +55,95 @@ struct dom_list_test_ctx {
     struct sss_domain_info *dom_list;
 };
 
+static int setup_dom_list_with_subdomains(void **state)
+{
+    struct dom_list_test_ctx *test_ctx;
+    struct sss_domain_info *dom = NULL;
+    struct sss_domain_info *c = NULL;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct dom_list_test_ctx);
+    assert_non_null(test_ctx);
+
+    dom = talloc_zero(test_ctx, struct sss_domain_info);
+    assert_non_null(dom);
+
+    dom->name = talloc_asprintf(dom, "configured.dom");
+    assert_non_null(dom->name);
+
+    dom->realm = talloc_asprintf(dom, "CONFIGURED.DOM");
+    assert_non_null(dom->realm);
+
+    dom->flat_name = talloc_asprintf(dom, "CONFIGURED");
+    assert_non_null(dom->flat_name);
+
+    dom->domain_id = talloc_asprintf(dom, "S-1-5-21-1-2-1");
+    assert_non_null(dom->domain_id);
+
+    DLIST_ADD(test_ctx->dom_list, dom);
+
+    c = talloc_zero(test_ctx, struct sss_domain_info);
+    assert_non_null(c);
+
+    c->name = talloc_asprintf(c, "subdom1.dom");
+    assert_non_null(c->name);
+
+    c->realm = talloc_asprintf(c, "SUBDOM1.DOM");
+    assert_non_null(c->realm);
+
+    c->flat_name = talloc_asprintf(c, "subdom1");
+    assert_non_null(c->flat_name);
+
+    c->domain_id = talloc_asprintf(c, "S-1-5-21-1-2-2");
+    assert_non_null(c->domain_id);
+
+    c->parent = dom;
+
+    DLIST_ADD_END(test_ctx->dom_list, c, struct sss_domain_info *);
+
+    c = talloc_zero(test_ctx, struct sss_domain_info);
+    assert_non_null(c);
+
+    c->name = talloc_asprintf(c, "subdom2.dom");
+    assert_non_null(c->name);
+
+    c->realm = talloc_asprintf(c, "SUBDOM2.DOM");
+    assert_non_null(c->realm);
+
+    c->flat_name = talloc_asprintf(c, "subdom2");
+    assert_non_null(c->flat_name);
+
+    c->domain_id = talloc_asprintf(c, "S-1-5-21-1-2-3");
+    assert_non_null(c->domain_id);
+
+    c->parent = dom;
+
+    DLIST_ADD_END(test_ctx->dom_list, c, struct sss_domain_info *);
+
+    c = talloc_zero(test_ctx, struct sss_domain_info);
+    assert_non_null(c);
+
+    c->name = talloc_asprintf(c, "subdom3.dom");
+    assert_non_null(c->name);
+
+    c->realm = talloc_asprintf(c, "SUBDOM3.DOM");
+    assert_non_null(c->realm);
+
+    c->flat_name = talloc_asprintf(c, "subdom3");
+    assert_non_null(c->flat_name);
+
+    c->domain_id = talloc_asprintf(c, "S-1-5-21-1-2-4");
+    assert_non_null(c->domain_id);
+
+    c->parent = dom;
+
+    DLIST_ADD_END(test_ctx->dom_list, c, struct sss_domain_info *);
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+    return 0;
+}
 
 static int setup_dom_list(void **state)
 {
@@ -1491,6 +1580,77 @@ static void test_sss_unique_filename_destruct(void **state)
     sss_unique_filename_test(test_ctx, true);
 }
 
+static void test_sss_get_domain_mappings_content(void **state)
+{
+    struct dom_list_test_ctx *test_ctx;
+    int ret;
+    struct sss_domain_info *dom;
+    char *content;
+    struct sss_domain_info *c;
+
+    ret = sss_get_domain_mappings_content(NULL, NULL, NULL);
+    assert_int_equal(ret, EINVAL);
+
+    test_ctx = talloc_get_type(*state, struct dom_list_test_ctx);
+    assert_non_null(test_ctx);
+
+    dom = get_domains_head(test_ctx->dom_list);
+    assert_non_null(dom);
+
+    /* no forest */
+    ret = sss_get_domain_mappings_content(test_ctx, dom, &content);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(content,
+                        "[domain_realm]\n"
+                        ".subdom1.dom = SUBDOM1.DOM\n"
+                        "subdom1.dom = SUBDOM1.DOM\n"
+                        ".subdom2.dom = SUBDOM2.DOM\n"
+                        "subdom2.dom = SUBDOM2.DOM\n"
+                        ".subdom3.dom = SUBDOM3.DOM\n"
+                        "subdom3.dom = SUBDOM3.DOM\n");
+    talloc_free(content);
+
+    /* IPA with forest */
+    c = find_domain_by_name(dom, "subdom2.dom", true);
+    assert_non_null(c);
+    c->forest_root = find_domain_by_name(dom, "subdom1.dom", true);
+    assert_non_null(c->forest_root);
+    c->forest = discard_const_p(char, "subdom1.dom");
+
+    c = find_domain_by_name(dom, "subdom3.dom", true);
+    assert_non_null(c);
+    c->forest_root = find_domain_by_name(dom, "subdom1.dom", true);
+    assert_non_null(c->forest_root);
+    c->forest = discard_const_p(char, "subdom1.dom");
+
+    ret = sss_get_domain_mappings_content(test_ctx, dom, &content);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(content,
+                        "[domain_realm]\n"
+                        ".subdom1.dom = SUBDOM1.DOM\n"
+                        "subdom1.dom = SUBDOM1.DOM\n"
+                        ".subdom2.dom = SUBDOM2.DOM\n"
+                        "subdom2.dom = SUBDOM2.DOM\n"
+                        ".subdom3.dom = SUBDOM3.DOM\n"
+                        "subdom3.dom = SUBDOM3.DOM\n"
+                        "[capaths]\n"
+                        "SUBDOM2.DOM = {\n"
+                        "  CONFIGURED.DOM = SUBDOM1.DOM\n"
+                        "}\n"
+                        "SUBDOM3.DOM = {\n"
+                        "  CONFIGURED.DOM = SUBDOM1.DOM\n"
+                        "}\n"
+                        "CONFIGURED.DOM = {\n"
+                        "  SUBDOM2.DOM = SUBDOM1.DOM\n"
+                        "  SUBDOM3.DOM = SUBDOM1.DOM\n"
+                        "}\n");
+    talloc_free(content);
+
+    /* Next steps, test AD domain setup. If we join a child domain we have a
+     * similar case as with IPA but if we join the forest root the generate
+     * capaths might not be as expected. */
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1569,6 +1729,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_unique_filename_destruct,
                                         unique_file_test_setup,
                                         unique_file_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_get_domain_mappings_content,
+                                        setup_dom_list_with_subdomains,
+                                        teardown_dom_list),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
