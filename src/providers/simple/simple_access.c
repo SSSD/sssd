@@ -284,7 +284,6 @@ errno_t sssm_simple_access_init(TALLOC_CTX *mem_ctx,
                                 struct dp_method *dp_methods)
 {
     struct simple_ctx *ctx;
-    errno_t ret;
 
     ctx = talloc_zero(mem_ctx, struct simple_ctx);
     if (ctx == NULL) {
@@ -295,12 +294,6 @@ errno_t sssm_simple_access_init(TALLOC_CTX *mem_ctx,
     ctx->domain = be_ctx->domain;
     ctx->be_ctx = be_ctx;
     ctx->last_refresh_of_filter_lists = 0;
-
-    ret = simple_access_obtain_filter_lists(ctx);
-    if (ret != EOK) {
-        talloc_free(ctx);
-        return ret;
-    }
 
     dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
                   simple_access_handler_send, simple_access_handler_recv, ctx,
