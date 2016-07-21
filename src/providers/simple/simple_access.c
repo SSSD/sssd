@@ -211,7 +211,10 @@ simple_access_handler_send(TALLOC_CTX *mem_ctx,
 
         ret = simple_access_obtain_filter_lists(simple_ctx);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to refresh filter lists\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to refresh filter lists, denying all access\n");
+            pd->pam_status = PAM_PERM_DENIED;
+            goto immediately;
         }
         simple_ctx->last_refresh_of_filter_lists = now;
     }
