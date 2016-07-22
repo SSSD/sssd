@@ -344,6 +344,7 @@ struct ipa_get_subdom_acct {
     int entry_type;
     const char *filter;
     int filter_type;
+    const char *extra_value;
     bool use_pac;
     struct ldb_message *user_msg;
 
@@ -393,6 +394,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     state->entry_type = (ar->entry_type & BE_REQ_TYPE_MASK);
     state->filter = ar->filter_value;
     state->filter_type = ar->filter_type;
+    state->extra_value = ar->extra_value;
 
     switch (state->entry_type) {
         case BE_REQ_USER:
@@ -499,10 +501,16 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
     switch (state->filter_type) {
         case BE_FILTER_NAME:
             req_input->type = REQ_INP_NAME;
-            /* The extdom plugin expects the shortname and domain separately */
-            ret = sss_parse_internal_fqname(req_input, state->filter,
-                                            &shortname, NULL);
-            req_input->inp.name = talloc_steal(req_input, shortname);
+            /* The extdom plugin expects the shortname and domain separately,
+             * but for UPN/email lookup we need to send the raw name */
+            if (state->extra_value != NULL
+                    && strcmp(state->extra_value, EXTRA_NAME_IS_UPN) == 0) {
+                req_input->inp.name = talloc_strdup(req_input, state->filter);
+            } else {
+                ret = sss_parse_internal_fqname(req_input, state->filter,
+                                                &shortname, NULL);
+                req_input->inp.name = talloc_steal(req_input, shortname);
+            }
             if (req_input->inp.name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 tevent_req_error(req, ENOMEM);
