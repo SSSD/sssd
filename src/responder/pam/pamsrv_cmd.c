@@ -1474,6 +1474,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_message *msg;
     struct ldb_result *res;
+    const char *sysdb_name;
 
     while (dom) {
        /* if it is a domainless search, skip domains that require fully
@@ -1533,6 +1534,22 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         if (preq->pd->name_is_upn) {
             ret = sysdb_search_user_by_upn(preq, dom, name, user_attrs, &msg);
+
+            /* Since sysdb_search_user_by_upn() searches the whole cache we
+             * have to set the domain so that it matches the result. */
+            sysdb_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+            if (sysdb_name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Cached entry has no name.\n");
+                return EINVAL;
+            }
+            preq->domain = find_domain_by_object_name(get_domains_head(dom),
+                                                      sysdb_name);
+            if (preq->domain == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Cannot find matching domain for [%s].\n",
+                      sysdb_name);
+                return EINVAL;
+            }
         } else {
             ret = sysdb_getpwnam_with_views(preq, dom, name, &res);
             if (res->count > 1) {
