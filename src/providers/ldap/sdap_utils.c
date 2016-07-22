@@ -227,3 +227,31 @@ char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
 {
     return sdap_combine_filters_ex(mem_ctx, '&', base_filter, extra_filter);
 }
+
+char *get_enterprise_principal_string_filter(TALLOC_CTX *mem_ctx,
+                                             const char *attr_name,
+                                             const char *princ,
+                                             struct dp_option *sdap_basic_opts)
+{
+    const char *realm;
+    char *p;
+
+    if (attr_name == NULL || princ == NULL || sdap_basic_opts == NULL) {
+        return NULL;
+    }
+
+    realm = dp_opt_get_cstring(sdap_basic_opts, SDAP_KRB5_REALM);
+    if (realm == NULL) {
+        return NULL;
+    }
+
+    p = strchr(princ, '@');
+    if (p == NULL) {
+        return NULL;
+    }
+
+    return talloc_asprintf(mem_ctx, "(%s=%.*s\\\\@%s@%s)", attr_name,
+                                                           (int) (p - princ),
+                                                           princ,
+                                                           p + 1, realm);
+}

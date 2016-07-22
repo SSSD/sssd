@@ -300,6 +300,11 @@ char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
                            const char *base_filter,
                            const char *extra_filter);
 
+char *get_enterprise_principal_string_filter(TALLOC_CTX *mem_ctx,
+                                             const char *attr_name,
+                                             const char *princ,
+                                             struct dp_option *sdap_basic_opts);
+
 char *sdap_get_access_filter(TALLOC_CTX *mem_ctx,
                              const char *base_filter);
 

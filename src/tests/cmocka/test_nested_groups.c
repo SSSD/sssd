@@ -31,6 +31,7 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/ldap_opts.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_ldap_nested_groups_conf.ldb"
@@ -1242,6 +1243,38 @@ static void nested_group_external_member_test(void **state)
                      nested_group.gr_name);
 }
 
+static void test_get_enterprise_principal_string_filter(void **state)
+{
+    int ret;
+    char *ep_filter;
+    struct dp_option *no_krb5_realm_opt = default_basic_opts;
+
+    struct dp_option *krb5_realm_opt;
+
+    ret = dp_copy_defaults(NULL, default_basic_opts, SDAP_OPTS_BASIC,
+                           &krb5_realm_opt);
+    assert_int_equal(ret, EOK);
+
+    ret = dp_opt_set_string(krb5_realm_opt, SDAP_KRB5_REALM, "TEST.DOM");
+    assert_int_equal(ret, EOK);
+
+    ep_filter = get_enterprise_principal_string_filter(NULL, NULL, NULL, NULL);
+    assert_null(ep_filter);
+
+    ep_filter = get_enterprise_principal_string_filter(NULL, "aBC", "p@d.c",
+                                                       no_krb5_realm_opt);
+    assert_null(ep_filter);
+
+    ep_filter = get_enterprise_principal_string_filter(NULL, "aBC", "p",
+                                                       krb5_realm_opt);
+    assert_null(ep_filter);
+
+    ep_filter = get_enterprise_principal_string_filter(NULL, "aBC", "p@d.c",
+                                                       krb5_realm_opt);
+    assert_non_null(ep_filter);
+    assert_string_equal(ep_filter, "(aBC=p\\\\@d.c@TEST.DOM)");
+    talloc_free(ep_filter);
+}
 
 int main(int argc, const char *argv[])
 {
@@ -1268,6 +1301,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(nested_group_external_member_test,
                                         nested_group_external_member_setup,
                                         nested_group_external_member_teardown),
+        cmocka_unit_test(test_get_enterprise_principal_string_filter),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

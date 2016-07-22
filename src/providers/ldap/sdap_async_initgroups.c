@@ -2682,7 +2682,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     int ret;
     char *clean_name;
     bool use_id_mapping;
-    const char *search_attr;
+    const char *search_attr = NULL;
+    char *ep_filter;
 
     DEBUG(SSSDBG_TRACE_ALL, "Retrieving info for initgroups call\n");
 
@@ -2743,13 +2744,17 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                 return NULL;
             }
 
+            ep_filter = get_enterprise_principal_string_filter(state,
+                                 state->opts->user_map[SDAP_AT_USER_PRINC].name,
+                                 clean_name, state->opts->basic);
             state->user_base_filter =
                     talloc_asprintf(state,
-                                 "(&(|(%s=%s)(%s=%s))(objectclass=%s)",
+                                 "(&(|(%s=%s)(%s=%s)%s)(objectclass=%s)",
                                  state->opts->user_map[SDAP_AT_USER_PRINC].name,
                                  clean_name,
                                  state->opts->user_map[SDAP_AT_USER_EMAIL].name,
                                  clean_name,
+                                 ep_filter == NULL ? "" : ep_filter,
                                  state->opts->user_map[SDAP_OC_USER].name);
             if (state->user_base_filter == NULL) {
                 talloc_zfree(req);
