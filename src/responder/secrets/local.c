@@ -624,7 +624,13 @@ int generate_master_key(const char *filename, size_t size)
     rsize = sss_atomic_io_s(fd, buf, size, false);
     close(fd);
     if (rsize != size) {
-        unlink(filename);
+        ret = unlink(filename);
+        /* non-fatal failure */
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to remove file: %s - %d [%s]!\n",
+                  filename, ret, sss_strerror(ret));
+        }
         return EFAULT;
     }
 
