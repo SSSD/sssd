@@ -143,6 +143,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char *dom_sid_str = NULL;
     struct sss_domain_info *subdomain;
     size_t c;
+    char *p1;
+    char *p2;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Save user\n");
 
@@ -446,6 +448,21 @@ int sdap_save_user(TALLOC_CTX *memctx,
             if (!upn) {
                 ret = ENOMEM;
                 goto done;
+            }
+
+            /* Check for IPA Kerberos enterprise principal strings
+             * 'user\@my.realm@IPA.REALM' and use 'user@my.realm' */
+            if ( (p1 = strchr(upn,'\\')) != NULL
+                    && *(p1 + 1) == '@'
+                    && (p2 = strchr(p1 + 2, '@')) != NULL) {
+                *p1 = '\0';
+                *p2 = '\0';
+                upn = talloc_asprintf(tmpctx, "%s%s", upn, p1 + 1);
+                if (upn == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
             }
 
             if (dp_opt_get_bool(opts->basic, SDAP_FORCE_UPPER_CASE_REALM)) {
