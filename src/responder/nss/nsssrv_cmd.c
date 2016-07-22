@@ -1002,6 +1002,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     struct ldb_message *msg;
     const char *extra_flag = NULL;
     const char *sysdb_name;
+    char *neg_cache_name;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1031,9 +1032,15 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             return ENOMEM;
         }
 
+        if (cmdctx->name_is_upn) {
+            neg_cache_name = talloc_asprintf(name, "@%s", name);
+        } else {
+            neg_cache_name = name;
+        }
+
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
-        ret = sss_ncache_check_user(nctx->rctx->ncache, dom, name);
+        ret = sss_ncache_check_user(nctx->rctx->ncache, dom, neg_cache_name);
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
@@ -1130,7 +1137,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_user(nctx->rctx->ncache, false, dom, name);
+            ret = sss_ncache_set_user(nctx->rctx->ncache, false, dom,
+                                      neg_cache_name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s\n",
                       name);
