@@ -142,6 +142,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char *sid_str;
     char *dom_sid_str = NULL;
     struct sss_domain_info *subdomain;
+    size_t c;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Save user\n");
 
@@ -440,20 +441,23 @@ int sdap_save_user(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_TRACE_FUNC,
               "User principal is not available for [%s].\n", user_name);
     } else {
-        upn = talloc_strdup(user_attrs, (const char*) el->values[0].data);
-        if (!upn) {
-            ret = ENOMEM;
-            goto done;
-        }
-        if (dp_opt_get_bool(opts->basic, SDAP_FORCE_UPPER_CASE_REALM)) {
-            make_realm_upper_case(upn);
-        }
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Adding user principal [%s] to attributes of [%s].\n",
-               upn, user_name);
-        ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
-        if (ret) {
-            goto done;
+        for (c = 0; c < el->num_values; c++) {
+            upn = talloc_strdup(tmpctx, (const char*) el->values[c].data);
+            if (!upn) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            if (dp_opt_get_bool(opts->basic, SDAP_FORCE_UPPER_CASE_REALM)) {
+                make_realm_upper_case(upn);
+            }
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Adding user principal [%s] to attributes of [%s].\n",
+                   upn, user_name);
+            ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
+            if (ret) {
+                goto done;
+            }
         }
     }
 
