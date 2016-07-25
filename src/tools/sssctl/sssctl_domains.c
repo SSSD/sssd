@@ -27,9 +27,9 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/ifp/ifp_iface.h"
 
-errno_t sssctl_list_domains(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt)
+errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
+                           struct sss_tool_ctx *tool_ctx,
+                           void *pvt)
 {
     sss_sifp_ctx *sifp;
     sss_sifp_error error;

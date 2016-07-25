@@ -1913,19 +1913,19 @@ static int override_group_export(struct sss_cmdline *cmdline,
 int main(int argc, const char **argv)
 {
     struct sss_route_cmd commands[] = {
-        {"user-add", NULL, 0, override_user_add},
-        {"user-del", NULL, 0, override_user_del},
-        {"user-find", NULL, 0, override_user_find},
-        {"user-show", NULL, 0, override_user_show},
-        {"user-import", NULL, 0, override_user_import},
-        {"user-export", NULL, 0, override_user_export},
-        {"group-add", NULL, 0, override_group_add},
-        {"group-del", NULL, 0, override_group_del},
-        {"group-find", NULL, 0, override_group_find},
-        {"group-show", NULL, 0, override_group_show},
-        {"group-import", NULL, 0, override_group_import},
-        {"group-export", NULL, 0, override_group_export},
-        {NULL, NULL, 0, NULL}
+        SSS_TOOL_COMMAND_NOMSG("user-add", 0, override_user_add),
+        SSS_TOOL_COMMAND_NOMSG("user-del", 0, override_user_del),
+        SSS_TOOL_COMMAND_NOMSG("user-find", 0, override_user_find),
+        SSS_TOOL_COMMAND_NOMSG("user-show", 0, override_user_show),
+        SSS_TOOL_COMMAND_NOMSG("user-import", 0, override_user_import),
+        SSS_TOOL_COMMAND_NOMSG("user-export", 0, override_user_export),
+        SSS_TOOL_COMMAND_NOMSG("group-add", 0, override_group_add),
+        SSS_TOOL_COMMAND_NOMSG("group-del", 0, override_group_del),
+        SSS_TOOL_COMMAND_NOMSG("group-find", 0, override_group_find),
+        SSS_TOOL_COMMAND_NOMSG("group-show", 0, override_group_show),
+        SSS_TOOL_COMMAND_NOMSG("group-import", 0, override_group_import),
+        SSS_TOOL_COMMAND_NOMSG("group-export", 0, override_group_export),
+        SSS_TOOL_LAST
     };
 
     return sss_tool_main(argc, argv, commands, NULL);

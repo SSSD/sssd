@@ -56,52 +56,51 @@ void _sssctl_sifp_error(sss_sifp_ctx *sifp,
 #define sssctl_sifp_error(sifp, error, message) \
     _sssctl_sifp_error(sifp, error, _(message))
 
-errno_t sssctl_list_domains(struct sss_cmdline *cmdline,
-                            struct sss_tool_ctx *tool_ctx,
-                            void *pvt);
+errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
+                           struct sss_tool_ctx *tool_ctx,
+                           void *pvt);
 
 errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt);
 
-errno_t sssctl_backup_local_data(struct sss_cmdline *cmdline,
-                                 struct sss_tool_ctx *tool_ctx,
-                                 void *pvt);
-
-errno_t sssctl_restore_local_data(struct sss_cmdline *cmdline,
+errno_t sssctl_client_data_backup(struct sss_cmdline *cmdline,
                                   struct sss_tool_ctx *tool_ctx,
                                   void *pvt);
 
-errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
+errno_t sssctl_client_data_restore(struct sss_cmdline *cmdline,
+                                   struct sss_tool_ctx *tool_ctx,
+                                   void *pvt);
+
+errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt);
 
-errno_t sssctl_upgrade_cache(struct sss_cmdline *cmdline,
+errno_t sssctl_cache_upgrade(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt);
 
-errno_t sssctl_remove_logs(struct sss_cmdline *cmdline,
+errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt);
 
-errno_t sssctl_fetch_logs(struct sss_cmdline *cmdline,
+errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
                           struct sss_tool_ctx *tool_ctx,
                           void *pvt);
 
-errno_t sssctl_user(struct sss_cmdline *cmdline,
-                    struct sss_tool_ctx *tool_ctx,
-                    void *pvt);
+errno_t sssctl_user_show(struct sss_cmdline *cmdline,
+                         struct sss_tool_ctx *tool_ctx,
+                         void *pvt);
 
-errno_t sssctl_group(struct sss_cmdline *cmdline,
-                     struct sss_tool_ctx *tool_ctx,
-                     void *pvt);
+errno_t sssctl_group_show(struct sss_cmdline *cmdline,
+                          struct sss_tool_ctx *tool_ctx,
+                          void *pvt);
 
-errno_t sssctl_netgroup(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt);
+errno_t sssctl_netgroup_show(struct sss_cmdline *cmdline,
+                             struct sss_tool_ctx *tool_ctx,
+                             void *pvt);
 
 errno_t sssctl_config_check(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt);
-
 #endif /* _SSSCTL_H_ */

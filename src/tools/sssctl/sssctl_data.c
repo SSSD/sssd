@@ -124,9 +124,9 @@ static errno_t sssctl_backup(bool force)
     return ret;
 }
 
-errno_t sssctl_backup_local_data(struct sss_cmdline *cmdline,
-                                 struct sss_tool_ctx *tool_ctx,
-                                 void *pvt)
+errno_t sssctl_client_data_backup(struct sss_cmdline *cmdline,
+                                  struct sss_tool_ctx *tool_ctx,
+                                  void *pvt)
 {
     struct sssctl_data_opts opts = {0};
     errno_t ret;
@@ -184,9 +184,9 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
     return ret;
 }
 
-errno_t sssctl_restore_local_data(struct sss_cmdline *cmdline,
-                                  struct sss_tool_ctx *tool_ctx,
-                                  void *pvt)
+errno_t sssctl_client_data_restore(struct sss_cmdline *cmdline,
+                                   struct sss_tool_ctx *tool_ctx,
+                                   void *pvt)
 {
     struct sssctl_data_opts opts = {0};
     errno_t ret;
@@ -207,7 +207,7 @@ errno_t sssctl_restore_local_data(struct sss_cmdline *cmdline,
     return sssctl_restore(opts.start, opts.restart);
 }
 
-errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
+errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
                             struct sss_tool_ctx *tool_ctx,
                             void *pvt)
 {
@@ -259,7 +259,7 @@ errno_t sssctl_remove_cache(struct sss_cmdline *cmdline,
     return EOK;
 }
 
-errno_t sssctl_upgrade_cache(struct sss_cmdline *cmdline,
+errno_t sssctl_cache_upgrade(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt)
 {

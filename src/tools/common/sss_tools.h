@@ -46,7 +46,9 @@ typedef errno_t
                 void *pvt);
 
 #define SSS_TOOL_COMMAND(cmd, msg, err, fn) {cmd, _(msg), err, fn}
+#define SSS_TOOL_COMMAND_NOMSG(cmd, err, fn) {cmd, NULL, err, fn}
 #define SSS_TOOL_DELIMITER(message) {"", (message), 0, NULL}
+#define SSS_TOOL_LAST {NULL, NULL, 0, NULL}
 
 struct sss_route_cmd {
     const char *command;

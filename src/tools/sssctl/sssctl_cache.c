@@ -569,9 +569,9 @@ struct sssctl_cache_opts {
     int id;
 };
 
-errno_t sssctl_user(struct sss_cmdline *cmdline,
-                    struct sss_tool_ctx *tool_ctx,
-                    void *pvt)
+errno_t sssctl_user_show(struct sss_cmdline *cmdline,
+                         struct sss_tool_ctx *tool_ctx,
+                         void *pvt)
 {
     struct sssctl_cache_opts opts = {0};
     const char *attr;
@@ -616,9 +616,9 @@ errno_t sssctl_user(struct sss_cmdline *cmdline,
     return EOK;
 }
 
-errno_t sssctl_group(struct sss_cmdline *cmdline,
-                     struct sss_tool_ctx *tool_ctx,
-                     void *pvt)
+errno_t sssctl_group_show(struct sss_cmdline *cmdline,
+                          struct sss_tool_ctx *tool_ctx,
+                          void *pvt)
 {
     struct sssctl_cache_opts opts = {0};
     const char *attr;
@@ -662,9 +662,9 @@ errno_t sssctl_group(struct sss_cmdline *cmdline,
     return EOK;
 }
 
-errno_t sssctl_netgroup(struct sss_cmdline *cmdline,
-                        struct sss_tool_ctx *tool_ctx,
-                        void *pvt)
+errno_t sssctl_netgroup_show(struct sss_cmdline *cmdline,
+                             struct sss_tool_ctx *tool_ctx,
+                             void *pvt)
 {
     struct sssctl_cache_opts opts = {0};
     errno_t ret;

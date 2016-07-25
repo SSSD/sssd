@@ -34,7 +34,7 @@ struct sssctl_logs_opts {
     int archived;
 };
 
-errno_t sssctl_remove_logs(struct sss_cmdline *cmdline,
+errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt)
 {
@@ -74,7 +74,7 @@ errno_t sssctl_remove_logs(struct sss_cmdline *cmdline,
     return EOK;
 }
 
-errno_t sssctl_fetch_logs(struct sss_cmdline *cmdline,
+errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
                           struct sss_tool_ctx *tool_ctx,
                           void *pvt)
 {
