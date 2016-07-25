@@ -1198,9 +1198,14 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
     sysdb_write = sysdb_entry_attrs_diff(sysdb, entry_dn, attrs, mod_op);
     if (sysdb_write == true) {
         ret = sysdb_set_cache_entry_attr(sysdb->ldb, entry_dn, attrs, mod_op);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot set attrs for %s, %d [%s]\n",
+                  ldb_dn_get_linearized(entry_dn), ret, sss_strerror(ret));
+        }
     }
 
-    if (ret == EOK) {
+    if (ret == EOK && is_ts_ldb_dn(entry_dn)) {
         tret = sysdb_set_ts_entry_attr(sysdb, entry_dn, attrs, mod_op);
         if (tret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
