@@ -440,9 +440,10 @@ static void cleanup_ipa_preauth_indicator(void)
 
     ret = unlink(PAM_PREAUTH_INDICATOR);
     if (ret != EOK) {
+        ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to remove preauth indicator file [%s].\n",
-              PAM_PREAUTH_INDICATOR);
+              "Failed to remove preauth indicator file [%s] %d [%s].\n",
+              PAM_PREAUTH_INDICATOR, ret, sss_strerror(ret));
     }
 }
 

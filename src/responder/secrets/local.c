@@ -627,6 +627,7 @@ int generate_master_key(const char *filename, size_t size)
         ret = unlink(filename);
         /* non-fatal failure */
         if (ret != EOK) {
+            ret = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Failed to remove file: %s - %d [%s]!\n",
                   filename, ret, sss_strerror(ret));

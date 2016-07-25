@@ -103,8 +103,9 @@ create_socket_symlink(const char *filename, const char *symlink_filename)
         ret = unlink(symlink_filename);
         if (ret != 0) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot remove old symlink: [%d][%s].\n",
-                      ret, strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot remove old symlink '%s': [%d][%s].\n",
+                  symlink_filename, ret, strerror(ret));
             return EIO;
         }
         errno = 0;
@@ -351,8 +352,8 @@ done:
         if (tmp_ret != EOK) {
             tmp_ret = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Failed to remove symbolic link: %d [%s]!\n",
-                  tmp_ret, sss_strerror(tmp_ret));
+                  "Failed to remove symbolic link '%s': %d [%s]!\n",
+                  symlink_filename, tmp_ret, sss_strerror(tmp_ret));
         }
     }
     talloc_free(tmp_ctx);

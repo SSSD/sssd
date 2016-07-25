@@ -629,7 +629,8 @@ int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
     if (ret != 0 && errno != ENOENT) {
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot remove old socket (errno=%d), bind might fail!\n", ret);
+              "Cannot remove old socket (errno=%d [%s]), bind might fail!\n",
+              ret, sss_strerror(ret));
     }
 
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {

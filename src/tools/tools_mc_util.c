@@ -117,10 +117,11 @@ done:
         if (ret == EOK) {
             pret = unlink(mc_filename);
             if (pret == -1) {
+                pret = errno;
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      "Failed to unlink file %s. "
-                       "Will be unlinked later by sssd_nss.\n",
-                       mc_filename);
+                      "Failed to unlink file %s, %d [%s]. "
+                      "Will be unlinked later by sssd_nss.\n",
+                      mc_filename, pret, strerror(pret));
             }
         }
     }

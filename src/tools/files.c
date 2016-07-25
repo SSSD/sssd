@@ -225,7 +225,8 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
             if (ret != 0) {
                 ret = errno;
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                        "Removing file failed: [%d][%s]\n", ret, strerror(ret));
+                      "Removing file failed '%s': [%d][%s]\n",
+                      result->d_name, ret, strerror(ret));
                 goto fail;
             }
         }

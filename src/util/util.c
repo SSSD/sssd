@@ -990,13 +990,15 @@ static int unlink_dbg(const char *filename)
 
     ret = unlink(filename);
     if (ret != 0) {
-        if (errno == 2) {
+        ret = errno;
+        if (ret == ENOENT) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "File already removed: [%s]\n", filename);
             return 0;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot remove temporary file [%s]\n", filename);
+                  "Cannot remove temporary file [%s] %d [%s]\n",
+                  filename, ret, strerror(ret));
             return -1;
         }
     }
