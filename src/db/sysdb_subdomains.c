@@ -787,9 +787,9 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
                 ret = sysdb_error_to_errno(ret);
                 goto done;
             }
-        }
 
-        do_update = true;
+            do_update = true;
+        }
     }
 
     if (do_update == false) {
