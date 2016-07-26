@@ -47,6 +47,12 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     char **strs = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
 
+    ret = sss_tool_popt(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL, NULL, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
+        return ret;
+    }
+
     tmp_ctx = talloc_new(NULL);
     init_data = sss_ini_initdata_init(tmp_ctx);
     if (!init_data) {

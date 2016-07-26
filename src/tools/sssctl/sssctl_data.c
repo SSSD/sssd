@@ -266,6 +266,12 @@ errno_t sssctl_cache_upgrade(struct sss_cmdline *cmdline,
     struct sysdb_upgrade_ctx db_up_ctx;
     errno_t ret;
 
+    ret = sss_tool_popt(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL, NULL, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
+        return ret;
+    }
+
     if (sss_deamon_running()) {
         return ERR_SSSD_RUNNING;
     }
