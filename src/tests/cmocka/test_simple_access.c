@@ -21,20 +21,20 @@
 #include <tevent.h>
 #include <errno.h>
 #include <popt.h>
+#include <security/pam_appl.h>
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_be.h"
 #include "tests/cmocka/common_mock_resp.h"
 #include "db/sysdb_private.h"   /* new_subdomain() */
 #include "providers/simple/simple_access.h"
+#include "providers/simple/simple_access_pvt.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_simple_conf.ldb"
 #define TEST_DOM_NAME "simple_test"
 #define TEST_SUBDOM_NAME "test.subdomain"
 #define TEST_ID_PROVIDER "ldap"
-
-int simple_access_obtain_filter_lists(struct simple_ctx *ctx);
 
 struct simple_test_ctx {
     struct sss_test_ctx *tctx;
@@ -43,6 +43,8 @@ struct simple_test_ctx {
 
     bool access_granted;
     struct simple_ctx *ctx;
+    struct pam_data *pd;
+    struct dp_req_params *params;
 };
 
 static int test_simple_setup(struct sss_test_conf_param params[], void **state)
@@ -74,6 +76,19 @@ static int test_simple_setup(struct sss_test_conf_param params[], void **state)
     if (simple_test_ctx->be_ctx == NULL) {
         return ENOMEM;
     }
+
+    simple_test_ctx->pd = talloc_zero(simple_test_ctx, struct pam_data);
+    if (simple_test_ctx->pd == NULL) {
+        return ENOMEM;
+    }
+    simple_test_ctx->pd->cmd = SSS_PAM_ACCT_MGMT;
+
+    simple_test_ctx->params = talloc_zero(simple_test_ctx,
+                                          struct dp_req_params);
+    if (simple_test_ctx->params == NULL) {
+        return ENOMEM;
+    }
+    simple_test_ctx->params->ev = simple_test_ctx->tctx->ev;
 
     *state = simple_test_ctx;
     return 0;
@@ -122,18 +137,13 @@ static int setup_with_params(struct simple_test_ctx *test_ctx,
         return ret;
     }
 
-    test_ctx->ctx = talloc(test_ctx, struct simple_ctx);
+    test_ctx->ctx = talloc_zero(test_ctx, struct simple_ctx);
     if (test_ctx->ctx == NULL) {
         return ENOMEM;
     }
 
     test_ctx->ctx->be_ctx = test_ctx->be_ctx;
     test_ctx->ctx->domain = test_ctx->tctx->dom;
-
-    ret = simple_access_obtain_filter_lists(test_ctx->ctx);
-    if (ret != EOK) {
-        return ret;
-    }
 
     return EOK;
 }
@@ -155,13 +165,14 @@ static int simple_test_teardown(void **state)
     return 0;
 }
 
-static void simple_access_check_done(struct tevent_req *req)
+static void simple_access_handler_done(struct tevent_req *req)
 {
     struct simple_test_ctx *simple_test_ctx =
                         tevent_req_callback_data(req, struct simple_test_ctx);
 
-    simple_test_ctx->tctx->error = simple_access_check_recv(req,
-                                              &simple_test_ctx->access_granted);
+    simple_test_ctx->tctx->error = simple_access_handler_recv(simple_test_ctx,
+                                                    req, &simple_test_ctx->pd);
+    simple_test_ctx->access_granted = (simple_test_ctx->pd->pam_status == PAM_SUCCESS);
     talloc_free(req);
     simple_test_ctx->tctx->done = true;
 }
@@ -175,10 +186,13 @@ static void run_simple_access_check(struct simple_test_ctx *simple_test_ctx,
     struct tevent_req *req;
 
     simple_test_ctx->tctx->done = false;
-    req = simple_access_check_send(simple_test_ctx, simple_test_ctx->tctx->ev,
-                                   simple_test_ctx->ctx, username);
+    simple_test_ctx->pd->user = discard_const(username);
+    req = simple_access_handler_send(simple_test_ctx,
+                                     simple_test_ctx->ctx,
+                                     simple_test_ctx->pd,
+                                     simple_test_ctx->params);
     assert_non_null(req);
-    tevent_req_set_callback(req, simple_access_check_done, simple_test_ctx);
+    tevent_req_set_callback(req, simple_access_handler_done, simple_test_ctx);
 
     ret = test_ev_loop(simple_test_ctx->tctx);
     assert_int_equal(ret, expected_rv);
@@ -487,23 +501,29 @@ static void test_group_allow_empty(void **state)
         { NULL, NULL },
     };
 
-    ret = setup_with_params(simple_test_ctx, simple_test_ctx->tctx->dom, params);
+    ret = setup_with_params(simple_test_ctx,
+                            simple_test_ctx->tctx->dom,
+                            params);
     assert_int_equal(ret, EOK);
 
-    req = simple_access_check_send(simple_test_ctx, simple_test_ctx->tctx->ev,
-                                   simple_test_ctx->ctx, "u1@simple_test");
+    simple_test_ctx->pd->user = discard_const("u1@simple_test");
+    req = simple_access_handler_send(simple_test_ctx, simple_test_ctx->ctx,
+                                     simple_test_ctx->pd,
+                                     simple_test_ctx->params);
     assert_non_null(req);
-    tevent_req_set_callback(req, simple_access_check_done, simple_test_ctx);
+    tevent_req_set_callback(req, simple_access_handler_done, simple_test_ctx);
 
     ret = test_ev_loop(simple_test_ctx->tctx);
     assert_int_equal(ret, EOK);
     assert_false(simple_test_ctx->access_granted);
 
     simple_test_ctx->tctx->done = false;
-    req = simple_access_check_send(simple_test_ctx, simple_test_ctx->tctx->ev,
-                                   simple_test_ctx->ctx, "u3@simple_test");
+    simple_test_ctx->pd->user = discard_const("u3@simple_test");
+    req = simple_access_handler_send(simple_test_ctx, simple_test_ctx->ctx,
+                                     simple_test_ctx->pd,
+                                     simple_test_ctx->params);
     assert_non_null(req);
-    tevent_req_set_callback(req, simple_access_check_done, simple_test_ctx);
+    tevent_req_set_callback(req, simple_access_handler_done, simple_test_ctx);
 
     ret = test_ev_loop(simple_test_ctx->tctx);
     assert_int_equal(ret, EOK);
@@ -584,6 +604,118 @@ static void test_group_allow_case_insensitive(void **state)
     run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, true);
 }
 
+static void test_unparseable_allow_user(void **state)
+{
+    errno_t ret;
+    struct simple_test_ctx *simple_test_ctx = \
+                            talloc_get_type(*state, struct simple_test_ctx);
+    struct sss_test_conf_param params[] = {
+        { "simple_allow_users", "u1, user@no.such.domain" },
+        { NULL, NULL },
+    };
+
+    ret = setup_with_params(simple_test_ctx,
+                            simple_test_ctx->tctx->dom,
+                            params);
+    assert_int_equal(ret, EOK);
+
+    /* Case-sensitive domain, wrong case */
+    simple_test_ctx->tctx->done = false;
+    simple_test_ctx->tctx->dom->case_sensitive = false;
+    /* A user that would normally be denied access will be denied because
+     * the access list can't be parsed
+     */
+    run_simple_access_check(simple_test_ctx, "u2@simple_test", EOK, false);
+    /* A user that would normally be allowed access will be denied because
+     * the access list can't be parsed
+     */
+    run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, false);
+}
+
+static void test_unparseable_deny_user(void **state)
+{
+    errno_t ret;
+    struct simple_test_ctx *simple_test_ctx = \
+                            talloc_get_type(*state, struct simple_test_ctx);
+    struct sss_test_conf_param params[] = {
+        { "simple_deny_users", "u2, user@no.such.domain" },
+        { NULL, NULL },
+    };
+
+    ret = setup_with_params(simple_test_ctx,
+                            simple_test_ctx->tctx->dom,
+                            params);
+    assert_int_equal(ret, EOK);
+
+    /* Case-sensitive domain, wrong case */
+    simple_test_ctx->tctx->done = false;
+    simple_test_ctx->tctx->dom->case_sensitive = false;
+    /* A user that would normally be denied access will be denied because
+     * the access list can't be parsed
+     */
+    run_simple_access_check(simple_test_ctx, "u2@simple_test", EOK, false);
+    /* A user that would normally be allowed access will be denied because
+     * the access list can't be parsed
+     */
+    run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, false);
+}
+
+static void test_unparseable_allow_group(void **state)
+{
+    errno_t ret;
+    struct simple_test_ctx *simple_test_ctx = \
+                            talloc_get_type(*state, struct simple_test_ctx);
+    struct sss_test_conf_param params[] = {
+        { "simple_allow_groups", "g1, group@no.such.domain" },
+        { NULL, NULL },
+    };
+
+    ret = setup_with_params(simple_test_ctx,
+                            simple_test_ctx->tctx->dom,
+                            params);
+    assert_int_equal(ret, EOK);
+
+    /* Case-sensitive domain, wrong case */
+    simple_test_ctx->tctx->done = false;
+    simple_test_ctx->tctx->dom->case_sensitive = false;
+    /* A group that would normally be denied access will be denied because
+     * the access list can't be parsed
+     */
+    run_simple_access_check(simple_test_ctx, "u2@simple_test", EOK, false);
+    /* A group that would normally be allowed access will be denied because
+     * the access list can't be parsed
+     */
+    run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, false);
+}
+
+static void test_unparseable_deny_group(void **state)
+{
+    errno_t ret;
+    struct simple_test_ctx *simple_test_ctx = \
+                            talloc_get_type(*state, struct simple_test_ctx);
+    struct sss_test_conf_param params[] = {
+        { "simple_deny_groups", "g2, group@no.such.domain" },
+        { NULL, NULL },
+    };
+
+    ret = setup_with_params(simple_test_ctx,
+                            simple_test_ctx->tctx->dom,
+                            params);
+    assert_int_equal(ret, EOK);
+
+    /* Case-sensitive domain, wrong case */
+    simple_test_ctx->tctx->done = false;
+    simple_test_ctx->tctx->dom->case_sensitive = false;
+    /* A group that would normally be denied access will be denied because
+     * the access list can't be parsed
+     */
+    run_simple_access_check(simple_test_ctx, "u2@simple_test", EOK, false);
+    /* A group that would normally be allowed access will be denied because
+     * the access list can't be parsed
+     */
+    run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, false);
+}
+
 static void test_group_space(void **state)
 {
     errno_t ret;
@@ -659,6 +791,18 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_group_space,
                                         simple_group_test_setup,
                                         simple_group_test_teardown),
+        cmocka_unit_test_setup_teardown(test_unparseable_allow_user,
+                                        simple_test_setup,
+                                        simple_test_teardown),
+        cmocka_unit_test_setup_teardown(test_unparseable_deny_user,
+                                        simple_test_setup,
+                                        simple_test_teardown),
+        cmocka_unit_test_setup_teardown(test_unparseable_allow_group,
+                                        simple_test_setup,
+                                        simple_test_teardown),
+        cmocka_unit_test_setup_teardown(test_unparseable_deny_group,
+                                        simple_test_setup,
+                                        simple_test_teardown),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
