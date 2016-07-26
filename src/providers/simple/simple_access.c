@@ -22,6 +22,7 @@
 #include <security/pam_modules.h>
 
 #include "providers/simple/simple_access.h"
+#include "providers/simple/simple_access_pvt.h"
 #include "util/sss_utf8.h"
 #include "providers/backend.h"
 #include "db/sysdb.h"
@@ -176,7 +177,7 @@ struct simple_access_handler_state {
 
 static void simple_access_handler_done(struct tevent_req *subreq);
 
-static struct tevent_req *
+struct tevent_req *
 simple_access_handler_send(TALLOC_CTX *mem_ctx,
                            struct simple_ctx *simple_ctx,
                            struct pam_data *pd,
@@ -265,7 +266,7 @@ done:
     tevent_req_done(req);
 }
 
-static errno_t
+errno_t
 simple_access_handler_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        struct pam_data **_data)

@@ -665,6 +665,7 @@ dist_noinst_HEADERS = \
     src/providers/fail_over_srv.h \
     src/util/child_common.h \
     src/providers/simple/simple_access.h \
+    src/providers/simple/simple_access_pvt.h \
     src/providers/krb5/krb5_auth.h \
     src/providers/krb5/krb5_common.h \
     src/providers/krb5/krb5_utils.h \
