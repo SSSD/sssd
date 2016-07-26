@@ -1806,13 +1806,13 @@ static void test_sss_get_domain_mappings_content(void **state)
     assert_non_null(c);
     c->forest_root = find_domain_by_name(dom, "subdom1.dom", true);
     assert_non_null(c->forest_root);
-    c->forest = "subdom1.dom";
+    c->forest = discard_const_p(char, "subdom1.dom");
 
     c = find_domain_by_name(dom, "subdom3.dom", true);
     assert_non_null(c);
     c->forest_root = find_domain_by_name(dom, "subdom1.dom", true);
     assert_non_null(c->forest_root);
-    c->forest = "subdom1.dom";
+    c->forest = discard_const_p(char, "subdom1.dom");
 
     ret = sss_get_domain_mappings_content(test_ctx, dom, &content);
     assert_int_equal(ret, EOK);
