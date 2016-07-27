@@ -62,15 +62,15 @@ static bool check_and_parse_filter(struct dp_id_data *data,
                  {0, 0, 0}};
     int i;
 
-    if (filter == NULL) {
+    if (SBUS_IS_STRING_EMPTY(filter)) {
         return false;
     }
 
     for (i = 0; types[i].name != NULL; i++) {
         if (strncmp(filter, types[i].name, types[i].lenght) == 0) {
             data->filter_type = types[i].type;
-            data->filter_value = &filter[types[i].lenght];
-            data->extra_value = extra;
+            data->filter_value = SBUS_SET_STRING(&filter[types[i].lenght]);
+            data->extra_value = SBUS_SET_STRING(extra);
             return true;
         }
     }
