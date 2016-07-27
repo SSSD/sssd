@@ -182,7 +182,7 @@ int sss_ini_get_mtime(struct sss_ini_initdata *init_data,
 
 /* Print ini_config errors */
 
-void sss_ini_config_print_errors(char **error_list)
+static void sss_ini_config_print_errors(char **error_list)
 {
 #ifdef HAVE_LIBINI_CONFIG_V1
     unsigned count = 0;
@@ -192,7 +192,7 @@ void sss_ini_config_print_errors(char **error_list)
     }
 
     while (error_list[count]) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", error_list[count]);
+        DEBUG(SSSDBG_FATAL_FAILURE, "%s\n", error_list[count]);
         count++;
     }
 #endif
