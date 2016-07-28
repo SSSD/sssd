@@ -888,7 +888,13 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         j = 0;
         if (ret == EOK) {
             for (j = 0; members[j]; j++) {
-                key.str = discard_const(members[j]);
+                /* Lower case the search key (we do this also when storing
+                 * the entries in the hash table). */
+                key.str = talloc_strdup(state, discard_const(members[j]));
+                for (int p = 0; key.str[p] != '\0'; p++) {
+                    key.str[p] = tolower(key.str[p]);
+                }
+
                 ret = hash_lookup(state->new_netgroups, &key, &value);
                 if (ret != HASH_SUCCESS) {
                     ret = ENOENT;
