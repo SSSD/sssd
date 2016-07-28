@@ -25,7 +25,6 @@
 #include <tevent.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#define __USE_GNU /* needed for struct ucred */
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -34,7 +33,7 @@
 
 #include "monitor/monitor.h"
 #include "util/util.h"
-
+#include "config.h"
 #ifdef HAVE_LIBNL
 #include <linux/if.h>
 #include <linux/socket.h>
