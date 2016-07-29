@@ -3765,6 +3765,24 @@ done:
    }
 }
 
+static bool machine_ext_names_is_blank(char *attr_value)
+{
+    char *ptr;
+
+    if (attr_value == NULL) {
+        return true;
+    }
+
+    ptr = attr_value;
+    for (; *ptr != '\0'; ptr++) {
+        if (!isspace(*ptr)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static errno_t
 ad_gpo_sd_process_attrs(struct tevent_req *req,
                         char *smb_host,
@@ -3880,7 +3898,8 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
         goto done;
     }
 
-    if ((ret == ENOENT) || (el->num_values == 0)) {
+    if ((ret == ENOENT) || (el->num_values == 0)
+            || machine_ext_names_is_blank((char *) el[0].values[0].data)) {
         /*
          * if gpo has no machine_ext_names (which is perfectly valid: it could
          * have only user_ext_names, for example), we continue to next gpo
