@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import os
-import sys
 import stat
 import pwd
 import grp
@@ -98,7 +97,7 @@ SCHEMA_RFC2307 = "rfc2307"
 SCHEMA_RFC2307_BIS = "rfc2307bis"
 
 
-def format_basic_conf(ldap_conn, schema, enum):
+def format_basic_conf(ldap_conn, schema):
     """Format a basic SSSD configuration"""
     schema_conf = "ldap_schema         = " + schema + "\n"
     if schema == SCHEMA_RFC2307_BIS:
@@ -119,7 +118,7 @@ def format_basic_conf(ldap_conn, schema, enum):
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true
         debug_level         = 0xffff
-        enumerate           = {enum}
+        enumerate           = true
         {schema_conf}
         id_provider         = ldap
         auth_provider       = ldap
@@ -131,7 +130,7 @@ def format_basic_conf(ldap_conn, schema, enum):
 def format_interactive_conf(ldap_conn, schema):
     """Format an SSSD configuration with all caches refreshing in 4 seconds"""
     return \
-        format_basic_conf(ldap_conn, schema, enum=True) + \
+        format_basic_conf(ldap_conn, schema) + \
         unindent("""
             [nss]
             memcache_timeout                    = 0
@@ -225,19 +224,7 @@ def sanity_rfc2307(request, ldap_conn):
     ent_list.add_group("two_user_group", 2012, ["user1", "user2"])
     create_ldap_fixture(request, ldap_conn, ent_list)
 
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True)
-    create_conf_fixture(request, conf)
-    create_sssd_fixture(request)
-    return None
-
-
-@pytest.fixture
-def simple_rfc2307(request, ldap_conn):
-    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
-    ent_list.add_user('usr\\\\001', 181818, 181818)
-    ent_list.add_group("group1", 181818)
-    create_ldap_fixture(request, ldap_conn, ent_list)
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=False)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -271,17 +258,10 @@ def sanity_rfc2307_bis(request, ldap_conn):
                            [], ["one_user_group1", "one_user_group2"])
 
     create_ldap_fixture(request, ldap_conn, ent_list)
-    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, enum=True)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
-
-
-def test_regression_ticket2163(ldap_conn, simple_rfc2307):
-    ent.assert_passwd_by_name(
-        'usr\\001',
-        dict(name='usr\\001', passwd='*', uid=181818, gid=181818,
-             gecos='181818', shell='/bin/bash'))
 
 
 def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
@@ -362,50 +342,6 @@ def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
         grp.getgrnam("non_existent_group")
     with pytest.raises(KeyError):
         grp.getgrgid(1)
-
-
-@pytest.fixture
-def refresh_after_cleanup_task(request, ldap_conn):
-    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
-    ent_list.add_user("user1", 1001, 2001)
-
-    ent_list.add_group_bis("group1", 2001, ["user1"])
-    ent_list.add_group_bis("group2", 2002, [], ["group1"])
-
-    create_ldap_fixture(request, ldap_conn, ent_list)
-
-    conf = \
-        format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, enum=False) + \
-        unindent("""
-            [domain/LDAP]
-            entry_cache_user_timeout = 1
-            entry_cache_group_timeout = 5000
-            ldap_purge_cache_timeout = 3
-        """).format(**locals())
-    create_conf_fixture(request, conf)
-    create_sssd_fixture(request)
-    return None
-
-
-def test_refresh_after_cleanup_task(ldap_conn, refresh_after_cleanup_task):
-    """
-    Regression test for ticket:
-    https://fedorahosted.org/sssd/ticket/2676
-    """
-    ent.assert_group_by_name(
-        "group2",
-        dict(mem=ent.contains_only("user1")))
-
-    ent.assert_passwd_by_name(
-        'user1',
-        dict(name='user1', passwd='*', uid=1001, gid=2001,
-             gecos='1001', shell='/bin/bash'))
-
-    time.sleep(15)
-
-    ent.assert_group_by_name(
-        "group2",
-        dict(mem=ent.contains_only("user1")))
 
 
 @pytest.fixture
@@ -566,7 +502,7 @@ def override_homedir(request, ldap_conn):
                       homeDirectory="")
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = \
-        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
         unindent("""\
             [nss]
             override_homedir    = /home/B
@@ -597,7 +533,7 @@ def fallback_homedir(request, ldap_conn):
                       homeDirectory="")
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = \
-        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
         unindent("""\
             [nss]
             fallback_homedir    = /home/B
@@ -628,7 +564,7 @@ def override_shell(request, ldap_conn):
                       loginShell="")
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = \
-        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
         unindent("""\
             [nss]
             override_shell      = /bin/B
@@ -659,7 +595,7 @@ def shell_fallback(request, ldap_conn):
                       loginShell="")
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = \
-        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
         unindent("""\
             [nss]
             shell_fallback      = /bin/fallback
@@ -692,7 +628,7 @@ def default_shell(request, ldap_conn):
                       loginShell="")
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = \
-        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
         unindent("""\
             [nss]
             default_shell       = /bin/default
@@ -727,7 +663,7 @@ def vetoed_shells(request, ldap_conn):
                       loginShell="")
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = \
-        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
         unindent("""\
             [nss]
             default_shell       = /bin/default
