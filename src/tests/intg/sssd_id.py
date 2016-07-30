@@ -73,6 +73,10 @@ def call_sssd_initgroups(user, gid):
         for i in range(0, gids_count):
             gids.append(int(p_groups.contents[i]))
 
+        # add primary group if missing
+        if gid not in gids:
+            gids.append(gid)
+
     return (int(res), errno[0], gids)
 
 
@@ -97,6 +101,22 @@ def get_user_gids(user):
     return call_sssd_initgroups(user, gid)
 
 
+def gid_to_str(gid):
+    """
+    Function will map numeric GID into names.
+    If there isn't a group for GID (getgrgid failed)
+    then the function will return decimal representation of ID.
+
+    @param int gid ID of groups which should be converted to string.
+    @return string name of group with requested ID or decimal
+                   representation of ID
+    """
+    try:
+        return grp.getgrgid(gid).gr_name
+    except KeyError:
+        return str(gid)
+
+
 def get_user_groups(user):
     """
     Function will initialize the supplementary group access list
@@ -114,6 +134,6 @@ def get_user_groups(user):
     groups = []
 
     if res == NssReturnCode.SUCCESS:
-        groups = [grp.getgrgid(gid).gr_name for gid in gids]
+        groups = [gid_to_str(gid) for gid in gids]
 
     return (res, errno, groups)

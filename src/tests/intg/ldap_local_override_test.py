@@ -947,12 +947,12 @@ def test_regr_2790_override(ldap_conn, env_regr_2790_override):
     (res, errno, grp_list) = sssd_id.get_user_groups("alias1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user1 %d" % errno
-    assert grp_list == ["group1"]
+    assert sorted(grp_list) == sorted(["20001", "group1"])
 
     (res, errno, grp_list) = sssd_id.get_user_groups("alias2")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user2 %d" % errno
-    assert sorted(grp_list) == sorted(["group1", "group2"])
+    assert sorted(grp_list) == sorted(["20002", "group1", "group2"])
 
 # Test fully qualified and case-insensitive names
 
