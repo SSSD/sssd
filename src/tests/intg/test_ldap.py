@@ -30,6 +30,7 @@ import config
 import ds_openldap
 import ent
 import ldap_ent
+import sssd_id
 from util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
@@ -695,3 +696,29 @@ def test_vetoed_shells(vetoed_shells):
     ])
 
     ent.assert_each_passwd_by_name(passwd_pattern)
+
+
+def test_user_2307bis_nested_groups(ldap_conn,
+                                    sanity_rfc2307_bis):
+    """
+    Test nested groups.
+
+    Regression test for ticket:
+    https://fedorahosted.org/sssd/ticket/3093
+    """
+    primary_gid = 2001
+    # group1, two_user_group, one_user_group1, group_one_user_group,
+    # group_two_user_group, group_two_one_user_groups
+    expected_gids = [2001, 2012, 2015, 2017, 2018, 2019]
+
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001,
+                                            gid=primary_gid))
+
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user1", primary_gid)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(expected_gids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(expected_gids)])
+        )
