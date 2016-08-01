@@ -155,6 +155,7 @@ WITH_SSSD_USER
 SSSD_RUNSTATEDIR
 WITH_SECRETS
 WITH_SECRETS_DB_PATH
+WITH_KCM
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -193,12 +194,19 @@ m4_include([src/external/libresolv.m4])
 m4_include([src/external/intgcheck.m4])
 m4_include([src/external/systemtap.m4])
 m4_include([src/external/service.m4])
-m4_include([src/external/libcurl.m4])
 
 if test x$with_secrets = xyes; then
     m4_include([src/external/libhttp_parser.m4])
     m4_include([src/external/libjansson.m4])
 fi
+
+if test x$with_kcm = xyes; then
+    m4_include([src/external/libcurl.m4])
+fi
+# This variable is defined by external/libcurl.m4, but conditionals
+# must be always evaluated
+AM_CONDITIONAL([BUILD_WITH_LIBCURL],
+               [test x"$have_curlopt_unix_sockpath" = xyes])
 
 WITH_UNICODE_LIB
 if test x$unicode_lib = xlibunistring; then

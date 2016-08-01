@@ -231,6 +231,9 @@
 #define CONFDB_SEC_MAX_SECRETS "max_secrets"
 #define CONFDB_SEC_MAX_PAYLOAD_SIZE "max_payload_size"
 
+/* KCM Service */
+#define CONFDB_KCM_CONF_ENTRY "config/kcm"
+#define CONFDB_KCM_SOCKET "socket_path"
 
 struct confdb_ctx;
 struct config_file_ctx;

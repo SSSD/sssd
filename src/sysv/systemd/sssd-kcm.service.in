@@ -1,0 +1,9 @@
+[Unit]
+Description=SSSD Kerberos Cache Manager
+Documentation=man:sssd-kcm(5)
+
+[Install]
+Also=sssd-kcm.socket
+
+[Service]
+ExecStart=@libexecdir@/sssd/sssd_kcm --uid 0 --gid 0 --debug-to-files
