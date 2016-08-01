@@ -155,6 +155,7 @@ WITH_SSSD_USER
 SSSD_RUNSTATEDIR
 WITH_SECRETS
 WITH_SECRETS_DB_PATH
+WITH_KCM
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])

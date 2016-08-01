@@ -1,0 +1,5 @@
+# To enable the KCM credential cache, uncomment the two following lines and enable the KCM socket:
+#   systemctl enable sssd-kcm.socket
+
+#[libdefaults]
+#    default_ccache_name = KCM:
