@@ -112,6 +112,13 @@
     %global enable_systemtap_opt --enable-systemtap
 %endif
 
+%if (0%{?fedora} >= 23 || 0%{?rhel} >= 7)
+    %global with_kcm 1
+    %global with_kcm_option --with-kcm
+%else
+    %global with_kcm_option --without-kcm
+%endif
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
@@ -677,6 +684,18 @@ Requires: libsss_certmap = %{version}-%{release}
 %description -n libsss_certmap-devel
 Library to map certificates to users based on rules
 
+%if (0%{?with_kcm} == 1)
+%package kcm
+Summary: An implementation of a Kerberos KCM server
+Group:  Applications/System
+License: GPLv3+
+Requires: sssd-common = %{version}-%{release}
+
+%description kcm
+An implementation of a Kerberos KCM server. Use this package if you want to
+use the KCM: Kerberos credentials cache.
+%endif
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -706,6 +725,7 @@ autoreconf -ivf
     %{?with_python3_option} \
     %{?enable_polkit_rules_option} \
     %{?enable_systemtap_opt} \
+    %{?with_kcm_option} \
     %{?experimental}
 
 make %{?_smp_mflags} all
@@ -1178,6 +1198,15 @@ done
 %{_libdir}/libsss_certmap.so
 %{_libdir}/pkgconfig/sss_certmap.pc
 
+%if (0%{?with_kcm} == 1)
+%files kcm
+%{_libexecdir}/%{servicename}/sssd_kcm
+%dir %{_sysconfdir}/krb5.conf.d
+%config(noreplace) %{_sysconfdir}/krb5.conf.d/kcm_default_ccache
+%{_unitdir}/sssd-kcm.socket
+%{_unitdir}/sssd-kcm.service
+%endif
+
 %pre common
 getent group sssd >/dev/null || groupadd -r sssd
 getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "User for sssd" sssd
@@ -1273,6 +1302,18 @@ fi
 %post -n libsss_simpleifp -p /sbin/ldconfig
 
 %postun -n libsss_simpleifp -p /sbin/ldconfig
+
+%if (0%{?with_kcm} == 1)
+%post kcm
+%systemd_post sssd-kcm.socket
+
+%preun kcm
+%systemd_preun sssd-kcm.socket
+
+%postun kcm
+%systemd_postun_with_restart sssd-kcm.socket
+%systemd_postun_with_restart sssd-kcm.service
+%endif
 
 %changelog
 * Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
