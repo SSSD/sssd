@@ -128,6 +128,7 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
 
     ret = SELINUX_getpeercon(cctx->cfd, &secctx);
     if (ret != 0) {
+        ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE,
               "The following failure is expected to happen in case SELinux is disabled:\n"
               "SELINUX_getpeercon failed [%d][%s].\n"
