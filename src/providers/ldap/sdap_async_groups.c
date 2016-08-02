@@ -1501,6 +1501,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
     const char *filter;
     const char *username;
     const char *user_dn;
+    char *sanitized_name;
     size_t count;
     struct ldb_message **msgs = NULL;
     static const char *attrs[] = { SYSDB_NAME, NULL };
@@ -1508,8 +1509,16 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
+    ret = sss_filter_sanitize(tmp_ctx, member_name, &sanitized_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to sanitize the given name:'%s'.\n", member_name);
+        goto done;
+    }
+
     /* Check for the alias in the sysdb */
-    filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_NAME_ALIAS, member_name);
+    filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_NAME_ALIAS,
+                             sanitized_name);
     if (!filter) {
         ret = ENOMEM;
         goto done;
