@@ -4722,6 +4722,7 @@ errno_t sysdb_get_user_members_recursively(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     struct ldb_dn *base_dn;
     char *filter;
+    char *sanitized_name;
     const char *attrs[] = SYSDB_PW_ATTRS;
     struct ldb_message **msgs;
 
@@ -4737,8 +4738,17 @@ errno_t sysdb_get_user_members_recursively(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sss_filter_sanitize(tmp_ctx, ldb_dn_get_linearized(group_dn),
+                              &sanitized_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to sanitize the given name:'%s'.\n",
+              ldb_dn_get_linearized(group_dn));
+        goto done;
+    }
+
     filter = talloc_asprintf(tmp_ctx, "(&("SYSDB_UC")("SYSDB_MEMBEROF"=%s))",
-                             ldb_dn_get_linearized(group_dn));
+                             sanitized_name);
     if (filter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
