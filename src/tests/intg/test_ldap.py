@@ -237,6 +237,9 @@ def sanity_rfc2307(request, ldap_conn):
     ent_list.add_group("empty_group", 2010)
 
     ent_list.add_group("two_user_group", 2012, ["user1", "user2"])
+
+    ent_list.add_user("t(u)ser", 5000, 5001)
+    ent_list.add_group("group(_u)ser1", 5001, ["t(u)ser"])
     create_ldap_fixture(request, ldap_conn, ent_list)
 
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307)
@@ -722,3 +725,22 @@ def test_user_2307bis_nested_groups(ldap_conn,
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(expected_gids)])
         )
+
+
+def test_special_characters_in_names(ldap_conn, sanity_rfc2307):
+    """
+    Test special characters which could cause malformed filter
+    in ldb_seach.
+
+    Regression test for ticket:
+    https://fedorahosted.org/sssd/ticket/3121
+    """
+    ent.assert_passwd_by_name(
+        "t(u)ser",
+        dict(name="t(u)ser", passwd="*", uid=5000, gid=5001,
+             gecos="5000", shell="/bin/bash"))
+
+    ent.assert_group_by_name(
+        "group(_u)ser1",
+        dict(name="group(_u)ser1", passwd="*", gid=5001,
+             mem=ent.contains_only("t(u)ser")))
