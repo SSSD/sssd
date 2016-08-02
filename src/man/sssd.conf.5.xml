@@ -478,7 +478,7 @@
                             </para>
                             <para>
                                 Default: not set, i.e. do not restrict
-                                certificate vertification
+                                certificate verification
                             </para>
                         </listitem>
                     </varlistentry>

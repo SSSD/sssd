@@ -37,7 +37,7 @@
             <citerefentry><refentrytitle>sshd</refentrytitle>
             <manvolnum>8</manvolnum></citerefentry> for more information)
             <filename>/var/lib/sss/pubconf/known_hosts</filename> and
-            estabilishes connection to the host.
+            establishes the connection to the host.
         </para>
         <para>
             If <replaceable>PROXY_COMMAND</replaceable> is specified,
