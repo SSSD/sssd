@@ -802,6 +802,8 @@ static void sdap_search_user_process(struct tevent_req *subreq)
         }
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Retrieved total %zu users\n", state->count);
+
     /* No more search bases
      * Return ENOENT if no users were found
      */
@@ -810,7 +812,6 @@ static void sdap_search_user_process(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "Retrieved total %zu users\n", state->count);
     tevent_req_done(req);
 }
 
@@ -928,8 +929,10 @@ static void sdap_get_users_done(struct tevent_req *subreq)
     ret = sdap_search_user_recv(state, subreq, &state->higher_usn,
                                 &state->users, &state->count);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve users [%d][%s].\n",
-              ret, sss_strerror(ret));
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve users [%d][%s].\n",
+                  ret, sss_strerror(ret));
+        }
         tevent_req_error(req, ret);
         return;
     }
