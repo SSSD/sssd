@@ -1101,6 +1101,11 @@ sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
     state->auth_ctx = auth_ctx;
     state->ev = params->ev;
 
+    if (be_is_offline(state->be_ctx)) {
+        pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        goto immediately;
+    }
+
     if ((pd->priv == 1) && (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
         (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD)) {
         DEBUG(SSSDBG_CONF_SETTINGS,
