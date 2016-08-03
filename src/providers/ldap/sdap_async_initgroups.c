@@ -2080,7 +2080,7 @@ rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
     }
 
     if (group->parents_count > 0) {
-        ret = sysdb_attrs_primary_name_list(mstate->dom, tmp_ctx,
+        ret = sysdb_attrs_primary_fqdn_list(mstate->dom, tmp_ctx,
                             group->ldap_parents, group->parents_count,
                             mstate->opts->group_map[SDAP_AT_GROUP_NAME].name,
                             &ldap_parents_names_list);
