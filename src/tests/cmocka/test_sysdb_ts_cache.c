@@ -1348,6 +1348,86 @@ static void test_user_byupn(void **state)
     talloc_free(res);
 }
 
+static void test_sysdb_zero_now(void **state)
+{
+    int ret;
+    struct sysdb_ts_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                     struct sysdb_ts_test_ctx);
+    struct ldb_result *res = NULL;
+    uint64_t cache_expire_sysdb;
+    uint64_t cache_expire_ts;
+    struct sysdb_attrs *attrs = NULL;
+
+    /* Nothing must be stored in either cache at the beginning of the test */
+    res = sysdb_getpwnam_res(test_ctx, test_ctx->tctx->dom, TEST_USER_NAME);
+    assert_int_equal(res->count, 0);
+    talloc_free(res);
+
+    res = sysdb_getgrnam_res(test_ctx, test_ctx->tctx->dom, TEST_GROUP_NAME);
+    assert_int_equal(res->count, 0);
+    talloc_free(res);
+
+    attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(attrs);
+
+    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME, NULL,
+                           TEST_USER_UID, TEST_USER_GID, TEST_USER_NAME,
+                           "/home/"TEST_USER_NAME, "/bin/bash", NULL,
+                           attrs, NULL, TEST_CACHE_TIMEOUT,
+                           0);
+    talloc_zfree(attrs);
+    assert_int_equal(ret, EOK);
+
+    attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(attrs);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom,
+                            TEST_GROUP_NAME,
+                            TEST_GROUP_GID,
+                            attrs,
+                            TEST_CACHE_TIMEOUT,
+                            0);
+    talloc_zfree(attrs);
+    assert_int_equal(ret, EOK);
+    talloc_zfree(attrs);
+
+    attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(attrs);
+
+    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME, NULL,
+                           TEST_USER_UID, TEST_USER_GID, TEST_USER_NAME,
+                           "/home/"TEST_USER_NAME, "/bin/bash", NULL,
+                           attrs, NULL, TEST_CACHE_TIMEOUT,
+                           0);
+    talloc_zfree(attrs);
+    assert_int_equal(ret, EOK);
+
+    attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(attrs);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom,
+                            TEST_GROUP_NAME,
+                            TEST_GROUP_GID,
+                            attrs,
+                            TEST_CACHE_TIMEOUT,
+                            0);
+    talloc_zfree(attrs);
+    assert_int_equal(ret, EOK);
+
+    /* Even though we passed zero as the timestamp, the timestamp cache should
+     * have used the current time instead
+     */
+    get_pw_timestamp_attrs(test_ctx, TEST_USER_NAME,
+                           &cache_expire_sysdb, &cache_expire_ts);
+    assert_true(cache_expire_sysdb > TEST_CACHE_TIMEOUT);
+    assert_true(cache_expire_ts > TEST_CACHE_TIMEOUT);
+
+    get_gr_timestamp_attrs(test_ctx, TEST_GROUP_NAME,
+                           &cache_expire_sysdb, &cache_expire_ts);
+    assert_true(cache_expire_sysdb > TEST_CACHE_TIMEOUT);
+    assert_true(cache_expire_ts > TEST_CACHE_TIMEOUT);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -1394,6 +1474,9 @@ int main(int argc, const char *argv[])
                                         test_sysdb_ts_setup,
                                         test_sysdb_ts_teardown),
         cmocka_unit_test_setup_teardown(test_user_byupn,
+                                        test_sysdb_ts_setup,
+                                        test_sysdb_ts_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_zero_now,
                                         test_sysdb_ts_setup,
                                         test_sysdb_ts_teardown),
     };

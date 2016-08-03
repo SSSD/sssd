@@ -2465,6 +2465,11 @@ int sysdb_store_user(struct sss_domain_info *domain,
     errno_t sret = EOK;
     bool in_transaction = false;
 
+    /* get transaction timestamp */
+    if (now == 0) {
+        now = time(NULL);
+    }
+
     ret = sysdb_check_and_update_ts_usr(domain, name, attrs,
                                         cache_timeout, now);
     if (ret == EOK) {
@@ -2506,11 +2511,6 @@ int sysdb_store_user(struct sss_domain_info *domain,
     }
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_LIBS, "User %s does not exist.\n", name);
-    }
-
-    /* get transaction timestamp */
-    if (!now) {
-        now = time(NULL);
     }
 
     if (ret == ENOENT) {
@@ -2700,6 +2700,11 @@ int sysdb_store_group(struct sss_domain_info *domain,
     errno_t sret = EOK;
     bool in_transaction = false;
 
+    /* get transaction timestamp */
+    if (!now) {
+        now = time(NULL);
+    }
+
     ret = sysdb_check_and_update_ts_grp(domain, name, attrs,
                                         cache_timeout, now);
     if (ret == EOK) {
@@ -2739,11 +2744,6 @@ int sysdb_store_group(struct sss_domain_info *domain,
             ret = ENOMEM;
             goto done;
         }
-    }
-
-    /* get transaction timestamp */
-    if (!now) {
-        now = time(NULL);
     }
 
     if (new_group) {
