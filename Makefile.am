@@ -2250,6 +2250,7 @@ ad_common_tests_LDADD = \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NDR_NBT_LIBS) \
+    libsss_idmap.la \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
