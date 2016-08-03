@@ -1101,16 +1101,6 @@ done:
     return ret;
 }
 
-static errno_t sysdb_check_and_update_ts_usr(struct sss_domain_info *domain,
-                                             const char *grp_name,
-                                             struct sysdb_attrs *attrs,
-                                             uint64_t cache_timeout,
-                                             time_t now)
-{
-    return sysdb_check_and_update_ts_obj(domain, SYSDB_USER, grp_name,
-                                         attrs, cache_timeout, now);
-}
-
 static errno_t sysdb_check_and_update_ts_grp(struct sss_domain_info *domain,
                                              const char *grp_name,
                                              struct sysdb_attrs *attrs,
@@ -2468,15 +2458,6 @@ int sysdb_store_user(struct sss_domain_info *domain,
     /* get transaction timestamp */
     if (now == 0) {
         now = time(NULL);
-    }
-
-    ret = sysdb_check_and_update_ts_usr(domain, name, attrs,
-                                        cache_timeout, now);
-    if (ret == EOK) {
-        DEBUG(SSSDBG_TRACE_LIBS,
-              "The user record of %s did not change, only updated "
-              "the timestamp cache\n", name);
-        return EOK;
     }
 
     tmp_ctx = talloc_new(NULL);

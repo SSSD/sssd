@@ -980,20 +980,6 @@ static void test_sysdb_user_update(void **state)
     assert_int_equal(cache_expire_sysdb, TEST_CACHE_TIMEOUT + TEST_NOW_2);
     assert_int_equal(cache_expire_ts, TEST_CACHE_TIMEOUT + TEST_NOW_2);
 
-    /* Update the same attrs and the same modifyTimestamp.
-     * Only the timestamp cache must be bumped */
-    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME, NULL,
-                           TEST_USER_UID, TEST_USER_GID, TEST_USER_NAME,
-                           "/home/"TEST_USER_NAME, "/bin/bash", NULL,
-                           user_attrs, NULL, TEST_CACHE_TIMEOUT,
-                           TEST_NOW_3);
-    assert_int_equal(ret, EOK);
-
-    get_pw_timestamp_attrs(test_ctx, TEST_USER_NAME,
-                           &cache_expire_sysdb, &cache_expire_ts);
-    assert_int_equal(cache_expire_sysdb, TEST_CACHE_TIMEOUT + TEST_NOW_2);
-    assert_int_equal(cache_expire_ts, TEST_CACHE_TIMEOUT + TEST_NOW_3);
-
     /* Update with different modifyTimestamp but same attrs as previously
      * saved to the timestamp cache. We should detect the 'real' attributes
      * are the same and only bump the timestamp cache
