@@ -509,6 +509,14 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
             } else {
                 ret = sss_parse_internal_fqname(req_input, state->filter,
                                                 &shortname, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Cannot parse internal name [%s]: %d\n",
+                          state->filter, ret);
+                    tevent_req_error(req, ret);
+                    return;
+                }
+
                 req_input->inp.name = talloc_steal(req_input, shortname);
             }
             if (req_input->inp.name == NULL) {
