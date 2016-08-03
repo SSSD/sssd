@@ -259,8 +259,9 @@ def prime_cache_group(ldb_conn, name, members):
 
 
 def prime_cache_user(ldb_conn, name, primary_gid):
-    # calling initgroups would add the initgExpire timestamp attribute and make sure
-    # that sss_cache doesn't add it with a value of 1, triggering a sysdb update
+    # calling initgroups would add the initgExpire timestamp attribute and
+    # make sure that sss_cache doesn't add it with a value of 1,
+    # triggering a sysdb update
     (res, errno, gids) = sssd_id.call_sssd_initgroups(name, primary_gid)
     assert res == sssd_id.NssReturnCode.SUCCESS
 
@@ -295,7 +296,8 @@ def test_group_2307bis_update_same_modstamp(ldap_conn,
                                             SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_same_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_same_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
@@ -328,7 +330,8 @@ def test_group_2307bis_update_same_attrs(ldap_conn,
                                             SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_same_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_diff_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
@@ -358,7 +361,8 @@ def test_group_2307bis_update_diff_attrs(ldap_conn,
                                             SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_diff_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_diff_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
@@ -410,7 +414,8 @@ def test_group_2307_update_same_modstamp(ldap_conn,
                                             SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_same_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_same_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
@@ -443,7 +448,8 @@ def test_group_2307_update_same_attrs(ldap_conn,
                                             SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_same_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_diff_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
@@ -472,7 +478,8 @@ def test_group_2307_update_diff_attrs(ldap_conn,
                                             SSSD_DOMAIN, TS_ATTRLIST)
 
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_diff_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_diff_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
@@ -520,7 +527,8 @@ def test_user_update_same_modstamp(ldap_conn,
     sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
                                            SSSD_DOMAIN, TS_ATTRLIST)
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_same_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_same_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
@@ -549,7 +557,8 @@ def test_user_update_same_attrs(ldap_conn,
     sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
                                            SSSD_DOMAIN, TS_ATTRLIST)
     assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_same_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_same_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_diff_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
@@ -577,10 +586,12 @@ def test_user_update_diff_attrs(ldap_conn,
     sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
                                            SSSD_DOMAIN, TS_ATTRLIST)
     assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "dataExpireTimestamp")
-    assert_diff_attrval(sysdb_attrs, old_sysdb_attrs, "originalModifyTimestamp")
+    assert_diff_attrval(sysdb_attrs, old_sysdb_attrs,
+                        "originalModifyTimestamp")
 
     assert_diff_attrval(ts_attrs, old_ts_attrs, "dataExpireTimestamp")
     assert_diff_attrval(ts_attrs, old_ts_attrs, "originalModifyTimestamp")
+
 
 def test_user_2307bis_delete_user(ldap_conn,
                                   ldb_examine,

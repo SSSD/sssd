@@ -71,7 +71,8 @@ class SssdLdb(object):
         return "cn=%s,cn=%s,cn=sysdb" % (rdn, self._domain_name)
 
     def _basedn(self, name, domain, entry_type):
-        return "name=%s@%s,%s" % (name, domain.lower(), self._entry_basedn(entry_type))
+        return "name=%s@%s,%s" % (name, domain.lower(),
+                                  self._entry_basedn(entry_type))
 
     def get_entry_attr(self, cache_type, entry_type, name, domain, attr):
         dbconn = self._get_dbconn(cache_type)

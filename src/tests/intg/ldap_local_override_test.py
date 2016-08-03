@@ -954,8 +954,8 @@ def test_regr_2790_override(ldap_conn, env_regr_2790_override):
         "Could not find groups for user2 %d" % errno
     assert sorted(grp_list) == sorted(["20002", "group1", "group2"])
 
-# Test fully qualified and case-insensitive names
 
+# Test fully qualified and case-insensitive names
 @pytest.fixture
 def env_mix_cased_name_override(request, ldap_conn):
     """Setup test for mixed case names"""
@@ -968,7 +968,6 @@ def env_mix_cased_name_override(request, ldap_conn):
     ent_list.add_user("uSeR2", 10002, 20002)
 
     create_ldap_fixture(request, ldap_conn, ent_list)
-
 
     pwd.getpwnam('user1@LDAP')
     pwd.getpwnam('user2@LDAP')
@@ -995,6 +994,7 @@ def env_mix_cased_name_override(request, ldap_conn):
                            "-s", "/bin/ov_user2_shell"])
 
     restart_sssd()
+
 
 def test_mix_cased_name_override(ldap_conn, env_mix_cased_name_override):
     """Test if names with upper and lower case letter are overridden"""
