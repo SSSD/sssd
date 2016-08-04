@@ -33,6 +33,30 @@
 #include "providers/backend.h"
 #include "providers/krb5/krb5_common.h"
 
+char *global_ccname_file_dummy = NULL;
+
+static void sig_term_handler(int sig)
+{
+    int ret;
+
+    DEBUG(SSSDBG_FATAL_FAILURE, "Received signal [%s] [%i], shutting down\n",
+                                strsignal(sig), sig);
+
+    if (global_ccname_file_dummy != NULL) {
+        ret = unlink(global_ccname_file_dummy);
+        if (ret != 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Unlink file [%s] failed [%i][%s]\n",
+                                        global_ccname_file_dummy,
+                                        errno, strerror(errno));
+        } else {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Unlink file [%s]\n",
+                                        global_ccname_file_dummy);
+        }
+    }
+
+    _exit(CHILD_TIMEOUT_EXIT_CODE);
+}
+
 static krb5_context krb5_error_ctx;
 #define LDAP_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
@@ -405,6 +429,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
               strerror(krberr), krberr);
         goto done;
     }
+    global_ccname_file_dummy = ccname_file_dummy;
 
     ret = sss_unique_filename(tmp_ctx, ccname_file_dummy);
     if (ret != EOK) {
@@ -490,6 +515,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
               "rename failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
+    global_ccname_file_dummy = NULL;
 
     krberr = 0;
     *ccname_out = talloc_steal(memctx, ccname);
@@ -630,6 +656,9 @@ int main(int argc, const char *argv[])
             DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
     }
+
+    BlockSignals(false, SIGTERM);
+    CatchSignal(SIGTERM, sig_term_handler);
 
     DEBUG(SSSDBG_TRACE_FUNC, "ldap_child started.\n");
 
