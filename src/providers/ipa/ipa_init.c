@@ -200,7 +200,7 @@ static errno_t ipa_init_dyndns(struct be_ctx *be_ctx,
     enabled = dp_opt_get_bool(ipa_options->dyndns_ctx->opts,
                               DP_OPT_DYNDNS_UPDATE);
     if (!enabled) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Dynamic DNS updates are of.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Dynamic DNS updates are off.\n");
         return EOK;
     }
 

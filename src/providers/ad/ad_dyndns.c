@@ -47,7 +47,7 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
 
     if (dp_opt_get_bool(ad_opts->dyndns_ctx->opts,
                         DP_OPT_DYNDNS_UPDATE) == false) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Dynamic DNS updates not set\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Dynamic DNS updates are off.\n");
         return EOK;
     }
 
