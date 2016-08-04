@@ -662,6 +662,15 @@ static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg);
+
+        /* Try to fall back to cache */
+        ret = lookup_netgr_step(step_ctx);
+        if (ret == EOK) {
+            /* We have cached results to return */
+            nss_setent_notify_done(dctx->netgr);
+            return;
+        }
+
         /* Loop to the next domain if possible */
         if (cmdctx->check_next
                 && (dctx->domain = get_next_domain(dctx->domain, 0))) {
