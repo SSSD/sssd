@@ -416,9 +416,7 @@ int sdap_get_tgt_recv(struct tevent_req *req,
     return EOK;
 }
 
-
-
-static void get_tgt_timeout_handler(struct tevent_context *ev,
+static void get_tgt_sigkill_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval tv, void *pvt)
 {
@@ -428,7 +426,8 @@ static void get_tgt_timeout_handler(struct tevent_context *ev,
     int ret;
 
     DEBUG(SSSDBG_TRACE_ALL,
-          "timeout for tgt child [%d] reached.\n", state->child->pid);
+          "timeout for sending SIGKILL to tgt child [%d] reached.\n",
+          state->child->pid);
 
     ret = kill(state->child->pid, SIGKILL);
     if (ret == -1) {
@@ -437,6 +436,39 @@ static void get_tgt_timeout_handler(struct tevent_context *ev,
     }
 
     tevent_req_error(req, ETIMEDOUT);
+}
+
+static void get_tgt_timeout_handler(struct tevent_context *ev,
+                                      struct tevent_timer *te,
+                                      struct timeval tv, void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct sdap_get_tgt_state *state = tevent_req_data(req,
+                                            struct sdap_get_tgt_state);
+    int ret;
+
+    DEBUG(SSSDBG_TRACE_ALL,
+          "timeout for sending SIGTERM to tgt child [%d] reached.\n",
+          state->child->pid);
+
+    ret = kill(state->child->pid, SIGTERM);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Sending SIGTERM failed [%d][%s].\n", ret, strerror(ret));
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Setting %d seconds timeout for sending SIGKILL to tgt child\n",
+          SIGTERM_TO_SIGKILL_TIME);
+
+    tv = tevent_timeval_current_ofs(SIGTERM_TO_SIGKILL_TIME, 0);
+
+    te = tevent_add_timer(ev, req, tv, get_tgt_sigkill_handler, req);
+    if (te == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
+        tevent_req_error(req, ECANCELED);
+    }
 }
 
 static errno_t set_tgt_child_timeout(struct tevent_req *req,
