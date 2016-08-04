@@ -1553,7 +1553,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not add group member %s\n", username);
         }
-    } else if (ret == ENOENT || count == 0) {
+    } else if (ret == ENOENT) {
         /* The entry really does not exist, add a ghost */
         DEBUG(SSSDBG_TRACE_FUNC, "Adding a ghost entry\n");
         ret = sdap_add_group_member_2307(state->ghost_dns, member_name);
