@@ -35,6 +35,8 @@
 #define IN_BUF_SIZE         512
 #define CHILD_MSG_CHUNK     256
 
+#define CHILD_TIMEOUT_EXIT_CODE 7
+
 struct response {
     uint8_t *buf;
     size_t size;
