@@ -864,17 +864,25 @@ static void lookup_automntmap_cache_updated(uint16_t err_maj, uint32_t err_min,
     if (err_maj) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to get information from Data Provider\n"
-               "Error: %u, %u, %s\n"
-               "Will try to return what we have in cache\n",
+              "Error: %u, %u, %s\n"
+              "Will try to return what we have in cache\n",
                (unsigned int)err_maj, (unsigned int)err_min, err_msg);
-        /* Loop to the next domain if possible */
+
+        /* Try to fall back to cache */
+        ret = lookup_automntmap_step(lookup_ctx);
+        if (ret == EOK) {
+            /* We have cached results to return */
+            autofs_setent_notify(lookup_ctx->map, ret);
+            return;
+        }
+
+        /* Otherwise try the next domain */
         if (dctx->cmd_ctx->check_next
                 && (dctx->domain = get_next_domain(dctx->domain, 0))) {
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         }
     }
 
-    /* ok the backend returned, search to see if we have updated results */
     ret = lookup_automntmap_step(lookup_ctx);
     if (ret != EOK) {
         if (ret == EAGAIN) {
