@@ -27,9 +27,6 @@
 
 #include "util/util.h"
 
-#define SSSD_PIDFILE ""PID_PATH"/sssd.pid"
-#define MAX_PID_LENGTH 10
-
 #define BAD_POPT_PARAMS(pc, msg, val, label) do { \
         usage(pc, msg);                           \
         val = EXIT_FAILURE;                       \

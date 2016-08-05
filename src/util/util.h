@@ -53,6 +53,10 @@
 #include "util/sss_format.h"
 #include "util/debug.h"
 
+/* name of the monitor server instance */
+#define SSSD_PIDFILE PID_PATH"/sssd.pid"
+#define MAX_PID_LENGTH 10
+
 #define _(STRING) gettext (STRING)
 
 #define ENUM_INDICATOR "*"
