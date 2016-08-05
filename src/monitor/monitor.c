@@ -74,7 +74,6 @@
 
 /* name of the monitor server instance */
 #define MONITOR_NAME        "sssd"
-#define SSSD_PIDFILE_PATH   PID_PATH"/"MONITOR_NAME".pid"
 
 /* Special value to leave the Kerberos Replay Cache set to use
  * the libkrb5 defaults
@@ -1572,7 +1571,7 @@ static int monitor_cleanup(void)
     int ret;
 
     errno = 0;
-    ret = unlink(SSSD_PIDFILE_PATH);
+    ret = unlink(SSSD_PIDFILE);
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,

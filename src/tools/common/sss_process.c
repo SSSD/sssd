@@ -24,9 +24,6 @@
 #include "util/util.h"
 #include "tools/common/sss_process.h"
 
-#define SSSD_PIDFILE ""PID_PATH"/sssd.pid"
-#define MAX_PID_LENGTH 10
-
 static pid_t parse_pid(const char *strpid)
 {
     long value;
