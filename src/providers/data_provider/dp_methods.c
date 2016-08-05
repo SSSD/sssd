@@ -76,6 +76,12 @@ bool dp_method_enabled(struct data_provider *provider,
         return false;
     }
 
+    if (provider == NULL || provider->targets == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Target %s is not yet initialized\n",
+              dp_target_to_string(target));
+        return false;
+    }
+
     dp_target = provider->targets[target];
     if (dp_target == NULL || dp_target->initialized == false) {
         DEBUG(SSSDBG_TRACE_FUNC, "Target %s is not configured\n",

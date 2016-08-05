@@ -86,12 +86,29 @@ errno_t dp_init(struct tevent_context *ev,
     provider->gid = gid;
     provider->be_ctx = be_ctx;
 
+    /* Initialize request table. */
     ret = dp_req_table_init(provider, &provider->requests.reply_table);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize request table "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
+
+    /* Initialize data provider bus. Data provider can receive client
+     * registration and other D-Bus methods. However no data provider
+     * request will be executed as long as the modules and targets
+     * are not initialized.
+     */
+    talloc_set_destructor(provider, dp_destructor);
+
+    ret = dp_init_dbus_server(provider);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup service bus [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    be_ctx->provider = provider;
 
     ret = dp_init_modules(provider, &provider->modules);
     if (ret != EOK) {
@@ -106,17 +123,6 @@ errno_t dp_init(struct tevent_context *ev,
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
-
-    talloc_set_destructor(provider, dp_destructor);
-
-    ret = dp_init_dbus_server(provider);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup service bus [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    be_ctx->provider = provider;
 
     ret = EOK;
 
