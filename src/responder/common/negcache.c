@@ -143,7 +143,7 @@ done:
 }
 
 static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str,
-                              bool permanent, bool is_local)
+                              bool permanent, bool use_local_negative)
 {
     TDB_DATA key;
     TDB_DATA data;
@@ -157,15 +157,16 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str,
     if (permanent) {
         timest = talloc_strdup(ctx, "0");
     } else {
-        if (is_local == true && ctx->local_timeout > 0) {
-            timell = (unsigned long long int)time(NULL) + ctx->local_timeout;
+        if (use_local_negative == true && ctx->local_timeout > ctx->timeout) {
+            timell = ctx->local_timeout;
         } else {
-            if (ctx->timeout > 0) {
-                timell = (unsigned long long int)time(NULL) + ctx->timeout;
-            } else {
+            /* EOK is tested in cwrap based unit test */
+            if (ctx->timeout == 0) {
                 return EOK;
             }
+            timell = ctx->timeout;
         }
+        timell += (unsigned long long int)time(NULL);
         timest = talloc_asprintf(ctx, "%llu", timell);
     }
     if (!timest) return ENOMEM;
@@ -457,7 +458,7 @@ int sss_ncache_check_cert(struct sss_nc_ctx *ctx, const char *cert)
 static int sss_ncache_set_user_int(struct sss_nc_ctx *ctx, bool permanent,
                                    const char *domain, const char *name)
 {
-    bool is_local;
+    bool use_local_negative = false;
     char *str;
     int ret;
 
@@ -466,8 +467,10 @@ static int sss_ncache_set_user_int(struct sss_nc_ctx *ctx, bool permanent,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_USER_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    is_local = is_user_local_by_name(name);
-    ret = sss_ncache_set_str(ctx, str, permanent, is_local);
+    if (ctx->local_timeout > 0) {
+        use_local_negative = is_user_local_by_name(name);
+    }
+    ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
 
     talloc_free(str);
     return ret;
@@ -476,7 +479,7 @@ static int sss_ncache_set_user_int(struct sss_nc_ctx *ctx, bool permanent,
 static int sss_ncache_set_group_int(struct sss_nc_ctx *ctx, bool permanent,
                                     const char *domain, const char *name)
 {
-    bool is_local;
+    bool use_local_negative = false;
     char *str;
     int ret;
 
@@ -485,8 +488,10 @@ static int sss_ncache_set_group_int(struct sss_nc_ctx *ctx, bool permanent,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_GROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    is_local = is_group_local_by_name(name);
-    ret = sss_ncache_set_str(ctx, str, permanent, is_local);
+    if (ctx->local_timeout > 0) {
+        use_local_negative = is_group_local_by_name(name);
+    }
+    ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
 
     talloc_free(str);
     return ret;
@@ -550,7 +555,7 @@ int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
 int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent,
                        struct sss_domain_info *dom, uid_t uid)
 {
-    bool is_local;
+    bool use_local_negative = false;
     char *str;
     int ret;
 
@@ -562,8 +567,10 @@ int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent,
     }
     if (!str) return ENOMEM;
 
-    is_local = is_user_local_by_uid(uid);
-    ret = sss_ncache_set_str(ctx, str, permanent, is_local);
+    if (ctx->local_timeout > 0) {
+        use_local_negative = is_user_local_by_uid(uid);
+    }
+    ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
 
     talloc_free(str);
     return ret;
@@ -572,7 +579,7 @@ int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent,
 int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent,
                        struct sss_domain_info *dom, gid_t gid)
 {
-    bool is_local;
+    bool use_local_negative = false;
     char *str;
     int ret;
 
@@ -584,8 +591,10 @@ int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent,
     }
     if (!str) return ENOMEM;
 
-    is_local = is_group_local_by_gid(gid);
-    ret = sss_ncache_set_str(ctx, str, permanent, is_local);
+    if (ctx->local_timeout > 0) {
+        use_local_negative = is_group_local_by_gid(gid);
+    }
+    ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
 
     talloc_free(str);
     return ret;
