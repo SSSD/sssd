@@ -24,12 +24,15 @@ endif
 if BUILD_IFP
 IFP_CONDS = ;with_ifp
 endif
+if BUILD_SECRETS
+SEC_CONDS = ;with_secrets
+endif
 if GPO_DEFAULT_ENFORCING
 GPO_CONDS = ;gpo_default_enforcing
 else
 GPO_CONDS = ;gpo_default_permissive
 endif
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SEC_CONDS)
 
 
 #Special Rules:
@@ -68,6 +71,10 @@ endif
 
 if BUILD_IFP
 man_MANS += sssd-ifp.5
+endif
+
+if BUILD_SECRETS
+man_MANS += sssd-secrets.5
 endif
 
 if BUILD_NFS_IDMAP
