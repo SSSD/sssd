@@ -621,7 +621,7 @@ int generate_master_key(const char *filename, size_t size)
     fd = open(filename, O_CREAT|O_EXCL|O_WRONLY, 0600);
     if (fd == -1) return errno;
 
-    rsize = sss_atomic_io_s(fd, buf, size, false);
+    rsize = sss_atomic_write_s(fd, buf, size);
     close(fd);
     if (rsize != size) {
         ret = unlink(filename);
@@ -681,8 +681,8 @@ int local_secrets_provider_handle(struct sec_ctx *sctx,
     }
     if (ret) return EFAULT;
 
-    size = sss_atomic_io_s(mfd, lctx->master_key.data,
-                           lctx->master_key.length, true);
+    size = sss_atomic_read_s(mfd, lctx->master_key.data,
+                             lctx->master_key.length);
     close(mfd);
     if (size < 0 || size != lctx->master_key.length) return EIO;
 
