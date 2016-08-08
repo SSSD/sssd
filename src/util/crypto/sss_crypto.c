@@ -25,41 +25,22 @@
 int generate_csprng_buffer(uint8_t *buf, size_t size)
 {
     ssize_t rsize;
-    ssize_t pos;
     int ret;
     int fd;
 
     fd = open("/dev/urandom", O_RDONLY);
     if (fd == -1) return errno;
 
-    rsize = 0;
-    pos = 0;
-    while (rsize < size) {
-        rsize = read(fd, buf + pos, size - pos);
-        switch (rsize) {
-        case -1:
-            if (errno == EINTR) continue;
-            ret = EIO;
-            goto done;
-        case 0:
-            ret = EIO;
-            goto done;
-        default:
-            if (rsize + pos < size - pos) {
-                pos += rsize;
-                continue;
-            }
-            ret = EIO;
-            goto done;
-        }
-    }
-    if (rsize != size) {
+    rsize = sss_atomic_read_s(fd, buf, size);
+    if (rsize == -1) {
+        ret = errno;
+        goto done;
+    } else if (rsize != size) {
         ret = EFAULT;
         goto done;
     }
 
     ret = EOK;
-
 done:
     close(fd);
     return ret;
