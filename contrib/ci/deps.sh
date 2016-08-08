@@ -45,6 +45,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         pyldb
         rpm-build
         uid_wrapper
+        python-requests
     )
     _DEPS_LIST_SPEC=`
         sed -e 's/@PACKAGE_VERSION@/0/g' \
@@ -114,6 +115,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         python-pytest
         python-ldap
         python-ldb
+        python-requests
         ldap-utils
         slapd
         systemtap-sdt-dev
