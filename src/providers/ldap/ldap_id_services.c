@@ -114,7 +114,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
     ret = sss_filter_sanitize(state, name, &clean_name);
     if (ret != EOK)  goto error;
 
-    if (protocol == NULL) {
+    if (protocol != NULL) {
         ret = sss_filter_sanitize(state, protocol, &clean_protocol);
         if (ret != EOK)  goto error;
     }
