@@ -3961,13 +3961,13 @@ done:
 }
 
 void nss_update_initgr_memcache(struct nss_ctx *nctx,
-                                const char *name, const char *domain,
+                                const char *fq_name, const char *domain,
                                 int gnum, uint32_t *groups)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sss_domain_info *dom;
     struct ldb_result *res;
-    struct sized_string delete_name;
+    struct sized_string *delete_name;
     bool changed = false;
     uint32_t id;
     uint32_t gids[gnum];
@@ -3987,8 +3987,19 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
     }
 
     tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return;
+    }
 
-    ret = sysdb_initgroups(tmp_ctx, dom, name, &res);
+    ret = sized_output_name(tmp_ctx, nctx->rctx, fq_name, dom, &delete_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sized_output_name failed for '%s': %d [%s]\n",
+              fq_name, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sysdb_initgroups(tmp_ctx, dom, fq_name, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to make request to our cache! [%d][%s]\n",
@@ -4002,8 +4013,7 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
 
     if (ret == ENOENT || res->count == 0) {
         /* The user is gone. Invalidate the mc record */
-        to_sized_string(&delete_name, name);
-        ret = sss_mmap_cache_pw_invalidate(nctx->pwd_mc_ctx, &delete_name);
+        ret = sss_mmap_cache_pw_invalidate(nctx->pwd_mc_ctx, delete_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Internal failure in memory cache code: %d [%s]\n",
@@ -4047,13 +4057,6 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
     }
 
     if (changed) {
-        char *fq_name = sss_tc_fqname(tmp_ctx, dom->names, dom, name);
-        if (!fq_name) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Could not create fq name\n");
-            goto done;
-        }
-
         for (i = 0; i < gnum; i++) {
             id = groups[i];
 
@@ -4065,9 +4068,9 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
             }
         }
 
-        to_sized_string(&delete_name, fq_name);
+        to_sized_string(delete_name, fq_name);
         ret = sss_mmap_cache_initgr_invalidate(nctx->initgr_mc_ctx,
-                                               &delete_name);
+                                               delete_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Internal failure in memory cache code: %d [%s]\n",
