@@ -45,7 +45,7 @@ def call_sssd_initgroups(user, gid):
         gids should contain user group IDs if err is NssReturnCode.SUCCESS
         otherwise errno will contain non-zero value.
     """
-    libnss_sss_path = config.PREFIX + "/lib/libnss_sss.so.2"
+    libnss_sss_path = config.NSS_MODULE_DIR + "/libnss_sss.so.2"
     libnss_sss = cdll.LoadLibrary(libnss_sss_path)
 
     func = libnss_sss._nss_sss_initgroups_dyn
