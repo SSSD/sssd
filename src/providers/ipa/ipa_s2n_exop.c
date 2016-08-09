@@ -1941,6 +1941,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     struct sss_nss_homedir_ctx homedir_ctx;
     char *name = NULL;
     char *realm;
+    char *short_name = NULL;
     char *upn = NULL;
     gid_t gid;
     gid_t orig_gid = 0;
@@ -2092,8 +2093,17 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                     ret = ENOMEM;
                     goto done;
                 }
-                upn = talloc_asprintf(tmp_ctx, "%s@%s",
-                                      attrs->a.user.pw_name, realm);
+
+                ret = sss_parse_internal_fqname(tmp_ctx, attrs->a.user.pw_name,
+                                                &short_name, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Cannot parse internal name %s\n",
+                          attrs->a.user.pw_name);
+                    goto done;
+                }
+
+                upn = talloc_asprintf(tmp_ctx, "%s@%s", short_name, realm);
                 if (!upn) {
                     DEBUG(SSSDBG_OP_FAILURE, "failed to format UPN.\n");
                     ret = ENOMEM;
