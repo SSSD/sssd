@@ -122,19 +122,30 @@ static errno_t split_extra_attr(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static bool is_sysdb_duplicate(struct sdap_attr_map *map,
-                               int num_entries,
-                               const char *sysdb_attr)
+enum duplicate_t {
+    NOT_FOUND = 0,
+    ALREADY_IN_MAP, /* nothing to add */
+    CONFLICT_WITH_MAP /* attempt to redefine attribute */
+};
+
+static enum duplicate_t check_duplicate(struct sdap_attr_map *map,
+                                        int num_entries,
+                                        const char *sysdb_attr,
+                                        const char *ldap_attr)
 {
     int i;
 
     for (i = 0; i < num_entries; i++) {
         if (strcmp(map[i].sys_name, sysdb_attr) == 0) {
-            return true;
+            if (strcmp(map[i].name, ldap_attr) == 0) {
+                return ALREADY_IN_MAP;
+            } else {
+                return CONFLICT_WITH_MAP;
+            }
         }
     }
 
-    return false;
+    return NOT_FOUND;
 }
 
 int sdap_extend_map(TALLOC_CTX *memctx,
@@ -167,14 +178,20 @@ int sdap_extend_map(TALLOC_CTX *memctx,
         return ENOMEM;
     }
 
-    for (i = 0; extra_attrs[i]; i++) {
-        ret = split_extra_attr(map, extra_attrs[i], &sysdb_attr, &ldap_attr);
+    for (i = 0; *extra_attrs != NULL; extra_attrs++) {
+        ret = split_extra_attr(map, *extra_attrs, &sysdb_attr, &ldap_attr);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot split %s\n", extra_attrs[i]);
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot split %s\n", *extra_attrs);
             continue;
         }
 
-        if (is_sysdb_duplicate(map, num_entries, sysdb_attr)) {
+        ret = check_duplicate(map, num_entries, sysdb_attr, ldap_attr);
+        if (ret == ALREADY_IN_MAP) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Attribute %s (%s in LDAP) is already in map.\n",
+                  sysdb_attr, ldap_attr);
+            continue;
+        } else if (ret == CONFLICT_WITH_MAP) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Attribute %s (%s in LDAP) is already used by SSSD, please "
                   "choose a different cache name\n", sysdb_attr, ldap_attr);
@@ -193,8 +210,13 @@ int sdap_extend_map(TALLOC_CTX *memctx,
             map[num_entries+i].def_name == NULL) {
             return ENOMEM;
         }
-        DEBUG(SSSDBG_TRACE_FUNC, "Extending map with %s\n", extra_attrs[i]);
+        DEBUG(SSSDBG_TRACE_FUNC, "Extending map with %s\n", *extra_attrs);
+
+        /* index must be incremented only for appended entry. */
+        i++;
     }
+
+    nextra = i;
 
     /* Sentinel */
     memset(&map[num_entries+nextra], 0, sizeof(struct sdap_attr_map));
