@@ -71,49 +71,173 @@ class Netgrent(Structure):
                 ("nip", c_void_p)]
 
 
-def call_sssd_setnetgrent(netgroup):
-    libnss_sss_path = config.NSS_MODULE_DIR + "/libnss_sss.so.2"
-    libnss_sss = cdll.LoadLibrary(libnss_sss_path)
+class NetgroupRetriever(object):
+    def __init__(self, name):
+        self.name = name
+        self.needed_groups = []
+        self.known_groups = []
+        self.netgroups = []
 
-    func = libnss_sss._nss_sss_setnetgrent
-    func.restype = c_int
-    func.argtypes = [c_char_p, POINTER(Netgrent)]
+    @staticmethod
+    def _setnetgrent(netgroup):
+        """
+        This private method is ctypes wrapper for
+        enum nss_status _nss_sss_setnetgrent(const char *netgroup,
+                                             struct __netgrent *result)
 
-    result = Netgrent()
-    result_p = POINTER(Netgrent)(result)
+        @param string name name of netgroup
 
-    res = func(c_char_p(netgroup), result_p)
+        @return (int, POINTER(Netgrent)) (err, result_p)
+            err is a constant from class NssReturnCode and in case of SUCCESS
+            result_p will contain POINTER(Netgrent) which can be used in
+            _getnetgrent_r or _getnetgrent_r.
+        """
+        libnss_sss_path = config.NSS_MODULE_DIR + "/libnss_sss.so.2"
+        libnss_sss = cdll.LoadLibrary(libnss_sss_path)
 
-    return (int(res), result_p)
+        func = libnss_sss._nss_sss_setnetgrent
+        func.restype = c_int
+        func.argtypes = [c_char_p, POINTER(Netgrent)]
 
+        result = Netgrent()
+        result_p = POINTER(Netgrent)(result)
 
-def call_sssd_getnetgrent_r(result_p, buff, buff_len):
-    libnss_sss_path = config.NSS_MODULE_DIR + "/libnss_sss.so.2"
-    libnss_sss = cdll.LoadLibrary(libnss_sss_path)
+        res = func(c_char_p(netgroup), result_p)
 
-    func = libnss_sss._nss_sss_getnetgrent_r
-    func.restype = c_int
-    func.argtypes = [POINTER(Netgrent), POINTER(c_char), c_size_t,
-                     POINTER(c_int)]
+        return (int(res), result_p)
 
-    errno = POINTER(c_int)(c_int(0))
+    @staticmethod
+    def _getnetgrent_r(result_p, buff, buff_len):
+        """
+        This private method is ctypes wrapper for
+        enum nss_status _nss_sss_getnetgrent_r(struct __netgrent *result,
+                                               char *buffer, size_t buflen,
+                                               int *errnop)
+        @param POINTER(Netgrent) result_p pointer to initialized C structure
+               struct __netgrent
+        @param ctypes.c_char_Array buff buffer used by C functions
+        @param int buff_len size of c_char_Array passed as a paramere buff
 
-    res = func(result_p, buff, buff_len, errno)
+        @return (int, int, List[(string, string, string])
+                (err, errno, netgroups)
+            if err is NssReturnCode.SUCCESS netgroups will contain list of
+            touples. Each touple will consist of 3 elemets either string or
+        """
+        libnss_sss_path = config.NSS_MODULE_DIR + "/libnss_sss.so.2"
+        libnss_sss = cdll.LoadLibrary(libnss_sss_path)
 
-    return (int(res), int(errno[0]), result_p)
+        func = libnss_sss._nss_sss_getnetgrent_r
+        func.restype = c_int
+        func.argtypes = [POINTER(Netgrent), POINTER(c_char), c_size_t,
+                         POINTER(c_int)]
 
+        errno = POINTER(c_int)(c_int(0))
 
-def call_sssd_endnetgrent(result_p):
-    libnss_sss_path = config.NSS_MODULE_DIR + "/libnss_sss.so.2"
-    libnss_sss = cdll.LoadLibrary(libnss_sss_path)
+        res = func(result_p, buff, buff_len, errno)
 
-    func = libnss_sss._nss_sss_endnetgrent
-    func.restype = c_int
-    func.argtypes = [POINTER(Netgrent)]
+        return (int(res), int(errno[0]), result_p)
 
-    res = func(result_p)
+    @staticmethod
+    def _endnetgrent(result_p):
+        """
+        This private method is ctypes wrapper for
+        enum nss_status _nss_sss_endnetgrent(struct __netgrent *result)
 
-    return int(res)
+        @param POINTER(Netgrent) result_p pointer to initialized C structure
+               struct __netgrent
+
+        @return int a constant from class NssReturnCode
+        """
+        libnss_sss_path = config.NSS_MODULE_DIR + "/libnss_sss.so.2"
+        libnss_sss = cdll.LoadLibrary(libnss_sss_path)
+
+        func = libnss_sss._nss_sss_endnetgrent
+        func.restype = c_int
+        func.argtypes = [POINTER(Netgrent)]
+
+        res = func(result_p)
+
+        return int(res)
+
+    def get_netgroups(self):
+        """
+        Function will return netgroup triplets for given user. All nested
+        netgroups will be retieved as part of executions and will content
+        will be merged with direct triplets.
+        Missing nested netgroups will not cause failure and are considered
+        as an empty netgroup without triplets.
+
+        @param string name name of netgroup
+
+        @return (int, int, List[(string, string, string])
+                (err, errno, netgroups)
+            if err is NssReturnCode.SUCCESS netgroups will contain list of
+            touples. Each touple will consist of 3 elemets either string or
+            None (host, user, domain).
+        """
+        res, errno, result = self._flat_fetch_netgroups(self.name)
+        if res != NssReturnCode.SUCCESS:
+            return (res, errno, self.netgroups)
+
+        self.netgroups += result
+
+        while self.needed_groups:
+            name = self.needed_groups.pop(0)
+
+            nest_res, nest_errno, result = self._flat_fetch_netgroups(name)
+            # do not fail for missing nested netgroup
+            if nest_res not in (NssReturnCode.SUCCESS, NssReturnCode.NOTFOUND):
+                return (nest_res, nest_errno, self.netgroups)
+
+            self.netgroups = result + self.netgroups
+
+        return (res, errno, self.netgroups)
+
+    def _flat_fetch_netgroups(self, name):
+        """
+        Function will return netgroup triplets for given user. The nested
+        netgroups will not be returned. Missing nested netgroups will be
+        appended to the array needed_groups
+
+        @param string name name of netgroup
+
+        @return (int, int, List[(string, string, string])
+                (err, errno, netgroups)
+            if err is NssReturnCode.SUCCESS netgroups will contain list of
+            touples. Each touple will consist of 3 elemets either string or
+            None (host, user, domain).
+        """
+        buff_len = 1024 * 1024
+        buff = create_string_buffer(buff_len)
+
+        result = []
+
+        res, result_p = self._setnetgrent(name)
+        if res != NssReturnCode.SUCCESS:
+            return (res, get_errno(), result)
+
+        res, errno, result_p = self._getnetgrent_r(result_p, buff, buff_len)
+        while res == NssReturnCode.SUCCESS:
+            if result_p[0].type == NetgroupType.GROUP_VAL:
+                nested_netgroup = result_p[0].val.group
+                if nested_netgroup not in self.known_groups:
+                    self.needed_groups.append(nested_netgroup)
+                    self.known_groups.append(nested_netgroup)
+
+            if result_p[0].type == NetgroupType.TRIPLE_VAL:
+                result.append((result_p[0].val.triple.host,
+                               result_p[0].val.triple.user,
+                               result_p[0].val.triple.domain))
+
+            res, errno, result_p = self._getnetgrent_r(result_p, buff,
+                                                       buff_len)
+
+        if res != NssReturnCode.RETURN:
+            return (res, errno, result)
+
+        res = self._endnetgrent(result_p)
+
+        return (res, errno, result)
 
 
 def get_sssd_netgroups(name):
@@ -129,27 +253,7 @@ def get_sssd_netgroups(name):
         Each touple will consist of 3 elemets either string or None
         (host, user, domain).
     """
-    buff_len = 1024 * 1024
-    buff = create_string_buffer(buff_len)
 
-    result = []
+    retriever = NetgroupRetriever(name)
 
-    res, result_p = call_sssd_setnetgrent(name)
-    if res != NssReturnCode.SUCCESS:
-        return (res, get_errno(), result)
-
-    res, errno, result_p = call_sssd_getnetgrent_r(result_p, buff, buff_len)
-    while res == NssReturnCode.SUCCESS:
-        assert result_p[0].type == NetgroupType.TRIPLE_VAL
-        result.append((result_p[0].val.triple.host,
-                       result_p[0].val.triple.user,
-                       result_p[0].val.triple.domain))
-        res, errno, result_p = call_sssd_getnetgrent_r(result_p, buff,
-                                                       buff_len)
-
-    if res != NssReturnCode.RETURN:
-        return (res, errno, result)
-
-    res = call_sssd_endnetgrent(result_p)
-
-    return (res, errno, result)
+    return retriever.get_netgroups()
