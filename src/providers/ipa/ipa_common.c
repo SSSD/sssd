@@ -831,6 +831,7 @@ static errno_t _ipa_servers_init(struct be_ctx *ctx,
     char *ipa_domain;
     int ret = 0;
     int i;
+    int j;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -842,6 +843,14 @@ static errno_t _ipa_servers_init(struct be_ctx *ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse server list!\n");
         goto done;
+    }
+
+    for (j = 0; list[j]; j++) {
+        if (resolv_is_address(list[j])) {
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "ipa_server [%s] is detected as IP address, "
+                  "this can cause GSSAPI problems\n", list[j]);
+        }
     }
 
     /* now for each one add a new server to the failover service */

@@ -489,6 +489,7 @@ _ad_servers_init(struct ad_service *service,
                  bool primary)
 {
     size_t i;
+    size_t j;
     errno_t ret = 0;
     char **list;
     struct ad_server_data *sdata;
@@ -502,6 +503,14 @@ _ad_servers_init(struct ad_service *service,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse server list!\n");
         goto done;
+    }
+
+    for (j = 0; list[j]; j++) {
+        if (resolv_is_address(list[j])) {
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "ad_server [%s] is detected as IP address, "
+                  "this can cause GSSAPI problems\n", list[j]);
+        }
     }
 
     /* Add each of these servers to the failover service */
