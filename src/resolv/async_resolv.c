@@ -1062,8 +1062,6 @@ resolv_gethostbyname_address(TALLOC_CTX *mem_ctx, const char *address,
                              struct resolv_hostent **_rhostent);
 static inline int
 resolv_gethostbyname_family_init(enum restrict_family family_order);
-static bool
-resolv_is_address(const char *name);
 static errno_t
 resolv_gethostbyname_step(struct tevent_req *req);
 
@@ -1133,7 +1131,7 @@ fail:
     return NULL;
 }
 
-static bool
+bool
 resolv_is_address(const char *name)
 {
     struct addrinfo hints;

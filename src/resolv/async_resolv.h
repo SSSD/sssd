@@ -189,4 +189,6 @@ errno_t resolv_discover_srv_recv(TALLOC_CTX *mem_ctx,
                                  uint32_t *_ttl,
                                  char **_dns_domain);
 
+bool
+resolv_is_address(const char *name);
 #endif /* __ASYNC_RESOLV_H__ */

@@ -32,6 +32,7 @@
 
 #include <resolv.h>
 
+#include "resolv/async_resolv.h"
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_resp.h"
 
@@ -333,6 +334,29 @@ void test_resolv_fake_srv(void **state)
     assert_int_equal(ret, ERR_OK);
 }
 
+void test_resolv_is_address(void **state)
+{
+    bool ret;
+
+    ret = resolv_is_address("10.192.211.37");
+    assert_true(ret);
+
+    ret = resolv_is_address("127.0.0.1");
+    assert_true(ret);
+
+    ret = resolv_is_address("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+    assert_true(ret);
+
+    ret = resolv_is_address("sssd.ldap.com");
+    assert_false(ret);
+
+    ret = resolv_is_address("testhostname");
+    assert_false(ret);
+
+    ret = resolv_is_address("localhost");
+    assert_false(ret);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -348,6 +372,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_resolv_fake_srv,
                                         test_resolv_fake_setup,
                                         test_resolv_fake_teardown),
+        cmocka_unit_test(test_resolv_is_address),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
