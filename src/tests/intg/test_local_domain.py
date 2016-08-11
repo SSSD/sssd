@@ -109,4 +109,4 @@ def test_wrong_LC_ALL(local_domain_only):
     # sss_userdel must remove the user despite wrong LC_ALL
     subprocess.check_call(["sss_userdel", "foo", "-R"])
     assert_nonexistent_user("foo")
-    os.environ["LC_LOCAL"] = oldvalue
+    os.environ["LC_ALL"] = oldvalue
