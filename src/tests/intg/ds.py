@@ -56,7 +56,3 @@ class DS:
         conn = ldap.initialize(self.ldap_url)
         conn.simple_bind_s(self.admin_dn, self.admin_pw)
         return conn
-
-    def __del__(self):
-        """Destroy the instance."""
-        self.teardown()
