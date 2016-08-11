@@ -69,8 +69,21 @@ static void sdap_close_fd(int *fd)
     *fd = -1;
 }
 
+static void child_callback(int child_status,
+                           struct tevent_signal *sige,
+                           void *pvt)
+{
+    if (WEXITSTATUS(child_status) == CHILD_TIMEOUT_EXIT_CODE) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "LDAP child was terminated due to timeout\n");
+
+        struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+        tevent_req_error(req, ETIMEDOUT);
+    }
+}
+
 static errno_t sdap_fork_child(struct tevent_context *ev,
-                               struct sdap_child *child)
+                               struct sdap_child *child, struct tevent_req *req)
 {
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
@@ -110,7 +123,7 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
         sss_fd_nonblocking(child->io->read_from_child_fd);
         sss_fd_nonblocking(child->io->write_to_child_fd);
 
-        ret = child_handler_setup(ev, pid, NULL, NULL, NULL);
+        ret = child_handler_setup(ev, pid, child_callback, req, NULL);
         if (ret != EOK) {
             goto fail;
         }
@@ -256,6 +269,8 @@ struct sdap_get_tgt_state {
     struct sdap_child *child;
     ssize_t len;
     uint8_t *buf;
+
+    struct tevent_timer *kill_te;
 };
 
 static errno_t set_tgt_child_timeout(struct tevent_req *req,
@@ -308,7 +323,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sdap_fork_child(state->ev, state->child);
+    ret = sdap_fork_child(state->ev, state->child, req);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sdap_fork_child failed.\n");
         goto fail;
@@ -379,7 +394,12 @@ static void sdap_get_tgt_done(struct tevent_req *subreq)
 
     sdap_close_fd(&state->child->io->read_from_child_fd);
 
-    tevent_req_done(req);
+    if (state->kill_te == NULL) {
+        tevent_req_done(req);
+        return;
+    }
+
+    /* wait for child callback to terminate the request */
 }
 
 int sdap_get_tgt_recv(struct tevent_req *req,
@@ -464,8 +484,8 @@ static void get_tgt_timeout_handler(struct tevent_context *ev,
 
     tv = tevent_timeval_current_ofs(SIGTERM_TO_SIGKILL_TIME, 0);
 
-    te = tevent_add_timer(ev, req, tv, get_tgt_sigkill_handler, req);
-    if (te == NULL) {
+    state->kill_te = tevent_add_timer(ev, req, tv, get_tgt_sigkill_handler, req);
+    if (state->kill_te == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
         tevent_req_error(req, ECANCELED);
     }
