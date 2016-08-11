@@ -11,6 +11,11 @@ m4_ifdef([AC_USE_SYSTEM_EXTENSIONS],
     [AC_USE_SYSTEM_EXTENSIONS],
     [AC_GNU_SOURCE])
 
+m4_include([src/warnings.m4])
+m4_include([src/manywarnings.m4])
+m4_include([src/sssd-compile-warnings.m4])
+SSSD_COMPILE_WARNINGS
+
 CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
 
 

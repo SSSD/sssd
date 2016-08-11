@@ -40,6 +40,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
         "--without-python3-bindings"
         "--without-secrets"
         "--without-kcm"
+        "--enable-werror=no"
     )
 fi
 
