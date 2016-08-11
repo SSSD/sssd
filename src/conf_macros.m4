@@ -592,6 +592,22 @@ AC_DEFUN([WITH_NOLOGIN_SHELL],
     AC_DEFINE_UNQUOTED(NOLOGIN_SHELL, "$nologin_shell", [The shell used to deny access to users])
   ])
 
+AC_DEFUN([WITH_SESSION_RECORDING_SHELL],
+  [ AC_ARG_WITH([session-recording-shell],
+                [AC_HELP_STRING([--with-session-recording-shell=PATH],
+                                [The shell used to record user sessions [/usr/bin/tlog-rec-session]]
+                               )
+                ]
+               )
+    session_recording_shell="/usr/bin/tlog-rec-session"
+    if test x"$with_session_recording_shell" != x; then
+        session_recording_shell=$with_session_recording_shell
+    fi
+    AC_SUBST(session_recording_shell)
+    AC_DEFINE_UNQUOTED(SESSION_RECORDING_SHELL, "$session_recording_shell",
+                       [The shell used to record user sessions])
+  ])
+
 AC_ARG_ENABLE([all-experimental-features],
               [AS_HELP_STRING([--enable-all-experimental-features],
                               [build all experimental features])],
