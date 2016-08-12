@@ -2340,7 +2340,8 @@ static void missing_resolv_conf(struct tevent_context *ev,
 }
 
 static int monitor_process_init(struct mt_ctx *ctx,
-                                const char *config_file)
+                                const char *config_file,
+                                bool opt_netlinkoff)
 {
     TALLOC_CTX *tmp_ctx;
     struct tevent_signal *tes;
@@ -2471,12 +2472,14 @@ static int monitor_process_init(struct mt_ctx *ctx,
         return ret;
     }
 
-    ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
-                        ctx, &ctx->nlctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot set up listening for network notifications\n");
-        return ret;
+    if (opt_netlinkoff == false) {
+        ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
+                            ctx, &ctx->nlctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot set up listening for network notifications\n");
+            return ret;
+        }
     }
 
     /* start providers */
@@ -2772,6 +2775,7 @@ int main(int argc, const char *argv[])
     int opt_interactive = 0;
     int opt_genconf = 0;
     int opt_version = 0;
+    int opt_netlinkoff = 0;
     char *opt_config_file = NULL;
     char *config_file = NULL;
     int flags = 0;
@@ -2788,6 +2792,8 @@ int main(int argc, const char *argv[])
          _("Become a daemon (default)"), NULL }, \
         {"interactive", 'i', POPT_ARG_NONE, &opt_interactive, 0, \
          _("Run interactive (not a daemon)"), NULL}, \
+        {"disable-netlink", '\0', POPT_ARG_NONE, &opt_netlinkoff, 0, \
+         _("Disable netlink interface"), NULL}, \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
          _("Specify a non-default config file"), NULL}, \
         {"genconf", 'g', POPT_ARG_NONE, &opt_genconf, 0, \
@@ -2990,8 +2996,8 @@ int main(int argc, const char *argv[])
     monitor->ev = main_ctx->event_ctx;
     talloc_steal(main_ctx, monitor);
 
-    ret = monitor_process_init(monitor,
-                               config_file);
+    ret = monitor_process_init(monitor, config_file,
+                               opt_netlinkoff);
     if (ret != EOK) return 3;
     talloc_free(tmp_ctx);
 

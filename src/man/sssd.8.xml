@@ -114,6 +114,17 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>--disable-netlink</option>
+                </term>
+                <listitem>
+                    <para>
+                        sssd will ignore Netlink changes when making decisions
+                        about resetting online and offline operational status.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>-c</option>,<option>--config</option>
                 </term>
                 <listitem>
