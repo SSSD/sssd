@@ -560,6 +560,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'realmd_tags',
             'subdomain_refresh_interval',
             'subdomain_inherit',
+            'full_name_format',
             'cached_auth_timeout']
 
         self.assertTrue(type(options) == dict,
@@ -927,6 +928,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'realmd_tags',
             'subdomain_refresh_interval',
             'subdomain_inherit',
+            'full_name_format',
             'cached_auth_timeout']
 
         self.assertTrue(type(options) == dict,

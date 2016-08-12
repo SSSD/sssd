@@ -163,6 +163,7 @@ option_strings = {
     'subdomain_refresh_interval' : _('How often should subdomains list be refreshed'),
     'subdomain_inherit' : _('List of options that should be inherited into a subdomain'),
     'cached_auth_timeout' : _('How long can cached credentials be used for cached authentication'),
+    'full_name_format' : _('Printf-compatible format for displaying fully-qualified names'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),
