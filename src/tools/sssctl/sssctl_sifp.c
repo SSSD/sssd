@@ -26,7 +26,9 @@
 #include "tools/sssctl/sssctl.h"
 
 #define ERR_SSSD _("Check that SSSD is running and " \
-                   "the InfoPipe responder is enabled.\n")
+                   "the InfoPipe responder is enabled. " \
+                   "Make sure 'ifp' is listed in the " \
+                   "'services' option in sssd.conf.\n")
 
 struct sssctl_sifp_data {
     sss_sifp_ctx *sifp;
