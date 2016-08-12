@@ -164,6 +164,7 @@ option_strings = {
     'subdomain_inherit' : _('List of options that should be inherited into a subdomain'),
     'cached_auth_timeout' : _('How long can cached credentials be used for cached authentication'),
     'full_name_format' : _('Printf-compatible format for displaying fully-qualified names'),
+    're_expression' : _('Regex to parse username and domain'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),
