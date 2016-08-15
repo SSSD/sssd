@@ -3873,7 +3873,10 @@ systemdunit_DATA =
 systemdconf_DATA =
 if HAVE_SYSTEMD_UNIT
     systemdunit_DATA += \
-        src/sysv/systemd/sssd.service
+        src/sysv/systemd/sssd.service \
+        src/sysv/systemd/sssd-secrets.socket \
+        src/sysv/systemd/sssd-secrets.service \
+        $(NULL)
 if WITH_JOURNALD
     systemdconf_DATA += \
         src/sysv/systemd/journal.conf
@@ -3911,6 +3914,7 @@ edit_cmd = $(SED) \
         -e 's|@sbindir[@]|$(sbindir)|g' \
         -e 's|@environment_file[@]|$(environment_file)|g' \
         -e 's|@localstatedir[@]|$(localstatedir)|g' \
+        -e 's|@libexecdir[@]|$(libexecdir)|g' \
         -e 's|@prefix[@]|$(prefix)|g'
 
 replace_script = \
@@ -3922,13 +3926,24 @@ replace_script = \
 
 EXTRA_DIST += \
     src/sysv/systemd/sssd.service.in \
-    src/sysv/systemd/journal.conf.in
+    src/sysv/systemd/journal.conf.in \
+    src/sysv/systemd/sssd-secrets.socket.in \
+    src/sysv/systemd/sssd-secrets.service.in \
+    $(NULL)
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 
 src/sysv/systemd/journal.conf: src/sysv/systemd/journal.conf.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-secrets.socket: src/sysv/systemd/sssd-secrets.socket.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-secrets.service: src/sysv/systemd/sssd-secrets.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 
@@ -4147,6 +4162,8 @@ endif
 	done;
 	rm -Rf ldb_mod_test_dir
 	rm -f $(builddir)/src/sysv/systemd/sssd.service
+	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.socket
+	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
 
 CLEANFILES += *.X */*.X */*/*.X

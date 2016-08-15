@@ -747,6 +747,8 @@ done
 %{_sbindir}/sssd
 %if (0%{?use_systemd} == 1)
 %{_unitdir}/sssd.service
+%{_unitdir}/sssd-secrets.socket
+%{_unitdir}/sssd-secrets.service
 %else
 %{_initrddir}/%{name}
 %endif
@@ -1079,12 +1081,16 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 # systemd
 %post common
 %systemd_post sssd.service
+%systemd_post sssd-secrets.socket
 
 %preun common
 %systemd_preun sssd.service
+%systemd_preun sssd-secrets.socket
 
 %postun common
 %systemd_postun_with_restart sssd.service
+%systemd_postun_with_restart sssd-secrets.socket
+%systemd_postun_with_restart sssd-secrets.service
 
 %else
 # sysv
