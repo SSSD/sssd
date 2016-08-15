@@ -22,6 +22,7 @@
 #include "util/util.h"
 
 #define WATCHDOG_DEF_INTERVAL 10
+#define WATCHDOG_MAX_TICKS 3
 
 /* this is intentionally a global variable */
 struct watchdog_ctx {
@@ -75,9 +76,8 @@ static void watchdog_handler(int sig)
         return;
     }
 
-    /* if 3 ticks passed by kills itself */
-
-    if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) > 3) {
+    /* if a pre-defined number of ticks passed by kills itself */
+    if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) > WATCHDOG_MAX_TICKS) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Watchdog timer overflow, killing process!\n");
         orderly_shutdown(1);
