@@ -281,6 +281,11 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
         goto done;
     }
 
+    DEBUG(SSSDBG_FUNC_DATA,
+          "Got request for [%#"PRIx32"][%s][%"PRId32"][%s]\n",
+          data->entry_type, be_req2str(data->entry_type),
+          attr_type, filter);
+
     key = talloc_asprintf(data, "%u:%u:%s:%s:%s", data->entry_type,
                           data->attr_type, extra, domain, filter);
     if (key == NULL) {
