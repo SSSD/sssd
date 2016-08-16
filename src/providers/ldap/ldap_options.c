@@ -444,6 +444,10 @@ static bool has_defaults(struct confdb_ctx *cdb,
 static bool ldap_rfc2307_autofs_defaults(struct confdb_ctx *cdb,
                                          const char *conf_path)
 {
+    char **services = NULL;
+    errno_t ret;
+    bool has_autofs_defaults = false;
+
     const char *attrs[] = {
         rfc2307_autofs_entry_map[SDAP_OC_AUTOFS_ENTRY].opt_name,
         /* SDAP_AT_AUTOFS_ENTRY_KEY missing on purpose, its value was
@@ -455,7 +459,24 @@ static bool ldap_rfc2307_autofs_defaults(struct confdb_ctx *cdb,
         NULL,
     };
 
-    return has_defaults(cdb, conf_path, attrs);
+    ret = confdb_get_string_as_list(cdb, cdb,
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_SERVICES, &services);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read from confdb [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (string_in_list("autofs", services, true) == false) {
+        goto done;
+    }
+
+    has_autofs_defaults = has_defaults(cdb, conf_path, attrs);
+done:
+    talloc_free(services);
+
+    return has_autofs_defaults;
 }
 
 int ldap_get_autofs_options(TALLOC_CTX *memctx,
