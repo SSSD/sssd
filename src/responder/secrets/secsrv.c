@@ -35,7 +35,7 @@ static int sec_get_config(struct sec_ctx *sctx)
     int ret;
 
     ret = confdb_get_int(sctx->rctx->cdb,
-                         CONFDB_SEC_CONF_ENTRY,
+                         sctx->rctx->confdb_service_path,
                          CONFDB_SERVICE_FD_LIMIT,
                          DEFAULT_SEC_FD_LIMIT,
                          &sctx->fd_limit);
