@@ -511,12 +511,30 @@ done:
     return ret;
 }
 
+static errno_t remove_ts_cache(struct sysdb_ctx *sysdb)
+{
+    errno_t ret;
+
+    if (sysdb->ldb_ts_file == NULL) {
+        return EOK;
+    }
+
+    ret = unlink(sysdb->ldb_ts_file);
+    if (ret != EOK && errno != ENOENT) {
+        return errno;
+    }
+
+    return EOK;
+}
+
 static errno_t sysdb_cache_connect_helper(TALLOC_CTX *mem_ctx,
+                                          struct sysdb_ctx *sysdb,
                                           struct sss_domain_info *domain,
                                           const char *ldb_file,
                                           int flags,
                                           const char *exp_version,
                                           const char *base_ldif,
+                                          bool *_newly_created,
                                           struct ldb_context **_ldb,
                                           const char **_version)
 {
@@ -527,6 +545,7 @@ static errno_t sysdb_cache_connect_helper(TALLOC_CTX *mem_ctx,
     const char *version = NULL;
     int ret;
     struct ldb_context *ldb;
+    bool newly_created;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -592,8 +611,9 @@ static errno_t sysdb_cache_connect_helper(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* The cache has been newly created.
-     * We need to reopen the LDB to ensure that
+    newly_created = true;
+
+    /* We need to reopen the LDB to ensure that
      * all of the special values take effect
      * (such as enabling the memberOf plugin and
      * the various indexes).
@@ -613,6 +633,9 @@ static errno_t sysdb_cache_connect_helper(TALLOC_CTX *mem_ctx,
     }
 done:
     if (ret == EOK) {
+        if (_newly_created != NULL) {
+            *_newly_created = newly_created;
+        }
         *_ldb = talloc_steal(mem_ctx, ldb);
     }
     talloc_free(tmp_ctx);
@@ -625,9 +648,27 @@ static errno_t sysdb_cache_connect(TALLOC_CTX *mem_ctx,
                                    struct ldb_context **ldb,
                                    const char **version)
 {
-    return sysdb_cache_connect_helper(mem_ctx, domain, sysdb->ldb_file,
+    bool newly_created;
+    bool ldb_file_exists;
+    errno_t ret;
+
+    ldb_file_exists = !(access(sysdb->ldb_file, F_OK) == -1 && errno == ENOENT);
+
+    ret = sysdb_cache_connect_helper(mem_ctx, sysdb, domain, sysdb->ldb_file,
                                       0, SYSDB_VERSION, SYSDB_BASE_LDIF,
-                                      ldb, version);
+                                      &newly_created, ldb, version);
+
+    /* The cache has been newly created. */
+    if (ret == EOK && newly_created && !ldb_file_exists) {
+        ret = remove_ts_cache(sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not delete the timestamp ldb file (%d) (%s)\n",
+                  ret, sss_strerror(ret));
+        }
+    }
+
+    return ret;
 }
 
 static errno_t sysdb_ts_cache_connect(TALLOC_CTX *mem_ctx,
@@ -636,26 +677,10 @@ static errno_t sysdb_ts_cache_connect(TALLOC_CTX *mem_ctx,
                                       struct ldb_context **ldb,
                                       const char **version)
 {
-    return sysdb_cache_connect_helper(mem_ctx, domain, sysdb->ldb_ts_file,
+    return sysdb_cache_connect_helper(mem_ctx, sysdb, domain, sysdb->ldb_ts_file,
                                       LDB_FLG_NOSYNC, SYSDB_TS_VERSION,
-                                      SYSDB_TS_BASE_LDIF,
+                                      SYSDB_TS_BASE_LDIF, NULL,
                                       ldb, version);
-}
-
-static errno_t remove_ts_cache(struct sysdb_ctx *sysdb)
-{
-    errno_t ret;
-
-    if (sysdb->ldb_ts_file == NULL) {
-        return EOK;
-    }
-
-    ret = unlink(sysdb->ldb_ts_file);
-    if (ret != EOK && errno != ENOENT) {
-        return errno;
-    }
-
-    return EOK;
 }
 
 static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
