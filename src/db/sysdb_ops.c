@@ -27,6 +27,11 @@
 #include "util/cert.h"
 #include <time.h>
 
+#define SSS_SYSDB_NO_CACHE 0x0
+#define SSS_SYSDB_CACHE 0x1
+#define SSS_SYSDB_TS_CACHE 0x2
+#define SSS_SYSDB_BOTH_CACHE (SSS_SYSDB_CACHE | SSS_SYSDB_TS_CACHE)
+
 static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
 {
     const struct ldb_val *v = ldb_msg_find_ldb_val(msg, attr);
@@ -1176,6 +1181,21 @@ done:
     return ret;
 }
 
+static const char *get_attr_storage(int state_mask)
+{
+    const char *storage = "";
+
+    if (state_mask == SSS_SYSDB_BOTH_CACHE) {
+        storage = "cache, ts_cache";
+    } else if (state_mask == SSS_SYSDB_TS_CACHE) {
+        storage = "ts_cache";
+    } else if (state_mask == SSS_SYSDB_CACHE) {
+        storage = "cache";
+    }
+
+    return storage;
+}
+
 int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
                          struct ldb_dn *entry_dn,
                          struct sysdb_attrs *attrs,
@@ -1184,6 +1204,7 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
     bool sysdb_write = true;
     errno_t ret = EOK;
     errno_t tret = EOK;
+    int state_mask = SSS_SYSDB_NO_CACHE;
 
     sysdb_write = sysdb_entry_attrs_diff(sysdb, entry_dn, attrs, mod_op);
     if (sysdb_write == true) {
@@ -1192,6 +1213,8 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Cannot set attrs for %s, %d [%s]\n",
                   ldb_dn_get_linearized(entry_dn), ret, sss_strerror(ret));
+        } else {
+            state_mask |= SSS_SYSDB_CACHE;
         }
     }
 
@@ -1201,7 +1224,16 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
             DEBUG(SSSDBG_MINOR_FAILURE,
                 "Cannot set ts attrs for %s\n", ldb_dn_get_linearized(entry_dn));
             /* Not fatal */
+        } else {
+            state_mask |= SSS_SYSDB_TS_CACHE;
         }
+    }
+
+    if (state_mask != SSS_SYSDB_NO_CACHE) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Entry [%s] has set [%s] attrs.\n",
+              ldb_dn_get_linearized(entry_dn),
+              get_attr_storage(state_mask));
     }
 
     return ret;
