@@ -106,6 +106,7 @@ Requires: python-sssdconfig = %{version}-%{release}
 %global mcpath %{sssdstatedir}/mc
 %global pubconfpath %{sssdstatedir}/pubconf
 %global gpocachepath %{sssdstatedir}/gpo_cache
+%global secdbpath %{sssdstatedir}/secrets
 
 ### Build Dependencies ###
 
@@ -783,6 +784,7 @@ done
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,sssd,sssd) %dir %{dbpath}
 %attr(755,sssd,sssd) %dir %{mcpath}
+%attr(700,root,root) %dir %{secdbpath}
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/passwd
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/initgroups
