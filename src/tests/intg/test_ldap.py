@@ -24,6 +24,7 @@ import signal
 import subprocess
 import time
 import ldap
+import ldap.modlist
 import pytest
 
 import config
@@ -31,6 +32,7 @@ import ds_openldap
 import ent
 import ldap_ent
 import sssd_id
+import sssd_ldb
 from util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
@@ -744,3 +746,51 @@ def test_special_characters_in_names(ldap_conn, sanity_rfc2307):
         "group(_u)ser1",
         dict(name="group(_u)ser1", passwd="*", gid=5001,
              mem=ent.contains_only("t(u)ser")))
+
+
+@pytest.fixture
+def extra_attributes(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user", 2001, 2000)
+    ent_list.add_group("group", 2000)
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307) + \
+        unindent("""\
+            [domain/LDAP]
+            ldap_user_extra_attrs = mail, name:uid, givenName
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_extra_attribute_already_exists(ldap_conn, extra_attributes):
+    """Test the effect of the "vetoed_shells" option"""
+
+    user = 'user'
+    extra_attribute = 'givenName'
+    given_name = 'unix_user'
+
+    user_dn = "uid=" + user + ",ou=Users," + ldap_conn.ds_inst.base_dn
+
+    old = {'objectClass': ['top', 'inetOrgPerson', 'posixAccount']}
+    new = {'objectClass': ['top', 'inetOrgPerson', 'posixAccount',
+                           'extensibleObject']}
+    ldif = ldap.modlist.modifyModlist(old, new)
+
+    ldap_conn.modify_s(user_dn, ldif)
+    ldap_conn.modify_s(user_dn, [(ldap.MOD_ADD, extra_attribute, given_name)])
+
+    ent.assert_passwd_by_name(
+        user,
+        dict(name="user", uid=2001, gid=2000, shell="/bin/bash"),
+    )
+
+    domain = 'LDAP'
+    ldb_conn = sssd_ldb.SssdLdb('LDAP')
+    val = ldb_conn.get_entry_attr(sssd_ldb.CacheType.sysdb,
+                                  sssd_ldb.TsCacheEntry.user,
+                                  user, domain, extra_attribute)
+
+    assert val == given_name

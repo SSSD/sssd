@@ -2,6 +2,7 @@ dist_noinst_DATA = \
     __init__.py \
     config.py.m4 \
     sssd_id.py \
+    sssd_ldb.py \
     sssd_netgroup.py \
     ds.py \
     ds_openldap.py \
