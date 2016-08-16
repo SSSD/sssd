@@ -1821,7 +1821,8 @@ bool sysdb_msg_attrs_modts_differs(struct ldb_message *old_entry,
     return true;
 }
 
-static bool sysdb_ldb_msg_difference(struct ldb_message *db_msg,
+static bool sysdb_ldb_msg_difference(struct ldb_dn *entry_dn,
+                                     struct ldb_message *db_msg,
                                      struct ldb_message *mod_msg)
 {
     struct ldb_message_element *mod_msg_el;
@@ -1848,6 +1849,9 @@ static bool sysdb_ldb_msg_difference(struct ldb_message *db_msg,
                  */
                 if (mod_msg_el->num_values > 0) {
                     /* We can ignore additions of timestamp attributes */
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "Added attr [%s] to entry [%s]\n",
+                          mod_msg_el->name, ldb_dn_get_linearized(entry_dn));
                     return true;
                 }
                 break;
@@ -1855,12 +1859,15 @@ static bool sysdb_ldb_msg_difference(struct ldb_message *db_msg,
 
             el_differs = ldb_msg_element_compare(db_msg_el, mod_msg_el);
             if (el_differs) {
-                /* We are replacing or extending element, there is a difference. If
-                 * some values already exist and ldb_add is not permissive,
+                /* We are replacing or extending element, there is a difference.
+                 * If some values already exist and ldb_add is not permissive,
                  * ldb will throw an error, but that's not our job to check..
                  */
                 if (is_ts_cache_attr(mod_msg_el->name) == false) {
                     /* We can ignore changes to timestamp attributes */
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "Replaced/extended attr [%s] of entry [%s]\n",
+                          mod_msg_el->name, ldb_dn_get_linearized(entry_dn));
                     return true;
                 }
             }
@@ -1869,6 +1876,9 @@ static bool sysdb_ldb_msg_difference(struct ldb_message *db_msg,
             db_msg_el = ldb_msg_find_element(db_msg, mod_msg_el->name);
             if (db_msg_el != NULL) {
                 /* We are deleting a valid element, there is a difference */
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "Deleted attr [%s] of entry [%s].\n",
+                      mod_msg_el->name, ldb_dn_get_linearized(entry_dn));
                 return true;
             }
             break;
@@ -1892,10 +1902,16 @@ bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
     const char *attrnames[attrs->num+1];
 
     if (sysdb->ldb_ts == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Entry [%s] differs, reason: there is no ts_cache yet.\n",
+              ldb_dn_get_linearized(entry_dn));
         return true;
     }
 
     if (is_ts_ldb_dn(entry_dn) == false) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Entry [%s] differs, reason: ts_cache doesn't trace this type of entry.\n",
+              ldb_dn_get_linearized(entry_dn));
         return true;
     }
 
@@ -1930,7 +1946,7 @@ bool sysdb_entry_attrs_diff(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    differs = sysdb_ldb_msg_difference(res->msgs[0], new_entry_msg);
+    differs = sysdb_ldb_msg_difference(entry_dn, res->msgs[0], new_entry_msg);
 done:
     talloc_free(tmp_ctx);
     return differs;
