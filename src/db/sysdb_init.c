@@ -511,14 +511,14 @@ done:
     return ret;
 }
 
-static errno_t sysdb_cache_connect(TALLOC_CTX *mem_ctx,
-                                   struct sss_domain_info *domain,
-                                   const char *ldb_file,
-                                   int flags,
-                                   const char *exp_version,
-                                   const char *base_ldif,
-                                   struct ldb_context **_ldb,
-                                   const char **_version)
+static errno_t sysdb_cache_connect_helper(TALLOC_CTX *mem_ctx,
+                                          struct sss_domain_info *domain,
+                                          const char *ldb_file,
+                                          int flags,
+                                          const char *exp_version,
+                                          const char *base_ldif,
+                                          struct ldb_context **_ldb,
+                                          const char **_version)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_message_element *el;
@@ -619,6 +619,29 @@ done:
     return ret;
 }
 
+static errno_t sysdb_cache_connect(TALLOC_CTX *mem_ctx,
+                                   struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
+                                   struct ldb_context **ldb,
+                                   const char **version)
+{
+    return sysdb_cache_connect_helper(mem_ctx, domain, sysdb->ldb_file,
+                                      0, SYSDB_VERSION, SYSDB_BASE_LDIF,
+                                      ldb, version);
+}
+
+static errno_t sysdb_ts_cache_connect(TALLOC_CTX *mem_ctx,
+                                      struct sysdb_ctx *sysdb,
+                                      struct sss_domain_info *domain,
+                                      struct ldb_context **ldb,
+                                      const char **version)
+{
+    return sysdb_cache_connect_helper(mem_ctx, domain, sysdb->ldb_ts_file,
+                                      LDB_FLG_NOSYNC, SYSDB_TS_VERSION,
+                                      SYSDB_TS_BASE_LDIF,
+                                      ldb, version);
+}
+
 static errno_t remove_ts_cache(struct sysdb_ctx *sysdb)
 {
     errno_t ret;
@@ -649,9 +672,7 @@ static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_cache_connect(tmp_ctx, domain, sysdb->ldb_file, 0,
-                              SYSDB_VERSION, SYSDB_BASE_LDIF,
-                              &ldb, &version);
+    ret = sysdb_cache_connect(tmp_ctx, sysdb, domain, &ldb, &version);
     switch (ret) {
     case ERR_SYSDB_VERSION_TOO_OLD:
         if (upgrade_ctx == NULL) {
@@ -731,10 +752,7 @@ static int sysdb_timestamp_cache_connect(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_cache_connect(tmp_ctx, domain,
-                              sysdb->ldb_ts_file, LDB_FLG_NOSYNC,
-                              SYSDB_TS_VERSION, SYSDB_TS_BASE_LDIF,
-                              &ldb, &version);
+    ret = sysdb_ts_cache_connect(tmp_ctx, sysdb, domain, &ldb, &version);
     switch (ret) {
     case ERR_SYSDB_VERSION_TOO_OLD:
         if (upgrade_ctx == NULL) {
@@ -801,10 +819,7 @@ static int sysdb_timestamp_cache_connect(struct sysdb_ctx *sysdb,
         /* Now the connect must succeed because the previous cache doesn't
          * exist anymore.
          */
-        ret = sysdb_cache_connect(tmp_ctx, domain,
-                                  sysdb->ldb_ts_file, LDB_FLG_NOSYNC,
-                                  SYSDB_TS_VERSION, SYSDB_TS_BASE_LDIF,
-                                  &ldb, &version);
+        ret = sysdb_ts_cache_connect(tmp_ctx, sysdb, domain, &ldb, &version);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Could not delete the timestamp ldb file (%d) (%s)\n",
