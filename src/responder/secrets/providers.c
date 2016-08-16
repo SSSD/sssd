@@ -24,7 +24,8 @@
 #include "responder/secrets/secsrv_proxy.h"
 #include <jansson.h>
 
-int sec_map_url_to_user_path(struct sec_req_ctx *secreq, char **mapped_path)
+static int sec_map_url_to_user_path(struct sec_req_ctx *secreq,
+                                    char **mapped_path)
 {
     uid_t c_euid;
 
