@@ -375,15 +375,10 @@ int local_db_delete(TALLOC_CTX *mem_ctx,
     int ret;
 
     ret = local_db_dn(mem_ctx, lctx->ldb, req_path, &dn);
-    if (ret != EOK) goto done;
+    if (ret != EOK) return ret;
 
     ret = ldb_delete(lctx->ldb, dn);
-    if (ret != EOK) {
-        ret = EIO;
-    }
-
-done:
-    return ret;
+    return sysdb_error_to_errno(ret);
 }
 
 int local_db_create(TALLOC_CTX *mem_ctx,
