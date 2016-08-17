@@ -4202,6 +4202,14 @@ rpmroot:
 	$(MKDIR_P) $(RPMBUILD)/SPECS
 	$(MKDIR_P) $(RPMBUILD)/SRPMS
 
+# pre-release related vars
+
+PR_VERSION_DATE := $(shell date +%Y%m%d.%H%M)
+PR_VERSION_COMMIT_HASH := $(shell git log -1 --pretty=format:%h)
+PR_VERSION_NUMBER = $(PR_VERSION_DATE).git$(PR_VERSION_COMMIT_HASH)
+PR_VERSION_REGEX = m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.*\])
+PR_VERSION_REPL = m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.$(PR_VERSION_NUMBER)\])
+
 rpmbrprep: dist-gzip rpmroot
 if GIT_CHECKOUT
 # When we're building RPMs from a git checkout,
@@ -4219,7 +4227,8 @@ rpms: rpmbrprep
 if GIT_CHECKOUT
 prerelease-rpms:
 	cp $(srcdir)/version.m4 $(srcdir)/version.m4.orig
-	sed -e "s/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.*\])/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.`date +%Y%m%d.%H%M`.git`git log -1 --pretty=format:%h`\])/" < $(srcdir)/version.m4.orig > $(srcdir)/version.m4
+	sed -e "s/$(PR_VERSION_REGEX)/$(PR_VERSION_REPL)/" \
+		< $(srcdir)/version.m4.orig > $(srcdir)/version.m4
 	$(MAKE) rpms
 	mv $(srcdir)/version.m4.orig $(srcdir)/version.m4
 endif
@@ -4234,7 +4243,8 @@ srpm: rpmbrprep
 if GIT_CHECKOUT
 prerelease-srpm:
 	cp $(srcdir)/version.m4 $(srcdir)/version.m4.orig
-	sed -e "s/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.*\])/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.`date +%Y%m%d.%H%M`.git`git log -1 --pretty=format:%h`\])/" < $(srcdir)/version.m4.orig > $(srcdir)/version.m4
+	sed -e "s/$(PR_VERSION_REGEX)/$(PR_VERSION_REPL)/" \
+		< $(srcdir)/version.m4.orig > $(srcdir)/version.m4
 	$(MAKE) srpm
 	mv $(srcdir)/version.m4.orig $(srcdir)/version.m4
 endif
