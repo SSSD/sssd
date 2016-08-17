@@ -87,6 +87,20 @@ def group_bis(base_dn, cn, gidNumber, member_uids=[], member_gids=[]):
     return ("cn=" + cn + ",ou=Groups," + base_dn, attr_list)
 
 
+def netgroup(base_dn, cn, triples=(), members=()):
+    """
+    Generate an RFC2307bis netgroup add-modlist for passing to ldap.add*.
+    """
+    attr_list = [
+        ('objectClass', ['top', 'nisNetgroup'])
+    ]
+    if triples:
+        attr_list.append(('nisNetgroupTriple', triples))
+    if members:
+        attr_list.append(('memberNisNetgroup', members))
+    return ("cn=" + cn + ",ou=Netgroups," + base_dn, attr_list)
+
+
 class List(list):
     """LDAP add-modlist list"""
 
@@ -124,3 +138,8 @@ class List(list):
         self.append(group_bis(base_dn or self.base_dn,
                               cn, gidNumber,
                               member_uids, member_gids))
+
+    def add_netgroup(self, cn, triples=(), members=(), base_dn=None):
+        """Add an RFC2307bis netgroup add-modlist."""
+        self.append(netgroup(base_dn or self.base_dn,
+                             cn, triples, members))
