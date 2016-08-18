@@ -2705,7 +2705,7 @@ endif
 # Integration tests #
 #####################
 
-intgcheck:
+intgcheck-prepare:
 	set -e; \
 	rm -Rf intg; \
 	$(MKDIR_P) intg/bld; \
@@ -2724,9 +2724,22 @@ intgcheck:
 	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
 	: Remove .la files from LDB module directory to avoid loader warnings; \
 	rm "$$prefix"/lib/ldb/*.la; \
+	cd ../..
+
+intgcheck-run:
+	if [ ! -d intg/pfx ]; then $(MAKE) intgcheck-build; fi; \
+	cd intg/bld; \
 	$(MAKE) $(AM_MAKEFLAGS) -C src/tests/intg intgcheck-installed; \
-	cd ../..; \
+	cd ../..
+
+intgcheck-clean:
+	prefix=`readlink -e intg/pfx`; \
 	rm -Rf "$$prefix" intg
+
+intgcheck:
+	$(MAKE) intgcheck-prepare
+	$(MAKE) intgcheck-run
+	$(MAKE) intgcheck-clean
 
 ####################
 # Client Libraries #
