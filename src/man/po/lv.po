@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 1.12.90\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2016-07-07 19:28+0200\n"
-"PO-Revision-Date: 2014-06-04 02:04-0400\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2016-08-19 15:44+0200\n"
+"PO-Revision-Date: 2014-12-15 12:00-0500\n"
+"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Latvian (http://www.transifex.com/projects/p/sssd/language/"
 "lv/)\n"
 "Language: lv\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : "
 "2);\n"
-"X-Generator: Zanata 3.8.4\n"
+"X-Generator: Zanata 3.9.3\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -290,10 +290,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:133 sssd.conf.5.xml:711 sssd.conf.5.xml:1246
-#: sssd-ldap.5.xml:1665 sssd-ldap.5.xml:1762 sssd-ldap.5.xml:1824
-#: sssd-ldap.5.xml:2381 sssd-ldap.5.xml:2446 sssd-ldap.5.xml:2464
-#: sssd-ipa.5.xml:405 sssd-ipa.5.xml:440 sssd-ad.5.xml:174 sssd-ad.5.xml:272
-#: sssd-ad.5.xml:809 sssd-ad.5.xml:928 sssd-krb5.5.xml:499
+#: sssd-ldap.5.xml:1678 sssd-ldap.5.xml:1775 sssd-ldap.5.xml:1837
+#: sssd-ldap.5.xml:2394 sssd-ldap.5.xml:2459 sssd-ldap.5.xml:2477
+#: sssd-ipa.5.xml:405 sssd-ipa.5.xml:440 sssd-ad.5.xml:201 sssd-ad.5.xml:299
+#: sssd-ad.5.xml:836 sssd-ad.5.xml:955 sssd-krb5.5.xml:499
 msgid "Default: true"
 msgstr ""
 
@@ -311,15 +311,15 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:146 sssd.conf.5.xml:1200 sssd.conf.5.xml:2495
-#: sssd-ldap.5.xml:692 sssd-ldap.5.xml:1539 sssd-ldap.5.xml:1558
-#: sssd-ldap.5.xml:1734 sssd-ldap.5.xml:2151 sssd-ipa.5.xml:139
+#: sssd-ldap.5.xml:692 sssd-ldap.5.xml:1552 sssd-ldap.5.xml:1571
+#: sssd-ldap.5.xml:1747 sssd-ldap.5.xml:2164 sssd-ipa.5.xml:139
 #: sssd-ipa.5.xml:211 sssd-ipa.5.xml:542 sssd-krb5.5.xml:266
 #: sssd-krb5.5.xml:300 sssd-krb5.5.xml:471
 msgid "Default: false"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:106 sssd.conf.5.xml:157 sssd-ldap.5.xml:2189
+#: sssd.conf.5.xml:106 sssd.conf.5.xml:157 sssd-ldap.5.xml:2202
 msgid "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
@@ -341,7 +341,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:167 sssd.conf.5.xml:1164 sssd-ldap.5.xml:1410
+#: sssd.conf.5.xml:167 sssd.conf.5.xml:1164 sssd-ldap.5.xml:1423
 #: include/ldap_id_mapping.xml:264
 msgid "Default: 10"
 msgstr "Noklusējuma: 10"
@@ -609,9 +609,9 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:391 sssd-ldap.5.xml:663 sssd-ldap.5.xml:1498
-#: sssd-ldap.5.xml:1510 sssd-ldap.5.xml:1592 sssd-ad.5.xml:614
-#: sssd-ad.5.xml:689 sssd-krb5.5.xml:410 sssd-krb5.5.xml:550
+#: sssd.conf.5.xml:391 sssd-ldap.5.xml:663 sssd-ldap.5.xml:1511
+#: sssd-ldap.5.xml:1523 sssd-ldap.5.xml:1605 sssd-ad.5.xml:641
+#: sssd-ad.5.xml:716 sssd-krb5.5.xml:410 sssd-krb5.5.xml:556
 #: include/ldap_id_mapping.xml:205 include/ldap_id_mapping.xml:216
 msgid "Default: not set"
 msgstr ""
@@ -727,7 +727,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:480
-msgid "Default: not set, i.e. do not restrict certificate vertification"
+msgid "Default: not set, i.e. do not restrict certificate verification"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
@@ -801,7 +801,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:547 sssd.conf.5.xml:563 sssd.conf.5.xml:595
 #: sssd.conf.5.xml:842 sssd.conf.5.xml:1034 sssd.conf.5.xml:1467
-#: sssd-ldap.5.xml:1237
+#: sssd-ldap.5.xml:1250
 msgid "Default: 60"
 msgstr "Noklusējuma: 60"
 
@@ -1027,7 +1027,7 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: sssd.conf.5.xml:730 sssd.conf.5.xml:1101 sssd.conf.5.xml:1120
-#: sssd-krb5.5.xml:533 include/override_homedir.xml:55
+#: sssd-krb5.5.xml:539 include/override_homedir.xml:55
 msgid "example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
@@ -1444,7 +1444,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1082 sssd.conf.5.xml:1107 sssd.conf.5.xml:1126
-#: sssd.conf.5.xml:1450 sssd.conf.5.xml:2381 sssd-ldap.5.xml:1793
+#: sssd.conf.5.xml:1450 sssd.conf.5.xml:2381 sssd-ldap.5.xml:1806
 msgid "Default: none"
 msgstr ""
 
@@ -1509,8 +1509,8 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1140 sssd-ldap.5.xml:1021 sssd-ldap.5.xml:1048
-#: sssd-ldap.5.xml:1339 sssd-ldap.5.xml:1360 sssd-ldap.5.xml:1866
+#: sssd.conf.5.xml:1140 sssd-ldap.5.xml:1034 sssd-ldap.5.xml:1061
+#: sssd-ldap.5.xml:1352 sssd-ldap.5.xml:1373 sssd-ldap.5.xml:1879
 #: include/ldap_id_mapping.xml:244
 msgid "Default: False"
 msgstr ""
@@ -2660,8 +2660,8 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2278 sssd-ldap.5.xml:1221 sssd-ldap.5.xml:1263
-#: sssd-ldap.5.xml:1281 sssd-krb5.5.xml:248
+#: sssd.conf.5.xml:2278 sssd-ldap.5.xml:1234 sssd-ldap.5.xml:1276
+#: sssd-ldap.5.xml:1294 sssd-krb5.5.xml:248
 msgid "Default: 6"
 msgstr "Noklusējuma: 6"
 
@@ -2767,7 +2767,7 @@ msgid "ldap_purge_cache_timeout"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2365 sssd-ldap.5.xml:1054
+#: sssd.conf.5.xml:2365 sssd-ldap.5.xml:1067
 msgid "ldap_use_tokengroups"
 msgstr ""
 
@@ -3083,8 +3083,8 @@ msgid "Default: None, no command is run"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:2630 sssd-ldap.5.xml:2632 sssd-simple.5.xml:131
-#: sssd-ipa.5.xml:717 sssd-ad.5.xml:965 sssd-krb5.5.xml:564
+#: sssd.conf.5.xml:2630 sssd-ldap.5.xml:2645 sssd-simple.5.xml:131
+#: sssd-ipa.5.xml:717 sssd-ad.5.xml:992 sssd-krb5.5.xml:570
 #: sss_rpcidmapd.5.xml:98
 msgid "EXAMPLE"
 msgstr "PIEMĒRS"
@@ -3266,7 +3266,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:126 sssd-ldap.5.xml:646 sssd-ad.5.xml:220
+#: sssd-ldap.5.xml:126 sssd-ldap.5.xml:646 sssd-ad.5.xml:247
 #: sss_override.8.xml:137 sss_override.8.xml:234
 msgid "Examples:"
 msgstr ""
@@ -3467,7 +3467,7 @@ msgid "The LDAP attribute that corresponds to the user's primary group id."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:296 sssd-ldap.5.xml:863
+#: sssd-ldap.5.xml:296 sssd-ldap.5.xml:876
 msgid "Default: gidNumber"
 msgstr ""
 
@@ -3527,7 +3527,7 @@ msgid "The LDAP attribute that contains the UUID/GUID of an LDAP user object."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:348 sssd-ldap.5.xml:889
+#: sssd-ldap.5.xml:348 sssd-ldap.5.xml:902
 msgid ""
 "Default: not set in the general case, objectGUID for AD and ipaUniqueID for "
 "IPA"
@@ -3546,7 +3546,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:363 sssd-ldap.5.xml:904
+#: sssd-ldap.5.xml:363 sssd-ldap.5.xml:917
 msgid "Default: objectSid for ActiveDirectory, not set for other servers."
 msgstr ""
 
@@ -3556,14 +3556,14 @@ msgid "ldap_user_modify_timestamp (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:373 sssd-ldap.5.xml:914 sssd-ldap.5.xml:1137
+#: sssd-ldap.5.xml:373 sssd-ldap.5.xml:927 sssd-ldap.5.xml:1150
 msgid ""
 "The LDAP attribute that contains timestamp of the last modification of the "
 "parent object."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:377 sssd-ldap.5.xml:918 sssd-ldap.5.xml:1144
+#: sssd-ldap.5.xml:377 sssd-ldap.5.xml:931 sssd-ldap.5.xml:1157
 msgid "Default: modifyTimestamp"
 msgstr ""
 
@@ -3958,8 +3958,8 @@ msgid "The LDAP attribute that corresponds to the user's full name."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:743 sssd-ldap.5.xml:850 sssd-ldap.5.xml:1095
-#: sssd-ldap.5.xml:1169 sssd-ldap.5.xml:2210 sssd-ipa.5.xml:590
+#: sssd-ldap.5.xml:743 sssd-ldap.5.xml:863 sssd-ldap.5.xml:1108
+#: sssd-ldap.5.xml:1182 sssd-ldap.5.xml:2223 sssd-ipa.5.xml:590
 msgid "Default: cn"
 msgstr ""
 
@@ -4061,95 +4061,112 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:831
-msgid "ldap_group_object_class (string)"
+msgid "ldap_user_email (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:834
+msgid "Name of the LDAP attribute containing the email address of the user."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:838
+#, fuzzy
+#| msgid "Default: uid"
+msgid "Default: mail"
+msgstr "Noklusējuma: uid"
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-ldap.5.xml:844
+msgid "ldap_group_object_class (string)"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ldap.5.xml:847
 msgid "The object class of a group entry in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:837
+#: sssd-ldap.5.xml:850
 msgid "Default: posixGroup"
 msgstr "Noklusējuma: posixGroup"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:843
+#: sssd-ldap.5.xml:856
 msgid "ldap_group_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:846
+#: sssd-ldap.5.xml:859
 msgid "The LDAP attribute that corresponds to the group name."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:856
+#: sssd-ldap.5.xml:869
 msgid "ldap_group_gid_number (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:859
+#: sssd-ldap.5.xml:872
 msgid "The LDAP attribute that corresponds to the group's id."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:869
+#: sssd-ldap.5.xml:882
 msgid "ldap_group_member (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:872
+#: sssd-ldap.5.xml:885
 msgid "The LDAP attribute that contains the names of the group's members."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:876
+#: sssd-ldap.5.xml:889
 msgid "Default: memberuid (rfc2307) / member (rfc2307bis)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:882
+#: sssd-ldap.5.xml:895
 msgid "ldap_group_uuid (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:885
+#: sssd-ldap.5.xml:898
 msgid "The LDAP attribute that contains the UUID/GUID of an LDAP group object."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:896
+#: sssd-ldap.5.xml:909
 msgid "ldap_group_objectsid (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:899
+#: sssd-ldap.5.xml:912
 msgid ""
 "The LDAP attribute that contains the objectSID of an LDAP group object. This "
 "is usually only necessary for ActiveDirectory servers."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:911
+#: sssd-ldap.5.xml:924
 msgid "ldap_group_modify_timestamp (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:924
+#: sssd-ldap.5.xml:937
 msgid "ldap_group_type (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:927
+#: sssd-ldap.5.xml:940
 msgid ""
 "The LDAP attribute that contains an integer value indicating the type of the "
 "group and maybe other flags."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:932
+#: sssd-ldap.5.xml:945
 msgid ""
 "This attribute is currently only used by the AD provider to determine if a "
 "group is a domain local groups and has to be filtered out for trusted "
@@ -4157,34 +4174,34 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:938
+#: sssd-ldap.5.xml:951
 msgid "Default: groupType in the AD provider, othewise not set"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:945
+#: sssd-ldap.5.xml:958
 msgid "ldap_group_external_member (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:948
+#: sssd-ldap.5.xml:961
 msgid ""
 "The LDAP attribute that references group members that are defined in an "
 "external domain. At the moment, only IPA's external members are supported."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:954
+#: sssd-ldap.5.xml:967
 msgid "Default: ipaExternalMember in the IPA provider, otherwise unset."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:961
+#: sssd-ldap.5.xml:974
 msgid "ldap_group_nesting_level (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:964
+#: sssd-ldap.5.xml:977
 msgid ""
 "If ldap_schema is set to a schema format that supports nested groups (e.g. "
 "RFC2307bis), then this option controls how many levels of nesting SSSD will "
@@ -4192,7 +4209,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:971
+#: sssd-ldap.5.xml:984
 msgid ""
 "Note: This option specifies the guaranteed level of nested groups to be "
 "processed for any lookup. However, nested groups beyond this limit "
@@ -4202,7 +4219,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:980
+#: sssd-ldap.5.xml:993
 msgid ""
 "If ldap_group_nesting_level is set to 0 then no nested groups are processed "
 "at all. However, when connected to Active-Directory Server 2008 and later "
@@ -4212,17 +4229,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:989
+#: sssd-ldap.5.xml:1002
 msgid "Default: 2"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:995
+#: sssd-ldap.5.xml:1008
 msgid "ldap_groups_use_matching_rule_in_chain"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:998
+#: sssd-ldap.5.xml:1011
 msgid ""
 "This option tells SSSD to take advantage of an Active Directory-specific "
 "feature which may speed up group lookup operations on deployments with "
@@ -4230,14 +4247,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1004
+#: sssd-ldap.5.xml:1017
 msgid ""
 "In most common cases, it is best to leave this option disabled. It generally "
 "only provides a performance increase on very complex nestings."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1009 sssd-ldap.5.xml:1036
+#: sssd-ldap.5.xml:1022 sssd-ldap.5.xml:1049
 msgid ""
 "If this option is enabled, SSSD will use it if it detects that the server "
 "supports it during initial connection. So \"True\" here essentially means "
@@ -4245,7 +4262,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1015 sssd-ldap.5.xml:1042
+#: sssd-ldap.5.xml:1028 sssd-ldap.5.xml:1055
 msgid ""
 "Note: This feature is currently known to work only with Active Directory "
 "2008 R1 and later. See <ulink url=\"http://msdn.microsoft.com/en-us/library/"
@@ -4254,12 +4271,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1027
+#: sssd-ldap.5.xml:1040
 msgid "ldap_initgroups_use_matching_rule_in_chain"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1030
+#: sssd-ldap.5.xml:1043
 msgid ""
 "This option tells SSSD to take advantage of an Active Directory-specific "
 "feature which might speed up initgroups operations (most notably when "
@@ -4267,168 +4284,168 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1057
+#: sssd-ldap.5.xml:1070
 msgid ""
 "This options enables or disables use of Token-Groups attribute when "
 "performing initgroup for users from Active Directory Server 2008 and later."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1062
+#: sssd-ldap.5.xml:1075
 msgid "Default: True for AD and IPA otherwise False."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1068
+#: sssd-ldap.5.xml:1081
 msgid "ldap_netgroup_object_class (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1071
+#: sssd-ldap.5.xml:1084
 msgid "The object class of a netgroup entry in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1074
+#: sssd-ldap.5.xml:1087
 msgid "In IPA provider, ipa_netgroup_object_class should be used instead."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1078
+#: sssd-ldap.5.xml:1091
 msgid "Default: nisNetgroup"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1084
+#: sssd-ldap.5.xml:1097
 msgid "ldap_netgroup_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1087
+#: sssd-ldap.5.xml:1100
 msgid "The LDAP attribute that corresponds to the netgroup name."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1091
+#: sssd-ldap.5.xml:1104
 msgid "In IPA provider, ipa_netgroup_name should be used instead."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1101
+#: sssd-ldap.5.xml:1114
 msgid "ldap_netgroup_member (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1104
+#: sssd-ldap.5.xml:1117
 msgid "The LDAP attribute that contains the names of the netgroup's members."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1108
+#: sssd-ldap.5.xml:1121
 msgid "In IPA provider, ipa_netgroup_member should be used instead."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1112
+#: sssd-ldap.5.xml:1125
 msgid "Default: memberNisNetgroup"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1118
+#: sssd-ldap.5.xml:1131
 msgid "ldap_netgroup_triple (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1121
+#: sssd-ldap.5.xml:1134
 msgid ""
 "The LDAP attribute that contains the (host, user, domain) netgroup triples."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1125 sssd-ldap.5.xml:1141
+#: sssd-ldap.5.xml:1138 sssd-ldap.5.xml:1154
 msgid "This option is not available in IPA provider."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1128
+#: sssd-ldap.5.xml:1141
 msgid "Default: nisNetgroupTriple"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1134
+#: sssd-ldap.5.xml:1147
 msgid "ldap_netgroup_modify_timestamp (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1150
+#: sssd-ldap.5.xml:1163
 msgid "ldap_service_object_class (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1153
+#: sssd-ldap.5.xml:1166
 msgid "The object class of a service entry in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1156
+#: sssd-ldap.5.xml:1169
 msgid "Default: ipService"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1162
+#: sssd-ldap.5.xml:1175
 msgid "ldap_service_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1165
+#: sssd-ldap.5.xml:1178
 msgid ""
 "The LDAP attribute that contains the name of service attributes and their "
 "aliases."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1175
+#: sssd-ldap.5.xml:1188
 msgid "ldap_service_port (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1178
+#: sssd-ldap.5.xml:1191
 msgid "The LDAP attribute that contains the port managed by this service."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1182
+#: sssd-ldap.5.xml:1195
 msgid "Default: ipServicePort"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1188
+#: sssd-ldap.5.xml:1201
 msgid "ldap_service_proto (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1191
+#: sssd-ldap.5.xml:1204
 msgid ""
 "The LDAP attribute that contains the protocols understood by this service."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1195
+#: sssd-ldap.5.xml:1208
 msgid "Default: ipServiceProtocol"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1201
+#: sssd-ldap.5.xml:1214
 msgid "ldap_service_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1206
+#: sssd-ldap.5.xml:1219
 msgid "ldap_search_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1209
+#: sssd-ldap.5.xml:1222
 msgid ""
 "Specifies the timeout (in seconds) that ldap searches are allowed to run "
 "before they are cancelled and cached results are returned (and offline mode "
@@ -4436,7 +4453,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1215
+#: sssd-ldap.5.xml:1228
 msgid ""
 "Note: this option is subject to change in future versions of the SSSD. It "
 "will likely be replaced at some point by a series of timeouts for specific "
@@ -4444,12 +4461,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1227
+#: sssd-ldap.5.xml:1240
 msgid "ldap_enumeration_search_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1230
+#: sssd-ldap.5.xml:1243
 msgid ""
 "Specifies the timeout (in seconds) that ldap searches for user and group "
 "enumerations are allowed to run before they are cancelled and cached results "
@@ -4457,12 +4474,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1243
+#: sssd-ldap.5.xml:1256
 msgid "ldap_network_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1246
+#: sssd-ldap.5.xml:1259
 msgid ""
 "Specifies the timeout (in seconds) after which the <citerefentry> "
 "<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </citerefentry>/"
@@ -4473,12 +4490,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1269
+#: sssd-ldap.5.xml:1282
 msgid "ldap_opt_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1272
+#: sssd-ldap.5.xml:1285
 msgid ""
 "Specifies a timeout (in seconds) after which calls to synchronous LDAP APIs "
 "will abort if no response is received. Also controls the timeout when "
@@ -4487,12 +4504,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1287
+#: sssd-ldap.5.xml:1300
 msgid "ldap_connection_expire_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1290
+#: sssd-ldap.5.xml:1303
 msgid ""
 "Specifies a timeout (in seconds) that a connection to an LDAP server will be "
 "maintained. After this time, the connection will be re-established. If used "
@@ -4501,34 +4518,34 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1298 sssd-ldap.5.xml:2367
+#: sssd-ldap.5.xml:1311 sssd-ldap.5.xml:2380
 msgid "Default: 900 (15 minutes)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1304
+#: sssd-ldap.5.xml:1317
 msgid "ldap_page_size (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1307
+#: sssd-ldap.5.xml:1320
 msgid ""
 "Specify the number of records to retrieve from LDAP in a single request. "
 "Some LDAP servers enforce a maximum limit per-request."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1312
+#: sssd-ldap.5.xml:1325
 msgid "Default: 1000"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1318
+#: sssd-ldap.5.xml:1331
 msgid "ldap_disable_paging (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1321
+#: sssd-ldap.5.xml:1334
 msgid ""
 "Disable the LDAP paging control. This option should be used if the LDAP "
 "server reports that it supports the LDAP paging control in its RootDSE but "
@@ -4536,14 +4553,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1327
+#: sssd-ldap.5.xml:1340
 msgid ""
 "Example: OpenLDAP servers with the paging control module installed on the "
 "server but not enabled will report it in the RootDSE but be unable to use it."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1333
+#: sssd-ldap.5.xml:1346
 msgid ""
 "Example: 389 DS has a bug where it can only support a one paging control at "
 "a time on a single connection. On busy clients, this can result in some "
@@ -4551,17 +4568,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1345
+#: sssd-ldap.5.xml:1358
 msgid "ldap_disable_range_retrieval (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1348
+#: sssd-ldap.5.xml:1361
 msgid "Disable Active Directory range retrieval."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1351
+#: sssd-ldap.5.xml:1364
 msgid ""
 "Active Directory limits the number of members to be retrieved in a single "
 "lookup using the MaxValRange policy (which defaults to 1500 members). If a "
@@ -4571,12 +4588,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1366
+#: sssd-ldap.5.xml:1379
 msgid "ldap_sasl_minssf (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1369
+#: sssd-ldap.5.xml:1382
 msgid ""
 "When communicating with an LDAP server using SASL, specify the minimum "
 "security level necessary to establish the connection. The values of this "
@@ -4584,17 +4601,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1375
+#: sssd-ldap.5.xml:1388
 msgid "Default: Use the system default (usually specified by ldap.conf)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1382
+#: sssd-ldap.5.xml:1395
 msgid "ldap_deref_threshold (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1385
+#: sssd-ldap.5.xml:1398
 msgid ""
 "Specify the number of group members that must be missing from the internal "
 "cache in order to trigger a dereference lookup. If less members are missing, "
@@ -4602,13 +4619,13 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1391
+#: sssd-ldap.5.xml:1404
 msgid ""
 "You can turn off dereference lookups completely by setting the value to 0."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1395
+#: sssd-ldap.5.xml:1408
 msgid ""
 "A dereference lookup is a means of fetching all group members in a single "
 "LDAP call.  Different LDAP servers may implement different dereference "
@@ -4617,7 +4634,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1403
+#: sssd-ldap.5.xml:1416
 msgid ""
 "<emphasis>Note:</emphasis> If any of the search bases specifies a search "
 "filter, then the dereference lookup performance enhancement will be disabled "
@@ -4625,26 +4642,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1416
+#: sssd-ldap.5.xml:1429
 msgid "ldap_tls_reqcert (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1419
+#: sssd-ldap.5.xml:1432
 msgid ""
 "Specifies what checks to perform on server certificates in a TLS session, if "
 "any. It can be specified as one of the following values:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1425
+#: sssd-ldap.5.xml:1438
 msgid ""
 "<emphasis>never</emphasis> = The client will not request or check any server "
 "certificate."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1429
+#: sssd-ldap.5.xml:1442
 msgid ""
 "<emphasis>allow</emphasis> = The server certificate is requested. If no "
 "certificate is provided, the session proceeds normally. If a bad certificate "
@@ -4652,7 +4669,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1436
+#: sssd-ldap.5.xml:1449
 msgid ""
 "<emphasis>try</emphasis> = The server certificate is requested. If no "
 "certificate is provided, the session proceeds normally. If a bad certificate "
@@ -4660,7 +4677,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1442
+#: sssd-ldap.5.xml:1455
 msgid ""
 "<emphasis>demand</emphasis> = The server certificate is requested. If no "
 "certificate is provided, or a bad certificate is provided, the session is "
@@ -4668,41 +4685,41 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1448
+#: sssd-ldap.5.xml:1461
 msgid "<emphasis>hard</emphasis> = Same as <quote>demand</quote>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1452
+#: sssd-ldap.5.xml:1465
 msgid "Default: hard"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1458
+#: sssd-ldap.5.xml:1471
 msgid "ldap_tls_cacert (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1461
+#: sssd-ldap.5.xml:1474
 msgid ""
 "Specifies the file that contains certificates for all of the Certificate "
 "Authorities that <command>sssd</command> will recognize."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1466 sssd-ldap.5.xml:1484 sssd-ldap.5.xml:1525
+#: sssd-ldap.5.xml:1479 sssd-ldap.5.xml:1497 sssd-ldap.5.xml:1538
 msgid ""
 "Default: use OpenLDAP defaults, typically in <filename>/etc/openldap/ldap."
 "conf</filename>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1473
+#: sssd-ldap.5.xml:1486
 msgid "ldap_tls_cacertdir (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1476
+#: sssd-ldap.5.xml:1489
 msgid ""
 "Specifies the path of a directory that contains Certificate Authority "
 "certificates in separate individual files. Typically the file names need to "
@@ -4711,32 +4728,32 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1491
+#: sssd-ldap.5.xml:1504
 msgid "ldap_tls_cert (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1494
+#: sssd-ldap.5.xml:1507
 msgid "Specifies the file that contains the certificate for the client's key."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1504
+#: sssd-ldap.5.xml:1517
 msgid "ldap_tls_key (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1507
+#: sssd-ldap.5.xml:1520
 msgid "Specifies the file that contains the client's key."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1516
+#: sssd-ldap.5.xml:1529
 msgid "ldap_tls_cipher_suite (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1519
+#: sssd-ldap.5.xml:1532
 msgid ""
 "Specifies acceptable cipher suites.  Typically this is a colon separated "
 "list.  See <citerefentry><refentrytitle>ldap.conf</refentrytitle> "
@@ -4744,24 +4761,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1532
+#: sssd-ldap.5.xml:1545
 msgid "ldap_id_use_start_tls (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1535
+#: sssd-ldap.5.xml:1548
 msgid ""
 "Specifies that the id_provider connection must also use <systemitem class="
 "\"protocol\">tls</systemitem> to protect the channel."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1545
+#: sssd-ldap.5.xml:1558
 msgid "ldap_id_mapping (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1548
+#: sssd-ldap.5.xml:1561
 msgid ""
 "Specifies that SSSD should attempt to map user and group IDs from the "
 "ldap_user_objectsid and ldap_group_objectsid attributes instead of relying "
@@ -4769,17 +4786,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1554
+#: sssd-ldap.5.xml:1567
 msgid "Currently this feature supports only ActiveDirectory objectSID mapping."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1564
+#: sssd-ldap.5.xml:1577
 msgid "ldap_min_id, ldap_max_id (interger)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1567
+#: sssd-ldap.5.xml:1580
 msgid ""
 "In contrast to the SID based ID mapping which is used if ldap_id_mapping is "
 "set to true the allowed ID range for ldap_user_uid_number and "
@@ -4790,29 +4807,29 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1579
+#: sssd-ldap.5.xml:1592
 msgid "Default: not set (both options are set to 0)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1585
+#: sssd-ldap.5.xml:1598
 msgid "ldap_sasl_mech (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1588
+#: sssd-ldap.5.xml:1601
 msgid ""
 "Specify the SASL mechanism to use.  Currently only GSSAPI is tested and "
 "supported."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1598
+#: sssd-ldap.5.xml:1611
 msgid "ldap_sasl_authid (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1601
+#: sssd-ldap.5.xml:1614
 msgid ""
 "Specify the SASL authorization id to use.  When GSSAPI is used, this "
 "represents the Kerberos principal used for authentication to the directory.  "
@@ -4821,17 +4838,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1609
+#: sssd-ldap.5.xml:1622
 msgid "Default: host/hostname@REALM"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1615
+#: sssd-ldap.5.xml:1628
 msgid "ldap_sasl_realm (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1618
+#: sssd-ldap.5.xml:1631
 msgid ""
 "Specify the SASL realm to use. When not specified, this option defaults to "
 "the value of krb5_realm.  If the ldap_sasl_authid contains the realm as "
@@ -4839,49 +4856,49 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1624
+#: sssd-ldap.5.xml:1637
 msgid "Default: the value of krb5_realm."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1630
+#: sssd-ldap.5.xml:1643
 msgid "ldap_sasl_canonicalize (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1633
+#: sssd-ldap.5.xml:1646
 msgid ""
 "If set to true, the LDAP library would perform a reverse lookup to "
 "canonicalize the host name during a SASL bind."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1638
+#: sssd-ldap.5.xml:1651
 msgid "Default: false;"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1644
+#: sssd-ldap.5.xml:1657
 msgid "ldap_krb5_keytab (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1647
+#: sssd-ldap.5.xml:1660
 msgid "Specify the keytab to use when using SASL/GSSAPI."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1650
+#: sssd-ldap.5.xml:1663
 msgid "Default: System keytab, normally <filename>/etc/krb5.keytab</filename>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1656
+#: sssd-ldap.5.xml:1669
 msgid "ldap_krb5_init_creds (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1659
+#: sssd-ldap.5.xml:1672
 msgid ""
 "Specifies that the id_provider should init Kerberos credentials (TGT).  This "
 "action is performed only if SASL is used and the mechanism selected is "
@@ -4889,27 +4906,27 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1671
+#: sssd-ldap.5.xml:1684
 msgid "ldap_krb5_ticket_lifetime (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1674
+#: sssd-ldap.5.xml:1687
 msgid "Specifies the lifetime in seconds of the TGT if GSSAPI is used."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1678 sssd-ad.5.xml:859
+#: sssd-ldap.5.xml:1691 sssd-ad.5.xml:886
 msgid "Default: 86400 (24 hours)"
 msgstr "Noklusējuma: 86400 (24 stundas)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1684 sssd-krb5.5.xml:74
+#: sssd-ldap.5.xml:1697 sssd-krb5.5.xml:74
 msgid "krb5_server, krb5_backup_server (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1687
+#: sssd-ldap.5.xml:1700
 msgid ""
 "Specifies the comma-separated list of IP addresses or hostnames of the "
 "Kerberos servers to which SSSD should connect in the order of preference. "
@@ -4921,7 +4938,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1699 sssd-krb5.5.xml:89
+#: sssd-ldap.5.xml:1712 sssd-krb5.5.xml:89
 msgid ""
 "When using service discovery for KDC or kpasswd servers, SSSD first searches "
 "for DNS entries that specify _udp as the protocol and falls back to _tcp if "
@@ -4929,7 +4946,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1704 sssd-krb5.5.xml:94
+#: sssd-ldap.5.xml:1717 sssd-krb5.5.xml:94
 msgid ""
 "This option was named <quote>krb5_kdcip</quote> in earlier releases of SSSD. "
 "While the legacy name is recognized for the time being, users are advised to "
@@ -4937,39 +4954,39 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1713 sssd-ipa.5.xml:415 sssd-krb5.5.xml:103
+#: sssd-ldap.5.xml:1726 sssd-ipa.5.xml:415 sssd-krb5.5.xml:103
 msgid "krb5_realm (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1716
+#: sssd-ldap.5.xml:1729
 msgid "Specify the Kerberos REALM (for SASL/GSSAPI auth)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1719
+#: sssd-ldap.5.xml:1732
 msgid "Default: System defaults, see <filename>/etc/krb5.conf</filename>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1725 sssd-ipa.5.xml:430 sssd-krb5.5.xml:462
+#: sssd-ldap.5.xml:1738 sssd-ipa.5.xml:430 sssd-krb5.5.xml:462
 msgid "krb5_canonicalize (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1728
+#: sssd-ldap.5.xml:1741
 msgid ""
 "Specifies if the host principal should be canonicalized when connecting to "
 "LDAP server. This feature is available with MIT Kerberos >= 1.7"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1740 sssd-krb5.5.xml:477
+#: sssd-ldap.5.xml:1753 sssd-krb5.5.xml:477
 msgid "krb5_use_kdcinfo (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1743 sssd-krb5.5.xml:480
+#: sssd-ldap.5.xml:1756 sssd-krb5.5.xml:480
 msgid ""
 "Specifies if the SSSD should instruct the Kerberos libraries what realm and "
 "which KDCs to use. This option is on by default, if you disable it, you need "
@@ -4979,7 +4996,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1754 sssd-krb5.5.xml:491
+#: sssd-ldap.5.xml:1767 sssd-krb5.5.xml:491
 msgid ""
 "See the <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
 "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> manual page for more "
@@ -4987,26 +5004,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1768
+#: sssd-ldap.5.xml:1781
 msgid "ldap_pwd_policy (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1771
+#: sssd-ldap.5.xml:1784
 msgid ""
 "Select the policy to evaluate the password expiration on the client side. "
 "The following values are allowed:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1776
+#: sssd-ldap.5.xml:1789
 msgid ""
 "<emphasis>none</emphasis> - No evaluation on the client side. This option "
 "cannot disable server-side password policies."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1781
+#: sssd-ldap.5.xml:1794
 msgid ""
 "<emphasis>shadow</emphasis> - Use <citerefentry><refentrytitle>shadow</"
 "refentrytitle> <manvolnum>5</manvolnum></citerefentry> style attributes to "
@@ -5014,7 +5031,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1787
+#: sssd-ldap.5.xml:1800
 msgid ""
 "<emphasis>mit_kerberos</emphasis> - Use the attributes used by MIT Kerberos "
 "to determine if the password has expired. Use chpass_provider=krb5 to update "
@@ -5022,31 +5039,31 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1796
+#: sssd-ldap.5.xml:1809
 msgid ""
 "<emphasis>Note</emphasis>: if a password policy is configured on server "
 "side, it always takes precedence over policy set with this option."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1804
+#: sssd-ldap.5.xml:1817
 msgid "ldap_referrals (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1807
+#: sssd-ldap.5.xml:1820
 msgid "Specifies whether automatic referral chasing should be enabled."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1811
+#: sssd-ldap.5.xml:1824
 msgid ""
 "Please note that sssd only supports referral chasing when it is compiled "
 "with OpenLDAP version 2.4.13 or higher."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1816
+#: sssd-ldap.5.xml:1829
 msgid ""
 "Chasing referrals may incur a performance penalty in environments that use "
 "them heavily, a notable example is Microsoft Active Directory. If your setup "
@@ -5055,56 +5072,56 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1830
+#: sssd-ldap.5.xml:1843
 msgid "ldap_dns_service_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1833
+#: sssd-ldap.5.xml:1846
 msgid "Specifies the service name to use when service discovery is enabled."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1837
+#: sssd-ldap.5.xml:1850
 msgid "Default: ldap"
 msgstr "Noklusējuma: ldap"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1843
+#: sssd-ldap.5.xml:1856
 msgid "ldap_chpass_dns_service_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1846
+#: sssd-ldap.5.xml:1859
 msgid ""
 "Specifies the service name to use to find an LDAP server which allows "
 "password changes when service discovery is enabled."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1851
+#: sssd-ldap.5.xml:1864
 msgid "Default: not set, i.e. service discovery is disabled"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1857
+#: sssd-ldap.5.xml:1870
 msgid "ldap_chpass_update_last_change (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1860
+#: sssd-ldap.5.xml:1873
 msgid ""
 "Specifies whether to update the ldap_user_shadow_last_change attribute with "
 "days since the Epoch after a password change operation."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1872
+#: sssd-ldap.5.xml:1885
 msgid "ldap_access_filter (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1875
+#: sssd-ldap.5.xml:1888
 msgid ""
 "If using access_provider = ldap and ldap_access_order = filter (default), "
 "this option is mandatory. It specifies an LDAP search filter criteria that "
@@ -5120,12 +5137,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1895
+#: sssd-ldap.5.xml:1908
 msgid "Example:"
 msgstr "Piemērs:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
-#: sssd-ldap.5.xml:1898
+#: sssd-ldap.5.xml:1911
 #, no-wrap
 msgid ""
 "access_provider = ldap\n"
@@ -5134,14 +5151,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1902
+#: sssd-ldap.5.xml:1915
 msgid ""
 "This example means that access to this host is restricted to users whose "
 "employeeType attribute is set to \"admin\"."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1907
+#: sssd-ldap.5.xml:1920
 msgid ""
 "Offline caching for this feature is limited to determining whether the "
 "user's last online login was granted access permission. If they were granted "
@@ -5150,24 +5167,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1915 sssd-ldap.5.xml:1972
+#: sssd-ldap.5.xml:1928 sssd-ldap.5.xml:1985
 msgid "Default: Empty"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1921
+#: sssd-ldap.5.xml:1934
 msgid "ldap_account_expire_policy (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1924
+#: sssd-ldap.5.xml:1937
 msgid ""
 "With this option a client side evaluation of access control attributes can "
 "be enabled."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1928
+#: sssd-ldap.5.xml:1941
 msgid ""
 "Please note that it is always recommended to use server side access control, "
 "i.e. the LDAP server should deny the bind request with a suitable error code "
@@ -5175,19 +5192,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1935
+#: sssd-ldap.5.xml:1948
 msgid "The following values are allowed:"
 msgstr "Atļautas šādas vērtības:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1938
+#: sssd-ldap.5.xml:1951
 msgid ""
 "<emphasis>shadow</emphasis>: use the value of ldap_user_shadow_expire to "
 "determine if the account is expired."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1943
+#: sssd-ldap.5.xml:1956
 msgid ""
 "<emphasis>ad</emphasis>: use the value of the 32bit field "
 "ldap_user_ad_user_account_control and allow access if the second bit is not "
@@ -5196,7 +5213,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1950
+#: sssd-ldap.5.xml:1963
 msgid ""
 "<emphasis>rhds</emphasis>, <emphasis>ipa</emphasis>, <emphasis>389ds</"
 "emphasis>: use the value of ldap_ns_account_lock to check if access is "
@@ -5204,7 +5221,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1956
+#: sssd-ldap.5.xml:1969
 msgid ""
 "<emphasis>nds</emphasis>: the values of "
 "ldap_user_nds_login_allowed_time_map, ldap_user_nds_login_disabled and "
@@ -5213,7 +5230,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1965
+#: sssd-ldap.5.xml:1978
 msgid ""
 "Please note that the ldap_access_order configuration option <emphasis>must</"
 "emphasis> include <quote>expire</quote> in order for the "
@@ -5221,22 +5238,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:1978
+#: sssd-ldap.5.xml:1991
 msgid "ldap_access_order (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1981
+#: sssd-ldap.5.xml:1994
 msgid "Comma separated list of access control options.  Allowed values are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1985
+#: sssd-ldap.5.xml:1998
 msgid "<emphasis>filter</emphasis>: use ldap_access_filter"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1988
+#: sssd-ldap.5.xml:2001
 msgid ""
 "<emphasis>lockout</emphasis>: use account locking.  If set, this option "
 "denies access in case that ldap attribute 'pwdAccountLockedTime' is present "
@@ -5246,14 +5263,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:1998
+#: sssd-ldap.5.xml:2011
 msgid ""
 "<emphasis> Please note that this option is superseded by the <quote>ppolicy</"
 "quote> option and might be removed in a future release.  </emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2005
+#: sssd-ldap.5.xml:2018
 msgid ""
 "<emphasis>ppolicy</emphasis>: use account locking.  If set, this option "
 "denies access in case that ldap attribute 'pwdAccountLockedTime' is present "
@@ -5266,12 +5283,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2022
+#: sssd-ldap.5.xml:2035
 msgid "<emphasis>expire</emphasis>: use ldap_account_expire_policy"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2026
+#: sssd-ldap.5.xml:2039
 msgid ""
 "<emphasis>pwd_expire_policy_reject, pwd_expire_policy_warn, "
 "pwd_expire_policy_renew: </emphasis> These options are useful if users are "
@@ -5281,7 +5298,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2036
+#: sssd-ldap.5.xml:2049
 msgid ""
 "The difference between these options is the action taken if user password is "
 "expired: pwd_expire_policy_reject - user is denied to log in, "
@@ -5291,49 +5308,49 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2044
+#: sssd-ldap.5.xml:2057
 msgid ""
 "Note If user password is expired no explicit message is prompted by SSSD."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2048
+#: sssd-ldap.5.xml:2061
 msgid ""
 "Please note that 'access_provider = ldap' must be set for this feature to "
 "work. Also 'ldap_pwd_policy' must be set to an appropriate password policy."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2053
+#: sssd-ldap.5.xml:2066
 msgid ""
 "<emphasis>authorized_service</emphasis>: use the authorizedService attribute "
 "to determine access"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2058
+#: sssd-ldap.5.xml:2071
 msgid "<emphasis>host</emphasis>: use the host attribute to determine access"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2062
+#: sssd-ldap.5.xml:2075
 msgid "Default: filter"
 msgstr "Noklusējuma: filtrēt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2065
+#: sssd-ldap.5.xml:2078
 msgid ""
 "Please note that it is a configuration error if a value is used more than "
 "once."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2072
+#: sssd-ldap.5.xml:2085
 msgid "ldap_pwdlockout_dn (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2075
+#: sssd-ldap.5.xml:2088
 msgid ""
 "This option specifies the DN of password policy entry on LDAP server. Please "
 "note that absence of this option in sssd.conf in case of enabled account "
@@ -5342,74 +5359,74 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2083
+#: sssd-ldap.5.xml:2096
 msgid "Example: cn=ppolicy,ou=policies,dc=example,dc=com"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2086
+#: sssd-ldap.5.xml:2099
 msgid "Default: cn=ppolicy,ou=policies,$ldap_search_base"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2092
+#: sssd-ldap.5.xml:2105
 msgid "ldap_deref (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2095
+#: sssd-ldap.5.xml:2108
 msgid ""
 "Specifies how alias dereferencing is done when performing a search. The "
 "following options are allowed:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2100
+#: sssd-ldap.5.xml:2113
 msgid "<emphasis>never</emphasis>: Aliases are never dereferenced."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2104
+#: sssd-ldap.5.xml:2117
 msgid ""
 "<emphasis>searching</emphasis>: Aliases are dereferenced in subordinates of "
 "the base object, but not in locating the base object of the search."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2109
+#: sssd-ldap.5.xml:2122
 msgid ""
 "<emphasis>finding</emphasis>: Aliases are only dereferenced when locating "
 "the base object of the search."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2114
+#: sssd-ldap.5.xml:2127
 msgid ""
 "<emphasis>always</emphasis>: Aliases are dereferenced both in searching and "
 "in locating the base object of the search."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2119
+#: sssd-ldap.5.xml:2132
 msgid ""
 "Default: Empty (this is handled as <emphasis>never</emphasis> by the LDAP "
 "client libraries)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2127
+#: sssd-ldap.5.xml:2140
 msgid "ldap_rfc2307_fallback_to_local_users (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2130
+#: sssd-ldap.5.xml:2143
 msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2134
+#: sssd-ldap.5.xml:2147
 msgid ""
 "In some environments where the RFC2307 schema is used, local users are made "
 "members of LDAP groups by adding their names to the memberUid attribute.  "
@@ -5420,7 +5437,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2145
+#: sssd-ldap.5.xml:2158
 msgid ""
 "This option falls back to checking if local users are referenced, and caches "
 "them so that later initgroups() calls will augment the local users with the "
@@ -5428,26 +5445,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2157 sssd-ifp.5.xml:136
+#: sssd-ldap.5.xml:2170 sssd-ifp.5.xml:136
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "wildcart_limit (integer)"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2160
+#: sssd-ldap.5.xml:2173
 msgid ""
 "Specifies an upper limit on the number of entries that are downloaded during "
 "a wildcard lookup."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2164
+#: sssd-ldap.5.xml:2177
 msgid "At the moment, only the InfoPipe responder supports wildcard lookups."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2168
+#: sssd-ldap.5.xml:2181
 msgid "Default: 1000 (often the size of one page)"
 msgstr ""
 
@@ -5462,12 +5479,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:2178
+#: sssd-ldap.5.xml:2191
 msgid "SUDO OPTIONS"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2180
+#: sssd-ldap.5.xml:2193
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
@@ -5475,208 +5492,208 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2191
+#: sssd-ldap.5.xml:2204
 msgid "ldap_sudorule_object_class (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2194
+#: sssd-ldap.5.xml:2207
 msgid "The object class of a sudo rule entry in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2197
+#: sssd-ldap.5.xml:2210
 msgid "Default: sudoRole"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2203
+#: sssd-ldap.5.xml:2216
 msgid "ldap_sudorule_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2206
+#: sssd-ldap.5.xml:2219
 msgid "The LDAP attribute that corresponds to the sudo rule name."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2216
+#: sssd-ldap.5.xml:2229
 msgid "ldap_sudorule_command (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2219
+#: sssd-ldap.5.xml:2232
 msgid "The LDAP attribute that corresponds to the command name."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2223
+#: sssd-ldap.5.xml:2236
 msgid "Default: sudoCommand"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2229
+#: sssd-ldap.5.xml:2242
 msgid "ldap_sudorule_host (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2232
+#: sssd-ldap.5.xml:2245
 msgid ""
 "The LDAP attribute that corresponds to the host name (or host IP address, "
 "host IP network, or host netgroup)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2237
+#: sssd-ldap.5.xml:2250
 msgid "Default: sudoHost"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2243
+#: sssd-ldap.5.xml:2256
 msgid "ldap_sudorule_user (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2246
+#: sssd-ldap.5.xml:2259
 msgid ""
 "The LDAP attribute that corresponds to the user name (or UID, group name or "
 "user's netgroup)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2250
+#: sssd-ldap.5.xml:2263
 msgid "Default: sudoUser"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2256
+#: sssd-ldap.5.xml:2269
 msgid "ldap_sudorule_option (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2259
+#: sssd-ldap.5.xml:2272
 msgid "The LDAP attribute that corresponds to the sudo options."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2263
+#: sssd-ldap.5.xml:2276
 msgid "Default: sudoOption"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2269
+#: sssd-ldap.5.xml:2282
 msgid "ldap_sudorule_runasuser (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2272
+#: sssd-ldap.5.xml:2285
 msgid ""
 "The LDAP attribute that corresponds to the user name that commands may be "
 "run as."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2276
+#: sssd-ldap.5.xml:2289
 msgid "Default: sudoRunAsUser"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2282
+#: sssd-ldap.5.xml:2295
 msgid "ldap_sudorule_runasgroup (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2285
+#: sssd-ldap.5.xml:2298
 msgid ""
 "The LDAP attribute that corresponds to the group name or group GID that "
 "commands may be run as."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2289
+#: sssd-ldap.5.xml:2302
 msgid "Default: sudoRunAsGroup"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2295
+#: sssd-ldap.5.xml:2308
 msgid "ldap_sudorule_notbefore (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2298
+#: sssd-ldap.5.xml:2311
 msgid ""
 "The LDAP attribute that corresponds to the start date/time for when the sudo "
 "rule is valid."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2302
+#: sssd-ldap.5.xml:2315
 msgid "Default: sudoNotBefore"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2308
+#: sssd-ldap.5.xml:2321
 msgid "ldap_sudorule_notafter (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2311
+#: sssd-ldap.5.xml:2324
 msgid ""
 "The LDAP attribute that corresponds to the expiration date/time, after which "
 "the sudo rule will no longer be valid."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2316
+#: sssd-ldap.5.xml:2329
 msgid "Default: sudoNotAfter"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2322
+#: sssd-ldap.5.xml:2335
 msgid "ldap_sudorule_order (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2325
+#: sssd-ldap.5.xml:2338
 msgid "The LDAP attribute that corresponds to the ordering index of the rule."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2329
+#: sssd-ldap.5.xml:2342
 msgid "Default: sudoOrder"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2335
+#: sssd-ldap.5.xml:2348
 msgid "ldap_sudo_full_refresh_interval (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2338
+#: sssd-ldap.5.xml:2351
 msgid ""
 "How many seconds SSSD will wait between executing a full refresh of sudo "
 "rules (which downloads all rules that are stored on the server)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2343
+#: sssd-ldap.5.xml:2356
 msgid ""
 "The value must be greater than <emphasis>ldap_sudo_smart_refresh_interval </"
 "emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2348
+#: sssd-ldap.5.xml:2361
 msgid "Default: 21600 (6 hours)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2354
+#: sssd-ldap.5.xml:2367
 msgid "ldap_sudo_smart_refresh_interval (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2357
+#: sssd-ldap.5.xml:2370
 msgid ""
 "How many seconds SSSD has to wait before executing a smart refresh of sudo "
 "rules (which downloads all rules that have USN higher than the highest USN "
@@ -5684,101 +5701,101 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2363
+#: sssd-ldap.5.xml:2376
 msgid ""
 "If USN attributes are not supported by the server, the modifyTimestamp "
 "attribute is used instead."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2373
+#: sssd-ldap.5.xml:2386
 msgid "ldap_sudo_use_host_filter (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2376
+#: sssd-ldap.5.xml:2389
 msgid ""
 "If true, SSSD will download only rules that are applicable to this machine "
 "(using the IPv4 or IPv6 host/network addresses and hostnames)."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2387
+#: sssd-ldap.5.xml:2400
 msgid "ldap_sudo_hostnames (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2390
+#: sssd-ldap.5.xml:2403
 msgid ""
 "Space separated list of hostnames or fully qualified domain names that "
 "should be used to filter the rules."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2395
+#: sssd-ldap.5.xml:2408
 msgid ""
 "If this option is empty, SSSD will try to discover the hostname and the "
 "fully qualified domain name automatically."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2400 sssd-ldap.5.xml:2423 sssd-ldap.5.xml:2441
-#: sssd-ldap.5.xml:2459
+#: sssd-ldap.5.xml:2413 sssd-ldap.5.xml:2436 sssd-ldap.5.xml:2454
+#: sssd-ldap.5.xml:2472
 msgid ""
 "If <emphasis>ldap_sudo_use_host_filter</emphasis> is <emphasis>false</"
 "emphasis> then this option has no effect."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2405 sssd-ldap.5.xml:2428
+#: sssd-ldap.5.xml:2418 sssd-ldap.5.xml:2441
 msgid "Default: not specified"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2411
+#: sssd-ldap.5.xml:2424
 msgid "ldap_sudo_ip (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2414
+#: sssd-ldap.5.xml:2427
 msgid ""
 "Space separated list of IPv4 or IPv6 host/network addresses that should be "
 "used to filter the rules."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2419
+#: sssd-ldap.5.xml:2432
 msgid ""
 "If this option is empty, SSSD will try to discover the addresses "
 "automatically."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2434
+#: sssd-ldap.5.xml:2447
 msgid "ldap_sudo_include_netgroups (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2437
+#: sssd-ldap.5.xml:2450
 msgid ""
 "If true then SSSD will download every rule that contains a netgroup in "
 "sudoHost attribute."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2452
+#: sssd-ldap.5.xml:2465
 msgid "ldap_sudo_include_regexp (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2455
+#: sssd-ldap.5.xml:2468
 msgid ""
 "If true then SSSD will download every rule that contains a wildcard in "
 "sudoHost attribute."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2471
+#: sssd-ldap.5.xml:2484
 msgid ""
 "This manual page only describes attribute name mapping.  For detailed "
 "explanation of sudo related attribute semantics, see <citerefentry> "
@@ -5787,111 +5804,111 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:2481
+#: sssd-ldap.5.xml:2494
 msgid "AUTOFS OPTIONS"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2483
+#: sssd-ldap.5.xml:2496
 msgid ""
 "Some of the defaults for the parameters below are dependent on the LDAP "
 "schema."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2489
+#: sssd-ldap.5.xml:2502
 msgid "ldap_autofs_map_master_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2492
+#: sssd-ldap.5.xml:2505
 msgid "The name of the automount master map in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2495
+#: sssd-ldap.5.xml:2508
 msgid "Default: auto.master"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2502
+#: sssd-ldap.5.xml:2515
 msgid "ldap_autofs_map_object_class (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2505
+#: sssd-ldap.5.xml:2518
 msgid "The object class of an automount map entry in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2508
+#: sssd-ldap.5.xml:2521
 msgid "Default: nisMap (rfc2307, autofs_provider=ad), otherwise automountMap"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2516
+#: sssd-ldap.5.xml:2529
 msgid "ldap_autofs_map_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2519
+#: sssd-ldap.5.xml:2532
 msgid "The name of an automount map entry in LDAP."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2522
+#: sssd-ldap.5.xml:2535
 msgid ""
 "Default: nisMapName (rfc2307, autofs_provider=ad), otherwise automountMapName"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2530
+#: sssd-ldap.5.xml:2543
 msgid "ldap_autofs_entry_object_class (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2533
+#: sssd-ldap.5.xml:2546
 msgid ""
 "The object class of an automount entry in LDAP. The entry usually "
 "corresponds to a mount point."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2538
+#: sssd-ldap.5.xml:2551
 msgid "Default: nisObject (rfc2307, autofs_provider=ad), otherwise automount"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2546
+#: sssd-ldap.5.xml:2559
 msgid "ldap_autofs_entry_key (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2549 sssd-ldap.5.xml:2564
+#: sssd-ldap.5.xml:2562 sssd-ldap.5.xml:2577
 msgid ""
 "The key of an automount entry in LDAP. The entry usually corresponds to a "
 "mount point."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2553
+#: sssd-ldap.5.xml:2566
 msgid "Default: cn (rfc2307, autofs_provider=ad), otherwise automountKey"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2561
+#: sssd-ldap.5.xml:2574
 msgid "ldap_autofs_entry_value (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ldap.5.xml:2568
+#: sssd-ldap.5.xml:2581
 msgid ""
 "Default: nisMapEntry (rfc2307, autofs_provider=ad), otherwise "
 "automountInformation"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2487
+#: sssd-ldap.5.xml:2500
 msgid ""
 "<placeholder type=\"variablelist\" id=\"0\"/> <placeholder type="
 "\"variablelist\" id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/> "
@@ -5900,32 +5917,32 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:2579
+#: sssd-ldap.5.xml:2592
 msgid "ADVANCED OPTIONS"
 msgstr "PAPLAŠINĀTĀS IESPĒJAS"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2586
+#: sssd-ldap.5.xml:2599
 msgid "ldap_netgroup_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2591
+#: sssd-ldap.5.xml:2604
 msgid "ldap_user_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2596
+#: sssd-ldap.5.xml:2609
 msgid "ldap_group_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><note>
-#: sssd-ldap.5.xml:2601
+#: sssd-ldap.5.xml:2614
 msgid "<note>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><note><para>
-#: sssd-ldap.5.xml:2603
+#: sssd-ldap.5.xml:2616
 msgid ""
 "If the option <quote>ldap_use_tokengroups</quote> is enabled. The searches "
 "against Active Directory will not be restricted and return all groups "
@@ -5934,22 +5951,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist>
-#: sssd-ldap.5.xml:2610
+#: sssd-ldap.5.xml:2623
 msgid "</note>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2612
+#: sssd-ldap.5.xml:2625
 msgid "ldap_sudo_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ldap.5.xml:2617
+#: sssd-ldap.5.xml:2630
 msgid "ldap_autofs_search_base (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2581
+#: sssd-ldap.5.xml:2594
 msgid ""
 "These options are supported by LDAP domains, but they should be used with "
 "caution. Please include them in your configuration only if you know what you "
@@ -5958,7 +5975,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2634
+#: sssd-ldap.5.xml:2647
 msgid ""
 "The following example assumes that SSSD is correctly configured and LDAP is "
 "set to one of the domains in the <replaceable>[domains]</replaceable> "
@@ -5966,7 +5983,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ldap.5.xml:2640
+#: sssd-ldap.5.xml:2653
 #, no-wrap
 msgid ""
 "[domain/LDAP]\n"
@@ -5979,26 +5996,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
-#: sssd-ldap.5.xml:2639 sssd-ldap.5.xml:2657 sssd-simple.5.xml:139
-#: sssd-ipa.5.xml:725 sssd-ad.5.xml:973 sssd-sudo.5.xml:56 sssd-sudo.5.xml:98
-#: sssd-krb5.5.xml:573 include/ldap_id_mapping.xml:105
+#: sssd-ldap.5.xml:2652 sssd-ldap.5.xml:2670 sssd-simple.5.xml:139
+#: sssd-ipa.5.xml:725 sssd-ad.5.xml:1000 sssd-sudo.5.xml:56 sssd-sudo.5.xml:98
+#: sssd-krb5.5.xml:579 include/ldap_id_mapping.xml:105
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:2651
+#: sssd-ldap.5.xml:2664
 msgid "LDAP ACCESS FILTER EXAMPLE"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2653
+#: sssd-ldap.5.xml:2666
 msgid ""
 "The following example assumes that SSSD is correctly configured and to use "
 "the ldap_access_order=lockout."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ldap.5.xml:2658
+#: sssd-ldap.5.xml:2671
 #, no-wrap
 msgid ""
 "[domain/LDAP]\n"
@@ -6014,13 +6031,13 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd-ldap.5.xml:2673 sssd_krb5_locator_plugin.8.xml:61
-#: sssd-simple.5.xml:148 sssd-ad.5.xml:988 sssd.8.xml:195 sss_seed.8.xml:163
+#: sssd-ldap.5.xml:2686 sssd_krb5_locator_plugin.8.xml:61
+#: sssd-simple.5.xml:148 sssd-ad.5.xml:1015 sssd.8.xml:206 sss_seed.8.xml:163
 msgid "NOTES"
 msgstr "PIEZĪMES"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ldap.5.xml:2675
+#: sssd-ldap.5.xml:2688
 msgid ""
 "The descriptions of some of the configuration options in this manual page "
 "are based on the <citerefentry> <refentrytitle>ldap.conf</refentrytitle> "
@@ -6559,7 +6576,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:116 sssd-ad.5.xml:790
+#: sssd-ipa.5.xml:116 sssd-ad.5.xml:817
 msgid "dyndns_update (boolean)"
 msgstr ""
 
@@ -6574,7 +6591,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:128 sssd-ad.5.xml:804
+#: sssd-ipa.5.xml:128 sssd-ad.5.xml:831
 msgid ""
 "NOTE: On older systems (such as RHEL 5), for this behavior to work reliably, "
 "the default Kerberos realm must be set properly in /etc/krb5.conf"
@@ -6589,12 +6606,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:145 sssd-ad.5.xml:815
+#: sssd-ipa.5.xml:145 sssd-ad.5.xml:842
 msgid "dyndns_ttl (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:148 sssd-ad.5.xml:818
+#: sssd-ipa.5.xml:148 sssd-ad.5.xml:845
 msgid ""
 "The TTL to apply to the client DNS record when updating it.  If "
 "dyndns_update is false this has no effect. This will override the TTL "
@@ -6615,12 +6632,12 @@ msgid "Default: 1200 (seconds)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:165 sssd-ad.5.xml:829
+#: sssd-ipa.5.xml:165 sssd-ad.5.xml:856
 msgid "dyndns_iface (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:168 sssd-ad.5.xml:832
+#: sssd-ipa.5.xml:168 sssd-ad.5.xml:859
 msgid ""
 "Optional. Applicable only when dyndns_update is true. Choose the interface "
 "or a list of interfaces whose IP addresses should be used for dynamic DNS "
@@ -6644,7 +6661,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:185 sssd-ad.5.xml:843
+#: sssd-ipa.5.xml:185 sssd-ad.5.xml:870
 msgid "Example: dyndns_iface = em1, vnet1, vnet2"
 msgstr ""
 
@@ -6654,7 +6671,7 @@ msgid "ipa_enable_dns_sites (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:194 sssd-ad.5.xml:160
+#: sssd-ipa.5.xml:194 sssd-ad.5.xml:187
 msgid "Enables DNS sites - location based service discovery."
 msgstr ""
 
@@ -6671,12 +6688,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:217 sssd-ad.5.xml:849
+#: sssd-ipa.5.xml:217 sssd-ad.5.xml:876
 msgid "dyndns_refresh_interval (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:220 sssd-ad.5.xml:852
+#: sssd-ipa.5.xml:220 sssd-ad.5.xml:879
 msgid ""
 "How often should the back end perform periodic DNS update in addition to the "
 "automatic update performed when the back end goes online.  This option is "
@@ -6684,12 +6701,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:233 sssd-ad.5.xml:865
+#: sssd-ipa.5.xml:233 sssd-ad.5.xml:892
 msgid "dyndns_update_ptr (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:236 sssd-ad.5.xml:868
+#: sssd-ipa.5.xml:236 sssd-ad.5.xml:895
 msgid ""
 "Whether the PTR record should also be explicitly updated when updating the "
 "client's DNS records.  Applicable only when dyndns_update is true."
@@ -6708,50 +6725,50 @@ msgid "Default: False (disabled)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:253 sssd-ad.5.xml:879
+#: sssd-ipa.5.xml:253 sssd-ad.5.xml:906
 msgid "dyndns_force_tcp (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:256 sssd-ad.5.xml:882
+#: sssd-ipa.5.xml:256 sssd-ad.5.xml:909
 msgid ""
 "Whether the nsupdate utility should default to using TCP for communicating "
 "with the DNS server."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:260 sssd-ad.5.xml:886
+#: sssd-ipa.5.xml:260 sssd-ad.5.xml:913
 msgid "Default: False (let nsupdate choose the protocol)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:266 sssd-ad.5.xml:892
+#: sssd-ipa.5.xml:266 sssd-ad.5.xml:919
 msgid "dyndns_server (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:269 sssd-ad.5.xml:895
+#: sssd-ipa.5.xml:269 sssd-ad.5.xml:922
 msgid ""
 "The DNS server to use when performing a DNS update. In most setups, it's "
 "recommended to leave this option unset."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:274 sssd-ad.5.xml:900
+#: sssd-ipa.5.xml:274 sssd-ad.5.xml:927
 msgid ""
 "Setting this option makes sense for environments where the DNS server is "
 "different from the identity server."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:279 sssd-ad.5.xml:905
+#: sssd-ipa.5.xml:279 sssd-ad.5.xml:932
 msgid ""
 "Please note that this option will be only used in fallback attempt when "
 "previous attempt using autodetected settings failed."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:284 sssd-ad.5.xml:910
+#: sssd-ipa.5.xml:284 sssd-ad.5.xml:937
 msgid "Default: None (let nsupdate choose the server)"
 msgstr ""
 
@@ -6861,7 +6878,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:408 sssd-ad.5.xml:931
+#: sssd-ipa.5.xml:408 sssd-ad.5.xml:958
 msgid ""
 "Note that this default differs from the traditional Kerberos provider back "
 "end."
@@ -6935,26 +6952,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ipa.5.xml:480 sssd-ad.5.xml:938
+#: sssd-ipa.5.xml:480 sssd-ad.5.xml:965
 msgid "krb5_confd_path (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:483 sssd-ad.5.xml:941
+#: sssd-ipa.5.xml:483 sssd-ad.5.xml:968
 msgid ""
 "Absolute path of a directory where SSSD should place Kerberos configuration "
 "snippets."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:487 sssd-ad.5.xml:945
+#: sssd-ipa.5.xml:487 sssd-ad.5.xml:972
 msgid ""
 "To disable the creation of the configuration snippets set the parameter to "
 "'none'."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:491 sssd-ad.5.xml:949
+#: sssd-ipa.5.xml:491 sssd-ad.5.xml:976
 msgid ""
 "Default: not set (krb5.include.d subdirectory of SSSD's pubconf directory)"
 msgstr ""
@@ -6973,7 +6990,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ipa.5.xml:508 sssd-ipa.5.xml:524 sssd-ad.5.xml:355
+#: sssd-ipa.5.xml:508 sssd-ipa.5.xml:524 sssd-ad.5.xml:382
 msgid "Default: 5 (seconds)"
 msgstr ""
 
@@ -7352,11 +7369,52 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:117
-msgid "ad_server, ad_backup_server (string)"
+msgid "ad_enabled_domains (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:120
+msgid ""
+"A comma-separated list of enabled Active Directory domains.  If provided, "
+"SSSD will ignore any domains not listed in this option. If left unset, all "
+"domains from the AD forest will be available."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
+#: sssd-ad.5.xml:130
+#, no-wrap
+msgid ""
+"ad_enabled_domains = sales.example.com, eng.example.com\n"
+"                            "
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ad.5.xml:126
+msgid ""
+"For proper operation, this option must be specified in all lower-case and as "
+"the fully qualified domain name of the Active Directory domain. For example: "
+"<placeholder type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ad.5.xml:134
+msgid ""
+"The short domain name (also known as the NetBIOS or the flat name) will be "
+"autodetected by SSSD."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ad.5.xml:138 sssd-ad.5.xml:260 sssd-ad.5.xml:274
+msgid "Default: Not set"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
+#: sssd-ad.5.xml:144
+msgid "ad_server, ad_backup_server (string)"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-ad.5.xml:147
 msgid ""
 "The comma-separated list of hostnames of the AD servers to which SSSD should "
 "connect in order of preference. For more information on failover and server "
@@ -7364,26 +7422,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:127
+#: sssd-ad.5.xml:154
 msgid ""
 "This is optional if autodiscovery is enabled.  For more information on "
 "service discovery, refer to the <quote>SERVICE DISCOVERY</quote> section."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:132
+#: sssd-ad.5.xml:159
 msgid ""
 "Note: Trusted domains will always auto-discover servers even if the primary "
 "server is explicitly defined in the ad_server option."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:140
+#: sssd-ad.5.xml:167
 msgid "ad_hostname (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:143
+#: sssd-ad.5.xml:170
 msgid ""
 "Optional. May be set on machines where the hostname(5) does not reflect the "
 "fully qualified name used in the Active Directory domain to identify this "
@@ -7391,19 +7449,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:149
+#: sssd-ad.5.xml:176
 msgid ""
 "This field is used to determine the host principal in use in the keytab. It "
 "must match the hostname for which the keytab was issued."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:157
+#: sssd-ad.5.xml:184
 msgid "ad_enable_dns_sites (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:164
+#: sssd-ad.5.xml:191
 msgid ""
 "If true and service discovery (see Service Discovery paragraph at the bottom "
 "of the man page)  is enabled, the SSSD will first attempt to discover the "
@@ -7414,12 +7472,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:180
+#: sssd-ad.5.xml:207
 msgid "ad_access_filter (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:183
+#: sssd-ad.5.xml:210
 msgid ""
 "This option specifies LDAP access control filter that the user must match in "
 "order to be allowed access. Please note that the <quote>access_provider</"
@@ -7428,7 +7486,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:191
+#: sssd-ad.5.xml:218
 msgid ""
 "The option also supports specifying different filters per domain or forest. "
 "This extended filter would consist of: <quote>KEYWORD:NAME:FILTER</quote>.  "
@@ -7437,7 +7495,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:199
+#: sssd-ad.5.xml:226
 msgid ""
 "If the keyword equals to <quote>DOM</quote> or is missing, then <quote>NAME</"
 "quote> specifies the domain or subdomain the filter applies to.  If the "
@@ -7446,14 +7504,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:207
+#: sssd-ad.5.xml:234
 msgid ""
 "Multiple filters can be separated with the <quote>?</quote> character, "
 "similarly to how search bases work."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:212
+#: sssd-ad.5.xml:239
 msgid ""
 "The most specific match is always used. For example, if the option specified "
 "filter for a domain the user is a member of and a global filter, the per-"
@@ -7462,7 +7520,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
-#: sssd-ad.5.xml:223
+#: sssd-ad.5.xml:250
 #, no-wrap
 msgid ""
 "# apply filter on domain called dom1 only:\n"
@@ -7476,30 +7534,25 @@ msgid ""
 "                        "
 msgstr ""
 
-#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:233 sssd-ad.5.xml:247
-msgid "Default: Not set"
-msgstr ""
-
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:239
+#: sssd-ad.5.xml:266
 msgid "ad_site (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:242
+#: sssd-ad.5.xml:269
 msgid ""
 "Specify AD site to which client should try to connect.  If this option is "
 "not provided, the AD site will be auto-discovered."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:253
+#: sssd-ad.5.xml:280
 msgid "ad_enable_gc (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:256
+#: sssd-ad.5.xml:283
 msgid ""
 "By default, the SSSD connects to the Global Catalog first to retrieve users "
 "from trusted domains and uses the LDAP port to retrieve group memberships or "
@@ -7508,7 +7561,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:264
+#: sssd-ad.5.xml:291
 msgid ""
 "Please note that disabling Global Catalog support does not disable "
 "retrieving users from trusted domains. The SSSD would connect to the LDAP "
@@ -7517,12 +7570,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:278
+#: sssd-ad.5.xml:305
 msgid "ad_gpo_access_control (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:281
+#: sssd-ad.5.xml:308
 msgid ""
 "This option specifies the operation mode for GPO-based access control "
 "functionality: whether it operates in disabled mode, enforcing mode, or "
@@ -7532,14 +7585,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:290
+#: sssd-ad.5.xml:317
 msgid ""
 "GPO-based access control functionality uses GPO policy settings to determine "
 "whether or not a particular user is allowed to logon to a particular host."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:296
+#: sssd-ad.5.xml:323
 msgid ""
 "NOTE: If the operation mode is set to enforcing, it is possible that users "
 "that were previously allowed logon access will now be denied logon access "
@@ -7552,23 +7605,23 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:309
+#: sssd-ad.5.xml:336
 msgid "There are three supported values for this option:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:313
+#: sssd-ad.5.xml:340
 msgid ""
 "disabled: GPO-based access control rules are neither evaluated nor enforced."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:319
+#: sssd-ad.5.xml:346
 msgid "enforcing: GPO-based access control rules are evaluated and enforced."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:325
+#: sssd-ad.5.xml:352
 msgid ""
 "permissive: GPO-based access control rules are evaluated, but not enforced.  "
 "Instead, a syslog message will be emitted indicating that the user would "
@@ -7576,22 +7629,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:336
+#: sssd-ad.5.xml:363
 msgid "Default: permissive"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:339
+#: sssd-ad.5.xml:366
 msgid "Default: enforcing"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:345
+#: sssd-ad.5.xml:372
 msgid "ad_gpo_cache_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:348
+#: sssd-ad.5.xml:375
 msgid ""
 "The amount of time between lookups of GPO policy files against the AD "
 "server. This will reduce the latency and load on the AD server if there are "
@@ -7599,12 +7652,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:361
+#: sssd-ad.5.xml:388
 msgid "ad_gpo_map_interactive (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:364
+#: sssd-ad.5.xml:391
 msgid ""
 "A comma-separated list of PAM service names for which GPO-based access "
 "control is evaluated based on the InteractiveLogonRight and "
@@ -7612,14 +7665,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:370
+#: sssd-ad.5.xml:397
 msgid ""
 "Note: Using the Group Policy Management Editor this value is called \"Allow "
 "log on locally\" and \"Deny log on locally\"."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-ad.5.xml:384
+#: sssd-ad.5.xml:411
 #, no-wrap
 msgid ""
 "ad_gpo_map_interactive = +my_pam_service, -login\n"
@@ -7627,7 +7680,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:375
+#: sssd-ad.5.xml:402
 msgid ""
 "It is possible to add another PAM service name to the default set by using "
 "<quote>+service_name</quote> or to explicitly remove a PAM service name from "
@@ -7639,78 +7692,78 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:388 sssd-ad.5.xml:484 sssd-ad.5.xml:530 sssd-ad.5.xml:575
-#: sssd-ad.5.xml:641
+#: sssd-ad.5.xml:415 sssd-ad.5.xml:511 sssd-ad.5.xml:557 sssd-ad.5.xml:602
+#: sssd-ad.5.xml:668
 msgid "Default: the default set of PAM service names includes:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:392
+#: sssd-ad.5.xml:419
 msgid "login"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:397
+#: sssd-ad.5.xml:424
 msgid "su"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:402
+#: sssd-ad.5.xml:429
 msgid "su-l"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:407
+#: sssd-ad.5.xml:434
 msgid "gdm-fingerprint"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:412
+#: sssd-ad.5.xml:439
 msgid "gdm-password"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:417
+#: sssd-ad.5.xml:444
 msgid "gdm-smartcard"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:422
+#: sssd-ad.5.xml:449
 msgid "kdm"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:427
+#: sssd-ad.5.xml:454
 msgid "lightdm"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:432
+#: sssd-ad.5.xml:459
 msgid "lxdm"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:437
+#: sssd-ad.5.xml:464
 msgid "sddm"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:442
+#: sssd-ad.5.xml:469
 msgid "unity"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:447
+#: sssd-ad.5.xml:474
 msgid "xdm"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:456
+#: sssd-ad.5.xml:483
 msgid "ad_gpo_map_remote_interactive (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:459
+#: sssd-ad.5.xml:486
 msgid ""
 "A comma-separated list of PAM service names for which GPO-based access "
 "control is evaluated based on the RemoteInteractiveLogonRight and "
@@ -7718,7 +7771,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:465
+#: sssd-ad.5.xml:492
 msgid ""
 "Note: Using the Group Policy Management Editor this value is called \"Allow "
 "log on through Remote Desktop Services\" and \"Deny log on through Remote "
@@ -7726,7 +7779,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-ad.5.xml:480
+#: sssd-ad.5.xml:507
 #, no-wrap
 msgid ""
 "ad_gpo_map_remote_interactive = +my_pam_service, -sshd\n"
@@ -7734,7 +7787,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:471
+#: sssd-ad.5.xml:498
 msgid ""
 "It is possible to add another PAM service name to the default set by using "
 "<quote>+service_name</quote> or to explicitly remove a PAM service name from "
@@ -7746,22 +7799,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:488
+#: sssd-ad.5.xml:515
 msgid "sshd"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:493
+#: sssd-ad.5.xml:520
 msgid "cockpit"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:502
+#: sssd-ad.5.xml:529
 msgid "ad_gpo_map_network (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:505
+#: sssd-ad.5.xml:532
 msgid ""
 "A comma-separated list of PAM service names for which GPO-based access "
 "control is evaluated based on the NetworkLogonRight and "
@@ -7769,7 +7822,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:511
+#: sssd-ad.5.xml:538
 msgid ""
 "Note: Using the Group Policy Management Editor this value is called \"Access "
 "this computer from the network\" and \"Deny access to this computer from the "
@@ -7777,7 +7830,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-ad.5.xml:526
+#: sssd-ad.5.xml:553
 #, no-wrap
 msgid ""
 "ad_gpo_map_network = +my_pam_service, -ftp\n"
@@ -7785,7 +7838,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:517
+#: sssd-ad.5.xml:544
 msgid ""
 "It is possible to add another PAM service name to the default set by using "
 "<quote>+service_name</quote> or to explicitly remove a PAM service name from "
@@ -7797,22 +7850,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:534
+#: sssd-ad.5.xml:561
 msgid "ftp"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:539
+#: sssd-ad.5.xml:566
 msgid "samba"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:548
+#: sssd-ad.5.xml:575
 msgid "ad_gpo_map_batch (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:551
+#: sssd-ad.5.xml:578
 msgid ""
 "A comma-separated list of PAM service names for which GPO-based access "
 "control is evaluated based on the BatchLogonRight and DenyBatchLogonRight "
@@ -7820,14 +7873,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:557
+#: sssd-ad.5.xml:584
 msgid ""
 "Note: Using the Group Policy Management Editor this value is called \"Allow "
 "log on as a batch job\" and \"Deny log on as a batch job\"."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-ad.5.xml:571
+#: sssd-ad.5.xml:598
 #, no-wrap
 msgid ""
 "ad_gpo_map_batch = +my_pam_service, -crond\n"
@@ -7835,7 +7888,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:562
+#: sssd-ad.5.xml:589
 msgid ""
 "It is possible to add another PAM service name to the default set by using "
 "<quote>+service_name</quote> or to explicitly remove a PAM service name from "
@@ -7847,17 +7900,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:579
+#: sssd-ad.5.xml:606
 msgid "crond"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:588
+#: sssd-ad.5.xml:615
 msgid "ad_gpo_map_service (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:591
+#: sssd-ad.5.xml:618
 msgid ""
 "A comma-separated list of PAM service names for which GPO-based access "
 "control is evaluated based on the ServiceLogonRight and "
@@ -7865,14 +7918,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:597
+#: sssd-ad.5.xml:624
 msgid ""
 "Note: Using the Group Policy Management Editor this value is called \"Allow "
 "log on as a service\" and \"Deny log on as a service\"."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-ad.5.xml:610
+#: sssd-ad.5.xml:637
 #, no-wrap
 msgid ""
 "ad_gpo_map_service = +my_pam_service\n"
@@ -7880,7 +7933,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:602 sssd-ad.5.xml:677
+#: sssd-ad.5.xml:629 sssd-ad.5.xml:704
 msgid ""
 "It is possible to add a PAM service name to the default set by using <quote>"
 "+service_name</quote>.  Since the default set is empty, it is not possible "
@@ -7891,19 +7944,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:620
+#: sssd-ad.5.xml:647
 msgid "ad_gpo_map_permit (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:623
+#: sssd-ad.5.xml:650
 msgid ""
 "A comma-separated list of PAM service names for which GPO-based access is "
 "always granted, regardless of any GPO Logon Rights."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-ad.5.xml:637
+#: sssd-ad.5.xml:664
 #, no-wrap
 msgid ""
 "ad_gpo_map_permit = +my_pam_service, -sudo\n"
@@ -7911,7 +7964,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:628
+#: sssd-ad.5.xml:655
 msgid ""
 "It is possible to add another PAM service name to the default set by using "
 "<quote>+service_name</quote> or to explicitly remove a PAM service name from "
@@ -7923,39 +7976,39 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:645
+#: sssd-ad.5.xml:672
 msgid "polkit-1"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:650
+#: sssd-ad.5.xml:677
 msgid "sudo"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:655
+#: sssd-ad.5.xml:682
 msgid "sudo-i"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:660
+#: sssd-ad.5.xml:687
 msgid "systemd-user"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:669
+#: sssd-ad.5.xml:696
 msgid "ad_gpo_map_deny (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:672
+#: sssd-ad.5.xml:699
 msgid ""
 "A comma-separated list of PAM service names for which GPO-based access is "
 "always denied, regardless of any GPO Logon Rights."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-ad.5.xml:685
+#: sssd-ad.5.xml:712
 #, no-wrap
 msgid ""
 "ad_gpo_map_deny = +my_pam_service\n"
@@ -7963,12 +8016,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:695
+#: sssd-ad.5.xml:722
 msgid "ad_gpo_default_right (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:698
+#: sssd-ad.5.xml:725
 msgid ""
 "This option defines how access control is evaluated for PAM service names "
 "that are not explicitly listed in one of the ad_gpo_map_* options. This "
@@ -7981,57 +8034,57 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:711
+#: sssd-ad.5.xml:738
 msgid "Supported values for this option include:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:715
+#: sssd-ad.5.xml:742
 msgid "interactive"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:720
+#: sssd-ad.5.xml:747
 msgid "remote_interactive"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:725
+#: sssd-ad.5.xml:752
 msgid "network"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:730
+#: sssd-ad.5.xml:757
 msgid "batch"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:735
+#: sssd-ad.5.xml:762
 msgid "service"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:740
+#: sssd-ad.5.xml:767
 msgid "permit"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd-ad.5.xml:745
+#: sssd-ad.5.xml:772
 msgid "deny"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:751
+#: sssd-ad.5.xml:778
 msgid "Default: deny"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:757
+#: sssd-ad.5.xml:784
 msgid "ad_maximum_machine_account_password_age (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:760
+#: sssd-ad.5.xml:787
 msgid ""
 "SSSD will check once a day if the machine account password is older than the "
 "given age in days and try to renew it. A value of 0 will disable the renewal "
@@ -8039,19 +8092,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:766
+#: sssd-ad.5.xml:793
 #, fuzzy
 #| msgid "Default: 300"
 msgid "Default: 30 days"
 msgstr "Noklusējuma: 300"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:772
+#: sssd-ad.5.xml:799
 msgid "ad_machine_account_password_renewal_opts (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:775
+#: sssd-ad.5.xml:802
 msgid ""
 "This option should only be used to test the machine account renewal task. "
 "The option expect 2 integers seperated by a colon (':'). The first integer "
@@ -8061,14 +8114,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:784
+#: sssd-ad.5.xml:811
 #, fuzzy
 #| msgid "Default: 86400 (24 hours)"
 msgid "Default: 86400:750 (24h and 15m)"
 msgstr "Noklusējuma: 86400 (24 stundas)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:793
+#: sssd-ad.5.xml:820
 msgid ""
 "Optional. This option tells SSSD to automatically update the Active "
 "Directory DNS server with the IP address of this client. The update is "
@@ -8079,36 +8132,36 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:823
+#: sssd-ad.5.xml:850
 msgid "Default: 3600 (seconds)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:839
+#: sssd-ad.5.xml:866
 msgid ""
 "Default: Use the IP addresses of the interface which is used for AD LDAP "
 "connection"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:873 sss_rpcidmapd.5.xml:76
+#: sssd-ad.5.xml:900 sss_rpcidmapd.5.xml:76
 msgid "Default: True"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-ad.5.xml:919 sssd-krb5.5.xml:505
+#: sssd-ad.5.xml:946 sssd-krb5.5.xml:505
 msgid "krb5_use_enterprise_principal (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-ad.5.xml:922 sssd-krb5.5.xml:508
+#: sssd-ad.5.xml:949 sssd-krb5.5.xml:508
 msgid ""
 "Specifies if the user principal should be treated as enterprise principal. "
 "See section 5 of RFC 6806 for more details about enterprise principals."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ad.5.xml:967
+#: sssd-ad.5.xml:994
 msgid ""
 "The following example assumes that SSSD is correctly configured and example."
 "com is one of the domains in the <replaceable>[sssd]</replaceable> section. "
@@ -8116,7 +8169,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ad.5.xml:974
+#: sssd-ad.5.xml:1001
 #, no-wrap
 msgid ""
 "[domain/EXAMPLE]\n"
@@ -8131,7 +8184,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-ad.5.xml:994
+#: sssd-ad.5.xml:1021
 #, no-wrap
 msgid ""
 "access_provider = ldap\n"
@@ -8140,7 +8193,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ad.5.xml:990
+#: sssd-ad.5.xml:1017
 msgid ""
 "The AD access control provider checks if the account is expired.  It has the "
 "same effect as the following configuration of the LDAP provider: "
@@ -8148,7 +8201,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ad.5.xml:1000
+#: sssd-ad.5.xml:1027
 msgid ""
 "However, unless the <quote>ad</quote> access control provider is explicitly "
 "configured, the default access provider is <quote>permit</quote>. Please "
@@ -8158,7 +8211,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-ad.5.xml:1008
+#: sssd-ad.5.xml:1035
 msgid ""
 "When the autofs provider is set to <quote>ad</quote>, the RFC2307 schema "
 "attribute mapping (nisMap, nisObject, ...) is used, because these attributes "
@@ -8477,12 +8530,26 @@ msgid "Run in the foreground, don't become a daemon."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.8.xml:117 sss_debuglevel.8.xml:42
+#: sssd.8.xml:117
+#, fuzzy
+#| msgid "<option>use_authtok</option>"
+msgid "<option>--disable-netlink</option>"
+msgstr "<option>use_authtok</option>"
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sssd.8.xml:121
+msgid ""
+"sssd will ignore Netlink changes when making decisions about resetting "
+"online and offline operational status."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sssd.8.xml:128 sss_debuglevel.8.xml:42
 msgid "<option>-c</option>,<option>--config</option>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.8.xml:121 sss_debuglevel.8.xml:46
+#: sssd.8.xml:132 sss_debuglevel.8.xml:46
 msgid ""
 "Specify a non-default config file. The default is <filename>/etc/sssd/sssd."
 "conf</filename>. For reference on the config file syntax and options, "
@@ -8491,39 +8558,39 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.8.xml:135
+#: sssd.8.xml:146
 msgid "<option>--version</option>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.8.xml:139
+#: sssd.8.xml:150
 msgid "Print version number and exit."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.8.xml:147
+#: sssd.8.xml:158
 msgid "Signals"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.8.xml:150
+#: sssd.8.xml:161
 msgid "SIGTERM/SIGINT"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.8.xml:153
+#: sssd.8.xml:164
 msgid ""
 "Informs the SSSD to gracefully terminate all of its child processes and then "
 "shut down the monitor."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.8.xml:159
+#: sssd.8.xml:170
 msgid "SIGHUP"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.8.xml:162
+#: sssd.8.xml:173
 msgid ""
 "Tells the SSSD to stop writing to its current debug file descriptors and to "
 "close and reopen them. This is meant to facilitate log rolling with programs "
@@ -8531,12 +8598,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.8.xml:170
+#: sssd.8.xml:181
 msgid "SIGUSR1"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.8.xml:173
+#: sssd.8.xml:184
 msgid ""
 "Tells the SSSD to simulate offline operation for the duration of the "
 "<quote>offline_timeout</quote> parameter. This is useful for testing. The "
@@ -8545,12 +8612,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.8.xml:182
+#: sssd.8.xml:193
 msgid "SIGUSR2"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.8.xml:185
+#: sssd.8.xml:196
 msgid ""
 "Tells the SSSD to go online immediately. This is useful for testing. The "
 "signal can be sent to either the sssd process or any sssd_be process "
@@ -8558,7 +8625,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.8.xml:197
+#: sssd.8.xml:208
 msgid ""
 "If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", client "
 "applications will not use the fast in memory cache."
@@ -8694,7 +8761,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_override.8.xml:50 sssctl.8.xml:42
+#: sss_override.8.xml:50 sssctl.8.xml:41
 msgid "AVAILABLE COMMANDS"
 msgstr ""
 
@@ -8909,19 +8976,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_override.8.xml:261 sssctl.8.xml:51
+#: sss_override.8.xml:261 sssctl.8.xml:50
 #, fuzzy
 #| msgid "CONFIGURATION OPTIONS"
 msgid "COMMON OPTIONS"
 msgstr "KONFIGURĒŠANAS IESPĒJAS"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sss_override.8.xml:263 sssctl.8.xml:53
+#: sss_override.8.xml:263 sssctl.8.xml:52
 msgid "Those options are available with all commands."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:268 sssctl.8.xml:58
+#: sss_override.8.xml:268 sssctl.8.xml:57
 msgid "<option>--debug</option> <replaceable>LEVEL</replaceable>"
 msgstr ""
 
@@ -9539,13 +9606,21 @@ msgstr ""
 msgid "Default: false (AD provider: true)"
 msgstr ""
 
+#. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
+#: sssd-krb5.5.xml:517
+msgid ""
+"The IPA provider will set to option to 'true' if it detects that the server "
+"is capable of handling enterprise principals and the option is not set "
+"explicitly in the config file."
+msgstr ""
+
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd-krb5.5.xml:520
+#: sssd-krb5.5.xml:526
 msgid "krb5_map_user (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:523
+#: sssd-krb5.5.xml:529
 msgid ""
 "The list of mappings is given as a comma-separated list of pairs "
 "<quote>username:primary</quote> where <quote>username</quote> is a UNIX user "
@@ -9555,7 +9630,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd-krb5.5.xml:535
+#: sssd-krb5.5.xml:541
 #, no-wrap
 msgid ""
 "krb5_realm = REALM\n"
@@ -9563,7 +9638,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd-krb5.5.xml:540
+#: sssd-krb5.5.xml:546
 msgid ""
 "<quote>joe</quote> and <quote>dick</quote> are UNIX user names and "
 "<quote>juser</quote> and <quote>richard</quote> are primaries of kerberos "
@@ -9583,7 +9658,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd-krb5.5.xml:566
+#: sssd-krb5.5.xml:572
 msgid ""
 "The following example assumes that SSSD is correctly configured and FOO is "
 "one of the domains in the <replaceable>[sssd]</replaceable> section. This "
@@ -9592,7 +9667,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd-krb5.5.xml:574
+#: sssd-krb5.5.xml:580
 #, no-wrap
 msgid ""
 "[domain/FOO]\n"
@@ -10640,7 +10715,7 @@ msgid ""
 "known_hosts file (see the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> section "
 "of <citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</"
 "manvolnum></citerefentry> for more information)  <filename>/var/lib/sss/"
-"pubconf/known_hosts</filename> and estabilishes connection to the host."
+"pubconf/known_hosts</filename> and establishes the connection to the host."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -10770,18 +10845,18 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssctl.8.xml:32
 msgid ""
-"<command>sssctl</command> provides simple and unified way to obtain "
-"information about SSSD status such as active server or list of auto-"
-"discovered servers and domains or information about cached objects. It also "
-"provides tools to manage SSSD data files during troubleshooting such as a "
-"safe way to remove cache files or fetching all SSSD log files and more."
+"<command>sssctl</command> provides a simple and unified way to obtain "
+"information about SSSD status, such as active server, auto-discovered "
+"servers, domains and cached objects. In addition, it can manage SSSD data "
+"files for troubleshooting in such a way that is safe to manipulate while "
+"SSSD is running."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssctl.8.xml:44
+#: sssctl.8.xml:43
 msgid ""
 "To list all available commands run <command>sssctl</command> without any "
-"parameter. To print help for selected command run <command>sssctl COMMAND --"
+"parameters. To print help for selected command run <command>sssctl COMMAND --"
 "help</command>."
 msgstr ""
 
