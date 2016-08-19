@@ -588,7 +588,7 @@ License: GPLv3+ and LGPLv3+
 Development libraries for the SSSD libwbclient implementation.
 
 %package winbind-idmap
-Summary: SSSSD's idmap_sss Backend for Winbind
+Summary: SSSD's idmap_sss Backend for Winbind
 Group:  Applications/System
 License: GPLv3+ and LGPLv3+
 
