@@ -3952,7 +3952,6 @@ SSSD_USER_DIRS = \
     $(DESTDIR)$(keytabdir) \
     $(DESTDIR)$(mcpath) \
     $(DESTDIR)$(pipepath) \
-    $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(pubconfpath) \
     $(DESTDIR)$(pubconfpath)/krb5.include.d \
     $(DESTDIR)$(gpocachepath) \
@@ -3979,16 +3978,17 @@ installsssddirs::
     $(DESTDIR)$(sssddatadir) \
     $(DESTDIR)$(sudolibdir) \
     $(DESTDIR)$(autofslibdir) \
+    $(DESTDIR)$(pipepath)/private \
     $(SSSD_USER_DIRS) \
     $(NULL);
 if SSSD_USER
-	-chown $(SSSD_USER):$(SSSD_USER) \
-	$(SSSD_USER_DIRS)
+	-chown $(SSSD_USER):$(SSSD_USER) $(SSSD_USER_DIRS)
+	-chown $(SSSD_USER) $(DESTDIR)$(pipepath)/private
 endif
 	$(INSTALL) -d -m 0700 $(DESTDIR)$(dbpath) $(DESTDIR)$(logpath) \
-            $(DESTDIR)$(pipepath)/private \
 	    $(DESTDIR)$(keytabdir) \
 	    $(NULL)
+	$(INSTALL) -d -m 0750 $(DESTDIR)$(pipepath)/private
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(mcpath) $(DESTDIR)$(pipepath) \
             $(DESTDIR)$(pubconfpath) \
             $(DESTDIR)$(pubconfpath)/krb5.include.d $(DESTDIR)$(gpocachepath)
