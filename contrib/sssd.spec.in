@@ -730,9 +730,9 @@ rm -rf $RPM_BUILD_ROOT
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/initgroups
 %attr(755,sssd,sssd) %dir %{pipepath}
+%attr(750,sssd,root) %dir %{pipepath}/private
 %attr(755,sssd,sssd) %dir %{pubconfpath}
 %attr(755,sssd,sssd) %dir %{gpocachepath}
-%attr(700,sssd,sssd) %dir %{pipepath}/private
 %attr(750,sssd,sssd) %dir %{_var}/log/%{name}
 %attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd
 %ghost %attr(0600,sssd,sssd) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
