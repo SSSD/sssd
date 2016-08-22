@@ -29,7 +29,38 @@ struct watchdog_ctx {
     struct timeval interval;
     struct tevent_timer *te;
     volatile int ticks;
+
+    /* To detect time shift. */
+    struct tevent_context *ev;
+    int input_interval;
+    time_t timestamp;
 } watchdog_ctx;
+
+static bool watchdog_detect_timeshift(void)
+{
+    time_t prev_time;
+    time_t cur_time;
+    errno_t ret;
+
+    prev_time = watchdog_ctx.timestamp;
+    cur_time = watchdog_ctx.timestamp = time(NULL);
+    if (cur_time < prev_time) {
+        /* Time shift detected. We need to restart watchdog. */
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Time shift detected, "
+              "restarting watchdog!\n");
+        teardown_watchdog();
+        ret = setup_watchdog(watchdog_ctx.ev, watchdog_ctx.input_interval);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Unable to restart watchdog "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            orderly_shutdown(1);
+        }
+
+        return true;
+    }
+
+    return false;
+}
 
 /* the watchdog is purposefully *not* handled by the tevent
  * signal handler as it is meant to check if the daemon is
@@ -38,6 +69,12 @@ struct watchdog_ctx {
  * signals either */
 static void watchdog_handler(int sig)
 {
+    /* Do not count ticks if time shift was detected
+     * since watchdog was restarted. */
+    if (watchdog_detect_timeshift()) {
+        return;
+    }
+
     /* if 3 ticks passed by kills itself */
 
     if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) > 3) {
@@ -100,6 +137,10 @@ int setup_watchdog(struct tevent_context *ev, int interval)
     }
     watchdog_ctx.interval.tv_sec = interval;
     watchdog_ctx.interval.tv_usec = 0;
+
+    watchdog_ctx.ev = ev;
+    watchdog_ctx.input_interval = interval;
+    watchdog_ctx.timestamp = time(NULL);
 
     /* Start the timer */
     /* we give 1 second head start to the watchdog event */
