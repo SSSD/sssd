@@ -256,7 +256,7 @@ static int save_user(struct sss_domain_info *domain,
     }
 
     if (lowercase) {
-        lc_pw_name = sss_tc_utf8_str_tolower(attrs, pwd->pw_name);
+        lc_pw_name = sss_tc_utf8_str_tolower(attrs, real_name);
         if (lc_pw_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
             ret = ENOMEM;
