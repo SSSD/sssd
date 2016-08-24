@@ -2482,6 +2482,22 @@ subdomain_inherit = ldap_purge_cache_timeout
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>proxy_max_children (integer)</term>
+                    <listitem>
+                        <para>
+                            This option specifies the number of pre-forked
+                            proxy children. It is useful for high-load SSSD
+                            environments where sssd may run out of available
+                            child slots, which would cause some issues due to
+                            the requests being queued.
+                        </para>
+                        <para>
+                            Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
 

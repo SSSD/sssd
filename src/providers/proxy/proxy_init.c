@@ -29,6 +29,8 @@
 
 #define NSS_FN_NAME "_nss_%s_%s"
 
+#define OPT_MAX_CHILDREN_DEFAULT 10
+
 #define ERROR_INITGR "The '%s' library does not provides the " \
                          "_nss_XXX_initgroups_dyn function!\n" \
                          "initgroups will be slow as it will require " \
@@ -220,6 +222,7 @@ static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
     struct proxy_auth_ctx *auth_ctx;
     errno_t ret;
     int hret;
+    int max_children;
 
     auth_ctx = talloc_zero(mem_ctx, struct proxy_auth_ctx);
     if (auth_ctx == NULL) {
@@ -241,8 +244,23 @@ static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
     }
 
     /* Set up request hash table */
-    /* FIXME: get max_children from configuration file */
-    auth_ctx->max_children = 10;
+    ret = confdb_get_int(be_ctx->cdb, be_ctx->conf_path,
+                         CONFDB_PROXY_MAX_CHILDREN,
+                         OPT_MAX_CHILDREN_DEFAULT,
+                         &max_children);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to read confdb [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (max_children < 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Option " CONFDB_PROXY_MAX_CHILDREN " must be higher then 0\n");
+        ret = EINVAL;
+        goto done;
+    }
+    auth_ctx->max_children = max_children;
 
     hret = hash_create(auth_ctx->max_children * 2, &auth_ctx->request_table,
                        NULL, NULL);

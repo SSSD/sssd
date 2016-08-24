@@ -219,6 +219,7 @@
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"
 #define CONFDB_PROXY_PAM_TARGET "proxy_pam_target"
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
+#define CONFDB_PROXY_MAX_CHILDREN "proxy_max_children"
 
 /* Secrets Service */
 #define CONFDB_SEC_CONF_ENTRY "config/secrets"
