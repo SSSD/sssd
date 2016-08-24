@@ -222,6 +222,68 @@ delete_user(struct sss_domain_info *domain,
     return ret;
 }
 
+static int
+prepare_attrs_for_saving_ops(TALLOC_CTX *mem_ctx,
+                             bool case_sensitive,
+                             const char *real_name, /* already_qualified */
+                             const char *alias, /* already qualified */
+                             struct sysdb_attrs **attrs)
+{
+    const char *lc_name = NULL;
+    const char *cased_alias = NULL;
+    errno_t ret;
+
+    if (!case_sensitive || alias != NULL) {
+        if (*attrs == NULL) {
+            *attrs = sysdb_new_attrs(mem_ctx);
+            if (*attrs == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    }
+
+    if (!case_sensitive) {
+        lc_name = sss_tc_utf8_str_tolower(*attrs, real_name);
+        if (lc_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_string(*attrs, SYSDB_NAME_ALIAS, lc_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+    }
+
+    if (alias != NULL) {
+        cased_alias = sss_get_cased_name(*attrs, alias, case_sensitive);
+        if (cased_alias == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Add the alias only if it differs from lowercased pw_name */
+        if (lc_name == NULL || strcmp(cased_alias, lc_name) != 0) {
+            ret = sysdb_attrs_add_string(*attrs, SYSDB_NAME_ALIAS,
+                                         cased_alias);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
+                goto done;
+            }
+        }
+    }
+
+    ret = EOK;
+done:
+    return ret;
+}
+
 static int save_user(struct sss_domain_info *domain,
                      struct passwd *pwd,
                      const char *real_name, /* already qualified */
@@ -231,8 +293,6 @@ static int save_user(struct sss_domain_info *domain,
     const char *gecos;
     struct sysdb_attrs *attrs = NULL;
     errno_t ret;
-    const char *cased_alias;
-    const char *lc_pw_name = NULL;
 
     if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
         shell = pwd->pw_shell;
@@ -246,47 +306,10 @@ static int save_user(struct sss_domain_info *domain,
         gecos = NULL;
     }
 
-    if (!domain->case_sensitive || alias) {
-        attrs = sysdb_new_attrs(NULL);
-        if (!attrs) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
-    if (!domain->case_sensitive) {
-        lc_pw_name = sss_tc_utf8_str_tolower(attrs, real_name);
-        if (lc_pw_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lc_pw_name);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-    }
-
-    if (alias) {
-        cased_alias = sss_get_cased_name(attrs, alias, domain->case_sensitive);
-        if (!cased_alias) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        /* Add the alias only if it differs from lowercased pw_name */
-        if (lc_pw_name == NULL || strcmp(cased_alias, lc_pw_name) != 0) {
-            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
-            if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
-                goto done;
-            }
-        }
+    ret = prepare_attrs_for_saving_ops(NULL, domain->case_sensitive,
+                                       real_name, alias, &attrs);
+    if (ret != EOK) {
+        goto done;
     }
 
     ret = sysdb_store_user(domain,
@@ -563,8 +586,6 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
 {
     errno_t ret, sret;
     struct sysdb_attrs *attrs = NULL;
-    const char *cased_alias;
-    const char *lc_gr_name = NULL;
     TALLOC_CTX *tmp_ctx;
     time_t now = time(NULL);
     bool in_transaction = false;
@@ -618,46 +639,10 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         }
     }
 
-    if (dom->case_sensitive == false || alias) {
-        if (!attrs) {
-            attrs = sysdb_new_attrs(tmp_ctx);
-            if (!attrs) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-    }
-
-    if (dom->case_sensitive == false) {
-        lc_gr_name = sss_tc_utf8_str_tolower(attrs, real_name);
-        if (lc_gr_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lc_gr_name);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    if (alias) {
-        cased_alias = sss_get_cased_name(attrs, alias, dom->case_sensitive);
-        if (!cased_alias) {
-            ret = ENOMEM;
-            DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
-            goto done;
-        }
-
-        if (lc_gr_name == NULL || strcmp(cased_alias, lc_gr_name)) {
-            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
-            if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
-                goto done;
-            }
-        }
+    ret = prepare_attrs_for_saving_ops(tmp_ctx, dom->case_sensitive,
+                                       real_name, alias, &attrs);
+    if (ret != EOK) {
+        goto done;
     }
 
     ret = sysdb_store_group(dom,
