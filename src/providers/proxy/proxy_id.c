@@ -32,7 +32,7 @@
 
 static int save_user(struct sss_domain_info *domain,
                      struct passwd *pwd, const char *real_name,
-                     const char *alias, uint64_t cache_timeout);
+                     const char *alias);
 
 static int
 handle_getpw_result(enum nss_status status, struct passwd *pwd,
@@ -143,7 +143,7 @@ static int get_pw_name(struct proxy_id_ctx *ctx,
     }
 
     /* Both lookups went fine, we can save the user now */
-    ret = save_user(dom, pwd, real_name, i_name, dom->user_timeout);
+    ret = save_user(dom, pwd, real_name, i_name);
 
 done:
     talloc_zfree(tmpctx);
@@ -224,7 +224,7 @@ delete_user(struct sss_domain_info *domain,
 
 static int save_user(struct sss_domain_info *domain,
                      struct passwd *pwd, const char *real_name,
-                     const char *alias, uint64_t cache_timeout)
+                     const char *alias)
 {
     const char *shell;
     const char *gecos;
@@ -299,7 +299,7 @@ static int save_user(struct sss_domain_info *domain,
                            NULL,
                            attrs,
                            NULL,
-                           cache_timeout,
+                           domain->user_timeout,
                            0);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not add user to cache\n");
@@ -365,7 +365,7 @@ static int get_pw_uid(struct proxy_id_ctx *ctx,
               pwd->pw_name);
         goto done;
     }
-    ret = save_user(dom, pwd, name, NULL, dom->user_timeout);
+    ret = save_user(dom, pwd, name, NULL);
 
 done:
     talloc_zfree(tmpctx);
@@ -495,7 +495,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
                           pwd->pw_name);
                     goto done;
                 }
-                ret = save_user(dom, pwd, name, NULL, dom->user_timeout);
+                ret = save_user(dom, pwd, name, NULL);
                 if (ret) {
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */
@@ -1328,7 +1328,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = save_user(dom, pwd, real_name, i_name, dom->user_timeout);
+    ret = save_user(dom, pwd, real_name, i_name);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not save user\n");
         goto fail;
