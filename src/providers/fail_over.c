@@ -1112,7 +1112,9 @@ fo_resolve_service_cont(struct tevent_req *subreq)
     ret = resolve_srv_recv(subreq, &state->server);
     talloc_zfree(subreq);
 
-    if (ret) {
+    /* We will proceed normally on ERR_SRV_DUPLICATES and if the server
+     * is already being resolved, we hook to that request. */
+    if (ret != EOK && ret != ERR_SRV_DUPLICATES) {
         tevent_req_error(req, ret);
         return;
     }
@@ -1398,11 +1400,23 @@ resolve_srv_done(struct tevent_req *subreq)
         }
 
         if (last_server == state->meta) {
-            /* SRV lookup returned only those servers
-             * that are already present. */
+            /* SRV lookup returned only those servers that are already present.
+             * This may happen only when an ongoing SRV resolution already
+             * exist. We will return server, but won't set any state. */
             DEBUG(SSSDBG_TRACE_FUNC, "SRV lookup did not return "
                                       "any new server.\n");
             ret = ERR_SRV_DUPLICATES;
+
+            /* Since no new server is returned, state->meta->next is NULL.
+             * We return last tried server if possible which is server
+             * from previous resolution of SRV record, and first server
+             * otherwise. */
+            if (state->service->last_tried_server != NULL) {
+                state->out = state->service->last_tried_server;
+                goto done;
+            }
+
+            state->out = state->service->server_list;
             goto done;
         }
 
@@ -1438,7 +1452,10 @@ resolve_srv_done(struct tevent_req *subreq)
     }
 
 done:
-    if (ret != EOK) {
+    if (ret == ERR_SRV_DUPLICATES) {
+        tevent_req_error(req, ret);
+        return;
+    } else if (ret != EOK) {
         state->out = state->meta;
         set_srv_data_status(state->meta->srv_data, SRV_RESOLVE_ERROR);
         tevent_req_error(req, ret);
