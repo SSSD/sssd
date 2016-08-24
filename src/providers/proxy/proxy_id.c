@@ -223,8 +223,9 @@ delete_user(struct sss_domain_info *domain,
 }
 
 static int save_user(struct sss_domain_info *domain,
-                     struct passwd *pwd, const char *real_name,
-                     const char *alias)
+                     struct passwd *pwd,
+                     const char *real_name, /* already qualified */
+                     const char *alias) /* already qualified */
 {
     const char *shell;
     const char *gecos;
