@@ -27,6 +27,8 @@
 #include "util/sss_format.h"
 #include "providers/proxy/proxy.h"
 
+#define OPT_MAX_CHILDREN_DEFAULT 10
+
 static int client_registration(struct sbus_request *dbus_req, void *data);
 
 static struct data_provider_iface proxy_methods = {
@@ -478,6 +480,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     int ret;
     int hret;
     char *sbus_address;
+    int max_children;
 
     /* If we're already set up, just return that */
     if(bectx->bet_info[BET_AUTH].mod_name &&
@@ -523,8 +526,23 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     }
 
     /* Set up request hash table */
-    /* FIXME: get max_children from configuration file */
-    ctx->max_children = 10;
+    ret = confdb_get_int(bectx->cdb, bectx->conf_path,
+                         CONFDB_PROXY_MAX_CHILDREN,
+                         OPT_MAX_CHILDREN_DEFAULT,
+                         &max_children);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to read confdb [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (max_children < 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Option " CONFDB_PROXY_MAX_CHILDREN " must be higher then 0\n");
+        ret = EINVAL;
+        goto done;
+    }
+    ctx->max_children = max_children;
 
     hret = hash_create(ctx->max_children * 2, &ctx->request_table,
                        NULL, NULL);

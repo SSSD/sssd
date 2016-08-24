@@ -419,6 +419,9 @@ option_strings = {
     'default_shell' : _('Default shell, /bin/bash'),
     'base_directory' : _('Base for home directories'),
 
+    # [provider/proxy]
+    'proxy_max_children' : _('The number of preforked proxy children.'),
+
     # [provider/proxy/id]
     'proxy_lib_name' : _('The name of the NSS library to use'),
     'proxy_fast_alias' : _('Whether to look up canonical group name from cache if possible'),
