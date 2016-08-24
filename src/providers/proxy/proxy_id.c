@@ -558,8 +558,7 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
 static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                       struct group *grp,
                       const char *real_name, /* already qualified */
-                      const char *alias, /* already qualified */
-                      uint64_t cache_timeout)
+                      const char *alias) /* already qualified */
 {
     errno_t ret, sret;
     struct sysdb_attrs *attrs = NULL;
@@ -664,7 +663,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                             real_name,
                             grp->gr_gid,
                             attrs,
-                            cache_timeout,
+                            dom->group_timeout,
                             now);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not add group to cache\n");
@@ -947,7 +946,7 @@ static int get_gr_name(struct proxy_id_ctx *ctx,
         goto done;
     }
 
-    ret = save_group(sysdb, dom, grp, real_name, i_name, dom->group_timeout);
+    ret = save_group(sysdb, dom, grp, real_name, i_name);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot save group [%d]: %s\n", ret, strerror(ret));
@@ -1032,7 +1031,7 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = save_group(sysdb, dom, grp, name, NULL, dom->group_timeout);
+    ret = save_group(sysdb, dom, grp, name, NULL);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot save user [%d]: %s\n", ret, strerror(ret));
@@ -1165,8 +1164,7 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
                           "Ignoring\n");
                     ret = ENOMEM;
                 }
-                ret = save_group(sysdb, dom, grp, name,
-                        NULL, dom->group_timeout);
+                ret = save_group(sysdb, dom, grp, name, NULL);
                 if (ret) {
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */
