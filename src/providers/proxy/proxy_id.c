@@ -31,7 +31,7 @@
 /* =Getpwnam-wrapper======================================================*/
 
 static int save_user(struct sss_domain_info *domain,
-                     bool lowercase, struct passwd *pwd, const char *real_name,
+                     struct passwd *pwd, const char *real_name,
                      const char *alias, uint64_t cache_timeout);
 
 static int
@@ -143,8 +143,7 @@ static int get_pw_name(struct proxy_id_ctx *ctx,
     }
 
     /* Both lookups went fine, we can save the user now */
-    ret = save_user(dom, !dom->case_sensitive, pwd,
-                    real_name, i_name, dom->user_timeout);
+    ret = save_user(dom, pwd, real_name, i_name, dom->user_timeout);
 
 done:
     talloc_zfree(tmpctx);
@@ -224,7 +223,7 @@ delete_user(struct sss_domain_info *domain,
 }
 
 static int save_user(struct sss_domain_info *domain,
-                     bool lowercase, struct passwd *pwd, const char *real_name,
+                     struct passwd *pwd, const char *real_name,
                      const char *alias, uint64_t cache_timeout)
 {
     const char *shell;
@@ -246,7 +245,7 @@ static int save_user(struct sss_domain_info *domain,
         gecos = NULL;
     }
 
-    if (lowercase || alias) {
+    if (!domain->case_sensitive || alias) {
         attrs = sysdb_new_attrs(NULL);
         if (!attrs) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
@@ -255,7 +254,7 @@ static int save_user(struct sss_domain_info *domain,
         }
     }
 
-    if (lowercase) {
+    if (!domain->case_sensitive) {
         lc_pw_name = sss_tc_utf8_str_tolower(attrs, real_name);
         if (lc_pw_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
@@ -273,7 +272,7 @@ static int save_user(struct sss_domain_info *domain,
     }
 
     if (alias) {
-        cased_alias = sss_get_cased_name(attrs, alias, !lowercase);
+        cased_alias = sss_get_cased_name(attrs, alias, domain->case_sensitive);
         if (!cased_alias) {
             ret = ENOMEM;
             goto done;
@@ -366,8 +365,7 @@ static int get_pw_uid(struct proxy_id_ctx *ctx,
               pwd->pw_name);
         goto done;
     }
-    ret = save_user(dom, !dom->case_sensitive, pwd,
-                    name, NULL, dom->user_timeout);
+    ret = save_user(dom, pwd, name, NULL, dom->user_timeout);
 
 done:
     talloc_zfree(tmpctx);
@@ -497,8 +495,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
                           pwd->pw_name);
                     goto done;
                 }
-                ret = save_user(dom, !dom->case_sensitive, pwd,
-                                name, NULL, dom->user_timeout);
+                ret = save_user(dom, pwd, name, NULL, dom->user_timeout);
                 if (ret) {
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */
@@ -1331,8 +1328,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = save_user(dom, !dom->case_sensitive, pwd,
-                    real_name, i_name, dom->user_timeout);
+    ret = save_user(dom, pwd, real_name, i_name, dom->user_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not save user\n");
         goto fail;
