@@ -2041,8 +2041,7 @@ static void missing_resolv_conf(struct tevent_context *ev,
 }
 
 static int monitor_process_init(struct mt_ctx *ctx,
-                                const char *config_file,
-                                bool opt_netlinkoff)
+                                const char *config_file)
 {
     TALLOC_CTX *tmp_ctx;
     struct tevent_signal *tes;
@@ -2173,14 +2172,12 @@ static int monitor_process_init(struct mt_ctx *ctx,
         return ret;
     }
 
-    if (opt_netlinkoff == false) {
-        ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
-                            ctx, &ctx->nlctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Cannot set up listening for network notifications\n");
-            return ret;
-        }
+    ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
+                        ctx, &ctx->nlctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot set up listening for network notifications\n");
+        return ret;
     }
 
     /* start providers */
@@ -2488,7 +2485,8 @@ int main(int argc, const char *argv[])
          _("Become a daemon (default)"), NULL }, \
         {"interactive", 'i', POPT_ARG_NONE, &opt_interactive, 0, \
          _("Run interactive (not a daemon)"), NULL}, \
-        {"disable-netlink", '\0', POPT_ARG_NONE, &opt_netlinkoff, 0, \
+        {"disable-netlink", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
+            &opt_netlinkoff, 0, \
          _("Disable netlink interface"), NULL}, \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
          _("Specify a non-default config file"), NULL}, \
@@ -2573,6 +2571,15 @@ int main(int argc, const char *argv[])
         config_file = talloc_strdup(tmp_ctx, opt_config_file);
     } else {
         config_file = talloc_strdup(tmp_ctx, SSSD_CONFIG_FILE);
+    }
+
+    if (opt_netlinkoff) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Option --disable-netlink has been removed and "
+              "replaced as a monitor option in sssd.conf\n");
+        sss_log(SSS_LOG_ALERT,
+                "--disable-netlink has been deprecated, tunable option "
+                "disable_netlink available as replacement(man sssd.conf)");
     }
 
     if (!config_file) {
@@ -2692,8 +2699,8 @@ int main(int argc, const char *argv[])
     monitor->ev = main_ctx->event_ctx;
     talloc_steal(main_ctx, monitor);
 
-    ret = monitor_process_init(monitor, config_file,
-                               opt_netlinkoff);
+    ret = monitor_process_init(monitor, config_file);
+
     if (ret != EOK) return 3;
     talloc_free(tmp_ctx);
 
