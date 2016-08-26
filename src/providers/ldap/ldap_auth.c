@@ -361,7 +361,7 @@ shadow_fail:
 
 /* ==Get-User-DN========================================================== */
 struct get_user_dn_state {
-    const char *username;
+    char *username;
 
     char *orig_dn;
 };
@@ -386,9 +386,14 @@ static struct tevent_req *get_user_dn_send(TALLOC_CTX *memctx,
     req = tevent_req_create(memctx, &state, struct get_user_dn_state);
     if (!req) return NULL;
 
-    state->username = username;
+    ret = sss_parse_internal_fqname(state, username,
+                                    &state->username, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot parse %s\n", username);
+        goto done;
+    }
 
-    ret = sss_filter_sanitize(state, username, &clean_name);
+    ret = sss_filter_sanitize(state, state->username, &clean_name);
     if (ret != EOK) {
         goto done;
     }
