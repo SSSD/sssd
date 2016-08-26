@@ -64,6 +64,10 @@ void ifp_groups_group_get_gid_number(struct sbus_request *sbus_req,
                                      void *data,
                                      uint32_t *_out);
 
+void ifp_groups_group_get_unique_id(struct sbus_request *sbus_req,
+                                    void *data,
+                                    const char **_out);
+
 void ifp_groups_group_get_users(struct sbus_request *sbus_req,
                                 void *data,
                                 const char ***_out,

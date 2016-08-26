@@ -224,6 +224,7 @@
                         SYSDB_OVERRIDE_DN, \
                         SYSDB_OVERRIDE_OBJECT_DN, \
                         SYSDB_DEFAULT_OVERRIDE_NAME, \
+                        SYSDB_UUID, \
                         NULL}
 
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
@@ -235,6 +236,7 @@
                            SYSDB_OVERRIDE_DN, \
                            SYSDB_OVERRIDE_OBJECT_DN, \
                            SYSDB_DEFAULT_OVERRIDE_NAME, \
+                           SYSDB_UUID, \
                            NULL}
 
 #define SYSDB_NETGR_ATTRS {SYSDB_NAME, SYSDB_NETGROUP_TRIPLE, \

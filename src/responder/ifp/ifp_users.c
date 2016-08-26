@@ -774,6 +774,13 @@ void ifp_users_user_get_login_shell(struct sbus_request *sbus_req,
     ifp_users_get_as_string(sbus_req, data, SYSDB_SHELL, _out);
 }
 
+void ifp_users_user_get_unique_id(struct sbus_request *sbus_req,
+                                  void *data,
+                                  const char **_out)
+{
+    ifp_users_get_as_string(sbus_req, data, SYSDB_UUID, _out);
+}
+
 void ifp_users_user_get_groups(struct sbus_request *sbus_req,
                                void *data,
                                const char ***_out,

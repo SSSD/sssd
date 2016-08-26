@@ -88,6 +88,7 @@
 #define IFACE_IFP_USERS_USER_GECOS "gecos"
 #define IFACE_IFP_USERS_USER_HOMEDIRECTORY "homeDirectory"
 #define IFACE_IFP_USERS_USER_LOGINSHELL "loginShell"
+#define IFACE_IFP_USERS_USER_UNIQUEID "uniqueID"
 #define IFACE_IFP_USERS_USER_GROUPS "groups"
 #define IFACE_IFP_USERS_USER_EXTRAATTRIBUTES "extraAttributes"
 
@@ -103,6 +104,7 @@
 #define IFACE_IFP_GROUPS_GROUP_UPDATEMEMBERLIST "UpdateMemberList"
 #define IFACE_IFP_GROUPS_GROUP_NAME "name"
 #define IFACE_IFP_GROUPS_GROUP_GIDNUMBER "gidNumber"
+#define IFACE_IFP_GROUPS_GROUP_UNIQUEID "uniqueID"
 #define IFACE_IFP_GROUPS_GROUP_USERS "users"
 #define IFACE_IFP_GROUPS_GROUP_GROUPS "groups"
 
@@ -294,6 +296,7 @@ struct iface_ifp_users_user {
     void (*get_gecos)(struct sbus_request *, void *data, const char **);
     void (*get_homeDirectory)(struct sbus_request *, void *data, const char **);
     void (*get_loginShell)(struct sbus_request *, void *data, const char **);
+    void (*get_uniqueID)(struct sbus_request *, void *data, const char **);
     void (*get_groups)(struct sbus_request *, void *data, const char ***, int *);
     void (*get_extraAttributes)(struct sbus_request *, void *data, hash_table_t **);
 };
@@ -328,6 +331,7 @@ struct iface_ifp_groups_group {
     int (*UpdateMemberList)(struct sbus_request *req, void *data);
     void (*get_name)(struct sbus_request *, void *data, const char **);
     void (*get_gidNumber)(struct sbus_request *, void *data, uint32_t*);
+    void (*get_uniqueID)(struct sbus_request *, void *data, const char **);
     void (*get_users)(struct sbus_request *, void *data, const char ***, int *);
     void (*get_groups)(struct sbus_request *, void *data, const char ***, int *);
 };
