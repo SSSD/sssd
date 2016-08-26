@@ -2052,6 +2052,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
     int num_providers;
     int ret;
     int error;
+    bool disable_netlink;
     struct sysdb_upgrade_ctx db_up_ctx;
 
     /* Set up the environment variable for the Kerberos Replay Cache */
@@ -2172,12 +2173,26 @@ static int monitor_process_init(struct mt_ctx *ctx,
         return ret;
     }
 
-    ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
-                        ctx, &ctx->nlctx);
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_DISABLE_NETLINK,
+                          false, &disable_netlink);
+
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot set up listening for network notifications\n");
+              "Failed to read disable_netlink from confdb: [%d] %s\n",
+              ret, sss_strerror(ret));
         return ret;
+    }
+
+    if (disable_netlink == false) {
+        ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
+                            ctx, &ctx->nlctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot set up listening for network notifications\n");
+            return ret;
+        }
     }
 
     /* start providers */

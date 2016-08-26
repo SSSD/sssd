@@ -73,6 +73,7 @@
 #define CONFDB_MONITOR_OVERRIDE_SPACE "override_space"
 #define CONFDB_MONITOR_USER_RUNAS "user"
 #define CONFDB_MONITOR_CERT_VERIFICATION "certificate_verification"
+#define CONFDB_MONITOR_DISABLE_NETLINK "disable_netlink"
 
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"

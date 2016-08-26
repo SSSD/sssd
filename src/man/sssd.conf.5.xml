@@ -482,6 +482,24 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>disable_netlink (boolean)</term>
+                        <listitem>
+                            <para>
+                                SSSD hooks into the netlink interface to
+                                monitor changes to routes, addresses, links
+                                and trigger certain actions.
+                            </para>
+                            <para>
+                                The SSSD state changes caused by netlink
+                                events may be undesirable and can be disabled
+                                by setting this option to 'true'
+                            </para>
+                            <para>
+                                Default: false (netlink changes are detected)
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>
