@@ -186,6 +186,7 @@
         <property name="gecos" type="s" access="read" />
         <property name="homeDirectory" type="s" access="read" />
         <property name="loginShell" type="s" access="read" />
+        <property name="uniqueID" type="s" access="read" />
         <property name="groups" type="ao" access="read" />
         <property name="extraAttributes" type="a{sas}" access="read" />
     </interface>
@@ -221,6 +222,7 @@
 
         <property name="name" type="s" access="read" />
         <property name="gidNumber" type="u" access="read" />
+        <property name="uniqueID" type="s" access="read" />
         <property name="users" type="ao" access="read" />
         <property name="groups" type="ao" access="read" />
     </interface>

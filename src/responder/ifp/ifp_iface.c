@@ -104,6 +104,7 @@ struct iface_ifp_users_user iface_ifp_users_user = {
     .get_gecos = ifp_users_user_get_gecos,
     .get_homeDirectory = ifp_users_user_get_home_directory,
     .get_loginShell = ifp_users_user_get_login_shell,
+    .get_uniqueID = ifp_users_user_get_unique_id,
     .get_groups = ifp_users_user_get_groups,
     .get_extraAttributes = ifp_users_user_get_extra_attributes
 };
@@ -121,6 +122,7 @@ struct iface_ifp_groups_group iface_ifp_groups_group = {
     .UpdateMemberList = ifp_groups_group_update_member_list,
     .get_name = ifp_groups_group_get_name,
     .get_gidNumber = ifp_groups_group_get_gid_number,
+    .get_uniqueID = ifp_groups_group_get_unique_id,
     .get_users = ifp_groups_group_get_users,
     .get_groups = ifp_groups_group_get_groups
 };

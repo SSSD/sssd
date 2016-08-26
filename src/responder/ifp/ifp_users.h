@@ -84,6 +84,10 @@ void ifp_users_user_get_login_shell(struct sbus_request *sbus_req,
                                     void *data,
                                     const char **_out);
 
+void ifp_users_user_get_unique_id(struct sbus_request *sbus_req,
+                                  void *data,
+                                  const char **_out);
+
 void ifp_users_user_get_groups(struct sbus_request *sbus_req,
                                void *data,
                                const char ***_out,

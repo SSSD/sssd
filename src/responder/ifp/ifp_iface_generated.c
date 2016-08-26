@@ -976,6 +976,15 @@ const struct sbus_property_meta iface_ifp_users_user__properties[] = {
         NULL, /* no invoker */
     },
     {
+        "uniqueID", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_uniqueID),
+        sbus_invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
         "groups", /* name */
         "ao", /* type */
         SBUS_PROPERTY_READABLE,
@@ -1161,6 +1170,15 @@ const struct sbus_property_meta iface_ifp_groups_group__properties[] = {
         SBUS_PROPERTY_READABLE,
         offsetof(struct iface_ifp_groups_group, get_gidNumber),
         sbus_invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "uniqueID", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_groups_group, get_uniqueID),
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },

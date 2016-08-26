@@ -751,6 +751,25 @@ void ifp_groups_group_get_gid_number(struct sbus_request *sbus_req,
     return;
 }
 
+void ifp_groups_group_get_unique_id(struct sbus_request *sbus_req,
+                                    void *data,
+                                    const char **_out)
+{
+    struct ldb_message *msg;
+    struct sss_domain_info *domain;
+    errno_t ret;
+
+    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &msg);
+    if (ret != EOK) {
+        *_out = 0;
+        return;
+    }
+
+    *_out = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_UUID, 0);
+
+    return;
+}
+
 static errno_t
 ifp_groups_group_get_members(TALLOC_CTX *mem_ctx,
                              struct sbus_request *sbus_req,
