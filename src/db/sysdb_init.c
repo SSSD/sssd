@@ -545,7 +545,7 @@ static errno_t sysdb_cache_connect_helper(TALLOC_CTX *mem_ctx,
     const char *version = NULL;
     int ret;
     struct ldb_context *ldb;
-    bool newly_created;
+    bool newly_created = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
