@@ -109,9 +109,12 @@ ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
 </programlisting>
         </para>
         <para>
-            When the SSSD is configured to use IPA as the ID provider,
-            the sudo provider is automatically enabled. The sudo search base
-            is configured to use the compat tree (ou=sudoers,$DC).
+            When SSSD is configured to use IPA as the ID provider, the
+            sudo provider is automatically enabled. The sudo search base is
+            configured to use the IPA native LDAP tree (cn=sudo,$SUFFIX).
+            If any other search base is defined in sssd.conf, this value will be
+            used instead. The compat tree (ou=sudoers,$SUFFIX) is no longer
+            required for IPA sudo functionality.
         </para>
     </refsect1>
 
