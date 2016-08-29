@@ -3077,7 +3077,6 @@ endif
 #####################
 
 intgcheck-prepare:
-	echo "temporarily disabled"
 	set -e; \
 	rm -Rf intg; \
 	$(MKDIR_P) intg/bld; \
