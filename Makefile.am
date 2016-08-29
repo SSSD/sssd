@@ -2727,7 +2727,7 @@ intgcheck-prepare:
 	cd ../..
 
 intgcheck-run:
-	if [ ! -d intg/pfx ]; then $(MAKE) intgcheck-build; fi; \
+	if [ ! -d intg/pfx ]; then $(MAKE) intgcheck-prepare; fi; \
 	cd intg/bld; \
 	$(MAKE) $(AM_MAKEFLAGS) -C src/tests/intg intgcheck-installed; \
 	cd ../..
