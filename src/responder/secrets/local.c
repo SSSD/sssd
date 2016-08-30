@@ -168,6 +168,7 @@ char *local_dn_to_path(TALLOC_CTX *mem_ctx,
 }
 
 #define LOCAL_SIMPLE_FILTER "(type=simple)"
+#define LOCAL_CONTAINER_FILTER "(type=container)"
 
 int local_db_get_simple(TALLOC_CTX *mem_ctx,
                         struct local_context *lctx,
@@ -306,7 +307,7 @@ int local_db_check_containers(TALLOC_CTX *mem_ctx,
 
         /* and check the parent container exists */
         ret = ldb_search(lctx->ldb, mem_ctx, &res, dn, LDB_SCOPE_BASE,
-                         attrs, LOCAL_SIMPLE_FILTER);
+                         attrs, LOCAL_CONTAINER_FILTER);
         if (ret != LDB_SUCCESS) return ENOENT;
         if (res->count != 1) return ENOENT;
         talloc_free(res);
