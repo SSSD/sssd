@@ -1374,7 +1374,10 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
 
     ret = sysdb_get_user_members_recursively(tmp_ctx, domain, obj->dn,
                                              &res_members);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_get_user_members_recursively failed.\n");
         goto done;

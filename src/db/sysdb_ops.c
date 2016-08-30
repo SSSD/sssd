@@ -4738,6 +4738,9 @@ errno_t sysdb_get_user_members_recursively(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_search_entry(tmp_ctx, dom->sysdb, base_dn, LDB_SCOPE_SUBTREE,
                              filter, attrs, &count, &msgs);
+    if (ret != EOK) {
+        goto done;
+    }
 
     res = talloc_zero(tmp_ctx, struct ldb_result);
     if (res == NULL) {
