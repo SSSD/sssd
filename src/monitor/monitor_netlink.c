@@ -21,11 +21,12 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <talloc.h>
 #include <tevent.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#define __USE_GNU /* needed for struct ucred */
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
