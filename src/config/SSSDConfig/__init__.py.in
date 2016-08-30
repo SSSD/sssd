@@ -51,7 +51,6 @@ option_strings = {
     'reconnection_retries' : _('Number of times to attempt connection to Data Providers'),
     'fd_limit' : _('The number of file descriptors that may be opened by this responder'),
     'client_idle_timeout' : _('Idle time before automatic disconnection of a client'),
-    'diag_cmd' : _('The command to run when a service ping times out'),
 
     # [sssd]
     'services' : _('SSSD Services to start'),
