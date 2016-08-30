@@ -1240,7 +1240,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
      */
     if (scope == LDAP_SCOPE_BASE && (flags & SDAP_SRCH_FLG_PAGING)) {
         /* Disable paging */
-        flags &= ~SDAP_SRCH_FLG_PAGING;
+        state->flags &= ~SDAP_SRCH_FLG_PAGING;
         DEBUG(SSSDBG_TRACE_FUNC,
               "WARNING: Disabling paging because scope is set to base.\n");
     }
@@ -1253,7 +1253,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
                                 serverctrls,
                                 NULL);
     if (control) {
-        flags |= SDAP_SRCH_FLG_PAGING;
+        state->flags |= SDAP_SRCH_FLG_PAGING;
     }
 
     /* ASQ */
@@ -1261,7 +1261,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
                                 serverctrls,
                                 NULL);
     if (control) {
-        flags |= SDAP_SRCH_FLG_PAGING;
+        state->flags |= SDAP_SRCH_FLG_PAGING;
     }
 
     for (state->nserverctrls=0;
