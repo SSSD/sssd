@@ -299,6 +299,21 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_primary_group (string)</term>
+                    <listitem>
+                        <para>
+                            Active Directory primary group attribute
+                            for ID-mapping. Note that this attribute should
+                            only be set manually if you are running the
+                            <quote>ldap</quote> provider with ID mapping.
+                        </para>
+                        <para>
+                            Default: unset (LDAP), primaryGroupID (AD)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_user_gecos (string)</term>
                     <listitem>
                         <para>
