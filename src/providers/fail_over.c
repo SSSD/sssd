@@ -1274,6 +1274,8 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->fo_ctx = ctx;
     state->meta = server->srv_data->meta;
 
+    DEBUG(SSSDBG_IMPORTANT_INFO, "RESOLV SRV SEND\n");
+
     status = get_srv_data_status(server->srv_data);
     DEBUG(SSSDBG_FUNC_DATA, "The status of SRV lookup is %s\n",
           str_srv_data_status(status));
@@ -1355,6 +1357,8 @@ resolve_srv_done(struct tevent_req *subreq)
     char *dns_domain = NULL;
     int ret;
     uint32_t ttl;
+
+    DEBUG(SSSDBG_IMPORTANT_INFO, "RESOLV SRV DONE\n");
 
     ret = state->fo_ctx->srv_recv_fn(state, subreq, &dns_domain, &ttl,
                                      &primary_servers, &num_primary_servers,
