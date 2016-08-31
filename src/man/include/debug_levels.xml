@@ -37,7 +37,7 @@
     <para>
          <emphasis>1</emphasis>,
          <emphasis>0x0020</emphasis>:
-         Critical failures. An error that doesn't kill the SSSD, but one that
+         Critical failures. An error that doesn't kill SSSD, but one that
          indicates that at least one major feature is not going to work
          properly.
     </para>
