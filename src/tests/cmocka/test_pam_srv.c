@@ -554,7 +554,7 @@ static void mock_input_pam(TALLOC_CTX *mem_ctx, const char *name,
 }
 
 static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
-                                const char *pin)
+                                const char *pin, const char *service)
 {
     size_t buf_size;
     uint8_t *m_buf;
@@ -576,7 +576,7 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
         pi.pam_authtok_type = SSS_AUTHTOK_TYPE_SC_PIN;
     }
 
-    pi.pam_service = "login";
+    pi.pam_service = service == NULL ? "login" : service;
     pi.pam_service_size = strlen(pi.pam_service) + 1;
     pi.pam_tty = "/dev/tty";
     pi.pam_tty_size = strlen(pi.pam_tty) + 1;
@@ -626,7 +626,8 @@ static int test_pam_simple_check(uint32_t status, uint8_t *body, size_t blen)
 
 #define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
 
-static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
+                                             size_t blen)
 {
     size_t rp = 0;
     uint32_t val;
@@ -675,6 +676,44 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
     return EOK;
 }
 
+static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    size_t rp = 0;
+    uint32_t val;
+
+    assert_int_equal(status, 0);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, pam_test_ctx->exp_pam_status);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 2);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 9);
+
+    assert_int_equal(*(body + rp + val - 1), 0);
+    assert_string_equal(body + rp, TEST_DOM_NAME);
+    rp += val;
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_CERT_INFO);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, (sizeof("pamuser") + sizeof(TEST_TOKEN_NAME)));
+
+    assert_int_equal(*(body + rp + sizeof("pamuser") - 1), 0);
+    assert_string_equal(body + rp, "pamuser");
+    rp += sizeof("pamuser");
+
+    assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
+    assert_string_equal(body + rp, TEST_TOKEN_NAME);
+
+    return EOK;
+}
 
 static int test_pam_offline_chauthtok_check(uint32_t status,
                                             uint8_t *body, size_t blen)
@@ -1438,7 +1477,7 @@ void test_pam_preauth_no_logon_name(void **state)
 {
     int ret;
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1465,7 +1504,7 @@ void test_pam_preauth_cert_nocert(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1544,7 +1583,7 @@ void test_pam_preauth_cert_nomatch(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1566,7 +1605,7 @@ void test_pam_preauth_cert_match(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1583,13 +1622,37 @@ void test_pam_preauth_cert_match(void **state)
     assert_int_equal(ret, EOK);
 }
 
+/* Test if PKCS11_LOGIN_TOKEN_NAME is added for the gdm-smartcard service */
+void test_pam_preauth_cert_match_gdm_smartcard(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, "gdm-smartcard");
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
+                      discard_const(TEST_TOKEN_CERT));
+
+    set_cmd_cb(test_pam_cert_check_gdm_smartcard);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_pam_preauth_cert_match_wrong_user(void **state)
 {
     int ret;
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1613,7 +1676,7 @@ void test_pam_preauth_cert_no_logon_name(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1636,7 +1699,7 @@ void test_pam_preauth_no_cert_no_logon_name(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1657,7 +1720,7 @@ void test_pam_preauth_cert_no_logon_name_no_match(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1679,7 +1742,7 @@ void test_pam_cert_auth(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456");
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", NULL);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1789,6 +1852,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_nomatch,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match_gdm_smartcard,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match_wrong_user,
                                         pam_test_setup, pam_test_teardown),
