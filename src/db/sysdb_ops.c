@@ -2661,7 +2661,6 @@ static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
 static errno_t sysdb_store_group_attrs(struct sss_domain_info *domain,
                                        const char *name,
                                        gid_t gid,
-                                       struct ldb_message *cached_group,
                                        struct sysdb_attrs *attrs,
                                        uint64_t cache_timeout,
                                        time_t now);
@@ -2731,7 +2730,7 @@ int sysdb_store_group(struct sss_domain_info *domain,
         ret = sysdb_store_new_group(domain, name, gid, attrs,
                                     cache_timeout, now);
     } else {
-        ret = sysdb_store_group_attrs(domain, name, gid, msg, attrs,
+        ret = sysdb_store_group_attrs(domain, name, gid, attrs,
                                       cache_timeout, now);
     }
     if (ret != EOK) {
@@ -2811,7 +2810,6 @@ static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
 static errno_t sysdb_store_group_attrs(struct sss_domain_info *domain,
                                        const char *name,
                                        gid_t gid,
-                                       struct ldb_message *cached_group,
                                        struct sysdb_attrs *attrs,
                                        uint64_t cache_timeout,
                                        time_t now)
