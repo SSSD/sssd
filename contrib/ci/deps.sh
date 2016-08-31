@@ -71,7 +71,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libaugeas-dev
         libc-ares-dev
         libcmocka-dev
-        libcollection-dev
         libdbus-1-dev
         libdhash-dev
         libglib2.0-dev

@@ -120,7 +120,6 @@ BuildRequires: libtevent-devel
 BuildRequires: libtdb-devel
 BuildRequires: libldb-devel
 BuildRequires: libdhash-devel >= 0.4.2
-BuildRequires: libcollection-devel
 BuildRequires: libini_config-devel >= 1.1
 BuildRequires: dbus-devel
 BuildRequires: dbus-libs
