@@ -372,14 +372,43 @@ int local_db_delete(TALLOC_CTX *mem_ctx,
                     struct local_context *lctx,
                     const char *req_path)
 {
+    TALLOC_CTX *tmp_ctx;
     struct ldb_dn *dn;
+    static const char *attrs[] = { NULL };
+    struct ldb_result *res;
     int ret;
 
+    tmp_ctx = talloc_new(mem_ctx);
+    if (!tmp_ctx) return ENOMEM;
+
     ret = local_db_dn(mem_ctx, lctx->ldb, req_path, &dn);
-    if (ret != EOK) return ret;
+    if (ret != EOK) goto done;
+
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                    attrs, LOCAL_CONTAINER_FILTER);
+    if (ret != EOK) goto done;
+
+    if (res->count == 1) {
+        ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_ONELEVEL,
+                         attrs, NULL);
+        if (ret != EOK) goto done;
+
+        if (res->count > 0) {
+            ret = EEXIST;
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to remove '%s': Container is not empty\n",
+                  ldb_dn_get_linearized(dn));
+
+            goto done;
+        }
+    }
 
     ret = ldb_delete(lctx->ldb, dn);
-    return sysdb_error_to_errno(ret);
+    ret = sysdb_error_to_errno(ret);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 int local_db_create(TALLOC_CTX *mem_ctx,
