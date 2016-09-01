@@ -688,7 +688,7 @@ static int sysdb_domain_cache_connect(struct sysdb_ctx *sysdb,
                                       struct sysdb_dom_upgrade_ctx *upgrade_ctx)
 {
     errno_t ret;
-    const char *version;
+    const char *version = NULL;
     TALLOC_CTX *tmp_ctx;
     struct ldb_context *ldb;
 
