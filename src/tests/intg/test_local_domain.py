@@ -19,11 +19,13 @@
 import os
 import stat
 import pwd
+import grp
 import time
 import config
 import signal
 import subprocess
 import pytest
+import ent
 from util import unindent
 
 
@@ -90,6 +92,11 @@ def assert_nonexistent_user(name):
         pwd.getpwnam(name)
 
 
+def assert_nonexistent_group(name):
+    with pytest.raises(KeyError):
+        grp.getgrnam(name)
+
+
 def test_wrong_LC_ALL(local_domain_only):
     """
     Regression test for ticket
@@ -107,3 +114,22 @@ def test_wrong_LC_ALL(local_domain_only):
     subprocess.check_call(["sss_userdel", "foo", "-R"])
     assert_nonexistent_user("foo")
     os.environ["LC_ALL"] = oldvalue
+
+
+def test_sss_group_add_show_del(local_domain_only):
+    """
+    Regression test for tickets
+    https://fedorahosted.org/sssd/ticket/3173
+    https://fedorahosted.org/sssd/ticket/3175
+    """
+
+    subprocess.check_call(["sss_groupadd", "foo", "-g", "10001"])
+
+    "This should not raise KeyError"
+    ent.assert_group_by_name("foo", dict(name="foo", gid=10001))
+
+    "sss_grupshow should return 0 with existing group name"
+    subprocess.check_call(["sss_groupshow", "foo"])
+
+    subprocess.check_call(["sss_groupdel", "foo"])
+    assert_nonexistent_group("foo")
