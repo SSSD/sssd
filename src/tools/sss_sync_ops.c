@@ -657,7 +657,7 @@ int groupadd(struct ops_ctx *data)
     int ret;
 
     data->sysdb_fqname = sss_create_internal_fqname(data,
-                                                    data->sysdb_fqname,
+                                                    data->name,
                                                     data->domain->name);
     if (data->sysdb_fqname == NULL) {
         return ENOMEM;
