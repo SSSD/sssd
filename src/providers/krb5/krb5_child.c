@@ -1374,6 +1374,8 @@ static errno_t map_krb5_error(krb5_error_code kerr)
 
     case KRB5_KDCREP_SKEW:
     case KRB5KRB_AP_ERR_SKEW:
+    case KRB5KRB_AP_ERR_TKT_EXPIRED:
+    case KRB5KRB_AP_ERR_TKT_NYV:
     case KRB5_KDC_UNREACH:
     case KRB5_REALM_CANT_RESOLVE:
     case KRB5_REALM_UNKNOWN:
