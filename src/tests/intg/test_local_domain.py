@@ -90,6 +90,27 @@ def local_domain_only(request):
     return None
 
 
+@pytest.fixture
+def local_domain_only_fqdn(request):
+    conf = unindent("""\
+        [sssd]
+        domains = LOCAL
+        services = nss
+
+        [nss]
+        memcache_timeout = 0
+
+        [domain/LOCAL]
+        id_provider = local
+        min_id = 10000
+        max_id = 20000
+        use_fully_qualified_names = True
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
 def assert_nonexistent_user(name):
     with pytest.raises(KeyError):
         pwd.getpwnam(name)
@@ -172,3 +193,65 @@ def test_add_local_group_to_local_group(local_domain_only):
         "group_parent",
         dict(name="group_parent", passwd="*", gid=10008,
              mem=ent.contains_only("user_child")))
+
+
+def test_sss_group_add_show_del_fqdn(local_domain_only_fqdn):
+    """
+    Regression test for tickets
+    https://fedorahosted.org/sssd/ticket/3173
+    https://fedorahosted.org/sssd/ticket/3175
+    """
+
+    subprocess.check_call(["sss_groupadd", "foo@LOCAL", "-g", "10001"])
+
+    "This should not raise KeyError"
+    ent.assert_group_by_name("foo@LOCAL", dict(name="foo@LOCAL", gid=10001))
+
+    "sss_grupshow should return 0 with existing group name"
+    subprocess.check_call(["sss_groupshow", "foo@LOCAL"])
+
+    subprocess.check_call(["sss_groupdel", "foo@LOCAL"])
+    assert_nonexistent_group("foo@LOCAL")
+
+
+def test_add_local_user_to_local_group_fqdn(local_domain_only_fqdn):
+    """
+    Regression test for ticket
+    https://fedorahosted.org/sssd/ticket/3178
+    """
+    subprocess.check_call(
+        ["sss_groupadd", "-g", "10009", "group10009@LOCAL"])
+    subprocess.check_call(
+        ["sss_useradd", "-u", "10009", "-M", "user10009@LOCAL"])
+    subprocess.check_call(
+        ["sss_usermod", "-a", "group10009@LOCAL", "user10009@LOCAL"])
+
+    ent.assert_group_by_name(
+        "group10009@LOCAL",
+        dict(name="group10009@LOCAL", passwd="*", gid=10009,
+             mem=ent.contains_only("user10009@LOCAL")))
+
+
+def test_add_local_group_to_local_group_fqdn(local_domain_only_fqdn):
+    """
+    Regression test for tickets
+    https://fedorahosted.org/sssd/ticket/3178
+    """
+    subprocess.check_call(
+        ["sss_groupadd", "-g", "10009", "group_child@LOCAL"])
+    subprocess.check_call(
+        ["sss_useradd", "-u", "10009", "-M", "user_child@LOCAL"])
+    subprocess.check_call(
+        ["sss_usermod", "-a", "group_child@LOCAL", "user_child@LOCAL"])
+
+    subprocess.check_call(
+        ["sss_groupadd", "-g", "10008", "group_parent@LOCAL"])
+    subprocess.check_call(
+        ["sss_groupmod", "-a", "group_parent@LOCAL", "group_child@LOCAL"])
+
+    # User from child_group is member of parent_group, so child_group's
+    # member must be also parent_group's member
+    ent.assert_group_by_name(
+        "group_parent@LOCAL",
+        dict(name="group_parent@LOCAL", passwd="*", gid=10008,
+             mem=ent.contains_only("user_child@LOCAL")))
