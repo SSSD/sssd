@@ -137,6 +137,7 @@ static int mod_groups_member(struct sss_domain_info *dom,
     struct ldb_dn *parent_dn;
     int ret;
     int i;
+    char *grp_sysdb_fqname = NULL;
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -145,12 +146,20 @@ static int mod_groups_member(struct sss_domain_info *dom,
 
 /* FIXME: add transaction around loop */
     for (i = 0; grouplist[i]; i++) {
+        grp_sysdb_fqname = sss_create_internal_fqname(tmpctx, grouplist[i],
+                                                      dom->name);
+        if (grp_sysdb_fqname == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
 
-        parent_dn = sysdb_group_dn(tmpctx, dom, grouplist[i]);
+        parent_dn = sysdb_group_dn(tmpctx, dom, grp_sysdb_fqname);
         if (!parent_dn) {
             ret = ENOMEM;
             goto done;
         }
+
+        talloc_free(grp_sysdb_fqname);
 
         ret = sysdb_mod_group_member(dom, member_dn, parent_dn, optype);
         if (ret) {
