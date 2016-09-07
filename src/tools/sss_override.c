@@ -1159,12 +1159,14 @@ list_user_overrides(TALLOC_CTX *mem_ctx,
         }
 
         fqname = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
-        ret = sss_parse_internal_fqname(tmp_ctx, fqname, &name, NULL);
-        if (ret != EOK) {
-            ret = ERR_WRONG_NAME_FORMAT;
-            goto done;
+        if (fqname != NULL) {
+            ret = sss_parse_internal_fqname(tmp_ctx, fqname, &name, NULL);
+            if (ret != EOK) {
+                ret = ERR_WRONG_NAME_FORMAT;
+                goto done;
+            }
+            objs[i].name = talloc_steal(objs, name);
         }
-        objs[i].name = talloc_steal(objs, name);
 
         objs[i].uid = ldb_msg_find_attr_as_uint(msgs[i], SYSDB_UIDNUM, 0);
         objs[i].gid = ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
@@ -1248,12 +1250,14 @@ list_group_overrides(TALLOC_CTX *mem_ctx,
         talloc_steal(objs, objs[i].orig_name);
 
         fqname = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
-        ret = sss_parse_internal_fqname(tmp_ctx, fqname, &name, NULL);
-        if (ret != EOK) {
-            ret = ERR_WRONG_NAME_FORMAT;
-            goto done;
+        if (fqname != NULL) {
+            ret = sss_parse_internal_fqname(tmp_ctx, fqname, &name, NULL);
+            if (ret != EOK) {
+                ret = ERR_WRONG_NAME_FORMAT;
+                goto done;
+            }
+            objs[i].name = talloc_steal(objs, name);
         }
-        objs[i].name = talloc_steal(objs, name);
 
         objs[i].gid = ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
     }
