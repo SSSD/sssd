@@ -174,8 +174,10 @@ done:
     return ret;
 }
 
-errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
-                   struct krb5_ctx *krb5_ctx, bool cs,
+errno_t krb5_setup(TALLOC_CTX *mem_ctx,
+                   struct pam_data *pd,
+                   struct sss_domain_info *dom,
+                   struct krb5_ctx *krb5_ctx,
                    struct krb5child_req **_krb5_req)
 {
     struct krb5child_req *kr;
@@ -201,13 +203,21 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
     kr->krb5_ctx = krb5_ctx;
 
     ret = get_krb_primary(krb5_ctx->name_to_primary,
-                          pd->user, cs, &mapped_name);
+                          pd->user, dom->case_sensitive, &mapped_name);
     if (ret == EOK) {
         DEBUG(SSSDBG_TRACE_FUNC, "Setting mapped name to: %s\n", mapped_name);
         kr->user = mapped_name;
+        kr->kuserok_user = mapped_name;
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_ALL, "No mapping for: %s\n", pd->user);
         kr->user = pd->user;
+
+        kr->kuserok_user = sss_output_name(kr, kr->user,
+                                           dom->case_sensitive, 0);
+        if (kr->kuserok_user == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "get_krb_primary failed - %s:[%d]\n",
               sss_strerror(ret), ret);
@@ -534,7 +544,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     attrs[6] = SYSDB_AUTH_TYPE;
     attrs[7] = NULL;
 
-    ret = krb5_setup(state, pd, krb5_ctx, state->domain->case_sensitive,
+    ret = krb5_setup(state, pd, state->domain, krb5_ctx,
                      &state->kr);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_setup failed.\n");
