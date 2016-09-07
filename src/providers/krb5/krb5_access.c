@@ -51,6 +51,7 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
     int ret;
     const char **attrs;
     struct ldb_result *res;
+    struct sss_domain_info *dom;
 
     req = tevent_req_create(mem_ctx, &state, struct krb5_access_state);
     if (req == NULL) {
@@ -64,8 +65,13 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
     state->krb5_ctx = krb5_ctx;
     state->access_allowed = false;
 
-    ret = krb5_setup(state, pd, krb5_ctx, be_ctx->domain->case_sensitive,
-                     &state->kr);
+    ret = get_domain_or_subdomain(be_ctx, pd->domain, &dom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_domain_or_subdomain failed.\n");
+        goto done;
+    }
+
+    ret = krb5_setup(state, pd, dom, krb5_ctx, &state->kr);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_setup failed.\n");
         goto done;

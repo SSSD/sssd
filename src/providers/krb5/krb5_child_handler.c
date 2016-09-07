@@ -161,7 +161,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     }
 
     if (kr->pd->cmd == SSS_PAM_ACCT_MGMT) {
-        username_len = strlen(kr->pd->user);
+        username_len = strlen(kr->kuserok_user);
         buf->size += sizeof(uint32_t) + username_len;
     }
 
@@ -217,7 +217,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
 
     if (kr->pd->cmd == SSS_PAM_ACCT_MGMT) {
         SAFEALIGN_SET_UINT32(&buf->data[rp], username_len, &rp);
-        safealign_memcpy(&buf->data[rp], kr->pd->user, username_len, &rp);
+        safealign_memcpy(&buf->data[rp], kr->kuserok_user, username_len, &rp);
     }
 
     *io_buf = buf;

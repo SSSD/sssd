@@ -57,11 +57,14 @@ struct krb5child_req {
     bool send_pac;
 
     const char *user;
+    const char *kuserok_user;
 };
 
-errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
-                   struct krb5_ctx *krb5_ctx, bool case_sensitive,
-                   struct krb5child_req **krb5_req);
+errno_t krb5_setup(TALLOC_CTX *mem_ctx,
+                   struct pam_data *pd,
+                   struct sss_domain_info *dom,
+                   struct krb5_ctx *krb5_ctx,
+                   struct krb5child_req **_krb5_req);
 
 struct tevent_req *
 krb5_pam_handler_send(TALLOC_CTX *mem_ctx,
