@@ -136,3 +136,39 @@ def test_sss_group_add_show_del(local_domain_only):
 
     subprocess.check_call(["sss_groupdel", "foo"])
     assert_nonexistent_group("foo")
+
+
+def test_add_local_user_to_local_group(local_domain_only):
+    """
+    Regression test for ticket
+    https://fedorahosted.org/sssd/ticket/3178
+    """
+    subprocess.check_call(["sss_groupadd", "-g", "10009", "group10009"])
+    subprocess.check_call(["sss_useradd", "-u", "10009", "-M", "user10009"])
+    subprocess.check_call(["sss_usermod", "-a", "group10009", "user10009"])
+
+    ent.assert_group_by_name(
+        "group10009",
+        dict(name="group10009", passwd="*", gid=10009,
+             mem=ent.contains_only("user10009")))
+
+
+def test_add_local_group_to_local_group(local_domain_only):
+    """
+    Regression test for tickets
+    https://fedorahosted.org/sssd/ticket/3178
+    """
+    subprocess.check_call(["sss_groupadd", "-g", "10009", "group_child"])
+    subprocess.check_call(["sss_useradd", "-u", "10009", "-M", "user_child"])
+    subprocess.check_call(["sss_usermod", "-a", "group_child", "user_child"])
+
+    subprocess.check_call(["sss_groupadd", "-g", "10008", "group_parent"])
+    subprocess.check_call(
+        ["sss_groupmod", "-a", "group_parent", "group_child"])
+
+    # User from child_group is member of parent_group, so child_group's
+    # member must be also parent_group's member
+    ent.assert_group_by_name(
+        "group_parent",
+        dict(name="group_parent", passwd="*", gid=10008,
+             mem=ent.contains_only("user_child")))
