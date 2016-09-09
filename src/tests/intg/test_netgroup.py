@@ -104,6 +104,7 @@ def format_basic_conf(ldap_conn, schema):
         [sssd]
         domains             = LDAP
         services            = nss
+        disable_netlink     = true
 
         [domain/LDAP]
         {schema_conf}
@@ -148,11 +149,16 @@ def create_sssd_process():
         raise Exception("sssd start failed")
 
 
+def get_sssd_pid():
+    pid_file = open(config.PIDFILE_PATH, "r")
+    pid = int(pid_file.read())
+    return pid
+
+
 def cleanup_sssd_process():
     """Stop the SSSD process and remove its state"""
     try:
-        pid_file = open(config.PIDFILE_PATH, "r")
-        pid = int(pid_file.read())
+        pid = get_sssd_pid()
         os.kill(pid, signal.SIGTERM)
         while True:
             try:
@@ -171,6 +177,11 @@ def cleanup_sssd_process():
 def create_sssd_cleanup(request):
     """Add teardown for stopping SSSD and removing its state"""
     request.addfinalizer(cleanup_sssd_process)
+
+
+def simulate_offline():
+    pid = get_sssd_pid()
+    os.kill(pid, signal.SIGUSR1)
 
 
 def create_sssd_fixture(request):
@@ -457,3 +468,17 @@ def test_removing_nested_netgroups(removing_nested_netgroups, ldap_conn):
     res, _, netgroups = sssd_netgroup.get_sssd_netgroups("t2841_netgroup3")
     assert res == sssd_netgroup.NssReturnCode.SUCCESS
     assert netgroups == []
+
+
+def test_offline_netgroups(add_tripled_netgroup):
+    res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup")
+    assert res == sssd_netgroup.NssReturnCode.SUCCESS
+    assert netgrps == [("host", "user", "domain")]
+
+    subprocess.check_call(["sss_cache", "-N"])
+
+    simulate_offline()
+
+    res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup")
+    assert res == sssd_netgroup.NssReturnCode.SUCCESS
+    assert netgrps == [("host", "user", "domain")]
