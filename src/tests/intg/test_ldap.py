@@ -794,3 +794,160 @@ def test_extra_attribute_already_exists(ldap_conn, extra_attributes):
                                   user, domain, extra_attribute)
 
     assert val == given_name
+
+
+@pytest.fixture
+def add_user_to_group(request, ldap_conn):
+    """
+    Adding user to group
+    """
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_group_bis("group1", 20001, member_uids=["user1"])
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    create_conf_fixture(request,
+                        format_rfc2307bis_deref_conf(
+                            ldap_conn,
+                            SCHEMA_RFC2307_BIS))
+    create_sssd_fixture(request)
+    return None
+
+
+def test_add_user_to_group(ldap_conn, add_user_to_group):
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=2001))
+    ent.assert_group_by_name("group1", dict(mem=ent.contains_only("user1")))
+
+
+@pytest.fixture
+def remove_user_from_group(request, ldap_conn):
+    """
+    Adding user to group
+    """
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2002)
+    ent_list.add_group_bis("group1", 20001, member_uids=["user1", "user2"])
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    create_conf_fixture(request,
+                        format_rfc2307bis_deref_conf(
+                            ldap_conn,
+                            SCHEMA_RFC2307_BIS))
+    create_sssd_fixture(request)
+    return None
+
+
+def test_remove_user_from_group(ldap_conn, remove_user_from_group):
+    """
+    Removing two users from group, step by step
+    """
+    group1_dn = 'cn=group1,ou=Groups,' + ldap_conn.ds_inst.base_dn
+
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=2001))
+    ent.assert_passwd_by_name("user2", dict(name="user2", uid=1002, gid=2002))
+    ent.assert_group_by_name("group1",
+                             dict(mem=ent.contains_only("user1", "user2")))
+
+    # removing of user2 from group1
+    old = {'member': ["uid=user1,ou=Users,dc=example,dc=com",
+                      "uid=user2,ou=Users,dc=example,dc=com"]}
+    new = {'member': ["uid=user1,ou=Users,dc=example,dc=com"]}
+
+    ldif = ldap.modlist.modifyModlist(old, new)
+    ldap_conn.modify_s(group1_dn, ldif)
+
+    if subprocess.call(["sss_cache", "-GU"]) != 0:
+        raise Exception("sssd_cache failed")
+
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=2001))
+    ent.assert_passwd_by_name("user2", dict(name="user2", uid=1002, gid=2002))
+    ent.assert_group_by_name("group1", dict(mem=ent.contains_only("user1")))
+
+    # removing of user1 from group1
+    old = {'member': ["uid=user1,ou=Users,dc=example,dc=com"]}
+    new = {'member': []}
+
+    ldif = ldap.modlist.modifyModlist(old, new)
+    ldap_conn.modify_s(group1_dn, ldif)
+
+    if subprocess.call(["sss_cache", "-GU"]) != 0:
+        raise Exception("sssd_cache failed")
+
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=2001))
+    ent.assert_passwd_by_name("user2", dict(name="user2", uid=1002, gid=2002))
+    ent.assert_group_by_name("group1", dict(mem=ent.contains_only()))
+
+
+@pytest.fixture
+def remove_user_from_nested_group(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2002)
+    ent_list.add_group_bis("group1", 20001, member_uids=["user1"])
+    ent_list.add_group_bis("group2", 20002, member_uids=["user2"])
+    ent_list.add_group_bis("group3", 20003, member_gids=["group1", "group2"])
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    create_conf_fixture(request,
+                        format_rfc2307bis_deref_conf(
+                            ldap_conn,
+                            SCHEMA_RFC2307_BIS))
+    create_sssd_fixture(request)
+    return None
+
+
+def test_remove_user_from_nested_group(ldap_conn,
+                                       remove_user_from_nested_group):
+
+    group3_dn = 'cn=group3,ou=Groups,' + ldap_conn.ds_inst.base_dn
+
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=2001))
+    ent.assert_passwd_by_name("user2", dict(name="user2", uid=1002, gid=2002))
+
+    ent.assert_group_by_name("group1",
+                             dict(mem=ent.contains_only("user1")))
+    ent.assert_group_by_name("group2",
+                             dict(mem=ent.contains_only("user2")))
+
+    ent.assert_group_by_name("group3",
+                             dict(mem=ent.contains_only("user1",
+                                                        "user2")))
+
+    # removing of group2 from group3
+    old = {'member': ["cn=group1,ou=Groups,dc=example,dc=com",
+                      "cn=group2,ou=Groups,dc=example,dc=com"]}
+    new = {'member': ["cn=group1,ou=Groups,dc=example,dc=com"]}
+
+    ldif = ldap.modlist.modifyModlist(old, new)
+    ldap_conn.modify_s(group3_dn, ldif)
+
+    if subprocess.call(["sss_cache", "-GU"]) != 0:
+        raise Exception("sssd_cache failed")
+
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=2001))
+    ent.assert_passwd_by_name("user2", dict(name="user2", uid=1002, gid=2002))
+
+    ent.assert_group_by_name("group1",
+                             dict(mem=ent.contains_only("user1")))
+    ent.assert_group_by_name("group2",
+                             dict(mem=ent.contains_only("user2")))
+    ent.assert_group_by_name("group3",
+                             dict(mem=ent.contains_only("user1")))
+
+    # removing of group1 from group3
+    old = {'member': ["cn=group1,ou=Groups,dc=example,dc=com"]}
+    new = {'member': []}
+
+    ldif = ldap.modlist.modifyModlist(old, new)
+    ldap_conn.modify_s(group3_dn, ldif)
+
+    if subprocess.call(["sss_cache", "-GU"]) != 0:
+        raise Exception("sssd_cache failed")
+
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=2001))
+    ent.assert_passwd_by_name("user2", dict(name="user2", uid=1002, gid=2002))
+
+    ent.assert_group_by_name("group1",
+                             dict(mem=ent.contains_only("user1")))
+    ent.assert_group_by_name("group2",
+                             dict(mem=ent.contains_only("user2")))
+    ent.assert_group_by_name("group3",
+                             dict(mem=ent.contains_only()))
