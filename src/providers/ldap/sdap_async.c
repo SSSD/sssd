@@ -1526,7 +1526,8 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
                   sss_ldap_err2string(result), result,
                   errmsg ? errmsg : "no errmsg set");
 
-        if (result == LDAP_SIZELIMIT_EXCEEDED) {
+        if (result == LDAP_SIZELIMIT_EXCEEDED
+                || result == LDAP_ADMINLIMIT_EXCEEDED) {
             /* Try to return what we've got */
 
             if ( ! (state->flags & SDAP_SRCH_FLG_SIZELIMIT_SILENT)) {
