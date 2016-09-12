@@ -121,6 +121,28 @@ def assert_nonexistent_group(name):
         grp.getgrnam(name)
 
 
+def test_groupshow_mpg(local_domain_only):
+    """
+    Regression test for ticket
+    https://fedorahosted.org/sssd/ticket/3184
+    """
+    subprocess.check_call(["sss_useradd", "foo", "-M"])
+
+    # The user's mpg has to be found (should return 0)
+    subprocess.check_call(["sss_groupshow", "foo"])
+
+
+def test_groupshow_mpg_fqdn(local_domain_only_fqdn):
+    """
+    Regression test for ticket (fq variant)
+    https://fedorahosted.org/sssd/ticket/3184
+    """
+    subprocess.check_call(["sss_useradd", "foo@LOCAL", "-M"])
+
+    # The user's mpg has to be found (should return 0)
+    subprocess.check_call(["sss_groupshow", "foo@LOCAL"])
+
+
 def test_wrong_LC_ALL(local_domain_only):
     """
     Regression test for ticket
