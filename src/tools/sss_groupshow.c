@@ -553,13 +553,14 @@ int group_show_recurse(TALLOC_CTX *mem_ctx,
 
 static int group_show_mpg(TALLOC_CTX *mem_ctx,
                           struct sss_domain_info *domain,
-                          const char *name,
+                          const char *shortname,
                           struct group_info **res)
 {
     const char *attrs[] = GROUP_SHOW_MPG_ATTRS;
     struct ldb_message *msg;
     struct group_info *info;
     int ret;
+    char *sysdb_fqname;
 
     info = talloc_zero(mem_ctx, struct group_info);
     if (!info) {
@@ -567,7 +568,14 @@ static int group_show_mpg(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sysdb_search_user_by_name(info, domain, name, attrs, &msg);
+    sysdb_fqname = sss_create_internal_fqname(mem_ctx,
+                                              shortname,
+                                              domain->name);
+    if (sysdb_fqname == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_user_by_name(info, domain, sysdb_fqname, attrs, &msg);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Search failed: %s (%d)\n", strerror(ret), ret);
