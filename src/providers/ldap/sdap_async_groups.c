@@ -878,6 +878,8 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     size_t nuserdns = 0;
     struct sss_domain_info *group_dom = NULL;
     int ret;
+    const char *remove_attrs[] = {SYSDB_MEMBER, SYSDB_ORIG_MEMBER, SYSDB_GHOST,
+                                  NULL};
 
     if (dom->ignore_group_members) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -962,6 +964,13 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     if (el->num_values == 0 && nuserdns == 0) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "No members for group [%s]\n", group_name);
+
+        ret = sysdb_remove_attrs(group_dom, group_name, SYSDB_MEMBER_GROUP,
+                                 discard_const(remove_attrs));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_remove_attrs failed.\n");
+            goto fail;
+        }
     } else {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Adding member users to group [%s]\n", group_name);
