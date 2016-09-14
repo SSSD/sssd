@@ -521,7 +521,9 @@ done:
 }
 
 errno_t
-parse_krb5_map_user(TALLOC_CTX *mem_ctx, const char *krb5_map_user,
+parse_krb5_map_user(TALLOC_CTX *mem_ctx,
+                    const char *krb5_map_user,
+                    const char *dom_name,
                     struct map_id_name_to_krb_primary **_name_to_primary)
 {
     int size;
@@ -570,6 +572,28 @@ parse_krb5_map_user(TALLOC_CTX *mem_ctx, const char *krb5_map_user,
         }
     }
 
+    /* conversion names to fully-qualified names */
+    for (int i = 0; i < size; i++) {
+        name_to_primary[i].id_name = sss_create_internal_fqname(
+                                                     name_to_primary,
+                                                     name_to_primary[i].id_name,
+                                                     dom_name);
+        if (name_to_primary[i].id_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_create_internal_fqname failed\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        name_to_primary[i].krb_primary = sss_create_internal_fqname(
+                                                 name_to_primary,
+                                                 name_to_primary[i].krb_primary,
+                                                 dom_name);
+        if (name_to_primary[i].krb_primary == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_create_internal_fqname failed\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
     ret = EOK;
 
 done:

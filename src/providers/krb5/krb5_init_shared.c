@@ -94,6 +94,7 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
     ret = parse_krb5_map_user(krb5_auth_ctx,
                               dp_opt_get_cstring(krb5_auth_ctx->opts,
                                                  KRB5_MAP_USER),
+                              bectx->domain->name,
                               &krb5_auth_ctx->name_to_primary);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "parse_krb5_map_user failed: %s:[%d]\n",

@@ -207,7 +207,13 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx,
     if (ret == EOK) {
         DEBUG(SSSDBG_TRACE_FUNC, "Setting mapped name to: %s\n", mapped_name);
         kr->user = mapped_name;
-        kr->kuserok_user = mapped_name;
+
+        kr->kuserok_user = sss_output_name(kr, kr->user,
+                                           dom->case_sensitive, 0);
+        if (kr->kuserok_user == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_ALL, "No mapping for: %s\n", pd->user);
         kr->user = pd->user;
