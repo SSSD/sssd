@@ -614,25 +614,25 @@ START_TEST(test_parse_krb5_map_user)
     /* empty input */
     {
         check_leaks_push(mem_ctx);
-        ret = parse_krb5_map_user(mem_ctx, NULL, &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, NULL, DOMAIN_NAME, &name_to_primary);
         fail_unless(ret == EOK);
         fail_unless(name_to_primary[0].id_name == NULL &&
                     name_to_primary[0].krb_primary == NULL);
         talloc_free(name_to_primary);
 
-        ret = parse_krb5_map_user(mem_ctx, "", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, "", DOMAIN_NAME, &name_to_primary);
         fail_unless(ret == EOK);
         fail_unless(name_to_primary[0].id_name == NULL &&
                     name_to_primary[0].krb_primary == NULL);
         talloc_free(name_to_primary);
 
-        ret = parse_krb5_map_user(mem_ctx, ",", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, ",", DOMAIN_NAME, &name_to_primary);
         fail_unless(ret == EOK);
         fail_unless(name_to_primary[0].id_name == NULL &&
                     name_to_primary[0].krb_primary == NULL);
         talloc_free(name_to_primary);
 
-        ret = parse_krb5_map_user(mem_ctx, ",,", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, ",,", DOMAIN_NAME, &name_to_primary);
         fail_unless(ret == EOK);
         fail_unless(name_to_primary[0].id_name == NULL &&
                     name_to_primary[0].krb_primary == NULL);
@@ -645,14 +645,16 @@ START_TEST(test_parse_krb5_map_user)
         check_leaks_push(mem_ctx);
         const char *p = "pája:preichl,joe:juser,jdoe:ßlack";
         const char *p2 = " pája  : preichl , joe:\njuser,jdoe\t:   ßlack ";
-        const char *expected[] = {"pája", "preichl", "joe", "juser", "jdoe", "ßlack"};
-        ret = parse_krb5_map_user(mem_ctx, p, &name_to_primary);
+        const char *expected[] = { "pája@testdomain", "preichl@" DOMAIN_NAME,
+                                   "joe@testdomain", "juser@testdomain",
+                                   "jdoe@testdomain", "ßlack@testdomain" };
+        ret = parse_krb5_map_user(mem_ctx, p, DOMAIN_NAME, &name_to_primary);
         fail_unless(ret == EOK);
         compare_map_id_name_to_krb_primary(name_to_primary, expected,
                                          sizeof(expected)/sizeof(const char*)/2);
         talloc_free(name_to_primary);
 
-        ret = parse_krb5_map_user(mem_ctx, p2, &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, p2, DOMAIN_NAME, &name_to_primary);
         fail_unless(ret == EOK);
         compare_map_id_name_to_krb_primary(name_to_primary,  expected,
                                          sizeof(expected)/sizeof(const char*)/2);
@@ -663,22 +665,27 @@ START_TEST(test_parse_krb5_map_user)
     {
         check_leaks_push(mem_ctx);
 
-        ret = parse_krb5_map_user(mem_ctx, ":", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, ":", DOMAIN_NAME, &name_to_primary);
         fail_unless(ret == EINVAL);
 
-        ret = parse_krb5_map_user(mem_ctx, "joe:", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, "joe:", DOMAIN_NAME,
+                                  &name_to_primary);
         fail_unless(ret == EINVAL);
 
-        ret = parse_krb5_map_user(mem_ctx, ":joe", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, ":joe", DOMAIN_NAME,
+                                  &name_to_primary);
         fail_unless(ret == EINVAL);
 
-        ret = parse_krb5_map_user(mem_ctx, "joe:,", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, "joe:,", DOMAIN_NAME,
+                                  &name_to_primary);
         fail_unless(ret == EINVAL);
 
-        ret = parse_krb5_map_user(mem_ctx, ",joe", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, ",joe", DOMAIN_NAME,
+                                  &name_to_primary);
         fail_unless(ret == EINVAL);
 
-        ret = parse_krb5_map_user(mem_ctx, "joe:j:user", &name_to_primary);
+        ret = parse_krb5_map_user(mem_ctx, "joe:j:user", DOMAIN_NAME,
+                                  &name_to_primary);
         fail_unless(ret == EINVAL);
 
         fail_unless(check_leaks_pop(mem_ctx));
