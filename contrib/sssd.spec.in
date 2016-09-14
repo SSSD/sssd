@@ -11,6 +11,46 @@
 %{!?python2_sitearch: %global python2_sitearch %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 %endif
 
+%{!?python_provide: %global need_python_provide 1}
+%if 0%{?need_python_provide}
+%define python_provide() %{lua:
+        function string.starts(String, Start)
+                return string.sub(String, 1, string.len(Start)) == Start
+        end
+        package = rpm.expand("%{?1:%{1}}");
+        vr = rpm.expand("%{?epoch:%{epoch}:}%{version}-%{release}")
+        if (string.starts(package, "python2-")) then
+                if (rpm.expand("%{?buildarch}") ~= "noarch") then
+                        str = "Provides: python-" ..
+                              string.sub(package, 9, string.len(package)) ..
+                              "%{?_isa} = " .. vr;
+                        print(rpm.expand(str));
+                end
+                print("\\nProvides: python-");
+                print(string.sub(package, 9, string.len(package)));
+                print(" = ");
+                print(vr);
+                --Obsoleting the previous default python package
+                if (rpm.expand("%{?buildarch}") ~= "noarch") then
+                        str = "\\nObsoletes: python-" ..
+                              string.sub(package, 9, string.len(package)) ..
+                              "%{?_isa} < " .. vr;
+                        print(rpm.expand(str));
+                end
+                print("\\nObsoletes: python-");
+                print(string.sub(package, 9, string.len(package)));
+                print(" < ");
+                print(vr);
+        elseif (string.starts(package, "python3-")) then
+                --No unversioned provides as python3 is not default
+        else
+                print("%python_provide: ERROR: ");
+                print(package);
+                print(" not recognized.");
+        end
+}
+%endif
+
 # Fedora and RHEL 6+
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python2_sitearch}/.*\.so$
@@ -95,7 +135,7 @@ Requires: sssd-proxy = %{version}-%{release}
 %if (0%{?with_python3} == 1)
 Requires: python3-sssdconfig = %{version}-%{release}
 %else
-Requires: python-sssdconfig = %{version}-%{release}
+Requires: python2-sssdconfig = %{version}-%{release}
 %endif
 
 %global servicename sssd
@@ -253,8 +293,8 @@ Requires: sssd-common = %{version}-%{release}
 Requires: python3-sss = %{version}-%{release}
 Requires: python3-sssdconfig = %{version}-%{release}
 %else
-Requires: python-sss = %{version}-%{release}
-Requires: python-sssdconfig = %{version}-%{release}
+Requires: python2-sss = %{version}-%{release}
+Requires: python2-sssdconfig = %{version}-%{release}
 %endif
 
 %description tools
@@ -267,13 +307,14 @@ Also provides several other administrative tools:
     * sss_obfuscate for generating an obfuscated LDAP password
     * sssctl -- an sssd status and control utility
 
-%package -n python-sssdconfig
+%package -n python2-sssdconfig
 Summary: SSSD and IPA configuration file manipulation classes and functions
 Group: Applications/System
 License: GPLv3+
 BuildArch: noarch
+%{python_provide python2-sssdconfig}
 
-%description -n python-sssdconfig
+%description -n python2-sssdconfig
 Provides python2 files for manipulation SSSD and IPA configuration files.
 
 %if (0%{?with_python3} == 1)
@@ -282,18 +323,20 @@ Summary: SSSD and IPA configuration file manipulation classes and functions
 Group: Applications/System
 License: GPLv3+
 BuildArch: noarch
+%{python_provide python3-sssdconfig}
 
 %description -n python3-sssdconfig
 Provides python3 files for manipulation SSSD and IPA configuration files.
 %endif
 
-%package -n python-sss
+%package -n python2-sss
 Summary: Python2 bindings for sssd
 Group: Development/Libraries
 License: LGPLv3+
 Requires: sssd-common = %{version}-%{release}
+%{python_provide python2-sss}
 
-%description -n python-sss
+%description -n python2-sss
 Provides python2 module for manipulating users, groups, and nested groups in
 SSSD when using id_provider = local in /etc/sssd/sssd.conf.
 
@@ -307,6 +350,7 @@ Summary: Python3 bindings for sssd
 Group: Development/Libraries
 License: LGPLv3+
 Requires: sssd-common = %{version}-%{release}
+%{python_provide python3-sss}
 
 %description -n python3-sss
 Provides python3 module for manipulating users, groups, and nested groups in
@@ -317,12 +361,13 @@ Also provides several other useful python3 bindings:
     * class for obfuscation of passwords
 %endif
 
-%package -n python-sss-murmur
+%package -n python2-sss-murmur
 Summary: Python2 bindings for murmur hash function
 Group: Development/Libraries
 License: LGPLv3+
+%{python_provide python2-sss-murmur}
 
-%description -n python-sss-murmur
+%description -n python2-sss-murmur
 Provides python2 module for calculating the murmur hash version 3
 
 %if (0%{?with_python3} == 1)
@@ -330,6 +375,7 @@ Provides python2 module for calculating the murmur hash version 3
 Summary: Python3 bindings for murmur hash function
 Group: Development/Libraries
 License: LGPLv3+
+%{python_provide python3-sss-murmur}
 
 %description -n python3-sss-murmur
 Provides python3 module for calculating the murmur hash version 3
@@ -459,16 +505,17 @@ Requires: libipa_hbac = %{version}-%{release}
 %description -n libipa_hbac-devel
 Utility library to validate FreeIPA HBAC rules for authorization requests
 
-%package -n python-libipa_hbac
+%package -n python2-libipa_hbac
 Summary: Python2 bindings for the FreeIPA HBAC Evaluator library
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libipa_hbac = %{version}-%{release}
 Provides: libipa_hbac-python = %{version}-%{release}
 Obsoletes: libipa_hbac-python < 1.12.90
+%{python_provide python2-libipa_hbac}
 
-%description -n python-libipa_hbac
-The python-libipa_hbac contains the bindings so that libipa_hbac can be
+%description -n python2-libipa_hbac
+The python2-libipa_hbac contains the bindings so that libipa_hbac can be
 used by Python applications.
 
 %if (0%{?with_python3} == 1)
@@ -477,6 +524,7 @@ Summary: Python3 bindings for the FreeIPA HBAC Evaluator library
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libipa_hbac = %{version}-%{release}
+%{python_provide python3-libipa_hbac}
 
 %description -n python3-libipa_hbac
 The python3-libipa_hbac contains the bindings so that libipa_hbac can be
@@ -502,16 +550,17 @@ Requires: libsss_nss_idmap = %{version}-%{release}
 %description -n libsss_nss_idmap-devel
 Utility library for SID and certificate based lookups
 
-%package -n python-libsss_nss_idmap
+%package -n python2-libsss_nss_idmap
 Summary: Python2 bindings for libsss_nss_idmap
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libsss_nss_idmap = %{version}-%{release}
 Provides: libsss_nss_idmap-python = %{version}-%{release}
 Obsoletes: libsss_nss_idmap-python < 1.12.90
+%{python_provide python2-libsss_nss_idmap}
 
-%description -n python-libsss_nss_idmap
-The python-libsss_nss_idmap contains the bindings so that libsss_nss_idmap can
+%description -n python2-libsss_nss_idmap
+The python2-libsss_nss_idmap contains the bindings so that libsss_nss_idmap can
 be used by Python applications.
 
 %if (0%{?with_python3} == 1)
@@ -520,6 +569,7 @@ Summary: Python3 bindings for libsss_nss_idmap
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libsss_nss_idmap = %{version}-%{release}
+%{python_provide python3-libsss_nss_idmap}
 
 %description -n python3-libsss_nss_idmap
 The python3-libsss_nss_idmap contains the bindings so that libsss_nss_idmap can
@@ -963,7 +1013,7 @@ done
 %{_mandir}/man8/sss_seed.8*
 %{_mandir}/man8/sssctl.8*
 
-%files -n python-sssdconfig -f python2_sssdconfig.lang
+%files -n python2-sssdconfig -f python2_sssdconfig.lang
 %defattr(-,root,root,-)
 %dir %{python2_sitelib}/SSSDConfig
 %{python2_sitelib}/SSSDConfig/*.py*
@@ -977,7 +1027,7 @@ done
 %{python3_sitelib}/SSSDConfig/__pycache__/*.py*
 %endif
 
-%files -n python-sss
+%files -n python2-sss
 %defattr(-,root,root,-)
 %{python2_sitearch}/pysss.so
 
@@ -987,7 +1037,7 @@ done
 %{python3_sitearch}/pysss.so
 %endif
 
-%files -n python-sss-murmur
+%files -n python2-sss-murmur
 %defattr(-,root,root,-)
 %{python2_sitearch}/pysss_murmur.so
 
@@ -1033,7 +1083,7 @@ done
 %{_libdir}/libsss_nss_idmap.so
 %{_libdir}/pkgconfig/sss_nss_idmap.pc
 
-%files -n python-libsss_nss_idmap
+%files -n python2-libsss_nss_idmap
 %defattr(-,root,root,-)
 %{python2_sitearch}/pysss_nss_idmap.so
 
@@ -1043,7 +1093,7 @@ done
 %{python3_sitearch}/pysss_nss_idmap.so
 %endif
 
-%files -n python-libipa_hbac
+%files -n python2-libipa_hbac
 %defattr(-,root,root,-)
 %{python2_sitearch}/pyhbac.so
 
