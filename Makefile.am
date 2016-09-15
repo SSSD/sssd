@@ -1828,6 +1828,7 @@ refcount_tests_SOURCES = \
     src/tests/refcount-tests.c \
     $(NULL)
 refcount_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 refcount_tests_LDADD = \
     $(SSSD_LIBS) \
@@ -1840,6 +1841,7 @@ fail_over_tests_SOURCES = \
     $(SSSD_FAILOVER_OBJ) \
     $(NULL)
 fail_over_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 fail_over_tests_LDADD = \
     $(SSSD_LIBS) \
@@ -2044,6 +2046,7 @@ sbus_tests_SOURCES = \
    src/tests/common_dbus.c \
    src/tests/sbus_tests.c
 sbus_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 sbus_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -2056,6 +2059,7 @@ sbus_codegen_tests_SOURCES = \
     src/tests/sbus_codegen_tests_generated.c \
     $(NULL)
 sbus_codegen_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 sbus_codegen_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -2468,6 +2472,7 @@ ad_common_tests_SOURCES = \
     src/providers/ldap/sdap_async_initgroups_ad.c \
     $(NULL)
 ad_common_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
     $(NDR_KRB5PAC_CFLAGS) \
     $(NULL)
