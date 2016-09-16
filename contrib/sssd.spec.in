@@ -799,6 +799,8 @@ done
 %{_unitdir}/sssd.service
 %{_unitdir}/sssd-secrets.socket
 %{_unitdir}/sssd-secrets.service
+%{_unitdir}/sssd-update-confdb.socket
+%{_unitdir}/sssd-update-confdb.service
 %else
 %{_initrddir}/%{name}
 %endif
@@ -811,6 +813,7 @@ done
 %{_libexecdir}/%{servicename}/sssd_secrets
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
+%{_libexecdir}/%{servicename}/sssd_update_confdb
 %{_libexecdir}/%{servicename}/p11_child
 
 %dir %{_libdir}/%{name}
@@ -1131,14 +1134,17 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 # systemd
 %post common
 %systemd_post sssd.service
+%systemd_post sssd-update-confdb.socket
 %systemd_post sssd-secrets.socket
 
 %preun common
 %systemd_preun sssd.service
+%systemd_preun sssd-update-confdb.socket
 %systemd_preun sssd-secrets.socket
 
 %postun common
 %systemd_postun_with_restart sssd.service
+%systemd_postun_with_restart sssd-update-confdb.socket
 %systemd_postun_with_restart sssd-secrets.socket
 
 %else

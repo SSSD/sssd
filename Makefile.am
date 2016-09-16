@@ -175,6 +175,7 @@ endif
 endif
 if BUILD_SECRETS
 sssdlibexec_PROGRAMS += sssd_secrets
+sssdlibexec_PROGRAMS += sssd_update_confdb
 endif
 
 if BUILD_PAC_RESPONDER
@@ -474,6 +475,7 @@ AM_CPPFLAGS = \
     -DSSS_PAC_SOCKET_NAME=\"$(pipepath)/pac\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
     -DSSS_SEC_SOCKET_NAME=\"$(runstatedir)/secrets.socket\" \
+    -DSSS_UPDATE_CONFDB_SOCKET_NAME=\"$(runstatedir)/update-confdb.socket\" \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
     -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
@@ -1390,6 +1392,17 @@ sssd_secrets_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(CARES_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+
+sssd_update_confdb_SOURCES = \
+    src/responder/update_confdb/update_confdb.c \
+    $(SSSD_RESPONDER_OBJ) \
+    $(SSSD_TOOLS_OBJ) \
+    $(NULL)
+sssd_update_confdb_LDADD = \
+    $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 endif
@@ -3896,6 +3909,8 @@ if HAVE_SYSTEMD_UNIT
         src/sysv/systemd/sssd.service \
         src/sysv/systemd/sssd-secrets.socket \
         src/sysv/systemd/sssd-secrets.service \
+        src/sysv/systemd/sssd-update-confdb.socket \
+        src/sysv/systemd/sssd-update-confdb.service \
         $(NULL)
 if WITH_JOURNALD
     systemdconf_DATA += \
@@ -3949,6 +3964,8 @@ EXTRA_DIST += \
     src/sysv/systemd/journal.conf.in \
     src/sysv/systemd/sssd-secrets.socket.in \
     src/sysv/systemd/sssd-secrets.service.in \
+    src/sysv/systemd/sssd-update-confdb.socket.in \
+    src/sysv/systemd/sssd-update-confdb.service.in \
     $(NULL)
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
@@ -3964,6 +3981,14 @@ src/sysv/systemd/sssd-secrets.socket: src/sysv/systemd/sssd-secrets.socket.in Ma
 	$(replace_script)
 
 src/sysv/systemd/sssd-secrets.service: src/sysv/systemd/sssd-secrets.service.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-update-confdb.socket: src/sysv/systemd/sssd-update-confdb.socket.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-update-confdb.service: src/sysv/systemd/sssd-update-confdb.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 
@@ -4184,6 +4209,8 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
+	rm -f $(builddir)/src/sysv/systemd/sssd-update-confdb.socket
+	rm -f $(builddir)/src/sysv/systemd/sssd-update-confdb.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
 
 CLEANFILES += *.X */*.X */*/*.X

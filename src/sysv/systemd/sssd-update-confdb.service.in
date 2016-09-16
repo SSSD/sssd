@@ -1,0 +1,8 @@
+[Unit]
+Description=SSSD Update ConfDB Service
+
+[Install]
+Also=sssd-update-confdb.socket
+
+[Service]
+ExecStart=@libexecdir@/sssd/sssd_update_confdb --debug-to-files

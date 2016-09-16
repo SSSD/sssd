@@ -224,6 +224,8 @@
 /* Secrets Service */
 #define CONFDB_SEC_CONF_ENTRY "config/secrets"
 
+/* Update confdb Service */
+#define CONFDB_UPDATE_CONF_ENTRY "config/updateconfdb"
 
 struct confdb_ctx;
 struct config_file_ctx;
