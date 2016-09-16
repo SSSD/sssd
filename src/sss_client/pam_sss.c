@@ -1410,6 +1410,7 @@ done:
 }
 
 #define SC_PROMPT_FMT "PIN for %s for user %s"
+
 static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
 {
     int ret;
@@ -1691,6 +1692,62 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
     return PAM_SUCCESS;
 }
 
+#define SC_ENTER_FMT "Please enter smart card labeled\n %s\nand press enter"
+
+static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
+                                  bool quiet_mode)
+{
+    int ret;
+    int pam_status;
+    char *login_token_name;
+    char *prompt = NULL;
+    size_t size;
+    char *answer = NULL;
+
+    login_token_name = getenv("PKCS11_LOGIN_TOKEN_NAME");
+    if (login_token_name == NULL) {
+        return PAM_SUCCESS;
+    }
+
+    while (pi->token_name == NULL
+            || strcmp(login_token_name, pi->token_name) != 0) {
+        size = sizeof(SC_ENTER_FMT) + strlen(login_token_name);
+        prompt = malloc(size);
+        if (prompt == NULL) {
+            D(("malloc failed."));
+            return ENOMEM;
+        }
+
+        ret = snprintf(prompt, size, SC_ENTER_FMT,
+                       login_token_name);
+        if (ret < 0 || ret >= size) {
+            D(("snprintf failed."));
+            free(prompt);
+            return EFAULT;
+        }
+
+        ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt,
+                                  NULL, &answer);
+        free(prompt);
+        free(answer);
+        if (ret != PAM_SUCCESS) {
+            D(("do_pam_conversation failed."));
+            return ret;
+        }
+
+        pam_status = send_and_receive(pamh, pi, SSS_PAM_PREAUTH, quiet_mode);
+        if (pam_status != PAM_SUCCESS) {
+            D(("send_and_receive returned [%d] during pre-auth", pam_status));
+        /*
+         * Since we are waiting for the right Smartcard to be inserted errors
+         * can be ignored here.
+         */
+        }
+    }
+
+    return PAM_SUCCESS;
+}
+
 static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                    int pam_flags, int argc, const char **argv)
 {
@@ -1755,6 +1812,14 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                          * and will always use password authentication
                          * as a fallback, errors can be ignored here.
                          */
+                    }
+                }
+
+                if (strcmp(pi.pam_service, "gdm-smartcard") == 0) {
+                    ret = check_login_token_name(pamh, &pi, quiet_mode);
+                    if (ret != PAM_SUCCESS) {
+                        D(("check_login_token_name failed.\n"));
+                        return ret;
                     }
                 }
 
