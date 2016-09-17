@@ -1286,7 +1286,7 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
         if (pd->logon_name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "No certificate found and no logon name given, " \
-                  "authentication not possible.\n");;
+                  "authentication not possible.\n");
             ret = ENOENT;
         } else {
             if (pd->cmd == SSS_PAM_AUTHENTICATE) {

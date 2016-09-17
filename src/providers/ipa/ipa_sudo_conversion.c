@@ -634,7 +634,7 @@ static errno_t get_sudo_cmd_rdn(TALLOC_CTX *mem_ctx,
     }
 
     *_rdn_val = rdn_val;
-    *_rdn_attr = map[IPA_AT_SUDOCMD_CMD].name;;
+    *_rdn_attr = map[IPA_AT_SUDOCMD_CMD].name;
 
     return EOK;
 }

@@ -2612,7 +2612,7 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     ret = check_use_fast(&kr->fast_val);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "check_use_fast failed.\n");
-        return ret;;
+        return ret;
     }
 
     /* For ccache types FILE: and DIR: we might need to create some directory

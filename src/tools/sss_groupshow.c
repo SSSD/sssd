@@ -58,7 +58,7 @@ const char *rdn_as_string(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    return ldb_dn_escape_value(mem_ctx, *val);;
+    return ldb_dn_escape_value(mem_ctx, *val);
 }
 
 static int parse_memberofs(struct ldb_context *ldb,

@@ -100,7 +100,7 @@ errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
          blob[5], blob[4],
          blob[7], blob[6],
          blob[8], blob[9],
-         blob[10], blob[11],blob[12], blob[13],blob[14], blob[15]);;
+         blob[10], blob[11],blob[12], blob[13],blob[14], blob[15]);
     if (ret != (GUID_STR_BUF_SIZE -1)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "snprintf failed.\n");
         return EIO;

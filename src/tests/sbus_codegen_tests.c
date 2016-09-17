@@ -967,7 +967,7 @@ static void parse_get_array_reply(DBusMessage *reply, const int type,
     ck_assert_int_eq(dbus_message_iter_get_element_type(&variter), type);
     dbus_message_iter_recurse(&variter, &arriter);
     if (type == DBUS_TYPE_STRING || type == DBUS_TYPE_OBJECT_PATH) {
-        int n = 0, i = 0;;
+        int n = 0, i = 0;
         const char **strings;
         const char *s;
 
@@ -1326,7 +1326,7 @@ void check_arr_prop(DBusMessageIter *variter, struct prop_test *p)
 
     dbus_message_iter_recurse(variter, &arriter);
     if (type == DBUS_TYPE_STRING || type == DBUS_TYPE_OBJECT_PATH) {
-        int n = 0, i = 0;;
+        int n = 0, i = 0;
         const char *s;
 
         do {

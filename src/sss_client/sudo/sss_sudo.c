@@ -226,7 +226,7 @@ void sss_sudo_free_rules(unsigned int num_rules, struct sss_sudo_rule *rules)
 
 void sss_sudo_free_attrs(unsigned int num_attrs, struct sss_sudo_attr *attrs)
 {
-    struct sss_sudo_attr *attr = NULL;;
+    struct sss_sudo_attr *attr = NULL;
     int i, j;
 
     if (attrs == NULL) {

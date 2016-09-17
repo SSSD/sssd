@@ -2097,7 +2097,7 @@ static void sdap_x_deref_search_done(struct tevent_req *subreq)
 
 static int sdap_x_deref_search_ctrls_destructor(void *ptr)
 {
-    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);;
+    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);
 
     if (ctrls && ctrls[0]) {
         ldap_control_free(ctrls[0]);
@@ -2289,7 +2289,7 @@ static void sdap_sd_search_done(struct tevent_req *subreq)
 
 static int sdap_sd_search_ctrls_destructor(void *ptr)
 {
-    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);;
+    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);
     if (ctrls && ctrls[0]) {
         ldap_control_free(ctrls[0]);
     }
@@ -2548,7 +2548,7 @@ static void sdap_asq_search_done(struct tevent_req *subreq)
 
 static int sdap_asq_search_ctrls_destructor(void *ptr)
 {
-    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);;
+    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);
 
     if (ctrls && ctrls[0]) {
         ldap_control_free(ctrls[0]);

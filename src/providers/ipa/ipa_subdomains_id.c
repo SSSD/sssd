@@ -669,7 +669,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     struct ipa_get_ad_acct_state *state;
     struct sdap_domain *sdom;
     struct sdap_id_conn_ctx **clist;
-    struct sdap_id_ctx *sdap_id_ctx;;
+    struct sdap_id_ctx *sdap_id_ctx;
     struct ad_id_ctx *ad_id_ctx;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_get_ad_acct_state);

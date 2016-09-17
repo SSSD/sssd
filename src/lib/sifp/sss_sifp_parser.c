@@ -469,7 +469,7 @@ sss_sifp_parse_variant(sss_sifp_ctx *ctx,
         /* case DBUS_TYPE_DICT_ENTRY may only be contained within an array
          * in variant */
         case DBUS_TYPE_ARRAY:
-            ret = sss_sifp_parse_array(ctx, &variant_iter, attr);;
+            ret = sss_sifp_parse_array(ctx, &variant_iter, attr);
             break;
         default:
             ret = SSS_SIFP_NOT_SUPPORTED;

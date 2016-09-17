@@ -210,7 +210,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
 {
     TALLOC_CTX *tmpctx = NULL;
     char *conf_path = NULL;
-    char *re_pattern = NULL;;
+    char *re_pattern = NULL;
     char *fq_fmt = NULL;
     int ret;
 

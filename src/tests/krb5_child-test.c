@@ -390,11 +390,11 @@ main(int argc, const char *argv[])
 
     int pc_debug = 0;
     int pc_timeout = 0;
-    const char *pc_user = NULL;;
-    const char *pc_passwd = NULL;;
-    const char *pc_realm = NULL;;
-    const char *pc_ccname = NULL;;
-    const char *pc_ccname_tp = NULL;;
+    const char *pc_user = NULL;
+    const char *pc_passwd = NULL;
+    const char *pc_realm = NULL;
+    const char *pc_ccname = NULL;
+    const char *pc_ccname_tp = NULL;
     char *password = NULL;
     bool rm_ccache = true;
 

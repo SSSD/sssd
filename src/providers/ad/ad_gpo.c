@@ -2491,7 +2491,7 @@ ad_gpo_populate_som_list(TALLOC_CTX *mem_ctx,
     }
 
     /* first, populate the OU and Domain SOMs */
-    tmp_dn = target_dn;;
+    tmp_dn = target_dn;
     while ((ad_gpo_parent_dn(tmp_ctx, ldb_ctx, tmp_dn, &parent_dn)) == EOK) {
 
         if ((strncasecmp(parent_dn, "OU=", strlen("OU=")) == 0) ||

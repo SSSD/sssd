@@ -816,7 +816,7 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
     }
 
     state->groups = talloc_zero_array(state, struct sysdb_attrs *,
-                                      state->memberof->num_values + 1);;
+                                      state->memberof->num_values + 1);
     if (!state->groups) {
         ret = ENOMEM;
         goto immediate;

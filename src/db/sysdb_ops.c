@@ -4815,7 +4815,7 @@ errno_t sysdb_handle_original_uuid(const char *orig_name,
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
-        return ret;;
+        return ret;
     }
 
     return EOK;

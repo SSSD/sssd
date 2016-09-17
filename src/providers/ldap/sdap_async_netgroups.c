@@ -313,7 +313,7 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
     dn_filter = talloc_strdup(state, "(|");
     if (dn_filter == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
-        ret = ENOMEM;;
+        ret = ENOMEM;
         goto fail;
     }
 

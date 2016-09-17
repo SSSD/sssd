@@ -916,7 +916,7 @@ get_range(struct sss_idmap_ctx *ctx,
           long long rid,
           struct idmap_range_params **_range)
 {
-    char *secondary_name = NULL;;
+    char *secondary_name = NULL;
     enum idmap_error_code err;
     int first_rid;
     struct idmap_range_params *range;
