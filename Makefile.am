@@ -321,6 +321,7 @@ TESTS = \
     $(non_interactive_cmocka_based_tests) \
     $(non_interactive_check_based_tests) \
     src/tests/whitespace_test \
+    src/tests/double_semicolon_test \
     $(NULL)
 
 sssdlib_LTLIBRARIES = \
@@ -410,6 +411,7 @@ dist_noinst_SCRIPTS = \
     src/tests/pysss_murmur-test.py3.sh \
     src/tests/python-test.py \
     src/tests/whitespace_test \
+    src/tests/double_semicolon_test \
     src/tests/krb5_proxy_check_test_data.conf \
     $(NULL)
 
