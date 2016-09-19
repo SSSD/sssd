@@ -68,6 +68,7 @@ struct pam_auth_req {
 
     struct pam_auth_dp_req *dpreq_spy;
 
+    struct ldb_message *user_obj;
     struct ldb_message *cert_user_obj;
     char *token_name;
 };
