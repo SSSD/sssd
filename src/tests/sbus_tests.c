@@ -201,12 +201,12 @@ static int pilot_test_server_init(struct sbus_connection *server, void *unused)
     int ret;
 
     ret = sbus_conn_register_iface(server, &pilot_impl.vtable, "/test/leela",
-                                   "Crash into the billboard");
+                                   discard_const("Crash into the billboard"));
     ck_assert_int_eq(ret, EOK);
 
 
     ret = sbus_conn_register_iface(server, &pilot_impl.vtable, "/test/fry",
-                                   "Don't crash");
+                                   discard_const("Don't crash"));
     ck_assert_int_eq(ret, EOK);
 
     return EOK;

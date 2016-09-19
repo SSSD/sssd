@@ -634,7 +634,7 @@ static int pilot_test_server_init(struct sbus_connection *server, void *unused)
     int ret;
 
     ret = sbus_conn_register_iface(server, &pilot_iface.vtable, "/test/leela",
-                                   "Crash into the billboard");
+                                   discard_const("Crash into the billboard"));
     ck_assert_int_eq(ret, EOK);
 
     return EOK;
@@ -645,7 +645,8 @@ static int special_test_server_init(struct sbus_connection *server, void *unused
     int ret;
 
     ret = sbus_conn_register_iface(server, &special_iface.vtable,
-                                   "/test/special", "Crash into the billboard");
+                                   "/test/special",
+                                   discard_const("Crash into the billboard"));
     ck_assert_int_eq(ret, EOK);
 
     return EOK;
@@ -673,8 +674,8 @@ START_TEST(test_marshal_basic_types)
     dbus_int64_t v_int64[] = { INT64_C(-6666666666666666), INT64_C(7777777777777777) };
     dbus_uint64_t v_uint64[] = { UINT64_C(7777777777777777), INT64_C(888888888888888888) };
     double v_double[] = { 1.1, 2.2, 3.3 };
-    char *v_string[] = { "bears", "bears", "bears" };
-    char *v_object_path[] = { "/original", "/original" };
+    const char *v_string[] = { "bears", "bears", "bears" };
+    const char *v_object_path[] = { "/original", "/original" };
 
     unsigned char *arr_byte = v_byte;
     dbus_int16_t *arr_int16 = v_int16;
@@ -684,8 +685,8 @@ START_TEST(test_marshal_basic_types)
     dbus_int64_t *arr_int64 = v_int64;
     dbus_uint64_t *arr_uint64 = v_uint64;
     double *arr_double = v_double;
-    char **arr_string = v_string;
-    char **arr_object_path = v_object_path;
+    char **arr_string = discard_const(v_string);
+    char **arr_object_path = discard_const(v_object_path);
 
     int len_byte = N_ELEMENTS(v_byte);
     int len_int16 = N_ELEMENTS(v_int16);
