@@ -74,7 +74,7 @@ static errno_t set_fcntl_flags(int fd, int fd_flags, int fl_flags)
     return EOK;
 }
 
-static errno_t set_fd_common_opts(int fd)
+static errno_t set_fd_common_opts(int fd, sa_family_t sa_family)
 {
     int dummy = 1;
     int ret;
@@ -89,12 +89,14 @@ static errno_t set_fd_common_opts(int fd)
                   strerror(ret));
     }
 
-    ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_FUNC_DATA,
-              "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
+    if (sa_family != AF_UNIX) {
+        ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
                   strerror(ret));
+        }
     }
 
     return EOK;
@@ -264,7 +266,7 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = set_fd_common_opts(state->sd);
+    ret = set_fd_common_opts(state->sd, addr->ss_family);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "set_fd_common_opts failed.\n");
         goto fail;
