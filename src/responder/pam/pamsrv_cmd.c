@@ -1560,7 +1560,6 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
-    struct ldb_message *msg;
     struct ldb_result *res;
     const char *sysdb_name;
 
@@ -1621,11 +1620,12 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         }
 
         if (preq->pd->name_is_upn) {
-            ret = sysdb_search_user_by_upn(preq, dom, name, user_attrs, &msg);
+            ret = sysdb_search_user_by_upn(preq, dom, name, user_attrs,
+                                           &preq->user_obj);
             if (ret == EOK) {
                 /* Since sysdb_search_user_by_upn() searches the whole cache we
                 * have to set the domain so that it matches the result. */
-                sysdb_name = ldb_msg_find_attr_as_string(msg,
+                sysdb_name = ldb_msg_find_attr_as_string(preq->user_obj,
                                                          SYSDB_NAME, NULL);
                 if (sysdb_name == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "Cached entry has no name.\n");
@@ -1654,7 +1654,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             } else if (res->count == 0) {
                 ret = ENOENT;
             } else {
-                msg = res->msgs[0];
+                preq->user_obj = res->msgs[0];
             }
         }
         if (ret != EOK && ret != ENOENT) {
@@ -1693,7 +1693,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         /* if we need to check the remote account go on */
         if (preq->check_provider) {
-            cacheExpire = ldb_msg_find_attr_as_uint64(msg,
+            cacheExpire = ldb_msg_find_attr_as_uint64(preq->user_obj,
                                                       SYSDB_CACHE_EXPIRE, 0);
             if (cacheExpire < time(NULL)) {
                 break;
@@ -1704,7 +1704,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
               "Returning info for user [%s@%s]\n", name, dom->name);
 
         /* We might have searched by alias. Pass on the primary name */
-        ret = pd_set_primary_name(msg, preq->pd);
+        ret = pd_set_primary_name(preq->user_obj, preq->pd);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not canonicalize username\n");
             return ret;
