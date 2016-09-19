@@ -1729,10 +1729,11 @@ static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
         ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt,
                                   NULL, &answer);
         free(prompt);
-        free(answer);
         if (ret != PAM_SUCCESS) {
             D(("do_pam_conversation failed."));
             return ret;
+        } else {
+            free(answer);
         }
 
         pam_status = send_and_receive(pamh, pi, SSS_PAM_PREAUTH, quiet_mode);
