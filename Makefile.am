@@ -277,6 +277,7 @@ if HAVE_CMOCKA
         test_ipa_dn \
         simple-access-tests \
         krb5_common_test \
+        test_iobuf \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -658,6 +659,7 @@ dist_noinst_HEADERS = \
     src/util/util_sss_idmap.h \
     src/util/util_creds.h \
     src/util/inotify.h \
+    src/util/sss_iobuf.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/monitor/monitor_iface_generated.h \
@@ -1840,6 +1842,7 @@ krb5_utils_tests_SOURCES = \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_opts.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
@@ -2115,6 +2118,7 @@ krb5_child_test_SOURCES = \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_opts.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
@@ -2786,6 +2790,7 @@ test_copy_ccache_SOURCES = \
     src/tests/cmocka/test_copy_ccache.c \
     src/providers/krb5/krb5_ccache.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     $(NULL)
 test_copy_ccache_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2804,6 +2809,7 @@ test_copy_keytab_SOURCES = \
     src/tests/cmocka/test_copy_keytab.c \
     src/providers/krb5/krb5_keytab.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     $(NULL)
 test_copy_keytab_CFLAGS = \
     $(AM_CFLAGS) \
@@ -3166,6 +3172,19 @@ test_ipa_dn_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+test_iobuf_SOURCES = \
+    src/util/sss_iobuf.c \
+    src/tests/cmocka/test_iobuf.c \
+    $(NULL)
+test_iobuf_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_iobuf_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(NULL)
+
+
 EXTRA_simple_access_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
 simple_access_tests_SOURCES = \
@@ -3498,6 +3517,7 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_init_shared.c \
     src/providers/krb5/krb5_ccache.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/util/become_user.c \
     $(NULL)
 libsss_krb5_common_la_CFLAGS = \
@@ -3727,6 +3747,7 @@ krb5_child_SOURCES = \
     src/providers/dp_pam_data_util.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/util/find_uid.c \
     src/util/atomic_io.c \
     src/util/authtok.c \
@@ -3760,6 +3781,7 @@ ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
     src/providers/krb5/krb5_keytab.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/util/atomic_io.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
