@@ -16,6 +16,8 @@ dist_noinst_DATA = \
     test_memory_cache.py \
     test_ts_cache.py \
     test_netgroup.py \
+    secrets.py \
+    test_secrets.py \
     $(NULL)
 
 config.py: config.py.m4
@@ -25,6 +27,9 @@ config.py: config.py.m4
 	   -D "pidpath=\`$(pidpath)'" \
 	   -D "logpath=\`$(logpath)'" \
 	   -D "mcpath=\`$(mcpath)'" \
+	   -D "secdbpath=\`$(secdbpath)'" \
+	   -D "libexecpath=\`$(libexecdir)'" \
+	   -D "runstatedir=\`$(runstatedir)'" \
 	   $< > $@
 
 root:
