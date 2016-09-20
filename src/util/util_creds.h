@@ -71,6 +71,7 @@ struct cli_creds {
 };
 
 #define cli_creds_get_uid(x) x->ucred.uid
+#define cli_creds_get_gid(x) x->ucred.gid
 
 #else /* not HAVE_UCRED */
 struct cli_creds {
