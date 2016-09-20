@@ -32,6 +32,7 @@
 #include <krb5.h>
 #endif
 
+#include "util/sss_iobuf.h"
 #include "util/util.h"
 
 #define KRB5_CHILD_LOG_FILE     "krb5_child"
@@ -186,4 +187,12 @@ krb5_error_code sss_krb5_kt_have_content(krb5_context context,
                                          krb5_keytab keytab);
 
 bool sss_krb5_realm_has_proxy(const char *realm);
+
+krb5_error_code sss_krb5_marshal_princ(krb5_principal princ,
+                                       struct sss_iobuf *iobuf);
+
+krb5_error_code sss_krb5_unmarshal_princ(TALLOC_CTX *mem_ctx,
+                                         struct sss_iobuf *iobuf,
+                                         krb5_principal *_princ);
+
 #endif /* __SSS_KRB5_H__ */
