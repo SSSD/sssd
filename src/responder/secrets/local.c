@@ -39,23 +39,34 @@ static int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
     char *output;
 
     if (enctype && strcmp(enctype, "masterkey") == 0) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Decrypting with masterkey\n");
+
         struct sec_data _secret;
         size_t outlen;
         int ret;
 
         _secret.data = (char *)sss_base64_decode(mem_ctx, secret,
                                                  &_secret.length);
-        if (!_secret.data) return EINVAL;
+        if (!_secret.data) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed\n");
+            return EINVAL;
+        }
 
         ret = sss_decrypt(mem_ctx, AES256CBC_HMAC_SHA256,
                           (uint8_t *)lctx->master_key.data,
                           lctx->master_key.length,
                           (uint8_t *)_secret.data, _secret.length,
                           (uint8_t **)&output, &outlen);
-        if (ret) return ret;
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sss_decrypt failed [%d]: %s\n", ret, sss_strerror(ret));
+            return ret;
+        }
 
         if (((strnlen(output, outlen) + 1) != outlen) ||
             output[outlen - 1] != '\0') {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Output length mismatch or output not NULL-terminated\n");
             return EIO;
         }
     } else {
@@ -75,14 +86,26 @@ static int local_encrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
     char *output;
     int ret;
 
-    if (!enctype || strcmp(enctype, "masterkey") != 0) return EINVAL;
+    if (enctype == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No encryption type\n");
+        return EINVAL;
+    }
+
+    if (strcmp(enctype, "masterkey") != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Uknown encryption type '%s'\n", enctype);
+        return EINVAL;
+    }
 
     ret = sss_encrypt(mem_ctx, AES256CBC_HMAC_SHA256,
                       (uint8_t *)lctx->master_key.data,
                       lctx->master_key.length,
                       (const uint8_t *)secret, strlen(secret) + 1,
                       (uint8_t **)&_secret.data, &_secret.length);
-    if (ret) return ret;
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sss_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
+        return ret;
+    }
 
     output = sss_base64_encode(mem_ctx,
                                (uint8_t *)_secret.data, _secret.length);
@@ -130,6 +153,9 @@ static int local_db_dn(TALLOC_CTX *mem_ctx,
         }
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Local path for [%s] is [%s]\n",
+          req_path, ldb_dn_get_linearized(dn));
     *req_dn = dn;
     ret = EOK;
 
@@ -165,6 +191,9 @@ static char *local_dn_to_path(TALLOC_CTX *mem_ctx,
         if (!path) return NULL;
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Secrets path for [%s] is [%s]\n",
+          ldb_dn_get_linearized(dn), path);
     return path;
 }
 
@@ -184,32 +213,48 @@ static int local_db_get_simple(TALLOC_CTX *mem_ctx,
     const char *attr_enctype;
     int ret;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Retrieving a secret from [%s]\n", req_path);
+
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
     ret = local_db_dn(tmp_ctx, lctx->ldb, req_path, &dn);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Searching for [%s] at [%s] with scope=base\n",
+          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(dn));
 
     ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
                      attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "ldb_search returned [%d]: %s\n", ret, ldb_strerror(ret));
         ret = ENOENT;
         goto done;
     }
 
     switch (res->count) {
     case 0:
+        DEBUG(SSSDBG_TRACE_LIBS, "No secret found\n");
         ret = ENOENT;
         goto done;
     case 1:
         break;
     default:
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Too many secrets returned with BASE search\n");
         ret = E2BIG;
         goto done;
     }
 
     attr_secret = ldb_msg_find_attr_as_string(res->msgs[0], "secret", NULL);
     if (!attr_secret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "The 'secret' attribute is missing\n");
         ret = ENOENT;
         goto done;
     }
@@ -245,17 +290,30 @@ static int local_db_list_keys(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Listing keys at [%s]\n", req_path);
+
     ret = local_db_dn(tmp_ctx, lctx->ldb, req_path, &dn);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Searching for [%s] at [%s] with scope=subtree\n",
+          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(dn));
 
     ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
                      attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "ldb_search returned [%d]: %s\n", ret, ldb_strerror(ret));
         ret = ENOENT;
         goto done;
     }
 
     if (res->count == 0) {
+        DEBUG(SSSDBG_TRACE_LIBS, "No secrets found\n");
         ret = ENOENT;
         goto done;
     }
@@ -275,6 +333,7 @@ static int local_db_list_keys(TALLOC_CTX *mem_ctx,
     }
 
     *_keys = keys;
+    DEBUG(SSSDBG_TRACE_LIBS, "Returning %d secrets\n", res->count);
     *num_keys = res->count;
     ret = EOK;
 
@@ -314,15 +373,16 @@ static int local_db_check_containers(TALLOC_CTX *mem_ctx,
         if (!ldb_dn_remove_child_components(dn, 1)) return EFAULT;
 
         /* and check the parent container exists */
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Searching for [%s] at [%s] with scope=base\n",
+              LOCAL_CONTAINER_FILTER, ldb_dn_get_linearized(dn));
+
         ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
                          attrs, LOCAL_CONTAINER_FILTER);
-        if (ret != LDB_SUCCESS) {
-            ret = ENOENT;
-            goto done;
-        }
-        if (res->count != 1) {
-            ret = ENOENT;
-            goto done;
+        if (ret != LDB_SUCCESS || res->count != 1) {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "DN [%s] does not exist\n", ldb_dn_get_linearized(dn));
+            return ENOENT;
         }
     }
 
@@ -369,37 +429,80 @@ static int local_db_put_simple(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Adding a secret to [%s]\n", req_path);
+
     ret = local_db_dn(msg, lctx->ldb, req_path, &msg->dn);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
 
     /* make sure containers exist */
     ret = local_db_check_containers(msg, lctx, msg->dn);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_check_containers failed for [%s]: [%d]: %s\n",
+              ldb_dn_get_linearized(msg->dn), ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = local_encrypt(lctx, msg, secret, enctype, &enc_secret);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = ldb_msg_add_string(msg, "type", "simple");
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_msg_add_string failed adding type:simple [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = ldb_msg_add_string(msg, "enctype", enctype);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_msg_add_string failed adding enctype [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = ldb_msg_add_string(msg, "secret", enc_secret);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_msg_add_string failed adding secret [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
 
     ret = ldb_msg_add_fmt(msg, "creationTime", "%lu", time(NULL));
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_msg_add_string failed adding creationTime [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = ldb_add(lctx->ldb, msg);
     if (ret != EOK) {
-        if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) ret = EEXIST;
-        else ret = EIO;
+        if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Secret %s already exists\n", ldb_dn_get_linearized(msg->dn));
+            ret = EEXIST;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to add secret [%s]: [%d]: %s\n",
+                  ldb_dn_get_linearized(msg->dn), ret, ldb_strerror(ret));
+            ret = EIO;
+        }
         goto done;
     }
 
     ret = EOK;
-
 done:
     talloc_free(msg);
     return ret;
@@ -415,20 +518,40 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     int ret;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Removing a secret from [%s]\n", req_path);
+
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
     ret = local_db_dn(mem_ctx, lctx->ldb, req_path, &dn);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Searching for [%s] at [%s] with scope=base\n",
+          LOCAL_CONTAINER_FILTER, ldb_dn_get_linearized(dn));
 
     ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
                     attrs, LOCAL_CONTAINER_FILTER);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "ldb_search returned %d: %s\n", ret, ldb_strerror(ret));
+        goto done;
+    }
 
     if (res->count == 1) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Searching for children of [%s]\n", ldb_dn_get_linearized(dn));
         ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_ONELEVEL,
                          attrs, NULL);
-        if (ret != EOK) goto done;
+        if (ret != EOK) {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "ldb_search returned %d: %s\n", ret, ldb_strerror(ret));
+            goto done;
+        }
 
         if (res->count > 0) {
             ret = EEXIST;
@@ -441,6 +564,11 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
     }
 
     ret = ldb_delete(lctx->ldb, dn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "ldb_delete returned %d: %s\n", ret, ldb_strerror(ret));
+        /* fallthrough */
+    }
     ret = sysdb_error_to_errno(ret);
 
 done:
@@ -461,26 +589,55 @@ static int local_db_create(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Creating a container at [%s]\n", req_path);
+
     ret = local_db_dn(msg, lctx->ldb, req_path, &msg->dn);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
 
     /* make sure containers exist */
     ret = local_db_check_containers(msg, lctx, msg->dn);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_check_containers failed for [%s]: [%d]: %s\n",
+              ldb_dn_get_linearized(msg->dn), ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = local_db_check_containers_nest_level(lctx, msg->dn);
     if (ret != EOK) goto done;
 
     ret = ldb_msg_add_string(msg, "type", "container");
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_msg_add_string failed adding type:container [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = ldb_msg_add_fmt(msg, "creationTime", "%lu", time(NULL));
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_msg_add_string failed adding creationTime [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = ldb_add(lctx->ldb, msg);
     if (ret != EOK) {
-        if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) ret = EEXIST;
-        else ret = EIO;
+        if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Secret %s already exists\n", ldb_dn_get_linearized(msg->dn));
+            ret = EEXIST;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to add secret [%s]: [%d]: %s\n",
+                  ldb_dn_get_linearized(msg->dn), ret, ldb_strerror(ret));
+            ret = EIO;
+        }
         goto done;
     }
 
@@ -532,6 +689,7 @@ static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    DEBUG(SSSDBG_TRACE_LIBS, "Local DB path is %s\n", *local_db_path);
     return EOK;
 }
 
@@ -571,6 +729,8 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Received a local secrets request\n");
+
     if (sec_req_has_header(secreq, "Content-Type",
                                   "application/json")) {
         body_is_json = true;
@@ -580,15 +740,18 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         body_is_json = false;
         content_type = "application/octet-stream";
     } else {
+        DEBUG(SSSDBG_OP_FAILURE, "No or uknown Content-Type\n");
         ret = EINVAL;
         goto done;
     }
+    DEBUG(SSSDBG_TRACE_LIBS, "Content-Type: %s\n", content_type);
 
     ret = local_secrets_map_path(state, secreq, &req_path);
     if (ret) goto done;
 
     switch (secreq->method) {
     case HTTP_GET:
+        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP GET at [%s]\n", req_path);
         if (req_path[strlen(req_path) - 1] == '/') {
             ret = local_db_list_keys(state, lctx, req_path, &keys, &nkeys);
             if (ret) goto done;
@@ -617,6 +780,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         break;
 
     case HTTP_PUT:
+        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP PUT at [%s]\n", req_path);
         if (body_is_json) {
             ret = sec_json_to_simple_secret(state, secreq->body.data,
                                             &secret);
@@ -637,6 +801,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         break;
 
     case HTTP_POST:
+        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP POST at [%s]\n", req_path);
         plen = strlen(req_path);
 
         if (req_path[plen - 1] != '/') {
@@ -664,10 +829,18 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Did not find the requested data\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Local secrets request error [%d]: %s\n",
+                  ret, sss_strerror(ret));
+        }
         tevent_req_error(req, ret);
     } else {
         /* shortcircuit the request here as all called functions are
          * synchronous and final and no further subrequests are made */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Local secrets request done\n");
         tevent_req_done(req);
     }
     return tevent_req_post(req, state->ev);
@@ -681,14 +854,30 @@ static int generate_master_key(const char *filename, size_t size)
     int fd;
 
     ret = generate_csprng_buffer(buf, size);
-    if (ret) return ret;
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "generate_csprng_buffer failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
 
     fd = open(filename, O_CREAT|O_EXCL|O_WRONLY, 0600);
-    if (fd == -1) return errno;
+    if (fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "open(%s) failed [%d]: %s\n",
+              filename, ret, strerror(ret));
+        return ret;
+    }
 
     rsize = sss_atomic_write_s(fd, buf, size);
     close(fd);
     if (rsize != size) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sss_atomic_write_s failed [%d]: %s\n",
+              ret, strerror(ret));
+
         ret = unlink(filename);
         /* non-fatal failure */
         if (ret != EOK) {
@@ -714,6 +903,8 @@ int local_secrets_provider_handle(struct sec_ctx *sctx,
     int mfd;
     int ret;
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Creating a local provider handle\n");
+
     handle = talloc_zero(sctx, struct provider_handle);
     if (!handle) return ENOMEM;
 
@@ -728,6 +919,9 @@ int local_secrets_provider_handle(struct sec_ctx *sctx,
 
     ret = ldb_connect(lctx->ldb, dbpath, 0, NULL);
     if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "ldb_connect(%s) returned %d: %s\n",
+              dbpath, ret, ldb_strerror(ret));
         talloc_free(lctx->ldb);
         return EIO;
     }
@@ -741,20 +935,29 @@ int local_secrets_provider_handle(struct sec_ctx *sctx,
     ret = check_and_open_readonly(mkey, &mfd, 0, 0,
                                   S_IFREG|S_IRUSR|S_IWUSR, 0);
     if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No master key, generating a new one..\n");
+
         ret = generate_master_key(mkey, MKEY_SIZE);
         if (ret) return EFAULT;
         ret = check_and_open_readonly(mkey, &mfd, 0, 0,
                                       S_IFREG|S_IRUSR|S_IWUSR, 0);
     }
-    if (ret) return EFAULT;
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot generate a master key: %d\n", ret);
+        return EFAULT;
+    }
 
     size = sss_atomic_read_s(mfd, lctx->master_key.data,
                              lctx->master_key.length);
     close(mfd);
-    if (size < 0 || size != lctx->master_key.length) return EIO;
+    if (size < 0 || size != lctx->master_key.length) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot read a master key: %d\n", ret);
+        return EIO;
+    }
 
     handle->context = lctx;
 
     *out_handle = handle;
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Local provider handle created\n");
     return EOK;
 }
