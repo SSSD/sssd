@@ -54,7 +54,11 @@ static struct tevent_req *sec_http_request_send(TALLOC_CTX *mem_ctx,
 
     /* 1. mapping and path conversion */
     ret = sec_req_routing(state, secreq, &provider_handle);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sec_req_routing failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
 
     /* 2. backend invocation */
     subreq = provider_handle->fn(state, state->ev,
@@ -83,10 +87,15 @@ static void sec_http_request_pipeline_done(struct tevent_req *subreq)
 
     /* 3. reply construction */
     ret = sec_provider_recv(subreq);
-
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Did not find the requested data\n");
+        tevent_req_error(req, ret);
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sec request failed [%d]: %s\n", ret, sss_strerror(ret));
         tevent_req_error(req, ret);
     } else {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "sec request done\n");
         tevent_req_done(req);
     }
 }
@@ -113,6 +122,13 @@ sec_http_request_done(struct tevent_req *req)
     ret = sec_http_request_recv(req);
 
     if (ret != EOK) {
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Did not find the requested data\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sec_http_request_recv failed [%d]: %s\n",
+                  ret, sss_strerror(ret));
+        }
         /* Always return an error if we get here */
         ret = sec_http_status_reply(secreq, &secreq->reply,
                                     sec_errno_to_http_status(ret));
@@ -315,57 +331,95 @@ static int sec_on_message_complete(http_parser *parser)
     ret = http_parser_parse_url(req->request_url,
                                 strlen(req->request_url),
                                 0, &parsed);
-    if (ret) return ret;
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to parse URL %s\n", req->request_url);
+        return ret;
+    }
 
     if (parsed.field_set & (1 << UF_SCHEMA)) {
         ret = sec_get_parsed_filed(req, UF_SCHEMA, &parsed,
                                    req->request_url,
                                    &req->parsed_url.schema);
-        if (ret) return -1;
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to retrieve schema from %s\n", req->request_url);
+            return -1;
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL, "schema: %s\n", req->parsed_url.schema);
     }
 
     if (parsed.field_set & (1 << UF_HOST)) {
         ret = sec_get_parsed_filed(req, UF_HOST, &parsed,
                                    req->request_url,
                                    &req->parsed_url.host);
-        if (ret) return -1;
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to retrieve host from %s\n", req->request_url);
+            return -1;
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL, "host: %s\n", req->parsed_url.host);
     }
 
     if (parsed.field_set & (1 << UF_PORT)) {
         req->parsed_url.port = parsed.port;
+        DEBUG(SSSDBG_TRACE_INTERNAL, "port: %d\n", req->parsed_url.port);
     }
 
     if (parsed.field_set & (1 << UF_PATH)) {
         ret = sec_get_parsed_filed(req, UF_PATH, &parsed,
                                    req->request_url,
                                    &req->parsed_url.path);
-        if (ret) return -1;
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to retrieve path from %s\n", req->request_url);
+            return -1;
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL, "path: %s\n", req->parsed_url.path);
     }
 
     if (parsed.field_set & (1 << UF_QUERY)) {
         ret = sec_get_parsed_filed(req, UF_QUERY, &parsed,
                                    req->request_url,
                                    &req->parsed_url.query);
-        if (ret) return -1;
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to retrieve query from %s\n", req->request_url);
+            return -1;
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL, "query: %s\n", req->parsed_url.query);
     }
 
     if (parsed.field_set & (1 << UF_FRAGMENT)) {
         ret = sec_get_parsed_filed(req, UF_FRAGMENT, &parsed,
                                    req->request_url,
                                    &req->parsed_url.fragment);
-        if (ret) return -1;
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to retrieve fragment from %s\n", req->request_url);
+            return -1;
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "fragment: %s\n", req->parsed_url.fragment);
     }
 
     if (parsed.field_set & (1 << UF_USERINFO)) {
         ret = sec_get_parsed_filed(req, UF_USERINFO, &parsed,
                                    req->request_url,
                                    &req->parsed_url.userinfo);
-        if (ret) return -1;
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to retrieve userinfo from %s\n", req->request_url);
+            return -1;
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "userinfo: %s\n", req->parsed_url.userinfo);
     }
 
     req->method = parser->method;
 
     req->complete = true;
+    DEBUG(SSSDBG_TRACE_INTERNAL, "parsing complete\n");
 
     return 0;
 }
@@ -376,6 +430,7 @@ static int sec_on_message_complete(http_parser *parser)
 int sec_send_data(int fd, struct sec_data *data)
 {
     ssize_t len;
+    errno_t ret;
 
     errno = 0;
     len = send(fd, data->data, data->length, 0);
@@ -383,7 +438,10 @@ int sec_send_data(int fd, struct sec_data *data)
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
             return EAGAIN;
         } else {
-            return errno;
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "send failed [%d]: %s\n", ret, strerror(ret));
+            return ret;
         }
     }
 
@@ -393,6 +451,7 @@ int sec_send_data(int fd, struct sec_data *data)
 
     data->length -= len;
     data->data += len;
+    DEBUG(SSSDBG_TRACE_INTERNAL, "sent %zu bytes\n", data->length);
     return EOK;
 }
 
@@ -424,6 +483,7 @@ static void sec_send(struct cli_ctx *cctx)
 int sec_recv_data(int fd, struct sec_data *data)
 {
     ssize_t len;
+    errno_t ret;
 
     errno = 0;
     len = recv(fd, data->data, data->length, 0);
@@ -431,7 +491,10 @@ int sec_recv_data(int fd, struct sec_data *data)
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
             return EAGAIN;
         } else {
-            return errno;
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "send failed [%d]: %s\n", ret, strerror(ret));
+            return ret;
         }
     }
 
@@ -441,6 +504,7 @@ int sec_recv_data(int fd, struct sec_data *data)
     }
 
     data->length = len;
+    DEBUG(SSSDBG_TRACE_INTERNAL, "received %zu bytes\n", data->length);
     return EOK;
 }
 

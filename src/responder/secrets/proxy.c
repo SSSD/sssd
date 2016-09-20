@@ -85,16 +85,21 @@ static int proxy_sec_get_cfg(struct proxy_context *pctx,
     ret = proxy_get_config_string(pctx, cfg, true, secreq,
                                   "proxy_url", &cfg->url);
     if (ret) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS, "proxy_url: %s\n", cfg->url);
 
     ret = proxy_get_config_string(pctx, cfg, false, secreq,
                                   "auth_type", &auth_type);
     if (ret) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS, "auth_type: %s\n", auth_type);
 
     if (auth_type) {
         if (strcmp(auth_type, "basic_auth") == 0) {
             cfg->auth_type = PAT_BASIC_AUTH;
             ret = proxy_get_config_string(pctx, cfg, true, secreq, "username",
                                           &cfg->auth.basic.username);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "username: %s\n", cfg->auth.basic.username);
+
             if (ret) goto done;
             ret = proxy_get_config_string(pctx, cfg, true, secreq, "password",
                                           &cfg->auth.basic.password);
@@ -104,12 +109,16 @@ static int proxy_sec_get_cfg(struct proxy_context *pctx,
             ret = proxy_get_config_string(pctx, cfg, true, secreq,
                                           "auth_header_name",
                                           &cfg->auth.header.name);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "auth_header_name: %s\n", cfg->auth.basic.username);
+
             if (ret) goto done;
             ret = proxy_get_config_string(pctx, cfg, true, secreq,
                                           "auth_header_value",
                                           &cfg->auth.header.value);
             if (ret) goto done;
         } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown auth type!\n");
             ret = EINVAL;
             goto done;
         }
@@ -120,6 +129,8 @@ static int proxy_sec_get_cfg(struct proxy_context *pctx,
     if ((ret != 0) && (ret != ENOENT)) goto done;
 
     while (cfg->fwd_headers && cfg->fwd_headers[cfg->num_headers]) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Forwarding header: %s\n", cfg->fwd_headers[cfg->num_headers]);
         cfg->num_headers++;
     }
 
@@ -176,7 +187,10 @@ int proxy_sec_map_url(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
 
     if (SECREQ_HAS_PORT(secreq)) {
         ret = snprintf(port, 6, "%d", SECREQ_PORT(secreq));
-        if (ret < 1 || ret > 5) return EINVAL;
+        if (ret < 1 || ret > 5) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "snprintf failed\n");
+            return EINVAL;
+        }
     }
 
     blen = strlen(secreq->base_path);
@@ -195,6 +209,8 @@ int proxy_sec_map_url(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
                           SECREQ_HAS_PART(secreq, fragment) ? "?" :"",
                           SECREQ_PART(secreq, fragment));
     if (!url) return ENOMEM;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "URL: %s\n", url);
 
     *req_url = url;
     return EOK;
@@ -215,18 +231,32 @@ int proxy_sec_map_headers(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
             }
         }
         if (forward) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Forwarding header %s:%s\n",
+                  secreq->headers[i].name, secreq->headers[i].value);
+
             ret = sec_http_append_header(mem_ctx, req_headers,
                                          secreq->headers[i].name,
                                          secreq->headers[i].value);
-            if (ret) return ret;
+            if (ret) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Couldn't append header %s\n", secreq->headers[i].name);
+                return ret;
+            }
         }
     }
 
     if (pcfg->auth_type == PAT_HEADER) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Forwarding header %s\n", pcfg->auth.header.name);
+
         ret = sec_http_append_header(mem_ctx, req_headers,
                                      pcfg->auth.header.name,
                                      pcfg->auth.header.value);
-        if (ret) return ret;
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Couldn't append header %s\n", pcfg->auth.header.name);
+            return ret;
+        }
     }
 
     return EOK;
@@ -254,7 +284,10 @@ static int proxy_http_create_request(TALLOC_CTX *mem_ctx,
 
     /* Headers */
     ret = proxy_sec_map_headers(req, secreq, pcfg, &req->data);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Couldn't map headers\n");
+        goto done;
+    }
 
     /* CRLF separator before body */
     req->data = talloc_strdup_append_buffer(req->data, "\r\n");
@@ -347,9 +380,14 @@ struct tevent_req *proxy_http_req_send(struct proxy_context *pctx,
 
     /* STEP1: reparse URL to get hostname and port */
     ret = http_parser_parse_url(http_uri, strlen(http_uri), 0, &parsed);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse URL [%s]: %d: %s\n",
+                                   http_uri, ret, sss_strerror(ret));
+        goto done;
+    }
 
     if (!(parsed.field_set & (1 << UF_HOST))) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No UF_HOST flag found\n");
         ret = EINVAL;
         goto done;
     }
@@ -361,6 +399,7 @@ struct tevent_req *proxy_http_req_send(struct proxy_context *pctx,
         ret = ENOMEM;
         goto done;
     }
+    DEBUG(SSSDBG_TRACE_LIBS, "proxy name: %s\n", state->proxyname);
 
     if (parsed.field_set & (1 << UF_PORT)) {
         state->port = parsed.port;
@@ -376,6 +415,7 @@ struct tevent_req *proxy_http_req_send(struct proxy_context *pctx,
             state->port = 80;
         }
     }
+    DEBUG(SSSDBG_TRACE_LIBS, "proxy port: %d\n", state->port);
 
     /* STEP2: resolve hostname first */
     subreq = resolv_gethostbyname_send(state, ev, pctx->resctx,
@@ -579,7 +619,11 @@ static int proxy_wire_send(int fd, struct proxy_http_request *req)
     data.length = req->data->length - req->written;
 
     ret = sec_send_data(fd, &data);
-    if (ret != EOK && ret != EAGAIN) return ret;
+    if (ret != EOK && ret != EAGAIN) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sec_send_data failed [%zu]: %s\n", ret, sss_strerror(ret));
+        return ret;
+    }
 
     req->written = req->data->length - data.length;
     return ret;
@@ -885,14 +929,29 @@ struct tevent_req *proxy_secret_req(TALLOC_CTX *mem_ctx,
     }
 
     ret = proxy_sec_get_cfg(pctx, state, state->secreq, &state->pcfg);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "proxy_sec_get_cfg failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = proxy_sec_map_url(state, secreq, state->pcfg, &http_uri);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "proxy_sec_map_url failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
 
     ret = proxy_http_create_request(state, state->secreq, state->pcfg,
                                     http_uri, &http_req);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "proxy_http_create_request failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
 
     subreq = proxy_http_req_send(pctx, state, ev, state->secreq,
                                  http_uri, http_req);
@@ -932,6 +991,9 @@ static void proxy_secret_req_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "proxy_http request failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -943,6 +1005,9 @@ static void proxy_secret_req_done(struct tevent_req *subreq)
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sec_http_reply_with_headers request failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
     }
 }

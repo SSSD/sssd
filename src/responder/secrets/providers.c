@@ -42,6 +42,7 @@ static int sec_map_url_to_user_path(struct sec_req_ctx *secreq,
         return ENOMEM;
     }
 
+    DEBUG(SSSDBG_TRACE_LIBS, "User-specific path is [%s]\n", *mapped_path);
     return EOK;
 }
 
@@ -76,10 +77,17 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
                             &def_provider);
     if (ret) return EIO;
 
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "The default provider is '%s'\n", def_provider);
+
     ret = confdb_get_sub_sections(mem_ctx, secreq->cctx->rctx->cdb,
                                   CONFDB_SEC_CONF_ENTRY, &sections,
                                   &num_sections);
     if (ret != EOK) return ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "confdb section %s has %d sub-sections\n",
+          CONFDB_SEC_CONF_ENTRY, num_sections);
 
     provider = def_provider;
 
@@ -90,6 +98,9 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
         secreq->base_path = talloc_asprintf(secreq, SEC_BASEPATH"%s/", sections[i]);
         if (!secreq->base_path) return ENOMEM;
         slen = strlen(secreq->base_path);
+
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "matching subsection [%s]\n", sections[i]);
 
         if (strncmp(secreq->base_path, secreq->mapped_path, slen) == 0) {
             char *secname;
@@ -104,6 +115,10 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
                                     &provider);
             if (ret || !provider) return EIO;
 
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "matched subsection %s with provider %s\n",
+                  sections[i], provider);
+
             secreq->cfg_section = talloc_steal(secreq, secname);
             if (!secreq->cfg_section) return ENOMEM;
             break;
@@ -112,6 +127,11 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
     }
 
     if (!secreq->base_path) secreq->base_path = SEC_BASEPATH;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Request base path is [%s]\n", secreq->base_path);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Request provider is [%s]\n", provider);
 
     ret = sec_get_provider(sctx, provider, handle);
     if (ret == ENOENT) {
@@ -134,6 +154,7 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
 
 int sec_provider_recv(struct tevent_req *req) {
     TEVENT_REQ_RETURN_ON_ERROR(req);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Request finished\n");
     return EOK;
 }
 
@@ -191,6 +212,11 @@ int sec_http_status_reply(TALLOC_CTX *mem_ctx, struct sec_data *reply,
 
     reply->length = strlen(reply->data);
 
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "HTTP reply %d: %s\n",
+          sec_http_status_format_table[code].status,
+          sec_http_status_format_table[code].text);
+
     return EOK;
 }
 
@@ -219,6 +245,11 @@ int sec_http_reply_with_body(TALLOC_CTX *mem_ctx, struct sec_data *reply,
 
     memcpy(&reply->data[head_size], body->data, body->length);
     reply->length = head_size + body->length;
+
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "HTTP reply %d: %s\n",
+          sec_http_status_format_table[code].status,
+          sec_http_status_format_table[code].text);
 
     return EOK;
 }
@@ -252,6 +283,8 @@ int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
                                   status_code, reason_phrase);
     if (!reply->data) return ENOMEM;
 
+    DEBUG(SSSDBG_TRACE_LIBS, "HTTP reply %d: %s\n", status_code, reason_phrase);
+
     /* Headers */
     for (int i = 0; i < num_headers; i++) {
         if (strcasecmp(headers[i].name, "Content-Length") == 0) {
@@ -264,7 +297,10 @@ int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
         if (ret) return ret;
     }
 
-    if (!has_content_type) return EINVAL;
+    if (!has_content_type) {
+        DEBUG(SSSDBG_OP_FAILURE, "No Content-Type header\n");
+        return EINVAL;
+    }
 
     if (add_content_length) {
         reply->data = talloc_asprintf_append_buffer(reply->data,
@@ -292,6 +328,8 @@ int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
 
 enum sec_http_status_codes sec_errno_to_http_status(errno_t err)
 {
+    DEBUG(SSSDBG_TRACE_LIBS, "Request errno: %d\n", err);
+
     switch (err) {
     case EOK:
         return STATUS_200;
@@ -388,10 +426,14 @@ int sec_simple_secret_to_json(TALLOC_CTX *mem_ctx,
     int ret;
 
     root = json_pack("{s:s, s:s}", "type", "simple", "value", secret);
-    if (!root) return ENOMEM;
+    if (!root) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to pack Json object\n");
+        return ENOMEM;
+    }
 
     jsonized = json_dumps(root, JSON_INDENT(4));
     if (!jsonized) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to dump Json object\n");
         ret = ENOMEM;
         goto done;
     }
@@ -419,6 +461,11 @@ int sec_array_to_json(TALLOC_CTX *mem_ctx,
     int ret;
 
     root = json_array();
+    if (root == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create Json array\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
     for (int i = 0; i < count; i++) {
         // FIXME: json_string mem leak ?
@@ -428,6 +475,7 @@ int sec_array_to_json(TALLOC_CTX *mem_ctx,
 
     jsonized = json_dumps(root, JSON_INDENT(4));
     if (!jsonized) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to dump Json object\n");
         ret = ENOMEM;
         goto done;
     }
@@ -459,6 +507,8 @@ int sec_get_provider(struct sec_ctx *sctx, const char *name,
         *out_handle = handle;
         return EOK;
     }
+
+    DEBUG(SSSDBG_MINOR_FAILURE, "No handle for provider %s\n", name);
     return ENOENT;
 }
 
