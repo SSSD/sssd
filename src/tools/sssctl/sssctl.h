@@ -70,6 +70,10 @@ sss_sifp_error _sssctl_sifp_send(TALLOC_CTX *mem_ctx,
     _sssctl_sifp_send(mem_ctx, sifp, reply, path, iface, method,         \
                       ##__VA_ARGS__, DBUS_TYPE_INVALID);
 
+errno_t sssctl_systemd_start(void);
+errno_t sssctl_systemd_stop(void);
+errno_t sssctl_systemd_restart(void);
+
 errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt);
