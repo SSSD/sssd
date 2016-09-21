@@ -1503,7 +1503,7 @@ class SSSDConfig(SSSDChangeConf):
             # Remove any entries in this list that don't
             # correspond to an active service, for integrity
             configured_services = self.list_services()
-            for srv in service_dict.keys():
+            for srv in list(service_dict):
                 if srv not in configured_services:
                     del service_dict[srv]
 
@@ -1786,7 +1786,7 @@ class SSSDConfig(SSSDChangeConf):
             # Remove any entries in this list that don't
             # correspond to an active domain, for integrity
             configured_domains = self.list_domains()
-            for dom in domain_dict.keys():
+            for dom in list(domain_dict):
                 if dom not in configured_domains:
                     del domain_dict[dom]
 

@@ -1676,6 +1676,39 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                             "Domain [%s] unexpectedly found" %
                             domain)
 
+    def testListWithInvalidDomain(self):
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+
+        # Negative Test - Not Initialized
+        self.assertRaises(SSSDConfig.NotInitializedError,
+                          sssdconfig.list_domains)
+
+        # Positive Test
+        sssdconfig.import_config(
+            srcdir + '/testconfigs/sssd-nonexisting-services-domains.conf'
+        )
+
+        domains = sssdconfig.list_active_domains()
+        self.assertTrue("active" in domains and len(domains) == 1,
+                        "domain 'active' not found among active domains")
+
+        domains = sssdconfig.list_inactive_domains()
+        self.assertTrue("inactive" in domains and len(domains) == 1,
+                        "domain 'inactive' not found among inactive domains")
+
+        services = sssdconfig.list_active_services()
+        self.assertTrue("nss" in services and len(services) == 1,
+                        "service 'nss' not found among active services")
+
+        services = sssdconfig.list_inactive_services()
+        self.assertTrue(len(services) == 2,
+                        "unexpected count of inactive services")
+        for service in ("sssd", "pam"):
+            self.assertTrue(service in services,
+                            "service '%s' not found among inactive services"
+                            % service)
+
     def testGetDomain(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
                                            srcdir + "/etc/sssd.api.d")
