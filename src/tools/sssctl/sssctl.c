@@ -26,12 +26,6 @@
 #include "tools/common/sss_tools.h"
 #include "tools/common/sss_process.h"
 
-#ifdef HAVE_SYSTEMD
-    #define SSSD_SVC_CMD(cmd) "systemctl " cmd " sssd.service"
-#else
-    #define SSSD_SVC_CMD(cmd) "service sssd " cmd
-#endif
-
 static const char *
 sssctl_prompt_str(enum sssctl_prompt_result result)
 {
@@ -125,14 +119,23 @@ errno_t sssctl_run_command(const char *command)
 
 static errno_t sssctl_manage_service(enum sssctl_svc_action action)
 {
-#if defined(HAVE_SYSTEMD) || defined(HAVE_SERVICE)
+#ifdef HAVE_SYSTEMD
     switch (action) {
     case SSSCTL_SVC_START:
-        return sssctl_run_command(SSSD_SVC_CMD("start"));
+        return sssctl_systemd_start();
     case SSSCTL_SVC_STOP:
-        return sssctl_run_command(SSSD_SVC_CMD("stop"));
+        return sssctl_systemd_stop();
     case SSSCTL_SVC_RESTART:
-        return sssctl_run_command(SSSD_SVC_CMD("restart"));
+        return sssctl_systemd_restart();
+    }
+#elif HAVE_SERVICE
+    switch (action) {
+    case SSSCTL_SVC_START:
+        return sssctl_run_command("service sssd start");
+    case SSSCTL_SVC_STOP:
+        return sssctl_run_command("service sssd stop");
+    case SSSCTL_SVC_RESTART:
+        return sssctl_run_command("service sssd restart");
     }
 #endif
 
