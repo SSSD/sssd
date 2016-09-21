@@ -1190,6 +1190,13 @@ static int nss_cmd_assume_upn(struct nss_dom_ctx *dctx)
             ret = nss_cmd_initgr_send_reply(dctx);
         }
         break;
+    case SSS_NSS_GETSIDBYNAME:
+    case SSS_NSS_GETORIGBYNAME:
+        ret = nss_cmd_getsidby_search(dctx);
+        if (ret == EOK) {
+            ret = nss_cmd_getbysid_send_reply(dctx);
+        }
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
               dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
@@ -1660,6 +1667,8 @@ static void nss_cmd_getbynam_done(struct tevent_req *req)
                                      cctx->rctx->default_domain, rawname,
                                      &domname, &cmdctx->name);
     if (ret == EAGAIN && (dctx->cmdctx->cmd == SSS_NSS_GETPWNAM
+                            || dctx->cmdctx->cmd == SSS_NSS_GETSIDBYNAME
+                            || dctx->cmdctx->cmd == SSS_NSS_GETORIGBYNAME
                             || dctx->cmdctx->cmd == SSS_NSS_INITGR)) {
         /* assume Kerberos principal */
         ret = nss_cmd_assume_upn(dctx);
@@ -4332,6 +4341,9 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
     char *req_name;
     uint32_t req_id;
     enum sss_dp_acct_type req_type;
+    const char *extra_flag = NULL;
+    char *neg_cache_name = NULL;
+    const char *sysdb_name;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -4355,7 +4367,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         } else {
            /* if it is a domainless search, skip domains that require fully
             * qualified names instead */
-            while (dom && cmdctx->check_next && dom->fqnames) {
+            while (dom && cmdctx->check_next && dom->fqnames
+                    && !cmdctx->name_is_upn) {
                 dom = get_next_domain(dom, 0);
             }
 
@@ -4397,20 +4410,28 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         } else {
             talloc_free(name);
 
-            name = sss_resp_create_fqname(cmdctx, nctx->rctx, dom, false, cmdctx->name);
+            name = sss_resp_create_fqname(cmdctx, nctx->rctx, dom,
+                                          cmdctx->name_is_upn, cmdctx->name);
             if (name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "sss_get_cased_name failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
 
+            if (cmdctx->name_is_upn) {
+                neg_cache_name = talloc_asprintf(name, "@%s", name);
+            } else {
+                neg_cache_name = name;
+            }
+
             /* verify this name has not yet been negatively cached, as user
              * and groupm, or has been permanently filtered */
-            ret = sss_ncache_check_user(nctx->rctx->ncache, dom, cmdctx->name);
+            ret = sss_ncache_check_user(nctx->rctx->ncache, dom,
+                                        neg_cache_name);
 
             if (ret == EEXIST) {
                 ret = sss_ncache_check_group(nctx->rctx->ncache,
-                                             dom, cmdctx->name);
+                                             dom, neg_cache_name);
                 if (ret == EEXIST) {
                     /* if neg cached, return we didn't find it */
                     DEBUG(SSSDBG_TRACE_FUNC,
@@ -4418,7 +4439,11 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                            name, dom->name);
                     /* if a multidomain search, try with next */
                     if (cmdctx->check_next) {
-                        dom = get_next_domain(dom, 0);
+                        if (cmdctx->name_is_upn) {
+                            dom = get_next_domain(dom, SSS_GND_DESCEND);
+                        } else {
+                            dom = get_next_domain(dom, 0);
+                        }
                         continue;
                     }
                     /* There are no further domains or this was a
@@ -4481,8 +4506,11 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 }
             }
         } else {
-            ret = sysdb_search_user_by_name(cmdctx, dom, name, attrs,
-                                            &msg);
+            if (cmdctx->name_is_upn) {
+                ret = sysdb_search_user_by_upn(cmdctx, dom, name, attrs, &msg);
+            } else {
+                ret = sysdb_search_user_by_name(cmdctx, dom, name, attrs, &msg);
+            }
             if (ret != EOK && ret != ENOENT) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to make request to our cache!\n");
@@ -4492,6 +4520,28 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
 
             if (ret == EOK) {
                 user_found = true;
+
+                if (cmdctx->name_is_upn) {
+                    /* Since sysdb_search_user_by_upn() searches the whole
+                     * cache we have to set the domain so that it matches the
+                     * result. */
+                    sysdb_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME,
+                                                             NULL);
+                    if (sysdb_name == NULL) {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "Cached entry has no name.\n");
+                        return EINVAL;
+                    }
+                    dctx->domain =
+                            find_domain_by_object_name(get_domains_head(dom),
+                                                       sysdb_name);
+                    if (dctx->domain == NULL) {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "Cannot find matching domain for [%s].\n",
+                              sysdb_name);
+                        return EINVAL;
+                    }
+                }
             } else {
                 talloc_free(msg);
                 ret = sysdb_search_group_by_name(cmdctx, dom, name,
@@ -4531,14 +4581,14 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             if (cmdctx->cmd == SSS_NSS_GETSIDBYNAME
                     || cmdctx->cmd == SSS_NSS_GETORIGBYNAME) {
                 ret = sss_ncache_set_user(nctx->rctx->ncache, false,
-                                          dom, name);
+                                          dom, neg_cache_name);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
                           "Cannot set negcache for %s\n", name);
                 }
 
                 ret = sss_ncache_set_group(nctx->rctx->ncache, false,
-                                           dom, name);
+                                           dom, neg_cache_name);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
                           "Cannot set negcache for %s\n", name);
@@ -4573,8 +4623,14 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 req_type = SSS_DP_USER_AND_GROUP;
             }
 
+            if (cmdctx->name_is_upn) {
+                extra_flag = EXTRA_NAME_IS_UPN;
+            } else {
+                extra_flag = NULL;
+            }
+
             ret = check_cache(dctx, nctx, dctx->res,
-                              req_type, req_name, req_id, NULL,
+                              req_type, req_name, req_id, extra_flag,
                               nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
