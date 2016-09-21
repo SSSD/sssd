@@ -203,6 +203,8 @@ struct test_fo_ctx {
     int ttl;
 
     struct fo_server *srv;
+
+    int num_done;
 };
 
 int test_fo_srv_data_cmp(void *ud1, void *ud2)
@@ -691,6 +693,67 @@ static void test_fo_hostlist(void **state)
     assert_int_equal(ret, ERR_OK);
 }
 
+static void test_fo_srv_dup_done(struct tevent_req *req);
+
+/* Test that running two parallel SRV queries doesn't return an error.
+ * This is a regression test for https://fedorahosted.org/sssd/ticket/3131
+ */
+void test_fo_srv_duplicates(void **state)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct test_fo_ctx *test_ctx =
+        talloc_get_type(*state, struct test_fo_ctx);
+
+    test_fo_srv_mock_dns(test_ctx, test_ctx->ttl);
+    test_fo_srv_mock_dns(test_ctx, test_ctx->ttl);
+
+    ret = fo_add_srv_server(test_ctx->fo_svc, "_ldap", "sssd.com",
+                            "sssd.local", "tcp", test_ctx);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = fo_add_server(test_ctx->fo_svc, "ldap1.sssd.com",
+                        389, (void *) discard_const("ldap://ldap1.sssd.com"),
+                        true);
+    assert_int_equal(ret, ERR_OK);
+
+    req = fo_resolve_service_send(test_ctx, test_ctx->ctx->ev,
+                                  test_ctx->resolv, test_ctx->fo_ctx,
+                                  test_ctx->fo_svc);
+    assert_non_null(req);
+    tevent_req_set_callback(req, test_fo_srv_dup_done, test_ctx);
+
+    req = fo_resolve_service_send(test_ctx, test_ctx->ctx->ev,
+                                  test_ctx->resolv, test_ctx->fo_ctx,
+                                  test_ctx->fo_svc);
+    assert_non_null(req);
+    tevent_req_set_callback(req, test_fo_srv_dup_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->ctx);
+    assert_int_equal(ret, ERR_OK);
+}
+
+static void test_fo_srv_dup_done(struct tevent_req *req)
+{
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
+    errno_t ret;
+    const char *name;
+
+    ret = fo_resolve_service_recv(req, test_ctx, &test_ctx->srv);
+    talloc_zfree(req);
+    assert_int_equal(ret, EOK);
+
+    name = fo_get_server_name(test_ctx->srv);
+    assert_string_equal(name, "ldap1.sssd.com");
+
+    test_ctx->num_done++;
+    if (test_ctx->num_done == 2) {
+        test_ctx->ctx->error = ERR_OK;
+        test_ctx->ctx->done = true;
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -713,6 +776,9 @@ int main(int argc, const char *argv[])
                                         test_fo_srv_setup,
                                         test_fo_srv_teardown),
         cmocka_unit_test_setup_teardown(test_fo_srv_ttl_zero,
+                                        test_fo_srv_setup,
+                                        test_fo_srv_teardown),
+        cmocka_unit_test_setup_teardown(test_fo_srv_duplicates,
                                         test_fo_srv_setup,
                                         test_fo_srv_teardown),
     };
