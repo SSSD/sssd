@@ -1140,7 +1140,6 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %postun common
 %systemd_postun_with_restart sssd.service
 %systemd_postun_with_restart sssd-secrets.socket
-%systemd_postun_with_restart sssd-secrets.service
 
 %else
 # sysv
