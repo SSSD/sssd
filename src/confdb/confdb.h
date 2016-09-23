@@ -223,6 +223,7 @@
 
 /* Secrets Service */
 #define CONFDB_SEC_CONF_ENTRY "config/secrets"
+#define CONFDB_SEC_CONTAINERS_NEST_LEVEL "containers_nest_level"
 
 
 struct confdb_ctx;

@@ -38,6 +38,7 @@ struct sec_ctx {
     struct resolv_ctx *resctx;
     struct resp_ctx *rctx;
     int fd_limit;
+    int containers_nest_level;
 
     struct provider_handle **providers;
 };

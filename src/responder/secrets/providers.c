@@ -306,6 +306,7 @@ enum sec_http_status_codes sec_errno_to_http_status(errno_t err)
     case EISDIR:
         return STATUS_405;
     case EMEDIUMTYPE:
+    case ERR_SEC_INVALID_CONTAINERS_NEST_LEVEL:
         return STATUS_406;
     case EEXIST:
         return STATUS_409;
