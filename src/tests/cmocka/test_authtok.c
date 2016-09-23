@@ -437,6 +437,85 @@ void test_sss_authtok_2fa_blobs(void **state)
     talloc_free(fa2);
 }
 
+void test_sss_authtok_sc_blobs(void **state)
+{
+    int ret;
+    struct test_state *ts;
+    size_t needed_size;
+    uint8_t *buf;
+    const char *pin;
+    size_t pin_len;
+    const char *token_name;
+    size_t token_name_len;
+    const char *module_name;
+    size_t module_name_len;
+    const char *key_id;
+    size_t key_id_len;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ret = sss_auth_pack_sc_blob("abc", 0, "defg", 0, "hijkl", 0, "mnopqr", 0,
+                                NULL, 0, &needed_size);
+    assert_int_equal(ret, EAGAIN);
+
+    buf = talloc_size(ts, needed_size);
+    assert_non_null(buf);
+
+    ret = sss_auth_pack_sc_blob("abc", 0, "defg", 0, "hijkl", 0, "mnopqr", 0,
+                                buf, needed_size, &needed_size);
+    assert_int_equal(ret, EOK);
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    assert_memory_equal(buf, "\4\0\0\0\5\0\0\0\6\0\0\0\7\0\0\0abc\0defg\0hijkl\0mnopqr\0",
+                        needed_size);
+#else
+    assert_memory_equal(buf, "\0\0\0\4\0\0\0\5\0\0\0\6\0\0\0\7abc\0defg\0hijkl\0mnopqr\0",
+                        needed_size);
+#endif
+
+    ret = sss_authtok_set(ts->authtoken, SSS_AUTHTOK_TYPE_SC_PIN, buf,
+                          needed_size);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_authtok_get_sc(ts->authtoken, &pin, &pin_len,
+                             &token_name, &token_name_len,
+                             &module_name, &module_name_len,
+                             &key_id, &key_id_len);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(pin_len, 3);
+    assert_string_equal(pin, "abc");
+    assert_int_equal(token_name_len, 4);
+    assert_string_equal(token_name, "defg");
+    assert_int_equal(module_name_len, 5);
+    assert_string_equal(module_name, "hijkl");
+    assert_int_equal(key_id_len, 6);
+    assert_string_equal(key_id, "mnopqr");
+
+    ret = sss_authtok_get_sc(ts->authtoken, NULL, NULL,
+                             &token_name, &token_name_len,
+                             &module_name, &module_name_len,
+                             &key_id, &key_id_len);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(token_name_len, 4);
+    assert_string_equal(token_name, "defg");
+    assert_int_equal(module_name_len, 5);
+    assert_string_equal(module_name, "hijkl");
+    assert_int_equal(key_id_len, 6);
+    assert_string_equal(key_id, "mnopqr");
+
+    ret = sss_authtok_get_sc(ts->authtoken, NULL, NULL,
+                             &token_name, NULL,
+                             &module_name, NULL,
+                             &key_id, NULL);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(token_name, "defg");
+    assert_string_equal(module_name, "hijkl");
+    assert_string_equal(key_id, "mnopqr");
+
+    sss_authtok_set_empty(ts->authtoken);
+    talloc_free(buf);
+}
+
 #define MISSING_NULL_CHECK do { \
     assert_int_equal(ret, EOK); \
     assert_int_equal(fa1_len, 3); \
@@ -524,8 +603,8 @@ void test_sss_authtok_sc_pin(void **state)
     assert_int_equal(sss_authtok_get_type(ts->authtoken),
                      SSS_AUTHTOK_TYPE_SC_PIN);
     size = sss_authtok_get_size(ts->authtoken);
-    assert_int_equal(size, 9);
-    assert_memory_equal(sss_authtok_get_data(ts->authtoken), "12345678\0",
+    assert_int_equal(size, 28);
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken), "\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345678\0\0\0\0",
                                              size);
 
     ret = sss_authtok_set_sc_pin(ts->authtoken, "12345678", 5);
@@ -533,8 +612,8 @@ void test_sss_authtok_sc_pin(void **state)
     assert_int_equal(sss_authtok_get_type(ts->authtoken),
                      SSS_AUTHTOK_TYPE_SC_PIN);
     size = sss_authtok_get_size(ts->authtoken);
-    assert_int_equal(size, 6);
-    assert_memory_equal(sss_authtok_get_data(ts->authtoken), "12345\0",
+    assert_int_equal(size, 25);
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken), "\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345\0\0\0\0",
                                              size);
 
     ret = sss_authtok_get_sc_pin(ts->authtoken, &pin, &len);
@@ -591,6 +670,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_authtok_sc_keypad,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_authtok_sc_pin,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_sc_blobs,
                                         setup, teardown),
     };
 
