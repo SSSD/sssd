@@ -27,13 +27,20 @@
 #include <sys/types.h>
 #include "responder/common/responder.h"
 
-/* KCM IO structure */
+/*
+ * KCM IO structure
+ *
+ * In theory we cold use sss_iobuf there, but since iobuf was
+ * made opaque, this allows it to allocate the structures on
+ * the stack in one go.
+ * */
 struct kcm_data {
     uint8_t *data;
     size_t length;
 };
 
-/* To avoid leaking the sssd-specific responder data to other
+/*
+ * To avoid leaking the sssd-specific responder data to other
  * modules, the ccache databases and other KCM specific data
  * are kept separately
  */
@@ -41,7 +48,8 @@ struct kcm_resp_ctx {
     krb5_context k5c;
 };
 
-/* responder context that contains both the responder data,
+/*
+ * responder context that contains both the responder data,
  * like the ccaches and the sssd-specific stuff like the
  * generic responder ctx
  */
@@ -54,5 +62,12 @@ struct kcm_ctx {
 };
 
 int kcm_connection_setup(struct cli_ctx *cctx);
+
+/*
+ * Internally in SSSD-KCM we use SSSD-internal error codes so that we
+ * can always the same sss_strerror() functions to format the errors
+ * nicely, but the client expects libkrb5 error codes.
+ */
+krb5_error_code sss2krb5_error(errno_t err);
 
 #endif /* __KCMSRV_PVT_H__ */
