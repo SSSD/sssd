@@ -131,11 +131,11 @@ static errno_t sssctl_manage_service(enum sssctl_svc_action action)
 #elif HAVE_SERVICE
     switch (action) {
     case SSSCTL_SVC_START:
-        return sssctl_run_command("service sssd start");
+        return sssctl_run_command("/sbin/service sssd start");
     case SSSCTL_SVC_STOP:
-        return sssctl_run_command("service sssd stop");
+        return sssctl_run_command("/sbin/service sssd stop");
     case SSSCTL_SVC_RESTART:
-        return sssctl_run_command("service sssd restart");
+        return sssctl_run_command("/sbin/service sssd restart");
     }
 #endif
 
