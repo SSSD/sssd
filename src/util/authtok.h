@@ -264,4 +264,88 @@ errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **pin,
  */
 void sss_authtok_set_sc_keypad(struct sss_auth_token *tok);
 
+/**
+ * @brief Set complete Smart Card authentication blob including PKCS#11 token
+ *        name, module name and key id.
+ *
+ * @param tok             A pointer to an sss_auth_token
+ * @param type            Authentication token type, may be
+ *                        SSS_AUTHTOK_TYPE_SC_PIN or SSS_AUTHTOK_TYPE_SC_KEYPAD
+ * @param pin             A pointer to a const char *, that will point to a null
+ *                        terminated string containing the pin
+ * @param pin_len         The length of the pin string, if set to 0 it will be
+ *                        calculated
+ * @param token_name      A pointer to a const char *, that will point to a null
+ *                        terminated string containing the PKCS#11 token name
+ * @param token_name_len  The length of the token name string, if set to 0 it
+ *                        will be calculated
+ * @param module_name     A pointer to a const char *, that will point to a null
+ *                        terminated string containing the PKCS#11 module name
+ * @param module_name_len The length of the module name string, if set to 0 it
+ *                        will be calculated
+ * @param key_id          A pointer to a const char *, that will point to a null
+ *                        terminated string containing the PKCS#11 key id
+ * @param key_id_len      The length of the key id string, if set to 0 it will be
+ *                        calculated
+ *
+ * @return       EOK on success
+ *               EINVAL unexpected or inval input
+ *               ENOMEM memory allocation error
+ */
+errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
+                           enum sss_authtok_type type,
+                           const char *pin, size_t pin_len,
+                           const char *token_name, size_t token_name_len,
+                           const char *module_name, size_t module_name_len,
+                           const char *key_id, size_t key_id_len);
+/**
+ * @brief Set a Smart Card authentication data, replacing any previous data
+ *
+ * @param tok    A pointer to a sss_auth_token structure to change, also
+ *               used as a memory context to allocate the internal data.
+ * @param data   Smart Card authentication data blob
+ * @param len    The length of the blob
+ *
+ * @return       EOK on success
+ *               ENOMEM on error
+ */
+errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
+                                     const uint8_t *data,
+                                     size_t len);
+
+/**
+ * @brief Get complete Smart Card authtoken data
+ *
+ * @param tok                   A pointer to a sss_auth_token structure
+ * @param[out] _pin             A pointer to a const char *, that will point to
+ *                              a null terminated string holding the pin,
+ *                              may not be modified or freed
+ * @param[out] _pin__len        Length of the pin
+ * @param[out] _token_name      A pointer to a const char *, that will point to
+ *                              a null terminated string holding the PKCS#11
+ *                              token name, may not be modified or freed
+ * @param[out] _token_name_len  Length of the PKCS#11 token name
+ * @param[out] _module_name     A pointer to a const char *, that will point to
+ *                              a null terminated string holding the PKCS#11
+ *                              module name, may not be modified or freed
+ * @param[out] _module_name_len Length of the PKCS#11 module name
+ * @param[out] _key_id          A pointer to a const char *, that will point to
+ *                              a null terminated string holding the PKCS#11
+ *                              key id, may not be modified or freed
+ * @param[out] _key_id_len      Length of the PKCS#11 key id
+ *
+ * Any of the output pointers may be NULL if the caller does not need the
+ * specific item.
+ *
+ * @return     EOK     on success
+ *             EFAULT  missing token
+ *             EINVAL  if input data is not consistent
+ *             ENOENT  if the token is empty
+ *             EACCESS if the token is not a Smart Card token
+ */
+errno_t sss_authtok_get_sc(struct sss_auth_token *tok,
+                           const char **_pin, size_t *_pin_len,
+                           const char **_token_name, size_t *_token_name_len,
+                           const char **_module_name, size_t *_module_name_len,
+                           const char **_key_id, size_t *_key_id_len);
 #endif /*  __AUTHTOK_H__ */
