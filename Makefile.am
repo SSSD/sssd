@@ -714,6 +714,7 @@ dist_noinst_HEADERS = \
     src/responder/kcm/kcmsrv_ccache.h \
     src/responder/kcm/kcmsrv_ccache_pvt.h \
     src/responder/kcm/kcmsrv_ccache_be.h \
+    src/responder/kcm/kcmsrv_ops.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_meta.h \
@@ -1493,6 +1494,7 @@ sssd_kcm_SOURCES = \
     src/responder/kcm/kcmsrv_cmd.c \
     src/responder/kcm/kcmsrv_ccache.c \
     src/responder/kcm/kcmsrv_ccache_mem.c \
+    src/responder/kcm/kcmsrv_ops.c \
     src/util/sss_sockets.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \

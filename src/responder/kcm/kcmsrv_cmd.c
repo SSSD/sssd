@@ -23,10 +23,10 @@
 
 #include "config.h"
 #include "util/util.h"
-#include "util/sss_iobuf.h"
 #include "responder/common/responder.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 #include "responder/kcm/kcm.h"
+#include "responder/kcm/kcmsrv_ops.h"
 
 /* The first four bytes of a message is always the size */
 #define KCM_MSG_LEN_SIZE 4
@@ -133,7 +133,6 @@ static errno_t kcm_input_parse(struct kcm_reqbuf *reqbuf,
 {
     size_t lc = 0;
     size_t mc = 0;
-    uint16_t opcode = 0;
     uint16_t opcode_be = 0;
     uint32_t len_be = 0;
     uint32_t msglen;
@@ -162,7 +161,7 @@ static errno_t kcm_input_parse(struct kcm_reqbuf *reqbuf,
         return EBADMSG;
     }
 
-    /* First 16 bits are 8 bit major and 8bit major protocol version */
+    /* First 16 bits are 8 bit major and 8bit minor protocol version */
     SAFEALIGN_COPY_UINT8_CHECK(&proto_maj,
                                reqbuf->v_msg.kiov_base + mc,
                                reqbuf->v_msg.kiov_len,
@@ -191,8 +190,16 @@ static errno_t kcm_input_parse(struct kcm_reqbuf *reqbuf,
                                 reqbuf->v_msg.kiov_len,
                                 &mc);
 
-    opcode = be16toh(opcode_be);
-    DEBUG(SSSDBG_TRACE_LIBS, "Received operation code %"PRIu16"\n", opcode);
+    op_io->op = kcm_get_opt(be16toh(opcode_be));
+    if (op_io->op == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Did not find a KCM operation handler for the requested opcode\n");
+        return ERR_KCM_MALFORMED_IN_PKT;
+    }
+
+    /* The operation only receives the payload, not the opcode or the protocol info */
+    op_io->request.data = reqbuf->v_msg.kiov_base + mc;
+    op_io->request.length = reqbuf->v_msg.nprocessed - mc;
 
     return EOK;
 }
@@ -240,6 +247,46 @@ static errno_t kcm_failbuf_construct(errno_t ret,
     c = 0;
     SAFEALIGN_SETMEM_UINT32(repbuf->rcbuf, htobe32(ret), &c);
 
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent reply with error %d\n", ret);
+    return EOK;
+}
+
+/* retcode is 0 if the operation at least ran, non-zero if there
+ * was some kind of internal KCM error, like input couldn't be parsed
+ */
+static errno_t kcm_output_construct(struct kcm_op_io *op_io,
+                                    struct kcm_repbuf *repbuf)
+{
+    size_t c;
+    size_t replen;
+
+    replen = sss_iobuf_get_len(op_io->reply);
+    if (replen > KCM_PACKET_MAX_SIZE) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Reply exceeds the KCM protocol limit, aborting\n");
+        return E2BIG;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Sending a reply with %zu bytes of payload\n", replen);
+    c = 0;
+    SAFEALIGN_SETMEM_UINT32(repbuf->lenbuf, htobe32(replen), &c);
+
+    c = 0;
+    SAFEALIGN_SETMEM_UINT32(repbuf->rcbuf, 0, &c);
+
+    if (replen > 0) {
+        c = 0;
+        SAFEALIGN_MEMCPY_CHECK(repbuf->msgbuf,
+                               sss_iobuf_get_data(op_io->reply),
+                               replen,
+                               repbuf->v_msg.kiov_len,
+                               &c);
+
+        /* Length of the buffer to send to KCM client */
+        repbuf->v_msg.kiov_len = replen;
+    }
+
     return EOK;
 }
 
@@ -260,8 +307,27 @@ static void kcm_reply_error(struct cli_ctx *cctx,
 
     ret = kcm_failbuf_construct(kerr, repbuf);
     if (ret != EOK) {
-        /* If we can't construct the reply buffer, just terminate the client */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot construct the reply buffer, terminating client\n");
         talloc_free(cctx);
+        return;
+    }
+
+    TEVENT_FD_WRITEABLE(cctx->cfde);
+}
+
+static void kcm_send_reply(struct cli_ctx *cctx,
+                           struct kcm_op_io *op_io,
+                           struct kcm_repbuf *repbuf)
+{
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Sending a reply\n");
+    ret = kcm_output_construct(op_io, repbuf);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot construct the reply buffer, terminating client\n");
+        kcm_reply_error(cctx, ret, repbuf);
         return;
     }
 
@@ -285,17 +351,67 @@ struct kcm_req_ctx {
     struct kcm_op_io op_io;
 };
 
+static void kcm_cmd_request_done(struct tevent_req *req);
+
+static errno_t kcm_cmd_dispatch(struct kcm_req_ctx *req_ctx)
+{
+    struct tevent_req *req;
+    struct cli_ctx *cctx;
+
+    cctx = req_ctx->cctx;
+
+    req = kcm_cmd_send(req_ctx, cctx->ev, req_ctx->kctx->kcm_data,
+                       req_ctx->cctx->creds,
+                       &req_ctx->op_io.request,
+                       req_ctx->op_io.op);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to schedule KCM operation.\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, kcm_cmd_request_done, req_ctx);
+    return EOK;
+}
+
+static void kcm_cmd_request_done(struct tevent_req *req)
+{
+    struct kcm_req_ctx *req_ctx;
+    struct cli_ctx *cctx;
+    errno_t ret;
+
+    req_ctx = tevent_req_callback_data(req, struct kcm_req_ctx);
+    cctx = req_ctx->cctx;
+
+    ret = kcm_cmd_recv(req_ctx, req,
+                       &req_ctx->op_io.reply);
+    talloc_free(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "KCM operation failed [%d]: %s\n", ret, sss_strerror(ret));
+        kcm_reply_error(cctx, ret, &req_ctx->repbuf);
+        return;
+    }
+
+    kcm_send_reply(cctx, &req_ctx->op_io, &req_ctx->repbuf);
+}
+
 static errno_t kcm_recv_data(int fd, struct kcm_reqbuf *reqbuf)
 {
     errno_t ret;
 
     ret = kcm_read_iovec(fd, &reqbuf->v_len);
     if (ret != EOK) {
+        /* Not all errors are fatal, hence we don't print DEBUG messages
+         * here, but in the caller
+         */
         return ret;
     }
 
     ret = kcm_read_iovec(fd, &reqbuf->v_msg);
     if (ret != EOK) {
+        /* Not all errors are fatal, hence we don't print DEBUG messages
+         * here, but in the caller
+         */
         return ret;
     }
 
@@ -389,7 +505,15 @@ static void kcm_recv(struct cli_ctx *cctx)
     /* do not read anymore, client is done sending */
     TEVENT_FD_NOT_READABLE(cctx->cfde);
 
-    kcm_reply_error(cctx, ret, &req->repbuf);
+    ret = kcm_cmd_dispatch(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to dispatch KCM operation [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto fail;
+    }
+
+    /* Dispatched request resumes in kcm_cmd_request_done */
     return;
 
 fail:
@@ -406,16 +530,25 @@ static int kcm_send_data(struct cli_ctx *cctx)
 
     ret = kcm_write_iovec(cctx->cfd, &req->repbuf.v_len);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to write the length iovec [%d]: %s\n",
+              ret, sss_strerror(ret));
         return ret;
     }
 
     ret = kcm_write_iovec(cctx->cfd, &req->repbuf.v_rc);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to write the retcode iovec [%d]: %s\n",
+              ret, sss_strerror(ret));
         return ret;
     }
 
     ret = kcm_write_iovec(cctx->cfd, &req->repbuf.v_msg);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to write the msg iovec [%d]: %s\n",
+              ret, sss_strerror(ret));
         return ret;
     }
 
@@ -428,7 +561,7 @@ static void kcm_send(struct cli_ctx *cctx)
 
     ret = kcm_send_data(cctx);
     if (ret == EAGAIN) {
-        /* not all data was sent, loop again */
+        DEBUG(SSSDBG_TRACE_ALL, "Sending data again..\n");
         return;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to send data, aborting client!\n");
@@ -436,7 +569,7 @@ static void kcm_send(struct cli_ctx *cctx)
         return;
     }
 
-    /* ok all sent */
+    DEBUG(SSSDBG_TRACE_INTERNAL, "All data sent!\n");
     TEVENT_FD_NOT_WRITEABLE(cctx->cfde);
     TEVENT_FD_READABLE(cctx->cfde);
     talloc_zfree(cctx->state_ctx);
