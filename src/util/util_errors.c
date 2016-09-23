@@ -98,6 +98,7 @@ struct err_string error_to_str[] = {
     { "Dereference threshold reached" }, /* ERR_DEREF_THRESHOLD */
     { "The user is not handled by SSSD" }, /* ERR_NON_SSSD_USER */
     { "The internal name format cannot be parsed" }, /* ERR_WRONG_NAME_FORMAT */
+    { "The maximum level of nested containers has been reached" }, /* ERR_SEC_INVALID_CONTAINERS_NEST_LEVEL */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

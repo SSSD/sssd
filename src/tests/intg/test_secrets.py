@@ -160,3 +160,15 @@ def test_containers(setup_for_secrets, secrets_cli):
     # Try removing the secret first, then the container
     cli.del_secret("mycontainer/foo")
     cli.del_secret("mycontainer/")
+
+    # Don't allow creating a container after reaching the max nested level
+    DEFAULT_CONTAINERS_NEST_LEVEL = 4
+    container = "mycontainer"
+    for x in xrange(DEFAULT_CONTAINERS_NEST_LEVEL):
+        container += "%s/" % str(x)
+        cli.create_container(container)
+
+    container += "%s/" % str(DEFAULT_CONTAINERS_NEST_LEVEL)
+    with pytest.raises(HTTPError) as err406:
+        cli.create_container(container)
+    assert str(err406.value).startswith("406")
