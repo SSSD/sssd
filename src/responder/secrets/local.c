@@ -31,9 +31,9 @@ struct local_context {
     struct sec_data master_key;
 };
 
-int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
-                  const char *secret, const char *enctype,
-                  char **plain_secret)
+static int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
+                         const char *secret, const char *enctype,
+                         char **plain_secret)
 {
     char *output;
 
@@ -66,9 +66,9 @@ int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int local_encrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
-                  const char *secret, const char *enctype,
-                  char **ciphertext)
+static int local_encrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
+                         const char *secret, const char *enctype,
+                         char **ciphertext)
 {
     struct sec_data _secret;
     char *output;
@@ -91,10 +91,10 @@ int local_encrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int local_db_dn(TALLOC_CTX *mem_ctx,
-                struct ldb_context *ldb,
-                const char *req_path,
-                struct ldb_dn **req_dn)
+static int local_db_dn(TALLOC_CTX *mem_ctx,
+                       struct ldb_context *ldb,
+                       const char *req_path,
+                       struct ldb_dn **req_dn)
 {
     struct ldb_dn *dn;
     const char *s, *e;
@@ -136,9 +136,9 @@ done:
     return ret;
 }
 
-char *local_dn_to_path(TALLOC_CTX *mem_ctx,
-                       struct ldb_dn *basedn,
-                       struct ldb_dn *dn)
+static char *local_dn_to_path(TALLOC_CTX *mem_ctx,
+                              struct ldb_dn *basedn,
+                              struct ldb_dn *dn)
 {
     int basecomps;
     int dncomps;
@@ -170,10 +170,10 @@ char *local_dn_to_path(TALLOC_CTX *mem_ctx,
 #define LOCAL_SIMPLE_FILTER "(type=simple)"
 #define LOCAL_CONTAINER_FILTER "(type=container)"
 
-int local_db_get_simple(TALLOC_CTX *mem_ctx,
-                        struct local_context *lctx,
-                        const char *req_path,
-                        char **secret)
+static int local_db_get_simple(TALLOC_CTX *mem_ctx,
+                               struct local_context *lctx,
+                               const char *req_path,
+                               char **secret)
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { "secret", "enctype", NULL };
@@ -228,11 +228,11 @@ done:
     return ret;
 }
 
-int local_db_list_keys(TALLOC_CTX *mem_ctx,
-                       struct local_context *lctx,
-                       const char *req_path,
-                       char ***_keys,
-                       int *num_keys)
+static int local_db_list_keys(TALLOC_CTX *mem_ctx,
+                              struct local_context *lctx,
+                              const char *req_path,
+                              char ***_keys,
+                              int *num_keys)
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { "secret", NULL };
@@ -282,9 +282,9 @@ done:
     return ret;
 }
 
-int local_db_check_containers(TALLOC_CTX *mem_ctx,
-                              struct local_context *lctx,
-                              struct ldb_dn *leaf_dn)
+static int local_db_check_containers(TALLOC_CTX *mem_ctx,
+                                     struct local_context *lctx,
+                                     struct ldb_dn *leaf_dn)
 {
     static const char *attrs[] = { NULL};
     struct ldb_result *res = NULL;
@@ -316,10 +316,10 @@ int local_db_check_containers(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int local_db_put_simple(TALLOC_CTX *mem_ctx,
-                        struct local_context *lctx,
-                        const char *req_path,
-                        const char *secret)
+static int local_db_put_simple(TALLOC_CTX *mem_ctx,
+                               struct local_context *lctx,
+                               const char *req_path,
+                               const char *secret)
 {
     struct ldb_message *msg;
     const char *enctype = "masterkey";
@@ -368,9 +368,9 @@ done:
     return ret;
 }
 
-int local_db_delete(TALLOC_CTX *mem_ctx,
-                    struct local_context *lctx,
-                    const char *req_path)
+static int local_db_delete(TALLOC_CTX *mem_ctx,
+                           struct local_context *lctx,
+                           const char *req_path)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *dn;
@@ -411,9 +411,9 @@ done:
     return ret;
 }
 
-int local_db_create(TALLOC_CTX *mem_ctx,
-                    struct local_context *lctx,
-                    const char *req_path)
+static int local_db_create(TALLOC_CTX *mem_ctx,
+                           struct local_context *lctx,
+                           const char *req_path)
 {
     struct ldb_message *msg;
     int ret;
@@ -451,9 +451,9 @@ done:
     return ret;
 }
 
-int local_secrets_map_path(TALLOC_CTX *mem_ctx,
-                           struct sec_req_ctx *secreq,
-                           char **local_db_path)
+static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
+                                  struct sec_req_ctx *secreq,
+                                  char **local_db_path)
 {
     int ret;
 
@@ -501,10 +501,10 @@ struct local_secret_state {
     struct sec_req_ctx *secreq;
 };
 
-struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
-                                    struct tevent_context *ev,
-                                    void *provider_ctx,
-                                    struct sec_req_ctx *secreq)
+static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           void *provider_ctx,
+                                           struct sec_req_ctx *secreq)
 {
     struct tevent_req *req;
     struct local_secret_state *state;
@@ -633,7 +633,7 @@ done:
     return tevent_req_post(req, state->ev);
 }
 
-int generate_master_key(const char *filename, size_t size)
+static int generate_master_key(const char *filename, size_t size)
 {
     uint8_t buf[size];
     ssize_t rsize;
