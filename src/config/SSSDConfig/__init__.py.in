@@ -118,6 +118,17 @@ option_strings = {
     'allowed_uids': _('List of UIDs or user names allowed to access the InfoPipe responder'),
     'user_attributes': _('List of user attributes the InfoPipe is allowed to publish'),
 
+    # [secrets]
+    'provider': _('The provider where the secrets will be stored in'),
+    # secrets - proxy
+    'proxy_url': _('The URL Custodia server is listening on'),
+    'auth_type': _('The method to use when authenticating to a Custodia server'),
+    'auth_header_name': _('The name of the headers that will be added into a HTTP request with the value defined in auth_header_value'),
+    'auth_header_value': _('The value sssd-secrets would use for auth_header_name'),
+    'forward_headers': _('The list of the headers to forward to the Custodia server together with the request'),
+    'username': _('The username to use when authenticating to a Custodia server using basic_auth'),
+    'password': _('The password to use when authenticating to a Custodia server using basic_auth'),
+
     # [provider]
     'id_provider' : _('Identity provider'),
     'auth_provider' : _('Authentication provider'),
