@@ -286,14 +286,21 @@ static int local_db_check_containers(TALLOC_CTX *mem_ctx,
                                      struct local_context *lctx,
                                      struct ldb_dn *leaf_dn)
 {
+    TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { NULL};
     struct ldb_result *res = NULL;
     struct ldb_dn *dn;
     int num;
     int ret;
 
-    dn = ldb_dn_copy(mem_ctx, leaf_dn);
-    if (!dn) return ENOMEM;
+    tmp_ctx = talloc_new(mem_ctx);
+    if (!tmp_ctx) return ENOMEM;
+
+    dn = ldb_dn_copy(tmp_ctx, leaf_dn);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* We need to exclude the leaf as that will be the new child entry,
      * We also do not care for the synthetic containers that constitute the
@@ -306,14 +313,23 @@ static int local_db_check_containers(TALLOC_CTX *mem_ctx,
         if (!ldb_dn_remove_child_components(dn, 1)) return EFAULT;
 
         /* and check the parent container exists */
-        ret = ldb_search(lctx->ldb, mem_ctx, &res, dn, LDB_SCOPE_BASE,
+        ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
                          attrs, LOCAL_CONTAINER_FILTER);
-        if (ret != LDB_SUCCESS) return ENOENT;
-        if (res->count != 1) return ENOENT;
-        talloc_free(res);
+        if (ret != LDB_SUCCESS) {
+            ret = ENOENT;
+            goto done;
+        }
+        if (res->count != 1) {
+            ret = ENOENT;
+            goto done;
+        }
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static int local_db_put_simple(TALLOC_CTX *mem_ctx,
