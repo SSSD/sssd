@@ -3446,6 +3446,129 @@ void test_nss_getnamebycert_neg(void **state)
     assert_int_equal(nss_test_ctx->ncache_hits, 1);
 }
 
+struct passwd sid_user = {
+    .pw_name = discard_const("testusersid"),
+    .pw_uid = 1234,
+    .pw_gid = 5678,
+    .pw_dir = discard_const("/home/testusersid"),
+    .pw_gecos = discard_const("test user"),
+    .pw_shell = discard_const("/bin/sh"),
+    .pw_passwd = discard_const("*"),
+};
+
+static int test_nss_getsidbyname_check(uint32_t status,
+                                       uint8_t *body,
+                                       size_t blen)
+{
+    const char *name;
+    enum sss_id_type type;
+    size_t rp = 2 * sizeof(uint32_t);
+    char *expected_result = sss_mock_ptr_type(char *);
+
+    if (expected_result == NULL) {
+        assert_int_equal(status, EINVAL);
+        assert_int_equal(blen, 0);
+    } else {
+        assert_int_equal(status, EOK);
+
+        SAFEALIGN_COPY_UINT32(&type, body+rp, &rp);
+
+        name = (char *) body+rp;
+
+        assert_int_equal(type, SSS_ID_TYPE_UID);
+        assert_string_equal(name, expected_result);
+    }
+
+    return EOK;
+}
+
+void test_nss_getsidbyname(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    const char *testuser_sid = "S-1-2-3-4";
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &sid_user, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testusersid");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    will_return(test_nss_getsidbyname_check, testuser_sid);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getsidbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getsidbyupn(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    const char *testuser_sid = "S-1-2-3-4";
+    const char *testuser_upn = "testusersid@upndomain.test";
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, testuser_sid);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, testuser_upn);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &sid_user, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group(testuser_upn);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    will_return(test_nss_getsidbyname_check, testuser_sid);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getsidbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getsidbyname_neg(void **state)
+{
+    errno_t ret;
+
+    mock_input_user_or_group("testnosuchsid");
+    mock_account_recv_simple();
+
+    /* Query for that user, call a callback when command finishes */
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT (because there is no such SID */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -3562,6 +3685,12 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_getnamebycert_neg,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getnamebycert,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getsidbyname,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getsidbyupn,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getsidbyname_neg,
                                         nss_test_setup, nss_test_teardown),
     };
 
