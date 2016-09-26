@@ -3106,12 +3106,14 @@ intgcheck-prepare:
 	cd ../..
 
 intgcheck-run:
+	set -e; \
 	if [ ! -d intg/pfx ]; then $(MAKE) intgcheck-prepare; fi; \
 	cd intg/bld; \
 	$(MAKE) $(AM_MAKEFLAGS) -C src/tests/intg intgcheck-installed; \
 	cd ../..
 
 intgcheck-clean:
+	set -e; \
 	prefix=`readlink -e intg/pfx`; \
 	rm -Rf "$$prefix" intg
 
