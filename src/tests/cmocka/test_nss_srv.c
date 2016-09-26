@@ -2130,6 +2130,16 @@ static int test_nss_getorigbyname_check(uint32_t status, uint8_t *body,
     s = (char *) body+rp;
     assert_string_equal(s, "1234");
     rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, SYSDB_UPN);
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "testuserorig@upndomain.test");
+    rp += strlen(s) + 1;
     assert_int_equal(rp, blen);
 
     return EOK;
@@ -2149,6 +2159,7 @@ void test_nss_getorigbyname(void **state)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
+    const char *test_upn = "testuserorig@upndomain.test";
 
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
@@ -2163,12 +2174,32 @@ void test_nss_getorigbyname(void **state)
     ret = sysdb_attrs_add_uint32(attrs, ORIGINALAD_PREFIX SYSDB_UIDNUM, 1234);
     assert_int_equal(ret, EOK);
 
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, test_upn);
+    assert_int_equal(ret, EOK);
+
     /* Prime the cache with a valid user */
     ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
                      &orig_name, attrs, 0);
     assert_int_equal(ret, EOK);
 
     mock_input_user_or_group("testuserorig");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getorigbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+    /* Also test looking up the same stuff with UPN */
+    nss_test_ctx->tctx->done = false;
+
+    mock_input_user_or_group(test_upn);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
@@ -3657,6 +3688,9 @@ int main(int argc, const char *argv[])
                                         nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getorigbyname_multi_value_attrs,
                                         nss_test_setup_extra_attr,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getorigbyname,
+                                        nss_test_setup,
                                         nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn,
                                         nss_test_setup, nss_test_teardown),
