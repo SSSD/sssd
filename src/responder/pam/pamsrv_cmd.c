@@ -160,15 +160,10 @@ static int extract_authtok_v2(struct sss_auth_token *tok,
         }
         break;
     case SSS_AUTHTOK_TYPE_2FA:
-        ret = sss_authtok_set(tok, SSS_AUTHTOK_TYPE_2FA,
-                              auth_token_data, auth_token_length);
-        break;
     case SSS_AUTHTOK_TYPE_SC_PIN:
-        ret = sss_authtok_set_sc_pin(tok, (const char *) auth_token_data,
-                                     auth_token_length);
-        break;
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
-        sss_authtok_set_sc_keypad(tok);
+        ret = sss_authtok_set(tok, auth_token_type,
+                              auth_token_data, auth_token_length);
         break;
     default:
         return EINVAL;
