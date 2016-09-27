@@ -1856,7 +1856,9 @@ static errno_t unpack_authtok(struct sss_auth_token *tok,
         ret = sss_authtok_set_ccfile(tok, (char *)(buf + *p), 0);
         break;
     case SSS_AUTHTOK_TYPE_2FA:
-        ret = sss_authtok_set(tok, SSS_AUTHTOK_TYPE_2FA, (buf + *p),
+    case SSS_AUTHTOK_TYPE_SC_PIN:
+    case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+        ret = sss_authtok_set(tok, auth_token_type, (buf + *p),
                               auth_token_length);
         break;
     default:

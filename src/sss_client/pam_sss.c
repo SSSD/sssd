@@ -1476,6 +1476,7 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     char *answer = NULL;
     char *prompt;
     size_t size;
+    size_t needed_size;
 
     if (pi->token_name == NULL || *pi->token_name == '\0'
             || pi->cert_user == NULL || *pi->cert_user == '\0') {
@@ -1509,18 +1510,48 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
         pi->pam_authtok_size=0;
     } else {
-        pi->pam_authtok = strdup(answer);
-        _pam_overwrite((void *)answer);
-        free(answer);
-        answer=NULL;
-        if (pi->pam_authtok == NULL) {
-            return PAM_BUF_ERR;
+
+        ret = sss_auth_pack_sc_blob(answer, 0, pi->token_name, 0,
+                                    pi->module_name, 0,
+                                    pi->key_id, 0,
+                                    NULL, 0, &needed_size);
+        if (ret != EAGAIN) {
+            D(("sss_auth_pack_sc_blob failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
         }
+
+        pi->pam_authtok = malloc(needed_size);
+        if (pi->pam_authtok == NULL) {
+            D(("malloc failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+
+        ret = sss_auth_pack_sc_blob(answer, 0, pi->token_name, 0,
+                                    pi->module_name, 0,
+                                    pi->key_id, 0,
+                                    (uint8_t *) pi->pam_authtok, needed_size,
+                                    &needed_size);
+        if (ret != EOK) {
+            D(("sss_auth_pack_sc_blob failed."));
+            free((void *)pi->pam_authtok);
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+
         pi->pam_authtok_type = SSS_AUTHTOK_TYPE_SC_PIN;
-        pi->pam_authtok_size=strlen(pi->pam_authtok);
+        pi->pam_authtok_size = needed_size;
     }
 
-    return PAM_SUCCESS;
+    ret = PAM_SUCCESS;
+
+done:
+    _pam_overwrite((void *)answer);
+    free(answer);
+    answer=NULL;
+
+    return ret;
 }
 
 static int prompt_new_password(pam_handle_t *pamh, struct pam_items *pi)
