@@ -187,8 +187,8 @@ function build_debug()
 {
     # Extended glob pattern matching tests to run under Valgrind.
     # NOTE: The particular pattern below is inverted
-    declare -r valgrind_test_pattern="\
-        !(*.py|*/dlopen-tests|*/whitespace_test|*/double_semicolon_test)"
+    declare valgrind_test_pattern="!(*.py|*/whitespace_test|"
+    declare -r valgrind_test_pattern+="*/double_semicolon_test)"
     export CFLAGS="$DEBUG_CFLAGS"
     declare test_dir
     declare test_dir_distcheck
