@@ -613,7 +613,7 @@ static int proxy_http_req_state_destroy(void *data)
 static int proxy_wire_send(int fd, struct proxy_http_request *req)
 {
     struct sec_data data;
-    size_t ret;
+    int ret;
 
     data.data = req->data->data + req->written;
     data.length = req->data->length - req->written;
@@ -621,7 +621,7 @@ static int proxy_wire_send(int fd, struct proxy_http_request *req)
     ret = sec_send_data(fd, &data);
     if (ret != EOK && ret != EAGAIN) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "sec_send_data failed [%zu]: %s\n", ret, sss_strerror(ret));
+              "sec_send_data failed [%d]: %s\n", ret, sss_strerror(ret));
         return ret;
     }
 
