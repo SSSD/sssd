@@ -745,6 +745,14 @@ static errno_t init_context(int argc, const char *argv[],
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
+    if (poptGetArg(pc)) {
+        BAD_POPT_PARAMS(pc,
+                _("Unexpected argument(s) provided, options that "
+                  "invalidate a single object only accept a single "
+                  "provided argument.\n"),
+                  ret, fini);
+    }
+
     if (idb == INVALIDATE_NONE && !values.user && !values.group &&
         !values.netgroup && !values.service && !values.map &&
         !values.ssh_host && !values.sudo_rule) {
