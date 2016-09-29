@@ -30,7 +30,8 @@
         <para>
             <command>sss_cache</command> invalidates records in SSSD cache.
             Invalidated records are forced to be reloaded from server as soon
-            as related SSSD backend is online.
+            as related SSSD backend is online. Options that invalidate a single
+            object only accept a single provided argument.
         </para>
     </refsect1>
 
