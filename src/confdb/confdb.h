@@ -224,6 +224,7 @@
 /* Secrets Service */
 #define CONFDB_SEC_CONF_ENTRY "config/secrets"
 #define CONFDB_SEC_CONTAINERS_NEST_LEVEL "containers_nest_level"
+#define CONFDB_SEC_MAX_SECRETS "max_secrets"
 
 
 struct confdb_ctx;

@@ -30,6 +30,7 @@ struct local_context {
     struct ldb_context *ldb;
     struct sec_data master_key;
     int containers_nest_level;
+    int max_secrets;
 };
 
 static int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
@@ -413,6 +414,42 @@ static int local_db_check_containers_nest_level(struct local_context *lctx,
     return EOK;
 }
 
+static int local_db_check_number_of_secrets(TALLOC_CTX *mem_ctx,
+                                            struct local_context *lctx)
+{
+    TALLOC_CTX *tmp_ctx;
+    static const char *attrs[] = { NULL };
+    struct ldb_result *res = NULL;
+    struct ldb_dn *dn;
+    int ret;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (!tmp_ctx) return ENOMEM;
+
+    dn = ldb_dn_new(tmp_ctx, lctx->ldb, "cn=secrets");
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
+                     attrs, LOCAL_SIMPLE_FILTER);
+    if (res->count >= lctx->max_secrets) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot store any more secrets as the maximum allowed limit (%d) "
+              "has been reached\n", lctx->max_secrets);
+
+        ret = ERR_SEC_INVALID_TOO_MANY_SECRETS;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static int local_db_put_simple(TALLOC_CTX *mem_ctx,
                                struct local_context *lctx,
                                const char *req_path,
@@ -444,6 +481,14 @@ static int local_db_put_simple(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE,
               "local_db_check_containers failed for [%s]: [%d]: %s\n",
               ldb_dn_get_linearized(msg->dn), ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = local_db_check_number_of_secrets(msg, lctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_check_number_of_secrets failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
@@ -927,6 +972,7 @@ int local_secrets_provider_handle(struct sec_ctx *sctx,
     }
 
     lctx->containers_nest_level = sctx->containers_nest_level;
+    lctx->max_secrets = sctx->max_secrets;
 
     lctx->master_key.data = talloc_size(lctx, MKEY_SIZE);
     if (!lctx->master_key.data) return ENOMEM;

@@ -182,6 +182,8 @@ static struct sec_http_status_format_table {
       "The server encountered an internal error." },
     { 504, "Gateway timeout",
       "No response from a proxy server." },
+    { 507, "Insufficient Storage",
+      "The server is unable to store the resource needed to complete the request." },
 };
 
 int sec_http_status_reply(TALLOC_CTX *mem_ctx, struct sec_data *reply,
@@ -352,6 +354,8 @@ enum sec_http_status_codes sec_errno_to_http_status(errno_t err)
         return STATUS_409;
     case ERR_SEC_NO_PROXY:
         return STATUS_504;
+    case ERR_SEC_INVALID_TOO_MANY_SECRETS:
+        return STATUS_507;
     default:
         return STATUS_500;
     }
