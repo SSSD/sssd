@@ -494,7 +494,7 @@ static void proxy_http_req_connect_step(struct tevent_req *req)
 
     if (!state->hostent->addr_list[state->hostidx]) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No more addresses to try.\n");
-        ret = ENXIO;
+        ret = ERR_SEC_NO_PROXY;
         goto done;
     }
 

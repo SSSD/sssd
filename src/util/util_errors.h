@@ -121,6 +121,7 @@ enum sssd_errors {
     ERR_NON_SSSD_USER,
     ERR_WRONG_NAME_FORMAT,
     ERR_SEC_INVALID_CONTAINERS_NEST_LEVEL,
+    ERR_SEC_NO_PROXY,
     ERR_LAST            /* ALWAYS LAST */
 };
 
