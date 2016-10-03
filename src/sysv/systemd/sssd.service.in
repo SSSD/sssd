@@ -6,11 +6,9 @@ Wants=nss-user-lookup.target
 
 [Service]
 EnvironmentFile=-@environment_file@
-ExecStart=@sbindir@/sssd -D -f
-# These two should be used with traditional UNIX forking daemons
-# consult systemd.service(5) for more details
-Type=forking
-PIDFile=@localstatedir@/run/sssd.pid
+ExecStart=@sbindir@/sssd -i -f
+Type=notify
+NotifyAccess=main
 
 [Install]
 WantedBy=multi-user.target

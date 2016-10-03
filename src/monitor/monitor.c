@@ -55,6 +55,10 @@
 #include <keyutils.h>
 #endif
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 /* terminate the child after this interval by default if it
  * doesn't shutdown on receiving SIGTERM */
 #define MONITOR_DEF_FORCE_TIME 60
@@ -160,6 +164,7 @@ struct mt_ctx {
     struct netlink_ctx *nlctx;
     const char *conf_path;
     struct sss_sigchild_ctx *sigchld_ctx;
+    bool pid_file_created;
     bool is_daemon;
     pid_t parent_pid;
 
@@ -439,7 +444,30 @@ static int mark_service_as_started(struct mt_svc *svc)
         ctx->started_services++;
     }
 
-    if (ctx->started_services == ctx->num_services) {
+    /* create the pid file if all services are alive */
+    if (!ctx->pid_file_created && ctx->started_services == ctx->num_services) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "All services have successfully started, creating pid file\n");
+        ret = pidfile(PID_PATH, MONITOR_NAME);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Error creating pidfile: %s/%s.pid! (%d [%s])\n",
+                  PID_PATH, MONITOR_NAME, ret, strerror(ret));
+            kill(getpid(), SIGTERM);
+        }
+
+        ctx->pid_file_created = true;
+
+#ifdef HAVE_SYSTEMD
+        DEBUG(SSSDBG_TRACE_FUNC, "Sending startup notification to systemd\n");
+        ret = sd_notify(0, "READY=1");
+        if (ret < 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Error sending notification to systemd %d: %s\n",
+                  -ret, strerror(-ret));
+        }
+#endif
+
         /* Initialization is complete, terminate parent process if in daemon
          * mode. Make sure we send the signal to the right process */
         if (ctx->is_daemon) {
@@ -1495,6 +1523,7 @@ errno_t load_configuration(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    ctx->pid_file_created = false;
     talloc_set_destructor((TALLOC_CTX *)ctx, monitor_ctx_destructor);
 
     cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
@@ -2601,8 +2630,6 @@ int main(int argc, const char *argv[])
         return 6;
     }
 
-    /* we want a pid file check */
-    flags |= FLAGS_PID_FILE;
     /* the monitor should not run a watchdog on itself */
     flags |= FLAGS_NO_WATCHDOG;
 
@@ -2668,6 +2695,15 @@ int main(int argc, const char *argv[])
                             "seems to be configured not to interfere with "
                             "SSSD's caching capabilities\n");
         }
+    }
+
+    /* Check if the SSSD is already running */
+    ret = check_file(SSSD_PIDFILE, 0, 0, S_IFREG|0600, 0, NULL, false);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "pidfile exists at %s\n", SSSD_PIDFILE);
+        ERROR("SSSD is already running\n");
+        return 2;
     }
 
     /* Parse config file, fail if cannot be done */
