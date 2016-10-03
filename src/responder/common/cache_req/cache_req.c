@@ -30,7 +30,20 @@ static struct cache_req_plugin *
 cache_req_get_plugin(enum cache_req_type type)
 {
     static struct cache_req_plugin *plugins[CACHE_REQ_SENTINEL] = {
+        &cache_req_user_by_name,
+        &cache_req_user_by_upn,
+        &cache_req_user_by_id,
+        &cache_req_user_by_cert,
+        &cache_req_user_by_filter,
 
+        &cache_req_group_by_name,
+        &cache_req_group_by_id,
+        &cache_req_group_by_filter,
+
+        &cache_req_initgroups_by_name,
+        &cache_req_initgroups_by_upn,
+
+        &cache_req_object_by_sid,
     };
 
     if (type >= CACHE_REQ_SENTINEL) {

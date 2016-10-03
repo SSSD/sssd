@@ -172,4 +172,16 @@ struct cache_req_plugin {
     cache_req_dpreq_params_fn dpreq_params_fn;
 };
 
+extern struct cache_req_plugin cache_req_user_by_name;
+extern struct cache_req_plugin cache_req_user_by_upn;
+extern struct cache_req_plugin cache_req_user_by_id;
+extern struct cache_req_plugin cache_req_group_by_name;
+extern struct cache_req_plugin cache_req_group_by_id;
+extern struct cache_req_plugin cache_req_initgroups_by_name;
+extern struct cache_req_plugin cache_req_initgroups_by_upn;
+extern struct cache_req_plugin cache_req_user_by_cert;
+extern struct cache_req_plugin cache_req_user_by_filter;
+extern struct cache_req_plugin cache_req_group_by_filter;
+extern struct cache_req_plugin cache_req_object_by_sid;
+
 #endif /* _CACHE_REQ_PLUGIN_H_ */
