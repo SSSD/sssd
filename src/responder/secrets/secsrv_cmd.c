@@ -304,7 +304,7 @@ static int sec_on_body(http_parser *parser,
     return 0;
 }
 
-static int sec_get_parsed_filed(TALLOC_CTX *mem_ctx, int field,
+static int sec_get_parsed_field(TALLOC_CTX *mem_ctx, int field,
                                 struct http_parser_url *parsed,
                                 char *source_buf,
                                 char **dest)
@@ -338,7 +338,7 @@ static int sec_on_message_complete(http_parser *parser)
     }
 
     if (parsed.field_set & (1 << UF_SCHEMA)) {
-        ret = sec_get_parsed_filed(req, UF_SCHEMA, &parsed,
+        ret = sec_get_parsed_field(req, UF_SCHEMA, &parsed,
                                    req->request_url,
                                    &req->parsed_url.schema);
         if (ret) {
@@ -350,7 +350,7 @@ static int sec_on_message_complete(http_parser *parser)
     }
 
     if (parsed.field_set & (1 << UF_HOST)) {
-        ret = sec_get_parsed_filed(req, UF_HOST, &parsed,
+        ret = sec_get_parsed_field(req, UF_HOST, &parsed,
                                    req->request_url,
                                    &req->parsed_url.host);
         if (ret) {
@@ -367,7 +367,7 @@ static int sec_on_message_complete(http_parser *parser)
     }
 
     if (parsed.field_set & (1 << UF_PATH)) {
-        ret = sec_get_parsed_filed(req, UF_PATH, &parsed,
+        ret = sec_get_parsed_field(req, UF_PATH, &parsed,
                                    req->request_url,
                                    &req->parsed_url.path);
         if (ret) {
@@ -379,7 +379,7 @@ static int sec_on_message_complete(http_parser *parser)
     }
 
     if (parsed.field_set & (1 << UF_QUERY)) {
-        ret = sec_get_parsed_filed(req, UF_QUERY, &parsed,
+        ret = sec_get_parsed_field(req, UF_QUERY, &parsed,
                                    req->request_url,
                                    &req->parsed_url.query);
         if (ret) {
@@ -391,7 +391,7 @@ static int sec_on_message_complete(http_parser *parser)
     }
 
     if (parsed.field_set & (1 << UF_FRAGMENT)) {
-        ret = sec_get_parsed_filed(req, UF_FRAGMENT, &parsed,
+        ret = sec_get_parsed_field(req, UF_FRAGMENT, &parsed,
                                    req->request_url,
                                    &req->parsed_url.fragment);
         if (ret) {
@@ -404,7 +404,7 @@ static int sec_on_message_complete(http_parser *parser)
     }
 
     if (parsed.field_set & (1 << UF_USERINFO)) {
-        ret = sec_get_parsed_filed(req, UF_USERINFO, &parsed,
+        ret = sec_get_parsed_field(req, UF_USERINFO, &parsed,
                                    req->request_url,
                                    &req->parsed_url.userinfo);
         if (ret) {
