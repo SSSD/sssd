@@ -30,7 +30,7 @@
 #include "responder/nss/nsssrv_services.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
 #include "responder/common/negcache.h"
-#include "responder/common/responder_cache_req.h"
+#include "responder/common/cache_req/cache_req.h"
 #include "providers/data_provider.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"

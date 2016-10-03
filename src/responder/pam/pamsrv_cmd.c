@@ -31,7 +31,7 @@
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
 #include "responder/pam/pam_helpers.h"
-#include "responder/common/responder_cache_req.h"
+#include "responder/common/cache_req/cache_req.h"
 #include "db/sysdb.h"
 
 enum pam_verbosity {

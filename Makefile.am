@@ -483,6 +483,23 @@ AM_CPPFLAGS = \
 
 EXTRA_DIST =
 
+SSSD_CACHE_REQ_OBJ = \
+	src/responder/common/cache_req/cache_req.c \
+	src/responder/common/cache_req/cache_req_search.c \
+	src/responder/common/cache_req/cache_req_data.c \
+	src/responder/common/cache_req/plugins/cache_req_user_by_name.c \
+	src/responder/common/cache_req/plugins/cache_req_user_by_upn.c \
+	src/responder/common/cache_req/plugins/cache_req_user_by_id.c \
+	src/responder/common/cache_req/plugins/cache_req_user_by_filter.c \
+	src/responder/common/cache_req/plugins/cache_req_user_by_cert.c \
+	src/responder/common/cache_req/plugins/cache_req_group_by_name.c \
+	src/responder/common/cache_req/plugins/cache_req_group_by_id.c \
+	src/responder/common/cache_req/plugins/cache_req_group_by_filter.c \
+	src/responder/common/cache_req/plugins/cache_req_initgroups_by_name.c \
+	src/responder/common/cache_req/plugins/cache_req_initgroups_by_upn.c \
+	src/responder/common/cache_req/plugins/cache_req_object_by_sid.c \
+	$(NULL)
+
 SSSD_RESPONDER_OBJ = \
     src/responder/common/negcache_files.c \
     src/responder/common/negcache.c \
@@ -492,11 +509,12 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_get_domains.c \
     src/responder/common/responder_utils.c \
-    src/responder/common/responder_cache_req.c \
     src/responder/common/data_provider/rdp_message.c \
     src/responder/common/data_provider/rdp_client.c \
     src/monitor/monitor_iface_generated.c \
-    src/providers/data_provider_req.c
+    src/providers/data_provider_req.c \
+    $(SSSD_CACHE_REQ_OBJ) \
+    $(NULL)
 
 SSSD_TOOLS_OBJ = \
     src/tools/sss_sync_ops.c \
@@ -604,7 +622,9 @@ dist_noinst_HEADERS = \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/common/responder_sbus.h \
-    src/responder/common/responder_cache_req.h \
+    src/responder/common/cache_req/cache_req.h \
+    src/responder/common/cache_req/cache_req_plugin.h \
+    src/responder/common/cache_req/cache_req_private.h \
     src/responder/common/data_provider/rdp.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
@@ -2102,7 +2122,8 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/data_provider/rdp_message.c \
      src/responder/common/data_provider/rdp_client.c \
      src/responder/common/responder_utils.c \
-     src/responder/common/responder_cache_req.c
+     $(SSSD_CACHE_REQ_OBJ) \
+     $(NULL)
 
 TEST_MOCK_PROVIDER_OBJ = \
      src/util/sss_sockets.c \

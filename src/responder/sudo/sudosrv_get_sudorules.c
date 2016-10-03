@@ -28,7 +28,7 @@
 
 #include "util/util.h"
 #include "db/sysdb_sudo.h"
-#include "responder/common/responder_cache_req.h"
+#include "responder/common/cache_req/cache_req.h"
 #include "responder/sudo/sudosrv_private.h"
 #include "providers/data_provider.h"
 
