@@ -40,6 +40,8 @@ SSSD=@sbindir@/sssd
 LOCK_FILE=@localstatedir@/lock/subsys/sssd
 PID_FILE=@localstatedir@/run/sssd.pid
 
+TIMEOUT=15
+
 start() {
     [ -x $SSSD ] || exit 5
     echo -n $"Starting $prog: "
@@ -47,6 +49,19 @@ start() {
     RETVAL=$?
     echo
     [ "$RETVAL" = 0 ] && touch $LOCK_FILE
+
+    # Wait for pidfile creation or timeout
+    sec=0
+    [ "$RETVAL" = 0 ] && while [ $sec -lt $TIMEOUT -a ! -f $PID_FILE ]
+    do
+        sleep 1
+        sec=$(($sec+1))
+    done
+
+    if [ "$sec" = "$TIMEOUT" ]; then
+        RETVAL=-1
+    fi
+
     return $RETVAL
 }
 
