@@ -22,7 +22,7 @@
 
 #include "util/util.h"
 #include "responder/pac/pacsrv.h"
-#include "responder/common/responder_cache_req.h"
+#include "responder/common/cache_req/cache_req.h"
 #include "confdb/confdb.h"
 
 #include "providers/ad/ad_pac.h"

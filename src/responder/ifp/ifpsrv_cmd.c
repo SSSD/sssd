@@ -23,7 +23,7 @@
 #include "db/sysdb.h"
 
 #include "responder/ifp/ifp_private.h"
-#include "responder/common/responder_cache_req.h"
+#include "responder/common/cache_req/cache_req.h"
 
 struct ifp_attr_req {
     const char *name;

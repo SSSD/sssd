@@ -28,7 +28,7 @@
 #include "util/cert.h"
 #include "sbus/sssd_dbus_errors.h"
 #include "responder/common/responder.h"
-#include "responder/common/responder_cache_req.h"
+#include "responder/common/cache_req/cache_req.h"
 #include "responder/ifp/ifp_users.h"
 #include "responder/ifp/ifp_groups.h"
 #include "responder/ifp/ifp_cache.h"

@@ -36,6 +36,23 @@ SSSD_LIBS = \
     $(OPENLDAP_LIBS) \
     $(TDB_LIBS)
 
+SSSD_CACHE_REQ_OBJ = \
+    ../../../src/responder/common/cache_req/cache_req.c \
+    ../../../src/responder/common/cache_req/cache_req_search.c \
+    ../../../src/responder/common/cache_req/cache_req_data.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_user_by_name.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_user_by_upn.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_user_by_id.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_user_by_filter.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_user_by_cert.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_group_by_name.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_group_by_id.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_group_by_filter.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_initgroups_by_name.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_initgroups_by_upn.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_object_by_sid.c \
+    $(NULL)
+
 SSSD_RESPONDER_OBJ = \
     ../../../src/responder/common/negcache_files.c \
     ../../../src/responder/common/negcache.c \
@@ -45,11 +62,12 @@ SSSD_RESPONDER_OBJ = \
     ../../../src/responder/common/responder_packet.c \
     ../../../src/responder/common/responder_get_domains.c \
     ../../../src/responder/common/responder_utils.c \
-    ../../../src/responder/common/responder_cache_req.c \
     ../../../src/responder/common/data_provider/rdp_message.c \
     ../../../src/responder/common/data_provider/rdp_client.c \
     ../../../src/monitor/monitor_iface_generated.c \
-    ../../../src/providers/data_provider_req.c
+    ../../../src/providers/data_provider_req.c \
+    $(SSSD_CACHE_REQ_OBJ) \
+    $(NULL)
 
 dist_noinst_DATA = \
     group \
