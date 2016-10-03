@@ -1103,6 +1103,7 @@ sssd_LDADD = \
     $(INOTIFY_LIBS) \
     $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 
 sssd_nss_SOURCES = \
