@@ -485,6 +485,11 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
     memset(handled, 0, sizeof(bool) * count);
     h = 0;
 
+    if (changes == NULL) {
+        return EINVAL;
+    }
+    *changes = false;
+
     /* check existing subdomains */
     for (dom = get_next_domain(parent, SSS_GND_DESCEND);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
@@ -1087,7 +1092,7 @@ static void ipa_subdomains_slave_search_done(struct tevent_req *subreq)
     struct tevent_req *req;
     struct sysdb_attrs **reply;
     size_t reply_count;
-    bool has_changes;
+    bool has_changes = false;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
