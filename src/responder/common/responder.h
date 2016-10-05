@@ -196,7 +196,7 @@ int activate_unix_sockets(struct resp_ctx *rctx,
 
 /* responder_cmd.c */
 int sss_cmd_empty_packet(struct sss_packet *packet);
-int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx);
+int sss_cmd_send_empty(struct cli_ctx *cctx);
 int sss_cmd_send_error(struct cli_ctx *cctx, int err);
 void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);

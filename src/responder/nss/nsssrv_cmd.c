@@ -45,7 +45,7 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
 static int nss_cmd_send_empty(struct nss_cmd_ctx *cmdctx)
 {
     struct cli_ctx *cctx = cmdctx->cctx;
-    return sss_cmd_send_empty(cctx, cmdctx);
+    return sss_cmd_send_empty(cctx);
 }
 
 int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
@@ -60,6 +60,7 @@ int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
         if (ret) {
             return EFAULT;
         }
+        sss_cmd_done(cmdctx->cctx, cmdctx);
         break;
 
     case EAGAIN:
@@ -5453,12 +5454,13 @@ static void users_find_by_cert_done(struct tevent_req *req)
 done:
     if (ret == EOK) {
         sss_packet_set_error(pctx->creq->out, EOK);
-        sss_cmd_done(cctx, NULL);
     } else if (ret == ENOENT) {
-        sss_cmd_send_empty(cctx, NULL);
+        sss_cmd_send_empty(cctx);
     } else {
         sss_cmd_send_error(cctx, ret);
     }
+
+    sss_cmd_done(cctx, NULL);
 
     return;
 }
