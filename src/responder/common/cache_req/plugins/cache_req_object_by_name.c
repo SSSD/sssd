@@ -55,7 +55,7 @@ cache_req_object_by_name_well_known(TALLOC_CTX *mem_ctx,
 
     ret = name_to_well_known_sid(domname, name, &sid);
     if (ret != EOK) {
-        return EOK;
+        return ret;
     }
 
     result = cache_req_well_known_sid_result(mem_ctx, cr, domname, sid, name);

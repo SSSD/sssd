@@ -24,7 +24,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include "util/mmap_cache.h"
-#include "responder/nss/nsssrv.h"
+#include "responder/nss/nss_private.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
 
 /* arbitrary (avg of my /etc/passwd) */
