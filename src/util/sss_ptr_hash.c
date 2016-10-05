@@ -170,7 +170,7 @@ hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
     hash_table_t *table;
     errno_t ret;
 
-    data = talloc_zero(mem_ctx, struct sss_ptr_hash_delete_data);
+    data = talloc_zero(NULL, struct sss_ptr_hash_delete_data);
     if (data == NULL) {
         return NULL;
     }
@@ -178,7 +178,7 @@ hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
     data->callback = del_cb;
     data->pvt = del_cb_pvt;
 
-    ret = sss_hash_create_ex(NULL, 10, &table, 0, 0, 0, 0,
+    ret = sss_hash_create_ex(mem_ctx, 10, &table, 0, 0, 0, 0,
                              sss_ptr_hash_delete_cb, data);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",

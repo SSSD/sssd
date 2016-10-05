@@ -119,11 +119,17 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
     safealign_memcpy(dest, src, sizeof(uint16_t), pctr); \
 } while(0)
 
+#define SAFEALIGN_SETMEM_STRING(dest, value, length, pctr) do { \
+    const char *CV_MACRO_val = (const char *)(value); \
+    safealign_memcpy(dest, CV_MACRO_val, sizeof(char) * length, pctr); \
+} while(0)
+
 /* Aliases for backward compatibility. */
 #define SAFEALIGN_SET_VALUE SAFEALIGN_SETMEM_VALUE
 #define SAFEALIGN_SET_INT64 SAFEALIGN_SETMEM_INT64
 #define SAFEALIGN_SET_UINT32 SAFEALIGN_SETMEM_UINT32
 #define SAFEALIGN_SET_INT32 SAFEALIGN_SETMEM_INT32
 #define SAFEALIGN_SET_UINT16 SAFEALIGN_SETMEM_UINT16
+#define SAFEALIGN_SET_STRING SAFEALIGN_SETMEM_STRING
 
 #endif /* _UTIL_SAFEALIGN_H */

@@ -633,13 +633,15 @@ dist_noinst_HEADERS = \
     src/responder/common/data_provider/rdp.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
+    src/responder/nss/nss_private.h \
+    src/responder/nss/nss_protocol.h \
+    src/responder/nss/nss_iface_generated.h \
+    src/responder/nss/nss_iface.h \
     src/responder/nss/nsssrv.h \
     src/responder/nss/nsssrv_private.h \
     src/responder/nss/nsssrv_netgroup.h \
     src/responder/nss/nsssrv_services.h \
     src/responder/nss/nsssrv_mmap_cache.h \
-    src/responder/nss/nss_iface_generated.h \
-    src/responder/nss/nss_iface.h \
     src/responder/pac/pacsrv.h \
     src/responder/common/negcache_files.h \
     src/responder/common/negcache.h \
@@ -1255,12 +1257,19 @@ sssd_LDADD = \
 
 sssd_nss_SOURCES = \
     src/responder/nss/nsssrv.c \
-    src/responder/nss/nsssrv_cmd.c \
-    src/responder/nss/nsssrv_netgroup.c \
-    src/responder/nss/nsssrv_services.c \
-    src/responder/nss/nsssrv_mmap_cache.c \
+    src/responder/nss/nss_cmd.c \
+    src/responder/nss/nss_enum.c \
+    src/responder/nss/nss_get_object.c \
+    src/responder/nss/nss_protocol.c \
+    src/responder/nss/nss_protocol_pwent.c \
+    src/responder/nss/nss_protocol_grent.c \
+    src/responder/nss/nss_protocol_netgr.c \
+    src/responder/nss/nss_protocol_svcent.c \
+    src/responder/nss/nss_protocol_sid.c \
+    src/responder/nss/nss_utils.c \
     src/responder/nss/nss_iface_generated.c \
     src/responder/nss/nss_iface.c \
+    src/responder/nss/nsssrv_mmap_cache.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(TDB_LIBS) \

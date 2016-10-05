@@ -1,0 +1,373 @@
+/*
+    Authors:
+        Pavel Březina <pbrezina@redhat.com>
+
+    Copyright (C) 2016 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include "responder/nss/nss_protocol.h"
+#include "util/sss_nss.h"
+
+static uint32_t
+nss_get_gid(struct sss_domain_info *domain,
+            struct ldb_message *msg)
+{
+    uint32_t gid;
+
+    /* First, try to return overriden gid. */
+    if (DOM_HAS_VIEWS(domain)) {
+        gid = ldb_msg_find_attr_as_uint64(msg, OVERRIDE_PREFIX SYSDB_GIDNUM,
+                                          0);
+        if (gid != 0) {
+            return gid;
+        }
+    }
+
+    /* Try to return domain gid override. */
+    if (domain->override_gid != 0) {
+        return domain->override_gid;
+    }
+
+    /* Return original gid. */
+    return ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+}
+
+static const char *
+nss_get_homedir_override(TALLOC_CTX *mem_ctx,
+                         struct ldb_message *msg,
+                         struct nss_ctx *nctx,
+                         struct sss_domain_info *dom,
+                         struct sss_nss_homedir_ctx *homedir_ctx)
+{
+    const char *homedir;
+
+    homedir = sss_view_ldb_msg_find_attr_as_string(dom, msg, SYSDB_HOMEDIR,
+                                                   NULL);
+    homedir_ctx->original = homedir;
+
+    /* Check to see which homedir_prefix to use. */
+    if (dom->homedir_substr != NULL) {
+        homedir_ctx->config_homedir_substr = dom->homedir_substr;
+    } else if (nctx->homedir_substr != NULL) {
+        homedir_ctx->config_homedir_substr = nctx->homedir_substr;
+    }
+
+    /* Check whether we are unconditionally overriding the server
+     * for home directory locations.
+     */
+    if (dom->override_homedir) {
+        return expand_homedir_template(mem_ctx, dom->override_homedir,
+                                       dom->case_preserve, homedir_ctx);
+    } else if (nctx->override_homedir) {
+        return expand_homedir_template(mem_ctx, nctx->override_homedir,
+                                       dom->case_preserve, homedir_ctx);
+    }
+
+    if (!homedir || *homedir == '\0') {
+        /* In the case of a NULL or empty homedir, check to see if
+         * we have a fallback homedir to use.
+         */
+        if (dom->fallback_homedir) {
+            return expand_homedir_template(mem_ctx, dom->fallback_homedir,
+                                           dom->case_preserve, homedir_ctx);
+        } else if (nctx->fallback_homedir) {
+            return expand_homedir_template(mem_ctx, nctx->fallback_homedir,
+                                           dom->case_preserve, homedir_ctx);
+        }
+    }
+
+    /* Provider can also return template, try to expand it.*/
+    return expand_homedir_template(mem_ctx, homedir,
+                                   dom->case_preserve, homedir_ctx);
+}
+
+static const char *
+nss_get_homedir(TALLOC_CTX *mem_ctx,
+                struct nss_ctx *nss_ctx,
+                struct sss_domain_info *domain,
+                struct ldb_message *msg,
+                const char *orig_name,
+                const char *upn,
+                uid_t uid)
+{
+    struct sss_nss_homedir_ctx hd_ctx = { 0 };
+    const char *homedir;
+
+    hd_ctx.username = orig_name;
+    hd_ctx.uid = uid;
+    hd_ctx.domain = domain->name;
+    hd_ctx.upn = upn;
+
+    homedir = nss_get_homedir_override(mem_ctx, msg, nss_ctx, domain, &hd_ctx);
+    if (homedir == NULL) {
+        return "/";
+    }
+
+    return homedir;
+}
+
+static const char *
+nss_get_shell_override(struct ldb_message *msg,
+                       struct nss_ctx *nss_ctx,
+                       struct sss_domain_info *domain)
+{
+    const char *shell;
+    int i;
+
+    /* Check whether we are unconditionally overriding
+     * the server for the login shell. */
+    if (domain->override_shell) {
+        return domain->override_shell;
+    } else if (nss_ctx->override_shell) {
+        return nss_ctx->override_shell;
+    }
+
+    shell = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_SHELL,
+                                                 NULL);
+    if (shell == NULL) {
+        /* Check whether there is a default shell specified */
+        if (domain->default_shell) {
+            return domain->default_shell;
+        } else if (nss_ctx->default_shell) {
+            return nss_ctx->default_shell;
+        }
+
+        return "";
+    }
+
+    if (nss_ctx->allowed_shells == NULL && nss_ctx->vetoed_shells == NULL) {
+        return shell;
+    }
+
+    if (nss_ctx->vetoed_shells) {
+        for (i = 0; nss_ctx->vetoed_shells[i]; i++) {
+            if (strcmp(nss_ctx->vetoed_shells[i], shell) == 0) {
+                DEBUG(SSSDBG_FUNC_DATA,
+                      "The shell '%s' is vetoed. Using fallback.\n",
+                      shell);
+                return nss_ctx->shell_fallback;
+            }
+        }
+    }
+
+    if (nss_ctx->etc_shells) {
+        for (i = 0; nss_ctx->etc_shells[i]; i++) {
+            if (strcmp(shell, nss_ctx->etc_shells[i]) == 0) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Shell %s found in /etc/shells\n", shell);
+                break;
+            }
+        }
+
+        if (nss_ctx->etc_shells[i]) {
+            DEBUG(SSSDBG_TRACE_ALL, "Using original shell '%s'\n", shell);
+            return shell;
+        }
+    }
+
+    if (nss_ctx->allowed_shells) {
+        if (strcmp(nss_ctx->allowed_shells[0], "*") == 0) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "The shell '%s' is allowed but does not exist. "
+                  "Using fallback\n", shell);
+            return nss_ctx->shell_fallback;
+        } else {
+            for (i = 0; nss_ctx->allowed_shells[i]; i++) {
+                if (strcmp(nss_ctx->allowed_shells[i], shell) == 0) {
+                    DEBUG(SSSDBG_FUNC_DATA,
+                          "The shell '%s' is allowed but does not exist. "
+                          "Using fallback\n", shell);
+                    return nss_ctx->shell_fallback;
+                }
+            }
+        }
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA,
+          "The shell '%s' is not allowed and does not exist.\n", shell);
+
+    return NOLOGIN_SHELL;
+}
+
+static errno_t
+nss_get_pwent(TALLOC_CTX *mem_ctx,
+              struct nss_ctx *nss_ctx,
+              struct sss_domain_info *domain,
+              struct ldb_message *msg,
+              uint32_t *_uid,
+              uint32_t *_gid,
+              struct sized_string **_name,
+              struct sized_string *_gecos,
+              struct sized_string *_homedir,
+              struct sized_string *_shell)
+{
+    const char *upn;
+    const char *name;
+    const char *gecos;
+    const char *homedir;
+    const char *shell;
+    uint32_t gid;
+    uint32_t uid;
+    errno_t ret;
+
+    /* Get fields. */
+    upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
+    name = nss_get_name_from_msg(domain, msg);
+    gid = nss_get_gid(domain, msg);
+    uid = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, SYSDB_UIDNUM, 0);
+
+    if (name == NULL || uid == 0 || gid == 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Incomplete user object for %s[%u]! Skipping\n",
+              name ? name : "<NULL>", uid);
+        return EINVAL;
+    }
+
+    gecos = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_GECOS,
+                                                 NULL);
+    homedir = nss_get_homedir(mem_ctx, nss_ctx, domain, msg, name, upn, uid);
+    shell = nss_get_shell_override(msg, nss_ctx, domain);
+
+    /* Convert to sized strings. */
+    ret = sized_output_name(mem_ctx, nss_ctx->rctx, name, domain, _name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sized_output_name failed, skipping [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    to_sized_string(_gecos, gecos == NULL ? "" : gecos);
+    to_sized_string(_shell, shell);
+    to_sized_string(_homedir, homedir);
+
+    *_gid = gid;
+    *_uid = uid;
+
+    return EOK;
+}
+
+errno_t
+nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
+                        struct nss_cmd_ctx *cmd_ctx,
+                        struct sss_packet *packet,
+                        struct cache_req_result *result)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    struct sized_string pwfield;
+    struct sized_string *name;
+    struct sized_string gecos;
+    struct sized_string homedir;
+    struct sized_string shell;
+    uint32_t gid;
+    uint32_t uid;
+    uint32_t num_results;
+    size_t rp;
+    size_t body_len;
+    uint8_t *body;
+    int i;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* Password field content. */
+    to_sized_string(&pwfield, nss_ctx->pwfield);
+
+    /* First two fields (length and reserved), filled up later. */
+    ret = sss_packet_grow(packet, 2 * sizeof(uint32_t));
+    if (ret != EOK) {
+        return ret;
+    }
+
+    rp = 2 * sizeof(uint32_t);
+
+    num_results = 0;
+    for (i = 0; i < result->count; i++) {
+        talloc_free_children(tmp_ctx);
+        msg = result->msgs[i];
+
+        ret = nss_get_pwent(tmp_ctx, nss_ctx, result->domain, msg, &uid, &gid,
+                            &name, &gecos, &homedir, &shell);
+        if (ret != EOK) {
+            continue;
+        }
+
+        /* Check negative cache during enumeration. */
+        if (cmd_ctx->enumeration) {
+            ret = sss_ncache_check_user(nss_ctx->rctx->ncache,
+                                        result->domain, name->str);
+            if (ret == EEXIST) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "User [%s] filtered out! (negative cache)\n", name->str);
+                continue;
+            }
+        }
+
+        /* Adjust packet size: uid, gid + string fields. */
+
+        ret = sss_packet_grow(packet, 2 * sizeof(uint32_t)
+                                          + name->len + gecos.len + homedir.len
+                                          + shell.len + pwfield.len);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        sss_packet_get_body(packet, &body, &body_len);
+
+        /* Fill packet. */
+
+        SAFEALIGN_SET_UINT32(&body[rp], uid, &rp);
+        SAFEALIGN_SET_UINT32(&body[rp], gid, &rp);
+        SAFEALIGN_SET_STRING(&body[rp], name->str, name->len, &rp);
+        SAFEALIGN_SET_STRING(&body[rp], pwfield.str, pwfield.len, &rp);
+        SAFEALIGN_SET_STRING(&body[rp], gecos.str, gecos.len, &rp);
+        SAFEALIGN_SET_STRING(&body[rp], homedir.str, homedir.len, &rp);
+        SAFEALIGN_SET_STRING(&body[rp], shell.str, shell.len, &rp);
+
+        num_results++;
+
+        /* Do not store entry in memory cache during enumeration. */
+        if (!cmd_ctx->enumeration) {
+            ret = sss_mmap_cache_pw_store(&nss_ctx->pwd_mc_ctx, name, &pwfield,
+                                          uid, gid, &gecos, &homedir, &shell);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Failed to store user %s (%s) in mmap cache [%d]: %s!\n",
+                      name->str, result->domain->name, ret, sss_strerror(ret));
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
+        sss_packet_set_size(packet, 0);
+        return ret;
+    }
+
+    sss_packet_get_body(packet, &body, &body_len);
+    SAFEALIGN_COPY_UINT32(body, &num_results, NULL);
+    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
+
+    return EOK;
+}
