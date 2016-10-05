@@ -66,7 +66,7 @@ int sss_cmd_empty_packet(struct sss_packet *packet)
     return EOK;
 }
 
-int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
+int sss_cmd_send_empty(struct cli_ctx *cctx)
 {
     struct cli_protocol *pctx;
     int ret;
@@ -88,7 +88,6 @@ int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
     }
 
     sss_packet_set_error(pctx->creq->out, EOK);
-    sss_cmd_done(cctx, freectx);
     return EOK;
 }
 

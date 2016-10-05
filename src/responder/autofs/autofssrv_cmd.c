@@ -38,7 +38,7 @@ static int autofs_cmd_send_error(struct autofs_cmd_ctx *cmdctx, int err)
 static int
 autofs_cmd_send_empty(struct autofs_cmd_ctx *cmdctx)
 {
-    return sss_cmd_send_empty(cmdctx->cctx, cmdctx);
+    return sss_cmd_send_empty(cmdctx->cctx);
 }
 
 static int
@@ -54,6 +54,7 @@ autofs_cmd_done(struct autofs_cmd_ctx *cmdctx, int ret)
         if (ret) {
             return EFAULT;
         }
+        sss_cmd_done(cmdctx->cctx, cmdctx);
         break;
 
     case EAGAIN:

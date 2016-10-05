@@ -127,13 +127,18 @@ void __wrap_sss_cmd_done(struct cli_ctx *cctx, void *freectx)
 
     check_cb = sss_mock_ptr_type(cmd_cb_fn_t);
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
-    packet = pctx->creq->out;
+    if (check_cb == NULL) {
+        nss_test_ctx->tctx->error = ENOENT;
+    } else {
+        pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+        packet = pctx->creq->out;
 
-    __real_sss_packet_get_body(packet, &body, &blen);
+        __real_sss_packet_get_body(packet, &body, &blen);
 
-    nss_test_ctx->tctx->error = check_cb(sss_packet_get_status(packet),
-                                         body, blen);
+        nss_test_ctx->tctx->error = check_cb(sss_packet_get_status(packet),
+                                             body, blen);
+    }
+
     nss_test_ctx->tctx->done = true;
     talloc_free(freectx);
 }
@@ -566,6 +571,7 @@ void test_nss_getpwnam_neg(void **state)
 
     assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -582,6 +588,7 @@ void test_nss_getpwnam_neg(void **state)
     nss_test_ctx->tctx->done = false;
 
     mock_input_user_or_group("testuser_neg");
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -1031,6 +1038,7 @@ void test_nss_getpwuid_neg(void **state)
 
     assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -1047,6 +1055,7 @@ void test_nss_getpwuid_neg(void **state)
     nss_test_ctx->tctx->done = false;
 
     mock_input_id(nss_test_ctx, uid_neg);
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -2536,6 +2545,7 @@ void test_nss_getpwnam_upn_neg(void **state)
 
     assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -2553,6 +2563,7 @@ void test_nss_getpwnam_upn_neg(void **state)
     nss_test_ctx->ncache_hits = 0;
 
     mock_input_user_or_group("nosuchupnuser@upndomain.test");
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -2667,6 +2678,7 @@ void test_initgr_neg_by_name(const char *name, bool is_upn)
 
     assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -2685,6 +2697,7 @@ void test_initgr_neg_by_name(const char *name, bool is_upn)
     nss_test_ctx->ncache_hits = 0;
 
     mock_input_user_or_group(name);
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -3227,6 +3240,7 @@ void test_nss_getnamebysid_neg(void **state)
 
     assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -3243,6 +3257,7 @@ void test_nss_getnamebysid_neg(void **state)
     nss_test_ctx->tctx->done = false;
 
     mock_input_user_or_group(user_sid);
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -3449,6 +3464,7 @@ void test_nss_getnamebycert_neg(void **state)
 
     assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -3465,6 +3481,7 @@ void test_nss_getnamebycert_neg(void **state)
     nss_test_ctx->tctx->done = false;
 
     mock_input_user_or_group(TEST_TOKEN_CERT);
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYCERT,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -3590,6 +3607,7 @@ void test_nss_getsidbyname_neg(void **state)
     mock_account_recv_simple();
 
     /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(NULL);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
