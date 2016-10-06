@@ -149,7 +149,6 @@ def test_crd_ops(setup_for_secrets, secrets_cli):
 
     with pytest.raises(HTTPError) as err507:
         cli.set_secret(str(MAX_SECRETS), sec_value)
-        print >>stderr,str(err507.value)
     assert str(err507.value).startswith("507")
 
 
