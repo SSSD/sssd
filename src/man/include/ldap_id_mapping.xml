@@ -109,8 +109,8 @@ ldap_schema = ad
         </para>
         <para>
             The default configuration results in configuring 10,000 slices,
-            each capable of holding up to 200,000 IDs, starting from 10,001
-            and going up to 2,000,100,000. This should be sufficient for
+            each capable of holding up to 200,000 IDs, starting from 200,000
+            and going up to 2,000,200,000. This should be sufficient for
             most deployments.
         </para>
         <refsect3 id='idmap_advanced_config'>
