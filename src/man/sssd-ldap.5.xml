@@ -267,7 +267,8 @@
                             user's login name.
                         </para>
                         <para>
-                            Default: uid
+                            Default: uid (rfc2307, rfc2307bis and IPA),
+                                     sAMAccountName (AD)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -847,7 +848,8 @@
                             the group name.
                         </para>
                         <para>
-                            Default: cn
+                            Default: cn (rfc2307, rfc2307bis and IPA),
+                                     sAMAccountName (AD)
                         </para>
                     </listitem>
                 </varlistentry>
