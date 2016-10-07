@@ -167,6 +167,13 @@ wbcErr wbcCtxSidsToUnixIds(struct wbcContext *ctx,
     WBC_SSSD_NOT_IMPLEMENTED;
 }
 
+wbcErr wbcCtxUnixIdsToSids(struct wbcContext *ctx,
+                           const struct wbcUnixId *ids, uint32_t num_ids,
+                           struct wbcDomainSid *sids)
+{
+    WBC_SSSD_NOT_IMPLEMENTED;
+}
+
 wbcErr wbcCtxAllocateUid(struct wbcContext *ctx, uid_t *puid)
 {
     WBC_SSSD_NOT_IMPLEMENTED;
