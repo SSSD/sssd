@@ -202,3 +202,29 @@ wbcErr wbcSidsToUnixIds(const struct wbcDomainSid *sids, uint32_t num_sids,
 
     return WBC_ERR_SUCCESS;
 }
+
+wbcErr wbcUnixIdsToSids(const struct wbcUnixId *ids, uint32_t num_ids,
+                        struct wbcDomainSid *sids)
+{
+    size_t c;
+    wbcErr wbc_status;
+
+    for (c = 0; c < num_ids; c++) {
+        switch (ids[c].type) {
+        case WBC_ID_TYPE_UID:
+            wbc_status = wbcUidToSid(ids[c].id.uid, &sids[c]);
+            break;
+        case WBC_ID_TYPE_GID:
+            wbc_status = wbcGidToSid(ids[c].id.gid, &sids[c]);
+            break;
+        default:
+            wbc_status = WBC_ERR_INVALID_PARAM;
+        }
+
+        if (!WBC_ERROR_IS_OK(wbc_status)) {
+            sids[c] = (struct wbcDomainSid){ 0 };
+        };
+    }
+
+    return WBC_ERR_SUCCESS;
+}

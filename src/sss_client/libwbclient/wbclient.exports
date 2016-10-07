@@ -144,3 +144,9 @@ WBCLIENT_0.12 {
         wbcCtxPingDc;
         wbcCtxPingDc2;
 } WBCLIENT_0.11;
+
+WBCLIENT_0.13 {
+    global:
+        wbcUnixIdsToSids;
+        wbcCtxUnixIdsToSids;
+} WBCLIENT_0.12;
