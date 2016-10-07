@@ -188,6 +188,7 @@ m4_include([src/external/cwrap.m4])
 m4_include([src/external/libresolv.m4])
 m4_include([src/external/intgcheck.m4])
 m4_include([src/external/systemtap.m4])
+m4_include([src/external/service.m4])
 
 if test x$with_secrets = xyes; then
     m4_include([src/external/libhttp_parser.m4])
@@ -221,10 +222,7 @@ if test x$initscript = xsystemd; then
     WITH_SYSTEMD_UNIT_DIR
     WITH_SYSTEMD_CONF_DIR
 else
-    AC_CHECK_PROG(HAVE_SERVICE, service, yes, no)
-    AS_IF([test x$HAVE_SERVICE = xyes],
-          [AC_DEFINE(HAVE_SERVICE, 1,
-                     [Whether the service command is available])])
+    CHECK_SERVICE_EXECUTABLE
 fi
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
