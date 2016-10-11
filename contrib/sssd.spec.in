@@ -296,6 +296,9 @@ Requires: python3-sssdconfig = %{version}-%{release}
 Requires: python2-sss = %{version}-%{release}
 Requires: python2-sssdconfig = %{version}-%{release}
 %endif
+%if (0%{?use_systemd} == 0)
+Requires: /sbin/service
+%endif
 
 %description tools
 Provides userspace tools for manipulating users, groups, and nested groups in
