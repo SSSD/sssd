@@ -1573,6 +1573,7 @@ sss_override_CFLAGS = \
 
 sssctl_SOURCES = \
     src/tools/sssctl/sssctl.c \
+    src/tools/sssctl/sssctl_systemd.c \
     src/tools/sssctl/sssctl_cache.c \
     src/tools/sssctl/sssctl_data.c \
     src/tools/sssctl/sssctl_logs.c \
