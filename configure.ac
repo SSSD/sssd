@@ -62,14 +62,6 @@ AC_COMPILE_IFELSE(
 
 AM_CONDITIONAL([HAVE_PTHREAD], [test x"$HAVE_PTHREAD" != "x"])
 
-SAVE_LIBS=$LIBS
-LIBS="$LIBS -lpthread"
-AC_CHECK_FUNCS([ pthread_mutexattr_setrobust \
-                 pthread_mutex_consistent \
-                 pthread_mutexattr_setrobust_np \
-                 pthread_mutex_consistent_np ])
-LIBS=$SAVE_LIBS
-
 # Check library for the timer_create function
 SAVE_LIBS=$LIBS
 LIBS=
