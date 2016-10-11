@@ -1070,86 +1070,28 @@ typedef void (*sss_mutex_init)(void);
 struct sss_mutex {
     pthread_mutex_t mtx;
 
-    pthread_once_t once;
-    sss_mutex_init init;
+    int old_cancel_state;
 };
 
-static void sss_nss_mt_init(void);
-static void sss_pam_mt_init(void);
-static void sss_nss_mc_mt_init(void);
+static struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
-static struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER,
-                                        .once = PTHREAD_ONCE_INIT,
-                                        .init = sss_nss_mt_init };
+static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
-static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER,
-                                        .once = PTHREAD_ONCE_INIT,
-                                        .init = sss_pam_mt_init };
-
-static struct sss_mutex sss_nss_mc_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER,
-                                           .once = PTHREAD_ONCE_INIT,
-                                           .init = sss_nss_mc_mt_init };
-
-/* Wrappers for robust mutex support */
-static int sss_mutexattr_setrobust (pthread_mutexattr_t *attr)
-{
-#ifdef HAVE_PTHREAD_MUTEXATTR_SETROBUST
-    return pthread_mutexattr_setrobust(attr, PTHREAD_MUTEX_ROBUST);
-#elif defined(HAVE_PTHREAD_MUTEXATTR_SETROBUST_NP)
-    return pthread_mutexattr_setrobust_np(attr, PTHREAD_MUTEX_ROBUST_NP);
-#else
-#warning Robust mutexes are not supported on this platform.
-    return 0;
-#endif
-}
-
-static int sss_mutex_consistent(pthread_mutex_t *mtx)
-{
-#ifdef HAVE_PTHREAD_MUTEX_CONSISTENT
-    return pthread_mutex_consistent(mtx);
-#elif defined(HAVE_PTHREAD_MUTEX_CONSISTENT_NP)
-    return pthread_mutex_consistent_np(mtx);
-#else
-#warning Robust mutexes are not supported on this platform.
-    return 0;
-#endif
-}
-
-/* Generic mutex init, lock, unlock functions */
-static void sss_mt_init(struct sss_mutex *m)
-{
-    pthread_mutexattr_t attr;
-
-    if (pthread_mutexattr_init(&attr) != 0) {
-        return;
-    }
-    if (sss_mutexattr_setrobust(&attr) != 0) {
-        return;
-    }
-
-    pthread_mutex_init(&m->mtx, &attr);
-    pthread_mutexattr_destroy(&attr);
-}
+static struct sss_mutex sss_nss_mc_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
 static void sss_mt_lock(struct sss_mutex *m)
 {
-    pthread_once(&m->once, m->init);
-    if (pthread_mutex_lock(&m->mtx) == EOWNERDEAD) {
-        sss_cli_close_socket();
-        sss_mutex_consistent(&m->mtx);
-    }
+    pthread_mutex_lock(&m->mtx);
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &m->old_cancel_state);
 }
 
 static void sss_mt_unlock(struct sss_mutex *m)
 {
+    pthread_setcancelstate(m->old_cancel_state, NULL);
     pthread_mutex_unlock(&m->mtx);
 }
 
 /* NSS mutex wrappers */
-static void sss_nss_mt_init(void)
-{
-    sss_mt_init(&sss_nss_mtx);
-}
 void sss_nss_lock(void)
 {
     sss_mt_lock(&sss_nss_mtx);
@@ -1160,10 +1102,6 @@ void sss_nss_unlock(void)
 }
 
 /* NSS mutex wrappers */
-static void sss_pam_mt_init(void)
-{
-    sss_mt_init(&sss_pam_mtx);
-}
 void sss_pam_lock(void)
 {
     sss_mt_lock(&sss_pam_mtx);
@@ -1174,10 +1112,6 @@ void sss_pam_unlock(void)
 }
 
 /* NSS mutex wrappers */
-static void sss_nss_mc_mt_init(void)
-{
-    sss_mt_init(&sss_nss_mc_mtx);
-}
 void sss_nss_mc_lock(void)
 {
     sss_mt_lock(&sss_nss_mc_mtx);

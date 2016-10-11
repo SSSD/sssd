@@ -771,10 +771,6 @@ endif
 
 CLIENT_LIBS = $(LTLIBINTL)
 
-if HAVE_PTHREAD
-CLIENT_LIBS += -lpthread
-endif
-
 if WITH_JOURNALD
 SYSLOG_LIBS = $(JOURNALD_LIBS)
 endif
