@@ -7,7 +7,7 @@ AC_DEFUN([CHECK_SERVICE_EXECUTABLE],
         AC_MSG_RESULT(yes)
       else
         AC_MSG_RESULT([no])
-        AC_MSG_ERROR([the service executable is not available])
+        AC_MSG_WARN([the service executable is not available])
       fi
     ]
 )
