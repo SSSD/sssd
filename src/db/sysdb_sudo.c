@@ -852,6 +852,65 @@ sysdb_sudo_add_sss_attrs(struct sysdb_attrs *rule,
     return EOK;
 }
 
+static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
+                                            struct sysdb_attrs *rule)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char **users = NULL;
+    const char *lowered = NULL;
+    errno_t ret;
+
+    if (domain->case_sensitive == true || rule == NULL) {
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_get_string_array(rule, SYSDB_SUDO_CACHE_AT_USER, tmp_ctx,
+                                       &users);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get %s attribute [%d]: %s\n",
+              SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
+        goto done;
+    }
+
+    if (users == NULL) {
+        ret =  EOK;
+        goto done;
+    }
+
+    for (int i = 0; users[i] != NULL; i++) {
+        lowered = sss_tc_utf8_str_tolower(tmp_ctx, users[i]);
+        if (lowered == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (strcmp(users[i], lowered) == 0) {
+            /* It protects us from adding duplicate. */
+            continue;
+        }
+
+        ret = sysdb_attrs_add_string(rule, SYSDB_SUDO_CACHE_AT_USER, lowered);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unable to add %s attribute [%d]: %s\n",
+                  SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 static errno_t
 sysdb_sudo_store_rule(struct sss_domain_info *domain,
                       struct sysdb_attrs *rule,
@@ -867,6 +926,11 @@ sysdb_sudo_store_rule(struct sss_domain_info *domain,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Adding sudo rule %s\n", name);
+
+    ret = sysdb_sudo_add_lowered_users(domain, rule);
+    if (ret != EOK) {
+        return ret;
+    }
 
     ret = sysdb_sudo_add_sss_attrs(rule, name, cache_timeout, now);
     if (ret != EOK) {
