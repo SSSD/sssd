@@ -97,14 +97,15 @@ errno_t sysdb_sudo_filter_rules_by_time(TALLOC_CTX *mem_ctx,
                                         struct sysdb_attrs ***_rules);
 
 errno_t
-sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
-                      uid_t uid, char **groupnames, unsigned int flags,
-                      char **_filter);
+sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username, char **aliases,
+                      uid_t uid, char **groupnames, bool case_sensitive_domain,
+                      unsigned int flags, char **_filter);
 
 errno_t
 sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          const char *username, uid_t *_uid,
+                         char ***_aliases,
                          char ***groupnames);
 
 errno_t sysdb_sudo_set_last_full_refresh(struct sss_domain_info *domain,

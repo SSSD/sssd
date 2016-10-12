@@ -216,9 +216,9 @@ done:
 }
 
 errno_t
-sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
-                      uid_t uid, char **groupnames, unsigned int flags,
-                      char **_filter)
+sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username, char **aliases,
+                      uid_t uid, char **groupnames, bool case_sensitive_domain,
+                      unsigned int flags, char **_filter)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     char *filter = NULL;
@@ -258,6 +258,15 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
                                                  SYSDB_SUDO_CACHE_AT_USER,
                                                  sanitized);
         NULL_CHECK(specific_filter, ret, done);
+
+        if (case_sensitive_domain == false) {
+            for (i = 0; aliases[i] != NULL; i++) {
+                specific_filter = talloc_asprintf_append(specific_filter, "(%s=%s)",
+                                                         SYSDB_SUDO_CACHE_AT_USER,
+                                                         aliases[i]);
+                NULL_CHECK(specific_filter, ret, done);
+            }
+        }
     }
 
     if ((flags & SYSDB_SUDO_FILTER_UID) && (uid != 0)) {
@@ -320,6 +329,7 @@ errno_t
 sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          const char *username, uid_t *_uid,
+                         char ***_aliases,
                          char ***groupnames)
 {
     TALLOC_CTX *tmp_ctx;
@@ -327,15 +337,19 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
     struct ldb_message *msg;
     struct ldb_message *group_msg = NULL;
     char **sysdb_groupnames = NULL;
+    char **sysdb_aliases = NULL;
     const char *primary_group = NULL;
     struct ldb_message_element *groups;
+    struct ldb_message_element *aliases;
     uid_t uid = 0;
     gid_t gid = 0;
     size_t num_groups = 0;
+    size_t num_aliases = 0;
     int i;
     const char *attrs[] = { SYSDB_MEMBEROF,
                             SYSDB_GIDNUM,
                             SYSDB_UIDNUM,
+                            SYSDB_NAME_ALIAS,
                             NULL };
     const char *group_attrs[] = { SYSDB_NAME,
                                   NULL };
@@ -356,6 +370,24 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
             ret = EIO;
             goto done;
         }
+    }
+
+    aliases = ldb_msg_find_element(msg, SYSDB_NAME_ALIAS);
+    if (!aliases || aliases->num_values == 0) {
+        /* No nameAlias for this user in sysdb currently */
+        sysdb_aliases = NULL;
+        num_aliases = 0;
+    } else {
+        num_aliases = aliases->num_values;
+        sysdb_aliases = talloc_array(tmp_ctx, char *, num_aliases + 1);
+        NULL_CHECK(sysdb_aliases, ret, done);
+
+        for (i = 0; i < aliases->num_values; i++) {
+            sysdb_aliases[i] = talloc_strdup(sysdb_aliases,
+                                         (const char *)aliases->values[i].data);
+            NULL_CHECK(sysdb_aliases[i], ret, done);
+        }
+        sysdb_aliases[aliases->num_values] = NULL;
     }
 
     /* resolve secondary groups */
@@ -419,6 +451,10 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
 
     if (_uid != NULL) {
         *_uid = uid;
+    }
+
+    if (sysdb_aliases != NULL) {
+        *_aliases = talloc_steal(mem_ctx, sysdb_aliases);
     }
 
     if (groupnames != NULL) {
@@ -801,6 +837,65 @@ sysdb_sudo_add_sss_attrs(struct sysdb_attrs *rule,
     return EOK;
 }
 
+static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
+                                            struct sysdb_attrs *rule)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char **users = NULL;
+    const char *lowered = NULL;
+    errno_t ret;
+
+    if (domain->case_sensitive == true || rule == NULL) {
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_get_string_array(rule, SYSDB_SUDO_CACHE_AT_USER, tmp_ctx,
+                                       &users);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get %s attribute [%d]: %s\n",
+              SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
+        ret = ERR_MALFORMED_ENTRY;
+        goto done;
+    }
+    if (users == NULL) {
+        ret =  EOK;
+        goto done;
+    }
+
+    for (int i = 0; users[i] != NULL; i++) {
+        lowered = sss_tc_utf8_str_tolower(tmp_ctx, users[i]);
+        if (lowered == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (strcmp(users[i], lowered) == 0) {
+            /* It protects us from adding duplicate. */
+            continue;
+        }
+
+        ret = sysdb_attrs_add_string(rule, SYSDB_SUDO_CACHE_AT_USER, lowered);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unable to add %s attribute [%d]: %s\n",
+                  SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 static errno_t
 sysdb_sudo_store_rule(struct sss_domain_info *domain,
                       struct sysdb_attrs *rule,
@@ -816,6 +911,11 @@ sysdb_sudo_store_rule(struct sss_domain_info *domain,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Adding sudo rule %s\n", name);
+
+    ret = sysdb_sudo_add_lowered_users(domain, rule);
+    if (ret != EOK) {
+        return ret;
+    }
 
     ret = sysdb_sudo_add_sss_attrs(rule, name, cache_timeout, now);
     if (ret != EOK) {
@@ -861,6 +961,10 @@ sysdb_sudo_store(struct sss_domain_info *domain,
         if (ret == EINVAL) {
             /* Multiple CNs are error on server side, we can just ignore this
              * rule and save the others. Loud debug message is in logs. */
+            continue;
+        } else if (ret == ERR_MALFORMED_ENTRY) {
+            /* Attribute SYSDB_SUDO_CACHE_AT_USER is missing but we can
+             * continue with next sudoRule. */
             continue;
         } else if (ret != EOK) {
             goto done;
