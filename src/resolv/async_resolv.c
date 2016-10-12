@@ -2245,6 +2245,13 @@ static int reply_weight_rearrange(int len,
             new_end = r;
         }
     }
+
+    if (new_end == NULL) {
+        ret = EINVAL;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: no new server has been selected!\n");
+        goto done;
+    }
     new_end->next = NULL;
 
     /* return the rearranged list */
