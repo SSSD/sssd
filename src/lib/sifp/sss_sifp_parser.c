@@ -283,7 +283,8 @@ sss_sifp_parse_basic(sss_sifp_ctx *ctx,
                     uint64_t, uint64_t, uint64, done);
         break;
     case DBUS_TYPE_STRING:
-    case DBUS_TYPE_OBJECT_PATH: ;
+    case DBUS_TYPE_OBJECT_PATH:
+    {
         const char *val = NULL;
 
         dbus_message_iter_get_basic(iter, &val);
@@ -306,6 +307,7 @@ sss_sifp_parse_basic(sss_sifp_ctx *ctx,
 
         ret = SSS_SIFP_OK;
         break;
+    }
     default:
         ret = SSS_SIFP_INVALID_ARGUMENT;
         break;
