@@ -334,6 +334,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  const char **attrs,
                                                  unsigned int flags,
                                                  const char *username,
+                                                 char **aliases,
                                                  uid_t uid,
                                                  char **groupnames,
                                                  bool inverse_order,
@@ -346,6 +347,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     struct tevent_req *dpreq = NULL;
     struct dp_callback_ctx *cb_ctx = NULL;
     char **groupnames = NULL;
+    char **aliases = NULL;
     uint32_t expired_rules_num = 0;
     struct sysdb_attrs **expired_rules = NULL;
     errno_t ret;
@@ -383,7 +385,8 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
      * provider call
      */
     ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->domain,
-                                   cmd_ctx->orig_username, NULL, &groupnames);
+                                   cmd_ctx->orig_username, NULL,
+                                   &aliases, &groupnames);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
              "Unable to retrieve user info [%d]: %s\n", ret, strerror(ret));
@@ -397,6 +400,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     ret = sudosrv_get_sudorules_query_cache(tmp_ctx,
                                             cmd_ctx->domain, attrs, flags,
                                             cmd_ctx->orig_username,
+                                            aliases,
                                             cmd_ctx->uid, groupnames,
                                             cmd_ctx->sudo_ctx->inverse_order,
                                             &expired_rules, &expired_rules_num);
@@ -556,6 +560,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
     char **groupnames = NULL;
+    char **aliases = NULL;
     const char *debug_name = NULL;
     unsigned int flags = SYSDB_SUDO_FILTER_NONE;
     struct sysdb_attrs **rules = NULL;
@@ -591,7 +596,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
         ret = sysdb_get_sudo_user_info(tmp_ctx,
                                        cmd_ctx->domain,
                                        cmd_ctx->orig_username,
-                                       NULL, &groupnames);
+                                       NULL, &aliases, &groupnames);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                  "Unable to retrieve user info [%d]: %s\n",
@@ -609,6 +614,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
     ret = sudosrv_get_sudorules_query_cache(tmp_ctx,
                                             cmd_ctx->domain, attrs, flags,
                                             cmd_ctx->orig_username,
+                                            aliases,
                                             cmd_ctx->uid, groupnames,
                                             cmd_ctx->sudo_ctx->inverse_order,
                                             &rules, &num_rules);
@@ -643,6 +649,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  const char **attrs,
                                                  unsigned int flags,
                                                  const char *username,
+                                                 char **aliases,
                                                  uid_t uid,
                                                  char **groupnames,
                                                  bool inverse_order,
@@ -659,8 +666,8 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    ret = sysdb_get_sudo_filter(tmp_ctx, username, uid, groupnames,
-                                flags, &filter);
+    ret = sysdb_get_sudo_filter(tmp_ctx, username, aliases, uid, groupnames,
+                                domain->case_sensitive, flags, &filter);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not construct the search filter [%d]: %s\n",
