@@ -182,7 +182,6 @@ errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
                       struct sss_tool_ctx **_tool_ctx)
 {
     struct sss_tool_ctx *tool_ctx;
-    errno_t ret;
 
     tool_ctx = talloc_zero(mem_ctx, struct sss_tool_ctx);
     if (tool_ctx == NULL) {
@@ -192,45 +191,9 @@ errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
 
     sss_tool_common_opts(tool_ctx, argc, argv);
 
-    /* Connect to confdb. */
-    ret = sss_tool_confdb_init(tool_ctx, &tool_ctx->confdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to open confdb [%d]: %s\n",
-                                   ret, sss_strerror(ret));
-        goto done;
-    }
+    *_tool_ctx = tool_ctx;
 
-    /* Setup domains. */
-    ret = sss_tool_domains_init(tool_ctx, tool_ctx->confdb, &tool_ctx->domains);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup domains [%d]: %s\n",
-                                   ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = confdb_get_string(tool_ctx->confdb, tool_ctx,
-                            CONFDB_MONITOR_CONF_ENTRY,
-                            CONFDB_MONITOR_DEFAULT_DOMAIN,
-                            NULL, &tool_ctx->default_domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot get the default domain [%d]: %s\n",
-                                 ret, strerror(ret));
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    switch (ret) {
-    case EOK:
-    case ERR_SYSDB_VERSION_TOO_OLD:
-        *_tool_ctx = tool_ctx;
-        break;
-    default:
-        break;
-    }
-
-    return ret;
+    return EOK;
 }
 
 static bool sss_tool_is_delimiter(struct sss_route_cmd *command)
@@ -300,6 +263,47 @@ void sss_tool_usage(const char *tool_name, struct sss_route_cmd *commands)
     sss_tool_print_common_opts(min_len);
 }
 
+static int tool_cmd_init(struct sss_tool_ctx *tool_ctx,
+                         struct sss_route_cmd *command)
+{
+    int ret;
+
+    if (command->flags & SSS_TOOL_FLAG_SKIP_CMD_INIT) {
+        return EOK;
+    }
+
+    /* Connect to confdb. */
+    ret = sss_tool_confdb_init(tool_ctx, &tool_ctx->confdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to open confdb [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Setup domains. */
+    ret = sss_tool_domains_init(tool_ctx, tool_ctx->confdb, &tool_ctx->domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup domains [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = confdb_get_string(tool_ctx->confdb, tool_ctx,
+                            CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_DEFAULT_DOMAIN,
+                            NULL, &tool_ctx->default_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get the default domain [%d]: %s\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
 errno_t sss_tool_route(int argc, const char **argv,
                        struct sss_tool_ctx *tool_ctx,
                        struct sss_route_cmd *commands,
@@ -308,6 +312,7 @@ errno_t sss_tool_route(int argc, const char **argv,
     struct sss_cmdline cmdline;
     const char *cmd;
     int i;
+    int ret;
 
     if (commands == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: commands can't be NULL!\n");
@@ -337,6 +342,14 @@ errno_t sss_tool_route(int argc, const char **argv,
                       cmdline.command, tool_ctx->init_err,
                       sss_strerror(tool_ctx->init_err));
                 return tool_ctx->init_err;
+            }
+
+            ret = tool_cmd_init(tool_ctx, &commands[i]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "Command initialization failed [%d] %s\n",
+                      ret, sss_strerror(ret));
+                return ret;
             }
 
             return commands[i].fn(&cmdline, tool_ctx, pvt);
