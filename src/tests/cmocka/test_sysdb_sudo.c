@@ -44,7 +44,7 @@ struct test_user {
     const char *name;
     uid_t uid;
     gid_t gid;
-} users[] = { { "test_user1", 1001, 1001 },
+} users[] = { { "test_USER1", 1001, 1001 },
               { "test_user2", 1002, 1002 },
               { "test_user3", 1003, 1003 } };
 
@@ -102,6 +102,29 @@ static void create_rule_attrs(struct sysdb_attrs *rule, int i)
     ret = sysdb_attrs_add_string_safe(rule, SYSDB_SUDO_CACHE_AT_USER,
                                       users[i].name);
     assert_int_equal(ret, EOK);
+}
+
+static void create_rule_attrs_multiple_sudoUser(struct sysdb_attrs *rule)
+{
+    errno_t ret;
+
+    ret = sysdb_attrs_add_string_safe(rule, SYSDB_SUDO_CACHE_AT_CN,
+                                      rules[0].name);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string_safe(rule, SYSDB_SUDO_CACHE_AT_HOST,
+                                      rules[0].host);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string_safe(rule, SYSDB_SUDO_CACHE_AT_RUNASUSER,
+                                      rules[0].as_user);
+    assert_int_equal(ret, EOK);
+
+    for (int i = 0; i < 3; i++ ) {
+        ret = sysdb_attrs_add_string_safe(rule, SYSDB_SUDO_CACHE_AT_USER,
+                                          users[i].name);
+        assert_int_equal(ret, EOK);
+    }
 }
 
 static int get_stored_rules_count(struct sysdb_test_ctx *test_ctx)
@@ -212,6 +235,143 @@ void test_store_sudo(void **state)
     assert_non_null(result);
     assert_string_equal(result, users[0].name);
 
+    talloc_zfree(rule);
+    talloc_zfree(filter);
+    talloc_zfree(msgs);
+}
+
+void test_store_sudo_case_sensitive(void **state)
+{
+    errno_t ret;
+    char *filter;
+    const char *attrs[] = { SYSDB_SUDO_CACHE_AT_CN, SYSDB_SUDO_CACHE_AT_HOST,
+                            SYSDB_SUDO_CACHE_AT_RUNASUSER,
+                            SYSDB_SUDO_CACHE_AT_USER, NULL };
+    struct ldb_message **msgs = NULL;
+    size_t msgs_count;
+    const char *result;
+    struct ldb_message_element *element;
+    struct sysdb_attrs *rule;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+    const char *lowered_name = sss_tc_utf8_str_tolower(test_ctx, users[0].name);
+
+    rule = sysdb_new_attrs(test_ctx);
+    assert_non_null(rule);
+    create_rule_attrs_multiple_sudoUser(rule);
+
+    test_ctx->tctx->dom->case_sensitive = true;
+
+    ret = sysdb_sudo_store(test_ctx->tctx->dom, &rule, 1);
+    assert_int_equal(ret, EOK);
+
+    filter = sysdb_sudo_filter_user(test_ctx, users[0].name, NULL, 0);
+    assert_non_null(filter);
+
+    ret = sysdb_search_sudo_rules(test_ctx, test_ctx->tctx->dom, filter,
+                                  attrs, &msgs_count, &msgs);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(msgs_count, 1);
+
+    result = ldb_msg_find_attr_as_string(msgs[0], SYSDB_SUDO_CACHE_AT_CN, NULL);
+    assert_non_null(result);
+    assert_string_equal(result, rules[0].name);
+
+    result = ldb_msg_find_attr_as_string(msgs[0], SYSDB_SUDO_CACHE_AT_HOST,
+                                         NULL);
+    assert_non_null(result);
+    assert_string_equal(result, rules[0].host);
+
+    result = ldb_msg_find_attr_as_string(msgs[0], SYSDB_SUDO_CACHE_AT_RUNASUSER,
+                                         NULL);
+    assert_non_null(result);
+    assert_string_equal(result, rules[0].as_user);
+
+    ret = ldb_msg_check_string_attribute(msgs[0], SYSDB_SUDO_CACHE_AT_USER,
+				                         users[0].name);
+    assert_int_equal(ret, 1);
+
+    ret = ldb_msg_check_string_attribute(msgs[0], SYSDB_SUDO_CACHE_AT_USER,
+				                         lowered_name);
+    assert_int_equal(ret, 0);
+
+    ret = ldb_msg_check_string_attribute(msgs[0], SYSDB_SUDO_CACHE_AT_USER,
+				                         users[1].name);
+    assert_int_equal(ret, 1);
+
+    ret = ldb_msg_check_string_attribute(msgs[0], SYSDB_SUDO_CACHE_AT_USER,
+				                         users[2].name);
+    assert_int_equal(ret, 1);
+
+    element = ldb_msg_find_element(msgs[0], SYSDB_SUDO_CACHE_AT_USER);
+    assert_int_equal(element->num_values, 3);
+
+    talloc_zfree(lowered_name);
+    talloc_zfree(rule);
+    talloc_zfree(filter);
+    talloc_zfree(msgs);
+}
+
+void test_store_sudo_case_insensitive(void **state)
+{
+    errno_t ret;
+    char *filter;
+    const char *attrs[] = { SYSDB_SUDO_CACHE_AT_CN, SYSDB_SUDO_CACHE_AT_HOST,
+                            SYSDB_SUDO_CACHE_AT_RUNASUSER,
+                            SYSDB_SUDO_CACHE_AT_USER, NULL };
+    struct ldb_message **msgs = NULL;
+    size_t msgs_count;
+    const char *result;
+    struct ldb_message_element *element;
+    struct sysdb_attrs *rule;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+    const char *lowered_name = sss_tc_utf8_str_tolower(test_ctx, users[0].name);
+
+    rule = sysdb_new_attrs(test_ctx);
+    assert_non_null(rule);
+    create_rule_attrs_multiple_sudoUser(rule);
+
+    test_ctx->tctx->dom->case_sensitive = false;
+
+    ret = sysdb_sudo_store(test_ctx->tctx->dom, &rule, 1);
+    assert_int_equal(ret, EOK);
+
+    filter = sysdb_sudo_filter_user(test_ctx, users[0].name, NULL, 0);
+    assert_non_null(filter);
+
+    ret = sysdb_search_sudo_rules(test_ctx, test_ctx->tctx->dom, filter,
+                                  attrs, &msgs_count, &msgs);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(msgs_count, 1);
+
+    result = ldb_msg_find_attr_as_string(msgs[0], SYSDB_SUDO_CACHE_AT_CN, NULL);
+    assert_non_null(result);
+    assert_string_equal(result, rules[0].name);
+
+    result = ldb_msg_find_attr_as_string(msgs[0], SYSDB_SUDO_CACHE_AT_HOST,
+                                         NULL);
+    assert_non_null(result);
+    assert_string_equal(result, rules[0].host);
+
+    result = ldb_msg_find_attr_as_string(msgs[0], SYSDB_SUDO_CACHE_AT_RUNASUSER,
+                                         NULL);
+    assert_non_null(result);
+    assert_string_equal(result, rules[0].as_user);
+
+    for (int i = 0; i < 3; i++) {
+        ret = ldb_msg_check_string_attribute(msgs[0], SYSDB_SUDO_CACHE_AT_USER,
+                                             users[i].name);
+        assert_int_equal(ret, 1);
+    }
+
+    /* test there is no duplication of lowercase forms */
+    element = ldb_msg_find_element(msgs[0], SYSDB_SUDO_CACHE_AT_USER);
+    assert_int_equal(element->num_values, 4);
+
+    talloc_zfree(lowered_name);
     talloc_zfree(rule);
     talloc_zfree(filter);
     talloc_zfree(msgs);
@@ -646,6 +806,12 @@ int main(int argc, const char *argv[])
     const struct CMUnitTest tests[] = {
         /* sysdb_sudo_store() */
         cmocka_unit_test_setup_teardown(test_store_sudo,
+                                        test_sysdb_setup,
+                                        test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_store_sudo_case_sensitive,
+                                        test_sysdb_setup,
+                                        test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_store_sudo_case_insensitive,
                                         test_sysdb_setup,
                                         test_sysdb_teardown),
 
