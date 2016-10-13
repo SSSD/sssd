@@ -128,7 +128,7 @@ static errno_t sssctl_manage_service(enum sssctl_svc_action action)
     case SSSCTL_SVC_RESTART:
         return sssctl_systemd_restart();
     }
-#elif HAVE_SERVICE
+#elif defined(HAVE_SERVICE)
     switch (action) {
     case SSSCTL_SVC_START:
         return sssctl_run_command(SERVICE_PATH" sssd start");
