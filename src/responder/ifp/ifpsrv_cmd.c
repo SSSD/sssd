@@ -424,8 +424,6 @@ struct ifp_user_get_attr_state {
     char *domname;
 
     struct sss_domain_info *dom;
-    bool check_next;
-    bool check_provider;
 
     struct resp_ctx *rctx;
     struct sss_nc_ctx *ncache;
