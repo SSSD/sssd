@@ -226,11 +226,10 @@ static void pac_resolve_user_sid_done(struct tevent_req *req)
                                                           struct pac_req_ctx);
     struct cli_ctx *cctx = pr_ctx->cctx;
     errno_t ret;
-    struct sss_domain_info *dom;
-    struct ldb_result *res;
+    struct cache_req_result *result;
     struct sysdb_attrs *user_attrs;
 
-    ret = cache_req_object_by_sid_recv(pr_ctx, req, &res, &dom);
+    ret = cache_req_object_by_sid_recv(pr_ctx, req, &result);
     talloc_zfree(req);
 
     if (ret != EOK) {
@@ -239,10 +238,10 @@ static void pac_resolve_user_sid_done(struct tevent_req *req)
         return;
     }
 
-    if (res->count != 1) {
+    if (result->count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Expected only 1 result for SID lookup, got [%ud].\n",
-              res->count);
+              result->count);
         ret = EINVAL;
         goto done;
     }
@@ -268,7 +267,8 @@ static void pac_resolve_user_sid_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = sysdb_set_entry_attr(dom->sysdb, res->msgs[0]->dn, user_attrs,
+    ret = sysdb_set_entry_attr(result->domain->sysdb,
+                               result->msgs[0]->dn, user_attrs,
                                SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_entry_attr failed.\n");

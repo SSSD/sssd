@@ -5408,15 +5408,14 @@ static int nss_cmd_getbycert(enum sss_cli_command cmd, struct cli_ctx *cctx)
 static void users_find_by_cert_done(struct tevent_req *req)
 {
     struct cli_ctx *cctx;
-    struct sss_domain_info *domain;
-    struct ldb_result *result;
+    struct cache_req_result *result;
     struct cli_protocol *pctx;
     errno_t ret;
 
     cctx = tevent_req_callback_data(req, struct cli_ctx);
     pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
 
-    ret = cache_req_user_by_cert_recv(cctx, req, &result, &domain, NULL);
+    ret = cache_req_user_by_cert_recv(cctx, req, &result);
     talloc_zfree(req);
     if (ret == ENOENT || result->count == 0) {
         ret = ENOENT;
@@ -5442,7 +5441,7 @@ static void users_find_by_cert_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = fill_name(pctx->creq->out, cctx->rctx, domain,
+    ret = fill_name(pctx->creq->out, cctx->rctx, result->domain,
                     SSS_ID_TYPE_UID, true, result->msgs[0]);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "fill_name failed.\n");

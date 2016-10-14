@@ -88,4 +88,10 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               struct cache_req_data *data);
 
+struct cache_req_result *
+cache_req_create_result(TALLOC_CTX *mem_ctx,
+                        struct sss_domain_info *domain,
+                        struct ldb_result *ldb_result,
+                        const char *lookup_name);
+
 #endif /* _CACHE_REQ_PRIVATE_H_ */

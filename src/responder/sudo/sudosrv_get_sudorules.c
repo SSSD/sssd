@@ -605,7 +605,7 @@ struct sudosrv_get_rules_state {
     struct resp_ctx *rctx;
     enum sss_sudo_type type;
     uid_t uid;
-    char *username;
+    const char *username;
     struct sss_domain_info *domain;
     char **groups;
     bool inverse_order;
@@ -669,18 +669,22 @@ immediately:
 static void sudosrv_get_rules_initgr_done(struct tevent_req *subreq)
 {
     struct sudosrv_get_rules_state *state;
+    struct cache_req_result *result;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sudosrv_get_rules_state);
 
-    ret = cache_req_initgr_by_name_recv(state, subreq, NULL,
-                                        &state->domain, &state->username);
+    ret = cache_req_initgr_by_name_recv(state, subreq, &result);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
     }
+
+    state->domain = result->domain;
+    state->username = talloc_steal(state, result->lookup_name);
+    talloc_zfree(result);
 
     ret = sysdb_get_sudo_user_info(state, state->domain, state->username,
                                    NULL, &state->groups);

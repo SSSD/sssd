@@ -256,9 +256,10 @@ struct cache_req_state {
     struct cache_req *cr;
 
     /* work data */
-    struct ldb_result *result;
     struct sss_domain_info *domain;
     struct sss_domain_info *selected_domain;
+    struct cache_req_result **results;
+    size_t num_results;
     bool check_next;
 };
 
@@ -479,21 +480,73 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
     return ENOENT;
 }
 
+static errno_t
+cache_req_add_result(struct cache_req_state *state,
+                     struct cache_req_result *new)
+{
+    struct cache_req_result **results = state->results;
+    size_t index;
+    size_t count;
+
+    /* Make space for new results. */
+    index = state->num_results;
+    count = state->num_results + 1;
+
+    results = talloc_realloc(state, results, struct cache_req_result *, count + 1);
+    if (results == NULL) {
+        return ENOMEM;
+    }
+
+    results[index] = talloc_steal(results, new);
+    results[index + 1] = NULL;
+    state->results = results;
+    state->num_results = count;
+
+    return EOK;
+}
+
+static errno_t
+cache_req_create_and_add_result(struct cache_req_state *state,
+                                struct sss_domain_info *domain,
+                                struct ldb_result *ldb_result,
+                                const char *name)
+{
+    struct cache_req_result *item;
+    errno_t ret;
+
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
+                    "Found %u entries in domain %s\n",
+                    ldb_result->count, domain->name);
+
+    item = cache_req_create_result(state, domain, ldb_result, name);
+    if (item == NULL) {
+        return ENOMEM;
+    }
+
+    ret = cache_req_add_result(state, item);
+    if (ret != EOK) {
+        talloc_free(item);
+    }
+
+    return ret;
+}
+
 static void cache_req_done(struct tevent_req *subreq)
 {
     struct cache_req_state *state;
+    struct ldb_result *result;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_state);
 
-    ret = cache_req_search_recv(state, subreq, &state->result);
+    ret = cache_req_search_recv(state, subreq, &result);
     talloc_zfree(subreq);
     if (ret == EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Success\n");
-        tevent_req_done(req);
-        return;
+        ret = cache_req_create_and_add_result(state, state->selected_domain,
+                                          result, state->cr->data->name.lookup);
+        goto done;
     }
 
     if (state->check_next == false) {
@@ -503,16 +556,31 @@ static void cache_req_done(struct tevent_req *subreq)
             return;
         }
 
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Not found\n");
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     ret = cache_req_next_domain(req);
     if (ret != EAGAIN) {
+        goto done;
+    }
+
+    return;
+
+done:
+    switch (ret) {
+    case EOK:
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Success\n");
+        tevent_req_done(req);
+        break;
+    case ENOENT:
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Not found\n");
+        tevent_req_error(req, ret);
+        break;
+    default:
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Finished: Error %d: %s\n", ret, sss_strerror(ret));
         tevent_req_error(req, ret);
+        break;
     }
 
     return;
@@ -520,36 +588,33 @@ static void cache_req_done(struct tevent_req *subreq)
 
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
-                       struct ldb_result **_result,
-                       struct sss_domain_info **_domain,
-                       char **_name)
+                       struct cache_req_result ***_results)
 {
-    struct cache_req_state *state = NULL;
-    char *name;
+    struct cache_req_state *state;
 
     state = tevent_req_data(req, struct cache_req_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (_name != NULL) {
-        if (state->cr->data->name.lookup == NULL) {
-            *_name = NULL;
-        } else {
-            name = talloc_strdup(mem_ctx, state->cr->data->name.lookup);
-            if (name == NULL) {
-                return ENOMEM;
-            }
-
-            *_name = name;
-        }
+    if (_results != NULL) {
+        *_results = talloc_steal(mem_ctx, state->results);
     }
+
+    return EOK;
+}
+
+errno_t cache_req_single_domain_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req,
+                                     struct cache_req_result **_result)
+{
+    struct cache_req_state *state;
+
+    state = tevent_req_data(req, struct cache_req_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (_result != NULL) {
-        *_result = talloc_steal(mem_ctx, state->result);
-    }
-
-    if (_domain != NULL) {
-        *_domain = state->selected_domain;
+        *_result = talloc_steal(mem_ctx, state->results[0]);
     }
 
     return EOK;
@@ -576,4 +641,33 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
     talloc_steal(req, data);
 
     return req;
+}
+
+struct cache_req_result *
+cache_req_create_result(TALLOC_CTX *mem_ctx,
+                        struct sss_domain_info *domain,
+                        struct ldb_result *ldb_result,
+                        const char *lookup_name)
+{
+    struct cache_req_result *result;
+
+    result = talloc_zero(mem_ctx, struct cache_req_result);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    result->domain = domain;
+    result->ldb_result = talloc_steal(result, ldb_result);
+    result->count = ldb_result != NULL ? ldb_result->count : 0;
+    result->msgs = ldb_result != NULL ? ldb_result->msgs : NULL;
+
+    if (lookup_name != NULL) {
+        result->lookup_name = talloc_strdup(result, lookup_name);
+        if (result->lookup_name == NULL) {
+            talloc_free(result);
+            return NULL;
+        }
+    }
+
+    return result;
 }
