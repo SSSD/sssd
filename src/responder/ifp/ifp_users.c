@@ -114,14 +114,13 @@ ifp_users_find_by_name_done(struct tevent_req *req)
 {
     DBusError *error;
     struct sbus_request *sbus_req;
-    struct sss_domain_info *domain;
-    struct ldb_result *result;
+    struct cache_req_result *result;
     char *object_path;
     errno_t ret;
 
     sbus_req = tevent_req_callback_data(req, struct sbus_request);
 
-    ret = cache_req_user_by_name_recv(sbus_req, req, &result, &domain, NULL);
+    ret = cache_req_user_by_name_recv(sbus_req, req, &result);
     talloc_zfree(req);
     if (ret == ENOENT) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
@@ -133,7 +132,7 @@ ifp_users_find_by_name_done(struct tevent_req *req)
         goto done;
     }
 
-    object_path = ifp_users_build_path_from_msg(sbus_req, domain,
+    object_path = ifp_users_build_path_from_msg(sbus_req, result->domain,
                                                 result->msgs[0]);
     if (object_path == NULL) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
@@ -184,14 +183,13 @@ ifp_users_find_by_id_done(struct tevent_req *req)
 {
     DBusError *error;
     struct sbus_request *sbus_req;
-    struct sss_domain_info *domain;
-    struct ldb_result *result;
+    struct cache_req_result *result;
     char *object_path;
     errno_t ret;
 
     sbus_req = tevent_req_callback_data(req, struct sbus_request);
 
-    ret = cache_req_user_by_id_recv(sbus_req, req, &result, &domain);
+    ret = cache_req_user_by_id_recv(sbus_req, req, &result);
     talloc_zfree(req);
     if (ret == ENOENT) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
@@ -203,7 +201,7 @@ ifp_users_find_by_id_done(struct tevent_req *req)
         goto done;
     }
 
-    object_path = ifp_users_build_path_from_msg(sbus_req, domain,
+    object_path = ifp_users_build_path_from_msg(sbus_req, result->domain,
                                                 result->msgs[0]);
     if (object_path == NULL) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
@@ -269,14 +267,13 @@ static void ifp_users_find_by_cert_done(struct tevent_req *req)
 {
     DBusError *error;
     struct sbus_request *sbus_req;
-    struct sss_domain_info *domain;
-    struct ldb_result *result;
+    struct cache_req_result *result;
     char *object_path;
     errno_t ret;
 
     sbus_req = tevent_req_callback_data(req, struct sbus_request);
 
-    ret = cache_req_user_by_cert_recv(sbus_req, req, &result, &domain, NULL);
+    ret = cache_req_user_by_cert_recv(sbus_req, req, &result);
     talloc_zfree(req);
     if (ret == ENOENT) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
@@ -288,7 +285,7 @@ static void ifp_users_find_by_cert_done(struct tevent_req *req)
         goto done;
     }
 
-    object_path = ifp_users_build_path_from_msg(sbus_req, domain,
+    object_path = ifp_users_build_path_from_msg(sbus_req, result->domain,
                                                 result->msgs[0]);
     if (object_path == NULL) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
@@ -376,14 +373,13 @@ static void ifp_users_list_by_name_done(struct tevent_req *req)
     DBusError *error;
     struct ifp_list_ctx *list_ctx;
     struct sbus_request *sbus_req;
-    struct ldb_result *result;
-    struct sss_domain_info *domain;
+    struct cache_req_result *result;
     errno_t ret;
 
     list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
     sbus_req = list_ctx->sbus_req;
 
-    ret = cache_req_user_by_name_recv(sbus_req, req, &result, &domain, NULL);
+    ret = cache_req_user_by_name_recv(sbus_req, req, &result);
     talloc_zfree(req);
     if (ret != EOK && ret != ENOENT) {
         error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
@@ -392,7 +388,7 @@ static void ifp_users_list_by_name_done(struct tevent_req *req)
         return;
     }
 
-    ret = ifp_users_list_copy(list_ctx, result);
+    ret = ifp_users_list_copy(list_ctx, result->ldb_result);
     if (ret != EOK) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
                                "Failed to copy domain result");
@@ -460,15 +456,14 @@ static void ifp_users_list_by_domain_and_name_done(struct tevent_req *req)
     DBusError *error;
     struct ifp_list_ctx *list_ctx;
     struct sbus_request *sbus_req;
-    struct ldb_result *result;
-    struct sss_domain_info *domain;
+    struct cache_req_result *result;
     errno_t ret;
     size_t copy_count, i;
 
     list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
     sbus_req = list_ctx->sbus_req;
 
-    ret = cache_req_user_by_name_recv(sbus_req, req, &result, &domain, NULL);
+    ret = cache_req_user_by_name_recv(sbus_req, req, &result);
     talloc_zfree(req);
     if (ret == ENOENT) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
@@ -710,7 +705,7 @@ static void ifp_users_user_update_groups_list_done(struct tevent_req *req)
 
     sbus_req = tevent_req_callback_data(req, struct sbus_request);
 
-    ret = cache_req_initgr_by_name_recv(sbus_req, req, NULL, NULL, NULL);
+    ret = cache_req_initgr_by_name_recv(sbus_req, req, NULL);
     talloc_zfree(req);
     if (ret == ENOENT) {
         error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
