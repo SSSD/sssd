@@ -238,14 +238,6 @@ static void pac_resolve_user_sid_done(struct tevent_req *req)
         return;
     }
 
-    if (result->count != 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Expected only 1 result for SID lookup, got [%ud].\n",
-              result->count);
-        ret = EINVAL;
-        goto done;
-    }
-
     user_attrs = sysdb_new_attrs(pr_ctx);
     if (user_attrs == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");

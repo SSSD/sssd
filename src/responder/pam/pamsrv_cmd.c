@@ -1431,13 +1431,6 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
         goto done;
     }
 
-    if (ret == EOK && result->count > 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Search by certificate returned more than one result.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
     if (ret == EOK) {
         if (preq->domain == NULL) {
             preq->domain = result->domain;
