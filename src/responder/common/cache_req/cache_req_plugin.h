@@ -151,6 +151,12 @@ struct cache_req_plugin {
     bool only_one_result;
 
     /**
+     * If true, cache request will iterate over all domains on domain-less
+     * search and merge acquired results.
+     */
+    bool search_all_domains;
+
+    /**
      * Allow missing domain part even if domain requires fully qualified name
      * on domain less searches.
      */

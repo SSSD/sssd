@@ -121,6 +121,7 @@ struct cache_req_plugin cache_req_user_by_filter = {
     .parse_name = true,
     .bypass_cache = true,
     .only_one_result = false,
+    .search_all_domains = false,
     .allow_missing_fqn = false,
     .allow_switch_to_upn = false,
     .upn_equivalent = CACHE_REQ_SENTINEL,
