@@ -5418,10 +5418,7 @@ static void users_find_by_cert_done(struct tevent_req *req)
 
     ret = cache_req_user_by_cert_recv(cctx, req, &result);
     talloc_zfree(req);
-    if (ret == ENOENT || result->count == 0) {
-        ret = ENOENT;
-        goto done;
-    } else if (ret != EOK) {
+    if (ret != EOK) {
         goto done;
     }
 
