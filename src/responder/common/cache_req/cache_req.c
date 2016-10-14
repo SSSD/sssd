@@ -472,9 +472,17 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
         return EAGAIN;
     }
 
-    /* If the object searched has to be unique among all maintained domains,
-     * we have to add it into negative cache here when all domains have
-     * been searched. */
+    /* If we've got some result from previous searches we want to return
+     * EOK here so the whole cache request is successfully finished. */
+    if (state->num_results > 0) {
+        return EOK;
+    }
+
+    /* We have searched all available domains and no result was found.
+     *
+     * If the plug-in uses a negative cache which is shared among all domains
+     * (e.g. unique identifires such as user or group id or sid), we add it
+     * here and return object not found error. */
     cache_req_global_ncache_add(cr);
 
     return ENOENT;
@@ -543,34 +551,63 @@ static void cache_req_done(struct tevent_req *subreq)
 
     ret = cache_req_search_recv(state, subreq, &result);
     talloc_zfree(subreq);
-    if (ret == EOK) {
-        ret = cache_req_create_and_add_result(state, state->selected_domain,
-                                          result, state->cr->data->name.lookup);
-        goto done;
-    }
 
-    if (state->check_next == false) {
-        if (ret == ENOENT && cache_req_assume_upn(state->cr)) {
-            /* search by upn now */
-            cache_req_select_domains(req, NULL);
-            return;
+    switch (ret) {
+    case EOK:
+        /* We got some data from this search. Save it. */
+        ret = cache_req_create_and_add_result(state, state->selected_domain,
+                                              result,
+                                              state->cr->data->name.lookup);
+        if (ret != EOK) {
+            /* We were unable to save data. */
+            goto done;
         }
 
+        if (!state->check_next || !state->cr->plugin->search_all_domains) {
+            /* We are not interested in more results. */
+            ret = EOK;
+            goto done;
+        }
+
+        break;
+    case ENOENT:
+        if (state->check_next == false) {
+            /* Lookup domain was specified as input.
+             * We don't want to try the next domain,
+             * but we may want to try UPN search. */
+
+            if (cache_req_assume_upn(state->cr)) {
+                /* Try UPN now. */
+                ret = cache_req_select_domains(req, NULL);
+                goto done;
+            }
+
+            /* Not found. */
+            ret = ENOENT;
+            goto done;
+        }
+
+        break;
+    default:
+        /* Some serious error has happened. Finish. */
         goto done;
     }
 
+    /* This is a domain less search, continue with the next domain. */
     ret = cache_req_next_domain(req);
-    if (ret != EAGAIN) {
-        goto done;
-    }
-
-    return;
 
 done:
+    if (ret == ENOENT && state->results != NULL) {
+        /* We have at least one result. */
+        ret = EOK;
+    }
+
     switch (ret) {
     case EOK:
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Success\n");
         tevent_req_done(req);
+        break;
+    case EAGAIN:
         break;
     case ENOENT:
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Not found\n");

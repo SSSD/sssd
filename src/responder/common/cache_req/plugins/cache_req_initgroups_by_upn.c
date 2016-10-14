@@ -110,6 +110,7 @@ struct cache_req_plugin cache_req_initgroups_by_upn = {
     .parse_name = false,
     .bypass_cache = false,
     .only_one_result = false,
+    .search_all_domains = false,
     .allow_missing_fqn = true,
     .allow_switch_to_upn = false,
     .upn_equivalent = CACHE_REQ_SENTINEL,
