@@ -71,9 +71,6 @@ struct so {
 #ifdef HAVE_CIFS_IDMAP_PLUGIN
     { "cifs_idmap_sss.so", { LIBPFX"cifs_idmap_sss.so", NULL } },
 #endif
-    { "winbind_idmap_sss.so", { LIBPFX"libdlopen_test_winbind_idmap.so",
-                                LIBPFX"winbind_idmap_sss.so",
-                                NULL } },
     { "memberof.so", { LIBPFX"memberof.so", NULL } },
     { "libsss_child.so", { LIBPFX"libsss_util.so",
                            LIBPFX"libsss_child.so", NULL } },
@@ -87,6 +84,8 @@ struct so {
                         LIBPFX"libsss_ad.so", NULL } },
     { "libsss_ipa.so", { LIBPFX"libdlopen_test_providers.so",
                          LIBPFX"libsss_ipa.so", NULL } },
+    { "winbind_idmap_sss.so", { LIBPFX"libdlopen_test_winbind_idmap.so",
+                                LIBPFX"winbind_idmap_sss.so", NULL } },
 #endif /* BUILD_SAMBA */
     { "libsss_krb5.so", { LIBPFX"libdlopen_test_providers.so",
                           LIBPFX"libsss_krb5.so", NULL } },
@@ -98,8 +97,6 @@ struct so {
                                  LIBPFX"libsss_ldap_common.so", NULL } },
     { "libsss_proxy.so", { LIBPFX"libdlopen_test_providers.so",
                            LIBPFX"libsss_proxy.so", NULL } },
-    { "libdlopen_test_providers.so", { LIBPFX"libdlopen_test_providers.so",
-                                       NULL } },
 #ifdef HAVE_PYTHON2_BINDINGS
     { "_py2hbac.so", { LIBPFX"_py2hbac.so", NULL } },
     { "_py2sss.so", { LIBPFX"_py2sss.so", NULL } },
@@ -119,6 +116,8 @@ struct so {
     { "sss.so", { LIBPFX"sss.so", NULL } },
 #endif
     /* for testing purposes */
+    { "libdlopen_test_providers.so", { LIBPFX"libdlopen_test_providers.so",
+                                       NULL } },
     { "libsss_nss_idmap_tests.so", { LIBPFX"libsss_nss_idmap_tests.so",
                                      NULL } },
 #ifdef BUILD_SAMBA
