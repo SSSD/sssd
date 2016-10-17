@@ -33,6 +33,8 @@
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
 
+#include "sss_openssl.h"
+
 struct cipher_mech {
     const EVP_CIPHER * (*cipher)(void);
     const EVP_MD * (*digest)(void);
@@ -47,9 +49,9 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 {
     const EVP_CIPHER *cipher;
     const EVP_MD *digest;
-    EVP_PKEY *hmackey;
-    EVP_CIPHER_CTX ctx;
-    EVP_MD_CTX mdctx;
+    EVP_PKEY *hmackey = NULL;
+    EVP_CIPHER_CTX *ctx;
+    EVP_MD_CTX *mdctx = NULL;
     uint8_t *out = NULL;
     int evpkeylen;
     int evpivlen;
@@ -86,8 +88,13 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
         RAND_bytes(out, evpivlen);
     }
 
-    EVP_CIPHER_CTX_init(&ctx);
-    ret = EVP_EncryptInit_ex(&ctx, cipher, 0, key, evpivlen ? out : NULL);
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EVP_EncryptInit_ex(ctx, cipher, 0, key, evpivlen ? out : NULL);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
@@ -95,7 +102,7 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 
     outlen = evpivlen;
     tmplen = 0;
-    ret = EVP_EncryptUpdate(&ctx, out + outlen, &tmplen, plaintext, plainlen);
+    ret = EVP_EncryptUpdate(ctx, out + outlen, &tmplen, plaintext, plainlen);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
@@ -103,7 +110,7 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 
     outlen += tmplen;
 
-    ret = EVP_EncryptFinal_ex(&ctx, out + outlen, &tmplen);
+    ret = EVP_EncryptFinal_ex(ctx, out + outlen, &tmplen);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
@@ -113,28 +120,32 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 
     /* Then HMAC */
 
-    EVP_MD_CTX_init(&mdctx);
+    mdctx = EVP_MD_CTX_new();
+    if (mdctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-    ret = EVP_DigestInit_ex(&mdctx, digest, NULL);
+    ret = EVP_DigestInit_ex(mdctx, digest, NULL);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
     }
 
-    ret = EVP_DigestSignInit(&mdctx, NULL, digest, NULL, hmackey);
+    ret = EVP_DigestSignInit(mdctx, NULL, digest, NULL, hmackey);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
     }
 
-    ret = EVP_DigestSignUpdate(&mdctx, out, outlen);
+    ret = EVP_DigestSignUpdate(mdctx, out, outlen);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
     }
 
     slen = hmaclen;
-    ret = EVP_DigestSignFinal(&mdctx, &out[outlen], &slen);
+    ret = EVP_DigestSignFinal(mdctx, &out[outlen], &slen);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
@@ -147,8 +158,8 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     ret = EOK;
 
 done:
-    EVP_MD_CTX_cleanup(&mdctx);
-    EVP_CIPHER_CTX_cleanup(&ctx);
+    EVP_MD_CTX_free(mdctx);
+    EVP_CIPHER_CTX_free(ctx);
     EVP_PKEY_free(hmackey);
     return ret;
 }
@@ -160,9 +171,9 @@ int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 {
     const EVP_CIPHER *cipher;
     const EVP_MD *digest;
-    EVP_PKEY *hmackey;
-    EVP_CIPHER_CTX ctx;
-    EVP_MD_CTX mdctx;
+    EVP_PKEY *hmackey = NULL;
+    EVP_CIPHER_CTX *ctx = NULL;
+    EVP_MD_CTX *mdctx;
     const uint8_t *iv = NULL;
     uint8_t *out;
     int evpkeylen;
@@ -194,28 +205,32 @@ int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 
     /* First check HMAC */
 
-    EVP_MD_CTX_init(&mdctx);
+    mdctx = EVP_MD_CTX_new();
+    if (mdctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-    ret = EVP_DigestInit_ex(&mdctx, digest, NULL);
+    ret = EVP_DigestInit_ex(mdctx, digest, NULL);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
     }
 
-    ret = EVP_DigestSignInit(&mdctx, NULL, digest, NULL, hmackey);
+    ret = EVP_DigestSignInit(mdctx, NULL, digest, NULL, hmackey);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
     }
 
-    ret = EVP_DigestSignUpdate(&mdctx, ciphertext, cipherlen - hmaclen);
+    ret = EVP_DigestSignUpdate(mdctx, ciphertext, cipherlen - hmaclen);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
     }
 
     slen = hmaclen;
-    ret = EVP_DigestSignFinal(&mdctx, out, &slen);
+    ret = EVP_DigestSignFinal(mdctx, out, &slen);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
@@ -233,14 +248,19 @@ int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
         iv = ciphertext;
     }
 
-    EVP_CIPHER_CTX_init(&ctx);
-    ret = EVP_DecryptInit_ex(&ctx, cipher, 0, key, iv);
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EVP_DecryptInit_ex(ctx, cipher, 0, key, iv);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
     }
 
-    ret = EVP_DecryptUpdate(&ctx, out, &outlen,
+    ret = EVP_DecryptUpdate(ctx, out, &outlen,
                             ciphertext + evpivlen,
                             cipherlen - evpivlen - hmaclen);
     if (ret != 1) {
@@ -248,7 +268,7 @@ int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
         goto done;
     }
 
-    ret = EVP_DecryptFinal_ex(&ctx, out + outlen, &tmplen);
+    ret = EVP_DecryptFinal_ex(ctx, out + outlen, &tmplen);
     if (ret != 1) {
         ret = EFAULT;
         goto done;
@@ -261,8 +281,8 @@ int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     ret = EOK;
 
 done:
-    EVP_MD_CTX_cleanup(&mdctx);
-    EVP_CIPHER_CTX_cleanup(&ctx);
+    EVP_MD_CTX_free(mdctx);
+    EVP_CIPHER_CTX_free(ctx);
     EVP_PKEY_free(hmackey);
     return ret;
 }
