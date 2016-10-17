@@ -22,7 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define _GNU_SOURCE
+#include "config.h"
+
 #include <stdbool.h>
 #include <dlfcn.h>
 #include <stdio.h>
@@ -31,7 +32,7 @@
 #include <check.h>
 #include "tests/common.h"
 
-#define LIBPFX ABS_BUILD_DIR"/.libs/"
+#define LIBPFX ABS_BUILD_DIR "/" LT_OBJDIR
 
 struct so {
     const char *name;
