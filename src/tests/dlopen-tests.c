@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <check.h>
+#include <dirent.h>
 #include "tests/common.h"
 
 #define LIBPFX ABS_BUILD_DIR "/" LT_OBJDIR
@@ -154,16 +155,84 @@ static bool recursive_dlopen(const char **name, int round, char **errmsg)
     return ok;
 }
 
+static int file_so_filter(const struct dirent *ent)
+{
+    char *suffix;
+
+    suffix = rindex(ent->d_name, '.');
+    if (suffix != NULL
+            && strcmp(suffix, ".so") == 0
+            && suffix[3] == '\0') {
+        return 1;
+    }
+
+    return 0;
+}
+
+static char **get_so_files(size_t *_list_size)
+{
+    int n;
+    struct dirent **namelist;
+    char **libraries;
+
+    n = scandir(LIBPFX, &namelist, file_so_filter, alphasort);
+    fail_unless(n > 0);
+
+    libraries = calloc(n + 1, sizeof(char *));
+
+    for (int i = 0; i < n; ++i) {
+        libraries[i] = strdup(namelist[i]->d_name);
+        fail_if(libraries[i] == NULL);
+
+        free(namelist[i]);
+    }
+    free(namelist);
+
+    *_list_size = (size_t)n;
+    return libraries;
+}
+
+static void remove_library_from_list(const char *library, char **list,
+                                     size_t list_size)
+{
+    for (size_t i = 0; i < list_size; ++i) {
+        if (list[i] != NULL && strcmp(library, list[i]) == 0) {
+            /* found library need to be removed from list */
+            free(list[i]);
+            list[i] = NULL;
+            return;
+        }
+    }
+
+    ck_abort_msg("Cannot find expected library: %s", library);
+}
+
 START_TEST(test_dlopen_base)
 {
     char *errmsg;
     bool ok;
     int i;
+    size_t found_libraries_size;
+    char **found_libraries = get_so_files(&found_libraries_size);
+    bool unchecked_library = false;
 
     for (i = 0; so[i].name != NULL; i++) {
         ok = recursive_dlopen(so[i].libs, 0, &errmsg);
         fail_unless(ok, "Error opening %s: [%s]", so[i].name, errmsg);
+
+        remove_library_from_list(so[i].name, found_libraries,
+                                 found_libraries_size);
     }
+
+    for (i = 0; i < found_libraries_size; ++i) {
+        if (found_libraries[i] != NULL) {
+            printf("Unchecked library found: %s\n", found_libraries[i]);
+            unchecked_library = true;
+        }
+    }
+    free(found_libraries);
+
+    fail_if(unchecked_library);
 }
 END_TEST
 
