@@ -98,13 +98,13 @@ struct so {
                            LIBPFX"libsss_proxy.so", NULL } },
     { "libdlopen_test_providers.so", { LIBPFX"libdlopen_test_providers.so",
                                        NULL } },
-#ifdef HAVE_PYTHON_BINDINGS
+#ifdef HAVE_PYTHON2_BINDINGS
     { "_py2hbac.so", { LIBPFX"_py2hbac.so", NULL } },
     { "_py2sss.so", { LIBPFX"_py2sss.so", NULL } },
     { "_py2sss_murmur.so", { LIBPFX"_py2sss_murmur.so", NULL } },
     { "_py2sss_nss_idmap.so", { LIBPFX"_py2sss_nss_idmap.so", NULL } },
 #endif
-#ifdef HAVE_PYTHON_BINDINGS
+#ifdef HAVE_PYTHON3_BINDINGS
     { "_py3hbac.so", { LIBPFX"_py3hbac.so", NULL } },
     { "_py3sss.so", { LIBPFX"_py3sss.so", NULL } },
     { "_py3sss_murmur.so", { LIBPFX"_py3sss_murmur.so", NULL } },
