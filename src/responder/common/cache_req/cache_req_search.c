@@ -261,17 +261,29 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = cache_req_search_cache(state, cr, &state->result);
-    if (ret != EOK && ret != ENOENT) {
-        goto done;
-    }
+    /* If bypass_cache is enabled we always contact data provider before
+     * searching the cache. Thus we set expiration status to missing,
+     * which will trigger data provider request later.
+     *
+     * If disabled, we want to search the cache here to see if the
+     * object is already cached and valid or if data provider needs
+     * to be contacted.
+     */
+    state->result = NULL;
+    status = CACHE_OBJECT_MISSING;
+    if (!cr->plugin->bypass_cache) {
+        ret = cache_req_search_cache(state, cr, &state->result);
+        if (ret != EOK && ret != ENOENT) {
+            goto done;
+        }
 
-    status = cache_req_expiration_status(cr, state->result);
-    if (status == CACHE_OBJECT_VALID) {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
-                        "Returning [%s] from cache\n", cr->debugobj);
-        ret = EOK;
-        goto done;
+        status = cache_req_expiration_status(cr, state->result);
+        if (status == CACHE_OBJECT_VALID) {
+            CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                            "Returning [%s] from cache\n", cr->debugobj);
+            ret = EOK;
+            goto done;
+        }
     }
 
     ret = cache_req_search_dp(req, status);
