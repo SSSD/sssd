@@ -78,6 +78,7 @@ struct so {
     { "libsss_child.so", { LIBPFX"libsss_util.so",
                            LIBPFX"libsss_child.so", NULL } },
     { "libsss_crypt.so", { LIBPFX"libsss_crypt.so", NULL } },
+    { "libsss_cert.so", { LIBPFX"libsss_cert.so", NULL } },
     { "libsss_util.so", { LIBPFX"libsss_util.so", NULL } },
     { "libsss_simple.so", { LIBPFX"libdlopen_test_providers.so",
                             LIBPFX"libsss_simple.so", NULL } },
@@ -113,6 +114,18 @@ struct so {
 #endif
 #ifdef HAVE_CONFIG_LIB
     { "libsss_config.so", { LIBPFX"libsss_config.so", NULL } },
+#endif
+#ifdef BUILD_NFS_IDMAP
+    { "sss.so", { LIBPFX"sss.so", NULL } },
+#endif
+    /* for testing purposes */
+    { "libsss_nss_idmap_tests.so", { LIBPFX"libsss_nss_idmap_tests.so",
+                                     NULL } },
+#ifdef BUILD_SAMBA
+    { "libdlopen_test_winbind_idmap.so",
+      { LIBPFX"libdlopen_test_winbind_idmap.so", NULL } },
+    { "libsss_ad_tests.so", { LIBPFX"libdlopen_test_providers.so",
+                              LIBPFX"libsss_ad_tests.so", NULL } },
 #endif
     { NULL }
 };
