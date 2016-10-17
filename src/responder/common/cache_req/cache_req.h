@@ -41,6 +41,8 @@ enum cache_req_type {
 
     CACHE_REQ_OBJECT_BY_SID,
 
+    CACHE_REQ_ENUM_USERS,
+
     CACHE_REQ_SENTINEL
 };
 
@@ -68,6 +70,10 @@ cache_req_data_sid(TALLOC_CTX *mem_ctx,
                    enum cache_req_type type,
                    const char *sid,
                    const char **attrs);
+
+struct cache_req_data *
+cache_req_data_enum(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type);
 
 /* Output data. */
 
@@ -220,5 +226,16 @@ cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
 
 #define cache_req_object_by_sid_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_enum_users_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct resp_ctx *rctx,
+                          struct sss_nc_ctx *ncache,
+                          int cache_refresh_percent,
+                          const char *domain);
+
+#define cache_req_enum_users_recv(mem_ctx, req, _result) \
+    cache_req_recv(mem_ctx, req, _result)
 
 #endif /* _CACHE_REQ_H_ */

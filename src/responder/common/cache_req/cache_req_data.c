@@ -94,6 +94,8 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
             goto done;
         }
         break;
+    case CACHE_REQ_ENUM_USERS:
+        break;
     case CACHE_REQ_SENTINEL:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid cache request type!\n");
         ret = ERR_INTERNAL;
@@ -167,6 +169,15 @@ cache_req_data_sid(TALLOC_CTX *mem_ctx,
 
     input.sid = sid;
     input.attrs = attrs;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_enum(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type)
+{
+    struct cache_req_data input = { 0 };
 
     return cache_req_data_create(mem_ctx, type, &input);
 }
