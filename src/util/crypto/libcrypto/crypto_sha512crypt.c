@@ -28,6 +28,9 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
+#include "sss_openssl.h"
+
+
 /* Define our magic string to mark salt for SHA512 "encryption" replacement. */
 const char sha512_salt_prefix[] = "$6$";
 #define SALT_PREF_SIZE (sizeof(sha512_salt_prefix) - 1)
@@ -75,8 +78,8 @@ static int sha512_crypt_r(const char *key,
     unsigned char alt_result[64] __attribute__((__aligned__(ALIGN64)));
     size_t rounds = ROUNDS_DEFAULT;
     bool rounds_custom = false;
-    EVP_MD_CTX alt_ctx;
-    EVP_MD_CTX ctx;
+    EVP_MD_CTX *alt_ctx = NULL;
+    EVP_MD_CTX *ctx;
     size_t salt_len;
     size_t key_len;
     size_t cnt;
@@ -125,75 +128,83 @@ static int sha512_crypt_r(const char *key,
         salt = copied_salt = memcpy(tmp + ALIGN64 - PTR_2_INT(tmp) % ALIGN64, salt, salt_len);
     }
 
-    EVP_MD_CTX_init(&ctx);
+    ctx = EVP_MD_CTX_new();
+    if (ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-    EVP_MD_CTX_init(&alt_ctx);
+    alt_ctx = EVP_MD_CTX_new();
+    if (alt_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* Prepare for the real work.  */
-    if (!EVP_DigestInit_ex(&ctx, EVP_sha512(), NULL)) {
+    if (!EVP_DigestInit_ex(ctx, EVP_sha512(), NULL)) {
         ret = EIO;
         goto done;
     }
 
     /* Add the key string.  */
-    EVP_DigestUpdate(&ctx, (const unsigned char *)key, key_len);
+    EVP_DigestUpdate(ctx, (const unsigned char *)key, key_len);
 
     /* The last part is the salt string. This must be at most 16
      * characters and it ends at the first `$' character (for
      * compatibility with existing implementations). */
-    EVP_DigestUpdate(&ctx, (const unsigned char *)salt, salt_len);
+    EVP_DigestUpdate(ctx, (const unsigned char *)salt, salt_len);
 
     /* Compute alternate SHA512 sum with input KEY, SALT, and KEY.
      * The final result will be added to the first context. */
-    if (!EVP_DigestInit_ex(&alt_ctx, EVP_sha512(), NULL)) {
+    if (!EVP_DigestInit_ex(alt_ctx, EVP_sha512(), NULL)) {
         ret = EIO;
         goto done;
     }
 
     /* Add key. */
-    EVP_DigestUpdate(&alt_ctx, (const unsigned char *)key, key_len);
+    EVP_DigestUpdate(alt_ctx, (const unsigned char *)key, key_len);
 
     /* Add salt. */
-    EVP_DigestUpdate(&alt_ctx, (const unsigned char *)salt, salt_len);
+    EVP_DigestUpdate(alt_ctx, (const unsigned char *)salt, salt_len);
 
     /* Add key again. */
-    EVP_DigestUpdate(&alt_ctx, (const unsigned char *)key, key_len);
+    EVP_DigestUpdate(alt_ctx, (const unsigned char *)key, key_len);
 
     /* Now get result of this (64 bytes) and add it to the other context. */
-    EVP_DigestFinal_ex(&alt_ctx, alt_result, &part);
+    EVP_DigestFinal_ex(alt_ctx, alt_result, &part);
 
     /* Add for any character in the key one byte of the alternate sum. */
     for (cnt = key_len; cnt > 64; cnt -= 64) {
-        EVP_DigestUpdate(&ctx, alt_result, 64);
+        EVP_DigestUpdate(ctx, alt_result, 64);
     }
-    EVP_DigestUpdate(&ctx, alt_result, cnt);
+    EVP_DigestUpdate(ctx, alt_result, cnt);
 
     /* Take the binary representation of the length of the key and for every
      * 1 add the alternate sum, for every 0 the key. */
     for (cnt = key_len; cnt > 0; cnt >>= 1) {
         if ((cnt & 1) != 0) {
-            EVP_DigestUpdate(&ctx, alt_result, 64);
+            EVP_DigestUpdate(ctx, alt_result, 64);
         } else {
-            EVP_DigestUpdate(&ctx, (const unsigned char *)key, key_len);
+            EVP_DigestUpdate(ctx, (const unsigned char *)key, key_len);
         }
     }
 
     /* Create intermediate result. */
-    EVP_DigestFinal_ex(&ctx, alt_result, &part);
+    EVP_DigestFinal_ex(ctx, alt_result, &part);
 
     /* Start computation of P byte sequence. */
-    if (!EVP_DigestInit_ex(&alt_ctx, EVP_sha512(), NULL)) {
+    if (!EVP_DigestInit_ex(alt_ctx, EVP_sha512(), NULL)) {
         ret = EIO;
         goto done;
     }
 
     /* For every character in the password add the entire password. */
     for (cnt = 0; cnt < key_len; cnt++) {
-        EVP_DigestUpdate(&alt_ctx, (const unsigned char *)key, key_len);
+        EVP_DigestUpdate(alt_ctx, (const unsigned char *)key, key_len);
     }
 
     /* Finish the digest. */
-    EVP_DigestFinal_ex(&alt_ctx, temp_result, &part);
+    EVP_DigestFinal_ex(alt_ctx, temp_result, &part);
 
     /* Create byte sequence P. */
     cp = p_bytes = alloca(key_len);
@@ -203,18 +214,18 @@ static int sha512_crypt_r(const char *key,
     memcpy(cp, temp_result, cnt);
 
     /* Start computation of S byte sequence. */
-    if (!EVP_DigestInit_ex(&alt_ctx, EVP_sha512(), NULL)) {
+    if (!EVP_DigestInit_ex(alt_ctx, EVP_sha512(), NULL)) {
         ret = EIO;
         goto done;
     }
 
     /* For every character in the password add the entire salt. */
     for (cnt = 0; cnt < 16 + alt_result[0]; cnt++) {
-        EVP_DigestUpdate(&alt_ctx, (const unsigned char *)salt, salt_len);
+        EVP_DigestUpdate(alt_ctx, (const unsigned char *)salt, salt_len);
     }
 
     /* Finish the digest. */
-    EVP_DigestFinal_ex(&alt_ctx, temp_result, &part);
+    EVP_DigestFinal_ex(alt_ctx, temp_result, &part);
 
     /* Create byte sequence S.  */
     cp = s_bytes = alloca(salt_len);
@@ -226,37 +237,37 @@ static int sha512_crypt_r(const char *key,
     /* Repeatedly run the collected hash value through SHA512 to burn CPU cycles. */
     for (cnt = 0; cnt < rounds; cnt++) {
 
-        if (!EVP_DigestInit_ex(&ctx, EVP_sha512(), NULL)) {
+        if (!EVP_DigestInit_ex(ctx, EVP_sha512(), NULL)) {
             ret = EIO;
             goto done;
         }
 
         /* Add key or last result. */
         if ((cnt & 1) != 0) {
-            EVP_DigestUpdate(&ctx, (const unsigned char *)p_bytes, key_len);
+            EVP_DigestUpdate(ctx, (const unsigned char *)p_bytes, key_len);
         } else {
-            EVP_DigestUpdate(&ctx, alt_result, 64);
+            EVP_DigestUpdate(ctx, alt_result, 64);
         }
 
         /* Add salt for numbers not divisible by 3. */
         if (cnt % 3 != 0) {
-            EVP_DigestUpdate(&ctx, (const unsigned char *)s_bytes, salt_len);
+            EVP_DigestUpdate(ctx, (const unsigned char *)s_bytes, salt_len);
         }
 
         /* Add key for numbers not divisible by 7. */
         if (cnt % 7 != 0) {
-            EVP_DigestUpdate(&ctx, (const unsigned char *)p_bytes, key_len);
+            EVP_DigestUpdate(ctx, (const unsigned char *)p_bytes, key_len);
         }
 
         /* Add key or last result. */
         if ((cnt & 1) != 0) {
-            EVP_DigestUpdate(&ctx, alt_result, 64);
+            EVP_DigestUpdate(ctx, alt_result, 64);
         } else {
-            EVP_DigestUpdate(&ctx, (const unsigned char *)p_bytes, key_len);
+            EVP_DigestUpdate(ctx, (const unsigned char *)p_bytes, key_len);
         }
 
         /* Create intermediate result. */
-        EVP_DigestFinal_ex(&ctx, alt_result, &part);
+        EVP_DigestFinal_ex(ctx, alt_result, &part);
     }
 
     /* Now we can construct the result string.
@@ -318,8 +329,8 @@ done:
      * to processes or reading core dumps cannot get any information. We do it
      * in this way to clear correct_words[] inside the SHA512 implementation
      * as well.  */
-    EVP_MD_CTX_cleanup(&ctx);
-    EVP_MD_CTX_cleanup(&alt_ctx);
+    EVP_MD_CTX_free(ctx);
+    EVP_MD_CTX_free(alt_ctx);
     if (p_bytes) memset(p_bytes, '\0', key_len);
     if (s_bytes) memset(s_bytes, '\0', salt_len);
     if (copied_key) memset(copied_key, '\0', key_len);

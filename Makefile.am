@@ -583,6 +583,7 @@ endif
 dist_noinst_HEADERS = \
     src/monitor/monitor.h \
     src/util/crypto/sss_crypto.h \
+    src/util/crypto/libcrypto/sss_openssl.h \
     src/util/cert.h \
     src/util/dlinklist.h \
     src/util/debug.h \

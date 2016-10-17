@@ -70,7 +70,7 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
                          enum obfmethod meth, char **obfpwd)
 {
     int ret;
-    EVP_CIPHER_CTX ctx;
+    EVP_CIPHER_CTX *ctx;
     struct crypto_mech_data *mech_props;
     TALLOC_CTX *tmp_ctx = NULL;
     unsigned char *keybuf;
@@ -90,7 +90,11 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
         return ENOMEM;
     }
 
-    EVP_CIPHER_CTX_init(&ctx);
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     mech_props = get_crypto_mech_data(meth);
     if (mech_props == NULL) {
@@ -121,20 +125,20 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
         goto done;
     }
 
-    if (!EVP_EncryptInit_ex(&ctx, mech_props->cipher(), 0, keybuf, ivbuf)) {
+    if (!EVP_EncryptInit_ex(ctx, mech_props->cipher(), 0, keybuf, ivbuf)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failure to initialize cipher contex\n");
         ret = EIO;
         goto done;
     }
 
     /* sample data we'll encrypt and decrypt */
-    if (!EVP_EncryptUpdate(&ctx, cryptotext, &ctlen, (const unsigned char*)password, plen)) {
+    if (!EVP_EncryptUpdate(ctx, cryptotext, &ctlen, (const unsigned char *)password, plen)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot execute the encryption operation\n");
         ret = EIO;
         goto done;
     }
 
-    if(!EVP_EncryptFinal_ex(&ctx, cryptotext+ctlen, &digestlen)) {
+    if (!EVP_EncryptFinal_ex(ctx, cryptotext + ctlen, &digestlen)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot finialize the encryption operation\n");
         ret = EIO;
         goto done;
@@ -185,7 +189,7 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
 
 done:
     talloc_free(tmp_ctx);
-    EVP_CIPHER_CTX_cleanup(&ctx);
+    EVP_CIPHER_CTX_free(ctx);
     return ret;
 }
 
@@ -193,7 +197,7 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
                          char **password)
 {
     int ret;
-    EVP_CIPHER_CTX ctx;
+    EVP_CIPHER_CTX *ctx;
     TALLOC_CTX *tmp_ctx = NULL;
     struct crypto_mech_data *mech_props;
 
@@ -217,7 +221,11 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
         return ENOMEM;
     }
 
-    EVP_CIPHER_CTX_init(&ctx);
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* Base64 decode the incoming buffer */
     obfbuf = sss_base64_decode(tmp_ctx, b64encoded, &obflen);
@@ -276,18 +284,18 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
         goto done;
     }
 
-    if (!EVP_DecryptInit_ex(&ctx, mech_props->cipher(), 0, keybuf, ivbuf)) {
+    if (!EVP_DecryptInit_ex(ctx, mech_props->cipher(), 0, keybuf, ivbuf)) {
         ret = EIO;
         goto done;
     }
 
     /* sample data we'll encrypt and decrypt */
-    if (!EVP_DecryptUpdate(&ctx, (unsigned char*)pwdbuf, &plainlen, cryptotext, ctsize)) {
+    if (!EVP_DecryptUpdate(ctx, (unsigned char *)pwdbuf, &plainlen, cryptotext, ctsize)) {
         ret = EIO;
         goto done;
     }
 
-    if(!EVP_DecryptFinal_ex(&ctx, (unsigned char*)pwdbuf+plainlen, &digestlen)) {
+    if (!EVP_DecryptFinal_ex(ctx, (unsigned char *)pwdbuf + plainlen, &digestlen)) {
         ret = EIO;
         goto done;
     }
@@ -296,6 +304,6 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
-    EVP_CIPHER_CTX_cleanup(&ctx);
+    EVP_CIPHER_CTX_free(ctx);
     return ret;
 }
