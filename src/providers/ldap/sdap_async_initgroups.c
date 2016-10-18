@@ -2317,6 +2317,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     struct sdap_rfc2307bis_nested_ctx *state =
             tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
     char *oc_list;
+    const char *class;
 
     tmp_ctx = talloc_new(state);
     if (!tmp_ctx) {
@@ -2324,9 +2325,21 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         goto done;
     }
 
-    ret = sdap_get_group_primary_name(state, state->opts,
-                                      state->groups[state->group_iter],
-                                      state->dom, &state->primary_name);
+    ret = sysdb_attrs_get_string(state->groups[state->group_iter],
+                                 SYSDB_OBJECTCLASS, &class);
+    if (ret == EOK) {
+        /* If there is a objectClass attribute the object is coming from the
+         * cache and the name attribute of the object already has the primary
+         * name.
+         * If the objectClass attribute is missing the object is coming from
+         * LDAP and we have to find the primary name first. */
+        ret = sysdb_attrs_get_string(state->groups[state->group_iter],
+                                     SYSDB_NAME, &state->primary_name);
+    } else {
+        ret = sdap_get_group_primary_name(state, state->opts,
+                                          state->groups[state->group_iter],
+                                          state->dom, &state->primary_name);
+    }
     if (ret != EOK) {
         goto done;
     }
@@ -3069,6 +3082,103 @@ fail:
     tevent_req_error(req, ret);
 }
 
+static void sdap_ad_check_domain_local_groups_done(struct tevent_req *subreq);
+
+errno_t sdap_ad_check_domain_local_groups(struct tevent_req *req)
+{
+    struct sdap_get_initgr_state *state = tevent_req_data(req,
+                                               struct sdap_get_initgr_state);
+    int ret;
+    struct sdap_domain *local_sdom;
+    const char *orig_name;
+    const char *sysdb_name;
+    struct ldb_result *res;
+    struct tevent_req *subreq;
+    struct sysdb_attrs **groups;
+
+    /* We only need to check for domain local groups in the AD case and if the
+     * user is not from our domain, i.e. if the user comes from a sub-domain.
+     */
+    if (state->opts->schema_type != SDAP_SCHEMA_AD
+            || !IS_SUBDOMAIN(state->dom)
+            || !dp_target_enabled(state->id_ctx->be->provider, "ad", DPT_ID)) {
+        return EOK;
+    }
+
+    local_sdom = sdap_domain_get(state->id_ctx->opts, state->dom->parent);
+    if (local_sdom == NULL || local_sdom->pvt == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
+                                    state->dom->parent->name);
+        return EINVAL;
+    }
+
+    ret = sysdb_attrs_get_string(state->orig_user, SYSDB_NAME, &orig_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing name in user object.\n");
+        return ret;
+    }
+
+    sysdb_name = sss_create_internal_fqname(state, orig_name, state->dom->name);
+    if (sysdb_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_create_internal_fqname failed.\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_initgroups(state, state->dom, sysdb_name, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_initgroups failed for user [%s].\n",
+                                   sysdb_name);
+        return ret;
+    }
+
+    if (res->count == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb_initgroups returned no results for user [%s].\n",
+              sysdb_name);
+        return EINVAL;
+    }
+
+    /* The user object, the first entry in the res->msgs, is included as well
+     * to cover the case where the remote user is directly added to
+     * a domain local group. */
+    ret = sysdb_msg2attrs(state, res->count, res->msgs, &groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_msg2attrs failed.\n");
+        return ret;
+    }
+
+    subreq = sdap_ad_get_domain_local_groups_send(state, state->ev, local_sdom,
+                             state->opts, state->sysdb, state->dom->parent,
+                             groups, res->count);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_ad_get_domain_local_groups_send failed.\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, sdap_ad_check_domain_local_groups_done,
+                            req);
+
+    return EAGAIN;
+}
+
+static void sdap_ad_check_domain_local_groups_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sdap_ad_get_domain_local_groups_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+
+    return;
+}
+
 static void sdap_get_initgr_pgid(struct tevent_req *req);
 static void sdap_get_initgr_done(struct tevent_req *subreq)
 {
@@ -3201,8 +3311,6 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     if (ret == EOK) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Primary group already cached, nothing to do.\n");
-        ret = EOK;
-        goto done;
     } else {
         gid = talloc_asprintf(state, "%lu", (unsigned long)primary_gid);
         if (gid == NULL) {
@@ -3219,10 +3327,28 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
             goto done;
         }
         tevent_req_set_callback(subreq, sdap_get_initgr_pgid, req);
+
+        talloc_free(tmp_ctx);
+        return;
     }
 
-    talloc_free(tmp_ctx);
-    return;
+    ret = sdap_ad_check_domain_local_groups(req);
+    if (ret == EAGAIN) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Checking for domain local group memberships.\n");
+        talloc_free(tmp_ctx);
+        return;
+    } else if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "No need to check for domain local group memberships.\n");
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_ad_check_domain_local_groups failed, "
+              "meberships to domain local groups might be missing.\n");
+        /* do not let the request fail completely because we already have at
+         * least "some" groups */
+        ret = EOK;
+    }
 
 done:
     talloc_free(tmp_ctx);
@@ -3247,7 +3373,25 @@ static void sdap_get_initgr_pgid(struct tevent_req *subreq)
         return;
     }
 
+    ret = sdap_ad_check_domain_local_groups(req);
+    if (ret == EAGAIN) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Checking for domain local group memberships.\n");
+        return;
+    } else if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "No need to check for domain local group memberships.\n");
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_ad_check_domain_local_groups failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_ad_check_domain_local_groups failed, "
+              "meberships to domain local groups might be missing.\n");
+        /* do not let the request fail completely because we already have at
+         * least "some" groups */
+    }
+
     tevent_req_done(req);
+    return;
 }
 
 int sdap_get_initgr_recv(struct tevent_req *req)
