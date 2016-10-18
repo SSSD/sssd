@@ -1981,6 +1981,7 @@ done:
 
 errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *dom,
+                                 struct sss_domain_info *parent_dom,
                                  enum sysdb_member_type mtype,
                                  const char *name,
                                  char ***_direct_parents)
@@ -2029,7 +2030,11 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    basedn = sysdb_group_base_dn(tmp_ctx, dom);
+    if (parent_dom == NULL) {
+        basedn = sysdb_base_dn(dom->sysdb, tmp_ctx);
+    } else {
+        basedn = sysdb_group_base_dn(tmp_ctx, parent_dom);
+    }
     if (!basedn) {
         ret = ENOMEM;
         goto done;
