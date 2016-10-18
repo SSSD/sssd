@@ -173,4 +173,14 @@ errno_t sdap_nested_groups_store(struct sysdb_ctx *sysdb,
                                  struct sysdb_attrs **groups,
                                  unsigned long count);
 
+struct tevent_req *
+sdap_ad_get_domain_local_groups_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sdap_domain *local_sdom,
+                                     struct sdap_options *opts,
+                                     struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *dom,
+                                     struct sysdb_attrs **groups,
+                                     size_t num_groups);
+errno_t sdap_ad_get_domain_local_groups_recv(struct tevent_req *req);
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */
