@@ -1100,8 +1100,29 @@ errno_t sysdb_remove_attrs(struct sss_domain_info *domain,
                            enum sysdb_member_type type,
                            char **remove_attrs);
 
+/**
+ * @brief Return direct parents of an object in the cache
+ *
+ * @param[in]  mem_ctx         Memory context the result should be allocated
+ *                             on
+ * @param[in]  dom             domain the object is in
+ * @param[in]  parent_dom      domain which should be searched for direct
+ *                             parents if NULL all domains in the given cache
+ *                             are searched
+ * @param[in]  mtype           Type of the object, SYSDB_MEMBER_USER or
+ *                             SYSDB_MEMBER_GROUP
+ * @param[in]  name            Name of the object
+ * @param[out] _direct_parents List of names of the direct parent groups
+ *
+ *
+ * @return
+ *  - EOK:    success
+ *  - EINVAL: wrong mtype
+ *  - ENOMEM: Memory allocation failed
+ */
 errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *dom,
+                                 struct sss_domain_info *parent_dom,
                                  enum sysdb_member_type mtype,
                                  const char *name,
                                  char ***_direct_parents);

@@ -1278,7 +1278,8 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
         }
     }
 
-    ret = sysdb_get_direct_parents(tmp_ctx, state->dom, SYSDB_MEMBER_USER,
+    ret = sysdb_get_direct_parents(tmp_ctx, state->dom, state->dom,
+                                   SYSDB_MEMBER_USER,
                                    state->username, &sysdb_parent_name_list);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1365,7 +1366,7 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_get_direct_parents(tmp_ctx, dom, SYSDB_MEMBER_GROUP,
+    ret = sysdb_get_direct_parents(tmp_ctx, dom, dom, SYSDB_MEMBER_GROUP,
                                    group_name, &sysdb_parents_names_list);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -2047,7 +2048,8 @@ rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
         goto done;
     }
 
-    ret = sysdb_get_direct_parents(tmp_ctx, mstate->dom, SYSDB_MEMBER_GROUP,
+    ret = sysdb_get_direct_parents(tmp_ctx, mstate->dom, mstate->dom,
+                                   SYSDB_MEMBER_GROUP,
                                    group_name, &sysdb_parents_names_list);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -2109,7 +2111,8 @@ errno_t save_rfc2307bis_user_memberships(
     }
     in_transaction = true;
 
-    ret = sysdb_get_direct_parents(tmp_ctx, state->dom, SYSDB_MEMBER_USER,
+    ret = sysdb_get_direct_parents(tmp_ctx, state->dom, state->dom,
+                                   SYSDB_MEMBER_USER,
                                    state->name, &sysdb_parent_name_list);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
