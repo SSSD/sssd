@@ -611,7 +611,7 @@ static int sdap_initgr_rfc2307_recv(struct tevent_req *req)
 }
 
 /* ==Common code for pure RFC2307bis and IPA/AD========================= */
-static errno_t
+errno_t
 sdap_nested_groups_store(struct sysdb_ctx *sysdb,
                          struct sss_domain_info *domain,
                          struct sdap_options *opts,
@@ -1535,14 +1535,6 @@ static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq);
 static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq);
 errno_t save_rfc2307bis_user_memberships(
         struct sdap_initgr_rfc2307bis_state *state);
-struct tevent_req *rfc2307bis_nested_groups_send(
-        TALLOC_CTX *mem_ctx, struct tevent_context *ev,
-        struct sdap_options *opts, struct sysdb_ctx *sysdb,
-        struct sss_domain_info *dom, struct sdap_handle *sh,
-        struct sdap_search_base **search_bases,
-        struct sysdb_attrs **groups, size_t num_groups,
-        hash_table_t *group_hash, size_t nesting);
-static errno_t rfc2307bis_nested_groups_recv(struct tevent_req *req);
 
 static struct tevent_req *sdap_initgr_rfc2307bis_send(
         TALLOC_CTX *memctx,
@@ -2609,7 +2601,7 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
     tevent_req_set_callback(subreq, rfc2307bis_nested_groups_done, req);
 }
 
-static errno_t rfc2307bis_nested_groups_recv(struct tevent_req *req)
+errno_t rfc2307bis_nested_groups_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
