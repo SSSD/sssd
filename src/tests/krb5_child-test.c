@@ -210,8 +210,18 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
 
     /* The Kerberos context */
     kr->krb5_ctx = create_dummy_krb5_ctx(kr, realm);
+    if (!kr->krb5_ctx) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to create dummy krb5_ctx\n");
+        goto fail;
+    }
     /* PAM Data structure */
     kr->pd = create_dummy_pam_data(kr, user, password);
+    if (!kr->pd) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to create dummy pam_data");
+        goto fail;
+    }
 
     ret = krb5_get_simple_upn(kr, kr->krb5_ctx, NULL, kr->pd->user, NULL,
                               &kr->upn);
