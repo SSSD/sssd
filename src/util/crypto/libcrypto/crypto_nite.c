@@ -222,7 +222,7 @@ int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     }
 
     ret = CRYPTO_memcmp(&ciphertext[cipherlen - hmaclen], out, hmaclen);
-    if (ret != 1) {
+    if (ret != 0) {
         ret = EFAULT;
         goto done;
     }
