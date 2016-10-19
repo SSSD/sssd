@@ -158,6 +158,49 @@ START_TEST(test_base64_decode)
 }
 END_TEST
 
+START_TEST(test_sss_encrypt_decrypt)
+{
+    uint8_t key[] = {
+        0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
+        0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
+    };
+    size_t key_len = sizeof(key); /* need to be 32 */
+    const char input_text[] = "Secret text";
+    const size_t input_text_len = sizeof(input_text) - 1;
+    uint8_t *cipher_text;
+    size_t cipher_text_len;
+    uint8_t *plain_text;
+    size_t plain_text_len;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    fail_if(test_ctx == NULL);
+
+    ret = sss_encrypt(test_ctx, AES256CBC_HMAC_SHA256, key, key_len,
+                      (const uint8_t *)input_text, input_text_len,
+                      &cipher_text, &cipher_text_len);
+
+    fail_if(ret != 0);
+    fail_if(cipher_text_len == 0);
+
+    ret = memcmp(input_text, cipher_text, input_text_len);
+    fail_if(ret == 0, "Input and encrypted text has common prefix");
+
+    ret = sss_decrypt(test_ctx, AES256CBC_HMAC_SHA256, key, key_len,
+                      cipher_text, cipher_text_len,
+                      &plain_text, &plain_text_len);
+    fail_if(ret != 0);
+    fail_if(plain_text_len != input_text_len);
+
+    ret = memcmp(plain_text, input_text, input_text_len);
+    fail_if(ret != 0, "input text is not the same as de-encrypted text");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *crypto_suite(void)
 {
     Suite *s = suite_create("sss_crypto");
@@ -172,6 +215,7 @@ Suite *crypto_suite(void)
     tcase_add_test(tc, test_hmac_sha1);
     tcase_add_test(tc, test_base64_encode);
     tcase_add_test(tc, test_base64_decode);
+    tcase_add_test(tc, test_sss_encrypt_decrypt);
     /* Add all test cases to the test suite */
     suite_add_tcase(s, tc);
 
