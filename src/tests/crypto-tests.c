@@ -48,7 +48,7 @@ START_TEST(test_nss_init)
 END_TEST
 #endif
 
-START_TEST(test_encrypt_decrypt)
+START_TEST(test_sss_password_encrypt_decrypt)
 {
     const char *password[] = { "test123",             /* general */
                                "12345678901234567",   /* just above blocksize */
@@ -211,7 +211,7 @@ Suite *crypto_suite(void)
 #ifdef HAVE_NSS
     tcase_add_test(tc, test_nss_init);
 #endif
-    tcase_add_test(tc, test_encrypt_decrypt);
+    tcase_add_test(tc, test_sss_password_encrypt_decrypt);
     tcase_add_test(tc, test_hmac_sha1);
     tcase_add_test(tc, test_base64_encode);
     tcase_add_test(tc, test_base64_decode);
