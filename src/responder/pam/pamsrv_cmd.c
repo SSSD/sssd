@@ -470,8 +470,8 @@ fail:
     return ret;
 }
 
-static errno_t filter_responses(struct confdb_ctx *cdb,
-                                struct response_data *resp_list)
+errno_t filter_responses(struct confdb_ctx *cdb,
+                         struct response_data *resp_list)
 {
     int ret;
     struct response_data *resp;
