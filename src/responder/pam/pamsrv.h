@@ -101,4 +101,7 @@ errno_t
 pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                          const char *username,
                                          uint64_t value);
+
+errno_t filter_responses(struct confdb_ctx *cdb,
+                         struct response_data *resp_list);
 #endif /* __PAMSRV_H__ */

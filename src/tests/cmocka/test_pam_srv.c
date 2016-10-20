@@ -31,6 +31,7 @@
 #include "responder/pam/pam_helpers.h"
 #include "sss_client/pam_message.h"
 #include "sss_client/sss_cli.h"
+#include "confdb/confdb.h"
 
 #include "util/crypto/sss_crypto.h"
 #ifdef HAVE_NSS
@@ -1637,6 +1638,54 @@ void test_pam_cert_auth(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_filter_response(void **state)
+{
+    int ret;
+    struct pam_data *pd;
+    uint8_t offline_auth_data[(sizeof(uint32_t) + sizeof(int64_t))];
+    uint32_t info_type;
+
+    struct sss_test_conf_param pam_params[] = {
+        { CONFDB_PAM_VERBOSITY, "1" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    pd = talloc_zero(pam_test_ctx, struct pam_data);
+    assert_non_null(pd);
+
+    info_type = SSS_PAM_USER_INFO_OFFLINE_AUTH;
+    memset(offline_auth_data, 0, sizeof(offline_auth_data));
+    memcpy(offline_auth_data, &info_type, sizeof(uint32_t));
+    ret = pam_add_response(pd, SSS_PAM_USER_INFO,
+                           sizeof(offline_auth_data), offline_auth_data);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+
+    pam_params[0].value = "0";
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+
+    /* SSS_PAM_USER_INFO_OFFLINE_AUTH message will only be shown with
+     * pam_verbosity 2 or above if cache password never expires. */
+    pam_params[0].value = "2";
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list);
+    assert_int_equal(ret, EOK);
+    assert_false(pd->resp_list->do_not_send_to_client);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -1746,6 +1795,9 @@ int main(int argc, const char *argv[])
                                         pam_test_setup_no_verification,
                                         pam_test_teardown),
 #endif /* HAVE_NSS */
+
+        cmocka_unit_test_setup_teardown(test_filter_response,
+                                        pam_test_setup, pam_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
