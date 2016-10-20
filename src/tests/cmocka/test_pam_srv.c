@@ -1644,9 +1644,11 @@ void test_filter_response(void **state)
     struct pam_data *pd;
     uint8_t offline_auth_data[(sizeof(uint32_t) + sizeof(int64_t))];
     uint32_t info_type;
+    char *env;
 
     struct sss_test_conf_param pam_params[] = {
         { CONFDB_PAM_VERBOSITY, "1" },
+        { CONFDB_PAM_RESPONSE_FILTER, NULL },
         { NULL, NULL },             /* Sentinel */
     };
 
@@ -1656,6 +1658,15 @@ void test_filter_response(void **state)
     pd = talloc_zero(pam_test_ctx, struct pam_data);
     assert_non_null(pd);
 
+    pd->service = discard_const("MyService");
+
+    env = talloc_asprintf(pd, "%s=%s", "MyEnv", "abcdef");
+    assert_non_null(env);
+
+    ret = pam_add_response(pd, SSS_PAM_ENV_ITEM,
+                           strlen(env) + 1, (uint8_t *) env);
+    assert_int_equal(ret, EOK);
+
     info_type = SSS_PAM_USER_INFO_OFFLINE_AUTH;
     memset(offline_auth_data, 0, sizeof(offline_auth_data));
     memcpy(offline_auth_data, &info_type, sizeof(uint32_t));
@@ -1663,17 +1674,15 @@ void test_filter_response(void **state)
                            sizeof(offline_auth_data), offline_auth_data);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list);
+    /* pd->resp_list points to the SSS_PAM_USER_INFO and pd->resp_list->next
+     * to the SSS_PAM_ENV_ITEM message. */
+
+
+    /* Test CONFDB_PAM_VERBOSITY option */
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_true(pd->resp_list->do_not_send_to_client);
-
-    pam_params[0].value = "0";
-    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
-    assert_int_equal(ret, EOK);
-
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list);
-    assert_int_equal(ret, EOK);
-    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
 
     /* SSS_PAM_USER_INFO_OFFLINE_AUTH message will only be shown with
      * pam_verbosity 2 or above if cache password never expires. */
@@ -1681,9 +1690,135 @@ void test_filter_response(void **state)
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
-    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list);
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
     assert_int_equal(ret, EOK);
     assert_false(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[0].value = "0";
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
+
+    /* Test CONFDB_PAM_RESPONSE_FILTER option */
+    pam_params[1].value = "NoSuchOption";
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV"; /* filter all environment variables */
+                                 /* for all services */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV:"; /* filter all environment variables */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV::"; /* filter all environment variables */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV:abc:"; /* variable name does not match */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV:abc:MyService"; /* variable name does not match */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV::abc"; /* service name does not match */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
+
+    /* service name does not match */
+    pam_params[1].value = "ENV:MyEnv:abc";
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_false(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV:MyEnv"; /* match */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV:MyEnv:"; /* match */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+
+    pam_params[1].value = "ENV:MyEnv:MyService"; /* match */
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+
+    /* multiple rules with a match */
+    pam_params[1].value = "ENV:abc:def, "
+                          "ENV:MyEnv:MyService, "
+                          "ENV:stu:xyz";
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = filter_responses(pam_test_ctx->rctx->cdb, pd->resp_list, pd);
+    assert_int_equal(ret, EOK);
+    assert_true(pd->resp_list->do_not_send_to_client);
+    assert_true(pd->resp_list->next->do_not_send_to_client);
+
+    talloc_free(pd);
 }
 
 int main(int argc, const char *argv[])

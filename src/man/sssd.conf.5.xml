@@ -932,6 +932,51 @@ fallback_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>pam_response_filter (integer)</term>
+                    <listitem>
+                        <para>
+                            A comma separated list of strings which allows to
+                            remove (filter) data send by the PAM responder to
+                            pam_sss PAM module. There are different kind of
+                            responses send to pam_sss e.g. messages displayed to
+                            the user or environment variables which should be
+                            set by pam_sss.
+                        </para>
+                        <para>
+                            While messages already can be controlled with the
+                            help of the pam_verbosity option this option allows
+                            to filter out other kind of responses as well.
+                        </para>
+                        <para>
+                            Currently the following filters are supported:
+                            <variablelist>
+                                <varlistentry><term>ENV</term>
+                                    <listitem><para>Do not sent any environment
+                                    variables to any service.</para></listitem>
+                                </varlistentry>
+                                <varlistentry><term>ENV:var_name</term>
+                                    <listitem><para>Do not sent environment
+                                    variable var_name to any
+                                    service.</para></listitem>
+                                </varlistentry>
+                                <varlistentry><term>ENV:var_name:service</term>
+                                    <listitem><para>Do not sent environment
+                                    variable var_name to
+                                    service.</para></listitem>
+                                </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                        <para>
+                            Example: ENV:KRB5CCNAME:sudo-i
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                   <term>pam_id_timeout (integer)</term>
                   <listitem>

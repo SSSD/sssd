@@ -112,6 +112,7 @@
 #define CONFDB_PAM_FAILED_LOGIN_DELAY "offline_failed_login_delay"
 #define CONFDB_DEFAULT_PAM_FAILED_LOGIN_DELAY 5
 #define CONFDB_PAM_VERBOSITY "pam_verbosity"
+#define CONFDB_PAM_RESPONSE_FILTER "pam_response_filter"
 #define CONFDB_PAM_ID_TIMEOUT "pam_id_timeout"
 #define CONFDB_PAM_PWD_EXPIRATION_WARNING "pam_pwd_expiration_warning"
 #define CONFDB_PAM_TRUSTED_USERS "pam_trusted_users"

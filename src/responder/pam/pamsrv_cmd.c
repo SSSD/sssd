@@ -470,14 +470,89 @@ fail:
     return ret;
 }
 
+static errno_t filter_responses_env(struct response_data *resp,
+                                    struct pam_data *pd,
+                                    char * const *pam_filter_opts)
+{
+    size_t c;
+    const char *var_name;
+    size_t var_name_len;
+    const char *service;
+
+    if (pam_filter_opts == NULL) {
+        return EOK;
+    }
+
+    for (c = 0; pam_filter_opts[c] != NULL; c++) {
+        if (strncmp(pam_filter_opts[c], "ENV", 3) != 0) {
+            continue;
+        }
+
+        var_name = NULL;
+        var_name_len = 0;
+        service = NULL;
+        if (pam_filter_opts[c][3] != '\0') {
+            if (pam_filter_opts[c][3] != ':') {
+                /* Neither plain ENV nor ENV:, ignored */
+                continue;
+            }
+
+            var_name = pam_filter_opts[c] + 4;
+            /* check if there is a second ':' in the option and use the following
+             * data, if any, as service name. */
+            service = strchr(var_name, ':');
+            if (service == NULL) {
+                var_name_len = strlen(var_name);
+            } else {
+                var_name_len = service - var_name;
+
+                service++;
+                /* handle empty service name "ENV:var:" */
+                if (*service == '\0') {
+                    service = NULL;
+                }
+            }
+        }
+        /* handle empty var name "ENV:" or "ENV::service" */
+        if (var_name_len == 0) {
+            var_name = NULL;
+        }
+
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Found PAM ENV filter for variable [%.*s] and service [%s].\n",
+              (int) var_name_len, var_name, service);
+
+        if (service != NULL && pd->service != NULL
+                    && strcmp(service, pd->service) != 0) {
+            /* current service does not match the filter */
+            continue;
+        }
+
+        if (var_name == NULL) {
+            /* All environment variables should be filtered */
+            resp->do_not_send_to_client = true;
+            continue;
+        }
+
+        if (resp->len > var_name_len && resp->data[var_name_len] == '='
+                    && memcmp(resp->data, var_name, var_name_len) == 0) {
+            resp->do_not_send_to_client = true;
+        }
+    }
+
+    return EOK;
+}
+
 errno_t filter_responses(struct confdb_ctx *cdb,
-                         struct response_data *resp_list)
+                         struct response_data *resp_list,
+                         struct pam_data *pd)
 {
     int ret;
     struct response_data *resp;
     uint32_t user_info_type;
-    int64_t expire_date;
-    int pam_verbosity;
+    int64_t expire_date = 0;
+    int pam_verbosity = DEFAULT_PAM_VERBOSITY;
+    char **pam_filter_opts = NULL;
 
     ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
@@ -488,12 +563,22 @@ errno_t filter_responses(struct confdb_ctx *cdb,
         pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
+    ret = confdb_get_string_as_list(cdb, pd, CONFDB_PAM_CONF_ENTRY,
+                                    CONFDB_PAM_RESPONSE_FILTER,
+                                    &pam_filter_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "[%s] not available, not fatal.\n",
+                                    CONFDB_PAM_RESPONSE_FILTER);
+        pam_filter_opts = NULL;
+    }
+
     resp = resp_list;
     while(resp != NULL) {
         if (resp->type == SSS_PAM_USER_INFO) {
             if (resp->len < sizeof(uint32_t)) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "User info entry is too short.\n");
-                return EINVAL;
+                ret = EINVAL;
+                goto done;
             }
 
             if (pam_verbosity == PAM_VERBOSITY_NO_MESSAGES) {
@@ -511,7 +596,8 @@ errno_t filter_responses(struct confdb_ctx *cdb,
                         DEBUG(SSSDBG_CRIT_FAILURE,
                               "User info offline auth entry is "
                                   "too short.\n");
-                        return EINVAL;
+                        ret = EINVAL;
+                        goto done;
                     }
                     memcpy(&expire_date, resp->data + sizeof(uint32_t),
                            sizeof(int64_t));
@@ -528,6 +614,13 @@ errno_t filter_responses(struct confdb_ctx *cdb,
                           "User info type [%d] not filtered.\n",
                            user_info_type);
             }
+        } else if (resp->type == SSS_PAM_ENV_ITEM) {
+            resp->do_not_send_to_client = false;
+            ret = filter_responses_env(resp, pd, pam_filter_opts);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "filter_responses_env failed.\n");
+                goto done;
+            }
         } else if (resp->type & SSS_SERVER_INFO) {
             resp->do_not_send_to_client = true;
         }
@@ -535,7 +628,11 @@ errno_t filter_responses(struct confdb_ctx *cdb,
         resp = resp->next;
     }
 
-    return EOK;
+    ret = EOK;
+done:
+    talloc_free(pam_filter_opts);
+
+    return ret;
 }
 
 static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
@@ -780,7 +877,7 @@ static void pam_reply(struct pam_auth_req *preq)
         inform_user(pd, pam_account_locked_message);
     }
 
-    ret = filter_responses(pctx->rctx->cdb, pd->resp_list);
+    ret = filter_responses(pctx->rctx->cdb, pd->resp_list, pd);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "filter_responses failed, not fatal.\n");
     }

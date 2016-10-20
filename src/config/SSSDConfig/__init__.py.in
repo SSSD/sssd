@@ -85,6 +85,7 @@ option_strings = {
     'offline_failed_login_attempts' : _('How many failed logins attempts are allowed when offline'),
     'offline_failed_login_delay' : _('How long (minutes) to deny login after offline_failed_login_attempts has been reached'),
     'pam_verbosity' : _('What kind of messages are displayed to the user during authentication'),
+    'pam_response_filter' : _('Filter PAM responses send the pam_sss'),
     'pam_id_timeout' : _('How many seconds to keep identity information cached for PAM requests'),
     'pam_pwd_expiration_warning' : _('How many days before password expiration a warning should be displayed'),
     'pam_trusted_users' : _('List of trusted uids or user\'s name'),
