@@ -257,7 +257,6 @@ if HAVE_CMOCKA
         test_sbus_opath \
         test_fo_srv \
         pam-srv-tests \
-        test_ad_subdom \
         test_ipa_subdom_util \
         test_tools_colondb \
         test_krb5_wait_queue \
@@ -284,6 +283,7 @@ non_interactive_cmocka_based_tests += \
     ad_access_filter_tests \
     ad_gpo_tests \
     ad_common_tests \
+    test_ad_subdom \
     test_ipa_subdom_server \
     $(NULL)
 endif
