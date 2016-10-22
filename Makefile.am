@@ -4151,7 +4151,9 @@ install-data-hook:
 	if [ ! $(krb5rcachedir) = "__LIBKRB5_DEFAULTS__" ]; then \
         $(MKDIR_P) $(DESTDIR)/$(krb5rcachedir) ; \
 	fi
+if BUILD_SAMBA
 	mv $(DESTDIR)/$(winbindplugindir)/winbind_idmap_sss.so $(DESTDIR)/$(winbindplugindir)/sss.so
+endif
 
 uninstall-hook:
 	if [ -f $(abs_builddir)/src/config/.files2 ]; then \
@@ -4173,7 +4175,9 @@ if BUILD_PYTHON3_BINDINGS
 	cd $(DESTDIR)$(py3execdir) && \
 		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
 endif
+if BUILD_SAMBA
 	rm $(DESTDIR)/$(winbindplugindir)/sss.so
+endif
 
 clean-local:
 if BUILD_PYTHON2_BINDINGS
