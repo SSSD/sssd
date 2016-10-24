@@ -269,7 +269,7 @@ static void rdp_message_send_and_reply_done(DBusPendingCall *pending,
     sbus_req = talloc_get_type(ptr, struct sbus_request);
 
     ret = rdp_process_pending_call(sbus_req, pending, &reply);
-    if (reply == NULL) {
+    if (ret != EOK) {
         /* Something bad happened. Just kill the request. */
         ret = EIO;
         goto done;
