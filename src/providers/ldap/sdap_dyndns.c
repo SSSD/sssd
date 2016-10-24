@@ -381,9 +381,6 @@ sdap_dyndns_update_done(struct tevent_req *subreq)
                 return;
             }
         }
-
-        tevent_req_error(req, ret);
-        return;
     }
 
     if (state->update_ptr == false) {
