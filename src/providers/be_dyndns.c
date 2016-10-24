@@ -435,10 +435,14 @@ nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
         /* Add the server, realm and headers */
         update_msg = talloc_asprintf(tmp_ctx, "server %s\n%s",
                                      servername, realm_directive);
-    } else {
+    } else if (realm != NULL) {
         DEBUG(SSSDBG_FUNC_DATA,
               "Creating update message for realm [%s].\n", realm);
         /* Add the realm headers */
+        update_msg = talloc_asprintf(tmp_ctx, "%s", realm_directive);
+    } else {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Creating update message for auto-discovered realm.\n");
         update_msg = talloc_asprintf(tmp_ctx, "%s", realm_directive);
     }
     talloc_free(realm_directive);
