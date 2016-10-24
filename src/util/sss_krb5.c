@@ -1104,7 +1104,6 @@ bool sss_krb5_realm_has_proxy(const char *realm)
 
     kerr = profile_get_values(profile, profile_path, &list);
     if (kerr == PROF_NO_RELATION || kerr == PROF_NO_SECTION) {
-        kerr = 0;
         goto done;
     } else if (kerr != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "profile_get_values failed.\n");
