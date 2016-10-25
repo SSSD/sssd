@@ -46,6 +46,7 @@ cache_req_get_plugin(enum cache_req_type type)
         &cache_req_object_by_sid,
 
         &cache_req_enum_users,
+        &cache_req_enum_groups,
     };
 
     if (type >= CACHE_REQ_SENTINEL) {
