@@ -95,6 +95,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         }
         break;
     case CACHE_REQ_ENUM_USERS:
+    case CACHE_REQ_ENUM_GROUPS:
         break;
     case CACHE_REQ_SENTINEL:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid cache request type!\n");

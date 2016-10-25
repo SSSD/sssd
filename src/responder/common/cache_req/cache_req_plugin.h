@@ -195,5 +195,6 @@ extern struct cache_req_plugin cache_req_user_by_filter;
 extern struct cache_req_plugin cache_req_group_by_filter;
 extern struct cache_req_plugin cache_req_object_by_sid;
 extern struct cache_req_plugin cache_req_enum_users;
+extern struct cache_req_plugin cache_req_enum_groups;
 
 #endif /* _CACHE_REQ_PLUGIN_H_ */

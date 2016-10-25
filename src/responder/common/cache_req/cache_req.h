@@ -42,6 +42,7 @@ enum cache_req_type {
     CACHE_REQ_OBJECT_BY_SID,
 
     CACHE_REQ_ENUM_USERS,
+    CACHE_REQ_ENUM_GROUPS,
 
     CACHE_REQ_SENTINEL
 };
@@ -236,6 +237,17 @@ cache_req_enum_users_send(TALLOC_CTX *mem_ctx,
                           const char *domain);
 
 #define cache_req_enum_users_recv(mem_ctx, req, _result) \
+    cache_req_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_enum_groups_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct resp_ctx *rctx,
+                           struct sss_nc_ctx *ncache,
+                           int cache_refresh_percent,
+                           const char *domain);
+
+#define cache_req_enum_groups_recv(mem_ctx, req, _result) \
     cache_req_recv(mem_ctx, req, _result)
 
 #endif /* _CACHE_REQ_H_ */
