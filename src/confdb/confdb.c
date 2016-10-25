@@ -900,13 +900,6 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    if (strcasecmp(domain->provider, "files") == 0) {
-        /* The files provider is not valid anymore */
-        DEBUG(SSSDBG_FATAL_FAILURE, "The \"files\" provider is invalid\n");
-        ret = EINVAL;
-        goto done;
-    }
-
     if (strcasecmp(domain->provider, "local") == 0) {
         /* If this is the local provider, we need to ensure that
          * no other provider was specified for other types, since
