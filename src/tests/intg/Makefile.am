@@ -23,6 +23,9 @@ dist_noinst_DATA = \
     secrets.py \
     test_secrets.py \
     test_sssctl.py \
+    files_ops.py \
+    test_files_ops.py \
+    test_files_provider.py \
     $(NULL)
 
 config.py: config.py.m4
