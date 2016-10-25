@@ -175,6 +175,7 @@ struct cache_req_plugin cache_req_initgroups_by_name = {
     .bypass_cache = false,
     .only_one_result = false,
     .search_all_domains = false,
+    .require_enumeration = false,
     .allow_missing_fqn = false,
     .allow_switch_to_upn = true,
     .upn_equivalent = CACHE_REQ_INITGROUPS_BY_UPN,

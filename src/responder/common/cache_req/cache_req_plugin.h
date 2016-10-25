@@ -157,6 +157,11 @@ struct cache_req_plugin {
     bool search_all_domains;
 
     /**
+     * True if only domains with enumeration enabled are searched.
+     */
+    bool require_enumeration;
+
+    /**
      * Allow missing domain part even if domain requires fully qualified name
      * on domain less searches.
      */
