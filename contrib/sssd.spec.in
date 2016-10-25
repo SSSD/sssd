@@ -848,6 +848,9 @@ done
 %{_sbindir}/sss_cache
 %{_libexecdir}/%{servicename}/sss_signal
 
+# The files provider is intentionally packaged in -common
+%{_libdir}/%{name}/libsss_files.so
+
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,sssd,sssd) %dir %{dbpath}
