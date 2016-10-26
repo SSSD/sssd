@@ -21,6 +21,7 @@
 #include <ldb.h>
 #include <talloc.h>
 #include <tevent.h>
+#include <errno.h>
 
 #include "util/util.h"
 #include "responder/common/cache_req/cache_req_private.h"
@@ -750,4 +751,60 @@ cache_req_create_result(TALLOC_CTX *mem_ctx,
     }
 
     return result;
+}
+
+struct cache_req_result *
+cache_req_copy_limited_result(TALLOC_CTX *mem_ctx,
+                              struct cache_req_result *result,
+                              uint32_t start,
+                              uint32_t limit)
+{
+    struct cache_req_result *out = NULL;
+    struct ldb_result *ldb_result;
+    unsigned int left;
+    errno_t ret;
+
+    if (start >= result->count) {
+        ret = ERANGE;
+        goto done;
+    }
+
+    out = talloc_zero(mem_ctx, struct cache_req_result);
+    if (out == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ldb_result = talloc_zero(out, struct ldb_result);
+    if (ldb_result == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    left = result->count - start;
+
+    ldb_result->extended = result->ldb_result->extended;
+    ldb_result->controls = result->ldb_result->controls;
+    ldb_result->refs = result->ldb_result->refs;
+    ldb_result->msgs = &(result->ldb_result->msgs[start]);
+    ldb_result->count = left < limit ? left : limit;
+
+    out->domain = result->domain;
+    out->ldb_result = ldb_result;
+    out->lookup_name = result->lookup_name;
+    out->count = ldb_result->count;
+    out->msgs = ldb_result->msgs;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create cache request result "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+
+        talloc_free(out);
+        return NULL;
+    }
+
+    return out;
 }

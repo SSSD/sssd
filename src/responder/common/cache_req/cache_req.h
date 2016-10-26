@@ -116,6 +116,16 @@ struct cache_req_result {
     const char *lookup_name;
 };
 
+/**
+ * Shallow copy of cache request result, limiting the result to a maximum
+ * numbers of records.
+ */
+struct cache_req_result *
+cache_req_copy_limited_result(TALLOC_CTX *mem_ctx,
+                              struct cache_req_result *result,
+                              uint32_t start,
+                              uint32_t limit);
+
 /* Generic request. */
 
 struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
