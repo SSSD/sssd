@@ -194,6 +194,33 @@ fail:
 }
 
 #ifdef HAVE_LDAP_INIT_FD
+static errno_t unset_fcntl_flags(int fd, int fl_flags)
+{
+    errno_t ret;
+    int flags;
+
+    flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fcntl F_GETFL failed [%s].\n", strerror(ret));
+        return ret;
+    }
+
+    /* unset flags */
+    flags &= ~fl_flags;
+
+    ret = fcntl(fd, F_SETFL, flags);
+    if (ret != EOK) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fcntl F_SETFL failed [%s].\n", strerror(ret));
+        return ret;
+    }
+
+    return EOK;
+}
+
 static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -213,6 +240,12 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
               ret, sss_strerror(ret));
         goto fail;
     }
+
+    ret = unset_fcntl_flags(state->sd, O_NONBLOCK);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     /* Initialize LDAP handler */
 
     lret = ldap_init_fd(state->sd, LDAP_PROTO_TCP, state->uri, &state->ldap);
