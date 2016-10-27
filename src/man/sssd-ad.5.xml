@@ -48,7 +48,7 @@
             addition servers from trusted domains are always auto-discovered.
         </para>
         <para>
-            The AD provider accepts the same options used by the
+            The AD provider enables SSSD to use the
             <citerefentry>
                 <refentrytitle>sssd-ldap</refentrytitle>
                 <manvolnum>5</manvolnum>
@@ -56,12 +56,19 @@
             <citerefentry>
                 <refentrytitle>sssd-krb5</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> authentication provider with some exceptions described
-            below.
+            </citerefentry> authentication provider with optimizations for
+            Active Directory environments. The AD provider accepts the same
+            options used by the sssd-ldap and sssd-krb5 providers with some
+            exceptions. However, it is neither necessary nor recommended to
+            set these options.
         </para>
         <para>
-            However, it is neither necessary nor recommended to set these
-            options. The AD provider can also be used as an access, chpass,
+            The AD provider primarily copies the traditional ldap and krb5
+            provider default options with some exceptions, the differences
+            are listed in the <quote>MODIFIED DEFAULT OPTIONS</quote> section.
+        </para>
+        <para>
+            The AD provider can also be used as an access, chpass,
             sudo and autofs provider. No configuration of the access provider
             is required on the client side.
         </para>
@@ -943,25 +950,6 @@ ad_gpo_map_deny = +my_pam_service
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/homedir_substring.xml" />
 
                 <varlistentry>
-                    <term>krb5_use_enterprise_principal (boolean)</term>
-                    <listitem>
-                        <para>
-                            Specifies if the user principal should be treated
-                            as enterprise principal. See section 5 of RFC 6806
-                            for more details about enterprise principals.
-                        </para>
-
-                        <para>
-                            Default: true
-                        </para>
-                        <para>
-                             Note that this default differs from the
-                             traditional Kerberos provider back end.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>krb5_confd_path (string)</term>
                     <listitem>
                         <para>
@@ -981,6 +969,8 @@ ad_gpo_map_deny = +my_pam_service
             </variablelist>
         </para>
     </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ad_modified_defaults.xml" />
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
 
