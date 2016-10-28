@@ -33,14 +33,6 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
-#define SSSD_KRB5_KDC "SSSD_KRB5_KDC"
-#define SSSD_KRB5_REALM "SSSD_KRB5_REALM"
-#define SSSD_KRB5_RENEWABLE_LIFETIME "SSSD_KRB5_RENEWABLE_LIFETIME"
-#define SSSD_KRB5_LIFETIME "SSSD_KRB5_LIFETIME"
-#define SSSD_KRB5_USE_FAST "SSSD_KRB5_USE_FAST"
-#define SSSD_KRB5_FAST_PRINCIPAL "SSSD_KRB5_FAST_PRINCIPAL"
-#define SSSD_KRB5_CANONICALIZE "SSSD_KRB5_CANONICALIZE"
-
 #define KDCINFO_TMPL PUBCONF_PATH"/kdcinfo.%s"
 #define KPASSWDINFO_TMPL PUBCONF_PATH"/kpasswdinfo.%s"
 
@@ -100,7 +92,9 @@ struct krb5_ctx {
     /* in seconds */
     krb5_deltat starttime;
     krb5_deltat lifetime;
+    char *lifetime_str;
     krb5_deltat rlife;
+    char *rlife_str;
 
     int forwardable;
     int proxiable;
@@ -136,6 +130,13 @@ struct krb5_ctx {
     enum krb5_config_type config_type;
 
     struct map_id_name_to_krb_primary *name_to_primary;
+
+    char *realm;
+
+    const char *use_fast_str;
+    const char *fast_principal;
+
+    bool canonicalize;
 };
 
 struct remove_info_files_ctx {
@@ -145,15 +146,15 @@ struct remove_info_files_ctx {
     const char *kpasswd_service_name;
 };
 
-errno_t check_and_export_options(struct dp_option *opts,
-                                 struct sss_domain_info *dom,
-                                 struct krb5_ctx *krb5_ctx);
+errno_t sss_krb5_check_options(struct dp_option *opts,
+                               struct sss_domain_info *dom,
+                               struct krb5_ctx *krb5_ctx);
 
 errno_t krb5_try_kdcip(struct confdb_ctx *cdb, const char *conf_path,
                        struct dp_option *opts, int opt_id);
 
-errno_t krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
-                         const char *conf_path, struct dp_option **_opts);
+errno_t sss_krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
+                             const char *conf_path, struct dp_option **_opts);
 
 errno_t write_krb5info_file(const char *realm, const char *kdc,
                             const char *service);
@@ -221,4 +222,7 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
                                         const char *inp_keytab_file,
                                         char **_mem_name,
                                         krb5_keytab *_mem_keytab);
+
+errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
+                       const char ***krb5_child_extra_args);
 #endif /* __KRB5_COMMON_H__ */

@@ -273,21 +273,140 @@ static errno_t activate_child_timeout_handler(struct tevent_req *req,
     return EOK;
 }
 
+errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
+                       const char ***krb5_child_extra_args)
+{
+    const char **extra_args;
+    size_t c = 0;
+    int ret;
+
+    if (krb5_ctx == NULL || krb5_child_extra_args == NULL) {
+        return EINVAL;
+    }
+
+    extra_args = talloc_zero_array(mem_ctx, const char *, 9);
+    if (extra_args == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+        return ENOMEM;
+    }
+
+    extra_args[c] = talloc_asprintf(extra_args,
+                                    "--"CHILD_OPT_FAST_CCACHE_UID"=%"SPRIuid,
+                                    getuid());
+    if (extra_args[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    c++;
+
+    extra_args[c] = talloc_asprintf(extra_args,
+                                    "--"CHILD_OPT_FAST_CCACHE_GID"=%"SPRIgid,
+                                    getgid());
+    if (extra_args[c] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    c++;
+
+    if (krb5_ctx->realm != NULL) {
+        extra_args[c] = talloc_asprintf(extra_args, "--"CHILD_OPT_REALM"=%s",
+                                        krb5_ctx->realm);
+        if (extra_args[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        c++;
+    }
+
+    if (krb5_ctx->lifetime_str != NULL) {
+        extra_args[c] = talloc_asprintf(extra_args, "--"CHILD_OPT_LIFETIME"=%s",
+                                        krb5_ctx->lifetime_str);
+        if (extra_args[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        c++;
+    }
+
+    if (krb5_ctx->rlife_str != NULL) {
+        extra_args[c] = talloc_asprintf(extra_args,
+                                        "--"CHILD_OPT_RENEWABLE_LIFETIME"=%s",
+                                        krb5_ctx->rlife_str);
+        if (extra_args[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        c++;
+    }
+
+    if (krb5_ctx->use_fast_str != NULL) {
+        extra_args[c] = talloc_asprintf(extra_args, "--"CHILD_OPT_USE_FAST"=%s",
+                                        krb5_ctx->use_fast_str);
+        if (extra_args[c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        c++;
+
+        if (krb5_ctx->fast_principal != NULL) {
+            extra_args[c] = talloc_asprintf(extra_args,
+                                            "--"CHILD_OPT_FAST_PRINCIPAL"=%s",
+                                            krb5_ctx->fast_principal);
+            if (extra_args[c] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            c++;
+        }
+    }
+
+    if (krb5_ctx->canonicalize) {
+            extra_args[c] = talloc_strdup(extra_args,
+                                          "--"CHILD_OPT_CANONICALIZE);
+            if (extra_args[c] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            c++;
+    }
+
+    extra_args[c] = NULL;
+
+    *krb5_child_extra_args = extra_args;
+
+    ret = EOK;
+
+done:
+
+    if (ret != EOK) {
+        talloc_free(extra_args);
+    }
+
+    return ret;
+}
+
 static errno_t fork_child(struct tevent_req *req)
 {
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
     pid_t pid;
     errno_t ret;
+    const char **krb5_child_extra_args;
     struct handle_child_state *state = tevent_req_data(req,
                                                      struct handle_child_state);
-    const char *k5c_extra_args[3];
 
-    k5c_extra_args[0] = talloc_asprintf(state, "--fast-ccache-uid=%"SPRIuid, getuid());
-    k5c_extra_args[1] = talloc_asprintf(state, "--fast-ccache-gid=%"SPRIgid, getgid());
-    k5c_extra_args[2] = NULL;
-    if (k5c_extra_args[0] == NULL || k5c_extra_args[1] == NULL) {
-        return ENOMEM;
+    ret = set_extra_args(state, state->kr->krb5_ctx, &krb5_child_extra_args);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "set_extra_args failed.\n");
+        goto fail;
     }
 
     ret = pipe(pipefd_from_child);
@@ -311,7 +430,8 @@ static errno_t fork_child(struct tevent_req *req)
         exec_child_ex(state,
                       pipefd_to_child, pipefd_from_child,
                       KRB5_CHILD, state->kr->krb5_ctx->child_debug_fd,
-                      k5c_extra_args, false, STDIN_FILENO, STDOUT_FILENO);
+                      krb5_child_extra_args, false,
+                      STDIN_FILENO, STDOUT_FILENO);
 
         /* We should never get here */
         DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Could not exec KRB5 child\n");

@@ -48,6 +48,15 @@ enum k5c_fast_opt {
     K5C_FAST_DEMAND,
 };
 
+struct cli_opts {
+    char *realm;
+    char *lifetime;
+    char *rtime;
+    char *use_fast_str;
+    char *fast_principal;
+    bool canonicalize;
+};
+
 struct krb5_req {
     krb5_context ctx;
     krb5_principal princ;
@@ -81,73 +90,68 @@ struct krb5_req {
 
     uid_t fast_uid;
     gid_t fast_gid;
+
+    struct cli_opts *cli_opts;
 };
 
 static krb5_context krb5_error_ctx;
 #define KRB5_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
-static krb5_error_code set_lifetime_options(krb5_get_init_creds_opt *options)
+static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,
+                                            krb5_get_init_creds_opt *options)
 {
-    char *lifetime_str;
     krb5_error_code kerr;
     krb5_deltat lifetime;
 
-    lifetime_str = getenv(SSSD_KRB5_RENEWABLE_LIFETIME);
-    if (lifetime_str == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Cannot read [%s] from environment.\n",
-              SSSD_KRB5_RENEWABLE_LIFETIME);
+    if (cli_opts->rtime == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "No specific renewable lifetime requested.\n");
 
         /* Unset option flag to make sure defaults from krb5.conf are used. */
         options->flags &= ~(KRB5_GET_INIT_CREDS_OPT_RENEW_LIFE);
     } else {
-        kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
+        kerr = krb5_string_to_deltat(cli_opts->rtime, &lifetime);
         if (kerr != 0) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "krb5_string_to_deltat failed for [%s].\n",
-                      lifetime_str);
+                  "krb5_string_to_deltat failed for [%s].\n", cli_opts->rtime);
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             return kerr;
         }
-        DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
-              SSSD_KRB5_RENEWABLE_LIFETIME, lifetime_str);
+        DEBUG(SSSDBG_CONF_SETTINGS, "Renewable lifetime is set to [%s]\n",
+                                    cli_opts->rtime);
         krb5_get_init_creds_opt_set_renew_life(options, lifetime);
     }
 
-    lifetime_str = getenv(SSSD_KRB5_LIFETIME);
-    if (lifetime_str == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Cannot read [%s] from environment.\n",
-              SSSD_KRB5_LIFETIME);
+    if (cli_opts->lifetime == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "No specific lifetime requested.\n");
 
         /* Unset option flag to make sure defaults from krb5.conf are used. */
         options->flags &= ~(KRB5_GET_INIT_CREDS_OPT_TKT_LIFE);
     } else {
-        kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
+        kerr = krb5_string_to_deltat(cli_opts->lifetime, &lifetime);
         if (kerr != 0) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "krb5_string_to_deltat failed for [%s].\n",
-                      lifetime_str);
+                  cli_opts->lifetime);
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             return kerr;
         }
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "%s is set to [%s]\n", SSSD_KRB5_LIFETIME, lifetime_str);
+        DEBUG(SSSDBG_CONF_SETTINGS, "Lifetime is set to [%s]\n",
+                                    cli_opts->lifetime);
         krb5_get_init_creds_opt_set_tkt_life(options, lifetime);
     }
 
     return 0;
 }
 
-static void set_canonicalize_option(krb5_get_init_creds_opt *opts)
+static void set_canonicalize_option(struct cli_opts *cli_opts,
+                                    krb5_get_init_creds_opt *opts)
 {
     int canonicalize = 0;
-    char *tmp_str;
 
-    tmp_str = getenv(SSSD_KRB5_CANONICALIZE);
-    if (tmp_str != NULL && strcasecmp(tmp_str, "true") == 0) {
-        canonicalize = 1;
-    }
-    DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
-          SSSD_KRB5_CANONICALIZE, tmp_str ? tmp_str : "not set");
+    canonicalize = cli_opts->canonicalize ? 1 : 0;
+    DEBUG(SSSDBG_CONF_SETTINGS, "Canonicalization is set to [%s]\n",
+          cli_opts->canonicalize ? "true" : "false");
     sss_krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
 }
 
@@ -160,18 +164,19 @@ static void set_changepw_options(krb5_get_init_creds_opt *options)
     krb5_get_init_creds_opt_set_tkt_life(options, 5*60);
 }
 
-static void revert_changepw_options(krb5_get_init_creds_opt *options)
+static void revert_changepw_options(struct cli_opts *cli_opts,
+                                    krb5_get_init_creds_opt *options)
 {
     krb5_error_code kerr;
 
-    set_canonicalize_option(options);
+    set_canonicalize_option(cli_opts, options);
 
     /* Currently we do not set forwardable and proxiable explicitly, the flags
      * must be removed so that libkrb5 can take the defaults from krb5.conf */
     options->flags &= ~(KRB5_GET_INIT_CREDS_OPT_FORWARDABLE);
     options->flags &= ~(KRB5_GET_INIT_CREDS_OPT_PROXIABLE);
 
-    kerr = set_lifetime_options(options);
+    kerr = set_lifetime_options(cli_opts, options);
     if (kerr != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "set_lifetime_options failed.\n");
     }
@@ -1218,6 +1223,7 @@ done:
 }
 
 static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
+                                                    struct cli_opts *cli_opts,
                                                     krb5_principal princ,
                                                     krb5_keytab keytab,
                                                     char *ccname)
@@ -1232,7 +1238,7 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
     krb5_get_init_creds_opt_set_address_list(&options, NULL);
     krb5_get_init_creds_opt_set_forwardable(&options, 0);
     krb5_get_init_creds_opt_set_proxiable(&options, 0);
-    set_canonicalize_option(&options);
+    set_canonicalize_option(cli_opts, &options);
 
     kerr = krb5_get_init_creds_keytab(ctx, &creds, princ, keytab, 0, NULL,
                                       &options);
@@ -1582,7 +1588,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
     /* We changed some of the gic options for the password change, now we have
      * to change them back to get a fresh TGT. */
-    revert_changepw_options(kr->options);
+    revert_changepw_options(kr->cli_opts, kr->options);
 
     ret = sss_authtok_set_password(kr->pd->authtok, newpassword, 0);
     if (ret != EOK) {
@@ -2053,6 +2059,7 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
                                          krb5_context ctx,
                                          uid_t fast_uid,
                                          gid_t fast_gid,
+                                         struct cli_opts *cli_opts,
                                          const char *primary,
                                          const char *realm,
                                          const char *keytab_name,
@@ -2149,7 +2156,7 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
 
-            kerr = get_and_save_tgt_with_keytab(ctx, client_princ,
+            kerr = get_and_save_tgt_with_keytab(ctx, cli_opts, client_princ,
                                                 keytab, ccname);
             if (kerr != 0) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
@@ -2255,14 +2262,14 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
     char *fast_principal_realm;
     char *fast_principal;
     krb5_error_code kerr;
-    char *tmp_str;
+    char *tmp_str = NULL;
     char *new_ccname;
 
-    tmp_str = getenv(SSSD_KRB5_FAST_PRINCIPAL);
-    if (tmp_str) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
-                                     SSSD_KRB5_FAST_PRINCIPAL, tmp_str);
-        kerr = krb5_parse_name(kr->ctx, tmp_str, &fast_princ_struct);
+    if (kr->cli_opts->fast_principal) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Fast principal is set to [%s]\n",
+                                     kr->cli_opts->fast_principal);
+        kerr = krb5_parse_name(kr->ctx, kr->cli_opts->fast_principal,
+                               &fast_princ_struct);
         if (kerr) {
             DEBUG(SSSDBG_CRIT_FAILURE, "krb5_parse_name failed.\n");
             return kerr;
@@ -2281,7 +2288,8 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
         }
         free(tmp_str);
         realm_data = krb5_princ_realm(kr->ctx, fast_princ_struct);
-        fast_principal_realm = talloc_asprintf(kr, "%.*s", realm_data->length, realm_data->data);
+        fast_principal_realm = talloc_asprintf(kr, "%.*s", realm_data->length,
+                                                           realm_data->data);
         if (!fast_principal_realm) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
             return ENOMEM;
@@ -2292,6 +2300,7 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
     }
 
     kerr = check_fast_ccache(kr, kr->ctx, kr->fast_uid, kr->fast_gid,
+                             kr->cli_opts,
                              fast_principal, fast_principal_realm,
                              kr->keytab, &kr->fast_ccname);
     if (kerr != 0) {
@@ -2336,12 +2345,11 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
     return EOK;
 }
 
-static errno_t check_use_fast(enum k5c_fast_opt *_fast_val)
+static errno_t check_use_fast(const char *use_fast_str,
+                              enum k5c_fast_opt *_fast_val)
 {
-    char *use_fast_str;
     enum k5c_fast_opt fast_val;
 
-    use_fast_str = getenv(SSSD_KRB5_USE_FAST);
     if (use_fast_str == NULL || strcasecmp(use_fast_str, "never") == 0) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Not using FAST.\n");
         fast_val = K5C_FAST_NEVER;
@@ -2560,14 +2568,14 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     krb5_get_init_creds_opt_set_change_password_prompt(kr->options, 0);
 #endif
 
-    kerr = set_lifetime_options(kr->options);
+    kerr = set_lifetime_options(kr->cli_opts, kr->options);
     if (kerr != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "set_lifetime_options failed.\n");
         return kerr;
     }
 
     if (!offline) {
-        set_canonicalize_option(kr->options);
+        set_canonicalize_option(kr->cli_opts, kr->options);
     }
 
 /* TODO: set options, e.g.
@@ -2591,10 +2599,9 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     int ret;
     char *mem_keytab;
 
-    kr->realm = getenv(SSSD_KRB5_REALM);
+    kr->realm = kr->cli_opts->realm;
     if (kr->realm == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot read [%s] from environment.\n", SSSD_KRB5_REALM);
+        DEBUG(SSSDBG_MINOR_FAILURE, "Realm not available.\n");
     }
 
     kerr = krb5_init_context(&kr->ctx);
@@ -2609,7 +2616,7 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
         return kerr;
     }
 
-    ret = check_use_fast(&kr->fast_val);
+    ret = check_use_fast(kr->cli_opts->use_fast_str, &kr->fast_val);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "check_use_fast failed.\n");
         return ret;
@@ -2691,6 +2698,7 @@ int main(int argc, const char *argv[])
     krb5_error_code kerr;
     uid_t fast_uid;
     gid_t fast_gid;
+    struct cli_opts cli_opts = { 0 };
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -2705,19 +2713,37 @@ int main(int argc, const char *argv[])
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
          &debug_to_stderr, 0,
          _("Send the debug output to stderr directly."), NULL },
-        {"fast-ccache-uid", 0, POPT_ARG_INT, &fast_uid, 0,
+        {CHILD_OPT_FAST_CCACHE_UID, 0, POPT_ARG_INT, &fast_uid, 0,
           _("The user to create FAST ccache as"), NULL},
-        {"fast-ccache-gid", 0, POPT_ARG_INT, &fast_gid, 0,
+        {CHILD_OPT_FAST_CCACHE_GID, 0, POPT_ARG_INT, &fast_gid, 0,
           _("The group to create FAST ccache as"), NULL},
+        {CHILD_OPT_REALM, 0, POPT_ARG_STRING, &cli_opts.realm, 0,
+         _("Kerberos realm to use"), NULL},
+        {CHILD_OPT_LIFETIME, 0, POPT_ARG_STRING, &cli_opts.lifetime, 0,
+         _("Requested lifetime of the ticket"), NULL},
+        {CHILD_OPT_RENEWABLE_LIFETIME, 0, POPT_ARG_STRING, &cli_opts.rtime, 0,
+         _("Requested renewable lifetime of the ticket"), NULL},
+        {CHILD_OPT_USE_FAST, 0, POPT_ARG_STRING, &cli_opts.use_fast_str, 0,
+         _("FAST options ('never', 'try', 'demand')"), NULL},
+        {CHILD_OPT_FAST_PRINCIPAL, 0, POPT_ARG_STRING,
+         &cli_opts.fast_principal, 0,
+         _("Specifies the server principal to use for FAST"), NULL},
+        {CHILD_OPT_CANONICALIZE, 0, POPT_ARG_NONE, NULL, 'C',
+         _("Requests canonicalization of the principal name"), NULL},
         POPT_TABLEEND
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
+    cli_opts.canonicalize = false;
+
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {
+        case 'C':
+            cli_opts.canonicalize = true;
+            break;
         default:
         fprintf(stderr, "\nInvalid option %s: %s\n\n",
                   poptBadOption(pc, 0), poptStrerror(opt));
@@ -2757,6 +2783,7 @@ int main(int argc, const char *argv[])
 
     kr->fast_uid = fast_uid;
     kr->fast_gid = fast_gid;
+    kr->cli_opts = &cli_opts;
 
     ret = k5c_recv_data(kr, STDIN_FILENO, &offline);
     if (ret != EOK) {
