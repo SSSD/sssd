@@ -1145,74 +1145,29 @@ done:
     return ret;
 }
 
-errno_t sysdb_try_to_find_expected_dn(struct sss_domain_info *dom,
-                                      const char *domain_component_name,
-                                      struct sysdb_attrs **usr_attrs,
-                                      size_t count,
-                                      struct sysdb_attrs **exp_usr)
+static errno_t match_cn_users(TALLOC_CTX *tmp_ctx,
+                              struct sysdb_attrs **usr_attrs,
+                              size_t count,
+                              const char *dom_basedn,
+                              struct sysdb_attrs **_result)
 {
-    char *dom_basedn;
-    size_t dom_basedn_len;
-    char *expected_basedn;
-    size_t expected_basedn_len;
-    size_t dn_len;
+    errno_t ret;
     const char *orig_dn;
-    size_t c = 0;
-    int ret;
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_context *ldb_ctx;
-    struct ldb_dn *ldb_dom_basedn;
-    int dom_basedn_comp_num;
-    struct ldb_dn *ldb_dn;
-    int dn_comp_num;
-    const char *component_name;
+    size_t dn_len;
     struct sysdb_attrs *result = NULL;
     const char *result_dn_str = NULL;
+    char *cn_users_basedn;
+    size_t cn_users_basedn_len;
 
-    if (dom == NULL || domain_component_name == NULL || usr_attrs == NULL
-            || count == 0) {
-        return EINVAL;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    ret = domain_to_basedn(tmp_ctx, dom->name, &dom_basedn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failed.\n");
-        goto done;
-    }
-    expected_basedn = talloc_asprintf(tmp_ctx, "%s%s", "cn=users,", dom_basedn);
-    if (expected_basedn == NULL) {
+    cn_users_basedn = talloc_asprintf(tmp_ctx, "%s%s", "cn=users,", dom_basedn);
+    if (cn_users_basedn == NULL) {
         ret = ENOMEM;
         goto done;
     }
+    cn_users_basedn_len = strlen(cn_users_basedn);
+    DEBUG(SSSDBG_TRACE_ALL, "cn=users baseDN is [%s].\n", cn_users_basedn);
 
-    ldb_ctx = sysdb_ctx_get_ldb(dom->sysdb);
-    if (ldb_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing ldb context.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    ldb_dom_basedn = ldb_dn_new(tmp_ctx, ldb_ctx, dom_basedn);
-    if (ldb_dom_basedn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    dom_basedn_comp_num = ldb_dn_get_comp_num(ldb_dom_basedn);
-    dom_basedn_comp_num++;
-
-    DEBUG(SSSDBG_TRACE_ALL, "Expected BaseDN is [%s].\n", expected_basedn);
-    expected_basedn_len = strlen(expected_basedn);
-    dom_basedn_len = strlen(dom_basedn);
-
-    for (c = 0; c < count; c++) {
+    for (size_t c = 0; c < count; c++) {
         ret = sysdb_attrs_get_string(usr_attrs[c], SYSDB_ORIG_DN, &orig_dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
@@ -1220,9 +1175,9 @@ errno_t sysdb_try_to_find_expected_dn(struct sss_domain_info *dom,
         }
         dn_len = strlen(orig_dn);
 
-        if (dn_len > expected_basedn_len
-                && strcasecmp(orig_dn + (dn_len - expected_basedn_len),
-                              expected_basedn) == 0) {
+        if (dn_len > cn_users_basedn_len
+                && strcasecmp(orig_dn + (dn_len - cn_users_basedn_len),
+                              cn_users_basedn) == 0) {
             DEBUG(SSSDBG_TRACE_ALL,
                   "Found matching dn [%s].\n", orig_dn);
             if (result != NULL) {
@@ -1237,49 +1192,174 @@ errno_t sysdb_try_to_find_expected_dn(struct sss_domain_info *dom,
         }
     }
 
-    if (result == NULL) {
-        for (c = 0; c < count; c++) {
-            ret = sysdb_attrs_get_string(usr_attrs[c], SYSDB_ORIG_DN, &orig_dn);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+    ret = EOK;
+done:
+    *_result = result;
+    return ret;
+}
+
+static errno_t match_non_dc_comp(TALLOC_CTX *tmp_ctx,
+                                 struct sss_domain_info *dom,
+                                 struct sysdb_attrs **usr_attrs,
+                                 size_t count,
+                                 struct ldb_dn *ldb_basedn,
+                                 const char *basedn,
+                                 const char *domain_component_name,
+                                 struct sysdb_attrs **_result)
+{
+    errno_t ret;
+    const char *orig_dn;
+    size_t orig_dn_len;
+    size_t basedn_len;
+    struct ldb_context *ldb_ctx;
+    struct ldb_dn *ldb_orig_dn;
+    int dn_comp_num;
+    int basedn_comp_num;
+    const char *component_name;
+    struct sysdb_attrs *result = NULL;
+    const char *result_dn_str = NULL;
+
+    ldb_ctx = sysdb_ctx_get_ldb(dom->sysdb);
+    if (ldb_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing ldb context.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    basedn_len = strlen(basedn);
+
+    basedn_comp_num = ldb_dn_get_comp_num(ldb_basedn);
+    basedn_comp_num++;
+
+    for (size_t c = 0; c < count; c++) {
+        ret = sysdb_attrs_get_string(usr_attrs[c], SYSDB_ORIG_DN, &orig_dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+        orig_dn_len = strlen(orig_dn);
+
+        if (orig_dn_len > basedn_len
+                /* Does the user's original DN with the non-domain part
+                 * stripped match the domain base DN?
+                 */
+                && strcasecmp(orig_dn + (orig_dn_len - basedn_len),
+                              basedn) == 0) {
+            ldb_orig_dn = ldb_dn_new(tmp_ctx, ldb_ctx, orig_dn);
+            if (ldb_orig_dn == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed");
+                ret = ENOMEM;
                 goto done;
             }
-            dn_len = strlen(orig_dn);
 
-            if (dn_len > dom_basedn_len
-                    && strcasecmp(orig_dn + (dn_len - dom_basedn_len),
-                                  dom_basedn) == 0) {
-                ldb_dn = ldb_dn_new(tmp_ctx, ldb_ctx, orig_dn);
-                if (ldb_dn == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed");
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                dn_comp_num = ldb_dn_get_comp_num(ldb_dn);
-                if (dn_comp_num > dom_basedn_comp_num) {
-                    component_name = ldb_dn_get_component_name(ldb_dn,
-                                           (dn_comp_num - dom_basedn_comp_num));
-                    DEBUG(SSSDBG_TRACE_ALL, "Comparing [%s] and [%s].\n",
-                                            component_name,
-                                            domain_component_name);
-                    if (component_name != NULL
-                            && strcasecmp(component_name,
-                                          domain_component_name) != 0) {
-                        DEBUG(SSSDBG_TRACE_ALL,
-                              "Found matching dn [%s].\n", orig_dn);
-                        if (result != NULL) {
-                            DEBUG(SSSDBG_OP_FAILURE,
-                                 "Found 2 matching DN [%s] and [%s], "
-                                 "expecting only 1.\n", result_dn_str, orig_dn);
-                            ret = EINVAL;
-                            goto done;
-                        }
-                        result = usr_attrs[c];
-                        result_dn_str = orig_dn;
+            dn_comp_num = ldb_dn_get_comp_num(ldb_orig_dn);
+            if (dn_comp_num > basedn_comp_num) {
+                component_name = ldb_dn_get_component_name(ldb_orig_dn,
+                        (dn_comp_num - basedn_comp_num));
+                DEBUG(SSSDBG_TRACE_ALL, "Comparing [%s] and [%s].\n",
+                      component_name,
+                      domain_component_name);
+                /* If the component is NOT a DC component, then the entry
+                 * must come from our domain, perhaps from a child container.
+                 * If it matched the DC component, the entry was from a child
+                 * subdomain different from this one.
+                 */
+                if (component_name != NULL
+                        && strcasecmp(component_name,
+                                      domain_component_name) != 0) {
+                    DEBUG(SSSDBG_TRACE_ALL,
+                            "Found matching dn [%s].\n", orig_dn);
+                    if (result != NULL) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                                "Found 2 matching DN [%s] and [%s], "
+                                "expecting only 1.\n", result_dn_str, orig_dn);
+                        ret = EINVAL;
+                        goto done;
                     }
+                    result = usr_attrs[c];
+                    result_dn_str = orig_dn;
                 }
             }
+        }
+    }
+
+    ret = EOK;
+    *_result = result;
+done:
+    return ret;
+}
+
+static errno_t match_basedn(TALLOC_CTX *tmp_ctx,
+                            struct sss_domain_info *dom,
+                            struct sysdb_attrs **usr_attrs,
+                            size_t count,
+                            const char *dom_basedn,
+                            const char *domain_component_name,
+                            struct sysdb_attrs **_result)
+{
+    struct ldb_context *ldb_ctx;
+    struct ldb_dn *ldb_dom_basedn;
+
+    ldb_ctx = sysdb_ctx_get_ldb(dom->sysdb);
+    if (ldb_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing ldb context.\n");
+        return EINVAL;
+    }
+
+
+    ldb_dom_basedn = ldb_dn_new(tmp_ctx, ldb_ctx, dom_basedn);
+    if (ldb_dom_basedn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
+        return ENOMEM;
+    }
+
+    return match_non_dc_comp(tmp_ctx, dom,
+                             usr_attrs, count,
+                             ldb_dom_basedn, dom_basedn,
+                             domain_component_name,
+                             _result);
+}
+
+errno_t sysdb_try_to_find_expected_dn(struct sss_domain_info *dom,
+                                      const char *domain_component_name,
+                                      struct sysdb_attrs **usr_attrs,
+                                      size_t count,
+                                      struct sysdb_attrs **exp_usr)
+{
+    char *dom_basedn;
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_attrs *result = NULL;
+
+    if (dom == NULL || domain_component_name == NULL
+            || usr_attrs == NULL || count == 0) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = domain_to_basedn(tmp_ctx, dom->name, &dom_basedn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = match_cn_users(tmp_ctx, usr_attrs, count, dom_basedn, &result);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (result == NULL) {
+        ret = match_basedn(tmp_ctx, dom, usr_attrs,
+                           count, dom_basedn, domain_component_name,
+                           &result);
+        if (ret != EOK) {
+            goto done;
         }
     }
 
