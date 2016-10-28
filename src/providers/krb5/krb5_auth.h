@@ -38,6 +38,15 @@
 
 #define ILLEGAL_PATH_PATTERN "//|/\\./|/\\.\\./"
 
+#define CHILD_OPT_FAST_CCACHE_UID "fast-ccache-uid"
+#define CHILD_OPT_FAST_CCACHE_GID "fast-ccache-gid"
+#define CHILD_OPT_REALM "realm"
+#define CHILD_OPT_LIFETIME "lifetime"
+#define CHILD_OPT_RENEWABLE_LIFETIME "renewable-lifetime"
+#define CHILD_OPT_USE_FAST "use-fast"
+#define CHILD_OPT_FAST_PRINCIPAL "fast-principal"
+#define CHILD_OPT_CANONICALIZE "canonicalize"
+
 struct krb5child_req {
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;

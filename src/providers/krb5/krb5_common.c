@@ -38,31 +38,38 @@
 #include <profile.h>
 #endif
 
-errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
-                                  const char *env_name)
+static errno_t check_lifetime(TALLOC_CTX *mem_ctx, struct dp_option *opts,
+                              const int opt_id, char **lifetime_str)
 {
     int ret;
-    char *str;
+    char *str = NULL;
     krb5_deltat lifetime;
-    bool free_str = false;
 
     str = dp_opt_get_string(opts, opt_id);
     if (str == NULL || *str == '\0') {
         DEBUG(SSSDBG_FUNC_DATA, "No lifetime configured.\n");
+        *lifetime_str = NULL;
         return EOK;
     }
 
     if (isdigit(str[strlen(str)-1])) {
-        str = talloc_asprintf(opts, "%ss", str);
+        str = talloc_asprintf(mem_ctx, "%ss", str);
         if (str == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
-            return ENOMEM;
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
         }
-        free_str = true;
 
         ret = dp_opt_set_string(opts, opt_id, str);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
+            goto done;
+        }
+    } else {
+        str = talloc_strdup(mem_ctx, str);
+        if (str == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
             goto done;
         }
     }
@@ -74,17 +81,12 @@ errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
         goto done;
     }
 
-    ret = setenv(env_name, str, 1);
-    if (ret != EOK) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "setenv [%s] failed.\n", env_name);
-        goto done;
-    }
+    *lifetime_str = str;
 
     ret = EOK;
 
 done:
-    if (free_str) {
+    if (ret != EOK) {
         talloc_free(str);
     }
 
@@ -157,17 +159,19 @@ static void sss_check_cc_template(const char *cc_template)
     }
 }
 
-errno_t check_and_export_options(struct dp_option *opts,
-                                 struct sss_domain_info *dom,
-                                 struct krb5_ctx *krb5_ctx)
+errno_t sss_krb5_check_options(struct dp_option *opts,
+                               struct sss_domain_info *dom,
+                               struct krb5_ctx *krb5_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     int ret;
     const char *realm;
     const char *dummy;
-    char *use_fast_str;
-    char *fast_principal;
     char *ccname;
+
+    if (opts == NULL || dom == NULL || krb5_ctx == NULL) {
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -185,15 +189,14 @@ errno_t check_and_export_options(struct dp_option *opts,
         realm = dom->name;
     }
 
-    ret = setenv(SSSD_KRB5_REALM, realm, 1);
-    if (ret != EOK) {
+    krb5_ctx->realm = talloc_strdup(krb5_ctx, realm);
+    if (krb5_ctx->realm == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "setenv %s failed, authentication might fail.\n",
-                  SSSD_KRB5_REALM);
+              "Failed to set realm, krb5_child might not work as expected.\n");
     }
 
-    ret = check_and_export_lifetime(opts, KRB5_RENEWABLE_LIFETIME,
-                                    SSSD_KRB5_RENEWABLE_LIFETIME);
+    ret = check_lifetime(krb5_ctx, opts, KRB5_RENEWABLE_LIFETIME,
+                         &krb5_ctx->rlife_str);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to check value of krb5_renewable_lifetime. [%d][%s]\n",
@@ -201,8 +204,8 @@ errno_t check_and_export_options(struct dp_option *opts,
         goto done;
     }
 
-    ret = check_and_export_lifetime(opts, KRB5_LIFETIME,
-                                    SSSD_KRB5_LIFETIME);
+    ret = check_lifetime(krb5_ctx, opts, KRB5_LIFETIME,
+                         &krb5_ctx->lifetime_str);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to check value of krb5_lifetime. [%d][%s]\n",
@@ -210,30 +213,17 @@ errno_t check_and_export_options(struct dp_option *opts,
         goto done;
     }
 
-
-    use_fast_str = dp_opt_get_string(opts, KRB5_USE_FAST);
-    if (use_fast_str != NULL) {
-        ret = check_fast(use_fast_str, &krb5_ctx->use_fast);
+    krb5_ctx->use_fast_str = dp_opt_get_cstring(opts, KRB5_USE_FAST);
+    if (krb5_ctx->use_fast_str != NULL) {
+        ret = check_fast(krb5_ctx->use_fast_str, &krb5_ctx->use_fast);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "check_fast failed.\n");
             goto done;
         }
 
         if (krb5_ctx->use_fast) {
-            ret = setenv(SSSD_KRB5_USE_FAST, use_fast_str, 1);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "setenv [%s] failed.\n", SSSD_KRB5_USE_FAST);
-            } else {
-                fast_principal = dp_opt_get_string(opts, KRB5_FAST_PRINCIPAL);
-                if (fast_principal != NULL) {
-                    ret = setenv(SSSD_KRB5_FAST_PRINCIPAL, fast_principal, 1);
-                    if (ret != EOK) {
-                        DEBUG(SSSDBG_OP_FAILURE,
-                              "setenv [%s] failed.\n", SSSD_KRB5_FAST_PRINCIPAL);
-                    }
-                }
-            }
+            krb5_ctx->fast_principal = dp_opt_get_cstring(opts,
+                                                          KRB5_FAST_PRINCIPAL);
         }
     }
 
@@ -241,15 +231,10 @@ errno_t check_and_export_options(struct dp_option *opts,
      * enterprise principal in an AS request but requires the canonicalize
      * flags to be set. To be on the safe side we always enable
      * canonicalization if enterprise principals are used. */
+    krb5_ctx->canonicalize = false;
     if (dp_opt_get_bool(opts, KRB5_CANONICALIZE)
             || dp_opt_get_bool(opts, KRB5_USE_ENTERPRISE_PRINCIPAL)) {
-        ret = setenv(SSSD_KRB5_CANONICALIZE, "true", 1);
-    } else {
-        ret = setenv(SSSD_KRB5_CANONICALIZE, "false", 1);
-    }
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "setenv [%s] failed.\n", SSSD_KRB5_CANONICALIZE);
+        krb5_ctx->canonicalize = true;
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);
@@ -370,8 +355,8 @@ errno_t krb5_try_kdcip(struct confdb_ctx *cdb, const char *conf_path,
     return EOK;
 }
 
-errno_t krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
-                         const char *conf_path, struct dp_option **_opts)
+errno_t sss_krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
+                             const char *conf_path, struct dp_option **_opts)
 {
     int ret;
     struct dp_option *opts;

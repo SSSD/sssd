@@ -64,10 +64,10 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
         }
     }
 
-    ret = check_and_export_options(krb5_auth_ctx->opts, bectx->domain,
-                                   krb5_auth_ctx);
+    ret = sss_krb5_check_options(krb5_auth_ctx->opts, bectx->domain,
+                                 krb5_auth_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "check_and_export_opts failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_krb5_check_options failed.\n");
         goto done;
     }
 
