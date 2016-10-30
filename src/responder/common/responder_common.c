@@ -38,6 +38,7 @@
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder.h"
+#include "responder/common/iface/responder_iface.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
 #include "monitor/monitor_interfaces.h"
@@ -666,6 +667,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
 {
     struct be_conn *be_conn;
     int ret;
+    struct sbus_iface_map *resp_sbus_iface;
 
     be_conn = talloc_zero(rctx, struct be_conn);
     if (!be_conn) return ENOMEM;
@@ -693,6 +695,19 @@ static int sss_dp_init(struct resp_ctx *rctx,
         ret = sbus_conn_register_iface_map(be_conn->conn, sbus_iface, rctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Failed to register D-Bus interface.\n");
+            return ret;
+        }
+    }
+
+    resp_sbus_iface = responder_get_sbus_interface();
+    if (resp_sbus_iface != NULL) {
+        ret = sbus_conn_register_iface_map(be_conn->conn,
+                                           resp_sbus_iface,
+                                           rctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot register generic responder iface at %s: %d\n",
+                  resp_sbus_iface->path, ret);
             return ret;
         }
     }

@@ -814,8 +814,25 @@ done:
     return ret;
 }
 
+static const char *domain_state_str(struct sss_domain_info *dom)
+{
+    switch (dom->state) {
+    case DOM_ACTIVE:
+        return "Active";
+    case DOM_DISABLED:
+        return "Disabled";
+    case DOM_INACTIVE:
+        return "Inactive";
+    case DOM_INCONSISTENT:
+        return "Inconsistent";
+    }
+    return "Unknown";
+}
+
 enum sss_domain_state sss_domain_get_state(struct sss_domain_info *dom)
 {
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Domain %s is %s\n", dom->name, domain_state_str(dom));
     return dom->state;
 }
 
@@ -823,6 +840,8 @@ void sss_domain_set_state(struct sss_domain_info *dom,
                           enum sss_domain_state state)
 {
     dom->state = state;
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Domain %s is %s\n", dom->name, domain_state_str(dom));
 }
 
 bool is_email_from_domain(const char *email, struct sss_domain_info *dom)
