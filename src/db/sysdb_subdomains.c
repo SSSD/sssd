@@ -1320,8 +1320,97 @@ static errno_t match_basedn(TALLOC_CTX *tmp_ctx,
                              _result);
 }
 
+static errno_t match_search_base(TALLOC_CTX *tmp_ctx,
+                                 struct sss_domain_info *dom,
+                                 const char *domain_component_name,
+                                 const char *domain_search_base,
+                                 struct sysdb_attrs **usr_attrs,
+                                 size_t count,
+                                 struct sysdb_attrs **_result)
+{
+    errno_t ret;
+    bool ok;
+    const char *search_base;
+    struct ldb_context *ldb_ctx;
+    struct sysdb_attrs *result = NULL;
+    struct ldb_dn *ldb_search_base;
+    int search_base_comp_num;
+    int non_dc_comp_num;
+    const char *component_name;
+
+    ldb_ctx = sysdb_ctx_get_ldb(dom->sysdb);
+    if (ldb_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing ldb context.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ldb_search_base = ldb_dn_new(tmp_ctx, ldb_ctx, domain_search_base);
+    if (ldb_search_base == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* strip non-DC components from the search base */
+    search_base_comp_num = ldb_dn_get_comp_num(ldb_search_base);
+    for (non_dc_comp_num = 0;
+         non_dc_comp_num < search_base_comp_num;
+         non_dc_comp_num++) {
+
+        component_name = ldb_dn_get_component_name(ldb_search_base,
+                                                   non_dc_comp_num);
+        if (strcasecmp(domain_component_name, component_name) == 0) {
+            break;
+        }
+    }
+
+    if (non_dc_comp_num == search_base_comp_num) {
+        /* The search base does not have any non-DC components, the search wouldn't
+         * match anyway
+         */
+        ret = EOK;
+        *_result = NULL;
+        goto done;
+    }
+
+    ok = ldb_dn_remove_child_components(ldb_search_base, non_dc_comp_num);
+    if (!ok) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    search_base = ldb_dn_get_linearized(ldb_search_base);
+    if (search_base == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = match_cn_users(tmp_ctx, usr_attrs, count, search_base, &result);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (result == NULL) {
+        ret = match_non_dc_comp(tmp_ctx, dom,
+                                usr_attrs, count,
+                                ldb_search_base, search_base,
+                                domain_component_name,
+                                &result);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = EOK;
+    *_result = result;
+done:
+    return ret;
+}
+
 errno_t sysdb_try_to_find_expected_dn(struct sss_domain_info *dom,
                                       const char *domain_component_name,
+                                      const char *domain_search_base,
                                       struct sysdb_attrs **usr_attrs,
                                       size_t count,
                                       struct sysdb_attrs **exp_usr)
@@ -1332,6 +1421,7 @@ errno_t sysdb_try_to_find_expected_dn(struct sss_domain_info *dom,
     struct sysdb_attrs *result = NULL;
 
     if (dom == NULL || domain_component_name == NULL
+            || domain_search_base == NULL
             || usr_attrs == NULL || count == 0) {
         return EINVAL;
     }
@@ -1358,6 +1448,15 @@ errno_t sysdb_try_to_find_expected_dn(struct sss_domain_info *dom,
         ret = match_basedn(tmp_ctx, dom, usr_attrs,
                            count, dom_basedn, domain_component_name,
                            &result);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (result == NULL) {
+        ret = match_search_base(tmp_ctx, dom, domain_component_name,
+                                   domain_search_base, usr_attrs, count,
+                                   &result);
         if (ret != EOK) {
             goto done;
         }

@@ -2947,7 +2947,13 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               "Expected one user entry and got %zu\n", count);
 
-        ret = sysdb_try_to_find_expected_dn(state->dom, "dc", usr_attrs, count,
+        /* When matching against a search base, it's sufficient to pick only
+         * the first search base because all bases in a single domain would
+         * have the same DC= components
+         */
+        ret = sysdb_try_to_find_expected_dn(state->dom, "dc",
+                                            state->sdom->search_bases[0]->basedn,
+                                            usr_attrs, count,
                                             &state->orig_user);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
