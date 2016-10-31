@@ -520,13 +520,18 @@ static void test_try_to_find_expected_dn(void **state)
     int ret;
     struct sysdb_attrs *result;
     struct sysdb_attrs *usr_attrs[10] = { NULL };
+    struct sysdb_attrs *dom_usr_attrs[10] = { NULL };
     struct sss_domain_info *dom;
+    char *dom_basedn;
     struct subdom_test_ctx *test_ctx =
         talloc_get_type(*state, struct subdom_test_ctx);
 
     dom = find_domain_by_name(test_ctx->tctx->dom,
                               "child2.test_sysdb_subdomains_2", true);
     assert_non_null(dom);
+
+    ret = domain_to_basedn(test_ctx, dom->name, &dom_basedn);
+    assert_int_equal(ret, EOK);
 
     usr_attrs[0] = sysdb_new_attrs(test_ctx);
     assert_non_null(usr_attrs[0]);
@@ -535,13 +540,13 @@ static void test_try_to_find_expected_dn(void **state)
                   "uid=user,cn=abc,dc=c2,dc=child2,dc=test_sysdb_subdomains_2");
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_try_to_find_expected_dn(NULL, NULL, NULL, 0, NULL);
+    ret = sysdb_try_to_find_expected_dn(NULL, NULL, NULL, NULL, 0, NULL);
     assert_int_equal(ret, EINVAL);
 
-    ret = sysdb_try_to_find_expected_dn(dom, "dc", usr_attrs, 1, &result);
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", dom_basedn, usr_attrs, 1, &result);
     assert_int_equal(ret, ENOENT);
 
-    ret = sysdb_try_to_find_expected_dn(dom, "xy", usr_attrs, 1, &result);
+    ret = sysdb_try_to_find_expected_dn(dom, "xy", dom_basedn, usr_attrs, 1, &result);
     assert_int_equal(ret, EOK);
     assert_ptr_equal(result, usr_attrs[0]);
 
@@ -559,11 +564,11 @@ static void test_try_to_find_expected_dn(void **state)
                  "uid=user2,cn=abc,dc=c2,dc=child2,dc=test_sysdb_subdomains_2");
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_try_to_find_expected_dn(dom, "dc", usr_attrs, 3, &result);
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", dom_basedn, usr_attrs, 3, &result);
     assert_int_equal(ret, EOK);
     assert_ptr_equal(result, usr_attrs[1]);
 
-    ret = sysdb_try_to_find_expected_dn(dom, "xy", usr_attrs, 3, &result);
+    ret = sysdb_try_to_find_expected_dn(dom, "xy", dom_basedn, usr_attrs, 3, &result);
     assert_int_equal(ret, EINVAL);
 
     /* Make sure cn=users match is preferred */
@@ -575,10 +580,36 @@ static void test_try_to_find_expected_dn(void **state)
                  "uid=user2,cn=abc,cn=users,dc=child2,dc=test_sysdb_subdomains_2");
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_try_to_find_expected_dn(dom, "dc", usr_attrs, 3, &result);
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", dom_basedn, usr_attrs, 3, &result);
     assert_int_equal(ret, EOK);
     assert_ptr_equal(result, usr_attrs[2]);
 
+    /* test a case where the domain name does not match the basedn */
+    dom->name = discard_const("default");
+    dom_usr_attrs[0] = usr_attrs[0];
+
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", dom_basedn, dom_usr_attrs, 1, &result);
+    assert_int_equal(ret, ENOENT);
+
+    dom_usr_attrs[1] = usr_attrs[1];
+    dom_usr_attrs[2] = usr_attrs[2];
+
+    /* Make sure cn=users match is preferred */
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", dom_basedn, dom_usr_attrs, 3, &result);
+    assert_int_equal(ret, EOK);
+    assert_ptr_equal(result, dom_usr_attrs[2]);
+
+    talloc_free(usr_attrs[2]);
+    usr_attrs[2] = sysdb_new_attrs(test_ctx);
+    assert_non_null(usr_attrs[2]);
+    ret = sysdb_attrs_add_string(usr_attrs[2], SYSDB_ORIG_DN,
+                 "uid=user2,cn=abc,dc=c2,dc=child2,dc=test_sysdb_subdomains_2");
+    assert_int_equal(ret, EOK);
+
+    dom_usr_attrs[2] = usr_attrs[2];
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", dom_basedn, dom_usr_attrs, 3, &result);
+    assert_int_equal(ret, EOK);
+    assert_ptr_equal(result, usr_attrs[1]);
 
     talloc_free(usr_attrs[0]);
     talloc_free(usr_attrs[1]);
