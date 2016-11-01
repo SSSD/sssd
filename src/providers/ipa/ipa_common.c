@@ -152,6 +152,9 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
     case IPA_VIEWS_SEARCH_BASE:
         class_name = "IPA_VIEWS";
         break;
+    case IPA_DESKPROFILE_SEARCH_BASE:
+        class_name = "IPA_DESKPROFILE";
+        break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Unknown search base type: [%d]\n", class);
@@ -396,6 +399,29 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
                                 IPA_SELINUX_SEARCH_BASE,
                                 &ipa_opts->selinux_search_bases);
+    if (ret != EOK) goto done;
+
+    if (NULL == dp_opt_get_string(ipa_opts->basic,
+                                  IPA_DESKPROFILE_SEARCH_BASE)) {
+        value = talloc_asprintf(tmpctx, "cn=desktop-profile,%s", basedn);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->basic, IPA_DESKPROFILE_SEARCH_BASE, value);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Option %s set to %s\n",
+                  ipa_opts->basic[IPA_DESKPROFILE_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->basic,
+                                    IPA_DESKPROFILE_SEARCH_BASE));
+    }
+    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
+                                IPA_DESKPROFILE_SEARCH_BASE,
+                                &ipa_opts->deskprofile_search_bases);
     if (ret != EOK) goto done;
 
     value = dp_opt_get_string(ipa_opts->id->basic, SDAP_DEREF);

@@ -114,6 +114,8 @@ const char *dp_target_to_string(enum dp_targets target)
         return "hostid";
     case DPT_SUBDOMAINS:
         return "subdomains";
+    case DPT_SESSION:
+        return "session";
     case DP_TARGET_SENTINEL:
         return NULL;
     }

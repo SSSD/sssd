@@ -126,9 +126,15 @@ static void choose_target(struct data_provider *provider,
             name = "PAM Chpass 2nd";
             break;
         case SSS_PAM_OPEN_SESSION:
+            name = "PAM Open Session";
+            if (dp_method_enabled(provider, DPT_SESSION, DPM_SESSION_HANDLER)) {
+                target = DPT_SESSION;
+                method = DPM_SESSION_HANDLER;
+                break;
+            }
+
             target = DP_TARGET_SENTINEL;
             method = DP_METHOD_SENTINEL;
-            name = "PAM Open Session";
             pd->pam_status = PAM_SUCCESS;
             break;
         case SSS_PAM_SETCRED:
