@@ -42,6 +42,7 @@
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_srv.h"
 #include "providers/be_dyndns.h"
+#include "providers/ipa/ipa_session.h"
 
 #define DNS_SRV_MISCONFIGURATION "SRV discovery is enabled on the IPA " \
     "server while using custom dns_discovery_domain. DNS discovery of " \
@@ -939,4 +940,52 @@ errno_t sssm_ipa_sudo_init(TALLOC_CTX *mem_ctx,
                                 "built without sudo support, ignoring\n");
     return EOK;
 #endif
+}
+
+errno_t sssm_ipa_session_init(TALLOC_CTX *mem_ctx,
+                              struct be_ctx *be_ctx,
+                              void *module_data,
+                              struct dp_method *dp_methods)
+{
+    struct ipa_session_ctx *session_ctx;
+    struct ipa_init_ctx *init_ctx;
+    struct ipa_id_ctx *id_ctx;
+    errno_t ret;
+
+    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    id_ctx = init_ctx->id_ctx;
+
+    session_ctx = talloc_zero(mem_ctx, struct ipa_session_ctx);
+    if (session_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed.\n");
+
+        return ENOMEM;
+    }
+
+    session_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
+    session_ctx->host_map = id_ctx->ipa_options->host_map;
+    session_ctx->hostgroup_map = id_ctx->ipa_options->hostgroup_map;
+    session_ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
+    session_ctx->deskprofile_search_bases = id_ctx->ipa_options->deskprofile_search_bases;
+
+    ret = dp_copy_options(session_ctx, id_ctx->ipa_options->basic,
+                          IPA_OPTS_BASIC, &session_ctx->ipa_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "dp_copy_options() failed.\n");
+
+        goto done;
+    }
+
+    dp_set_method(dp_methods, DPM_SESSION_HANDLER,
+                  ipa_pam_session_handler_send, ipa_pam_session_handler_recv, session_ctx,
+                  struct ipa_session_ctx, struct pam_data, struct pam_data *);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(session_ctx);
+    }
+
+    return ret;
 }

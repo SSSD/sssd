@@ -154,6 +154,7 @@ option_strings = {
     'autofs_provider' : _('Autofs provider'),
     'hostid_provider' : _('Host identity provider'),
     'selinux_provider' : _('SELinux provider'),
+    'session_provider' : _('Session management provider'),
 
     # [domain]
     'domain_type' : _('Whether the domain is usable by the OS or by applications'),
@@ -217,6 +218,8 @@ option_strings = {
     'ipa_anchor_uuid': _("Attribute with the reference to the original object"),
     'ipa_user_override_object_class': _("Objectclass for user override objects"),
     'ipa_group_override_object_class': _("Objectclass for group override objects"),
+    'ipa_deskprofile_search_base': _("Search base for Desktop Profile related objects"),
+    'ipa_deskprofile_refresh': _("The amount of time in seconds between lookups of the Desktop Profile rules against the IPA server"),
 
     # [provider/ad]
     'ad_domain' : _('Active Directory domain'),

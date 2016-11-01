@@ -66,6 +66,7 @@ enum dp_targets {
     DPT_SELINUX,
     DPT_HOSTID,
     DPT_SUBDOMAINS,
+    DPT_SESSION,
 
     DP_TARGET_SENTINEL
 };
@@ -80,6 +81,7 @@ enum dp_methods {
     DPM_AUTOFS_HANDLER,
     DPM_HOSTID_HANDLER,
     DPM_DOMAINS_HANDLER,
+    DPM_SESSION_HANDLER,
 
     DP_METHOD_SENTINEL
 };

@@ -88,6 +88,7 @@ polkitdir = @polkitdir@
 pamconfdir = $(sysconfdir)/pam.d
 systemtap_tapdir = @tapset_dir@
 sssdkcmdatadir = $(datadir)/sssd-kcm
+deskprofilepath = $(sss_statedir)/deskprofile
 
 if HAVE_SYSTEMD_UNIT
 ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --debug-to-files --dbus-activated
@@ -801,6 +802,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_srv.h \
     src/providers/ipa/ipa_dn.h \
     src/providers/ipa/ipa_sudo.h \
+    src/providers/ipa/ipa_session.h \
     src/providers/ad/ad_srv.h \
     src/providers/ad/ad_common.h \
     src/providers/ad/ad_pac.h \
@@ -3892,6 +3894,14 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_hbac_common.c \
     src/providers/ipa/ipa_rules_common.c \
     src/providers/ipa/ipa_rules_common.h \
+    src/providers/ipa/ipa_session.c \
+    src/providers/ipa/ipa_deskprofile_private.h \
+    src/providers/ipa/ipa_deskprofile_config.c \
+    src/providers/ipa/ipa_deskprofile_config.h \
+    src/providers/ipa/ipa_deskprofile_rules.c \
+    src/providers/ipa/ipa_deskprofile_rules.h \
+    src/providers/ipa/ipa_deskprofile_rules_util.c \
+    src/providers/ipa/ipa_deskprofile_rules_util.h \
     src/providers/ipa/ipa_srv.c \
     src/providers/ipa/ipa_idmap.c \
     src/providers/ipa/ipa_dn.c \
@@ -4617,6 +4627,7 @@ SSSD_USER_DIRS = \
     $(DESTDIR)$(sssdconfdir)/conf.d \
     $(DESTDIR)$(sssddefaultconfdir) \
     $(DESTDIR)$(logpath) \
+    $(DESTDIR)$(deskprofilepath) \
     $(NULL)
 
 installsssddirs::

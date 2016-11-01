@@ -148,6 +148,7 @@ class SSSDConfigFile(SSSDChangeConf):
                        'auth_provider' : 'auth-module',
                        'access_provider' : 'access-module',
                        'chpass_provider' : 'chpass-module',
+                       'session_provider' : 'session-module',
                        'use_fully_qualified_names' : 'useFullyQualifiedNames',
                        'store_legacy_passwords' : 'store-legacy-passwords',
                       }

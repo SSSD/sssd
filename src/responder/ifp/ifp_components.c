@@ -590,7 +590,8 @@ void ifp_backend_get_providers(struct sbus_request *dbus_req,
                                       CONFDB_DOMAIN_AUTOFS_PROVIDER,
                                       CONFDB_DOMAIN_SELINUX_PROVIDER,
                                       CONFDB_DOMAIN_HOSTID_PROVIDER,
-                                      CONFDB_DOMAIN_SUBDOMAINS_PROVIDER};
+                                      CONFDB_DOMAIN_SUBDOMAINS_PROVIDER,
+                                      CONFDB_DOMAIN_SESSION_PROVIDER};
     int num_providers = sizeof(providers) / sizeof(providers[0]);
     errno_t ret;
     int i;
