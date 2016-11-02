@@ -144,6 +144,41 @@ done:
     talloc_free(tmp_ctx);
 }
 
+int nss_memorycache_invalidate_users(struct sbus_request *req, void *data)
+{
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+
+    DEBUG(SSSDBG_TRACE_LIBS, "Invalidating all users in memory cache\n");
+    sss_mmap_cache_reset(nctx->pwd_mc_ctx);
+
+    return iface_nss_memorycache_InvalidateAllUsers_finish(req);
+}
+
+int nss_memorycache_invalidate_groups(struct sbus_request *req, void *data)
+{
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+
+    DEBUG(SSSDBG_TRACE_LIBS, "Invalidating all groups in memory cache\n");
+    sss_mmap_cache_reset(nctx->grp_mc_ctx);
+
+    return iface_nss_memorycache_InvalidateAllGroups_finish(req);
+}
+
+int nss_memorycache_invalidate_initgroups(struct sbus_request *req, void *data)
+{
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Invalidating all initgroup records in memory cache\n");
+    sss_mmap_cache_reset(nctx->initgr_mc_ctx);
+
+    return iface_nss_memorycache_InvalidateAllInitgrRecords_finish(req);
+}
+
+
 int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
                                       void *data,
                                       const char *user,
@@ -164,7 +199,10 @@ int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
 
 struct iface_nss_memorycache iface_nss_memorycache = {
     { &iface_nss_memorycache_meta, 0 },
-    .UpdateInitgroups = nss_memorycache_update_initgroups
+    .UpdateInitgroups = nss_memorycache_update_initgroups,
+    .InvalidateAllUsers = nss_memorycache_invalidate_users,
+    .InvalidateAllGroups = nss_memorycache_invalidate_groups,
+    .InvalidateAllInitgrRecords = nss_memorycache_invalidate_initgroups,
 };
 
 static struct sbus_iface_map iface_map[] = {

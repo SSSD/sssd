@@ -23,6 +23,24 @@ int iface_nss_memorycache_UpdateInitgroups_finish(struct sbus_request *req)
                                          DBUS_TYPE_INVALID);
 }
 
+int iface_nss_memorycache_InvalidateAllUsers_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+int iface_nss_memorycache_InvalidateAllGroups_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+int iface_nss_memorycache_InvalidateAllInitgrRecords_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
 /* methods for org.freedesktop.sssd.nss.MemoryCache */
 const struct sbus_method_meta iface_nss_memorycache__methods[] = {
     {
@@ -31,6 +49,27 @@ const struct sbus_method_meta iface_nss_memorycache__methods[] = {
         NULL, /* no out_args */
         offsetof(struct iface_nss_memorycache, UpdateInitgroups),
         invoke_ssau_method,
+    },
+    {
+        "InvalidateAllUsers", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_nss_memorycache, InvalidateAllUsers),
+        NULL, /* no invoker */
+    },
+    {
+        "InvalidateAllGroups", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_nss_memorycache, InvalidateAllGroups),
+        NULL, /* no invoker */
+    },
+    {
+        "InvalidateAllInitgrRecords", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_nss_memorycache, InvalidateAllInitgrRecords),
+        NULL, /* no invoker */
     },
     { NULL, }
 };
