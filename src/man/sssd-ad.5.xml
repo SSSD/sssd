@@ -236,6 +236,19 @@ ad_enabled_domains = sales.example.com, eng.example.com
                             search bases work.
                         </para>
                         <para>
+                            Nested group membership must be searched for using
+                            a special OID <quote>:1.2.840.113556.1.4.1941:</quote>
+                            in addition to the full DOM:domain.example.org: syntax
+                            to ensure the parser does not attempt to interpret the
+                            colon characters associated with the OID. If you do not
+                            use this OID then nested group membership will not be
+                            resolved. See usage example below and refer here
+                            for further information about the OID:
+                            <ulink
+                            url="https://msdn.microsoft.com/en-us/library/cc223367.aspx">
+                            [MS-ADTS] section LDAP extensions</ulink>
+                        </para>
+                        <para>
                             The most specific match is always used. For
                             example, if the option specified filter
                             for a domain the user is a member of and a
@@ -255,6 +268,9 @@ DOM:dom2:(memberOf=cn=admins,ou=groups,dc=dom2,dc=com)
 
 # apply filter on forest called EXAMPLE.COM only:
 FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
+
+# apply filter for a member of a nested group in dom1:
+DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,dc=com)
                         </programlisting>
                         <para>
                             Default: Not set
