@@ -519,6 +519,7 @@ SSSD_CACHE_REQ_OBJ = \
 SSSD_RESPONDER_IFACE_OBJ = \
     src/responder/common/iface/responder_iface.c \
     src/responder/common/iface/responder_domain.c \
+    src/responder/common/iface/responder_ncache.c \
     src/responder/common/iface/responder_iface_generated.c \
     $(NULL)
 

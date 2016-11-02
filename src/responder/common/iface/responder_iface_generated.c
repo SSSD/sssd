@@ -61,6 +61,46 @@ const struct sbus_interface_meta iface_responder_domain_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+int iface_responder_ncache_ResetUsers_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+int iface_responder_ncache_ResetGroups_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.Responder.NegativeCache */
+const struct sbus_method_meta iface_responder_ncache__methods[] = {
+    {
+        "ResetUsers", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_responder_ncache, ResetUsers),
+        NULL, /* no invoker */
+    },
+    {
+        "ResetGroups", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_responder_ncache, ResetGroups),
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.Responder.NegativeCache */
+const struct sbus_interface_meta iface_responder_ncache_meta = {
+    "org.freedesktop.sssd.Responder.NegativeCache", /* name */
+    iface_responder_ncache__methods,
+    NULL, /* no signals */
+    NULL, /* no properties */
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* invokes a handler with a 's' DBus signature */
 static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr)
 {

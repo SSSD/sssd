@@ -34,4 +34,9 @@ int sss_resp_domain_inconsistent(struct sbus_request *req,
                                  void *data,
                                  const char *domain_name);
 
+/* org.freedesktop.sssd.Responder.NegativeCache */
+
+int sss_resp_reset_ncache_users(struct sbus_request *req, void *data);
+int sss_resp_reset_ncache_groups(struct sbus_request *req, void *data);
+
 #endif /* _RESPONDER_IFACE_H_ */

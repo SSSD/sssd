@@ -66,6 +66,7 @@ SSSD_CACHE_REQ_OBJ = \
 SSSD_RESPONDER_IFACE_OBJ = \
     ../../../src/responder/common/iface/responder_iface.c \
     ../../../src/responder/common/iface/responder_domain.c \
+    ../../../src/responder/common/iface/responder_ncache.c \
     ../../../src/responder/common/iface/responder_iface_generated.c \
     $(NULL)
 
@@ -167,6 +168,7 @@ responder_common_tests_SOURCES =\
     test_responder_common.c \
     ../../../src/responder/common/iface/responder_iface.c \
     ../../../src/responder/common/iface/responder_domain.c \
+    ../../../src/responder/common/iface/responder_ncache.c \
     ../../../src/responder/common/iface/responder_iface_generated.c \
     ../../../src/responder/common/negcache_files.c \
     ../../../src/responder/common/negcache.c \
