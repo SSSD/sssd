@@ -78,6 +78,8 @@ int sss_ncache_set_service_port(struct sss_nc_ctx *ctx, bool permanent,
                                 uint16_t port, const char *proto);
 
 int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx);
+int sss_ncache_reset_users(struct sss_nc_ctx *ctx);
+int sss_ncache_reset_groups(struct sss_nc_ctx *ctx);
 
 struct resp_ctx;
 

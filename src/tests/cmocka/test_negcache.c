@@ -785,6 +785,74 @@ static void test_sss_ncache_reset_prepopulate(void **state)
     ret = check_group_in_ncache(ncache, dom2, "testgroup2");
     assert_int_equal(ret, EEXIST);
 }
+
+static void test_sss_ncache_reset(void **state)
+{
+    errno_t ret;
+    struct test_state *ts;
+    struct sss_domain_info *dom;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+    dom = talloc(ts, struct sss_domain_info);
+    assert_non_null(dom);
+    dom->case_sensitive = true;
+
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
+
+    /* Set users */
+    ret = sss_ncache_check_uid(ts->ctx, NULL, 123);
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_set_uid(ts->ctx, false, NULL, 123);
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_check_uid(ts->ctx, NULL, 123);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_user(ts->ctx, dom, "foo");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_set_user(ts->ctx, false, dom, "foo");
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_check_user(ts->ctx, dom, "foo");
+    assert_int_equal(ret, EEXIST);
+
+    /* Set groups */
+    ret = sss_ncache_check_gid(ts->ctx, NULL, 456);
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_set_gid(ts->ctx, false, NULL, 456);
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_check_gid(ts->ctx, NULL, 456);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_group(ts->ctx, dom, "bar");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_set_group(ts->ctx, false, dom, "bar");
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_check_group(ts->ctx, dom, "bar");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_reset_users(ts->ctx);
+    assert_int_equal(ret, EOK);
+
+    /* Users are no longer negatively cached */
+    ret = sss_ncache_check_user(ts->ctx, dom, "foo");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_uid(ts->ctx, NULL, 123);
+    assert_int_equal(ret, ENOENT);
+
+    /* Groups still are */
+    ret = sss_ncache_check_gid(ts->ctx, NULL, 456);
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_group(ts->ctx, dom, "bar");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_reset_groups(ts->ctx);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_gid(ts->ctx, NULL, 456);
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_group(ts->ctx, dom, "bar");
+    assert_int_equal(ret, ENOENT);
+}
+
 int main(void)
 {
     int rv;
@@ -808,6 +876,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_ncache_default_domain_suffix,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset_prepopulate,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_reset,
                                         setup, teardown),
     };
 

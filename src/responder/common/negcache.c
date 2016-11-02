@@ -674,6 +674,62 @@ int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx)
     return EOK;
 }
 
+static int delete_prefix(struct tdb_context *tdb,
+                         TDB_DATA key, TDB_DATA data, void *state)
+{
+    const char *prefix = (const char *) state;
+
+    if (strncmp((char *)key.dptr, prefix, strlen(prefix) - 1) != 0) {
+        /* not interested in this key */
+        return 0;
+    }
+
+    return tdb_delete(tdb, key);
+}
+
+static int sss_ncache_reset_pfx(struct sss_nc_ctx *ctx,
+                                const char **prefixes)
+{
+    int ret;
+
+    if (prefixes == NULL) {
+        return EOK;
+    }
+
+    for (int i = 0; prefixes[i] != NULL; i++) {
+        ret = tdb_traverse(ctx->tdb,
+                           delete_prefix,
+                           discard_const(prefixes[i]));
+        if (ret < 0) {
+            return EIO;
+        }
+    }
+
+    return EOK;
+}
+
+int sss_ncache_reset_users(struct sss_nc_ctx *ctx)
+{
+    const char *prefixes[] = {
+        NC_USER_PREFIX,
+        NC_UID_PREFIX,
+        NULL,
+    };
+
+    return sss_ncache_reset_pfx(ctx, prefixes);
+}
+
+int sss_ncache_reset_groups(struct sss_nc_ctx *ctx)
+{
+    const char *prefixes[] = {
+        NC_GROUP_PREFIX,
+        NC_GID_PREFIX,
+        NULL,
+    };
+
+    return sss_ncache_reset_pfx(ctx, prefixes);
+}
+
 errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,
                                struct resp_ctx *rctx)
