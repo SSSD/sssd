@@ -16,6 +16,11 @@
 #define IFACE_RESPONDER_DOMAIN_SETACTIVE "SetActive"
 #define IFACE_RESPONDER_DOMAIN_SETINCONSISTENT "SetInconsistent"
 
+/* constants for org.freedesktop.sssd.Responder.NegativeCache */
+#define IFACE_RESPONDER_NCACHE "org.freedesktop.sssd.Responder.NegativeCache"
+#define IFACE_RESPONDER_NCACHE_RESETUSERS "ResetUsers"
+#define IFACE_RESPONDER_NCACHE_RESETGROUPS "ResetGroups"
+
 /* ------------------------------------------------------------------------
  * DBus handlers
  *
@@ -47,6 +52,19 @@ int iface_responder_domain_SetActive_finish(struct sbus_request *req);
 /* finish function for SetInconsistent */
 int iface_responder_domain_SetInconsistent_finish(struct sbus_request *req);
 
+/* vtable for org.freedesktop.sssd.Responder.NegativeCache */
+struct iface_responder_ncache {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*ResetUsers)(struct sbus_request *req, void *data);
+    int (*ResetGroups)(struct sbus_request *req, void *data);
+};
+
+/* finish function for ResetUsers */
+int iface_responder_ncache_ResetUsers_finish(struct sbus_request *req);
+
+/* finish function for ResetGroups */
+int iface_responder_ncache_ResetGroups_finish(struct sbus_request *req);
+
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata
  *
@@ -59,5 +77,8 @@ int iface_responder_domain_SetInconsistent_finish(struct sbus_request *req);
 
 /* interface info for org.freedesktop.sssd.Responder.Domain */
 extern const struct sbus_interface_meta iface_responder_domain_meta;
+
+/* interface info for org.freedesktop.sssd.Responder.NegativeCache */
+extern const struct sbus_interface_meta iface_responder_ncache_meta;
 
 #endif /* __RESPONDER_IFACE_XML__ */

@@ -1,5 +1,8 @@
 /*
-    Copyright (C) 2016 Red Hat
+    Authors:
+        Pavel Březina <pbrezina@redhat.com>
+
+    Copyright (C) 2017 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,29 +18,24 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "util/util.h"
 #include "sbus/sssd_dbus.h"
-#include "responder/common/iface/responder_iface.h"
 #include "responder/common/responder.h"
+#include "responder/common/negcache.h"
+#include "responder/common/iface/responder_iface.h"
 
-struct iface_responder_domain iface_responder_domain = {
-    { &iface_responder_domain_meta, 0 },
-    .SetActive = sss_resp_domain_active,
-    .SetInconsistent = sss_resp_domain_inconsistent,
-};
-
-struct iface_responder_ncache iface_responder_ncache = {
-    { &iface_responder_ncache_meta, 0 },
-    .ResetUsers = sss_resp_reset_ncache_users,
-    .ResetGroups = sss_resp_reset_ncache_groups,
-};
-
-static struct sbus_iface_map iface_map[] = {
-    { RESPONDER_PATH, &iface_responder_domain.vtable },
-    { RESPONDER_PATH, &iface_responder_ncache.vtable },
-    { NULL, NULL }
-};
-
-struct sbus_iface_map *responder_get_sbus_interface()
+int sss_resp_reset_ncache_users(struct sbus_request *req, void *data)
 {
-    return iface_map;
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+
+    sss_ncache_reset_users(rctx->ncache);
+    return iface_responder_ncache_ResetUsers_finish(req);
+}
+
+int sss_resp_reset_ncache_groups(struct sbus_request *req, void *data)
+{
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+
+    sss_ncache_reset_groups(rctx->ncache);
+    return iface_responder_ncache_ResetGroups_finish(req);
 }
