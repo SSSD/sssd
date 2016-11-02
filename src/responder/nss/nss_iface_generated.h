@@ -14,6 +14,9 @@
 /* constants for org.freedesktop.sssd.nss.MemoryCache */
 #define IFACE_NSS_MEMORYCACHE "org.freedesktop.sssd.nss.MemoryCache"
 #define IFACE_NSS_MEMORYCACHE_UPDATEINITGROUPS "UpdateInitgroups"
+#define IFACE_NSS_MEMORYCACHE_INVALIDATEALLUSERS "InvalidateAllUsers"
+#define IFACE_NSS_MEMORYCACHE_INVALIDATEALLGROUPS "InvalidateAllGroups"
+#define IFACE_NSS_MEMORYCACHE_INVALIDATEALLINITGRRECORDS "InvalidateAllInitgrRecords"
 
 /* ------------------------------------------------------------------------
  * DBus handlers
@@ -37,10 +40,22 @@
 struct iface_nss_memorycache {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
     int (*UpdateInitgroups)(struct sbus_request *req, void *data, const char *arg_user, const char *arg_domain, uint32_t arg_groups[], int len_groups);
+    int (*InvalidateAllUsers)(struct sbus_request *req, void *data);
+    int (*InvalidateAllGroups)(struct sbus_request *req, void *data);
+    int (*InvalidateAllInitgrRecords)(struct sbus_request *req, void *data);
 };
 
 /* finish function for UpdateInitgroups */
 int iface_nss_memorycache_UpdateInitgroups_finish(struct sbus_request *req);
+
+/* finish function for InvalidateAllUsers */
+int iface_nss_memorycache_InvalidateAllUsers_finish(struct sbus_request *req);
+
+/* finish function for InvalidateAllGroups */
+int iface_nss_memorycache_InvalidateAllGroups_finish(struct sbus_request *req);
+
+/* finish function for InvalidateAllInitgrRecords */
+int iface_nss_memorycache_InvalidateAllInitgrRecords_finish(struct sbus_request *req);
 
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata

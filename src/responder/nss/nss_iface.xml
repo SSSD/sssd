@@ -8,5 +8,11 @@
             <arg name="domain" type="s" direction="in" />
             <arg name="groups" type="au" direction="in" />
         </method>
+        <method name="InvalidateAllUsers">
+        </method>
+        <method name="InvalidateAllGroups">
+        </method>
+        <method name="InvalidateAllInitgrRecords">
+        </method>
     </interface>
 </node>
