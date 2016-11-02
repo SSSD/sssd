@@ -161,4 +161,9 @@ bool dp_method_enabled(struct data_provider *provider,
 void dp_terminate_domain_requests(struct data_provider *provider,
                                   const char *domain);
 
+void dp_sbus_domain_active(struct data_provider *provider,
+                           struct sss_domain_info *dom);
+void dp_sbus_domain_inconsistent(struct data_provider *provider,
+                                 struct sss_domain_info *dom);
+
 #endif /* _DP_H_ */
