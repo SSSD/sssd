@@ -40,7 +40,7 @@
             directly from the server.
         </para>
         <para>
-            The IPA provider accepts the same options used by the
+            The IPA provider enables SSSD to use the
             <citerefentry>
                 <refentrytitle>sssd-ldap</refentrytitle>
                 <manvolnum>5</manvolnum>
@@ -48,15 +48,20 @@
             <citerefentry>
                 <refentrytitle>sssd-krb5</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> authentication provider with some exceptions described
-            below.
+            </citerefentry> authentication provider with optimizations for IPA
+            environments. The IPA provider accepts the same options used by the
+            sssd-ldap and sssd-krb5 providers with some exceptions. However, it is
+            neither necessary nor recommended to set these options.
         </para>
         <para>
-            However, it is neither necessary nor recommended to set these options.
-            IPA provider can also be used as an access and chpass provider. As an
-            access provider it uses HBAC (host-based access control) rules. Please
-            refer to freeipa.org for more information about HBAC. No configuration
-            of access provider is required on the client side.
+            The IPA provider primarily copies the traditional ldap and krb5 provider
+            default options with some exceptions, the differences are listed in the
+            <quote>MODIFIED DEFAULT OPTIONS</quote> section.
+        </para>
+        <para>
+            As an access provider, the IPA provider uses HBAC (host-based access control)
+            rules. Please refer to freeipa.org for more information about HBAC. No
+            configuration of access provider is required on the client side.
         </para>
         <para>
             The IPA provider will use the PAC responder if the Kerberos tickets
@@ -395,23 +400,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5_validate (boolean)</term>
-                    <listitem>
-                        <para>
-                            Verify with the help of krb5_keytab that the TGT
-                            obtained has not been spoofed.
-                        </para>
-                        <para>
-                            Default: true
-                        </para>
-                        <para>
-                             Note that this default differs from the
-                             traditional Kerberos provider back end.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>krb5_realm (string)</term>
                     <listitem>
                         <para>
@@ -422,56 +410,6 @@
                             The name of the Kerberos realm has a special
                             meaning in IPA - it is converted into the base
                             DN to use for performing LDAP operations.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>krb5_canonicalize (boolean)</term>
-                    <listitem>
-                        <para>
-                            Specifies if the host and user principal should be
-                            canonicalized when connecting to IPA LDAP and also for AS
-                            requests. This feature is available with MIT
-                            Kerberos >= 1.7
-                        </para>
-
-                        <para>
-                            Default: true
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>krb5_use_fast (string)</term>
-                    <listitem>
-                        <para>
-                            Enables flexible authentication secure tunneling
-                            (FAST) for Kerberos pre-authentication. The
-                            following options are supported:
-                        </para>
-                        <para>
-                            <emphasis>never</emphasis> use FAST.
-                        </para>
-                        <para>
-                            <emphasis>try</emphasis> to use FAST. If the server
-                            does not support FAST, continue the
-                            authentication without it. This is
-                            equivalent to not setting this option at all.
-                        </para>
-                        <para>
-                            <emphasis>demand</emphasis> to use FAST. The
-                            authentication fails if the server does not
-                            require fast.
-                        </para>
-                        <para>
-                            Default: try
-                        </para>
-                        <para>
-                            NOTE: SSSD supports FAST only with
-                            MIT Kerberos version 1.8 and later. If SSSD is used
-                            with an older version of MIT Kerberos, using this
-                            option is a configuration error.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -685,6 +623,8 @@
             </para>
         </refsect2>
     </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ipa_modified_defaults.xml" />
 
     <refsect1 id='subdomains_provider'>
         <title>SUBDOMAINS PROVIDER</title>
