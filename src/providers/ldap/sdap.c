@@ -162,9 +162,9 @@ int sdap_extend_map(TALLOC_CTX *memctx,
     char *sysdb_attr;
     errno_t ret;
 
+    *_map = src_map;
     if (extra_attrs == NULL) {
         DEBUG(SSSDBG_FUNC_DATA, "No extra attributes\n");
-        *_map = src_map;
         *_new_size = num_entries;
         return EOK;
     }
@@ -177,6 +177,7 @@ int sdap_extend_map(TALLOC_CTX *memctx,
     if (map == NULL) {
         return ENOMEM;
     }
+    *_map = map;
 
     for (i = 0; *extra_attrs != NULL; extra_attrs++) {
         ret = split_extra_attr(map, *extra_attrs, &sysdb_attr, &ldap_attr);
@@ -221,7 +222,6 @@ int sdap_extend_map(TALLOC_CTX *memctx,
     /* Sentinel */
     memset(&map[num_entries+nextra], 0, sizeof(struct sdap_attr_map));
 
-    *_map = map;
     *_new_size = num_entries + nextra;
     return EOK;
 }
