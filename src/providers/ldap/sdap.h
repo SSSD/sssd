@@ -512,6 +512,27 @@ int sdap_copy_map(TALLOC_CTX *memctx,
                  int num_entries,
                  struct sdap_attr_map **_map);
 
+/**
+ * @brief Add attributes to a map
+ *
+ * sdap_extend_map() will call talloc_realloc() on the second argument so the
+ * original storage location might change. The return value _map will always
+ * contain the current memory location which can be used with talloc_free()
+ * even if there is an error.
+ *
+ * @param[in] memctx      Talloc memory context
+ * @param[in] src_map     Original map, should not be accessed anymore
+ * @param[in] num_entries Number of entries in the original map
+ * @param[in] extra_attrs NULL-terminated array of extra attribute pairs
+ *                        sysdb_attr:ldap_attr
+ * @param[out] _map       New map
+ * @param[out] _new_size  Number of entries in the new map
+ *
+ * @return
+ *  - EOK                 success
+ *  - ENOMEM              memory allocation failed
+ *  - ERR_DUP_EXTRA_ATTR  sysdb attribute is already used
+ */
 int sdap_extend_map(TALLOC_CTX *memctx,
                     struct sdap_attr_map *src_map,
                     size_t num_entries,
