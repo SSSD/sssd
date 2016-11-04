@@ -467,6 +467,37 @@ START_TEST(test_extra_opts_dup)
                           extra_attrs,
                           &out_map, &new_size);
     fail_unless(ret == ERR_DUP_EXTRA_ATTR, "[%s]", sss_strerror(ret));
+
+    talloc_free(out_map);
+}
+END_TEST
+
+START_TEST(test_extra_opts_empty_name)
+{
+    errno_t ret;
+    char *extra_attrs[] =  { discard_const(SYSDB_UUID":bar"),
+                             NULL };
+    struct sdap_attr_map *in_map;
+    struct sdap_attr_map *out_map;
+    size_t new_size;
+
+    ret = sdap_copy_map(global_talloc_context, rfc2307_user_map,
+                        SDAP_OPTS_USER, &in_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+
+    /* Make sure the name if really NULL */
+    fail_unless(rfc2307_user_map[SDAP_AT_USER_UUID].name == NULL,
+                "The reference name is not NULL anymore, "
+                "please choose a different attribute.");
+
+    ret = sdap_extend_map(global_talloc_context,
+                          in_map,
+                          SDAP_OPTS_USER,
+                          extra_attrs,
+                          &out_map, &new_size);
+    fail_unless(ret == ERR_DUP_EXTRA_ATTR, "[%s]", sss_strerror(ret));
+
+    talloc_free(out_map);
 }
 END_TEST
 
@@ -500,6 +531,7 @@ Suite *ipa_ldap_opt_suite (void)
     tcase_add_test (tc_extra_opts, test_no_extra_opts);
     tcase_add_test (tc_extra_opts, test_extra_opts_neg);
     tcase_add_test (tc_extra_opts, test_extra_opts_dup);
+    tcase_add_test (tc_extra_opts, test_extra_opts_empty_name);
     suite_add_tcase (s, tc_extra_opts);
 
     return s;
