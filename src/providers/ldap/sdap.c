@@ -137,7 +137,7 @@ static enum duplicate_t check_duplicate(struct sdap_attr_map *map,
 
     for (i = 0; i < num_entries; i++) {
         if (strcmp(map[i].sys_name, sysdb_attr) == 0) {
-            if (strcmp(map[i].name, ldap_attr) == 0) {
+            if (map[i].name != NULL && strcmp(map[i].name, ldap_attr) == 0) {
                 return ALREADY_IN_MAP;
             } else {
                 return CONFLICT_WITH_MAP;
