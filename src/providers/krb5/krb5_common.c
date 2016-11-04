@@ -113,6 +113,7 @@ static errno_t sss_get_system_ccname_template(TALLOC_CTX *mem_ctx,
 
     ret = profile_get_string(p, "libdefaults", "default_ccache_name",
                              NULL, NULL, &value);
+    profile_release(p);
     if (ret) goto done;
 
     if (!value) {
@@ -361,13 +362,7 @@ errno_t sss_krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
     int ret;
     struct dp_option *opts;
 
-    opts = talloc_zero(memctx, struct dp_option);
-    if (opts == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
-        return ENOMEM;
-    }
-
-    ret = dp_get_options(opts, cdb, conf_path, default_krb5_opts,
+    ret = dp_get_options(memctx, cdb, conf_path, default_krb5_opts,
                          KRB5_OPTS, &opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "dp_get_options failed.\n");
