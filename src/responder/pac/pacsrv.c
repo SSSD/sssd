@@ -51,7 +51,6 @@
 struct mon_cli_iface monitor_pac_methods = {
     { &mon_cli_iface_meta, 0 },
     .resInit = monitor_common_res_init,
-    .shutDown = NULL,
     .goOffline = NULL,
     .resetOffline = NULL,
     .rotateLogs = responder_logrotate,

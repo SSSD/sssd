@@ -19,10 +19,6 @@
             <!-- no arguments, raw handler -->
             <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
-        <method name="shutDown">
-            <!-- no arguments, raw handler -->
-            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
-        </method>
         <method name="goOffline">
             <!-- no arguments, raw handler -->
             <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
