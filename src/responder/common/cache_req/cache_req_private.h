@@ -56,18 +56,39 @@ struct cache_req {
     time_t req_start;
 };
 
+/**
+ * Structure to hold the input strings that
+ * should be parsed into name and domain parts.
+ */
+struct cache_req_parsed_name {
+    const char *input;  /* Original input. */
+    const char *name;   /* Parsed name or UPN. */
+    const char *lookup; /* Converted per domain rules. */
+};
+
+/**
+ * Structure to hold the input strings that cannot contain domain
+ * part but are transferred per each domain's case sensitivity.
+ */
+struct cache_req_cased_name {
+    const char *name;   /* Parsed name or UPN. */
+    const char *lookup; /* Converted per domain rules. */
+};
+
 /* Input data. */
 struct cache_req_data {
     enum cache_req_type type;
-    struct {
-        const char *input;  /* Original input. */
-        const char *name;   /* Parsed name or UPN. */
-        const char *lookup; /* Converted per domain rules. */
-    } name;
+    struct cache_req_parsed_name name;
     uint32_t id;
     const char *cert;
     const char *sid;
     const char **attrs;
+
+    struct {
+        struct cache_req_parsed_name *name;
+        struct cache_req_cased_name protocol;
+        uint16_t port;
+    } svc;
 };
 
 struct tevent_req *
