@@ -666,10 +666,13 @@ int server_setup(const char *name, int flags,
                                      ret, strerror(ret));
         return ret;
     }
-    ret = setup_watchdog(ctx->event_ctx, watchdog_interval);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Watchdog setup failed.\n");
-        return ret;
+
+    if ((flags & FLAGS_NO_WATCHDOG) == 0) {
+        ret = setup_watchdog(ctx->event_ctx, watchdog_interval);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Watchdog setup failed.\n");
+            return ret;
+        }
     }
 
     sss_log(SSS_LOG_INFO, "Starting up");

@@ -2603,6 +2603,8 @@ int main(int argc, const char *argv[])
 
     /* we want a pid file check */
     flags |= FLAGS_PID_FILE;
+    /* the monitor should not run a watchdog on itself */
+    flags |= FLAGS_NO_WATCHDOG;
 
     /* Open before server_setup() does to have logging
      * during configuration checking */
