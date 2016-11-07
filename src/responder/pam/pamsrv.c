@@ -55,7 +55,6 @@
 
 struct mon_cli_iface monitor_pam_methods = {
     { &mon_cli_iface_meta, 0 },
-    .ping = monitor_common_pong,
     .resInit = monitor_common_res_init,
     .shutDown = NULL,
     .goOffline = NULL,

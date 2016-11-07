@@ -18,7 +18,6 @@
 
 /* constants for org.freedesktop.sssd.service */
 #define MON_CLI_IFACE "org.freedesktop.sssd.service"
-#define MON_CLI_IFACE_PING "ping"
 #define MON_CLI_IFACE_RESINIT "resInit"
 #define MON_CLI_IFACE_SHUTDOWN "shutDown"
 #define MON_CLI_IFACE_GOOFFLINE "goOffline"
@@ -56,7 +55,6 @@ struct mon_srv_iface {
 /* vtable for org.freedesktop.sssd.service */
 struct mon_cli_iface {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
-    sbus_msg_handler_fn ping;
     sbus_msg_handler_fn resInit;
     sbus_msg_handler_fn shutDown;
     sbus_msg_handler_fn goOffline;

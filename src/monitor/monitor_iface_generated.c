@@ -37,13 +37,6 @@ const struct sbus_interface_meta mon_srv_iface_meta = {
 /* methods for org.freedesktop.sssd.service */
 const struct sbus_method_meta mon_cli_iface__methods[] = {
     {
-        "ping", /* name */
-        NULL, /* no in_args */
-        NULL, /* no out_args */
-        offsetof(struct mon_cli_iface, ping),
-        NULL, /* no invoker */
-    },
-    {
         "resInit", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
