@@ -44,13 +44,6 @@ const struct sbus_method_meta mon_cli_iface__methods[] = {
         NULL, /* no invoker */
     },
     {
-        "shutDown", /* name */
-        NULL, /* no in_args */
-        NULL, /* no out_args */
-        offsetof(struct mon_cli_iface, shutDown),
-        NULL, /* no invoker */
-    },
-    {
         "goOffline", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */

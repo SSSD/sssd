@@ -34,7 +34,6 @@ static int autofs_clean_hash_table(struct sbus_request *dbus_req, void *data);
 struct mon_cli_iface monitor_autofs_methods = {
     { &mon_cli_iface_meta, 0 },
     .resInit = monitor_common_res_init,
-    .shutDown = NULL,
     .goOffline = NULL,
     .resetOffline = NULL,
     .rotateLogs = responder_logrotate,
