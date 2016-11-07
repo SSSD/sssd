@@ -144,11 +144,6 @@ int monitor_common_send_id(struct sbus_connection *conn,
     return retval;
 }
 
-int monitor_common_pong(struct sbus_request *dbus_req, void *data)
-{
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
-}
-
 int monitor_common_res_init(struct sbus_request *dbus_req, void *data)
 {
     int ret;

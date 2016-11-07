@@ -56,7 +56,6 @@ static int data_provider_logrotate(struct sbus_request *dbus_req, void *data);
 
 struct mon_cli_iface monitor_be_methods = {
     { &mon_cli_iface_meta, 0 },
-    .ping = monitor_common_pong,
     .resInit = data_provider_res_init,
     .shutDown = NULL,
     .goOffline = data_provider_go_offline,

@@ -61,7 +61,6 @@ static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *da
 
 struct mon_cli_iface monitor_nss_methods = {
     { &mon_cli_iface_meta, 0 },
-    .ping = monitor_common_pong,
     .resInit = monitor_common_res_init,
     .shutDown = NULL,
     .goOffline = NULL,

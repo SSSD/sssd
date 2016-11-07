@@ -49,7 +49,6 @@ static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data);
 
 struct mon_cli_iface monitor_ifp_methods = {
     { &mon_cli_iface_meta, 0 },
-    .ping = monitor_common_pong,
     .resInit = monitor_common_res_init,
     .shutDown = NULL,
     .goOffline = NULL,
