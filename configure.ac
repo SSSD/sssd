@@ -70,6 +70,19 @@ AC_CHECK_FUNCS([ pthread_mutexattr_setrobust \
                  pthread_mutex_consistent_np ])
 LIBS=$SAVE_LIBS
 
+# Check library for the timer_create function
+SAVE_LIBS=$LIBS
+LIBS=
+LIBADD_TIMER=
+AC_SEARCH_LIBS([timer_create], [rt posix4],
+    [AC_DEFINE([HAVE_LIBRT], [1],
+         [Define if you have the librt library or equivalent.])
+     LIBADD_TIMER="$LIBS"],
+    [AC_MSG_ERROR([unable to find library fot the timer_create() function])])
+
+AC_SUBST([LIBADD_TIMER])
+LIBS=$SAVE_LIBS
+
 # Check for presence of modern functions for setting file timestamps
 AC_CHECK_FUNCS([ utimensat \
                  futimens ])
