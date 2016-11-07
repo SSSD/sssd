@@ -960,6 +960,7 @@ libsss_util_la_CFLAGS = \
     $(SYSTEMD_LOGIN_CFLAGS) \
     $(NULL)
 libsss_util_la_LIBADD = \
+    $(LIBADD_TIMER) \
     $(SSSD_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
     $(UNICODE_LIBS) \
