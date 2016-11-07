@@ -122,6 +122,26 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         }
 
         break;
+    case CACHE_REQ_SVC_BY_PORT:
+        if (input->svc.port == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: port cannot be 0!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->svc.port = input->svc.port;
+
+        if (input->svc.protocol.name == NULL) {
+            break;
+        }
+
+        data->svc.protocol.name = talloc_strdup(data, input->svc.protocol.name);
+        if (data->svc.protocol.name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        break;
     case CACHE_REQ_SENTINEL:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid cache request type!\n");
         ret = ERR_INTERNAL;

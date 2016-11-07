@@ -45,6 +45,7 @@ enum cache_req_type {
     CACHE_REQ_ENUM_GROUPS,
 
     CACHE_REQ_SVC_BY_NAME,
+    CACHE_REQ_SVC_BY_PORT,
 
     CACHE_REQ_SENTINEL
 };
@@ -270,6 +271,19 @@ cache_req_svc_by_name_send(TALLOC_CTX *mem_ctx,
                            const char *protocol);
 
 #define cache_req_svc_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_svc_by_port_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct resp_ctx *rctx,
+                           struct sss_nc_ctx *ncache,
+                           int cache_refresh_percent,
+                           const char *domain,
+                           uint16_t port,
+                           const char *protocol);
+
+#define cache_req_svc_by_port_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 #endif /* _CACHE_REQ_H_ */
