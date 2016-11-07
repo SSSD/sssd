@@ -37,6 +37,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     }
 
     data->type = type;
+    data->svc.name = &data->name;
 
     switch (type) {
     case CACHE_REQ_USER_BY_NAME:
@@ -96,6 +97,30 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         break;
     case CACHE_REQ_ENUM_USERS:
     case CACHE_REQ_ENUM_GROUPS:
+        break;
+    case CACHE_REQ_SVC_BY_NAME:
+        if (input->svc.name->input == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->svc.name->input = talloc_strdup(data, input->svc.name->input);
+        if (data->svc.name->input == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (input->svc.protocol.name == NULL) {
+            break;
+        }
+
+        data->svc.protocol.name = talloc_strdup(data, input->svc.protocol.name);
+        if (data->svc.protocol.name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
         break;
     case CACHE_REQ_SENTINEL:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid cache request type!\n");
@@ -179,6 +204,23 @@ cache_req_data_enum(TALLOC_CTX *mem_ctx,
                     enum cache_req_type type)
 {
     struct cache_req_data input = { 0 };
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_svc(TALLOC_CTX *mem_ctx,
+                   enum cache_req_type type,
+                   const char *name,
+                   const char *protocol,
+                   uint16_t port)
+{
+    struct cache_req_data input = { 0 };
+
+    input.name.input = name;
+    input.svc.name = &input.name;
+    input.svc.protocol.name = protocol;
+    input.svc.port = port;
 
     return cache_req_data_create(mem_ctx, type, &input);
 }
