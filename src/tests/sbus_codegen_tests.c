@@ -115,15 +115,15 @@ END_TEST
 
 START_TEST(test_signals)
 {
-    const struct sbus_signal_meta *signal;
+    const struct sbus_signal_meta *sig;
     const struct sbus_arg_meta *arg;
 
-    signal = sbus_meta_find_signal(&com_planetexpress_Ship_meta, "BecameSentient");
-    ck_assert(signal != NULL);
-    ck_assert_str_eq(signal->name, "BecameSentient");
-    ck_assert(signal->args != NULL);
+    sig = sbus_meta_find_signal(&com_planetexpress_Ship_meta, "BecameSentient");
+    ck_assert(sig != NULL);
+    ck_assert_str_eq(sig->name, "BecameSentient");
+    ck_assert(sig->args != NULL);
 
-    arg = find_arg(signal->args, "gender");
+    arg = find_arg(sig->args, "gender");
     ck_assert(arg != NULL);
     ck_assert_str_eq(arg->name, "gender");
     ck_assert_str_eq(arg->type, "s");
