@@ -357,7 +357,7 @@ static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom;
-    struct sysdb_attrs *entry;
+    struct sysdb_attrs *entry = NULL;
     struct ldb_dn *base_dn;
     bool fqn_provided;
     const char *filter;
