@@ -73,16 +73,30 @@ static errno_t
 ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
 {
     errno_t ret;
+    bool canonicalize = false;
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Re-initializing domain %s\n", ctx->be_ctx->domain->name);
 
+    if (ctx->ipa_id_ctx->ipa_options->auth_ctx != NULL
+          && ctx->ipa_id_ctx->ipa_options->auth_ctx->krb5_auth_ctx != NULL
+          && ctx->ipa_id_ctx->ipa_options->auth_ctx->krb5_auth_ctx->opts != NULL
+       ) {
+        canonicalize = dp_opt_get_bool(
+                    ctx->ipa_id_ctx->ipa_options->auth_ctx->krb5_auth_ctx->opts,
+                    KRB5_CANONICALIZE);
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Auth provider data is not available, "
+                                    "most probably because the auth provider "
+                                    "is not 'ipa'. Kerberos configuration "
+                                    "snippet to set the 'canonicalize' option "
+                                    "will not be created.\n");
+    }
+
     ret = sss_write_krb5_conf_snippet(
                           dp_opt_get_string(ctx->ipa_id_ctx->ipa_options->basic,
                                             IPA_KRB5_CONFD_PATH),
-                          dp_opt_get_bool(
-                    ctx->ipa_id_ctx->ipa_options->auth_ctx->krb5_auth_ctx->opts,
-                    KRB5_CANONICALIZE));
+                          canonicalize);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
         /* Just continue */
