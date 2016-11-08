@@ -226,6 +226,7 @@
 #define CONFDB_SEC_CONF_ENTRY "config/secrets"
 #define CONFDB_SEC_CONTAINERS_NEST_LEVEL "containers_nest_level"
 #define CONFDB_SEC_MAX_SECRETS "max_secrets"
+#define CONFDB_SEC_MAX_PAYLOAD_SIZE "max_payload_size"
 
 
 struct confdb_ctx;

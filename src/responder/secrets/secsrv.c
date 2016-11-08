@@ -31,6 +31,7 @@
 #define DEFAULT_SEC_FD_LIMIT 2048
 #define DEFAULT_SEC_CONTAINERS_NEST_LEVEL 4
 #define DEFAULT_SEC_MAX_SECRETS 1024
+#define DEFAULT_SEC_MAX_PAYLOAD_SIZE 16
 
 static int sec_get_config(struct sec_ctx *sctx)
 {
@@ -68,6 +69,18 @@ static int sec_get_config(struct sec_ctx *sctx)
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to get maximum number of entries\n");
+        goto fail;
+    }
+
+    ret = confdb_get_int(sctx->rctx->cdb,
+                         sctx->rctx->confdb_service_path,
+                         CONFDB_SEC_MAX_PAYLOAD_SIZE,
+                         DEFAULT_SEC_MAX_PAYLOAD_SIZE,
+                         &sctx->max_payload_size);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get payload's maximum size for an entry\n");
         goto fail;
     }
 

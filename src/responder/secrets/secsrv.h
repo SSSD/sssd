@@ -40,6 +40,7 @@ struct sec_ctx {
     int fd_limit;
     int containers_nest_level;
     int max_secrets;
+    int max_payload_size;
 
     struct provider_handle **providers;
 };

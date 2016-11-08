@@ -87,6 +87,7 @@ def setup_for_secrets(request):
 
         [secrets]
         max_secrets = 10
+        max_payload_size = 2
     """).format(**locals())
 
     create_conf_fixture(request, conf)
@@ -154,6 +155,20 @@ def test_crd_ops(setup_for_secrets, secrets_cli):
     # Delete all stored secrets used for max secrets tests
     for x in xrange(MAX_SECRETS):
         cli.del_secret(str(x))
+
+    # Don't allow storing a secrets which has a payload larger
+    # than max_payload_size
+    KILOBYTE = 1024
+    MAX_PAYLOAD_SIZE = 2 * KILOBYTE
+
+    sec_value = "x" * MAX_PAYLOAD_SIZE
+
+    cli.set_secret("foo", sec_value)
+
+    sec_value += "x"
+    with pytest.raises(HTTPError) as err413:
+        cli.set_secret("bar", sec_value)
+    assert str(err413.value).startswith("413")
 
 
 def test_containers(setup_for_secrets, secrets_cli):
