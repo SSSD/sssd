@@ -101,6 +101,7 @@ struct err_string error_to_str[] = {
     { "The maximum level of nested containers has been reached" }, /* ERR_SEC_INVALID_CONTAINERS_NEST_LEVEL */
     { "No proxy server for secrets available"}, /* ERR_SEC_NO_PROXY */
     { "The maximum number of stored secrets has been reached" }, /* ERR_SEC_INVALID_TOO_MANY_SECRETS */
+    { "The secret payload size is too large" }, /* ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

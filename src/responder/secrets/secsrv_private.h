@@ -46,6 +46,7 @@ enum sec_http_status_codes {
     STATUS_405,
     STATUS_406,
     STATUS_409,
+    STATUS_413,
     STATUS_500,
     STATUS_504,
     STATUS_507,

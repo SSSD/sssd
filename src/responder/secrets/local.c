@@ -31,6 +31,7 @@ struct local_context {
     struct sec_data master_key;
     int containers_nest_level;
     int max_secrets;
+    int max_payload_size;
 };
 
 static int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
@@ -450,6 +451,27 @@ done:
     return ret;
 }
 
+static int local_check_max_payload_size(struct local_context *lctx,
+                                        int payload_size)
+{
+    int max_payload_size;
+
+    max_payload_size = lctx->max_payload_size * 1024; /* kb */
+    if (payload_size > max_payload_size) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Secrets' payload size [%d kb (%d)] exceeds the maximum allowed "
+              "payload size [%d kb (%d)]\n",
+              payload_size * 1024, /* kb */
+              payload_size,
+              lctx->max_payload_size, /* kb */
+              max_payload_size);
+
+        return ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE;
+    }
+
+    return EOK;
+}
+
 static int local_db_put_simple(TALLOC_CTX *mem_ctx,
                                struct local_context *lctx,
                                const char *req_path,
@@ -488,6 +510,14 @@ static int local_db_put_simple(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "local_db_check_number_of_secrets failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = local_check_max_payload_size(lctx, strlen(secret));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_check_max_payload_size failed [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
@@ -973,6 +1003,7 @@ int local_secrets_provider_handle(struct sec_ctx *sctx,
 
     lctx->containers_nest_level = sctx->containers_nest_level;
     lctx->max_secrets = sctx->max_secrets;
+    lctx->max_payload_size = sctx->max_payload_size;
 
     lctx->master_key.data = talloc_size(lctx, MKEY_SIZE);
     if (!lctx->master_key.data) return ENOMEM;
