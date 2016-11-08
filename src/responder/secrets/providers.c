@@ -178,6 +178,8 @@ static struct sec_http_status_format_table {
       "The request cannot be accepted." },
     { 409, "Conflict",
       "The requested resource already exists." },
+    { 413, "Payload Too Large",
+      "The secret payload is too large." },
     { 500, "Internal Server Error",
       "The server encountered an internal error." },
     { 504, "Gateway timeout",
@@ -352,6 +354,8 @@ enum sec_http_status_codes sec_errno_to_http_status(errno_t err)
         return STATUS_406;
     case EEXIST:
         return STATUS_409;
+    case ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE:
+        return STATUS_413;
     case ERR_SEC_NO_PROXY:
         return STATUS_504;
     case ERR_SEC_INVALID_TOO_MANY_SECRETS:

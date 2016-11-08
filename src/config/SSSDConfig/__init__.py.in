@@ -123,6 +123,7 @@ option_strings = {
     'provider': _('The provider where the secrets will be stored in'),
     'containers_nest_level': _('The maximum allowed number of nested containers'),
     'max_secrets': _('The maximum number of secrets that can be stored'),
+    'max_payload_size': _('The maximum payload size of a secret in kilobytes'),
     # secrets - proxy
     'proxy_url': _('The URL Custodia server is listening on'),
     'auth_type': _('The method to use when authenticating to a Custodia server'),
