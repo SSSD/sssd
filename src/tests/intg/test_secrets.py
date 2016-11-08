@@ -151,6 +151,10 @@ def test_crd_ops(setup_for_secrets, secrets_cli):
         cli.set_secret(str(MAX_SECRETS), sec_value)
     assert str(err507.value).startswith("507")
 
+    # Delete all stored secrets used for max secrets tests
+    for x in xrange(MAX_SECRETS):
+        cli.del_secret(str(x))
+
 
 def test_containers(setup_for_secrets, secrets_cli):
     """
