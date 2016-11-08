@@ -210,7 +210,6 @@ struct setent_req_list;
 /* A facility for notifying setent requests */
 struct tevent_req *setent_get_req(struct setent_req_list *sl);
 errno_t setent_add_ref(TALLOC_CTX *memctx,
-                       void *pvt,
                        struct setent_req_list **list,
                        struct tevent_req *req);
 void setent_notify(struct setent_req_list **list, errno_t err);

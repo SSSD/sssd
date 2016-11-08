@@ -89,7 +89,7 @@ errno_t nss_setent_add_ref(TALLOC_CTX *memctx,
                            struct getent_ctx *getent_ctx,
                            struct tevent_req *req)
 {
-    return setent_add_ref(memctx, getent_ctx, &getent_ctx->reqs, req);
+    return setent_add_ref(memctx, &getent_ctx->reqs, req);
 }
 
 void nss_setent_notify_error(struct getent_ctx *getent_ctx, errno_t ret)
