@@ -81,7 +81,7 @@ autofs_setent_add_ref(TALLOC_CTX *memctx,
                       struct autofs_map_ctx *map_ctx,
                       struct tevent_req *req)
 {
-    return setent_add_ref(memctx, map_ctx, &map_ctx->reqs, req);
+    return setent_add_ref(memctx, &map_ctx->reqs, req);
 }
 
 static void
