@@ -618,14 +618,23 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
 {
     const char *path;
     errno_t ret;
-    bool canonicalize;
+    bool canonicalize = false;
 
     path = dp_opt_get_string(subdoms_ctx->ad_id_ctx->ad_options->basic,
                              AD_KRB5_CONFD_PATH);
 
-    canonicalize = dp_opt_get_bool(
+    if (subdoms_ctx->ad_id_ctx->ad_options->auth_ctx != NULL
+            && subdoms_ctx->ad_id_ctx->ad_options->auth_ctx->opts != NULL) {
+        canonicalize = dp_opt_get_bool(
                              subdoms_ctx->ad_id_ctx->ad_options->auth_ctx->opts,
                              KRB5_CANONICALIZE);
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Auth provider data is not available, "
+                                    "most probably because the auth provider "
+                                    "is not 'ad'. Kerberos configuration "
+                                    "snippet to set the 'canonicalize' option "
+                                    "will not be created.\n");
+    }
 
     ret = sss_write_krb5_conf_snippet(path, canonicalize);
     if (ret != EOK) {
