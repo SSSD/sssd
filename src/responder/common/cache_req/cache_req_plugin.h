@@ -199,5 +199,6 @@ extern struct cache_req_plugin cache_req_enum_groups;
 extern struct cache_req_plugin cache_req_enum_svc;
 extern struct cache_req_plugin cache_req_svc_by_name;
 extern struct cache_req_plugin cache_req_svc_by_port;
+extern struct cache_req_plugin cache_req_netgroup_by_name;
 
 #endif /* _CACHE_REQ_PLUGIN_H_ */
