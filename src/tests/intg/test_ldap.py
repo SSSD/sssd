@@ -951,3 +951,29 @@ def test_remove_user_from_nested_group(ldap_conn,
                              dict(mem=ent.contains_only("user2")))
     ent.assert_group_by_name("group3",
                              dict(mem=ent.contains_only()))
+
+def zero_nesting_sssd_conf(ldap_conn, schema):
+    """Format an SSSD configuration with group nesting disabled"""
+    return \
+        format_basic_conf(ldap_conn, schema) + \
+        unindent("""
+            [domain/LDAP]
+            ldap_group_nesting_level                = 0
+        """).format(INTERACTIVE_TIMEOUT)
+
+@pytest.fixture
+def rfc2307bis_no_nesting(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_group_bis("group1", 20001, member_uids=["user1"])
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    create_conf_fixture(request,
+                        zero_nesting_sssd_conf(
+                            ldap_conn,
+                            SCHEMA_RFC2307_BIS))
+    create_sssd_fixture(request)
+    return None
+
+def test_zero_nesting_level(ldap_conn, rfc2307bis_no_nesting):
+    ent.assert_group_by_name("group1",
+                             dict(mem=ent.contains_only("user1")))
