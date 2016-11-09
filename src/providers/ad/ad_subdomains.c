@@ -623,9 +623,11 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
     path = dp_opt_get_string(subdoms_ctx->ad_id_ctx->ad_options->basic,
                              AD_KRB5_CONFD_PATH);
 
-    canonicalize = dp_opt_get_bool(
-                             subdoms_ctx->ad_id_ctx->ad_options->auth_ctx->opts,
-                             KRB5_CANONICALIZE);
+    if (subdoms_ctx->ad_id_ctx->ad_options->auth_ctx) {
+        canonicalize = dp_opt_get_bool(
+                                 subdoms_ctx->ad_id_ctx->ad_options->auth_ctx->opts,
+                                 KRB5_CANONICALIZE);
+    }
 
     ret = sss_write_krb5_conf_snippet(path, canonicalize);
     if (ret != EOK) {
