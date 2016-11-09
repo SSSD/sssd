@@ -1668,7 +1668,7 @@ static void sdap_process_group_members(struct tevent_req *subreq)
     struct sdap_process_group_state *state =
                         tevent_req_data(req, struct sdap_process_group_state);
     struct ldb_message_element *el;
-    uint8_t* name_string;
+    char *name_string;
 
     state->check_count--;
     DEBUG(SSSDBG_TRACE_ALL, "Members remaining: %zu\n", state->check_count);
@@ -1694,11 +1694,18 @@ static void sdap_process_group_members(struct tevent_req *subreq)
         goto next;
     }
 
-    name_string = el[0].values[0].data;
+    name_string = sss_create_internal_fqname(state,
+                                            (const char *) el[0].values[0].data,
+                                            state->dom->name);
+    if (name_string == NULL) {
+        ret = ENOMEM;
+        goto next;
+    }
+
     state->ghost_dns->values[state->ghost_dns->num_values].data =
-            talloc_steal(state->ghost_dns->values, name_string);
+            talloc_steal(state->ghost_dns->values, (uint8_t *) name_string);
     state->ghost_dns->values[state->ghost_dns->num_values].length =
-            strlen((char *)name_string);
+            strlen(name_string);
     state->ghost_dns->num_values++;
 
 next:
