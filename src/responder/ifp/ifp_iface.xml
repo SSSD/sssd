@@ -63,12 +63,6 @@
     <interface name="org.freedesktop.sssd.infopipe.Components">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_components"/>
 
-        <method name="Enable" />
-        <method name="Disable" />
-        <method name="ChangeDebugLevel">
-            <arg name="new_level" type="u" direction="in" />
-        </method>
-
         <method name="ChangeDebugLevelTemporarily">
             <arg name="new_level" type="u" direction="in" />
         </method>

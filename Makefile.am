@@ -208,12 +208,6 @@ if BUILD_SSH
     non_interactive_check_based_tests += sysdb_ssh-tests
 endif
 
-if BUILD_IFP
-if BUILD_CONFIG_LIB
-    non_interactive_check_based_tests += sss_config-tests
-endif # BUILD_CONFIG_LIB
-endif # BUILD_IFP
-
 if BUILD_DBUS_TESTS
     non_interactive_check_based_tests += \
 	sbus_tests \
@@ -604,7 +598,6 @@ dist_noinst_HEADERS = \
     src/util/sss_ssh.h \
     src/util/sss_ini.h \
     src/util/sss_format.h \
-    src/util/sss_config.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
@@ -1024,24 +1017,6 @@ SSSD_INTERNAL_LTLIBS = \
     libsss_child.la \
     $(NULL)
 
-if BUILD_IFP
-if BUILD_CONFIG_LIB
-pkglib_LTLIBRARIES += libsss_config.la
-libsss_config_la_SOURCES = \
-    src/util/sss_config.c
-libsss_config_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(AUGEAS_CFLAGS) \
-    $(TALLOC_CFLAGS)
-libsss_config_la_LIBADD = \
-    $(AUGEAS_LIBS) \
-    $(TALLOC_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-libsss_config_la_LDFLAGS = \
-    -avoid-version
-endif # BUILD_CONFIG_LIB
-endif # BUILD_IFP
-
 lib_LTLIBRARIES = libipa_hbac.la \
                   libsss_idmap.la \
                   libsss_nss_idmap.la \
@@ -1383,11 +1358,6 @@ dist_dbuspolicy_DATA = \
     src/responder/ifp/org.freedesktop.sssd.infopipe.conf
 dist_dbusservice_DATA = \
     src/responder/ifp/org.freedesktop.sssd.infopipe.service
-
-if BUILD_CONFIG_LIB
-sssd_ifp_LDADD += libsss_config.la
-endif
-
 endif
 
 if BUILD_SECRETS
@@ -2089,23 +2059,6 @@ sbus_codegen_tests_LDADD = \
     $(CHECK_LIBS)
 
 endif # BUILD_DBUS_TESTS
-
-if BUILD_IFP
-if BUILD_CONFIG_LIB
-sss_config_tests_SOURCES = \
-    src/tests/sss_config-tests.c \
-    src/tests/common.c
-sss_config_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
-sss_config_tests_LDADD = \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_config.la \
-    libsss_test_common.la
-endif # BUILD_CONFIG_LIB
-endif # BUILD_IFP
 
 if HAVE_CMOCKA
 

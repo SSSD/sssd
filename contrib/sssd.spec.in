@@ -583,7 +583,6 @@ be used by Python applications.
 Summary: The D-Bus responder of the SSSD
 Group: Applications/System
 License: GPLv3+
-BuildRequires: augeas-devel
 Requires: sssd-common = %{version}-%{release}
 
 %description dbus
@@ -943,7 +942,6 @@ done
 # InfoPipe DBus plumbing
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
-%{_libdir}/%{name}/libsss_config.so
 
 %files -n libsss_simpleifp
 %defattr(-,root,root,-)
