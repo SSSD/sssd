@@ -263,30 +263,6 @@ const struct sbus_interface_meta iface_ifp_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
-int iface_ifp_components_Enable_finish(struct sbus_request *req)
-{
-   return sbus_request_return_and_finish(req,
-                                         DBUS_TYPE_INVALID);
-}
-
-int iface_ifp_components_Disable_finish(struct sbus_request *req)
-{
-   return sbus_request_return_and_finish(req,
-                                         DBUS_TYPE_INVALID);
-}
-
-/* arguments for org.freedesktop.sssd.infopipe.Components.ChangeDebugLevel */
-const struct sbus_arg_meta iface_ifp_components_ChangeDebugLevel__in[] = {
-    { "new_level", "u" },
-    { NULL, }
-};
-
-int iface_ifp_components_ChangeDebugLevel_finish(struct sbus_request *req)
-{
-   return sbus_request_return_and_finish(req,
-                                         DBUS_TYPE_INVALID);
-}
-
 /* arguments for org.freedesktop.sssd.infopipe.Components.ChangeDebugLevelTemporarily */
 const struct sbus_arg_meta iface_ifp_components_ChangeDebugLevelTemporarily__in[] = {
     { "new_level", "u" },
@@ -301,27 +277,6 @@ int iface_ifp_components_ChangeDebugLevelTemporarily_finish(struct sbus_request 
 
 /* methods for org.freedesktop.sssd.infopipe.Components */
 const struct sbus_method_meta iface_ifp_components__methods[] = {
-    {
-        "Enable", /* name */
-        NULL, /* no in_args */
-        NULL, /* no out_args */
-        offsetof(struct iface_ifp_components, Enable),
-        NULL, /* no invoker */
-    },
-    {
-        "Disable", /* name */
-        NULL, /* no in_args */
-        NULL, /* no out_args */
-        offsetof(struct iface_ifp_components, Disable),
-        NULL, /* no invoker */
-    },
-    {
-        "ChangeDebugLevel", /* name */
-        iface_ifp_components_ChangeDebugLevel__in,
-        NULL, /* no out_args */
-        offsetof(struct iface_ifp_components, ChangeDebugLevel),
-        invoke_u_method,
-    },
     {
         "ChangeDebugLevelTemporarily", /* name */
         iface_ifp_components_ChangeDebugLevelTemporarily__in,

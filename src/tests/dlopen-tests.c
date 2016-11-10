@@ -110,9 +110,6 @@ struct so {
     { "_py3sss_murmur.so", { LIBPFX"_py3sss_murmur.so", NULL } },
     { "_py3sss_nss_idmap.so", { LIBPFX"_py3sss_nss_idmap.so", NULL } },
 #endif
-#ifdef HAVE_CONFIG_LIB
-    { "libsss_config.so", { LIBPFX"libsss_config.so", NULL } },
-#endif
 #ifdef BUILD_NFS_IDMAP
     { "sss.so", { LIBPFX"sss.so", NULL } },
 #endif

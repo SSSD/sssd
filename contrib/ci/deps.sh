@@ -69,7 +69,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         docbook-xsl
         gettext
         krb5-config
-        libaugeas-dev
         libc-ares-dev
         libcmocka-dev
         libcollection-dev

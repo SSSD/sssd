@@ -47,9 +47,6 @@ struct iface_ifp iface_ifp = {
 
 struct iface_ifp_components iface_ifp_components = {
     { &iface_ifp_components_meta, 0 },
-    .Enable = ifp_component_enable,
-    .Disable = ifp_component_disable,
-    .ChangeDebugLevel = ifp_component_change_debug_level,
     .ChangeDebugLevelTemporarily = ifp_component_change_debug_level_tmp,
     .get_name = ifp_component_get_name,
     .get_debug_level = ifp_component_get_debug_level,

@@ -195,7 +195,6 @@ m4_include([src/external/signal.m4])
 m4_include([src/external/inotify.m4])
 m4_include([src/external/samba.m4])
 m4_include([src/external/sasl.m4])
-m4_include([src/external/configlib.m4])
 m4_include([src/external/libnfsidmap.m4])
 m4_include([src/external/cwrap.m4])
 m4_include([src/external/libresolv.m4])
@@ -206,10 +205,6 @@ m4_include([src/external/service.m4])
 if test x$with_secrets = xyes; then
     m4_include([src/external/libhttp_parser.m4])
     m4_include([src/external/libjansson.m4])
-fi
-
-if test x$build_config_lib = xyes; then
-    m4_include([src/external/libaugeas.m4])
 fi
 
 WITH_UNICODE_LIB
