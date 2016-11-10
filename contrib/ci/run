@@ -28,7 +28,7 @@ export LC_ALL=C
 . misc.sh
 
 declare -r DEBUG_CFLAGS="-g3 -O2"
-declare -r COVERAGE_CFLAGS="-g3 -O0 --coverage"
+declare -r COVERAGE_CFLAGS="-g3 --coverage -O0 -Wp,-U_FORTIFY_SOURCE"
 declare -r ARCH=`uname -m`
 declare -r CPU_NUM=`getconf _NPROCESSORS_ONLN`
 declare -r TITLE_WIDTH=24
