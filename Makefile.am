@@ -597,6 +597,7 @@ dist_noinst_HEADERS = \
     src/util/safe-format-string.h \
     src/util/strtonum.h \
     src/util/sss_cli_cmd.h \
+    src/util/sss_ptr_hash.h \
     src/util/sss_endian.h \
     src/util/sss_nss.h \
     src/util/sss_ldap.h \
@@ -973,6 +974,7 @@ libsss_util_la_SOURCES = \
     src/util/string_utils.c \
     src/util/become_user.c \
     src/util/util_watchdog.c \
+    src/util/sss_ptr_hash.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
