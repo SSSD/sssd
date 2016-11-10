@@ -563,7 +563,6 @@ static void ipa_netgr_members_process(struct tevent_req *subreq)
     size_t count;
     int ret, i;
     const char *orig_dn;
-    char *orig_dn_lower;
     hash_table_t *table;
     hash_key_t key;
     hash_value_t value;
@@ -638,20 +637,12 @@ static void ipa_netgr_members_process(struct tevent_req *subreq)
             goto fail;
         }
 
-        orig_dn_lower = talloc_strdup(table, orig_dn);
-        if (orig_dn_lower == NULL) {
+        key.str = talloc_strdup(table, orig_dn);
+        if (key.str == NULL) {
             ret = ENOMEM;
             goto fail;
         }
-        /* Transform the DN to lower case.
-         * this is important, as the member/memberof attributes
-         * have the value also in lower-case
-         */
-        key.str = orig_dn_lower;
-        while (*orig_dn_lower != '\0') {
-            *orig_dn_lower = tolower(*orig_dn_lower);
-            orig_dn_lower++;
-        }
+
         value.ptr = entities[i];
         ret = hash_enter(table, &key, &value);
         if (ret !=  HASH_SUCCESS) {
