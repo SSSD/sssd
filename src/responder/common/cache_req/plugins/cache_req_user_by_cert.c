@@ -92,6 +92,7 @@ struct cache_req_plugin cache_req_user_by_cert = {
     .upn_equivalent = CACHE_REQ_SENTINEL,
     .get_next_domain_flags = SSS_GND_DESCEND,
 
+    .is_well_known_fn = NULL,
     .prepare_domain_data_fn = NULL,
     .create_debug_name_fn = cache_req_user_by_cert_create_debug_name,
     .global_ncache_add_fn = cache_req_user_by_cert_global_ncache_add,

@@ -114,6 +114,19 @@ struct cache_req_result {
      * normalized to @domain rules.
      */
     const char *lookup_name;
+
+    /**
+     * If true the result contain attributes of a well known object.
+     * Since this result is manually created it may not contain all
+     * requested attributes, depending on the plug-in.
+     */
+    bool well_known_object;
+
+    /* If this is a well known object, it may not be part of any particular
+     * SSSD domain, but still may be associated with a well known domain
+     * name such as "BUILTIN", or "LOCAL AUTHORITY".
+     */
+    const char *well_known_domain;
 };
 
 /**

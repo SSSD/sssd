@@ -158,6 +158,30 @@ cache_req_validate_domain(struct cache_req *cr,
 }
 
 static errno_t
+cache_req_is_well_known_object(TALLOC_CTX *mem_ctx,
+                               struct cache_req *cr,
+                               struct cache_req_result **_result)
+{
+    errno_t ret;
+
+    if (cr->plugin->is_well_known_fn == NULL) {
+        return ENOENT;
+    }
+
+    ret = cr->plugin->is_well_known_fn(mem_ctx, cr, cr->data, _result);
+    if (ret == EOK) {
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Object is well known!\n");
+        (*_result)->well_known_object = true;
+    } else if (ret != ENOENT) {
+        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
+                        "Unable to prepare data [%d]: %s\n",
+                        ret, sss_strerror(ret));
+    }
+
+    return ret;
+}
+
+static errno_t
 cache_req_prepare_domain_data(struct cache_req *cr,
                               struct sss_domain_info *domain)
 {
@@ -293,6 +317,9 @@ struct cache_req_state {
     bool check_next;
 };
 
+static errno_t cache_req_add_result(struct cache_req_state *state,
+                                    struct cache_req_result *new);
+
 static errno_t cache_req_process_input(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
                                        struct cache_req *cr,
@@ -316,6 +343,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   struct cache_req_data *data)
 {
     struct cache_req_state *state;
+    struct cache_req_result *result;
     struct cache_req *cr;
     struct tevent_req *req;
     errno_t ret;
@@ -334,6 +362,14 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     }
 
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "New request\n");
+
+    ret = cache_req_is_well_known_object(state, cr, &result);
+    if (ret == EOK) {
+        ret = cache_req_add_result(state, result);
+        goto done;
+    } else if (ret != ENOENT) {
+        goto done;
+    }
 
     ret = cache_req_process_input(state, req, cr, domain);
     if (ret != EOK) {
@@ -570,7 +606,7 @@ cache_req_create_and_add_result(struct cache_req_state *state,
                     "Found %u entries in domain %s\n",
                     ldb_result->count, domain->name);
 
-    item = cache_req_create_result(state, domain, ldb_result, name);
+    item = cache_req_create_result(state, domain, ldb_result, name, NULL);
     if (item == NULL) {
         return ENOMEM;
     }
@@ -728,7 +764,8 @@ struct cache_req_result *
 cache_req_create_result(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *domain,
                         struct ldb_result *ldb_result,
-                        const char *lookup_name)
+                        const char *lookup_name,
+                        const char *well_known_domain)
 {
     struct cache_req_result *result;
 
@@ -748,6 +785,65 @@ cache_req_create_result(TALLOC_CTX *mem_ctx,
             talloc_free(result);
             return NULL;
         }
+    }
+
+    if (well_known_domain != NULL) {
+        result->well_known_domain = talloc_strdup(result, well_known_domain);
+        if (result->well_known_domain == NULL) {
+            talloc_free(result);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
+struct cache_req_result *
+cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *domain,
+                                 struct ldb_message *ldb_msg,
+                                 const char *lookup_name,
+                                 const char *well_known_domain)
+{
+    struct cache_req_result *result;
+    struct ldb_result *ldb_result;
+    errno_t ret;
+
+    if (ldb_msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No message set!\n");
+        return NULL;
+    }
+
+    ldb_result = talloc_zero(NULL, struct ldb_result);
+    if (ldb_result == NULL) {
+        return NULL;
+    }
+
+    ldb_result->extended = NULL;
+    ldb_result->controls = NULL;
+    ldb_result->refs = NULL;
+    ldb_result->count = 1;
+    ldb_result->msgs = talloc_zero_array(ldb_result, struct ldb_message *, 2);
+    if (ldb_result->msgs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ldb_result->msgs[0] = talloc_steal(ldb_result->msgs, ldb_msg);
+
+    result = cache_req_create_result(mem_ctx, domain, ldb_result,
+                                     lookup_name, well_known_domain);
+    if (result == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(ldb_result);
+        return NULL;
     }
 
     return result;

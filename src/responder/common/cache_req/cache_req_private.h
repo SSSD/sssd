@@ -113,6 +113,14 @@ struct cache_req_result *
 cache_req_create_result(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *domain,
                         struct ldb_result *ldb_result,
-                        const char *lookup_name);
+                        const char *lookup_name,
+                        const char *well_known_domain);
+
+struct cache_req_result *
+cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *domain,
+                                 struct ldb_message *ldb_msg,
+                                 const char *lookup_name,
+                                 const char *well_known_domain);
 
 #endif /* _CACHE_REQ_PRIVATE_H_ */
