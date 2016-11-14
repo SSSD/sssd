@@ -116,6 +116,7 @@ struct cache_req_plugin cache_req_user_by_id = {
     .upn_equivalent = CACHE_REQ_SENTINEL,
     .get_next_domain_flags = 0,
 
+    .is_well_known_fn = NULL,
     .prepare_domain_data_fn = NULL,
     .create_debug_name_fn = cache_req_user_by_id_create_debug_name,
     .global_ncache_add_fn = cache_req_user_by_id_global_ncache_add,

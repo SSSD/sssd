@@ -31,6 +31,21 @@ enum cache_object_status {
 };
 
 /**
+ * Create cache request result manually, if the searched object is well known
+ * and thus can not be found in the cache.
+ *
+ *
+ * @return EOK If it is a well known object and a result was created.
+ * @return ENOENT If it is not a well known object.
+ * @return Other errno code in case of an error.
+ */
+typedef errno_t
+(*cache_req_is_well_known_result_fn)(TALLOC_CTX *mem_ctx,
+                                     struct cache_req *cr,
+                                     struct cache_req_data *data,
+                                     struct cache_req_result **_result);
+
+/**
  * Create an object debug name that is used in debug messages to identify
  * this object.
  *
@@ -174,6 +189,7 @@ struct cache_req_plugin {
     enum cache_req_type upn_equivalent;
 
     /* Operations */
+    cache_req_is_well_known_result_fn is_well_known_fn;
     cache_req_prepare_domain_data_fn prepare_domain_data_fn;
     cache_req_create_debug_name_fn create_debug_name_fn;
     cache_req_global_ncache_add_fn global_ncache_add_fn;

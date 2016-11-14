@@ -181,6 +181,7 @@ struct cache_req_plugin cache_req_initgroups_by_name = {
     .upn_equivalent = CACHE_REQ_INITGROUPS_BY_UPN,
     .get_next_domain_flags = 0,
 
+    .is_well_known_fn = NULL,
     .prepare_domain_data_fn = cache_req_initgroups_by_name_prepare_domain_data,
     .create_debug_name_fn = cache_req_initgroups_by_name_create_debug_name,
     .global_ncache_add_fn = NULL,
