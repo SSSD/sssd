@@ -22,6 +22,48 @@
 
 #include "responder/common/cache_req/cache_req_private.h"
 
+static const char **
+cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
+                            const char **requested)
+{
+    static const char *defattrs[] = { SYSDB_DEFAULT_ATTRS };
+    static size_t defnum = sizeof(defattrs) / sizeof(defattrs[0]);
+    const char **attrs;
+    size_t reqnum;
+    size_t total;
+    size_t i;
+
+    for (reqnum = 0; requested[reqnum] != NULL; reqnum++);
+
+    total = defnum + reqnum;
+
+    /* We always want to get default attributes. */
+    attrs = talloc_zero_array(mem_ctx, const char *, total + 1);
+    if (attrs == NULL) {
+        return NULL;
+    }
+
+    i = 0;
+
+    for (i = 0; i < reqnum; i++) {
+        attrs[i] = talloc_strdup(attrs, requested[i]);
+        if (attrs[i] == NULL) {
+            talloc_free(attrs);
+            return NULL;
+        }
+    }
+
+    for (; i < total; i++) {
+        attrs[i] = talloc_strdup(attrs, defattrs[i - reqnum]);
+        if (attrs[i] == NULL) {
+            talloc_free(attrs);
+            return NULL;
+        }
+    }
+
+    return attrs;
+}
+
 static struct cache_req_data *
 cache_req_data_create(TALLOC_CTX *mem_ctx,
                       enum cache_req_type type,
@@ -151,7 +193,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     }
 
     if (input->attrs != NULL) {
-        data->attrs = dup_string_list(data, input->attrs);
+        data->attrs = cache_req_data_create_attrs(data, input->attrs);
         if (data->attrs == NULL) {
             ret = ENOMEM;
             goto done;
