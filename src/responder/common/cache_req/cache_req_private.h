@@ -123,4 +123,13 @@ cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
                                  const char *lookup_name,
                                  const char *well_known_domain);
 
+/* Plug-in common. */
+
+struct cache_req_result *
+cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
+                                struct cache_req *cr,
+                                const char *domname,
+                                const char *sid,
+                                const char *name);
+
 #endif /* _CACHE_REQ_PRIVATE_H_ */
