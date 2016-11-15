@@ -40,6 +40,7 @@ enum cache_req_type {
     CACHE_REQ_INITGROUPS_BY_UPN,
 
     CACHE_REQ_OBJECT_BY_SID,
+    CACHE_REQ_OBJECT_BY_NAME,
 
     CACHE_REQ_ENUM_USERS,
     CACHE_REQ_ENUM_GROUPS,
@@ -61,6 +62,12 @@ struct cache_req_data *
 cache_req_data_name(TALLOC_CTX *mem_ctx,
                     enum cache_req_type type,
                     const char *name);
+
+struct cache_req_data *
+cache_req_data_name_attrs(TALLOC_CTX *mem_ctx,
+                          enum cache_req_type type,
+                          const char *name,
+                          const char **attrs);
 
 struct cache_req_data *
 cache_req_data_id(TALLOC_CTX *mem_ctx,
@@ -262,6 +269,19 @@ cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
                              const char **attrs);
 
 #define cache_req_object_by_sid_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_object_by_name_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct resp_ctx *rctx,
+                              struct sss_nc_ctx *ncache,
+                              int cache_refresh_percent,
+                              const char *domain,
+                              const char *name,
+                              const char **attrs);
+
+#define cache_req_object_by_name_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *

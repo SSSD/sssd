@@ -4544,6 +4544,16 @@ done:
     return ret;
 }
 
+errno_t sysdb_search_object_by_name(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *name,
+                                    const char **attrs,
+                                    struct ldb_result **res)
+{
+    return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_NAME_FILTER,
+                                           name, attrs, res);
+}
+
 errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domain,
                                    const char *sid_str,
