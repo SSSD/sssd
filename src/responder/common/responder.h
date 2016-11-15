@@ -99,6 +99,7 @@ struct resp_ctx {
     const char *priv_sock_name;
 
     struct sss_nc_ctx *ncache;
+    struct sss_names_ctx *global_names;
 
     struct sbus_connection *mon_conn;
     struct be_conn *be_conns;

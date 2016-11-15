@@ -1233,16 +1233,16 @@ void test_nss_setup(struct sss_test_conf_param params[],
     nss_test_ctx->nctx = mock_nctx(nss_test_ctx);
     assert_non_null(nss_test_ctx->nctx);
 
-    ret = sss_ad_default_names_ctx(nss_test_ctx->nctx,
-                                   &nss_test_ctx->nctx->global_names);
-    assert_int_equal(ret, EOK);
-    assert_non_null(nss_test_ctx->nctx->global_names);
-
     nss_test_ctx->rctx = mock_rctx(nss_test_ctx, nss_test_ctx->tctx->ev,
                                    nss_test_ctx->tctx->dom, nss_test_ctx->nctx);
     assert_non_null(nss_test_ctx->rctx);
     nss_test_ctx->rctx->cdb = nss_test_ctx->tctx->confdb;
     nss_test_ctx->nctx->rctx = nss_test_ctx->rctx;
+
+    ret = sss_ad_default_names_ctx(nss_test_ctx->nctx,
+                                   &nss_test_ctx->nctx->rctx->global_names);
+    assert_int_equal(ret, EOK);
+    assert_non_null(nss_test_ctx->nctx->rctx->global_names);
 
     /* Create client context */
     nss_test_ctx->cctx = mock_cctx(nss_test_ctx, nss_test_ctx->rctx);
@@ -1255,7 +1255,6 @@ void test_nss_setup(struct sss_test_conf_param params[],
     /* do after previous setup as the former nulls procotol_ctx */
     nss_test_ctx->cctx->protocol_ctx = mock_prctx(nss_test_ctx->cctx);
     assert_non_null(nss_test_ctx->cctx->protocol_ctx);
-
 }
 
 struct group getgrnam_no_members = {
