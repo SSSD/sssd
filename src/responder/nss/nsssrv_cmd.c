@@ -1405,11 +1405,9 @@ static int nss_check_name_of_well_known_sid(struct nss_cmd_ctx *cmdctx,
     uint8_t *body;
     size_t blen;
     struct cli_protocol *pctx;
-    struct nss_ctx *nss_ctx;
     size_t pctr = 0;
 
-    nss_ctx = talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
-    ret = sss_parse_name(cmdctx, nss_ctx->global_names, full_name,
+    ret = sss_parse_name(cmdctx, cmdctx->cctx->rctx->global_names, full_name,
                          &wk_dom_name, &wk_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_parse_name failed.\n");
@@ -5188,7 +5186,6 @@ static int nss_check_well_known_sid(struct nss_cmd_ctx *cmdctx)
     uint8_t *body;
     size_t blen;
     struct cli_protocol *pctx;
-    struct nss_ctx *nss_ctx;
     size_t pctr = 0;
 
     pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
@@ -5207,8 +5204,7 @@ static int nss_check_well_known_sid(struct nss_cmd_ctx *cmdctx)
     }
 
     if (wk_dom_name != NULL) {
-        nss_ctx = talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
-        fq_name = sss_tc_fqname2(cmdctx, nss_ctx->global_names,
+        fq_name = sss_tc_fqname2(cmdctx, cmdctx->cctx->rctx->global_names,
                                  wk_dom_name, wk_dom_name, wk_name);
         if (fq_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "sss_tc_fqname2 failed.\n");
