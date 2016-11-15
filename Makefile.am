@@ -482,6 +482,7 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/cache_req.c \
 	src/responder/common/cache_req/cache_req_search.c \
 	src/responder/common/cache_req/cache_req_data.c \
+	src/responder/common/cache_req/plugins/cache_req_common.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_users.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_groups.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_svc.c \
