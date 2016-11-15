@@ -203,6 +203,7 @@
 
 #define SYSDB_SID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_SID_STR"=%s))"
 #define SYSDB_UUID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_UUID"=%s))"
+#define SYSDB_NAME_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_NAME"=%s))"
 #define SYSDB_USER_CERT_FILTER "(&("SYSDB_UC")%s)"
 
 #define SYSDB_HAS_ENUMERATED "has_enumerated"
@@ -1192,6 +1193,12 @@ errno_t sysdb_idmap_store_mapping(struct sss_domain_info *domain,
 errno_t sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *domain,
                                  struct ldb_result **_result);
+
+errno_t sysdb_search_object_by_name(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *name,
+                                    const char **attrs,
+                                    struct ldb_result **res);
 
 errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domain,

@@ -90,6 +90,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
     case CACHE_REQ_NETGROUP_BY_NAME:
+    case CACHE_REQ_OBJECT_BY_NAME:
         if (input->name.input == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
@@ -221,6 +222,20 @@ cache_req_data_name(TALLOC_CTX *mem_ctx,
     struct cache_req_data input = {0};
 
     input.name.input = name;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_name_attrs(TALLOC_CTX *mem_ctx,
+                          enum cache_req_type type,
+                          const char *name,
+                          const char **attrs)
+{
+    struct cache_req_data input = { 0 };
+
+    input.name.input = name;
+    input.attrs = attrs;
 
     return cache_req_data_create(mem_ctx, type, &input);
 }
