@@ -4625,12 +4625,11 @@ done:
     return ret;
 }
 
-static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
-                                   struct sss_domain_info *domain,
-                                   const char *filter_tmpl,
-                                   const char *str,
-                                   const char **attrs,
-                                   struct ldb_result **_res)
+static errno_t sysdb_search_object_attr(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        const char *filter,
+                                        const char **attrs,
+                                        struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
@@ -4654,9 +4653,9 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
-                     basedn, LDB_SCOPE_SUBTREE, attrs?attrs:def_attrs,
-                     filter_tmpl, str);
+    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, basedn,
+                     LDB_SCOPE_SUBTREE, attrs ? attrs : def_attrs,
+                     "%s", filter);
     if (ret != EOK) {
         ret = sysdb_error_to_errno(ret);
         DEBUG(SSSDBG_OP_FAILURE, "ldb_search failed.\n");
@@ -4664,9 +4663,9 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
     }
 
     if (res->count > 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Search for [%s]  with filter [%s] " \
-                                   "returned more than one object.\n",
-                                   str, filter_tmpl);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Search with filter [%s] returned more than one object.\n",
+              filter);
         ret = EINVAL;
         goto done;
     } else if (res->count == 0) {
@@ -4692,6 +4691,57 @@ done:
 
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
+                                               struct sss_domain_info *domain,
+                                               const char *filter_tmpl,
+                                               const char *str,
+                                               const char **attrs,
+                                               struct ldb_result **_res)
+{
+    char *filter;
+    errno_t ret;
+
+    filter = talloc_asprintf(NULL, filter_tmpl, str);
+    if (filter == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, _res);
+
+    talloc_free(filter);
+    return ret;
+}
+
+errno_t sysdb_search_object_by_id(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  uint32_t id,
+                                  const char **attrs,
+                                  struct ldb_result **res)
+{
+    char *filter;
+    errno_t ret;
+
+    filter = talloc_asprintf(NULL, SYSDB_ID_FILTER, id, id);
+    if (filter == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, res);
+
+    talloc_free(filter);
+    return ret;
+}
+
+errno_t sysdb_search_object_by_name(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *name,
+                                    const char **attrs,
+                                    struct ldb_result **res)
+{
+    return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_NAME_FILTER,
+                                           name, attrs, res);
 }
 
 errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
