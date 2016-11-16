@@ -7,6 +7,7 @@ dist_noinst_DATA = \
     sssd_ldb.py \
     sssd_netgroup.py \
     sssd_passwd.py \
+    sssd_group.py \
     ds.py \
     ds_openldap.py \
     ent.py \
