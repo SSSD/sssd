@@ -874,6 +874,7 @@ static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to get %s attribute [%d]: %s\n",
               SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
+        ret = ERR_MALFORMED_ENTRY;
         goto done;
     }
 
@@ -976,6 +977,10 @@ sysdb_sudo_store(struct sss_domain_info *domain,
         if (ret == EINVAL) {
             /* Multiple CNs are error on server side, we can just ignore this
              * rule and save the others. Loud debug message is in logs. */
+            continue;
+        } else if (ret == ERR_MALFORMED_ENTRY) {
+            /* Attribute SYSDB_SUDO_CACHE_AT_USER is missing but we can
+             * continue with next sudoRule. */
             continue;
         } else if (ret != EOK) {
             goto done;
