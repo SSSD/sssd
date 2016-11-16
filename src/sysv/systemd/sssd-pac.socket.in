@@ -1,0 +1,9 @@
+[Unit]
+Description=SSSD PAC Service responder socket
+Documentation=man:sssd.conf(5)
+
+[Socket]
+ListenStream=@pipepath@/pac
+
+[Install]
+WantedBy=sockets.target

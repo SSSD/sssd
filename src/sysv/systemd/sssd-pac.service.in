@@ -1,0 +1,13 @@
+[Unit]
+Description=SSSD PAC Service responder
+Documentation=man:sssd.conf(5)
+Requires=sssd.service
+PartOf=sssd.service
+After=sssd.service
+
+[Install]
+Also=sssd-pac.socket
+
+[Service]
+ExecStart=@libexecdir@/sssd/sssd_pac --uid 0 --gid 0 --debug-to-files
+
