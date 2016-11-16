@@ -1062,7 +1062,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* after all initializations we are ready to listen on our socket */
-    ret = set_unix_socket(rctx, conn_setup);
+    ret = activate_unix_sockets(rctx, conn_setup);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing socket\n");
         goto fail;
