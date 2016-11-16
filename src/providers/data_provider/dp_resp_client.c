@@ -26,7 +26,23 @@
 #include "providers/data_provider.h"
 #include "providers/data_provider/dp_private.h"
 #include "responder/common/iface/responder_iface.h"
-#include "src/responder/nss/nss_iface.h"
+#include "responder/nss/nss_iface.h"
+
+/* List of DP clients that deal with users or groups */
+/* FIXME - it would be much cleaner to implement sbus signals
+ * and let the responder subscribe to these messages rather than
+ * keep a list here..
+ *  https://fedorahosted.org/sssd/ticket/2233
+ */
+static enum dp_clients user_clients[] = {
+    DPC_NSS,
+    DPC_PAM,
+    DPC_IFP,
+    DPC_PAC,
+    DPC_SUDO,
+
+    DP_CLIENT_SENTINEL
+};
 
 static void send_msg_to_all_clients(struct data_provider *provider,
                                     struct DBusMessage *msg)
@@ -38,6 +54,21 @@ static void send_msg_to_all_clients(struct data_provider *provider,
         cli = provider->clients[i];
         if (cli != NULL) {
            sbus_conn_send_reply(dp_client_conn(cli), msg);
+        }
+    }
+}
+
+static void send_msg_to_selected_clients(struct data_provider *provider,
+                                         struct DBusMessage *msg,
+                                         enum dp_clients *clients)
+{
+    struct dp_client *cli;
+    int i;
+
+    for (i = 0; clients[i] != DP_CLIENT_SENTINEL; i++) {
+        cli = provider->clients[clients[i]];
+        if (cli != NULL) {
+            sbus_conn_send_reply(dp_client_conn(cli), msg);
         }
     }
 }
@@ -90,4 +121,36 @@ void dp_sbus_domain_inconsistent(struct data_provider *provider,
                                  struct sss_domain_info *dom)
 {
     return dp_sbus_set_domain_state(provider, dom, DOM_INCONSISTENT);
+}
+
+static void dp_sbus_reset_ncache(struct data_provider *provider,
+                                 struct sss_domain_info *dom,
+                                 const char *method)
+{
+    DBusMessage *msg;
+
+    msg = sbus_create_message(NULL, NULL, RESPONDER_PATH,
+                              IFACE_RESPONDER_NCACHE, method);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
+        return;
+    }
+
+    send_msg_to_selected_clients(provider, msg, user_clients);
+    dbus_message_unref(msg);
+    return;
+}
+
+void dp_sbus_reset_users_ncache(struct data_provider *provider,
+                                struct sss_domain_info *dom)
+{
+    return dp_sbus_reset_ncache(provider, dom,
+                                IFACE_RESPONDER_NCACHE_RESETUSERS);
+}
+
+void dp_sbus_reset_groups_ncache(struct data_provider *provider,
+                                 struct sss_domain_info *dom)
+{
+    return dp_sbus_reset_ncache(provider, dom,
+                                IFACE_RESPONDER_NCACHE_RESETGROUPS);
 }
