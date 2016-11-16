@@ -110,7 +110,7 @@ done:
 }
 
 int monitor_common_send_id(struct sbus_connection *conn,
-                           const char *name, uint16_t version)
+                           const char *name, uint16_t version, uint16_t type)
 {
     DBusMessage *msg;
     dbus_bool_t ret;
@@ -131,6 +131,7 @@ int monitor_common_send_id(struct sbus_connection *conn,
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_UINT16, &version,
+                                   DBUS_TYPE_UINT16, &type,
                                    DBUS_TYPE_INVALID);
     if (!ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
@@ -162,6 +163,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
                          struct mon_cli_iface *mon_iface,
                          const char *svc_name,
                          uint16_t svc_version,
+                         uint16_t svc_type,
                          void *pvt,
                          struct sbus_connection **mon_conn)
 {
@@ -191,7 +193,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Identify ourselves to the monitor */
-    ret = monitor_common_send_id(conn, svc_name, svc_version);
+    ret = monitor_common_send_id(conn, svc_name, svc_version, svc_type);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to identify to the monitor!\n");
         return ret;
