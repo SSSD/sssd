@@ -1,0 +1,9 @@
+[Unit]
+Description=SSSD NSS Service responder socket
+Documentation=man:sssd.conf(5)
+
+[Socket]
+ListenStream=@pipepath@/nss
+
+[Install]
+WantedBy=sockets.target

@@ -802,6 +802,8 @@ done
 %{_unitdir}/sssd.service
 %{_unitdir}/sssd-autofs.socket
 %{_unitdir}/sssd-autofs.service
+%{_unitdir}/sssd-nss.socket
+%{_unitdir}/sssd-nss.service
 %{_unitdir}/sssd-secrets.socket
 %{_unitdir}/sssd-secrets.service
 %else
