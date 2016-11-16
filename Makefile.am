@@ -3938,6 +3938,9 @@ if HAVE_SYSTEMD_UNIT
         src/sysv/systemd/sssd.service \
         src/sysv/systemd/sssd-nss.socket \
         src/sysv/systemd/sssd-nss.service \
+        src/sysv/systemd/sssd-pam.socket \
+        src/sysv/systemd/sssd-pam-priv.socket \
+        src/sysv/systemd/sssd-pam.service \
         src/sysv/systemd/sssd-secrets.socket \
         src/sysv/systemd/sssd-secrets.service \
         $(NULL)
@@ -4008,6 +4011,9 @@ EXTRA_DIST += \
     src/sysv/systemd/journal.conf.in \
     src/sysv/systemd/sssd-nss.socket.in \
     src/sysv/systemd/sssd-nss.service.in \
+    src/sysv/systemd/sssd-pam.socket.in \
+    src/sysv/systemd/sssd-pam-priv.socket.in \
+    src/sysv/systemd/sssd-pam.service.in \
     src/sysv/systemd/sssd-secrets.socket.in \
     src/sysv/systemd/sssd-secrets.service.in \
     $(NULL)
@@ -4038,6 +4044,18 @@ src/sysv/systemd/sssd-nss.socket: src/sysv/systemd/sssd-nss.socket.in Makefile
 	$(replace_script)
 
 src/sysv/systemd/sssd-nss.service: src/sysv/systemd/sssd-nss.service.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-pam.socket: src/sysv/systemd/sssd-pam.socket.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-pam-priv.socket: src/sysv/systemd/sssd-pam-priv.socket.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-pam.service: src/sysv/systemd/sssd-pam.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 
@@ -4294,6 +4312,9 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-nss.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-pac.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-pac.service
+	rm -f $(builddir)/src/sysv/systemd/sssd-pam.socket
+	rm -f $(builddir)/src/sysv/systemd/sssd-pam-priv.socket
+	rm -f $(builddir)/src/sysv/systemd/sssd-pam.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf

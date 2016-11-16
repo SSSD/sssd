@@ -1,0 +1,13 @@
+[Unit]
+Description=SSSD PAM Service responder socket
+Documentation=man:sssd.conf(5)
+BindsTo=sssd.service
+BindsTo=sssd-pam-priv.socket
+
+[Socket]
+ListenStream=@pipepath@/pam
+SocketUser=root
+SocketGroup=root
+
+[Install]
+WantedBy=sssd.service
