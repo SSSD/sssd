@@ -803,6 +803,8 @@ done
 %{_unitdir}/sssd-autofs.service
 %{_unitdir}/sssd-nss.socket
 %{_unitdir}/sssd-nss.service
+%{_unitdir}/sssd-pac.socket
+%{_unitdir}/sssd-pac.service
 %{_unitdir}/sssd-secrets.socket
 %{_unitdir}/sssd-secrets.service
 %else
@@ -1139,12 +1141,14 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_post sssd.service
 %systemd_post sssd-autofs.socket
 %systemd_post sssd-nss.socket
+%systemd_post sssd-pac.socket
 %systemd_post sssd-secrets.socket
 
 %preun common
 %systemd_preun sssd.service
 %systemd_preun sssd-autofs.socket
 %systemd_preun sssd-nss.socket
+%systemd_preun sssd-pac.socket
 %systemd_preun sssd-secrets.socket
 
 %postun common
@@ -1153,6 +1157,8 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_postun_with_restart sssd-autofs.service
 %systemd_postun_with_restart sssd-nss.socket
 %systemd_postun_with_restart sssd-nss.service
+%systemd_postun_with_restart sssd-pac.socket
+%systemd_postun_with_restart sssd-pac.service
 %systemd_postun_with_restart sssd-secrets.socket
 %systemd_postun_with_restart sssd-secrets.service
 
