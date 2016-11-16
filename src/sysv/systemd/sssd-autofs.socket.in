@@ -1,0 +1,9 @@
+[Unit]
+Description=SSSD AutoFS Service responder socket
+Documentation=man:sssd.conf(5)
+
+[Socket]
+ListenStream=@pipepath@/autofs
+
+[Install]
+WantedBy=sockets.target

@@ -800,6 +800,8 @@ done
 %{_sbindir}/sssd
 %if (0%{?use_systemd} == 1)
 %{_unitdir}/sssd.service
+%{_unitdir}/sssd-autofs.socket
+%{_unitdir}/sssd-autofs.service
 %{_unitdir}/sssd-secrets.socket
 %{_unitdir}/sssd-secrets.service
 %else

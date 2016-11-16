@@ -3923,6 +3923,12 @@ if HAVE_SYSTEMD_UNIT
         src/sysv/systemd/sssd-secrets.socket \
         src/sysv/systemd/sssd-secrets.service \
         $(NULL)
+if BUILD_AUTOFS
+    systemdunit_DATA += \
+        src/sysv/systemd/sssd-autofs.socket \
+        src/sysv/systemd/sssd-autofs.service \
+        $(NULL)
+endif
 if WITH_JOURNALD
     systemdconf_DATA += \
         src/sysv/systemd/journal.conf
@@ -3961,6 +3967,7 @@ edit_cmd = $(SED) \
         -e 's|@environment_file[@]|$(environment_file)|g' \
         -e 's|@localstatedir[@]|$(localstatedir)|g' \
         -e 's|@libexecdir[@]|$(libexecdir)|g' \
+        -e 's|@pipepath[@]|$(pipepath)|g' \
         -e 's|@prefix[@]|$(prefix)|g'
 
 replace_script = \
@@ -3977,6 +3984,13 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-secrets.service.in \
     $(NULL)
 
+if BUILD_AUTOFS
+EXTRA_DIST += \
+    src/sysv/systemd/sssd-autofs.socket.in \
+    src/sysv/systemd/sssd-autofs.service.in \
+    $(NULL)
+endif
+
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
@@ -3992,6 +4006,16 @@ src/sysv/systemd/sssd-secrets.socket: src/sysv/systemd/sssd-secrets.socket.in Ma
 src/sysv/systemd/sssd-secrets.service: src/sysv/systemd/sssd-secrets.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
+
+if BUILD_AUTOFS
+src/sysv/systemd/sssd-autofs.socket: src/sysv/systemd/sssd-autofs.socket.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-autofs.service: src/sysv/systemd/sssd-autofs.service.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+endif
 
 SSSD_USER_DIRS = \
     $(DESTDIR)$(dbpath) \
@@ -4212,6 +4236,8 @@ endif
 	done;
 	rm -Rf ldb_mod_test_dir
 	rm -f $(builddir)/src/sysv/systemd/sssd.service
+	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.socket
+	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
