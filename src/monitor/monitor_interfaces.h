@@ -35,6 +35,11 @@
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
 
+enum mt_svc_type {
+    MT_SVC_SERVICE,
+    MT_SVC_PROVIDER
+};
+
 int monitor_get_sbus_address(TALLOC_CTX *mem_ctx, char **address);
 int monitor_common_send_id(struct sbus_connection *conn,
                            const char *name, uint16_t version);
