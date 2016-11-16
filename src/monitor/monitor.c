@@ -232,6 +232,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     struct mt_svc *svc;
     DBusError dbus_error;
     dbus_uint16_t svc_ver;
+    dbus_uint16_t svc_type;
     char *svc_name;
     dbus_bool_t dbret;
     int ret;
@@ -250,6 +251,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     dbret = dbus_message_get_args(dbus_req->message, &dbus_error,
                                   DBUS_TYPE_STRING, &svc_name,
                                   DBUS_TYPE_UINT16, &svc_ver,
+                                  DBUS_TYPE_UINT16, &svc_type,
                                   DBUS_TYPE_INVALID);
     if (!dbret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
