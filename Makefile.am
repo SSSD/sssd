@@ -637,10 +637,6 @@ dist_noinst_HEADERS = \
     src/responder/nss/nss_protocol.h \
     src/responder/nss/nss_iface_generated.h \
     src/responder/nss/nss_iface.h \
-    src/responder/nss/nsssrv.h \
-    src/responder/nss/nsssrv_private.h \
-    src/responder/nss/nsssrv_netgroup.h \
-    src/responder/nss/nsssrv_services.h \
     src/responder/nss/nsssrv_mmap_cache.h \
     src/responder/pac/pacsrv.h \
     src/responder/common/negcache_files.h \
