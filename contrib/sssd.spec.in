@@ -806,6 +806,9 @@ done
 %{_unitdir}/sssd-nss.service
 %{_unitdir}/sssd-pac.socket
 %{_unitdir}/sssd-pac.service
+%{_unitdir}/sssd-pam.socket
+%{_unitdir}/sssd-pam-priv.socket
+%{_unitdir}/sssd-pam.service
 %{_unitdir}/sssd-secrets.socket
 %{_unitdir}/sssd-secrets.service
 %else
