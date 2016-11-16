@@ -3947,6 +3947,12 @@ if BUILD_AUTOFS
         src/sysv/systemd/sssd-autofs.service \
         $(NULL)
 endif
+if BUILD_PAC_RESPONDER
+    systemdunit_DATA += \
+        src/sysv/systemd/sssd-pac.socket \
+        src/sysv/systemd/sssd-pac.service \
+        $(NULL)
+endif
 if WITH_JOURNALD
     systemdconf_DATA += \
         src/sysv/systemd/journal.conf
@@ -4012,6 +4018,12 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-autofs.service.in \
     $(NULL)
 endif
+if BUILD_PAC_RESPONDER
+EXTRA_DIST += \
+    src/sysv/systemd/sssd-pac.socket.in \
+    src/sysv/systemd/sssd-pac.service.in \
+    $(NULL)
+endif
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
@@ -4043,6 +4055,16 @@ src/sysv/systemd/sssd-autofs.socket: src/sysv/systemd/sssd-autofs.socket.in Make
 	$(replace_script)
 
 src/sysv/systemd/sssd-autofs.service: src/sysv/systemd/sssd-autofs.service.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+endif
+
+if BUILD_PAC_RESPONDER
+src/sysv/systemd/sssd-pac.socket: src/sysv/systemd/sssd-pac.socket.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-pac.service: src/sysv/systemd/sssd-pac.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 endif
@@ -4270,6 +4292,8 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-nss.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-nss.service
+	rm -f $(builddir)/src/sysv/systemd/sssd-pac.socket
+	rm -f $(builddir)/src/sysv/systemd/sssd-pac.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
