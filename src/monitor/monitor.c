@@ -95,11 +95,6 @@ int cmdline_debug_microseconds;
 
 struct svc_spy;
 
-enum mt_svc_type {
-    MT_SVC_SERVICE,
-    MT_SVC_PROVIDER
-};
-
 struct mt_svc {
     struct mt_svc *prev;
     struct mt_svc *next;
