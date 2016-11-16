@@ -18,6 +18,9 @@
 #ifndef _SSS_CRYPTO_H_
 #define _SSS_CRYPTO_H_
 
+#include <talloc.h>
+#include <stdint.h>
+
 int generate_csprng_buffer(uint8_t *buf, size_t size);
 
 int s3crypt_sha512(TALLOC_CTX *mmectx,
