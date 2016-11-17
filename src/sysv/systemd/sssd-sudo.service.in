@@ -1,0 +1,13 @@
+[Unit]
+Description=SSSD Sudo Service responder
+Documentation=man:sssd.conf(5)
+Requires=sssd.service
+PartOf=sssd.service
+After=sssd.service
+
+[Install]
+Also=sssd-sudo.socket
+
+[Service]
+ExecStart=@libexecdir@/sssd/sssd_sudo --uid 0 --gid 0 --debug-to-files
+

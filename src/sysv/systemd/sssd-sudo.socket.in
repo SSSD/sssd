@@ -1,0 +1,9 @@
+[Unit]
+Description=SSSD Sudo Service responder socket
+Documentation=man:sssd.conf(5)
+
+[Socket]
+ListenStream=@pipepath@/sudo
+
+[Install]
+WantedBy=sockets.target

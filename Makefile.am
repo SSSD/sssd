@@ -3946,6 +3946,12 @@ if BUILD_SSH
         src/sysv/systemd/sssd-ssh.service \
         $(NULL)
 endif
+if BUILD_SUDO
+    systemdunit_DATA += \
+        src/sysv/systemd/sssd-sudo.socket \
+        src/sysv/systemd/sssd-sudo.service \
+        $(NULL)
+endif
 if WITH_JOURNALD
     systemdconf_DATA += \
         src/sysv/systemd/journal.conf
@@ -4024,6 +4030,12 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-ssh.service.in \
     $(NULL)
 endif
+if BUILD_SUDO
+EXTRA_DIST += \
+    src/sysv/systemd/sssd-sudo.socket.in \
+    src/sysv/systemd/sssd-sudo.service.in \
+    $(NULL)
+endif
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
@@ -4087,6 +4099,16 @@ src/sysv/systemd/sssd-ssh.socket: src/sysv/systemd/sssd-ssh.socket.in Makefile
 	$(replace_script)
 
 src/sysv/systemd/sssd-ssh.service: src/sysv/systemd/sssd-ssh.service.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+endif
+
+if BUILD_SUDO
+src/sysv/systemd/sssd-sudo.socket: src/sysv/systemd/sssd-sudo.socket.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-sudo.service: src/sysv/systemd/sssd-sudo.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 endif
@@ -4321,6 +4343,8 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-pam.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-ssh.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-ssh.service
+	rm -f $(builddir)/src/sysv/systemd/sssd-sudo.socket
+	rm -f $(builddir)/src/sysv/systemd/sssd-sudo.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
