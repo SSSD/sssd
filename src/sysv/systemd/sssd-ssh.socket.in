@@ -1,0 +1,12 @@
+[Unit]
+Description=SSSD SSH Service responder socket
+Documentation=man:sssd.conf(5)
+BindsTo=sssd.service
+
+[Socket]
+ListenStream=@pipepath@/ssh
+SocketUser=@SSSD_USER@
+SocketGroup=@SSSD_USER@
+
+[Install]
+WantedBy=sssd.service
