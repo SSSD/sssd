@@ -69,6 +69,11 @@
             If the environment variable SSSD_KRB5_LOCATOR_DEBUG is set to any
             value debug messages will be sent to stderr.
         </para>
+        <para>
+            If the environment variable SSSD_KRB5_LOCATOR_DISABLE is set to any
+            value the plugin is disabled and will just return
+            KRB5_PLUGIN_NO_HANDLE to the caller.
+        </para>
     </refsect1>
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
