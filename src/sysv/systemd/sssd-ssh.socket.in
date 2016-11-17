@@ -1,0 +1,9 @@
+[Unit]
+Description=SSSD SSH Service responder socket
+Documentation=man:sssd.conf(5)
+
+[Socket]
+ListenStream=@pipepath@/ssh
+
+[Install]
+WantedBy=sockets.target
