@@ -828,6 +828,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     char *default_domain;
     bool fqnames_default = false;
     int memcache_timeout;
+    bool enum_default;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -954,14 +955,17 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                   "Interpreting as true\n", domain->name);
         domain->enumerate = true;
     } else { /* assume the new format */
+        enum_default = strcasecmp(domain->provider, "files") == 0 ? true : false;
+
         ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
-                                CONFDB_DOMAIN_ENUMERATE, 0);
+                                CONFDB_DOMAIN_ENUMERATE, enum_default);
         if(ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE);
             goto done;
         }
     }
+
     if (!domain->enumerate) {
         DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]!\n", domain->name);
     }
