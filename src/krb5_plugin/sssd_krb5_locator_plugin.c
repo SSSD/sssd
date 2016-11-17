@@ -45,6 +45,7 @@
 #define BUFSIZE 512
 #define PORT_STR_SIZE 7
 #define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
+#define SSSD_KRB5_LOCATOR_DISABLE "SSSD_KRB5_LOCATOR_DISABLE"
 #define DEBUG_KEY "[sssd_krb5_locator] "
 #define PLUGIN_DEBUG(body) do { \
     if (ctx->debug) { \
@@ -59,6 +60,7 @@ struct sssd_ctx {
     char *kpasswd_addr;
     uint16_t kpasswd_port;
     bool debug;
+    bool disabled;
 };
 
 void plugin_debug_fn(const char *format, ...)
@@ -232,6 +234,14 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
         PLUGIN_DEBUG(("sssd_krb5_locator_init called\n"));
     }
 
+    dummy = getenv(SSSD_KRB5_LOCATOR_DISABLE);
+    if (dummy == NULL) {
+        ctx->disabled = false;
+    } else {
+        ctx->disabled = true;
+        PLUGIN_DEBUG(("SSSD KRB5 locator plugin is disabled.\n"));
+    }
+
     *private_data = ctx;
 
     return 0;
@@ -272,6 +282,11 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
 
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
+
+    if (ctx->disabled) {
+        PLUGIN_DEBUG(("Plugin disabled, nothing to do.\n"));
+        return KRB5_PLUGIN_NO_HANDLE;
+    }
 
     if (ctx->sssd_realm == NULL || strcmp(ctx->sssd_realm, realm) != 0) {
         free(ctx->sssd_realm);
