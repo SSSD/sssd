@@ -19,23 +19,9 @@
 import re
 import os
 import io
-import shutil
 import pytest
 import ent
 from util import *
-
-
-def backup_envvar_file(name):
-    path = os.environ[name]
-    backup_path = path + ".bak"
-    shutil.copyfile(path, backup_path)
-    return path
-
-
-def restore_envvar_file(name):
-    path = os.environ[name]
-    backup_path = path + ".bak"
-    os.rename(backup_path, path)
 
 
 @pytest.fixture(scope="module")
