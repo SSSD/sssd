@@ -806,21 +806,29 @@ done:
     return ret;
 }
 
-static char *check_services(char **services)
+static char *check_service(char *service)
 {
     const char * const *known_services = get_known_services();
     int i;
-    int ii;
 
-    /* Check if services we are about to start are in the list if known */
-    for (i = 0; services[i]; i++) {
-        for (ii=0; known_services[ii]; ii++) {
-            if (strcasecmp(services[i], known_services[ii]) == 0) {
-                break;
-            }
+    for (i = 0; known_services[i] != NULL; i++) {
+        if (strcasecmp(service, known_services[i]) == 0) {
+            break;
         }
+    }
 
-        if (known_services[ii] == NULL) {
+    if (known_services[i] == NULL) {
+        return service;
+    }
+
+    return NULL;
+}
+
+static char *check_services(char **services)
+{
+    /* Check if services we are about to start are in the list if known */
+    for (int i = 0; services[i]; i++) {
+        if (check_service(services[i]) != NULL) {
             return services[i];
         }
     }
