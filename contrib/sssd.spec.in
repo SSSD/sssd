@@ -808,6 +808,8 @@ done
 %{_unitdir}/sssd-pam.socket
 %{_unitdir}/sssd-pam-priv.socket
 %{_unitdir}/sssd-pam.service
+%{_unitdir}/sssd-ssh.socket
+%{_unitdir}/sssd-ssh.service
 %{_unitdir}/sssd-secrets.socket
 %{_unitdir}/sssd-secrets.service
 %else
@@ -1148,6 +1150,7 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_post sssd-pam.socket
 %systemd_post sssd-pam-priv.socket
 %systemd_post sssd-secrets.socket
+%systemd_post sssd-ssh.socket
 
 %preun common
 %systemd_preun sssd.service
@@ -1157,6 +1160,7 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_preun sssd-pam.socket
 %systemd_preun sssd-pam-priv.socket
 %systemd_preun sssd-secrets.socket
+%systemd_preun sssd-ssh.socket
 
 %postun common
 %systemd_postun_with_restart sssd.service
@@ -1171,6 +1175,8 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_postun_with_restart sssd-pam.service
 %systemd_postun_with_restart sssd-secrets.socket
 %systemd_postun_with_restart sssd-secrets.service
+%systemd_postun_with_restart sssd-ssh.socket
+%systemd_postun_with_restart sssd-ssh.service
 
 %else
 # sysv

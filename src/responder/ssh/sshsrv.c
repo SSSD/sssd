@@ -186,6 +186,7 @@ int main(int argc, const char *argv[])
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
         SSSD_SERVER_OPTS(uid, gid)
+        SSSD_RESPONDER_OPTS
         POPT_TABLEEND
     };
 
