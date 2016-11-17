@@ -1,4 +1,5 @@
 [D-BUS Service]
 Name=org.freedesktop.sssd.infopipe
-Exec=@libexecdir@/sssd/sss_signal
+Exec=@ifp_exec_cmd@
 User=root
+@ifp_systemdservice@
