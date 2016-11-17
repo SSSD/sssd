@@ -1,0 +1,11 @@
+[Unit]
+Description=SSSD IFP Service responder
+Documentation=man:sssd.conf(5)
+Requires=sssd.service
+PartOf=sssd.service
+After=sssd.service
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.sssd.infopipe
+ExecStart=@ifp_exec@

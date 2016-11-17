@@ -88,6 +88,14 @@ polkitdir = @polkitdir@
 pamconfdir = $(sysconfdir)/pam.d
 systemtap_tapdir = @tapset_dir@
 
+if HAVE_SYSTEMD_UNIT
+ifp_exec = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --debug-to-files
+ifp_systemdservice = SystemdService=sssd-ifp.service
+else
+ifp_exec = $(sssdlibexecdir)/sss_signal
+ifp_systemdservice =
+endif
+
 secdbpath = @secdbpath@
 
 UNICODE_LIBS=@UNICODE_LIBS@
@@ -1391,6 +1399,24 @@ dist_dbusservice_DATA = \
 if BUILD_CONFIG_LIB
 sssd_ifp_LDADD += libsss_config.la
 endif
+
+EXTRA_DIST += \
+    src/responder/ifp/org.freedesktop.sssd.infopipe.service.in \
+    $(NULL)
+
+ifp_edit_cmd = $(SED) \
+        -e 's|@ifp_exec[@]|$(ifp_exec)|g' \
+        -e 's|@ifp_systemdservice[@]|$(ifp_systemdservice)|g'
+
+ifp_replace_script = \
+    @rm -f $@ $@.tmp; \
+    srcdir=''; \
+        test -f ./$@.in || srcdir=$(srcdir)/; \
+        $(ifp_edit_cmd) $${srcdir}$@.in >$@.tmp; \
+    mv $@.tmp $@
+
+src/responder/ifp/org.freedesktop.sssd.infopipe.service: src/responder/ifp/org.freedesktop.sssd.infopipe.service.in Makefile
+	$(ifp_replace_script)
 
 endif
 
@@ -3934,6 +3960,11 @@ if BUILD_AUTOFS
         src/sysv/systemd/sssd-autofs.service \
         $(NULL)
 endif
+if BUILD_IFP
+    systemdunit_DATA += \
+        src/sysv/systemd/sssd-ifp.service \
+        $(NULL)
+endif
 if BUILD_PAC_RESPONDER
     systemdunit_DATA += \
         src/sysv/systemd/sssd-pac.socket \
@@ -4018,6 +4049,11 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-autofs.service.in \
     $(NULL)
 endif
+if BUILD_IFP
+EXTRA_DIST += \
+    src/sysv/systemd/sssd-ifp.service.in \
+    $(NULL)
+endif
 if BUILD_PAC_RESPONDER
 EXTRA_DIST += \
     src/sysv/systemd/sssd-pac.socket.in \
@@ -4081,6 +4117,12 @@ src/sysv/systemd/sssd-autofs.socket: src/sysv/systemd/sssd-autofs.socket.in Make
 src/sysv/systemd/sssd-autofs.service: src/sysv/systemd/sssd-autofs.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
+endif
+
+if BUILD_IFP
+src/sysv/systemd/sssd-ifp.service: src/sysv/systemd/sssd-ifp.service.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(ifp_replace_script)
 endif
 
 if BUILD_PAC_RESPONDER
@@ -4331,9 +4373,11 @@ endif
 		rm -Rf $$doc; \
 	done;
 	rm -Rf ldb_mod_test_dir
+	rm -f $(builddir)/src/responder/ifp/org.freedesktop.sssd.infopipe.service
 	rm -f $(builddir)/src/sysv/systemd/sssd.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.service
+	rm -f $(builddir)/src/sysv/systemd/sssd-ifp.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-nss.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-nss.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-pac.socket
