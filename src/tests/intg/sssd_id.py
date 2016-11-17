@@ -21,15 +21,7 @@ import pwd
 import grp
 from ctypes import (cdll, c_int, c_char, c_uint32, c_long, c_char_p,
                     POINTER, pointer)
-
-
-class NssReturnCode(object):
-    """ 'enum' class for name service switch return code """
-    TRYAGAIN = -2,
-    UNAVAIL = -1
-    NOTFOUND = 0
-    SUCCESS = 1
-    RETURN = 2
+from sssd_nss import NssReturnCode, nss_sss_ctypes_loader
 
 
 def call_sssd_initgroups(user, gid):
@@ -45,10 +37,8 @@ def call_sssd_initgroups(user, gid):
         gids should contain user group IDs if err is NssReturnCode.SUCCESS
         otherwise errno will contain non-zero value.
     """
-    libnss_sss_path = config.NSS_MODULE_DIR + "/libnss_sss.so.2"
-    libnss_sss = cdll.LoadLibrary(libnss_sss_path)
+    func = nss_sss_ctypes_loader('_nss_sss_initgroups_dyn')
 
-    func = libnss_sss._nss_sss_initgroups_dyn
     func.restype = c_int
     func.argtypes = [POINTER(c_char), c_uint32, POINTER(c_long),
                      POINTER(c_long), POINTER(POINTER(c_uint32)), c_long,
