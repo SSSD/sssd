@@ -21,6 +21,7 @@ import re
 import os
 import subprocess
 import config
+import shutil
 
 UNINDENT_RE = re.compile("^ +", re.MULTILINE)
 
@@ -64,3 +65,16 @@ def first_dir(*args):
     for arg in args:
         if os.path.isdir(arg):
             return arg
+
+
+def backup_envvar_file(name):
+    path = os.environ[name]
+    backup_path = path + ".bak"
+    shutil.copyfile(path, backup_path)
+    return path
+
+
+def restore_envvar_file(name):
+    path = os.environ[name]
+    backup_path = path + ".bak"
+    os.rename(backup_path, path)

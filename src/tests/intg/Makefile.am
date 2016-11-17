@@ -1,5 +1,6 @@
 dist_noinst_DATA = \
     config.py.m4 \
+    util.py \
     sssd_id.py \
     sssd_ldb.py \
     sssd_netgroup.py \
