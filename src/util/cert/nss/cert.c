@@ -31,6 +31,7 @@
 #include "util/crypto/sss_crypto.h"
 #include "util/crypto/nss/nss_util.h"
 #include "util/cert.h"
+#include "util/sss_endian.h"
 
 #define NS_CERT_HEADER "-----BEGIN CERTIFICATE-----"
 #define NS_CERT_TRAILER "-----END CERTIFICATE-----"
