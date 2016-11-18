@@ -22,6 +22,7 @@
 #include <openssl/pem.h>
 
 #include "util/util.h"
+#include "util/sss_endian.h"
 
 errno_t sss_cert_der_to_pem(TALLOC_CTX *mem_ctx, const uint8_t *der_blob,
                             size_t der_size, char **pem, size_t *pem_size)
