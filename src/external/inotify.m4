@@ -6,8 +6,8 @@ AC_DEFUN([AM_CHECK_INOTIFY],
     AC_MSG_CHECKING([whether sys/inotify.h actually works])
     AC_LINK_IFELSE(
         [AC_LANG_SOURCE([
-#ifdef HAVE_SYS_INOTITY_H
-#include <sys/inotify.h>,
+#ifdef HAVE_SYS_INOTIFY_H
+#include <sys/inotify.h>
 #endif
 int main () {
     return (-1 == inotify_init());
