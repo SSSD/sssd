@@ -199,24 +199,24 @@ struct cache_req_plugin {
     cache_req_dpreq_params_fn dpreq_params_fn;
 };
 
-extern struct cache_req_plugin cache_req_user_by_name;
-extern struct cache_req_plugin cache_req_user_by_upn;
-extern struct cache_req_plugin cache_req_user_by_id;
-extern struct cache_req_plugin cache_req_group_by_name;
-extern struct cache_req_plugin cache_req_group_by_id;
-extern struct cache_req_plugin cache_req_initgroups_by_name;
-extern struct cache_req_plugin cache_req_initgroups_by_upn;
-extern struct cache_req_plugin cache_req_user_by_cert;
-extern struct cache_req_plugin cache_req_user_by_filter;
-extern struct cache_req_plugin cache_req_group_by_filter;
-extern struct cache_req_plugin cache_req_object_by_sid;
-extern struct cache_req_plugin cache_req_object_by_name;
-extern struct cache_req_plugin cache_req_object_by_id;
-extern struct cache_req_plugin cache_req_enum_users;
-extern struct cache_req_plugin cache_req_enum_groups;
-extern struct cache_req_plugin cache_req_enum_svc;
-extern struct cache_req_plugin cache_req_svc_by_name;
-extern struct cache_req_plugin cache_req_svc_by_port;
-extern struct cache_req_plugin cache_req_netgroup_by_name;
+extern const struct cache_req_plugin cache_req_user_by_name;
+extern const struct cache_req_plugin cache_req_user_by_upn;
+extern const struct cache_req_plugin cache_req_user_by_id;
+extern const struct cache_req_plugin cache_req_group_by_name;
+extern const struct cache_req_plugin cache_req_group_by_id;
+extern const struct cache_req_plugin cache_req_initgroups_by_name;
+extern const struct cache_req_plugin cache_req_initgroups_by_upn;
+extern const struct cache_req_plugin cache_req_user_by_cert;
+extern const struct cache_req_plugin cache_req_user_by_filter;
+extern const struct cache_req_plugin cache_req_group_by_filter;
+extern const struct cache_req_plugin cache_req_object_by_sid;
+extern const struct cache_req_plugin cache_req_object_by_name;
+extern const struct cache_req_plugin cache_req_object_by_id;
+extern const struct cache_req_plugin cache_req_enum_users;
+extern const struct cache_req_plugin cache_req_enum_groups;
+extern const struct cache_req_plugin cache_req_enum_svc;
+extern const struct cache_req_plugin cache_req_svc_by_name;
+extern const struct cache_req_plugin cache_req_svc_by_port;
+extern const struct cache_req_plugin cache_req_netgroup_by_name;
 
 #endif /* _CACHE_REQ_PLUGIN_H_ */

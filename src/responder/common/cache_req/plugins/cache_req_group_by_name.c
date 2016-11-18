@@ -152,7 +152,7 @@ cache_req_group_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_group_by_name = {
+const struct cache_req_plugin cache_req_group_by_name = {
     .name = "Group by name",
     .dp_type = SSS_DP_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

@@ -187,7 +187,7 @@ cache_req_object_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_object_by_name = {
+const struct cache_req_plugin cache_req_object_by_name = {
     .name = "Object by name",
     .dp_type = SSS_DP_USER_AND_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

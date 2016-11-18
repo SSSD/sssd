@@ -103,7 +103,7 @@ cache_req_initgroups_by_upn_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_initgroups_by_upn = {
+const struct cache_req_plugin cache_req_initgroups_by_upn = {
     .name = "Initgroups by UPN",
     .dp_type = SSS_DP_INITGROUPS,
     .attr_expiration = SYSDB_INITGR_EXPIRE,

@@ -111,7 +111,7 @@ cache_req_netgroup_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_netgroup_by_name = {
+const struct cache_req_plugin cache_req_netgroup_by_name = {
     .name = "Netgroup by name",
     .dp_type = SSS_DP_NETGR,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

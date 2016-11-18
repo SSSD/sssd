@@ -114,7 +114,7 @@ cache_req_group_by_filter_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_group_by_filter = {
+const struct cache_req_plugin cache_req_group_by_filter = {
     .name = "Group by filter",
     .dp_type = SSS_DP_WILDCARD_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

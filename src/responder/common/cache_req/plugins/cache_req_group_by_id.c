@@ -102,7 +102,7 @@ cache_req_group_by_id_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_group_by_id = {
+const struct cache_req_plugin cache_req_group_by_id = {
     .name = "Group by ID",
     .dp_type = SSS_DP_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

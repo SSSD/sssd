@@ -59,7 +59,7 @@ cache_req_enum_groups_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_enum_groups = {
+const struct cache_req_plugin cache_req_enum_groups = {
     .name = "Enumerate groups",
     .dp_type = SSS_DP_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

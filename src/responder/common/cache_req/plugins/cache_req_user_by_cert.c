@@ -78,7 +78,7 @@ cache_req_user_by_cert_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_user_by_cert = {
+const struct cache_req_plugin cache_req_user_by_cert = {
     .name = "User by certificate",
     .dp_type = SSS_DP_CERT,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

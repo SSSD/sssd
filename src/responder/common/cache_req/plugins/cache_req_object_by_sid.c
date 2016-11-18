@@ -104,7 +104,7 @@ cache_req_object_by_sid_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_object_by_sid = {
+const struct cache_req_plugin cache_req_object_by_sid = {
     .name = "Object by SID",
     .dp_type = SSS_DP_SECID,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

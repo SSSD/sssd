@@ -167,7 +167,7 @@ cache_req_initgroups_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_initgroups_by_name = {
+const struct cache_req_plugin cache_req_initgroups_by_name = {
     .name = "Initgroups by name",
     .dp_type = SSS_DP_INITGROUPS,
     .attr_expiration = SYSDB_INITGR_EXPIRE,
