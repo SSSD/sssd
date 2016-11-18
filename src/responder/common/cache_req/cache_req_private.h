@@ -34,7 +34,7 @@ struct cache_req {
     /* Provided input. */
     struct cache_req_data *data;
 
-    struct cache_req_plugin *plugin;
+    const struct cache_req_plugin *plugin;
     struct resp_ctx *rctx;
     struct sss_nc_ctx *ncache;
     int midpoint;

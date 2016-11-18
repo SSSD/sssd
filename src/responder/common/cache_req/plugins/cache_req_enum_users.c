@@ -59,7 +59,7 @@ cache_req_enum_users_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_enum_users = {
+const struct cache_req_plugin cache_req_enum_users = {
     .name = "Enumerate users",
     .dp_type = SSS_DP_USER,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

@@ -27,10 +27,10 @@
 #include "responder/common/cache_req/cache_req_private.h"
 #include "responder/common/cache_req/cache_req_plugin.h"
 
-static struct cache_req_plugin *
+static const struct cache_req_plugin *
 cache_req_get_plugin(enum cache_req_type type)
 {
-    static struct cache_req_plugin *plugins[CACHE_REQ_SENTINEL] = {
+    static const struct cache_req_plugin *plugins[CACHE_REQ_SENTINEL] = {
         &cache_req_user_by_name,
         &cache_req_user_by_upn,
         &cache_req_user_by_id,
@@ -69,7 +69,7 @@ cache_req_get_plugin(enum cache_req_type type)
 static errno_t cache_req_set_plugin(struct cache_req *cr,
                                     enum cache_req_type type)
 {
-    struct cache_req_plugin *plugin;
+    const struct cache_req_plugin *plugin;
 
     plugin = cache_req_get_plugin(type);
     if (plugin == NULL) {

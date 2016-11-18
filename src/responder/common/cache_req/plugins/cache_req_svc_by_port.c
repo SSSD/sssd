@@ -108,7 +108,7 @@ cache_req_svc_by_port_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_svc_by_port = {
+const struct cache_req_plugin cache_req_svc_by_port = {
     .name = "Service by port",
     .dp_type = SSS_DP_SERVICES,
     .attr_expiration = SYSDB_CACHE_EXPIRE,

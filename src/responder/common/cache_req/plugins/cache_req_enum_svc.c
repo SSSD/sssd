@@ -60,7 +60,7 @@ cache_req_enum_svc_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_enum_svc = {
+const struct cache_req_plugin cache_req_enum_svc = {
     .name = "Enumerate services",
     .dp_type = SSS_DP_SERVICES,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
