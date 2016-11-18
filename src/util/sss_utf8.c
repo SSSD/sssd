@@ -26,6 +26,7 @@
 #include <errno.h>
 
 #ifdef HAVE_LIBUNISTRING
+#include <stdlib.h>
 #include <unistr.h>
 #include <unicase.h>
 #elif defined(HAVE_GLIB2)
