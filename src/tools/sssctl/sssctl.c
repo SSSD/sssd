@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/wait.h>
 
 #include "util/util.h"
 #include "tools/sssctl/sssctl.h"
