@@ -539,7 +539,7 @@ parse_krb5_map_user(TALLOC_CTX *mem_ctx,
     }
 
     if (krb5_map_user == NULL || strlen(krb5_map_user) == 0) {
-        DEBUG(SSSDBG_FUNC_DATA, "Warning: krb5_map_user is empty!\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "krb5_map_user is empty!\n");
         size = 0;
     } else {
         ret = split_on_separator(tmp_ctx, krb5_map_user, ',', true, true,
