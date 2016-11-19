@@ -114,6 +114,7 @@ struct mt_svc {
     int kill_time;
 
     bool svc_started;
+    bool socket_activated; /* also used for dbus-activated services */
 
     int restarts;
     time_t last_restart;
@@ -185,6 +186,8 @@ static int add_new_provider(struct mt_ctx *ctx,
                             const char *name,
                             int restarts);
 
+static char *check_service(char *service);
+
 static int mark_service_as_started(struct mt_svc *svc);
 
 static int monitor_cleanup(void);
@@ -223,13 +226,91 @@ struct mon_init_conn {
 
 static int add_svc_conn_spy(struct mt_svc *svc);
 
+static int service_not_found(char *svc_name,
+                             struct mt_svc **_svc)
+{
+    DEBUG(SSSDBG_FATAL_FAILURE,
+          "Unable to find peer [%s] in list of services, "
+          "killing connection!\n", svc_name);
+
+    *_svc = NULL;
+    return ENOENT;
+}
+
+#ifdef HAVE_SYSTEMD
+static int socket_activated_service_not_found(struct mon_init_conn *mini,
+                                              char *svc_name,
+                                              bool is_provider,
+                                              struct mt_svc **_svc)
+{
+    struct mt_svc *svc = NULL;
+    int ret;
+
+    if (is_provider) {
+        return service_not_found(svc_name, _svc);
+    }
+
+    /* As the service is a responder and wasn't part of the services' list, it means
+     * the service has been socket/dbus activated and has to be configured and added
+     * to the services' list now */
+
+    *_svc = NULL;
+
+    if (check_service(svc_name) != NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Invalid service %s\n", svc_name);
+        return EINVAL;
+    }
+
+    mini->ctx->services_started = true;
+    mini->ctx->num_services++;
+
+    ret = get_service_config(mini->ctx, svc_name, &svc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to get the configuration for the service: %s\n",
+              svc_name);
+        return ret;
+    }
+    svc->restarts = 0;
+    svc->socket_activated = true;
+
+    DLIST_ADD(mini->ctx->svc_list, svc);
+
+    *_svc = svc;
+    return EOK;
+}
+#endif
+
+static int get_service_in_the_list(struct mon_init_conn *mini,
+                                   char *svc_name,
+                                   bool is_provider,
+                                   struct mt_svc **_svc)
+{
+    struct mt_svc *svc;
+
+    for (svc = mini->ctx->svc_list; svc != NULL; svc = svc->next) {
+        if (strcasecmp(svc->identity, svc_name) == 0) {
+            svc->socket_activated = false;
+            *_svc = svc;
+            return EOK;
+        }
+    }
+
+#if HAVE_SYSTEMD
+    return socket_activated_service_not_found(mini, svc_name, is_provider,
+                                              _svc);
+#else
+    return service_not_found(svc_name, _svc);
+#endif
+}
+
 /* registers a new client.
  * if operation is successful also sends back the Monitor version */
 static int client_registration(struct sbus_request *dbus_req, void *data)
 {
     dbus_uint16_t version = MONITOR_VERSION;
     struct mon_init_conn *mini;
-    struct mt_svc *svc;
+    struct mt_svc *svc = NULL;
     DBusError dbus_error;
     dbus_uint16_t svc_ver;
     dbus_uint16_t svc_type;
@@ -267,22 +348,18 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
           "Received ID registration: (%s,%d)\n", svc_name, svc_ver);
 
     /* search this service in the list */
-    svc = mini->ctx->svc_list;
-    while (svc) {
-        ret = strcasecmp(svc->identity, svc_name);
-        if (ret == 0) {
-            break;
-        }
-        svc = svc->next;
-    }
-    if (!svc) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to find peer [%s] in list of services,"
-                  " killing connection!\n", svc_name);
+    ret = get_service_in_the_list(mini, svc_name, svc_type == MT_SVC_PROVIDER,
+                                  &svc);
+    if (ret != EOK) {
         sbus_disconnect(dbus_req->conn);
         sbus_request_finish(dbus_req, NULL);
         /* FIXME: should we just talloc_zfree(conn) ? */
-        goto done;
+
+        if (ret == ENOENT) {
+            goto done;
+        }
+
+        return ret;
     }
 
     /* Fill in svc structure with connection data */
@@ -445,6 +522,12 @@ static int mark_service_as_started(struct mt_svc *svc)
 
     /* create the pid file if all services are alive */
     if (!ctx->pid_file_created && ctx->started_services == ctx->num_services) {
+        if (svc->socket_activated) {
+            /* There's no reason for trying to terminate the parent process
+             * when the responder was socket-activated. */
+            goto done;
+        }
+
         DEBUG(SSSDBG_TRACE_FUNC,
               "All services have successfully started, creating pid file\n");
         ret = pidfile(PID_PATH, MONITOR_NAME);
@@ -890,10 +973,19 @@ static int get_monitor_config(struct mt_ctx *ctx)
                                     CONFDB_MONITOR_CONF_ENTRY,
                                     CONFDB_MONITOR_ACTIVE_SERVICES,
                                     &ctx->services);
+
+#ifdef HAVE_SYSTEMD
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get the explicitly configured services!\n");
+        return EINVAL;
+    }
+#else
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No services configured!\n");
         return EINVAL;
     }
+#endif
 
     ret = add_implicit_services(ctx->cdb, ctx, &ctx->services);
     if (ret != EOK) {
