@@ -180,7 +180,10 @@ static int add_new_provider(struct mt_ctx *ctx,
                             const char *name,
                             int restarts);
 
-static int mark_service_as_started(struct mt_svc *svc);
+static char *check_service(char *service);
+
+static int mark_service_as_started(struct mt_svc *svc,
+                                   bool explicitly_configured);
 
 static int monitor_cleanup(void);
 
@@ -231,6 +234,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     char *svc_name;
     dbus_bool_t dbret;
     int ret;
+    bool explicitly_configured = true;
 
     mini = talloc_get_type(data, struct mon_init_conn);
     if (!mini) {
@@ -271,19 +275,54 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
         svc = svc->next;
     }
     if (!svc) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to find peer [%s] in list of services,"
+#ifdef HAVE_SYSTEMD
+        if (svc_type == MT_SVC_PROVIDER)
+#endif
+        {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to find peer [%s] in list of services,"
                   " killing connection!\n", svc_name);
-        sbus_disconnect(dbus_req->conn);
-        sbus_request_finish(dbus_req, NULL);
-        /* FIXME: should we just talloc_zfree(conn) ? */
-        goto done;
+            sbus_disconnect(dbus_req->conn);
+            sbus_request_finish(dbus_req, NULL);
+            /* FIXME: should we just talloc_zfree(conn) ? */
+            goto done;
+        }
+
+#ifdef HAVE_SYSTEMD
+        /*
+         * MT_SVC_SERVICE
+         * As the service wasn't part of the services' list, it basically
+         * means that the service has been socket activated and has to be
+         * configured and added to the list.
+         */
+        if (check_service(svc_name) != NULL) {
+            ret = EINVAL;
+            DEBUG(SSSDBG_FATAL_FAILURE, "Invalid service %s\n", svc_name);
+            goto done;
+        }
+
+        mini->ctx->services_started = true;
+        mini->ctx->num_services++;
+
+        ret = get_service_config(mini->ctx, svc_name, &svc);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to get the configuration for the service: %s\n",
+                  svc_name);
+            goto done;
+        }
+        svc->restarts = 0;
+
+        DLIST_ADD(mini->ctx->svc_list, svc);
+
+        explicitly_configured = false;
+#endif
     }
 
     /* Fill in svc structure with connection data */
     svc->conn = mini->conn;
 
-    ret = mark_service_as_started(svc);
+    ret = mark_service_as_started(svc, explicitly_configured);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to mark service [%s]!\n", svc_name);
         goto done;
@@ -388,7 +427,8 @@ static void svc_child_info(struct mt_svc *svc, int wait_status)
     }
 }
 
-static int mark_service_as_started(struct mt_svc *svc)
+static int mark_service_as_started(struct mt_svc *svc,
+                                   bool explicitly_configured)
 {
     struct mt_ctx *ctx = svc->mt_ctx;
     struct mt_svc *iter;
@@ -439,6 +479,12 @@ static int mark_service_as_started(struct mt_svc *svc)
     }
 
     if (ctx->started_services == ctx->num_services) {
+        if (!explicitly_configured) {
+             /* There's no reason for trying to terminate the parent process
+              * when the responder was socket-activated. */
+            goto done;
+        }
+
         /* Initialization is complete, terminate parent process if in daemon
          * mode. Make sure we send the signal to the right process */
         if (ctx->is_daemon) {
@@ -862,8 +908,13 @@ static int get_monitor_config(struct mt_ctx *ctx)
                                     CONFDB_MONITOR_ACTIVE_SERVICES,
                                     &ctx->services);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No services configured!\n");
-        return EINVAL;
+#ifdef HAVE_SYSTEMD
+        if (ret != ENOENT)
+#endif
+        {
+            DEBUG(SSSDBG_FATAL_FAILURE, "No services configured!\n");
+            return EINVAL;
+        }
     }
 
     ret = add_implicit_services(ctx->cdb, ctx, &ctx->services);
