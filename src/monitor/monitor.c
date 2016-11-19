@@ -423,12 +423,14 @@ static int mark_service_as_started(struct mt_svc *svc)
             goto done;
         }
 
-        ctx->services_started = true;
+        if (ctx->services != NULL) {
+            ctx->services_started = true;
 
-        DEBUG(SSSDBG_CONF_SETTINGS, "Now starting services!\n");
-        /* then start all services */
-        for (i = 0; ctx->services[i]; i++) {
-            add_new_service(ctx, ctx->services[i], 0);
+            DEBUG(SSSDBG_CONF_SETTINGS, "Now starting services!\n");
+            /* then start all services */
+            for (i = 0; ctx->services[i]; i++) {
+                add_new_service(ctx, ctx->services[i], 0);
+            }
         }
     }
 
@@ -470,6 +472,10 @@ static void services_startup_timeout(struct tevent_context *ev,
 {
     struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
     int i;
+
+    if (ctx->services == NULL) {
+        return;
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Handling timeout\n");
 
@@ -797,6 +803,10 @@ static char *check_service(char *service)
 
 static char *check_services(char **services)
 {
+    if (services == NULL) {
+        return NULL;
+    }
+
     /* Check if services we are about to start are in the list if known */
     for (int i = 0; services[i]; i++) {
         if (check_service(services[i]) != NULL) {
@@ -871,8 +881,11 @@ static int get_monitor_config(struct mt_ctx *ctx)
 
     ctx->started_services = 0;
     ctx->num_services = 0;
-    for (i = 0; ctx->services[i] != NULL; i++) {
-        ctx->num_services++;
+
+    if (ctx->services != NULL) {
+        for (i = 0; ctx->services[i] != NULL; i++) {
+            ctx->num_services++;
+        }
     }
 
     ret = get_service_user(ctx);
@@ -2220,7 +2233,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
         if (ret != EOK) {
             return ret;
         }
-    } else {
+    } else if (ctx->services != NULL) {
         int i;
 
         ctx->services_started = true;
