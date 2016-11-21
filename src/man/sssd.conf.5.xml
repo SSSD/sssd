@@ -202,6 +202,11 @@
                             <para>
                                 Comma separated list of services that are
                                 started when sssd itself starts.
+                                <phrase condition="have_systemd">
+                                    The services' list is optional on platforms
+                                    where systemd is supported, as they will either
+                                    be socket or dbus activated when needed.
+                                </phrase>
                             </para>
                             <para>
                                 Supported services: nss, pam
@@ -210,6 +215,13 @@
                                 <phrase condition="with_ssh">, ssh</phrase>
                                 <phrase condition="with_pac_responder">, pac</phrase>
                                 <phrase condition="with_ifp">, ifp</phrase>
+                            </para>
+                            <para>
+                                <phrase condition="have_systemd">
+                                    By default, all services are disabled and the administrator
+                                    must enable the ones allowed to be used by executing:
+                                    "systemctl enable sssd-@service@.socket".
+                                </phrase>
                             </para>
                         </listitem>
                     </varlistentry>
