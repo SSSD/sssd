@@ -966,6 +966,13 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
+    if (strcasecmp(domain->provider, "files") == 0) {
+        /* The password field must be reported as 'x', else pam_unix won't
+         * authenticate this entry. See man pwconv(8) for more details.
+         */
+        domain->pwfield = "x";
+    }
+
     if (!domain->enumerate) {
         DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]!\n", domain->name);
     }
