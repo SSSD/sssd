@@ -107,6 +107,12 @@ sudo_provider = ldap
 ldap_uri = ldap://example.com
 ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
 </programlisting>
+            <phrase condition="have_systemd">
+                It's important to note that on platforms where systemd is supported
+                there's no need to add the "sudo" provider to the list of services,
+                as it became optional. However, sssd-sudo.socket must be enabled
+                instead.
+            </phrase>
         </para>
         <para>
             When SSSD is configured to use IPA as the ID provider, the
