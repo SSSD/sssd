@@ -936,6 +936,23 @@ fallback_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pwfield (string)</term>
+                    <listitem>
+                        <para>
+                            The value that NSS operations that return
+                            users or groups will return for the
+                            <quote>password</quote> field.
+                        </para>
+                        <para>
+                            This option can also be set per-domain.
+                        </para>
+                        <para>
+                            Default: <quote>*</quote> (remote domains)
+                            or <quote>x</quote> (the files domain)
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
         <refsect2 id='PAM'>
