@@ -202,6 +202,9 @@
                             <para>
                                 Comma separated list of services that are
                                 started when sssd itself starts.
+                                <phrase condition="have_systemd">The list
+                                of services is optional for SSSD 1.15.0 or
+                                later.</phrase>
                             </para>
                             <para>
                                 Supported services: nss, pam
