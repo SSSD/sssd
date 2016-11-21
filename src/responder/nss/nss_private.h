@@ -151,4 +151,8 @@ int sized_member_name(TALLOC_CTX *mem_ctx,
                       const char *member_name,
                       struct sized_string **_name);
 
+const char *
+nss_get_pwfield(struct nss_ctx *nctx,
+                struct sss_domain_info *dom);
+
 #endif /* _NSS_PRIVATE_H_ */

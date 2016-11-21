@@ -270,6 +270,7 @@ struct sss_domain_info {
     bool ignore_group_members;
     uint32_t id_min;
     uint32_t id_max;
+    const char *pwfield;
 
     bool cache_credentials;
     uint32_t cache_credentials_min_ff_length;
