@@ -24,6 +24,7 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder.h"
+#include "responder/nss/nss_private.h"
 
 const char *
 nss_get_name_from_msg(struct sss_domain_info *domain,
@@ -137,4 +138,15 @@ int sized_member_name(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+const char *
+nss_get_pwfield(struct nss_ctx *nctx,
+               struct sss_domain_info *dom)
+{
+    if (dom->pwfield != NULL) {
+        return dom->pwfield;
+    }
+
+    return nctx->pwfield;
 }

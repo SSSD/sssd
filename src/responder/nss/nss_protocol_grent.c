@@ -219,9 +219,6 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         return ENOMEM;
     }
 
-    /* Password field content. */
-    to_sized_string(&pwfield, nss_ctx->pwfield);
-
     /* First two fields (length and reserved), filled up later. */
     ret = sss_packet_grow(packet, 2 * sizeof(uint32_t));
     if (ret != EOK) {
@@ -234,6 +231,9 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
     for (i = 0; i < result->count; i++) {
         talloc_free_children(tmp_ctx);
         msg = result->msgs[i];
+
+        /* Password field content. */
+        to_sized_string(&pwfield, nss_get_pwfield(nss_ctx, result->domain));
 
         ret = nss_get_grent(tmp_ctx, nss_ctx, result->domain, msg,
                             &gid, &name);

@@ -1325,6 +1325,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_NSS_PWFIELD, NULL);
+    if (tmp != NULL) {
+        domain->pwfield = talloc_strdup(domain, tmp);
+        if (!domain->pwfield) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_SUBDOMAIN_ENUMERATE,
                                       CONFDB_DEFAULT_SUBDOMAIN_ENUMERATE);
     if (tmp != NULL) {
