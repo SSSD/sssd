@@ -1279,6 +1279,7 @@ sssd_SOURCES = \
     src/confdb/confdb_setup.c \
     src/monitor/monitor_iface_generated.c \
     src/util/nscd.c \
+    src/util/inotify.c \
     $(NULL)
 sssd_LDADD = \
     $(SSSD_LIBS) \
