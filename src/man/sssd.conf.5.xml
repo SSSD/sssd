@@ -623,6 +623,28 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>responder_idle_timeout</term>
+                    <listitem>
+                        <para>
+                            This option specifies the number of seconds that
+                            an SSSD responder process can be up without being
+                            used. This value is limited in order to avoid
+                            resource exhaustion on the system.
+                            The minimum acceptable value for this option is 60
+                            seconds.
+                            Setting this option to 0 (zero) means that no
+                            timeout will be set up to the responder.
+
+                            This option only has effect when SSSD is built with
+                            systemd support and when services are either socket
+                            or dbus activated.
+                        </para>
+                        <para>
+                            Default: 300
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

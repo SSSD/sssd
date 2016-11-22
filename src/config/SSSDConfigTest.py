@@ -308,6 +308,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'reconnection_retries',
             'fd_limit',
             'client_idle_timeout',
+            'responder_idle_timeout',
             'description',
             'certificate_verification',
             'override_space',

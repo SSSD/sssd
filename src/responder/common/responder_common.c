@@ -350,12 +350,97 @@ static void client_recv(struct cli_ctx *cctx)
     return;
 }
 
+static errno_t schedule_responder_idle_timer(struct resp_ctx *rctx);
+
+static void responder_idle_handler(struct tevent_context *ev,
+                                   struct tevent_timer *te,
+                                   struct timeval current_time,
+                                   void *data)
+{
+    struct resp_ctx *rctx;
+    time_t now;
+
+    rctx = talloc_get_type(data, struct resp_ctx);
+
+    now = time(NULL);
+    if (rctx->last_request_time > now) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Time shift detected, re-scheduling the responder timeout\n");
+        goto end;
+    }
+
+    if ((now - rctx->last_request_time) > rctx->idle_timeout) {
+        /* This responder is idle. Terminate it */
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Terminating idle responder [%p]\n", rctx);
+
+        talloc_free(rctx);
+
+        orderly_shutdown(0);
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Re-scheduling the idle timeout for the responder [%p]\n", rctx);
+
+end:
+    schedule_responder_idle_timer(rctx);
+}
+
+static errno_t schedule_responder_idle_timer(struct resp_ctx *rctx)
+{
+    struct timeval tv;
+
+    tv = tevent_timeval_current_ofs(rctx->idle_timeout / 2, 0);
+
+    talloc_zfree(rctx->idle);
+    rctx->idle = tevent_add_timer(rctx->ev,
+                                  rctx,
+                                  tv,
+                                  responder_idle_handler,
+                                  rctx);
+    if (rctx->idle == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to allocate time event: responder [%p] shutdown timeout\n",
+              rctx);
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Re-scheduling the idle timeout for the responder [%p]\n", rctx);
+
+    return EOK;
+}
+
+static errno_t setup_responder_idle_timer(struct resp_ctx *rctx)
+{
+    errno_t ret;
+
+    rctx->last_request_time = time(NULL);
+
+    ret = schedule_responder_idle_timer(rctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Error scheduling the idle timeout for the responder [%p]: "
+              "%d [%s]\n",
+              rctx, ret, sss_strerror(ret));
+        return ret;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Setting up the idle timeout for the responder [%p]\n", rctx);
+
+    return EOK;
+}
+
 static void client_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
 {
     errno_t ret;
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
+
+    /* Always reset the idle timer on any activity */
+    cctx->rctx->last_request_time = time(NULL);
 
     /* Always reset the idle timer on any activity */
     ret = reset_client_idle_timer(cctx);
@@ -970,6 +1055,47 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         rctx->client_idle_timeout = 10;
     }
 
+    if (rctx->socket_activated || rctx->dbus_activated) {
+        ret = confdb_get_int(rctx->cdb, rctx->confdb_service_path,
+                             CONFDB_RESPONDER_IDLE_TIMEOUT,
+                             CONFDB_RESPONDER_IDLE_DEFAULT_TIMEOUT,
+                             &rctx->idle_timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot get the responder idle timeout [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto fail;
+        }
+
+        /* Idle timeout set to 0 means that no timeout will be set up to
+         * the responder */
+        if (rctx->idle_timeout == 0) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Responder idle timeout won't be set up as the "
+                  "responder_idle_timeout is set to 0");
+        } else {
+            /* Ensure that the responder timeout is at least sixty seconds */
+            if (rctx->idle_timeout < 60) {
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "responder_idle_timeout is set to a value lower than "
+                      "the minimum allowed (60s).\n"
+                      "The minimum allowed value will be used.");
+
+                rctx->idle_timeout = 60;
+            }
+
+            ret = setup_responder_idle_timer(rctx);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "An error ocurrend when setting up the responder's idle "
+                      "timeout for the responder [%p]: %s [%d].\n"
+                      "The responder won't be automatically shutdown after %d "
+                      "seconds inactive. \n",
+                      rctx, sss_strerror(ret), ret, rctx->idle_timeout);
+            }
+        }
+    }
+
     ret = confdb_get_int(rctx->cdb, rctx->confdb_service_path,
                          CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT,
                          GET_DOMAINS_DEFAULT_TIMEOUT, &rctx->domains_timeout);
@@ -1023,7 +1149,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
                            svc_name, svc_version, MT_SVC_SERVICE,
-                           rctx, NULL, &rctx->mon_conn);
+                           rctx, &rctx->last_request_time,
+                           &rctx->mon_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
         goto fail;
