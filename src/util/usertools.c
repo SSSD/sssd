@@ -787,7 +787,13 @@ char *sss_output_name(TALLOC_CTX *mem_ctx,
     if (!tmp_ctx) return NULL;
 
     ret = sss_parse_internal_fqname(tmp_ctx, name, &shortname, NULL);
-    if (ret != EOK) {
+    if (ret == ERR_WRONG_NAME_FORMAT) {
+        /* There is no domain name. */
+        shortname = talloc_strdup(tmp_ctx, name);
+        if (shortname == NULL) {
+            goto done;
+        }
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_parse_internal_fqname failed\n");
         goto done;
     }
@@ -796,14 +802,12 @@ char *sss_output_name(TALLOC_CTX *mem_ctx,
     if (outname == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
                 "sss_get_cased_name failed, skipping\n");
-        ret = EIO;
         goto done;
     }
 
     outname = sss_replace_space(tmp_ctx, outname, replace_space);
     if (outname == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
-        ret = EIO;
         goto done;
     }
 
