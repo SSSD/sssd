@@ -108,6 +108,10 @@ struct resp_ctx {
     int domains_timeout;
     int client_idle_timeout;
 
+    time_t last_request_time;
+    int idle_timeout;
+    struct tevent_timer *idle;
+
     struct sss_cmd_table *sss_cmds;
     const char *sss_pipe_name;
     const char *confdb_service_path;

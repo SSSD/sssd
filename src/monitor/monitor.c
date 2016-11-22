@@ -173,6 +173,8 @@ static int start_service(struct mt_svc *mt_svc);
 
 static int monitor_service_init(struct sbus_connection *conn, void *data);
 
+static int monitor_service_shutdown(struct sbus_connection *conn, void *data);
+
 static int service_signal_reset_offline(struct mt_svc *svc);
 
 static int get_service_config(struct mt_ctx *ctx, const char *name,
@@ -304,6 +306,12 @@ static int get_service_in_the_list(struct mon_init_conn *mini,
 #endif
 }
 
+static int sbus_connection_destructor(struct sbus_connection *conn)
+{
+    return monitor_service_shutdown(conn,
+                                    sbus_connection_get_destructor_data(conn));
+}
+
 /* registers a new client.
  * if operation is successful also sends back the Monitor version */
 static int client_registration(struct sbus_request *dbus_req, void *data)
@@ -364,6 +372,15 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
 
     /* Fill in svc structure with connection data */
     svc->conn = mini->conn;
+
+    /* For {dbus,socket}-activated services we will have to unregister then
+     * when the sbus_connection is freed. That's the reason we have to
+     * hook up on its destructor function, do the service unregistration
+     * from there and set the destructor back to NULL just before freeing
+     * the service itself. */
+    if (svc->socket_activated) {
+        talloc_set_destructor(svc->conn, sbus_connection_destructor);
+    }
 
     ret = mark_service_as_started(svc);
     if (ret) {
@@ -644,7 +661,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
      * lose any access.
      */
     ret = sbus_new_server(ctx, ctx->ev, monitor_address, ctx->uid, ctx->gid,
-                          false, &ctx->sbus_srv, monitor_service_init, ctx, NULL);
+                          false, &ctx->sbus_srv, monitor_service_init, ctx, ctx);
 
     talloc_free(monitor_address);
 
@@ -1434,6 +1451,13 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
 
     /* Kill all of our known children manually */
     DLIST_FOR_EACH(svc, mt_ctx->svc_list) {
+        if (svc->socket_activated && svc->conn != NULL) {
+            /* Unset the sbus_connection destructor used to
+             * unregister the service from the monitor as
+             * it may lead to a double-free here. */
+            talloc_set_destructor(svc->conn, NULL);
+        }
+
         if (svc->pid == 0) {
             /* The local provider has no PID */
             continue;
@@ -2424,6 +2448,43 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
 
     return sbus_conn_register_iface(conn, &monitor_methods.vtable,
                                     MON_SRV_PATH, mini);
+}
+
+/*
+ * monitor_service_shutdown
+ * Unregister the client when it's connection is finished.
+ * Shuts down, from the monitor point of view, the service that just finished.
+ */
+static int monitor_service_shutdown(struct sbus_connection *conn, void *data)
+{
+    struct mt_ctx *ctx;
+    struct mt_svc *svc;
+
+    ctx = talloc_get_type(data, struct mt_ctx);
+
+    for (svc = ctx->svc_list; svc != NULL; svc = svc->next) {
+        if (svc->conn == conn) {
+            break;
+        }
+    }
+
+    if (svc != NULL) {
+        /* We must decrease the number of services when shutting down
+         * a {socket,dbus}-activted service. */
+        ctx->num_services--;
+
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Unregistering service %s (%p)\n", svc->identity, svc);
+
+        /* Before free'ing the service, let's unset the sbus_connection
+         * destructor that triggered this call, otherwise we may end up
+         * with a double-free due to a cycling call */
+        talloc_set_destructor(svc->conn, NULL);
+
+        talloc_zfree(svc);
+    }
+
+    return 0;
 }
 
 static void service_startup_handler(struct tevent_context *ev,
