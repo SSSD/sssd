@@ -131,7 +131,8 @@ nss_get_svc_aliases(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    aliases = talloc_zero_array(mem_ctx, struct sized_string, num_aliases + 1);
+    aliases = talloc_zero_array(mem_ctx, struct sized_string,
+                                el->num_values + 1);
     if (aliases == NULL) {
         ret = ENOMEM;
         goto done;

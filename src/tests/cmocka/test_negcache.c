@@ -33,8 +33,7 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_resp.h"
-#include "responder/nss/nsssrv.h"
-#include "responder/nss/nsssrv_private.h"
+#include "responder/nss/nss_private.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
 #include "util/util_sss_idmap.h"
 #include "lib/idmap/sss_idmap.h"

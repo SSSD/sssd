@@ -2111,9 +2111,16 @@ EXTRA_nss_srv_tests_DEPENDENCIES = \
 nss_srv_tests_SOURCES = \
      $(TEST_MOCK_RESP_OBJ) \
      src/tests/cmocka/test_nss_srv.c \
-     src/responder/nss/nsssrv_cmd.c \
-     src/responder/nss/nsssrv_netgroup.c \
-     src/responder/nss/nsssrv_services.c \
+     src/responder/nss/nss_cmd.c \
+     src/responder/nss/nss_enum.c \
+     src/responder/nss/nss_get_object.c \
+     src/responder/nss/nss_protocol.c \
+     src/responder/nss/nss_protocol_pwent.c \
+     src/responder/nss/nss_protocol_grent.c \
+     src/responder/nss/nss_protocol_netgr.c \
+     src/responder/nss/nss_protocol_svcent.c \
+     src/responder/nss/nss_protocol_sid.c \
+     src/responder/nss/nss_utils.c \
      src/responder/nss/nsssrv_mmap_cache.c
 nss_srv_tests_CFLAGS = \
     $(AM_CFLAGS)
