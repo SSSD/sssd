@@ -64,6 +64,7 @@ mock_cctx(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx)
     if (!cctx) return NULL;
 
     cctx->rctx = rctx;
+    cctx->ev = rctx->ev;
     return cctx;
 }
 
