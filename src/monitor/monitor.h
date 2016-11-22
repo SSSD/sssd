@@ -32,9 +32,6 @@
 
 struct config_file_ctx;
 
-typedef int (*monitor_reconf_fn) (struct config_file_ctx *file_ctx,
-                                  const char *filename);
-
 struct mt_ctx;
 
 /* from monitor_netlink.c */
