@@ -584,7 +584,7 @@ static void sec_fd_handler(struct tevent_context *ev,
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
 
     /* Always reset the idle timer on any activity */
-    ret = reset_idle_timer(cctx);
+    ret = reset_client_idle_timer(cctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not create idle timer for client. "
