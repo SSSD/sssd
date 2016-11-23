@@ -41,8 +41,6 @@ enum mt_svc_type {
 };
 
 int monitor_get_sbus_address(TALLOC_CTX *mem_ctx, char **address);
-int monitor_common_send_id(struct sbus_connection *conn,
-                           const char *name, uint16_t version, uint16_t type);
 int monitor_common_res_init(struct sbus_request *dbus_req, void *data);
 
 errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,

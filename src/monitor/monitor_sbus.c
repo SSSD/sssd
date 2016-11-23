@@ -109,8 +109,10 @@ done:
     dbus_message_unref(reply);
 }
 
-int monitor_common_send_id(struct sbus_connection *conn,
-                           const char *name, uint16_t version, uint16_t type)
+static int monitor_common_send_id(struct sbus_connection *conn,
+                                  const char *name,
+                                  uint16_t version,
+                                  uint16_t type)
 {
     DBusMessage *msg;
     dbus_bool_t ret;
