@@ -358,7 +358,7 @@ static void client_fd_handler(struct tevent_context *ev,
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
 
     /* Always reset the idle timer on any activity */
-    ret = reset_idle_timer(cctx);
+    ret = reset_client_idle_timer(cctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not create idle timer for client. "
@@ -502,7 +502,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     cctx->rctx = rctx;
 
     /* Set up the idle timer */
-    ret = reset_idle_timer(cctx);
+    ret = reset_client_idle_timer(cctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not create idle timer for client. "
@@ -517,14 +517,14 @@ static void accept_fd_handler(struct tevent_context *ev,
     return;
 }
 
-errno_t reset_idle_timer(struct cli_ctx *cctx)
+errno_t reset_client_idle_timer(struct cli_ctx *cctx)
 {
     struct timeval tv =
             tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout, 0);
 
     talloc_zfree(cctx->idle);
 
-    cctx->idle = tevent_add_timer(cctx->ev, cctx, tv, idle_handler, cctx);
+    cctx->idle = tevent_add_timer(cctx->ev, cctx, tv, client_idle_handler, cctx);
     if (!cctx->idle) return ENOMEM;
 
     DEBUG(SSSDBG_TRACE_ALL,
@@ -534,10 +534,10 @@ errno_t reset_idle_timer(struct cli_ctx *cctx)
     return EOK;
 }
 
-void idle_handler(struct tevent_context *ev,
-                  struct tevent_timer *te,
-                  struct timeval current_time,
-                  void *data)
+void client_idle_handler(struct tevent_context *ev,
+                         struct tevent_timer *te,
+                         struct timeval current_time,
+                         void *data)
 {
     /* This connection is idle. Terminate it */
     struct cli_ctx *cctx =
