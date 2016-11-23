@@ -318,10 +318,6 @@ bool sss_utf8_check(const uint8_t *s, size_t n);
 void responder_set_fd_limit(rlim_t fd_limit);
 
 errno_t reset_client_idle_timer(struct cli_ctx *cctx);
-void client_idle_handler(struct tevent_context *ev,
-                         struct tevent_timer *te,
-                         struct timeval current_time,
-                         void *data);
 
 #define GET_DOMAINS_DEFAULT_TIMEOUT 60
 

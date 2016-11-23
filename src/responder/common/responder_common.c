@@ -517,6 +517,22 @@ static void accept_fd_handler(struct tevent_context *ev,
     return;
 }
 
+static void client_idle_handler(struct tevent_context *ev,
+                                struct tevent_timer *te,
+                                struct timeval current_time,
+                                void *data)
+{
+    /* This connection is idle. Terminate it */
+    struct cli_ctx *cctx = talloc_get_type(data, struct cli_ctx);
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Terminating idle client [%p][%d]\n",
+          cctx, cctx->cfd);
+
+    /* The cli_ctx destructor will handle the rest */
+    talloc_free(cctx);
+}
+
 errno_t reset_client_idle_timer(struct cli_ctx *cctx)
 {
     struct timeval tv =
@@ -532,23 +548,6 @@ errno_t reset_client_idle_timer(struct cli_ctx *cctx)
            cctx, cctx->cfd);
 
     return EOK;
-}
-
-void client_idle_handler(struct tevent_context *ev,
-                         struct tevent_timer *te,
-                         struct timeval current_time,
-                         void *data)
-{
-    /* This connection is idle. Terminate it */
-    struct cli_ctx *cctx =
-            talloc_get_type(data, struct cli_ctx);
-
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Terminating idle client [%p][%d]\n",
-           cctx, cctx->cfd);
-
-    /* The cli_ctx destructor will handle the rest */
-    talloc_free(cctx);
 }
 
 static int sss_dp_init(struct resp_ctx *rctx,
