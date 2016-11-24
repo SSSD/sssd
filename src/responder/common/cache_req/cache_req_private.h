@@ -27,8 +27,7 @@
 #include "responder/common/cache_req/cache_req.h"
 
 #define CACHE_REQ_DEBUG(level, cr, fmt, ...) \
-    DEBUG(level, "CR [%s #%u]: " fmt, \
-          (cr)->reqname, (cr)->reqid, ##__VA_ARGS__)
+    DEBUG(level, "CR #%u: " fmt, (cr)->reqid, ##__VA_ARGS__)
 
 struct cache_req {
     /* Provided input. */

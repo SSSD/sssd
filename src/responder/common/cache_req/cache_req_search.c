@@ -253,6 +253,8 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Looking up %s\n", cr->debugobj);
+
     state->ev = ev;
     state->cr = cr;
 
