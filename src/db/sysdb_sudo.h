@@ -118,11 +118,6 @@ sysdb_sudo_filter_netgroups(TALLOC_CTX *mem_ctx,
                             uid_t uid);
 
 errno_t
-sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
-                      uid_t uid, char **groupnames, unsigned int flags,
-                      char **_filter);
-
-errno_t
 sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          const char *username, uid_t *_uid,
