@@ -46,8 +46,9 @@ typedef errno_t
                                      struct cache_req_result **_result);
 
 /**
- * Create an object debug name that is used in debug messages to identify
- * this object.
+ * Prepare domain data. Some plug-ins may require to alter lookup data
+ * per specific domain rules, such as case sensitivity, fully qualified
+ * format etc.
  *
  * @return EOK If everything went fine.
  * @return Other errno code in case of an error.
