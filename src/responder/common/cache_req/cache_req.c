@@ -363,7 +363,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "New request\n");
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "New request '%s'\n", cr->reqname);
 
     ret = cache_req_is_well_known_object(state, cr, &result);
     if (ret == EOK) {
