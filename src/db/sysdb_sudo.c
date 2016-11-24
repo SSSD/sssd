@@ -259,7 +259,7 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username, char **aliases,
                                                  sanitized);
         NULL_CHECK(specific_filter, ret, done);
 
-        if (case_sensitive_domain == false) {
+        if (case_sensitive_domain == false && aliases != NULL) {
             for (i = 0; aliases[i] != NULL; i++) {
                 specific_filter = talloc_asprintf_append(specific_filter, "(%s=%s)",
                                                          SYSDB_SUDO_CACHE_AT_USER,
