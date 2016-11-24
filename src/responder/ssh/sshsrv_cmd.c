@@ -36,7 +36,8 @@
 #include "responder/ssh/sshsrv_private.h"
 
 static errno_t
-ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx);
+ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx,
+                      char *default_domain);
 
 static errno_t
 ssh_user_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx);
@@ -57,7 +58,7 @@ sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
     cmd_ctx->cctx = cctx;
     cmd_ctx->is_user = true;
 
-    ret = ssh_cmd_parse_request(cmd_ctx);
+    ret = ssh_cmd_parse_request(cmd_ctx, cctx->rctx->default_domain);
     if (ret != EOK) {
         goto done;
     }
@@ -107,7 +108,7 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
     cmd_ctx->cctx = cctx;
     cmd_ctx->is_user = false;
 
-    ret = ssh_cmd_parse_request(cmd_ctx);
+    ret = ssh_cmd_parse_request(cmd_ctx, NULL);
     if (ret != EOK) {
         goto done;
     }
@@ -681,7 +682,8 @@ done:
 }
 
 static errno_t
-ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
+ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx,
+                      char *default_domain)
 {
     struct cli_protocol *pctx;
     struct ssh_ctx *ssh_ctx;
@@ -754,6 +756,8 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
                 return EINVAL;
             }
             c += domain_len;
+        } else {
+            domain = default_domain;
         }
 
         DEBUG(SSSDBG_TRACE_FUNC,
