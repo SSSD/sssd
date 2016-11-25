@@ -152,15 +152,17 @@ cache_req_initgroups_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
     }
 
     name = ldb_msg_find_attr_as_string(user->msgs[0], SYSDB_NAME, NULL);
-    talloc_free(user);
     if (name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL\n");
+        talloc_free(user);
         return ERR_INTERNAL;
     }
 
     /* Now we have the original name. We don't have to search with
      * views unless some error occurred. */
     *_string = talloc_steal(mem_ctx, name);
+
+    talloc_free(user);
 
     return EOK;
 }
