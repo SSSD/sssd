@@ -882,7 +882,6 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
     }
 
     neg_timeout = tmp_value;
-    ret = EOK;
 
     /* local_timeout */
     ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
@@ -901,7 +900,6 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
     }
 
     locals_timeout = tmp_value;
-    ret = EOK;
 
     /* negative cache init */
     ret = sss_ncache_init(mem_ctx, neg_timeout, locals_timeout, ncache);
