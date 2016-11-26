@@ -448,8 +448,8 @@ int confdb_get_int(struct confdb_ctx *cdb,
 
         errno = 0;
         val = strtol(values[0], NULL, 0);
-        if (errno) {
-            ret = errno;
+        ret = errno;
+        if (ret != 0) {
             goto failed;
         }
 
@@ -504,8 +504,8 @@ long confdb_get_long(struct confdb_ctx *cdb,
 
         errno = 0;
         val = strtol(values[0], NULL, 0);
-        if (errno) {
-            ret = errno;
+        ret = errno;
+        if (ret != 0) {
             goto failed;
         }
 
