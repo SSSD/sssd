@@ -64,8 +64,10 @@ function print_report()
         }
     }
 
-    printf("The most expensive transaction breakdown, per transaction:\n")
-    print(@hist_linear(bts[max_trans_time_bt], 0, 500, 50))
+    if (max_trans_time > 0) {
+            printf("The most expensive transaction breakdown, per transaction:\n")
+            print(@hist_linear(bts[max_trans_time_bt], 0, 500, 50))
+    }
 }
 
 probe process("/usr/bin/id").begin
