@@ -262,6 +262,7 @@ if HAVE_CMOCKA
         test_dp_builtin \
         test_ipa_dn \
         simple-access-tests \
+        krb5_common_test \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -3026,6 +3027,23 @@ simple_access_tests_LDFLAGS = \
 simple_access_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
+    $(NULL)
+
+krb5_common_test_SOURCES = \
+    src/tests/cmocka/test_krb5_common.c \
+    $(NULL)
+krb5_common_test_CFLAGS = \
+    $(KRB5_CFLAGS) \
+    $(AM_CFLAGS) \
+    $(NULL)
+krb5_common_test_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_krb5_common.la \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libdlopen_test_providers.la \

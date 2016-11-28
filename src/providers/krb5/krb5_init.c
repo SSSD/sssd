@@ -136,7 +136,7 @@ errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = krb5_get_options(ctx, be_ctx->cdb, be_ctx->conf_path, &ctx->opts);
+    ret = sss_krb5_get_options(ctx, be_ctx->cdb, be_ctx->conf_path, &ctx->opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get krb5 options [%d]: %s\n",
               ret, sss_strerror(ret));
