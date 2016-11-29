@@ -359,23 +359,25 @@ int main(int argc, const char *argv[])
     /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_pam";
 
-    /* Crate pipe file descriptors here before privileges are dropped
-     * in server_setup() */
-    ret = create_pipe_fd(SSS_PAM_SOCKET_NAME, &pipe_fd, SCKT_RSP_UMASK);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "create_pipe_fd failed [%d]: %s.\n",
-              ret, sss_strerror(ret));
-        return 2;
-    }
+    if (!is_socket_activated()) {
+        /* Crate pipe file descriptors here before privileges are dropped
+         * in server_setup() */
+        ret = create_pipe_fd(SSS_PAM_SOCKET_NAME, &pipe_fd, SCKT_RSP_UMASK);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "create_pipe_fd failed [%d]: %s.\n",
+                  ret, sss_strerror(ret));
+            return 2;
+        }
 
-    ret = create_pipe_fd(SSS_PAM_PRIV_SOCKET_NAME, &priv_pipe_fd,
-                         DFL_RSP_UMASK);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "create_pipe_fd failed (priviledged pipe) [%d]: %s.\n",
-              ret, sss_strerror(ret));
-        return 2;
+        ret = create_pipe_fd(SSS_PAM_PRIV_SOCKET_NAME, &priv_pipe_fd,
+                             DFL_RSP_UMASK);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "create_pipe_fd failed (priviledged pipe) [%d]: %s.\n",
+                  ret, sss_strerror(ret));
+            return 2;
+        }
     }
 
     ret = server_setup("sssd[pam]", 0, uid, gid, CONFDB_PAM_CONF_ENTRY, &main_ctx);

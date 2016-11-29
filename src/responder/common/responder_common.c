@@ -951,6 +951,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->priv_lfd = priv_pipe_fd;
     rctx->confdb_service_path = confdb_service_path;
     rctx->shutting_down = false;
+    rctx->socket_activated = is_socket_activated();
 
     talloc_set_destructor((TALLOC_CTX*)rctx, sss_responder_ctx_destructor);
 
@@ -1086,7 +1087,10 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Responder Initialization complete\n");
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Responder initialization complete (%s)\n",
+          rctx->socket_activated ? "socket-activated" :
+                                   "explicitly configured");
 
     *responder_ctx = rctx;
     return EOK;

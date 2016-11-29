@@ -127,6 +127,7 @@ struct resp_ctx {
     void *pvt_ctx;
 
     bool shutting_down;
+    bool socket_activated;
 };
 
 struct cli_creds;
