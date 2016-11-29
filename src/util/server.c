@@ -461,17 +461,19 @@ int server_setup(const char *name, int flags,
     char *locale;
     int watchdog_interval;
 
-    ret = chown_debug_file(NULL, uid, gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot chown the debug files, debugging might not work!\n");
-    }
+    if (!is_socket_activated()) {
+        ret = chown_debug_file(NULL, uid, gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot chown the debug files, debugging might not work!\n");
+        }
 
-    ret = become_user(uid, gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FUNC_DATA,
-              "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
-        return ret;
+        ret = become_user(uid, gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
+            return ret;
+        }
     }
 
     debug_prg_name = strdup(name);
