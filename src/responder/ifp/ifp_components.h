@@ -44,10 +44,6 @@ int ifp_find_backend_by_name(struct sbus_request *dbus_req,
 
 /* org.freedesktop.sssd.infopipe.Components */
 
-int ifp_component_change_debug_level_tmp(struct sbus_request *dbus_req,
-                                         void *data,
-                                         uint32_t arg_new_level);
-
 void ifp_component_get_name(struct sbus_request *dbus_req,
                             void *data,
                             const char **_out);

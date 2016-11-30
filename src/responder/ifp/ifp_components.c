@@ -151,69 +151,6 @@ done:
     return ret;
 }
 
-static errno_t change_debug_level_tmp(struct confdb_ctx *confdb,
-                                      const char *name,
-                                      enum component_type type,
-                                      uint32_t level)
-{
-    TALLOC_CTX *tmp_ctx = NULL;
-    const char *confdb_path = NULL;
-    const char **values = NULL;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    switch (type) {
-    case COMPONENT_MONITOR:
-        confdb_path = CONFDB_MONITOR_CONF_ENTRY;
-        break;
-    case COMPONENT_RESPONDER:
-        confdb_path = talloc_asprintf(tmp_ctx, CONFDB_SERVICE_PATH_TMPL, name);
-        break;
-    case COMPONENT_BACKEND:
-        confdb_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, name);
-        break;
-    }
-
-    if (confdb_path == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    values = talloc_zero_array(tmp_ctx, const char*, 2);
-    if (values == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    values[0] = talloc_asprintf(tmp_ctx, "0x%.4x", level);
-    if (values[0] == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = confdb_add_param(confdb, true, confdb_path,
-                           CONFDB_SERVICE_DEBUG_LEVEL, values);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* reload the configuration */
-    if (kill(getppid(), SIGHUP) != 0) {
-        ret = errno;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
 static errno_t list_responders(TALLOC_CTX *mem_ctx,
                                const char ***_list,
                                int *_num)
@@ -456,51 +393,6 @@ int ifp_find_backend_by_name(struct sbus_request *dbus_req,
     }
 
     return iface_ifp_FindBackendByName_finish(dbus_req, result);
-}
-
-int ifp_component_change_debug_level_tmp(struct sbus_request *dbus_req,
-                                         void *data,
-                                         uint32_t arg_new_level)
-{
-    struct ifp_ctx *ctx = NULL;
-    DBusError *error = NULL;
-    char *name = NULL;
-    enum component_type type;
-    errno_t ret;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            dbus_req->path, &type, &name);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = change_debug_level_tmp(ctx->rctx->cdb, name, type, arg_new_level);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* Touch configuration file to make sure debug level is reloaded. */
-    if (utime(SSSD_CONFIG_FILE, NULL) == -1) {
-        ret = errno;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED, "%s", strerror(ret));
-        return sbus_request_fail_and_finish(dbus_req, error);
-    }
-
-    return iface_ifp_components_ChangeDebugLevelTemporarily_finish(dbus_req);
 }
 
 void ifp_component_get_name(struct sbus_request *dbus_req,

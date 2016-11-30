@@ -263,27 +263,8 @@ const struct sbus_interface_meta iface_ifp_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
-/* arguments for org.freedesktop.sssd.infopipe.Components.ChangeDebugLevelTemporarily */
-const struct sbus_arg_meta iface_ifp_components_ChangeDebugLevelTemporarily__in[] = {
-    { "new_level", "u" },
-    { NULL, }
-};
-
-int iface_ifp_components_ChangeDebugLevelTemporarily_finish(struct sbus_request *req)
-{
-   return sbus_request_return_and_finish(req,
-                                         DBUS_TYPE_INVALID);
-}
-
 /* methods for org.freedesktop.sssd.infopipe.Components */
 const struct sbus_method_meta iface_ifp_components__methods[] = {
-    {
-        "ChangeDebugLevelTemporarily", /* name */
-        iface_ifp_components_ChangeDebugLevelTemporarily__in,
-        NULL, /* no out_args */
-        offsetof(struct iface_ifp_components, ChangeDebugLevelTemporarily),
-        invoke_u_method,
-    },
     { NULL, }
 };
 
