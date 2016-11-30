@@ -250,6 +250,21 @@ sss_dp_internal_get_send(struct resp_ctx *rctx,
 static void
 sss_dp_req_done(struct tevent_req *sidereq);
 
+void sss_dp_issue_local_request(struct tevent_context *ev,
+                                struct tevent_req *cb_req)
+{
+    struct sss_dp_req_state *cb_state;
+
+    cb_state = tevent_req_data(cb_req, struct sss_dp_req_state);
+
+    cb_state->dp_err = DP_ERR_OK;
+    cb_state->dp_ret = EOK;
+    cb_state->err_msg = talloc_strdup(cb_state, "Success");
+
+    tevent_req_done(cb_req);
+    tevent_req_post(cb_req, ev);
+}
+
 errno_t
 sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
                      const char *strkey, struct sss_domain_info *dom,
@@ -284,6 +299,13 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     if (!key->str) {
         ret = ENOMEM;
         goto fail;
+    }
+
+    if (strcasecmp(dom->provider, "local") == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Issuing local provider request for [%s]\n",
+              key->str);
+        sss_dp_issue_local_request(rctx->ev, nreq);
+        return EOK;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing request for [%s]\n", key->str);
