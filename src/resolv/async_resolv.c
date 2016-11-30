@@ -140,12 +140,9 @@ fd_input_available(struct tevent_context *ev, struct tevent_fd *fde,
         return;
     }
 
-    if (flags & TEVENT_FD_READ) {
-        ares_process_fd(watch->ctx->channel, watch->fd, ARES_SOCKET_BAD);
-    }
-    if (flags & TEVENT_FD_WRITE) {
-        ares_process_fd(watch->ctx->channel, ARES_SOCKET_BAD, watch->fd);
-    }
+    ares_process_fd(watch->ctx->channel,
+                    flags & TEVENT_FD_READ ? watch->fd : ARES_SOCKET_BAD,
+                    flags & TEVENT_FD_WRITE ? watch->fd : ARES_SOCKET_BAD);
 }
 
 static void
