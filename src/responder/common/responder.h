@@ -152,6 +152,7 @@ struct cli_ctx {
     void *state_ctx;
 
     struct tevent_timer *idle;
+    time_t last_request_time;
 };
 
 struct sss_cmd_table {
