@@ -27,7 +27,6 @@
 
 /* constants for org.freedesktop.sssd.infopipe.Components */
 #define IFACE_IFP_COMPONENTS "org.freedesktop.sssd.infopipe.Components"
-#define IFACE_IFP_COMPONENTS_CHANGEDEBUGLEVELTEMPORARILY "ChangeDebugLevelTemporarily"
 #define IFACE_IFP_COMPONENTS_NAME "name"
 #define IFACE_IFP_COMPONENTS_DEBUG_LEVEL "debug_level"
 #define IFACE_IFP_COMPONENTS_ENABLED "enabled"
@@ -169,16 +168,12 @@ int iface_ifp_ListDomains_finish(struct sbus_request *req, const char *arg_domai
 /* vtable for org.freedesktop.sssd.infopipe.Components */
 struct iface_ifp_components {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
-    int (*ChangeDebugLevelTemporarily)(struct sbus_request *req, void *data, uint32_t arg_new_level);
     void (*get_name)(struct sbus_request *, void *data, const char **);
     void (*get_debug_level)(struct sbus_request *, void *data, uint32_t*);
     void (*get_enabled)(struct sbus_request *, void *data, bool*);
     void (*get_type)(struct sbus_request *, void *data, const char **);
     void (*get_providers)(struct sbus_request *, void *data, const char ***, int *);
 };
-
-/* finish function for ChangeDebugLevelTemporarily */
-int iface_ifp_components_ChangeDebugLevelTemporarily_finish(struct sbus_request *req);
 
 /* vtable for org.freedesktop.sssd.infopipe.Domains */
 struct iface_ifp_domains {
