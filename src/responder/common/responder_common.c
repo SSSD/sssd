@@ -461,6 +461,8 @@ static void client_fd_handler(struct tevent_context *ev,
     }
 }
 
+static errno_t setup_client_idle_timer(struct cli_ctx *cctx);
+
 struct accept_fd_ctx {
     struct resp_ctx *rctx;
     bool is_private;
@@ -587,7 +589,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     cctx->rctx = rctx;
 
     /* Set up the idle timer */
-    ret = reset_client_idle_timer(cctx);
+    ret = setup_client_idle_timer(cctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not create idle timer for client. "
@@ -607,23 +609,45 @@ static void client_idle_handler(struct tevent_context *ev,
                                 struct timeval current_time,
                                 void *data)
 {
-    /* This connection is idle. Terminate it */
+    time_t now = time(NULL);
     struct cli_ctx *cctx =
             talloc_get_type(data, struct cli_ctx);
 
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Terminating idle client [%p][%d]\n",
-           cctx, cctx->cfd);
+    if (cctx->last_request_time > now) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Time shift detected, re-scheduling the client timeout\n");
+        goto end;
+    }
 
-    /* The cli_ctx destructor will handle the rest */
-    talloc_free(cctx);
+    if ((now - cctx->last_request_time) > cctx->rctx->client_idle_timeout) {
+        /* This connection is idle. Terminate it */
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Terminating idle client [%p][%d]\n",
+              cctx, cctx->cfd);
+
+        /* The cli_ctx destructor will handle the rest */
+        talloc_free(cctx);
+        return;
+    }
+
+end:
+    setup_client_idle_timer(cctx);
 }
 
 errno_t reset_client_idle_timer(struct cli_ctx *cctx)
 {
-    struct timeval tv =
-            tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout, 0);
+    cctx->last_request_time = time(NULL);
 
+    return EOK;
+}
+
+static errno_t setup_client_idle_timer(struct cli_ctx *cctx)
+{
+    time_t now = time(NULL);
+    struct timeval tv =
+            tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout/2, 0);
+
+    cctx->last_request_time = now;
     talloc_zfree(cctx->idle);
 
     cctx->idle = tevent_add_timer(cctx->ev, cctx, tv, client_idle_handler, cctx);
