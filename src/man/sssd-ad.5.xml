@@ -904,6 +904,8 @@ ad_gpo_map_deny = +my_pam_service
                             goes online.
                             This option is optional and applicable only when dyndns_update
                             is true.
+			    Note if dyndns_refresh_interval is specified as less than 60 
+			    seconds, actual refresh interval will be 60 seconds regardless.
                         </para>
                         <para>
                             Default: 86400 (24 hours)
