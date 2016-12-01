@@ -41,7 +41,7 @@ void sss_sifp_set_io_error(sss_sifp_ctx *ctx, DBusError *error)
 {
     dbus_error_free(ctx->io_error);
     dbus_error_init(ctx->io_error);
-    dbus_set_error(ctx->io_error, error->name, error->message);
+    dbus_set_error(ctx->io_error, error->name, "%s", error->message);
 }
 
 char * sss_sifp_strdup(sss_sifp_ctx *ctx, const char *str)
