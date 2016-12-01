@@ -1292,7 +1292,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
-                                      CONFDB_DOMAIN_CASE_SENSITIVE, "true");
+                                      CONFDB_DOMAIN_CASE_SENSITIVE, NULL);
     if (tmp != NULL) {
         if (strcasecmp(tmp, "true") == 0) {
             domain->case_sensitive = true;
@@ -1310,9 +1310,15 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     } else {
         /* default */
-        domain->case_sensitive = true;
-        domain->case_preserve = true;
+        if (strcasecmp(domain->provider, "ad") == 0) {
+            domain->case_sensitive = false;
+            domain->case_preserve = false;
+        } else {
+            domain->case_sensitive = true;
+            domain->case_preserve = true;
+        }
     }
+
     if (domain->case_sensitive == false &&
         strcasecmp(domain->provider, "local") == 0) {
         DEBUG(SSSDBG_FATAL_FAILURE,
