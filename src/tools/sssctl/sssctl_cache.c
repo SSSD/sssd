@@ -327,8 +327,10 @@ static const char *sssctl_create_filter(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(%s=%s))",
-                             class, attr_name, filter_value);
+    filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(|(%s=%s)(%s=%s)))",
+                             class, attr_name, filter_value,
+                             SYSDB_NAME_ALIAS, filter_value);
+
     talloc_free(filter_value);
 
     return filter;
