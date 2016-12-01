@@ -327,6 +327,14 @@ static const char *sssctl_create_filter(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if (dom->case_sensitive == false) {
+        char *filter_value_old;
+
+        filter_value_old = filter_value;
+        filter_value = sss_tc_utf8_str_tolower(mem_ctx, filter_value_old);
+        talloc_free(filter_value_old);
+    }
+
     filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(|(%s=%s)(%s=%s)))",
                              class, attr_name, filter_value,
                              SYSDB_NAME_ALIAS, filter_value);
