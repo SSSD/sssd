@@ -903,7 +903,9 @@ ad_gpo_map_deny = +my_pam_service
                             addition to the automatic update performed when the back end
                             goes online.
                             This option is optional and applicable only when dyndns_update
-                            is true.
+                            is true. Note that the lowest possible value is 60 seconds in-case
+                            if value is provided less than 60, parameter will assume lowest
+                            value only.
                         </para>
                         <para>
                             Default: 86400 (24 hours)
