@@ -18,6 +18,7 @@ dist_noinst_DATA = \
     test_netgroup.py \
     secrets.py \
     test_secrets.py \
+    test_sssctl.py \
     $(NULL)
 
 config.py: config.py.m4
