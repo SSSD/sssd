@@ -179,7 +179,7 @@ static errno_t proxy_setup_sbus(TALLOC_CTX *mem_ctx,
     }
 
     ret = sbus_new_server(mem_ctx, be_ctx->ev, sbus_address, 0, be_ctx->gid,
-                          false, &ctx->sbus_srv, proxy_client_init, ctx);
+                          false, &ctx->sbus_srv, proxy_client_init, ctx, NULL);
     talloc_free(sbus_address);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");

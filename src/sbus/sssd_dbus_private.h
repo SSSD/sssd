@@ -69,6 +69,9 @@ struct sbus_connection {
 
     /* responder related stuff */
     time_t *last_request_time;
+
+    /* client related stuff */
+    void *client_destructor_data;
 };
 
 /* =Standard=interfaces=================================================== */
