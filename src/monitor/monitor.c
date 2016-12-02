@@ -644,7 +644,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
      * lose any access.
      */
     ret = sbus_new_server(ctx, ctx->ev, monitor_address, ctx->uid, ctx->gid,
-                          false, &ctx->sbus_srv, monitor_service_init, ctx);
+                          false, &ctx->sbus_srv, monitor_service_init, ctx, NULL);
 
     talloc_free(monitor_address);
 
