@@ -48,9 +48,14 @@ extern hash_table_t *dp_requests;
  * So we set umask to 0111. */
 #define SCKT_RSP_UMASK 0111
 
-/* if there is a provider other than the special local */
+/* Neither the local provider nor the files provider have a back
+ * end in the traditional sense and can always just consult
+ * the responder's cache
+ */
 #define NEED_CHECK_PROVIDER(provider) \
-    (provider != NULL && strcmp(provider, "local") != 0)
+    (provider != NULL && \
+     (strcmp(provider, "local") != 0 && \
+      strcmp(provider, "files") != 0))
 
 /* needed until nsssrv.h is updated */
 struct cli_request {
