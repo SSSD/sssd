@@ -129,7 +129,7 @@ sdap_sudo_new_usn(TALLOC_CTX *mem_ctx,
     char *newusn;
 
     /* We increment USN number so that we can later use simplify filter
-     * (just usn >= last+1 instaed of usn >= last && usn != last).
+     * (just usn >= last+1 instead of usn >= last && usn != last).
      */
     usn++;
 
@@ -171,6 +171,13 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
               usn, ret, sss_strerror(ret));
+        return;
+    }
+
+    if (usn_number == 0) {
+        /* Zero means that there were no rules on the server, so we have
+         * nothing to store. */
+        DEBUG(SSSDBG_TRACE_FUNC, "SUDO USN value is empty.\n");
         return;
     }
 
