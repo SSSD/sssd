@@ -84,6 +84,10 @@ if BUILD_NFS_IDMAP
 man_MANS += sss_rpcidmapd.5
 endif
 
+if HAVE_INOTIFY
+man_MANS += sssd-files.5
+endif
+
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
 	$(XMLLINT) $(XMLLINT_FLAGS) $<

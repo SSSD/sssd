@@ -850,6 +850,7 @@ done
 
 # The files provider is intentionally packaged in -common
 %{_libdir}/%{name}/libsss_files.so
+%{_mandir}/man5/sssd-files.5*
 
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
