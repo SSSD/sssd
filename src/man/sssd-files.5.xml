@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-files</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-files</refname>
+        <refpurpose>SSSD files provider</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the files provider
+            for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            The files provider mirrors the content of the
+            <citerefentry>
+                <refentrytitle>passwd</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+            and
+            <citerefentry>
+                <refentrytitle>group</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+            files. The purpose of the files provider is to make the users
+            and groups traditionally only accessible with NSS interfaces
+            also available through the SSSD interfaces such as
+            <citerefentry>
+                <refentrytitle>sssd-ifp</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+    </refsect1>
+
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>
+            The files provider has no specific options of its own, however,
+            generic SSSD domain options can be set where applicable.
+            Refer to the section <quote>DOMAIN SECTIONS</quote> of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page for details on the configuration
+            of an SSSD domain.
+        </para>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example assumes that SSSD is correctly
+            configured and files is one of the domains in the
+            <replaceable>[sssd]</replaceable> section.
+        </para>
+        <para>
+<programlisting>
+[domain/files]
+id_provider = files
+</programlisting>
+        </para>
+    </refsect1>
+
+	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>
