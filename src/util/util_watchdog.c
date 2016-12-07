@@ -23,6 +23,7 @@
 
 #define WATCHDOG_DEF_INTERVAL 10
 #define WATCHDOG_MAX_TICKS 3
+#define DEFAULT_BUFFER_SIZE 4096
 
 /* this is intentionally a global variable */
 struct watchdog_ctx {
@@ -35,32 +36,27 @@ struct watchdog_ctx {
     struct tevent_context *ev;
     int input_interval;
     time_t timestamp;
+    struct tevent_fd *tfd;
+    int pipefd[2];
 } watchdog_ctx;
 
-static bool watchdog_detect_timeshift(void)
+static void watchdog_detect_timeshift(void)
 {
     time_t prev_time;
     time_t cur_time;
-    errno_t ret;
 
     prev_time = watchdog_ctx.timestamp;
     cur_time = watchdog_ctx.timestamp = time(NULL);
     if (cur_time < prev_time) {
         /* Time shift detected. We need to restart watchdog. */
-        DEBUG(SSSDBG_IMPORTANT_INFO, "Time shift detected, "
-              "restarting watchdog!\n");
-        teardown_watchdog();
-        ret = setup_watchdog(watchdog_ctx.ev, watchdog_ctx.input_interval);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Unable to restart watchdog "
-                  "[%d]: %s\n", ret, sss_strerror(ret));
-            orderly_shutdown(1);
+        if (write(watchdog_ctx.pipefd[1], "1", 1) != 1) {
+            if (getpid() == getpgrp()) {
+                kill(-getpgrp(), SIGTERM);
+            } else {
+                _exit(1);
+            }
         }
-
-        return true;
     }
-
-    return false;
 }
 
 /* the watchdog is purposefully *not* handled by the tevent
@@ -70,17 +66,16 @@ static bool watchdog_detect_timeshift(void)
  * signals either */
 static void watchdog_handler(int sig)
 {
-    /* Do not count ticks if time shift was detected
-     * since watchdog was restarted. */
-    if (watchdog_detect_timeshift()) {
-        return;
-    }
+
+    watchdog_detect_timeshift();
 
     /* if a pre-defined number of ticks passed by kills itself */
     if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) > WATCHDOG_MAX_TICKS) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Watchdog timer overflow, killing process!\n");
-        orderly_shutdown(1);
+        if (getpid() == getpgrp()) {
+            kill(-getpgrp(), SIGTERM);
+        } else {
+            _exit(1);
+        }
     }
 }
 
@@ -109,10 +104,67 @@ static void watchdog_event_handler(struct tevent_context *ev,
     }
 }
 
+static errno_t watchdog_fd_recv_data(int fd)
+{
+    ssize_t len;
+    char buffer[DEFAULT_BUFFER_SIZE];
+    errno_t ret;
+
+    errno = 0;
+    len = read(fd, buffer, DEFAULT_BUFFER_SIZE);
+    if (len == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+            return EAGAIN;
+        } else {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "write failed [%d]: %s\n", ret, strerror(ret));
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+static void watchdog_fd_read_handler(struct tevent_context *ev,
+                                     struct tevent_fd *fde,
+                                     uint16_t flags,
+                                     void *data)
+{
+    errno_t ret;
+
+    ret = watchdog_fd_recv_data(watchdog_ctx.pipefd[0]);
+    switch(ret) {
+    case EAGAIN:
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Interrupted before any data could be read, retry later.\n");
+        return;
+    case EOK:
+        /* all fine */
+        break;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to receive data [%d]: %s. "
+              "orderly_shutdown() will be called.\n", ret, strerror(ret));
+        orderly_shutdown(1);
+    }
+
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Time shift detected, "
+          "restarting watchdog!\n");
+    teardown_watchdog();
+    ret = setup_watchdog(watchdog_ctx.ev, watchdog_ctx.input_interval);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to restart watchdog "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        orderly_shutdown(1);
+    }
+}
+
 int setup_watchdog(struct tevent_context *ev, int interval)
 {
     struct sigevent sev;
     struct itimerspec its;
+    struct tevent_fd *tfd;
     int signum = SIGRTMIN;
     int ret;
 
@@ -141,6 +193,21 @@ int setup_watchdog(struct tevent_context *ev, int interval)
     watchdog_ctx.ev = ev;
     watchdog_ctx.input_interval = interval;
     watchdog_ctx.timestamp = time(NULL);
+
+    ret = pipe(watchdog_ctx.pipefd);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "pipe failed [%d] [%s].\n", ret, strerror(ret));
+        return ret;
+    }
+
+    sss_fd_nonblocking(watchdog_ctx.pipefd[0]);
+    sss_fd_nonblocking(watchdog_ctx.pipefd[1]);
+
+    tfd = tevent_add_fd(ev, (TALLOC_CTX *)ev, watchdog_ctx.pipefd[0],
+                        TEVENT_FD_READ, watchdog_fd_read_handler, NULL);
+    watchdog_ctx.tfd = tfd;
 
     /* Start the timer */
     /* we give 1 second head start to the watchdog event */
@@ -177,6 +244,13 @@ void teardown_watchdog(void)
               "Failed to destroy watchdog timer (%d) [%s]\n",
              ret, strerror(ret));
     }
+
+    /* Free the tevent_fd */
+    talloc_zfree(watchdog_ctx.tfd);
+
+    /* Close the pipefds */
+    PIPE_FD_CLOSE(watchdog_ctx.pipefd[0]);
+    PIPE_FD_CLOSE(watchdog_ctx.pipefd[1]);
 
     /* and kill the watchdog event */
     talloc_free(watchdog_ctx.te);
