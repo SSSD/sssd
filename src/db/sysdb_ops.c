@@ -138,12 +138,16 @@ int sysdb_delete_entry(struct sysdb_ctx *sysdb,
                        bool ignore_not_found)
 {
     errno_t ret;
+    errno_t tret;
 
     ret = sysdb_delete_cache_entry(sysdb->ldb, dn, ignore_not_found);
     if (ret == EOK) {
-        ret = sysdb_delete_ts_entry(sysdb, dn);
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "sysdb_delete_ts_entry failed: %d\n", ret);
+        tret = sysdb_delete_ts_entry(sysdb, dn);
+        if (tret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sysdb_delete_ts_entry failed: %d\n", tret);
+            /* Not fatal */
+        }
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_delete_cache_entry failed: %d\n", ret);
