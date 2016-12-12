@@ -103,10 +103,10 @@ const struct cache_req_plugin cache_req_object_by_id = {
     .only_one_result = true,
     .search_all_domains = false,
     .require_enumeration = false,
-    .allow_missing_fqn = false,
+    .allow_missing_fqn = true,
     .allow_switch_to_upn = false,
     .upn_equivalent = CACHE_REQ_SENTINEL,
-    .get_next_domain_flags = 0,
+    .get_next_domain_flags = SSS_GND_DESCEND,
 
     .is_well_known_fn = NULL,
     .prepare_domain_data_fn = NULL,
