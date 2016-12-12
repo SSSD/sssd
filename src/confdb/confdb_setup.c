@@ -21,14 +21,12 @@
 
 #include "config.h"
 #include <sys/stat.h>
-#include <unistd.h>
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb.h"
 #include "confdb_private.h"
 #include "confdb_setup.h"
 #include "util/sss_ini.h"
-#include "tools/tools_util.h"
 
 
 static int confdb_test(struct confdb_ctx *cdb)
@@ -161,41 +159,11 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
         DEBUG(SSSDBG_TRACE_FUNC,
               "sss_ini_config_file_open failed: %s [%d]\n", strerror(ret),
                ret);
-        if (ret != ENOENT) {
-            /* Anything other than ENOENT is unrecoverable */
-            goto done;
-        } else {
-            /* Copy the default configuration file to the standard location
-             * and then retry
-             */
-             ret = copy_file_secure(SSSD_DEFAULT_CONFIG_FILE,
-                                    SSSD_CONFIG_FILE,
-                                    0600,
-                                    getuid(),
-                                    getgid(),
-                                    false);
-             if (ret != EOK) {
-                 DEBUG(SSSDBG_FATAL_FAILURE,
-                       "Could not copy default configuration: %s",
-                       sss_strerror(ret));
-                 /* sss specific error denoting missing configuration file */
-                 ret = ERR_MISSING_CONF;
-                 goto done;
-             }
-
-             /* Try again */
-             ret = sss_ini_config_file_open(init_data, config_file);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "sss_ini_config_file_open(default) failed: %s [%d]\n",
-                      strerror(ret), ret);
-                if (ret == ENOENT) {
-                    /* sss specific error denoting missing configuration file */
-                    ret = ERR_MISSING_CONF;
-                }
-                goto done;
-            }
+        if (ret == ENOENT) {
+            /* sss specific error denoting missing configuration file */
+            ret = ERR_MISSING_CONF;
         }
+        goto done;
     }
 
     ret = sss_ini_config_access_check(init_data);
