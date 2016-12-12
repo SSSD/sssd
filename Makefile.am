@@ -473,7 +473,6 @@ AM_CPPFLAGS = \
     -DSSSDDATADIR=\"$(sssddatadir)\" \
     -DSSSD_LIBEXEC_PATH=\"$(sssdlibexecdir)\" \
     -DSSSD_CONF_DIR=\"$(sssdconfdir)\" \
-    -DSSSD_DEFAULT_CONF_DIR=\"$(sssddefaultconfdir)\" \
     -DSSS_NSS_MCACHE_DIR=\"$(mcpath)\" \
     -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
@@ -1252,8 +1251,6 @@ sssd_SOURCES = \
     src/confdb/confdb_setup.c \
     src/monitor/monitor_iface_generated.c \
     src/util/nscd.c \
-    src/tools/files.c \
-    src/tools/selinux.c \
     $(NULL)
 sssd_LDADD = \
     $(SSSD_LIBS) \
