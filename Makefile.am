@@ -1496,6 +1496,7 @@ sssd_kcm_CFLAGS = \
 sssd_kcm_LDADD = \
     $(KRB5_LIBS) \
     $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 endif
