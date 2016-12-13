@@ -47,6 +47,8 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         uid_wrapper
         python-requests
         curl-devel
+        krb5-server
+        krb5-workstation
     )
     _DEPS_LIST_SPEC=`
         sed -e 's/@PACKAGE_VERSION@/0/g' \
@@ -122,6 +124,10 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libhttp-parser-dev
         libjansson-dev
         libcurl4-openssl-dev
+        krb5-kdc
+        krb5-admin-server
+        krb5-user
+        uuid-dev
     )
     DEPS_INTGCHECK_SATISFIED=true
 fi
