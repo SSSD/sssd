@@ -317,6 +317,7 @@ struct cache_req_state {
     struct cache_req_result **results;
     size_t num_results;
     bool check_next;
+    bool dp_success;
 };
 
 static errno_t cache_req_add_result(struct cache_req_state *state,
@@ -357,6 +358,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
+    state->dp_success = true;
     state->cr = cr = cache_req_create(state, rctx, data, ncache, midpoint);
     if (state->cr == NULL) {
         ret = ENOMEM;
@@ -563,9 +565,16 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
     /* We have searched all available domains and no result was found.
      *
      * If the plug-in uses a negative cache which is shared among all domains
-     * (e.g. unique identifires such as user or group id or sid), we add it
-     * here and return object not found error. */
-    cache_req_global_ncache_add(cr);
+     * (e.g. unique identifiers such as user or group id or sid), we add it
+     * here and return object not found error.
+     *
+     * However, we can only set the negative cache if all data provider
+     * requests succeeded because only then we can be sure that it does
+     * not exist-
+     */
+    if (state->dp_success) {
+        cache_req_global_ncache_add(cr);
+    }
 
     return ENOENT;
 }
@@ -626,13 +635,17 @@ static void cache_req_done(struct tevent_req *subreq)
     struct cache_req_state *state;
     struct ldb_result *result;
     struct tevent_req *req;
+    bool dp_success;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_state);
 
-    ret = cache_req_search_recv(state, subreq, &result);
+    ret = cache_req_search_recv(state, subreq, &result, &dp_success);
     talloc_zfree(subreq);
+
+    /* Remember if any DP request fails. */
+    state->dp_success = !dp_success ? false : state->dp_success;
 
     switch (ret) {
     case EOK:

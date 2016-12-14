@@ -97,7 +97,8 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
 
 errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
-                              struct ldb_result **_result);
+                              struct ldb_result **_result,
+                              bool *_dp_success);
 
 struct tevent_req *
 cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
