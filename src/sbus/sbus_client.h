@@ -28,6 +28,7 @@
 int sbus_client_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      const char *server_address,
+                     time_t *last_request_time,
                      struct sbus_connection **_conn);
 
 #endif /* SBUS_CLIENT_H_ */

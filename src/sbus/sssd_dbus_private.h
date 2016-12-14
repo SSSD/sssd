@@ -66,6 +66,9 @@ struct sbus_connection {
 
     /* watches list */
     struct sbus_watch_ctx *watch_list;
+
+    /* responder related stuff */
+    time_t *last_request_time;
 };
 
 /* =Standard=interfaces=================================================== */

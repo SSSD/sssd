@@ -574,6 +574,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
     }
     ret = sbus_client_init(rctx, rctx->ev,
                            be_conn->sbus_address,
+                           NULL,
                            &be_conn->conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to monitor services.\n");
@@ -1023,7 +1024,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
                            svc_name, svc_version, MT_SVC_SERVICE,
-                           rctx, &rctx->mon_conn);
+                           rctx, NULL, &rctx->mon_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
         goto fail;
