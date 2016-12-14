@@ -167,6 +167,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
                          uint16_t svc_version,
                          uint16_t svc_type,
                          void *pvt,
+                         time_t *last_request_time,
                          struct sbus_connection **mon_conn)
 {
     errno_t ret;
@@ -180,7 +181,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sbus_client_init(mem_ctx, ev, sbus_address, &conn);
+    ret = sbus_client_init(mem_ctx, ev, sbus_address, last_request_time, &conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to monitor services.\n");
         talloc_free(sbus_address);

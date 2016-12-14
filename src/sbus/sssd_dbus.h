@@ -155,6 +155,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
 int sbus_new_connection(TALLOC_CTX *ctx,
                         struct tevent_context *ev,
                         const char *address,
+                        time_t *last_request_time,
                         struct sbus_connection **conn);
 
 /* sbus_add_connection
@@ -173,6 +174,7 @@ int sbus_init_connection(TALLOC_CTX *ctx,
                          struct tevent_context *ev,
                          DBusConnection *dbus_conn,
                          int connection_type,
+                         time_t *last_request_time,
                          struct sbus_connection **_conn);
 
 DBusConnection *sbus_get_connection(struct sbus_connection *conn);

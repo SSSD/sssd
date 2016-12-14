@@ -53,7 +53,7 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
 
     DEBUG(SSSDBG_FUNC_DATA,"Adding connection %p.\n", dbus_conn);
     ret = sbus_init_connection(server, server->ev, dbus_conn,
-                               SBUS_CONN_TYPE_PRIVATE, &conn);
+                               SBUS_CONN_TYPE_PRIVATE, NULL, &conn);
     if (ret != 0) {
         dbus_connection_close(dbus_conn);
         DEBUG(SSSDBG_FUNC_DATA, "Closing connection (failed setup)\n");

@@ -148,6 +148,7 @@ int sbus_init_connection(TALLOC_CTX *ctx,
                          struct tevent_context *ev,
                          DBusConnection *dbus_conn,
                          int connection_type,
+                         time_t *last_request_time,
                          struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
@@ -161,6 +162,7 @@ int sbus_init_connection(TALLOC_CTX *ctx,
     conn->type = SBUS_CONNECTION;
     conn->dbus.conn = dbus_conn;
     conn->connection_type = connection_type;
+    conn->last_request_time = last_request_time;
 
     ret = sbus_opath_hash_init(conn, conn, &conn->managed_paths);
     if (ret != EOK) {
@@ -259,7 +261,8 @@ static int sbus_conn_set_fns(struct sbus_connection *conn)
 }
 
 int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
-                        const char *address, struct sbus_connection **_conn)
+                        const char *address, time_t *last_request_time,
+                        struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
     DBusConnection *dbus_conn;
@@ -278,7 +281,8 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
         return EIO;
     }
 
-    ret = sbus_init_connection(ctx, ev, dbus_conn, SBUS_CONN_TYPE_SHARED, &conn);
+    ret = sbus_init_connection(ctx, ev, dbus_conn, SBUS_CONN_TYPE_SHARED,
+                               last_request_time, &conn);
     if (ret != EOK) {
         /* FIXME: release resources */
     }

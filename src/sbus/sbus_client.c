@@ -27,6 +27,7 @@
 int sbus_client_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      const char *server_address,
+                     time_t *last_request_time,
                      struct sbus_connection **_conn)
 {
     struct sbus_connection *conn = NULL;
@@ -63,7 +64,8 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    ret = sbus_new_connection(mem_ctx, ev, server_address, &conn);
+    ret = sbus_new_connection(mem_ctx, ev, server_address,
+                              last_request_time, &conn);
     if (ret != EOK) {
         goto fail;
     }
