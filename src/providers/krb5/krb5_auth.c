@@ -1023,6 +1023,9 @@ static void krb5_auth_done(struct tevent_req *subreq)
         goto done;
 
     default:
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "The krb5_child process returned an error. Please inspect the "
+              "krb5_child.log file or the journal for more information\n");
         state->pam_status = PAM_SYSTEM_ERR;
         state->dp_err = DP_ERR_OK;
         ret = EOK;
