@@ -864,8 +864,6 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
 
         access_allowed = false;
         candidate_gpo = candidate_gpos[i];
-        sd = candidate_gpo->gpo_sd;
-        dacl = candidate_gpo->gpo_sd->dacl;
 
         DEBUG(SSSDBG_TRACE_ALL, "examining dacl candidate_gpo_guid:%s\n",
                                 candidate_gpo->gpo_guid);
@@ -876,6 +874,15 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
                   "GPO not applicable to target per security filtering\n");
             continue;
         }
+
+        sd = candidate_gpo->gpo_sd;
+        if (sd == NULL) {
+            DEBUG(SSSDBG_TRACE_ALL, "Security descriptor is missing\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        dacl = candidate_gpo->gpo_sd->dacl;
 
         /* gpo_flags value of 2 means that GPO's computer portion is disabled */
         if (candidate_gpo->gpo_flags == 2) {
@@ -3849,7 +3856,16 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
     /* retrieve AD_AT_FUNC_VERSION */
     ret = sysdb_attrs_get_int32_t(result, AD_AT_FUNC_VERSION,
                                   &gp_gpo->gpo_func_version);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        /* If this attrbute is missing we can skip the GPO. It will
+         * be filtered out according to MS-GPOL:
+         * https://msdn.microsoft.com/en-us/library/cc232538.aspx */
+        DEBUG(SSSDBG_TRACE_ALL, "GPO with GUID %s is missing attribute "
+              AD_AT_FUNC_VERSION " and will be skipped.\n", gp_gpo->gpo_guid);
+        state->gpo_index++;
+        ret = ad_gpo_get_gpo_attrs_step(req);
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_attrs_get_int32_t failed: [%d](%s)\n",
               ret, sss_strerror(ret));
