@@ -27,60 +27,76 @@
 #include "responder/common/cache_req/cache_req_plugin.h"
 
 static const char *
-cache_req_user_by_cert_create_debug_name(TALLOC_CTX *mem_ctx,
+cache_req_object_by_id_create_debug_name(TALLOC_CTX *mem_ctx,
                                          struct cache_req_data *data,
                                          struct sss_domain_info *domain)
 {
-    /* Certificates might be quite long, thus we only use
-     * the last 10 characters for logging. */
-    return talloc_asprintf(mem_ctx, "CERT:%s@%s",
-                           get_last_x_chars(data->cert, 10), domain->name);
+    return talloc_asprintf(mem_ctx, "ID:%d@%s", data->id, domain->name);
 }
 
 static errno_t
-cache_req_user_by_cert_ncache_check(struct sss_nc_ctx *ncache,
+cache_req_object_by_id_ncache_check(struct sss_nc_ctx *ncache,
                                     struct sss_domain_info *domain,
                                     struct cache_req_data *data)
 {
-    return sss_ncache_check_cert(ncache, data->cert);
+    errno_t ret;
+
+    ret = sss_ncache_check_uid(ncache, domain, data->id);
+    if (ret == EEXIST) {
+        ret = sss_ncache_check_gid(ncache, domain, data->id);
+    }
+
+    return ret;
 }
 
 static errno_t
-cache_req_user_by_cert_global_ncache_add(struct sss_nc_ctx *ncache,
+cache_req_object_by_id_global_ncache_add(struct sss_nc_ctx *ncache,
                                          struct cache_req_data *data)
 {
-    return sss_ncache_set_cert(ncache, false, data->cert);
+    errno_t ret;
+
+    ret = sss_ncache_set_uid(ncache, false, NULL, data->id);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sss_ncache_set_gid(ncache, false, NULL, data->id);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
 }
 
 static errno_t
-cache_req_user_by_cert_lookup(TALLOC_CTX *mem_ctx,
+cache_req_object_by_id_lookup(TALLOC_CTX *mem_ctx,
                               struct cache_req *cr,
                               struct cache_req_data *data,
                               struct sss_domain_info *domain,
                               struct ldb_result **_result)
 {
-    return sysdb_search_user_by_cert_with_views(mem_ctx, domain, data->cert,
-                                                _result);
+    return sysdb_search_object_by_id(mem_ctx, domain, data->id,
+                                     data->attrs, _result);
 }
 
 static errno_t
-cache_req_user_by_cert_dpreq_params(TALLOC_CTX *mem_ctx,
+cache_req_object_by_id_dpreq_params(TALLOC_CTX *mem_ctx,
                                     struct cache_req *cr,
                                     struct ldb_result *result,
                                     const char **_string,
                                     uint32_t *_id,
                                     const char **_flag)
 {
-    *_id = 0;
-    *_string = cr->data->cert;
+    *_id = cr->data->id;
+    *_string = NULL;
     *_flag = NULL;
 
     return EOK;
 }
 
-const struct cache_req_plugin cache_req_user_by_cert = {
-    .name = "User by certificate",
-    .dp_type = SSS_DP_CERT,
+const struct cache_req_plugin cache_req_object_by_id = {
+    .name = "Object by ID",
+    .dp_type = SSS_DP_USER_AND_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
     .bypass_cache = false,
@@ -94,31 +110,31 @@ const struct cache_req_plugin cache_req_user_by_cert = {
 
     .is_well_known_fn = NULL,
     .prepare_domain_data_fn = NULL,
-    .create_debug_name_fn = cache_req_user_by_cert_create_debug_name,
-    .global_ncache_add_fn = cache_req_user_by_cert_global_ncache_add,
-    .ncache_check_fn = cache_req_user_by_cert_ncache_check,
+    .create_debug_name_fn = cache_req_object_by_id_create_debug_name,
+    .global_ncache_add_fn = cache_req_object_by_id_global_ncache_add,
+    .ncache_check_fn = cache_req_object_by_id_ncache_check,
     .ncache_add_fn = NULL,
-    .lookup_fn = cache_req_user_by_cert_lookup,
-    .dpreq_params_fn = cache_req_user_by_cert_dpreq_params
+    .lookup_fn = cache_req_object_by_id_lookup,
+    .dpreq_params_fn = cache_req_object_by_id_dpreq_params
 };
 
 struct tevent_req *
-cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
+cache_req_object_by_id_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct resp_ctx *rctx,
                             struct sss_nc_ctx *ncache,
                             int cache_refresh_percent,
                             const char *domain,
-                            const char *pem_cert)
+                            uint32_t id,
+                            const char **attrs)
 {
     struct cache_req_data *data;
 
-    data = cache_req_data_cert(mem_ctx, CACHE_REQ_USER_BY_CERT, pem_cert);
+    data = cache_req_data_id_attrs(mem_ctx, CACHE_REQ_OBJECT_BY_ID, id, attrs);
     if (data == NULL) {
         return NULL;
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         cache_refresh_percent,
-                                         domain, data);
+                                         cache_refresh_percent, domain, data);
 }

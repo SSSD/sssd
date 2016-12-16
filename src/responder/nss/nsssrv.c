@@ -33,11 +33,10 @@
 #include <dbus/dbus.h>
 
 #include "util/util.h"
-#include "responder/nss/nsssrv.h"
-#include "responder/nss/nsssrv_private.h"
-#include "responder/nss/nsssrv_mmap_cache.h"
-#include "responder/nss/nsssrv_netgroup.h"
+#include "util/sss_ptr_hash.h"
+#include "responder/nss/nss_private.h"
 #include "responder/nss/nss_iface.h"
+#include "responder/nss/nsssrv_mmap_cache.h"
 #include "responder/common/negcache.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
@@ -138,16 +137,15 @@ done:
 
 static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *data)
 {
-    errno_t ret;
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
+    struct resp_ctx *rctx;
+    struct nss_ctx *nss_ctx;
 
-    ret = nss_orphan_netgroups(nctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not invalidate netgroups\n");
-        return ret;
-    }
+    rctx = talloc_get_type(data, struct resp_ctx);
+    nss_ctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Invalidating netgroup hash table\n");
+
+    sss_ptr_hash_delete_all(nss_ctx->netgrent, true);
 
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
@@ -326,24 +324,6 @@ done:
     return ret;
 }
 
-int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
-                                      void *data,
-                                      const char *user,
-                                      const char *domain,
-                                      uint32_t *groups,
-                                      int num_groups)
-{
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-
-    DEBUG(SSSDBG_TRACE_LIBS, "Updating inigroups memory cache of [%s@%s]\n",
-          user, domain);
-
-    nss_update_initgr_memcache(nctx, user, domain, num_groups, groups);
-
-    return iface_nss_memorycache_UpdateInitgroups_finish(sbus_req);
-}
-
 static void nss_dp_reconnect_init(struct sbus_connection *conn,
                                   int status, void *pvt)
 {
@@ -382,7 +362,6 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     int memcache_timeout;
     int ret, max_retries;
     enum idmap_error_code err;
-    int hret;
     int fd_limit;
 
     nss_cmds = get_nss_cmds();
@@ -443,13 +422,10 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    /* Create the lookup table for netgroup results */
-    hret = sss_hash_create_ex(nctx, 10, &nctx->netgroups, 0, 0, 0, 0,
-                              netgroup_hash_delete_cb, NULL);
-    if (hret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to initialize netgroup hash table\n");
-        ret = EIO;
+    nctx->netgrent = sss_ptr_hash_create(nctx, NULL, NULL);
+    if (nctx->netgrent == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize netgroups table!\n");
+        ret = EFAULT;
         goto fail;
     }
 
@@ -512,12 +488,6 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, nctx->rctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
-        goto fail;
-    }
-
-    ret = sss_ad_default_names_ctx(nctx, &nctx->global_names);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sss_ad_default_names_ctx failed.\n");
         goto fail;
     }
 

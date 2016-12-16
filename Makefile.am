@@ -482,6 +482,10 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/cache_req.c \
 	src/responder/common/cache_req/cache_req_search.c \
 	src/responder/common/cache_req/cache_req_data.c \
+	src/responder/common/cache_req/plugins/cache_req_common.c \
+	src/responder/common/cache_req/plugins/cache_req_enum_users.c \
+	src/responder/common/cache_req/plugins/cache_req_enum_groups.c \
+	src/responder/common/cache_req/plugins/cache_req_enum_svc.c \
 	src/responder/common/cache_req/plugins/cache_req_user_by_name.c \
 	src/responder/common/cache_req/plugins/cache_req_user_by_upn.c \
 	src/responder/common/cache_req/plugins/cache_req_user_by_id.c \
@@ -493,6 +497,11 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/plugins/cache_req_initgroups_by_name.c \
 	src/responder/common/cache_req/plugins/cache_req_initgroups_by_upn.c \
 	src/responder/common/cache_req/plugins/cache_req_object_by_sid.c \
+	src/responder/common/cache_req/plugins/cache_req_object_by_name.c \
+	src/responder/common/cache_req/plugins/cache_req_object_by_id.c \
+	src/responder/common/cache_req/plugins/cache_req_svc_by_name.c \
+	src/responder/common/cache_req/plugins/cache_req_svc_by_port.c \
+	src/responder/common/cache_req/plugins/cache_req_netgroup_by_name.c \
 	$(NULL)
 
 SSSD_RESPONDER_OBJ = \
@@ -588,6 +597,7 @@ dist_noinst_HEADERS = \
     src/util/safe-format-string.h \
     src/util/strtonum.h \
     src/util/sss_cli_cmd.h \
+    src/util/sss_ptr_hash.h \
     src/util/sss_endian.h \
     src/util/sss_nss.h \
     src/util/sss_ldap.h \
@@ -623,13 +633,11 @@ dist_noinst_HEADERS = \
     src/responder/common/data_provider/rdp.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
-    src/responder/nss/nsssrv.h \
-    src/responder/nss/nsssrv_private.h \
-    src/responder/nss/nsssrv_netgroup.h \
-    src/responder/nss/nsssrv_services.h \
-    src/responder/nss/nsssrv_mmap_cache.h \
+    src/responder/nss/nss_private.h \
+    src/responder/nss/nss_protocol.h \
     src/responder/nss/nss_iface_generated.h \
     src/responder/nss/nss_iface.h \
+    src/responder/nss/nsssrv_mmap_cache.h \
     src/responder/pac/pacsrv.h \
     src/responder/common/negcache_files.h \
     src/responder/common/negcache.h \
@@ -964,6 +972,7 @@ libsss_util_la_SOURCES = \
     src/util/string_utils.c \
     src/util/become_user.c \
     src/util/util_watchdog.c \
+    src/util/sss_ptr_hash.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1244,12 +1253,19 @@ sssd_LDADD = \
 
 sssd_nss_SOURCES = \
     src/responder/nss/nsssrv.c \
-    src/responder/nss/nsssrv_cmd.c \
-    src/responder/nss/nsssrv_netgroup.c \
-    src/responder/nss/nsssrv_services.c \
-    src/responder/nss/nsssrv_mmap_cache.c \
+    src/responder/nss/nss_cmd.c \
+    src/responder/nss/nss_enum.c \
+    src/responder/nss/nss_get_object.c \
+    src/responder/nss/nss_protocol.c \
+    src/responder/nss/nss_protocol_pwent.c \
+    src/responder/nss/nss_protocol_grent.c \
+    src/responder/nss/nss_protocol_netgr.c \
+    src/responder/nss/nss_protocol_svcent.c \
+    src/responder/nss/nss_protocol_sid.c \
+    src/responder/nss/nss_utils.c \
     src/responder/nss/nss_iface_generated.c \
     src/responder/nss/nss_iface.c \
+    src/responder/nss/nsssrv_mmap_cache.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(TDB_LIBS) \
@@ -2095,9 +2111,16 @@ EXTRA_nss_srv_tests_DEPENDENCIES = \
 nss_srv_tests_SOURCES = \
      $(TEST_MOCK_RESP_OBJ) \
      src/tests/cmocka/test_nss_srv.c \
-     src/responder/nss/nsssrv_cmd.c \
-     src/responder/nss/nsssrv_netgroup.c \
-     src/responder/nss/nsssrv_services.c \
+     src/responder/nss/nss_cmd.c \
+     src/responder/nss/nss_enum.c \
+     src/responder/nss/nss_get_object.c \
+     src/responder/nss/nss_protocol.c \
+     src/responder/nss/nss_protocol_pwent.c \
+     src/responder/nss/nss_protocol_grent.c \
+     src/responder/nss/nss_protocol_netgr.c \
+     src/responder/nss/nss_protocol_svcent.c \
+     src/responder/nss/nss_protocol_sid.c \
+     src/responder/nss/nss_utils.c \
      src/responder/nss/nsssrv_mmap_cache.c
 nss_srv_tests_CFLAGS = \
     $(AM_CFLAGS)

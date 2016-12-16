@@ -103,18 +103,21 @@ cache_req_initgroups_by_upn_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_initgroups_by_upn = {
+const struct cache_req_plugin cache_req_initgroups_by_upn = {
     .name = "Initgroups by UPN",
     .dp_type = SSS_DP_INITGROUPS,
     .attr_expiration = SYSDB_INITGR_EXPIRE,
     .parse_name = false,
     .bypass_cache = false,
     .only_one_result = false,
+    .search_all_domains = false,
+    .require_enumeration = false,
     .allow_missing_fqn = true,
     .allow_switch_to_upn = false,
     .upn_equivalent = CACHE_REQ_SENTINEL,
     .get_next_domain_flags = SSS_GND_DESCEND,
 
+    .is_well_known_fn = NULL,
     .prepare_domain_data_fn = cache_req_initgroups_by_upn_prepare_domain_data,
     .create_debug_name_fn = cache_req_initgroups_by_upn_create_debug_name,
     .global_ncache_add_fn = NULL,

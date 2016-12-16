@@ -168,7 +168,7 @@ static errno_t cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void cache_req_search_process_dp(TALLOC_CTX *mem_ctx,
+static bool cache_req_search_process_dp(TALLOC_CTX *mem_ctx,
                                         struct tevent_req *subreq,
                                         struct cache_req *cr)
 {
@@ -185,6 +185,8 @@ static void cache_req_search_process_dp(TALLOC_CTX *mem_ctx,
                         ret, sss_strerror(ret));
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                         "Due to an error we will return cached data\n");
+
+        return false;
     }
 
     if (err_maj) {
@@ -193,9 +195,11 @@ static void cache_req_search_process_dp(TALLOC_CTX *mem_ctx,
                         (unsigned int)err_maj, (unsigned int)err_min, err_msg);
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                         "Due to an error we will return cached data\n");
+
+        return false;
     }
 
-    return;
+    return true;
 }
 
 static enum cache_object_status
@@ -230,6 +234,7 @@ struct cache_req_search_state {
 
     /* output data */
     struct ldb_result *result;
+    bool dp_success;
 };
 
 static errno_t cache_req_search_dp(struct tevent_req *req,
@@ -253,6 +258,8 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Looking up %s\n", cr->debugobj);
+
     state->ev = ev;
     state->cr = cr;
 
@@ -261,17 +268,29 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = cache_req_search_cache(state, cr, &state->result);
-    if (ret != EOK && ret != ENOENT) {
-        goto done;
-    }
+    /* If bypass_cache is enabled we always contact data provider before
+     * searching the cache. Thus we set expiration status to missing,
+     * which will trigger data provider request later.
+     *
+     * If disabled, we want to search the cache here to see if the
+     * object is already cached and valid or if data provider needs
+     * to be contacted.
+     */
+    state->result = NULL;
+    status = CACHE_OBJECT_MISSING;
+    if (!cr->plugin->bypass_cache) {
+        ret = cache_req_search_cache(state, cr, &state->result);
+        if (ret != EOK && ret != ENOENT) {
+            goto done;
+        }
 
-    status = cache_req_expiration_status(cr, state->result);
-    if (status == CACHE_OBJECT_VALID) {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
-                        "Returning [%s] from cache\n", cr->debugobj);
-        ret = EOK;
-        goto done;
+        status = cache_req_expiration_status(cr, state->result);
+        if (status == CACHE_OBJECT_VALID) {
+            CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                            "Returning [%s] from cache\n", cr->debugobj);
+            ret = EOK;
+            goto done;
+        }
     }
 
     ret = cache_req_search_dp(req, status);
@@ -376,12 +395,16 @@ static void cache_req_search_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_search_state);
 
-    cache_req_search_process_dp(state, subreq, state->cr);
+    state->dp_success = cache_req_search_process_dp(state, subreq, state->cr);
 
     /* Get result from cache again. */
     ret = cache_req_search_cache(state, state->cr, &state->result);
     if (ret == ENOENT) {
-        cache_req_search_ncache_add(state->cr);
+        /* Only store entry in negative cache if DP request succeeded
+         * because only then we know that the entry does not exist. */
+        if (state->dp_success) {
+            cache_req_search_ncache_add(state->cr);
+        }
         tevent_req_error(req, ENOENT);
         return;
     } else if (ret != EOK) {
@@ -398,10 +421,13 @@ static void cache_req_search_done(struct tevent_req *subreq)
 
 errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
-                              struct ldb_result **_result)
+                              struct ldb_result **_result,
+                              bool *_dp_success)
 {
     struct cache_req_search_state *state = NULL;
     state = tevent_req_data(req, struct cache_req_search_state);
+
+    *_dp_success = state->dp_success;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

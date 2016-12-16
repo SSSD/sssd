@@ -1419,33 +1419,24 @@ done:
 static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
 {
     int ret;
-    struct ldb_result *res;
-    struct sss_domain_info *domain;
+    struct cache_req_result *result;
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
     const char *cert_user;
 
-
-    ret = cache_req_user_by_cert_recv(preq, req, &res, &domain, NULL);
+    ret = cache_req_user_by_cert_recv(preq, req, &result);
     talloc_zfree(req);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert request failed.\n");
         goto done;
     }
 
-    if (ret == EOK && res->count > 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Search by certificate returned more than one result.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
     if (ret == EOK) {
         if (preq->domain == NULL) {
-            preq->domain = domain;
+            preq->domain = result->domain;
         }
 
-        preq->cert_user_obj = talloc_steal(preq, res->msgs[0]);
+        preq->cert_user_obj = talloc_steal(preq, result->msgs[0]);
 
         if (preq->pd->logon_name == NULL) {
             cert_user = ldb_msg_find_attr_as_string(preq->cert_user_obj,
@@ -1465,7 +1456,7 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
             }
 
-            preq->pd->domain = talloc_strdup(preq->pd, domain->name);
+            preq->pd->domain = talloc_strdup(preq->pd, result->domain->name);
             if (preq->pd->domain == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;

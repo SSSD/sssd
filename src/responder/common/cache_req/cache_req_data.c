@@ -22,6 +22,48 @@
 
 #include "responder/common/cache_req/cache_req_private.h"
 
+static const char **
+cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
+                            const char **requested)
+{
+    static const char *defattrs[] = {SYSDB_DEFAULT_ATTRS};
+    static size_t defnum = sizeof(defattrs) / sizeof(defattrs[0]);
+    const char **attrs;
+    size_t reqnum;
+    size_t total;
+    size_t i;
+
+    for (reqnum = 0; requested[reqnum] != NULL; reqnum++);
+
+    total = defnum + reqnum;
+
+    /* We always want to get default attributes. */
+    attrs = talloc_zero_array(mem_ctx, const char *, total + 1);
+    if (attrs == NULL) {
+        return NULL;
+    }
+
+    i = 0;
+
+    for (i = 0; i < reqnum; i++) {
+        attrs[i] = talloc_strdup(attrs, requested[i]);
+        if (attrs[i] == NULL) {
+            talloc_free(attrs);
+            return NULL;
+        }
+    }
+
+    for (; i < total; i++) {
+        attrs[i] = talloc_strdup(attrs, defattrs[i - reqnum]);
+        if (attrs[i] == NULL) {
+            talloc_free(attrs);
+            return NULL;
+        }
+    }
+
+    return attrs;
+}
+
 static struct cache_req_data *
 cache_req_data_create(TALLOC_CTX *mem_ctx,
                       enum cache_req_type type,
@@ -37,6 +79,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     }
 
     data->type = type;
+    data->svc.name = &data->name;
 
     switch (type) {
     case CACHE_REQ_USER_BY_NAME:
@@ -46,6 +89,8 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
+    case CACHE_REQ_NETGROUP_BY_NAME:
+    case CACHE_REQ_OBJECT_BY_NAME:
         if (input->name.input == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
@@ -73,6 +118,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         break;
     case CACHE_REQ_USER_BY_ID:
     case CACHE_REQ_GROUP_BY_ID:
+    case CACHE_REQ_OBJECT_BY_ID:
         if (input->id == 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: id cannot be 0!\n");
             ret = ERR_INTERNAL;
@@ -94,6 +140,54 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
             goto done;
         }
         break;
+    case CACHE_REQ_ENUM_USERS:
+    case CACHE_REQ_ENUM_GROUPS:
+    case CACHE_REQ_ENUM_SVC:
+        break;
+    case CACHE_REQ_SVC_BY_NAME:
+        if (input->svc.name->input == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->svc.name->input = talloc_strdup(data, input->svc.name->input);
+        if (data->svc.name->input == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (input->svc.protocol.name == NULL) {
+            break;
+        }
+
+        data->svc.protocol.name = talloc_strdup(data, input->svc.protocol.name);
+        if (data->svc.protocol.name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        break;
+    case CACHE_REQ_SVC_BY_PORT:
+        if (input->svc.port == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: port cannot be 0!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->svc.port = input->svc.port;
+
+        if (input->svc.protocol.name == NULL) {
+            break;
+        }
+
+        data->svc.protocol.name = talloc_strdup(data, input->svc.protocol.name);
+        if (data->svc.protocol.name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        break;
     case CACHE_REQ_SENTINEL:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid cache request type!\n");
         ret = ERR_INTERNAL;
@@ -101,7 +195,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     }
 
     if (input->attrs != NULL) {
-        data->attrs = dup_string_list(data, input->attrs);
+        data->attrs = cache_req_data_create_attrs(data, input->attrs);
         if (data->attrs == NULL) {
             ret = ENOMEM;
             goto done;
@@ -134,6 +228,20 @@ cache_req_data_name(TALLOC_CTX *mem_ctx,
 }
 
 struct cache_req_data *
+cache_req_data_name_attrs(TALLOC_CTX *mem_ctx,
+                          enum cache_req_type type,
+                          const char *name,
+                          const char **attrs)
+{
+    struct cache_req_data input = {0};
+
+    input.name.input = name;
+    input.attrs = attrs;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
 cache_req_data_id(TALLOC_CTX *mem_ctx,
                   enum cache_req_type type,
                   uint32_t id)
@@ -141,6 +249,20 @@ cache_req_data_id(TALLOC_CTX *mem_ctx,
     struct cache_req_data input = {0};
 
     input.id = id;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_id_attrs(TALLOC_CTX *mem_ctx,
+                        enum cache_req_type type,
+                        uint32_t id,
+                        const char **attrs)
+{
+    struct cache_req_data input = {0};
+
+    input.id = id;
+    input.attrs = attrs;
 
     return cache_req_data_create(mem_ctx, type, &input);
 }
@@ -167,6 +289,32 @@ cache_req_data_sid(TALLOC_CTX *mem_ctx,
 
     input.sid = sid;
     input.attrs = attrs;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_enum(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type)
+{
+    struct cache_req_data input = {0};
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_svc(TALLOC_CTX *mem_ctx,
+                   enum cache_req_type type,
+                   const char *name,
+                   const char *protocol,
+                   uint16_t port)
+{
+    struct cache_req_data input = {0};
+
+    input.name.input = name;
+    input.svc.name = &input.name;
+    input.svc.protocol.name = protocol;
+    input.svc.port = port;
 
     return cache_req_data_create(mem_ctx, type, &input);
 }

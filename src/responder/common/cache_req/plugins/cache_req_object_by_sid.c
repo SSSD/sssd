@@ -26,6 +26,35 @@
 #include "providers/data_provider.h"
 #include "responder/common/cache_req/cache_req_plugin.h"
 
+static errno_t
+cache_req_object_by_sid_well_known(TALLOC_CTX *mem_ctx,
+                                   struct cache_req *cr,
+                                   struct cache_req_data *data,
+                                   struct cache_req_result **_result)
+{
+    struct cache_req_result *result;
+    const char *domname;
+    const char *name;
+    errno_t ret;
+
+    ret = well_known_sid_to_name(data->sid, &domname, &name);
+    if (ret != EOK) {
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_ALL, cr,
+                        "SID [%s] is not a Well-Known SID.\n", data->sid);
+        return ret;
+    }
+
+    result = cache_req_well_known_sid_result(mem_ctx, cr, domname,
+                                             data->sid, name);
+    if (result == NULL) {
+        return ENOMEM;
+    }
+
+    *_result = result;
+
+    return EOK;
+}
+
 static const char *
 cache_req_object_by_sid_create_debug_name(TALLOC_CTX *mem_ctx,
                                           struct cache_req_data *data,
@@ -75,18 +104,21 @@ cache_req_object_by_sid_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_object_by_sid = {
+const struct cache_req_plugin cache_req_object_by_sid = {
     .name = "Object by SID",
     .dp_type = SSS_DP_SECID,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
     .bypass_cache = false,
     .only_one_result = true,
-    .allow_missing_fqn = false,
+    .search_all_domains = false,
+    .require_enumeration = false,
+    .allow_missing_fqn = true,
     .allow_switch_to_upn = false,
     .upn_equivalent = CACHE_REQ_SENTINEL,
-    .get_next_domain_flags = 0,
+    .get_next_domain_flags = SSS_GND_DESCEND,
 
+    .is_well_known_fn = cache_req_object_by_sid_well_known,
     .prepare_domain_data_fn = NULL,
     .create_debug_name_fn = cache_req_object_by_sid_create_debug_name,
     .global_ncache_add_fn = cache_req_object_by_sid_global_ncache_add,

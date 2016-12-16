@@ -114,18 +114,21 @@ cache_req_user_by_filter_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_user_by_filter = {
+const struct cache_req_plugin cache_req_user_by_filter = {
     .name = "User by filter",
     .dp_type = SSS_DP_WILDCARD_USER,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = true,
     .bypass_cache = true,
     .only_one_result = false,
+    .search_all_domains = false,
+    .require_enumeration = false,
     .allow_missing_fqn = false,
     .allow_switch_to_upn = false,
     .upn_equivalent = CACHE_REQ_SENTINEL,
     .get_next_domain_flags = 0,
 
+    .is_well_known_fn = NULL,
     .prepare_domain_data_fn = cache_req_user_by_filter_prepare_domain_data,
     .create_debug_name_fn = cache_req_user_by_filter_create_debug_name,
     .global_ncache_add_fn = NULL,

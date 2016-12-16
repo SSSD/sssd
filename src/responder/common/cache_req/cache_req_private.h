@@ -27,14 +27,13 @@
 #include "responder/common/cache_req/cache_req.h"
 
 #define CACHE_REQ_DEBUG(level, cr, fmt, ...) \
-    DEBUG(level, "CR [%s #%u]: " fmt, \
-          (cr)->reqname, (cr)->reqid, ##__VA_ARGS__)
+    DEBUG(level, "CR #%u: " fmt, (cr)->reqid, ##__VA_ARGS__)
 
 struct cache_req {
     /* Provided input. */
     struct cache_req_data *data;
 
-    struct cache_req_plugin *plugin;
+    const struct cache_req_plugin *plugin;
     struct resp_ctx *rctx;
     struct sss_nc_ctx *ncache;
     int midpoint;
@@ -56,18 +55,39 @@ struct cache_req {
     time_t req_start;
 };
 
+/**
+ * Structure to hold the input strings that
+ * should be parsed into name and domain parts.
+ */
+struct cache_req_parsed_name {
+    const char *input;  /* Original input. */
+    const char *name;   /* Parsed name or UPN. */
+    const char *lookup; /* Converted per domain rules. */
+};
+
+/**
+ * Structure to hold the input strings that cannot contain domain
+ * part but are transferred per each domain's case sensitivity.
+ */
+struct cache_req_cased_name {
+    const char *name;   /* Parsed name or UPN. */
+    const char *lookup; /* Converted per domain rules. */
+};
+
 /* Input data. */
 struct cache_req_data {
     enum cache_req_type type;
-    struct {
-        const char *input;  /* Original input. */
-        const char *name;   /* Parsed name or UPN. */
-        const char *lookup; /* Converted per domain rules. */
-    } name;
+    struct cache_req_parsed_name name;
     uint32_t id;
     const char *cert;
     const char *sid;
     const char **attrs;
+
+    struct {
+        struct cache_req_parsed_name *name;
+        struct cache_req_cased_name protocol;
+        uint16_t port;
+    } svc;
 };
 
 struct tevent_req *
@@ -77,7 +97,8 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
 
 errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
-                              struct ldb_result **_result);
+                              struct ldb_result **_result,
+                              bool *_dp_success);
 
 struct tevent_req *
 cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
@@ -87,5 +108,28 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               int cache_refresh_percent,
                               const char *domain,
                               struct cache_req_data *data);
+
+struct cache_req_result *
+cache_req_create_result(TALLOC_CTX *mem_ctx,
+                        struct sss_domain_info *domain,
+                        struct ldb_result *ldb_result,
+                        const char *lookup_name,
+                        const char *well_known_domain);
+
+struct cache_req_result *
+cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *domain,
+                                 struct ldb_message *ldb_msg,
+                                 const char *lookup_name,
+                                 const char *well_known_domain);
+
+/* Plug-in common. */
+
+struct cache_req_result *
+cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
+                                struct cache_req *cr,
+                                const char *domname,
+                                const char *sid,
+                                const char *name);
 
 #endif /* _CACHE_REQ_PRIVATE_H_ */

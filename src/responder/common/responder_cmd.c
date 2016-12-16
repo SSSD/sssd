@@ -66,7 +66,7 @@ int sss_cmd_empty_packet(struct sss_packet *packet)
     return EOK;
 }
 
-int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
+int sss_cmd_send_empty(struct cli_ctx *cctx)
 {
     struct cli_protocol *pctx;
     int ret;
@@ -88,7 +88,6 @@ int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
     }
 
     sss_packet_set_error(pctx->creq->out, EOK);
-    sss_cmd_done(cctx, freectx);
     return EOK;
 }
 
@@ -183,8 +182,6 @@ struct setent_req_list {
     /* Need to modify the list from a talloc destructor */
     struct setent_req_list **head;
 
-    void *pvt;
-
     struct tevent_req *req;
 };
 
@@ -203,7 +200,6 @@ int setent_remove_ref(TALLOC_CTX *ctx)
 }
 
 errno_t setent_add_ref(TALLOC_CTX *memctx,
-                       void *pvt,
                        struct setent_req_list **list,
                        struct tevent_req *req)
 {
@@ -215,7 +211,6 @@ errno_t setent_add_ref(TALLOC_CTX *memctx,
     }
 
     entry->req = req;
-    entry->pvt = pvt;
     DLIST_ADD_END(*list, entry, struct setent_req_list *);
     entry->head = list;
 

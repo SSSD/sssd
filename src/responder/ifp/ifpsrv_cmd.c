@@ -424,8 +424,6 @@ struct ifp_user_get_attr_state {
     char *domname;
 
     struct sss_domain_info *dom;
-    bool check_next;
-    bool check_provider;
 
     struct resp_ctx *rctx;
     struct sss_nc_ctx *ncache;
@@ -524,18 +522,22 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
 {
     struct ifp_user_get_attr_state *state = NULL;
     struct tevent_req *req = NULL;
+    struct cache_req_result *result;
     errno_t ret;
     char *fqdn;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ifp_user_get_attr_state);
 
-    ret = cache_req_recv(state, subreq, &state->res, &state->dom,  NULL);
+    ret = cache_req_single_domain_recv(state, subreq, &result);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
+
+    state->res = talloc_steal(state, result->ldb_result);
+    talloc_zfree(result);
 
     fqdn = sss_create_internal_fqname(state, state->inp_name,
                                       state->dom->name);

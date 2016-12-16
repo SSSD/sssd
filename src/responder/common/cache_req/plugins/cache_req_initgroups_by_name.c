@@ -152,9 +152,9 @@ cache_req_initgroups_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
     }
 
     name = ldb_msg_find_attr_as_string(user->msgs[0], SYSDB_NAME, NULL);
-    talloc_free(user);
     if (name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL\n");
+        talloc_free(user);
         return ERR_INTERNAL;
     }
 
@@ -162,21 +162,26 @@ cache_req_initgroups_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
      * views unless some error occurred. */
     *_string = talloc_steal(mem_ctx, name);
 
+    talloc_free(user);
+
     return EOK;
 }
 
-struct cache_req_plugin cache_req_initgroups_by_name = {
+const struct cache_req_plugin cache_req_initgroups_by_name = {
     .name = "Initgroups by name",
     .dp_type = SSS_DP_INITGROUPS,
     .attr_expiration = SYSDB_INITGR_EXPIRE,
     .parse_name = true,
     .bypass_cache = false,
     .only_one_result = false,
+    .search_all_domains = false,
+    .require_enumeration = false,
     .allow_missing_fqn = false,
     .allow_switch_to_upn = true,
     .upn_equivalent = CACHE_REQ_INITGROUPS_BY_UPN,
     .get_next_domain_flags = 0,
 
+    .is_well_known_fn = NULL,
     .prepare_domain_data_fn = cache_req_initgroups_by_name_prepare_domain_data,
     .create_debug_name_fn = cache_req_initgroups_by_name_create_debug_name,
     .global_ncache_add_fn = NULL,

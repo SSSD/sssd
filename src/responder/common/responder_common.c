@@ -1080,6 +1080,12 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ret = sss_ad_default_names_ctx(rctx, &rctx->global_names);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_ad_default_names_ctx failed.\n");
+        goto fail;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Responder Initialization complete\n");
 
     *responder_ctx = rctx;

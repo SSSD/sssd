@@ -40,6 +40,17 @@ enum cache_req_type {
     CACHE_REQ_INITGROUPS_BY_UPN,
 
     CACHE_REQ_OBJECT_BY_SID,
+    CACHE_REQ_OBJECT_BY_NAME,
+    CACHE_REQ_OBJECT_BY_ID,
+
+    CACHE_REQ_ENUM_USERS,
+    CACHE_REQ_ENUM_GROUPS,
+    CACHE_REQ_ENUM_SVC,
+
+    CACHE_REQ_SVC_BY_NAME,
+    CACHE_REQ_SVC_BY_PORT,
+
+    CACHE_REQ_NETGROUP_BY_NAME,
 
     CACHE_REQ_SENTINEL
 };
@@ -54,9 +65,21 @@ cache_req_data_name(TALLOC_CTX *mem_ctx,
                     const char *name);
 
 struct cache_req_data *
+cache_req_data_name_attrs(TALLOC_CTX *mem_ctx,
+                          enum cache_req_type type,
+                          const char *name,
+                          const char **attrs);
+
+struct cache_req_data *
 cache_req_data_id(TALLOC_CTX *mem_ctx,
                   enum cache_req_type type,
                   uint32_t id);
+
+struct cache_req_data *
+cache_req_data_id_attrs(TALLOC_CTX *mem_ctx,
+                        enum cache_req_type type,
+                        uint32_t id,
+                        const char **attrs);
 
 struct cache_req_data *
 cache_req_data_cert(TALLOC_CTX *mem_ctx,
@@ -68,6 +91,67 @@ cache_req_data_sid(TALLOC_CTX *mem_ctx,
                    enum cache_req_type type,
                    const char *sid,
                    const char **attrs);
+
+struct cache_req_data *
+cache_req_data_enum(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type);
+
+struct cache_req_data *
+cache_req_data_svc(TALLOC_CTX *mem_ctx,
+                   enum cache_req_type type,
+                   const char *name,
+                   const char *protocol,
+                   uint16_t port);
+
+/* Output data. */
+
+struct cache_req_result {
+    /**
+     * SSSD domain where the result was obtained.
+     */
+    struct sss_domain_info *domain;
+
+    /**
+     * Result from ldb lookup.
+     */
+    struct ldb_result *ldb_result;
+
+    /**
+     * Shortcuts into ldb_result. This shortens the code a little since
+     * callers usually don't don't need to work with ldb_result directly.
+     */
+    unsigned int count;
+    struct ldb_message **msgs;
+
+    /**
+     * If name was used as a lookup parameter, @lookup_name contains name
+     * normalized to @domain rules.
+     */
+    const char *lookup_name;
+
+    /**
+     * If true the result contain attributes of a well known object.
+     * Since this result is manually created it may not contain all
+     * requested attributes, depending on the plug-in.
+     */
+    bool well_known_object;
+
+    /* If this is a well known object, it may not be part of any particular
+     * SSSD domain, but still may be associated with a well known domain
+     * name such as "BUILTIN", or "LOCAL AUTHORITY".
+     */
+    const char *well_known_domain;
+};
+
+/**
+ * Shallow copy of cache request result, limiting the result to a maximum
+ * numbers of records.
+ */
+struct cache_req_result *
+cache_req_copy_limited_result(TALLOC_CTX *mem_ctx,
+                              struct cache_req_result *result,
+                              uint32_t start,
+                              uint32_t limit);
 
 /* Generic request. */
 
@@ -81,9 +165,11 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
-                       struct ldb_result **_result,
-                       struct sss_domain_info **_domain,
-                       char **_name);
+                       struct cache_req_result ***_results);
+
+errno_t cache_req_single_domain_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req,
+                                     struct cache_req_result **_result);
 
 /* Plug-ins. */
 
@@ -96,8 +182,8 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
                             const char *domain,
                             const char *name);
 
-#define cache_req_user_by_name_recv(mem_ctx, req, _result, _domain, _name) \
-    cache_req_recv(mem_ctx, req, _result, _domain, _name)
+#define cache_req_user_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
 cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
@@ -108,8 +194,8 @@ cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
                           const char *domain,
                           uid_t uid);
 
-#define cache_req_user_by_id_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
+#define cache_req_user_by_id_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result);
 
 struct tevent_req *
 cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
@@ -120,8 +206,8 @@ cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
                             const char *domain,
                             const char *pem_cert);
 
-#define cache_req_user_by_cert_recv(mem_ctx, req, _result, _domain, _name) \
-    cache_req_recv(mem_ctx, req, _result, _domain, _name)
+#define cache_req_user_by_cert_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
 cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
@@ -132,8 +218,8 @@ cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
                              const char *domain,
                              const char *name);
 
-#define cache_req_group_by_name_recv(mem_ctx, req, _result, _domain, _name) \
-    cache_req_recv(mem_ctx, req, _result, _domain, _name)
+#define cache_req_group_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
 cache_req_group_by_id_send(TALLOC_CTX *mem_ctx,
@@ -144,8 +230,8 @@ cache_req_group_by_id_send(TALLOC_CTX *mem_ctx,
                            const char *domain,
                            gid_t gid);
 
-#define cache_req_group_by_id_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
+#define cache_req_group_by_id_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
 cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
@@ -156,8 +242,8 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               const char *name);
 
-#define cache_req_initgr_by_name_recv(mem_ctx, req, _result, _domain, _name) \
-    cache_req_recv(mem_ctx, req, _result, _domain, _name)
+#define cache_req_initgr_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
 cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
@@ -166,8 +252,8 @@ cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               const char *filter);
 
-#define cache_req_user_by_filter_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
+#define cache_req_user_by_filter_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
 cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
@@ -176,8 +262,8 @@ cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               const char *filter);
 
-#define cache_req_group_by_filter_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
+#define cache_req_group_by_filter_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
 cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
@@ -189,7 +275,93 @@ cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
                              const char *sid,
                              const char **attrs);
 
-#define cache_req_object_by_sid_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
+#define cache_req_object_by_sid_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_object_by_name_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct resp_ctx *rctx,
+                              struct sss_nc_ctx *ncache,
+                              int cache_refresh_percent,
+                              const char *domain,
+                              const char *name,
+                              const char **attrs);
+
+#define cache_req_object_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_object_by_id_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct resp_ctx *rctx,
+                              struct sss_nc_ctx *ncache,
+                              int cache_refresh_percent,
+                              const char *domain,
+                              uint32_t id,
+                              const char **attrs);
+
+#define cache_req_object_by_id_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_enum_users_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct resp_ctx *rctx,
+                          struct sss_nc_ctx *ncache,
+                          int cache_refresh_percent,
+                          const char *domain);
+
+#define cache_req_enum_users_recv(mem_ctx, req, _result) \
+    cache_req_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_enum_groups_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct resp_ctx *rctx,
+                           struct sss_nc_ctx *ncache,
+                           int cache_refresh_percent,
+                           const char *domain);
+
+#define cache_req_enum_groups_recv(mem_ctx, req, _result) \
+    cache_req_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_svc_by_name_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct resp_ctx *rctx,
+                           struct sss_nc_ctx *ncache,
+                           int cache_refresh_percent,
+                           const char *domain,
+                           const char *name,
+                           const char *protocol);
+
+#define cache_req_svc_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_svc_by_port_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct resp_ctx *rctx,
+                           struct sss_nc_ctx *ncache,
+                           int cache_refresh_percent,
+                           const char *domain,
+                           uint16_t port,
+                           const char *protocol);
+
+#define cache_req_svc_by_port_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_netgroup_by_name_send(TALLOC_CTX *mem_ctx,
+                                struct tevent_context *ev,
+                                struct resp_ctx *rctx,
+                                struct sss_nc_ctx *ncache,
+                                int cache_refresh_percent,
+                                const char *domain,
+                                const char *name);
+
+#define cache_req_netgroup_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
 
 #endif /* _CACHE_REQ_H_ */

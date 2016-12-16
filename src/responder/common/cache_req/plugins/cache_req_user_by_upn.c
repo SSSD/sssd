@@ -84,7 +84,12 @@ cache_req_user_by_upn_lookup(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
                              struct ldb_result **_result)
 {
-    return sysdb_getpwupn(mem_ctx, domain, data->name.lookup, _result);
+    if (data->attrs == NULL) {
+        return sysdb_getpwupn(mem_ctx, domain, data->name.lookup, _result);
+    }
+
+    return sysdb_search_user_by_upn_res(mem_ctx, domain, data->name.lookup,
+                                        data->attrs, _result);
 }
 
 static errno_t
@@ -102,18 +107,21 @@ cache_req_user_by_upn_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct cache_req_plugin cache_req_user_by_upn = {
+const struct cache_req_plugin cache_req_user_by_upn = {
     .name = "User by UPN",
     .dp_type = SSS_DP_USER,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
     .bypass_cache = false,
     .only_one_result = true,
+    .search_all_domains = false,
+    .require_enumeration = false,
     .allow_missing_fqn = true,
     .allow_switch_to_upn = false,
     .upn_equivalent = CACHE_REQ_SENTINEL,
     .get_next_domain_flags = SSS_GND_DESCEND,
 
+    .is_well_known_fn = NULL,
     .prepare_domain_data_fn = cache_req_user_by_upn_prepare_domain_data,
     .create_debug_name_fn = cache_req_user_by_upn_create_debug_name,
     .global_ncache_add_fn = NULL,
