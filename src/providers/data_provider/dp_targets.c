@@ -130,71 +130,6 @@ bool dp_target_initialized(struct dp_target **targets, enum dp_targets type)
     return targets[type]->initialized;
 }
 
-static bool dp_target_sudo_enabled(struct be_ctx *be_ctx)
-{
-    TALLOC_CTX *tmp_ctx;
-    char **services;
-    char *module;
-    bool responder_enabled;
-    bool enable;
-    errno_t ret;
-    int i;
-
-    /* Do not disable it in case of error. */
-    enable = true;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
-        return enable;
-    }
-
-    ret = confdb_get_string_as_list(be_ctx->cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_SERVICES, &services);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read from confdb [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    responder_enabled = false;
-    for (i = 0; services[i] != NULL; i++) {
-        if (strcmp(services[i], "sudo") == 0) {
-            responder_enabled = true;
-            break;
-        }
-    }
-
-    ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
-                            CONFDB_DOMAIN_SUDO_PROVIDER, NULL, &module);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read from confdb [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    if (!responder_enabled) {
-        if (module == NULL) {
-            DEBUG(SSSDBG_TRACE_FUNC, "SUDO is not listed in services, "
-                  "disabling SUDO module.\n");
-            enable = false;
-            goto done;
-        } else if (strcmp(module, DP_NO_PROVIDER) != 0) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "SUDO provider is set, but it is not "
-                  "listed in active services. SUDO support will not work!\n");
-            enable = true;
-            goto done;
-        }
-    }
-
-    enable = true;
-
-done:
-    talloc_free(tmp_ctx);
-    return enable;
-}
-
 static const char *dp_target_module_name(struct dp_target **targets,
                                          enum dp_targets type)
 {
@@ -300,16 +235,6 @@ static errno_t dp_target_special(struct be_ctx *be_ctx,
                           void, struct pam_data, struct pam_data *);
             target->module = NULL;
             target->initialized = true;
-            return EOK;
-        }
-    }
-
-    if (target->target == DPT_SUDO) {
-        if (dp_target_sudo_enabled(be_ctx)) {
-            return EAGAIN;
-        } else {
-            target->module = NULL;
-            target->initialized = false;
             return EOK;
         }
     }
