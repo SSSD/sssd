@@ -376,12 +376,18 @@ get_port_status(struct fo_server *server)
           "Port status of port %d for server '%s' is '%s'\n", server->port,
               SERVER_NAME(server), str_port_status(server->port_status));
 
+    if (server->port_status == PORT_NOT_WORKING) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "SSSD is unable to complete the full "
+              "connection request, this internal status does not necessarily "
+              "indicate network port issues.\n");
+    }
+
     timeout = server->service->ctx->opts->retry_timeout;
     if (timeout != 0 && server->port_status == PORT_NOT_WORKING) {
         gettimeofday(&tv, NULL);
         if (STATUS_DIFF(server, tv) > timeout) {
             DEBUG(SSSDBG_CONF_SETTINGS,
-                  "Reseting the status of port %d for server '%s'\n",
+                  "Resetting the status of port %d for server '%s'\n",
                       server->port, SERVER_NAME(server));
             server->port_status = PORT_NEUTRAL;
             server->last_status_change.tv_sec = tv.tv_sec;
