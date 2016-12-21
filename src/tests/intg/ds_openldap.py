@@ -19,7 +19,6 @@
 
 import hashlib
 import base64
-import urllib
 import time
 import ldap
 import os
@@ -29,6 +28,11 @@ import shutil
 import sys
 from util import *
 from ds import DS
+
+try:
+    from urllib import quote as url_quote
+except ImportError:
+    from urllib.parse import quote as url_quote
 
 
 def hash_password(password):
@@ -183,7 +187,7 @@ class DSOpenLDAP(DS):
     def setup(self):
         """Setup the instance."""
         ldapi_socket = self.run_dir + "/ldapi"
-        ldapi_url = "ldapi://" + urllib.quote(ldapi_socket, "")
+        ldapi_url = "ldapi://" + url_quote(ldapi_socket, "")
         url_list = ldapi_url + " " + self.ldap_url
 
         os.makedirs(self.conf_slapd_d_dir)
