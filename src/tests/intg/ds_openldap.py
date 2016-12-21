@@ -38,9 +38,10 @@ except ImportError:
 def hash_password(password):
     """Generate userPassword value for a password."""
     salt = os.urandom(4)
-    hash = hashlib.sha1(password)
+    hash = hashlib.sha1(password.encode('utf-8'))
     hash.update(salt)
-    return "{SSHA}" + base64.standard_b64encode(hash.digest() + salt)
+    hash_base64 = base64.standard_b64encode(hash.digest() + salt)
+    return "{SSHA}" + hash_base64.decode('utf-8')
 
 
 class DSOpenLDAP(DS):
