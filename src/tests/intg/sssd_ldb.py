@@ -77,7 +77,6 @@ class SssdLdb(object):
     def get_entry_attr(self, cache_type, entry_type, name, domain, attr):
         dbconn = self._get_dbconn(cache_type)
         basedn = self._basedn(name, domain, entry_type)
-        print basedn
 
         res = dbconn.search(base=basedn, scope=ldb.SCOPE_BASE, attrs=[attr])
         if res.count != 1:
