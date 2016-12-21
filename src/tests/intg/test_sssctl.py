@@ -29,6 +29,7 @@ import ds_openldap
 import ldap_ent
 import config
 from util import unindent
+import sssd_netgroup
 
 LDAP_BASE_DN = "dc=example,dc=com"
 
@@ -142,6 +143,7 @@ def sanity_rfc2307(request, ldap_conn):
         sudo_provider       = ldap
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+        ldap_netgroup_search_base = ou=Netgroups,{ldap_conn.ds_inst.base_dn}
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -359,3 +361,28 @@ def test_group_show_basic_fqname_insensitive(ldap_conn,
     output = get_call_output(["sssctl", "group-show", "camelcasegroup1@LDAP"])
     assert output.find("Name: camelcasegroup1@LDAP") != -1
     assert output.find("Cached in InfoPipe: No") != -1
+
+
+@pytest.fixture
+def add_tripled_netgroup(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+
+    ent_list.add_netgroup("tripled_netgroup", ["(host,user,domain)"])
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    return None
+
+
+def test_netgroup_show(ldap_conn,
+                       sanity_rfc2307,
+                       portable_LC_ALL,
+                       add_tripled_netgroup):
+    output = get_call_output(["sssctl", "netgroup-show", "tripled_netgroup"])
+    assert "Name: tripled_netgroup" not in output
+
+    res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup")
+    assert res == sssd_netgroup.NssReturnCode.SUCCESS
+    assert netgrps == [("host", "user", "domain")]
+
+    output = get_call_output(["sssctl", "netgroup-show", "tripled_netgroup"])
+    assert "Name: tripled_netgroup" in output
