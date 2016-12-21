@@ -166,7 +166,7 @@ class DSOpenLDAP(DS):
             ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config"],
             stdin=subprocess.PIPE, close_fds=True
         )
-        slapadd.communicate(config)
+        slapadd.communicate(config.encode('utf-8'))
         if slapadd.returncode != 0:
             raise Exception("Failed to add configuration with slapadd")
 
