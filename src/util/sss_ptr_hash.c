@@ -332,8 +332,8 @@ void sss_ptr_hash_delete_all(hash_table_t *table,
 {
     struct sss_ptr_hash_value *value;
     hash_value_t *values;
-    size_t count;
-    size_t i;
+    unsigned long count;
+    unsigned long i;
     int hret;
     void *ptr;
 
