@@ -243,6 +243,7 @@ if HAVE_CMOCKA
         test_sysdb_subdomains \
         test_sysdb_sudo \
         test_sysdb_utils \
+        test_wbc_calls \
         test_be_ptask \
         test_copy_ccache \
         test_copy_keytab \
@@ -2650,6 +2651,28 @@ test_sysdb_utils_CFLAGS = \
 test_sysdb_utils_LDADD = \
     $(CMOCKA_LIBS) \
     $(LDB_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_wbc_calls_SOURCES = \
+    src/tests/cmocka/test_wbc_calls.c \
+    src/sss_client/idmap/sss_nss_idmap.c \
+    src/sss_client/libwbclient/wbc_sid_sssd.c \
+    src/sss_client/libwbclient/wbclient_common.c \
+    src/sss_client/libwbclient/wbc_sid_common.c \
+    src/sss_client/common.c \
+    $(NULL)
+test_wbc_calls_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_wbc_calls_LDFLAGS = \
+    -Wl,-wrap,sss_nss_getnamebysid \
+    $(NULL)
+test_wbc_calls_LDADD = \
+    $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \

@@ -99,9 +99,9 @@ wbcErr wbcLookupName(const char *domain,
 
 /* Convert a SID to a domain and name */
 wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
-            char **pdomain,
-            char **pname,
-            enum wbcSidType *pname_type)
+                    char **pdomain,
+                    char **pname,
+                    enum wbcSidType *pname_type)
 {
     char *str_sid;
     char *fq_name = NULL;
@@ -121,10 +121,12 @@ wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
         return WBC_ERR_UNKNOWN_FAILURE;
     }
 
-    ret = sss_id_type_to_wbcSidType(type, pname_type);
-    if (ret != 0) {
-        wbc_status = WBC_ERR_UNKNOWN_FAILURE;
-        goto done;
+    if (pname_type != NULL) {
+        ret = sss_id_type_to_wbcSidType(type, pname_type);
+        if (ret != 0) {
+            wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+            goto done;
+        }
     }
 
     /* TODO: it would be nice to have a sss_nss_getnamebysid() call which
@@ -136,17 +138,21 @@ wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
     }
 
     *p = '\0';
-    *pname = wbcStrDup(fq_name);
-    if (*pname == NULL) {
-        wbc_status = WBC_ERR_NO_MEMORY;
-        goto done;
+    if (pname != NULL) {
+        *pname = wbcStrDup(fq_name);
+        if (*pname == NULL) {
+            wbc_status = WBC_ERR_NO_MEMORY;
+            goto done;
+        }
     }
 
-    *pdomain = wbcStrDup(p + 1);
-    if (*pdomain == NULL) {
-        wbcFreeMemory(*pname);
-        wbc_status = WBC_ERR_NO_MEMORY;
-        goto done;
+    if (pdomain != NULL) {
+        *pdomain = wbcStrDup(p + 1);
+        if (*pdomain == NULL) {
+            wbcFreeMemory(*pname);
+            wbc_status = WBC_ERR_NO_MEMORY;
+            goto done;
+        }
     }
 
     wbc_status = WBC_ERR_SUCCESS;
