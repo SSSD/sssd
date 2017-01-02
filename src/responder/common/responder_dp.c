@@ -495,6 +495,12 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
         goto error;
     }
 
+    if (NEED_CHECK_PROVIDER(dom->provider) == false) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Domain %s does not check DP\n", dom->name);
+        ret = EOK;
+        goto error;
+    }
+
     info = talloc_zero(state, struct sss_dp_account_info);
     info->fast_reply = fast_reply;
     info->type = type;
@@ -539,7 +545,11 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     return req;
 
 error:
-    tevent_req_error(req, ret);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
     tevent_req_post(req, rctx->ev);
     return req;
 }
