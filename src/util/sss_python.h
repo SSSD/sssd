@@ -1,8 +1,11 @@
 #ifndef __SSS_PYTHON_H__
 #define __SSS_PYTHON_H__
 
+#include "config.h"
+
 #include <Python.h>
 #include <stdbool.h>
+
 #include "util/util.h"
 
 #if PY_VERSION_HEX < 0x02050000
