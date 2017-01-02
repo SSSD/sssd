@@ -19,7 +19,6 @@
 */
 
 #include "src/util/sss_python.h"
-#include "config.h"
 
 PyObject *
 sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict)

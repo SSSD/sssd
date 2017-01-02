@@ -18,9 +18,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <Python.h>
-#include "util/sss_python.h"
+#include "config.h"
 
+#include <Python.h>
+
+#include "util/sss_python.h"
 #include "util/murmurhash3.h"
 
 PyDoc_STRVAR(murmurhash3_doc,

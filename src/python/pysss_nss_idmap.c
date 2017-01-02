@@ -19,9 +19,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <Python.h>
-#include "util/sss_python.h"
+#include "config.h"
 
+#include <Python.h>
+
+#include "util/sss_python.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
 
 #define SSS_NAME_KEY "name"
