@@ -199,39 +199,36 @@ static char *local_dn_to_path(TALLOC_CTX *mem_ctx,
     return path;
 }
 
+struct local_db_req {
+    char *path;
+    struct ldb_dn *basedn;
+};
+
 #define LOCAL_SIMPLE_FILTER "(type=simple)"
 #define LOCAL_CONTAINER_FILTER "(type=container)"
 
 static int local_db_get_simple(TALLOC_CTX *mem_ctx,
                                struct local_context *lctx,
-                               const char *req_path,
+                               struct local_db_req *lc_req,
                                char **secret)
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { "secret", "enctype", NULL };
     struct ldb_result *res;
-    struct ldb_dn *dn;
     const char *attr_secret;
     const char *attr_enctype;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Retrieving a secret from [%s]\n", req_path);
+    DEBUG(SSSDBG_TRACE_FUNC, "Retrieving a secret from [%s]\n", lc_req->path);
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = local_db_dn(tmp_ctx, lctx->ldb, req_path, &dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=base\n",
-          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(dn));
+          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->basedn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_BASE,
                      attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -278,34 +275,26 @@ done:
 
 static int local_db_list_keys(TALLOC_CTX *mem_ctx,
                               struct local_context *lctx,
-                              const char *req_path,
+                              struct local_db_req *lc_req,
                               char ***_keys,
                               int *num_keys)
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { "secret", NULL };
     struct ldb_result *res;
-    struct ldb_dn *dn;
     char **keys;
     int ret;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Listing keys at [%s]\n", req_path);
-
-    ret = local_db_dn(tmp_ctx, lctx->ldb, req_path, &dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
+    DEBUG(SSSDBG_TRACE_FUNC, "Listing keys at [%s]\n", lc_req->path);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=subtree\n",
-          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(dn));
+          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->basedn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_SUBTREE,
                      attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -327,7 +316,7 @@ static int local_db_list_keys(TALLOC_CTX *mem_ctx,
     }
 
     for (unsigned i = 0; i < res->count; i++) {
-        keys[i] = local_dn_to_path(keys, dn, res->msgs[i]->dn);
+        keys[i] = local_dn_to_path(keys, lc_req->basedn, res->msgs[i]->dn);
         if (!keys[i]) {
             ret = ENOMEM;
             goto done;
@@ -474,7 +463,7 @@ static int local_check_max_payload_size(struct local_context *lctx,
 
 static int local_db_put_simple(TALLOC_CTX *mem_ctx,
                                struct local_context *lctx,
-                               const char *req_path,
+                               struct local_db_req *lc_req,
                                const char *secret)
 {
     struct ldb_message *msg;
@@ -482,20 +471,14 @@ static int local_db_put_simple(TALLOC_CTX *mem_ctx,
     char *enc_secret;
     int ret;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Adding a secret to [%s]\n", lc_req->path);
+
     msg = ldb_msg_new(mem_ctx);
     if (!msg) {
         ret = ENOMEM;
         goto done;
     }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Adding a secret to [%s]\n", req_path);
-
-    ret = local_db_dn(msg, lctx->ldb, req_path, &msg->dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
+    msg->dn = lc_req->basedn;
 
     /* make sure containers exist */
     ret = local_db_check_containers(msg, lctx, msg->dn);
@@ -585,32 +568,24 @@ done:
 
 static int local_db_delete(TALLOC_CTX *mem_ctx,
                            struct local_context *lctx,
-                           const char *req_path)
+                           struct local_db_req *lc_req)
 {
     TALLOC_CTX *tmp_ctx;
-    struct ldb_dn *dn;
     static const char *attrs[] = { NULL };
     struct ldb_result *res;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Removing a secret from [%s]\n", req_path);
+    DEBUG(SSSDBG_TRACE_FUNC, "Removing a secret from [%s]\n", lc_req->path);
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = local_db_dn(mem_ctx, lctx->ldb, req_path, &dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=base\n",
-          LOCAL_CONTAINER_FILTER, ldb_dn_get_linearized(dn));
+          LOCAL_CONTAINER_FILTER, ldb_dn_get_linearized(lc_req->basedn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
-                    attrs, LOCAL_CONTAINER_FILTER);
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_BASE,
+                     attrs, LOCAL_CONTAINER_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_search returned %d: %s\n", ret, ldb_strerror(ret));
@@ -619,8 +594,8 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
 
     if (res->count == 1) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Searching for children of [%s]\n", ldb_dn_get_linearized(dn));
-        ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_ONELEVEL,
+              "Searching for children of [%s]\n", ldb_dn_get_linearized(lc_req->basedn));
+        ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_ONELEVEL,
                          attrs, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_TRACE_LIBS,
@@ -632,13 +607,13 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
             ret = EEXIST;
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to remove '%s': Container is not empty\n",
-                  ldb_dn_get_linearized(dn));
+                  ldb_dn_get_linearized(lc_req->basedn));
 
             goto done;
         }
     }
 
-    ret = ldb_delete(lctx->ldb, dn);
+    ret = ldb_delete(lctx->ldb, lc_req->basedn);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_delete returned %d: %s\n", ret, ldb_strerror(ret));
@@ -653,25 +628,19 @@ done:
 
 static int local_db_create(TALLOC_CTX *mem_ctx,
                            struct local_context *lctx,
-                           const char *req_path)
+                           struct local_db_req *lc_req)
 {
     struct ldb_message *msg;
     int ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Creating a container at [%s]\n", lc_req->path);
 
     msg = ldb_msg_new(mem_ctx);
     if (!msg) {
         ret = ENOMEM;
         goto done;
     }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Creating a container at [%s]\n", req_path);
-
-    ret = local_db_dn(msg, lctx->ldb, req_path, &msg->dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "local_db_dn failed [%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
+    msg->dn = lc_req->basedn;
 
     /* make sure containers exist */
     ret = local_db_check_containers(msg, lctx, msg->dn);
@@ -724,10 +693,13 @@ done:
 }
 
 static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
+                                  struct ldb_context *ldb,
                                   struct sec_req_ctx *secreq,
-                                  char **local_db_path)
+                                  struct local_db_req **_lc_req)
 {
     int ret;
+    struct local_db_req *lc_req;
+    const char *basedn;
 
     /* be strict for now */
     if (secreq->parsed_url.fragment != NULL) {
@@ -755,19 +727,45 @@ static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* drop SEC_BASEPATH prefix */
-    *local_db_path =
-        talloc_strdup(mem_ctx, &secreq->mapped_path[sizeof(SEC_BASEPATH) - 1]);
-    if (!*local_db_path) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to map request to local db path\n");
+    lc_req = talloc(mem_ctx, struct local_db_req);
+    if (lc_req == NULL) {
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, "Local DB path is %s\n", *local_db_path);
-    return EOK;
-}
+    /* drop the prefix and select a basedn instead */
+    if (strncmp(secreq->mapped_path,
+                SEC_BASEPATH, sizeof(SEC_BASEPATH) - 1) == 0) {
+        lc_req->path = talloc_strdup(lc_req,
+                                     secreq->mapped_path + (sizeof(SEC_BASEPATH) - 1));
+        basedn = SECRETS_BASEDN;
+    } else {
+        ret = EINVAL;
+        goto done;
+    }
 
+    if (lc_req->path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to map request to local db path\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = local_db_dn(mem_ctx, ldb, basedn, lc_req->path, &lc_req->basedn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to map request to local db DN\n");
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, "Local DB path is %s\n", lc_req->path);
+    ret = EOK;
+    *_lc_req = lc_req;
+done:
+    if (ret != EOK) {
+        talloc_free(lc_req);
+    }
+    return ret;
+}
 
 struct local_secret_state {
     struct tevent_context *ev;
@@ -785,7 +783,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     struct sec_data body = { 0 };
     const char *content_type;
     bool body_is_json;
-    char *req_path;
+    struct local_db_req *lc_req;
     char *secret;
     char **keys;
     int nkeys;
@@ -821,14 +819,14 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     }
     DEBUG(SSSDBG_TRACE_LIBS, "Content-Type: %s\n", content_type);
 
-    ret = local_secrets_map_path(state, secreq, &req_path);
+    ret = local_secrets_map_path(state, lctx->ldb, secreq, &lc_req);
     if (ret) goto done;
 
     switch (secreq->method) {
     case HTTP_GET:
-        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP GET at [%s]\n", req_path);
-        if (req_path[strlen(req_path) - 1] == '/') {
-            ret = local_db_list_keys(state, lctx, req_path, &keys, &nkeys);
+        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP GET at [%s]\n", lc_req->path);
+        if (lc_req->path[strlen(lc_req->path) - 1] == '/') {
+            ret = local_db_list_keys(state, lctx, lc_req, &keys, &nkeys);
             if (ret) goto done;
 
             ret = sec_array_to_json(state, keys, nkeys, &body.data);
@@ -838,7 +836,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ret = local_db_get_simple(state, lctx, req_path, &secret);
+        ret = local_db_get_simple(state, lctx, lc_req, &secret);
         if (ret) goto done;
 
         if (body_is_json) {
@@ -855,7 +853,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         break;
 
     case HTTP_PUT:
-        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP PUT at [%s]\n", req_path);
+        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP PUT at [%s]\n", lc_req->path);
         if (body_is_json) {
             ret = sec_json_to_simple_secret(state, secreq->body.data,
                                             &secret);
@@ -866,27 +864,27 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         }
         if (ret) goto done;
 
-        ret = local_db_put_simple(state, lctx, req_path, secret);
+        ret = local_db_put_simple(state, lctx, lc_req, secret);
         if (ret) goto done;
         break;
 
     case HTTP_DELETE:
-        ret = local_db_delete(state, lctx, req_path);
+        ret = local_db_delete(state, lctx, lc_req);
         if (ret) goto done;
         break;
 
     case HTTP_POST:
-        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP POST at [%s]\n", req_path);
-        plen = strlen(req_path);
+        DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP POST at [%s]\n", lc_req->path);
+        plen = strlen(lc_req->path);
 
-        if (req_path[plen - 1] != '/') {
+        if (lc_req->path[plen - 1] != '/') {
             ret = EINVAL;
             goto done;
         }
 
-        req_path[plen - 1] = '\0';
+        lc_req->path[plen - 1] = '\0';
 
-        ret = local_db_create(state, lctx, req_path);
+        ret = local_db_create(state, lctx, lc_req);
         if (ret) goto done;
         break;
 
