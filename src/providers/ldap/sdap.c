@@ -1673,9 +1673,9 @@ char *sdap_make_oc_list(TALLOC_CTX *mem_ctx, struct sdap_attr_map *map)
     }
 }
 
-static bool sdap_object_in_domain(struct sdap_options *opts,
-                                  struct sysdb_attrs *obj,
-                                  struct sss_domain_info *dom)
+bool sdap_object_in_domain(struct sdap_options *opts,
+                           struct sysdb_attrs *obj,
+                           struct sss_domain_info *dom)
 {
     errno_t ret;
     const char *original_dn = NULL;
