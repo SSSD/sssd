@@ -112,3 +112,15 @@ sss_ssh_knownhostsproxy
 sssd_ssh
 test-authtok
 /ci-build-*
+src/monitor/monitor_iface_generated.c
+src/monitor/monitor_iface_generated.h
+src/providers/data_provider/dp_iface_generated.c
+src/providers/data_provider/dp_iface_generated.h
+src/providers/proxy/proxy_iface_generated.c
+src/providers/proxy/proxy_iface_generated.h
+src/responder/ifp/ifp_iface_generated.c
+src/responder/ifp/ifp_iface_generated.h
+src/responder/nss/nss_iface_generated.c
+src/responder/nss/nss_iface_generated.h
+src/tests/sbus_codegen_tests_generated.h
+src/tests/sbus_codegen_tests_generated.c
