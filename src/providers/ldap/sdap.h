@@ -616,4 +616,8 @@ size_t sdap_steal_objects_in_dom(struct sdap_options *opts,
                                  size_t count,
                                  bool filter);
 
+bool sdap_object_in_domain(struct sdap_options *opts,
+                           struct sysdb_attrs *obj,
+                           struct sss_domain_info *dom);
+
 #endif /* _SDAP_H_ */

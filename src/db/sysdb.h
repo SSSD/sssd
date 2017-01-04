@@ -1309,10 +1309,4 @@ errno_t sysdb_handle_original_uuid(const char *orig_name,
                                    struct sysdb_attrs *dest_attrs,
                                    const char *dest_name);
 
-errno_t sysdb_try_to_find_expected_dn(struct sss_domain_info *dom,
-                                      const char *domain_component_name,
-                                      const char *ldap_search_base,
-                                      struct sysdb_attrs **usr_attrs,
-                                      size_t count,
-                                      struct sysdb_attrs **exp_usr);
 #endif /* __SYS_DB_H__ */

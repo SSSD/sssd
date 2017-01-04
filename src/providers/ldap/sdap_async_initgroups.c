@@ -23,6 +23,7 @@
 
 #include "util/util.h"
 #include "db/sysdb.h"
+#include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_idmap.h"
@@ -2890,6 +2891,25 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
     return EOK;
 }
 
+static int sdap_search_initgr_user_in_batch(struct sdap_get_initgr_state *state,
+                                            struct sysdb_attrs **users,
+                                            size_t count)
+{
+    int ret = EINVAL;
+
+    for (size_t i = 0; i < count; i++) {
+        if (sdap_object_in_domain(state->opts, users[i], state->dom) == false) {
+            continue;
+        }
+
+        state->orig_user = talloc_steal(state, users[i]);
+        ret = EOK;
+        break;
+    }
+
+    return ret;
+}
+
 static void sdap_get_initgr_user(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -2951,13 +2971,11 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
          * the first search base because all bases in a single domain would
          * have the same DC= components
          */
-        ret = sysdb_try_to_find_expected_dn(state->dom, "dc",
-                                            state->sdom->search_bases[0]->basedn,
-                                            usr_attrs, count,
-                                            &state->orig_user);
+        ret = sdap_search_initgr_user_in_batch(state, usr_attrs, count);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "try_to_find_expected_dn failed. No matching DN found.\n");
+                  "sdap_search_initgr_user_in_batch failed. "
+                  "No matching DN found.\n");
             tevent_req_error(req, EINVAL);
             return;
         }
