@@ -95,7 +95,6 @@ static struct tevent_req *sdap_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     state->account_req->entry_type = entry_type;
-    state->account_req->attr_type = BE_ATTR_CORE;
     state->account_req->filter_type = BE_FILTER_NAME;
     state->account_req->extra_value = NULL;
     state->account_req->domain = domain->name;

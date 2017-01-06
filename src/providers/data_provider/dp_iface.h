@@ -35,7 +35,6 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
                                     void *dp_cli,
                                     uint32_t dp_flags,
                                     uint32_t entry_type,
-                                    uint32_t attr_type,
                                     const char *filter,
                                     const char *domain,
                                     const char *extra);

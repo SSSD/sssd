@@ -30,18 +30,6 @@
 
 #define FILTER_TYPE(str, type) {str "=", sizeof(str "=") - 1, type}
 
-static bool check_attr_type(uint32_t attr_type)
-{
-    switch (attr_type) {
-    case BE_ATTR_CORE:
-        return true;
-    default:
-        return false;
-    }
-
-    return false;
-}
-
 static bool check_and_parse_filter(struct dp_id_data *data,
                                    const char *filter,
                                    const char *extra)
@@ -252,7 +240,6 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
                                     void *dp_cli,
                                     uint32_t dp_flags,
                                     uint32_t entry_type,
-                                    uint32_t attr_type,
                                     const char *filter,
                                     const char *domain,
                                     const char *extra)
@@ -261,17 +248,12 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
     const char *key;
     errno_t ret;
 
-    if (!check_attr_type(attr_type)) {
-        return EINVAL;
-    }
-
     data = talloc_zero(sbus_req, struct dp_id_data);
     if (data == NULL) {
         return ENOMEM;
     }
 
     data->entry_type = entry_type;
-    data->attr_type = attr_type;
     data->domain = domain;
 
     if (!check_and_parse_filter(data, filter, extra)) {
@@ -280,12 +262,12 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
     }
 
     DEBUG(SSSDBG_FUNC_DATA,
-          "Got request for [%#"PRIx32"][%s][%"PRId32"][%s]\n",
+          "Got request for [%#"PRIx32"][%s][%s]\n",
           data->entry_type, be_req2str(data->entry_type),
-          attr_type, filter);
+          filter);
 
-    key = talloc_asprintf(data, "%u:%u:%s:%s:%s", data->entry_type,
-                          data->attr_type, extra, domain, filter);
+    key = talloc_asprintf(data, "%u:%s:%s:%s", data->entry_type,
+                          extra, domain, filter);
     if (key == NULL) {
         ret = ENOMEM;
         goto done;
