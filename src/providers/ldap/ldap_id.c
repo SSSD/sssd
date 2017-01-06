@@ -76,7 +76,6 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   const char *filter_value,
                                   int filter_type,
                                   const char *extra_value,
-                                  int attrs_type,
                                   bool noexist_delete)
 {
     struct tevent_req *req;
@@ -303,7 +302,6 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->user_map,
                                ctx->opts->user_map_cnt,
                                NULL, &state->attrs, NULL);
@@ -1425,7 +1423,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                                 ar->filter_value,
                                 ar->filter_type,
                                 ar->extra_value,
-                                ar->attr_type,
                                 noexist_delete);
         break;
 
@@ -1541,7 +1538,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                                 ar->filter_value,
                                 ar->filter_type,
                                 ar->extra_value,
-                                ar->attr_type,
                                 noexist_delete);
         break;
 
@@ -1790,7 +1786,7 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
     subreq = users_get_send(req, state->ev, state->id_ctx,
                             state->sdom, user_conn,
                             state->filter_val, state->filter_type, NULL,
-                            state->attrs_type, state->noexist_delete);
+                            state->noexist_delete);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "users_get_send failed.\n");
         tevent_req_error(req, ENOMEM);
