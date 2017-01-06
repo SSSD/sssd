@@ -3326,7 +3326,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
         subreq = groups_get_send(req, state->ev, state->id_ctx,
                                  state->id_ctx->opts->sdom, state->conn,
-                                 gid, BE_FILTER_IDNUM, BE_ATTR_ALL, false,
+                                 gid, BE_FILTER_IDNUM, false,
                                  false);
         if (!subreq) {
             ret = ENOMEM;
