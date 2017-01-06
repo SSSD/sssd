@@ -1446,12 +1446,6 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
 
     sysdb = domain->sysdb;
 
-    /* For now we support only core attrs. */
-    if (data->attr_type != BE_ATTR_CORE) {
-        dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL, "Invalid attr type");
-        return reply;
-    }
-
     /* Proxy provider does not support security ID lookups. */
     if (data->filter_type == BE_FILTER_SECID) {
         dp_reply_std_set(&reply, DP_ERR_FATAL, ENOSYS,

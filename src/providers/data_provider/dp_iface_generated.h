@@ -95,7 +95,7 @@ struct iface_dp {
     int (*autofsHandler)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, const char *arg_mapname);
     int (*hostHandler)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, const char *arg_name, const char *arg_alias);
     int (*getDomains)(struct sbus_request *req, void *data, const char *arg_domain_hint);
-    int (*getAccountInfo)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, uint32_t arg_entry_type, uint32_t arg_attr_type, const char *arg_filter, const char *arg_domain, const char *arg_extra);
+    int (*getAccountInfo)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, uint32_t arg_entry_type, const char *arg_filter, const char *arg_domain, const char *arg_extra);
 };
 
 /* finish function for autofsHandler */

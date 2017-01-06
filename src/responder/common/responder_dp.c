@@ -551,7 +551,6 @@ sss_dp_get_account_msg(void *pvt)
     struct sss_dp_account_info *info;
     uint32_t dp_flags;
     uint32_t entry_type;
-    uint32_t attrs_type = BE_ATTR_CORE;
     char *filter;
 
     info = talloc_get_type(pvt, struct sss_dp_account_info);
@@ -623,8 +622,8 @@ sss_dp_get_account_msg(void *pvt)
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Creating request for [%s][%#x][%s][%d][%s:%s]\n",
-          info->dom->name, entry_type, be_req2str(entry_type), attrs_type,
+          "Creating request for [%s][%#x][%s][%s:%s]\n",
+          info->dom->name, entry_type, be_req2str(entry_type),
           filter, info->extra == NULL ? "-" : info->extra);
 
     if (info->extra == NULL) {
@@ -635,7 +634,6 @@ sss_dp_get_account_msg(void *pvt)
     dbret = dbus_message_append_args(msg,
                                      DBUS_TYPE_UINT32, &dp_flags,
                                      DBUS_TYPE_UINT32, &entry_type,
-                                     DBUS_TYPE_UINT32, &attrs_type,
                                      DBUS_TYPE_STRING, &filter,
                                      DBUS_TYPE_STRING, &info->dom->name,
                                      DBUS_TYPE_STRING, &info->extra,

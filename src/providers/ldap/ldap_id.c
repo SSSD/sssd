@@ -1439,11 +1439,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             state->err = "Invalid filter type";
             goto done;
         }
-        if (ar->attr_type != BE_ATTR_CORE) {
-            ret = EINVAL;
-            state->err = "Invalid attr type";
-            goto done;
-        }
 
         subreq = groups_by_user_send(state, be_ctx->ev, id_ctx,
                                      sdom, conn,

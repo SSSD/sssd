@@ -45,7 +45,6 @@ struct dp_subdomains_data {
 
 struct dp_id_data {
     uint32_t entry_type;
-    uint32_t attr_type;
     uint32_t filter_type;
     const char *filter_value;
     const char *extra_value;

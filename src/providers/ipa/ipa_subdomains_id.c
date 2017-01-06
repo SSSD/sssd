@@ -237,7 +237,6 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
                       "Switching back to BE_REQ_INITGROUPS.\n");
                 ar->entry_type = BE_REQ_INITGROUPS;
                 ar->filter_type = BE_FILTER_SECID;
-                ar->attr_type = BE_ATTR_CORE;
             }
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,

@@ -671,7 +671,6 @@ static void ipa_id_get_account_info_got_override(struct tevent_req *subreq)
                       "Switching back to BE_REQ_INITGROUPS.\n");
                 state->ar->entry_type = BE_REQ_INITGROUPS;
                 state->ar->filter_type = BE_FILTER_UUID;
-                state->ar->attr_type = BE_ATTR_CORE;
             }
 
         } else {

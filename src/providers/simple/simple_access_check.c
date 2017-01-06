@@ -259,7 +259,6 @@ simple_resolve_group_send(TALLOC_CTX *mem_ctx,
     }
 
     ar->entry_type = BE_REQ_GROUP;
-    ar->attr_type = BE_ATTR_CORE;
     ar->filter_type = BE_FILTER_IDNUM;
     ar->filter_value = talloc_asprintf(ar, "%llu", (unsigned long long) gid);
     ar->domain = talloc_strdup(ar, state->domain->name);
