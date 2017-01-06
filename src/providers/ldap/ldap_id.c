@@ -1730,7 +1730,7 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
                              state->filter_val, state->filter_type,
                              state->attrs_type, state->noexist_delete, false);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "users_get_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "groups_get_send failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -1792,7 +1792,7 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
                             state->filter_val, state->filter_type, NULL,
                             state->attrs_type, state->noexist_delete);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "groups_get_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "users_get_send failed.\n");
         tevent_req_error(req, ENOMEM);
         return;
     }
