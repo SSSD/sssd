@@ -1334,7 +1334,7 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
               "Terminating [%s][%d]\n", svc->name, svc->pid);
         do {
             errno = 0;
-            kret = kill(svc->pid, SIGTERM);
+            kret = kill(-svc->pid, SIGTERM);
             if (kret < 0) {
                 error = errno;
                 DEBUG(SSSDBG_CRIT_FAILURE, "Couldn't kill [%s][%d]: [%s]\n",
@@ -1355,7 +1355,7 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
                               "[%d][%s] while waiting for [%s]\n",
                                   error, strerror(error), svc->name);
                         /* Forcibly kill this child */
-                        kill(svc->pid, SIGKILL);
+                        kill(-svc->pid, SIGKILL);
                         break;
                     }
                 } else if (pid != 0) {
@@ -1370,7 +1370,7 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
                         DEBUG(SSSDBG_FATAL_FAILURE,
                               "Child [%s] did not exit cleanly\n", svc->name);
                         /* Forcibly kill this child */
-                        kill(svc->pid, SIGKILL);
+                        kill(-svc->pid, SIGKILL);
                     }
                     killed = true;
                 }
