@@ -18,16 +18,16 @@
 #
 import os
 import stat
-import ent
 import grp
 import pwd
-import config
-import signal
 import subprocess
-import time
 import pytest
+
+import config
+import ent
 import ds_openldap
 import ldap_ent
+import services
 import sssd_id
 from util import unindent
 
@@ -78,33 +78,15 @@ def create_conf_fixture(request, contents):
     request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
 
 
-def stop_sssd():
-    pid_file = open(config.PIDFILE_PATH, "r")
-    pid = int(pid_file.read())
-    os.kill(pid, signal.SIGTERM)
-    while True:
-        try:
-            os.kill(pid, signal.SIGCONT)
-        except:
-            break
-        time.sleep(1)
-
-
 def create_sssd_fixture(request):
-    """Start sssd and add teardown for stopping it and removing state"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
-        raise Exception("sssd start failed")
+    """Start SSSD and add teardown for stopping it and removing its state"""
+    request.sssd = services.SSSD()
+    request.sssd.start()
 
-    def teardown():
-        try:
-            stop_sssd()
-        except:
-            pass
-        for path in os.listdir(config.DB_PATH):
-            os.unlink(config.DB_PATH + "/" + path)
-        for path in os.listdir(config.MCACHE_PATH):
-            os.unlink(config.MCACHE_PATH + "/" + path)
-    request.addfinalizer(teardown)
+    def cleanup_sssd_process():
+        request.sssd.stop()
+        request.sssd.clean_cache()
+    request.addfinalizer(cleanup_sssd_process)
 
 
 def load_data_to_ldap(request, ldap_conn):
@@ -151,7 +133,7 @@ def sanity_rfc2307(request, ldap_conn):
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    return None
+    return request.sssd
 
 
 @pytest.fixture
@@ -177,7 +159,7 @@ def fqname_rfc2307(request, ldap_conn):
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    return None
+    return request.sssd
 
 
 @pytest.fixture
@@ -204,7 +186,7 @@ def fqname_case_insensitive_rfc2307(request, ldap_conn):
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    return None
+    return request.sssd
 
 
 def test_getpwnam(ldap_conn, sanity_rfc2307):
@@ -291,8 +273,10 @@ def test_getpwnam(ldap_conn, sanity_rfc2307):
 
 
 def test_getpwnam_with_mc(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     test_getpwnam(ldap_conn, sanity_rfc2307)
-    stop_sssd()
+    sssd.stop()
     test_getpwnam(ldap_conn, sanity_rfc2307)
 
 
@@ -317,8 +301,10 @@ def test_getgrnam_simple(ldap_conn, sanity_rfc2307):
 
 
 def test_getgrnam_simple_with_mc(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     test_getgrnam_simple(ldap_conn, sanity_rfc2307)
-    stop_sssd()
+    sssd.stop()
     test_getgrnam_simple(ldap_conn, sanity_rfc2307)
 
 
@@ -367,8 +353,10 @@ def test_getgrnam_membership(ldap_conn, sanity_rfc2307):
 
 
 def test_getgrnam_membership_with_mc(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     test_getgrnam_membership(ldap_conn, sanity_rfc2307)
-    stop_sssd()
+    sssd.stop()
     test_getgrnam_membership(ldap_conn, sanity_rfc2307)
 
 
@@ -399,14 +387,18 @@ def test_initgroups(ldap_conn, sanity_rfc2307):
 
 
 def test_initgroups_with_mc(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     test_initgroups(ldap_conn, sanity_rfc2307)
-    stop_sssd()
+    sssd.stop()
     test_initgroups(ldap_conn, sanity_rfc2307)
 
 
 def test_initgroups_fqname_with_mc(ldap_conn, fqname_rfc2307):
+    sssd = fqname_rfc2307
+
     assert_user_gids_equal('user1@LDAP', [2000, 2001])
-    stop_sssd()
+    sssd.stop()
     assert_user_gids_equal('user1@LDAP', [2000, 2001])
 
 
@@ -422,13 +414,14 @@ def assert_initgroups_equal(user, primary_gid, expected_gids):
         )
 
 
-def assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
+def assert_stored_last_initgroups(sssd,
+                                  user1_case1, user1_case2, user1_case_last,
                                   primary_gid, expected_gids):
 
     assert_initgroups_equal(user1_case1, primary_gid, expected_gids)
     assert_initgroups_equal(user1_case2, primary_gid, expected_gids)
     assert_initgroups_equal(user1_case_last, primary_gid, expected_gids)
-    stop_sssd()
+    sssd.stop()
 
     user = user1_case1
     (res, errno, _) = sssd_id.call_sssd_initgroups(user, primary_gid)
@@ -453,7 +446,8 @@ def test_initgroups_case_insensitive_with_mc1(ldap_conn,
     primary_gid = 2001
     expected_gids = [2000, 2001]
 
-    assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
+    assert_stored_last_initgroups(fqname_case_insensitive_rfc2307,
+                                  user1_case1, user1_case2, user1_case_last,
                                   primary_gid, expected_gids)
 
 
@@ -465,7 +459,8 @@ def test_initgroups_case_insensitive_with_mc2(ldap_conn,
     primary_gid = 2001
     expected_gids = [2000, 2001]
 
-    assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
+    assert_stored_last_initgroups(fqname_case_insensitive_rfc2307,
+                                  user1_case1, user1_case2, user1_case_last,
                                   primary_gid, expected_gids)
 
 
@@ -477,7 +472,8 @@ def test_initgroups_case_insensitive_with_mc3(ldap_conn,
     primary_gid = 2001
     expected_gids = [2000, 2001]
 
-    assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
+    assert_stored_last_initgroups(fqname_case_insensitive_rfc2307,
+                                  user1_case1, user1_case2, user1_case_last,
                                   primary_gid, expected_gids)
 
 
@@ -510,6 +506,7 @@ def run_simple_test_with_initgroups():
 
 
 def test_invalidation_of_gids_after_initgroups(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
 
     # the sssd cache was empty and not all user's group were
     # resolved with getgr{nm,gid}. Therefore there is a change in
@@ -517,7 +514,7 @@ def test_invalidation_of_gids_after_initgroups(ldap_conn, sanity_rfc2307):
     run_simple_test_with_initgroups()
     assert_initgroups_equal("user1", 2001, [2000, 2001])
 
-    stop_sssd()
+    sssd.stop()
 
     ent.assert_passwd_by_name(
         'user1',
@@ -549,6 +546,7 @@ def test_invalidation_of_gids_after_initgroups(ldap_conn, sanity_rfc2307):
 
 
 def test_initgroups_without_change_in_membership(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
 
     # the sssd cache was empty and not all user's group were
     # resolved with getgr{nm,gid}. Therefore there is a change in
@@ -563,7 +561,7 @@ def test_initgroups_without_change_in_membership(ldap_conn, sanity_rfc2307):
     # user groups should not be invlaidated
     run_simple_test_with_initgroups()
 
-    stop_sssd()
+    sssd.stop()
 
     # everything should be in memory cache
     run_simple_test_with_initgroups()
@@ -615,6 +613,8 @@ def assert_missing_mc_records_for_user1():
 
 
 def test_invalidate_user_before_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
@@ -622,25 +622,29 @@ def test_invalidate_user_before_stop(ldap_conn, sanity_rfc2307):
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-u", "user1"])
-    stop_sssd()
+    sssd.stop()
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_user_after_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
-    stop_sssd()
+    sssd.stop()
     subprocess.call(["sss_cache", "-u", "user1"])
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_users_before_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
@@ -648,25 +652,29 @@ def test_invalidate_users_before_stop(ldap_conn, sanity_rfc2307):
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-U"])
-    stop_sssd()
+    sssd.stop()
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_users_after_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
-    stop_sssd()
+    sssd.stop()
     subprocess.call(["sss_cache", "-U"])
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_group_before_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
@@ -674,25 +682,29 @@ def test_invalidate_group_before_stop(ldap_conn, sanity_rfc2307):
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-g", "group1"])
-    stop_sssd()
+    sssd.stop()
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_group_after_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
-    stop_sssd()
+    sssd.stop()
     subprocess.call(["sss_cache", "-g", "group1"])
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_groups_before_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
@@ -700,25 +712,29 @@ def test_invalidate_groups_before_stop(ldap_conn, sanity_rfc2307):
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-G"])
-    stop_sssd()
+    sssd.stop()
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_groups_after_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
-    stop_sssd()
+    sssd.stop()
     subprocess.call(["sss_cache", "-G"])
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_everything_before_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
@@ -726,19 +742,21 @@ def test_invalidate_everything_before_stop(ldap_conn, sanity_rfc2307):
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-E"])
-    stop_sssd()
+    sssd.stop()
 
     assert_missing_mc_records_for_user1()
 
 
 def test_invalidate_everything_after_stop(ldap_conn, sanity_rfc2307):
+    sssd = sanity_rfc2307
+
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
-    stop_sssd()
+    sssd.stop()
     subprocess.call(["sss_cache", "-E"])
 
     assert_missing_mc_records_for_user1()
@@ -749,6 +767,8 @@ def test_removed_mc(ldap_conn, sanity_rfc2307):
     Regression test for ticket:
     https://fedorahosted.org/sssd/ticket/2726
     """
+
+    sssd = sanity_rfc2307
 
     ent.assert_passwd_by_name(
         'user1',
@@ -761,7 +781,7 @@ def test_removed_mc(ldap_conn, sanity_rfc2307):
 
     ent.assert_group_by_name("group1", dict(name="group1", gid=2001))
     ent.assert_group_by_gid(2001, dict(name="group1", gid=2001))
-    stop_sssd()
+    sssd.stop()
 
     # remove cache without invalidation
     for path in os.listdir(config.MCACHE_PATH):

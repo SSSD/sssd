@@ -20,16 +20,16 @@ import os
 import stat
 import pwd
 import grp
-import ent
-import config
-import signal
-import subprocess
 import time
 import ldap
 import pytest
+
+import config
+import ent
 import ds_openldap
 import ldap_ent
-from util import *
+import services
+from util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
 INTERACTIVE_TIMEOUT = 4
@@ -179,41 +179,15 @@ def create_conf_fixture(request, contents):
     create_conf_cleanup(request)
 
 
-def create_sssd_process():
-    """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
-        raise Exception("sssd start failed")
-
-
-def cleanup_sssd_process():
-    """Stop the SSSD process and remove its state"""
-    try:
-        pid_file = open(config.PIDFILE_PATH, "r")
-        pid = int(pid_file.read())
-        os.kill(pid, signal.SIGTERM)
-        while True:
-            try:
-                os.kill(pid, signal.SIGCONT)
-            except:
-                break
-            time.sleep(1)
-    except:
-        pass
-    for path in os.listdir(config.DB_PATH):
-        os.unlink(config.DB_PATH + "/" + path)
-    for path in os.listdir(config.MCACHE_PATH):
-        os.unlink(config.MCACHE_PATH + "/" + path)
-
-
-def create_sssd_cleanup(request):
-    """Add teardown for stopping SSSD and removing its state"""
-    request.addfinalizer(cleanup_sssd_process)
-
-
 def create_sssd_fixture(request):
     """Start SSSD and add teardown for stopping it and removing its state"""
-    create_sssd_process()
-    create_sssd_cleanup(request)
+    request.sssd = services.SSSD()
+    request.sssd.start()
+
+    def cleanup_sssd_process():
+        request.sssd.stop()
+        request.sssd.clean_cache()
+    request.addfinalizer(cleanup_sssd_process)
 
 
 @pytest.fixture

@@ -19,9 +19,7 @@
 
 import os
 import stat
-import signal
 import subprocess
-import time
 import ldap
 import ldap.modlist
 import pytest
@@ -29,8 +27,9 @@ import pytest
 import config
 import ds_openldap
 import ldap_ent
-from util import unindent
+import services
 import sssd_netgroup
+from util import unindent
 
 LDAP_BASE_DN = "dc=example,dc=com"
 
@@ -143,51 +142,15 @@ def create_conf_fixture(request, contents):
     create_conf_cleanup(request)
 
 
-def create_sssd_process():
-    """Start the SSSD process"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
-        raise Exception("sssd start failed")
-
-
-def get_sssd_pid():
-    pid_file = open(config.PIDFILE_PATH, "r")
-    pid = int(pid_file.read())
-    return pid
-
-
-def cleanup_sssd_process():
-    """Stop the SSSD process and remove its state"""
-    try:
-        pid = get_sssd_pid()
-        os.kill(pid, signal.SIGTERM)
-        while True:
-            try:
-                os.kill(pid, signal.SIGCONT)
-            except:
-                break
-            time.sleep(1)
-    except:
-        pass
-    for path in os.listdir(config.DB_PATH):
-        os.unlink(config.DB_PATH + "/" + path)
-    for path in os.listdir(config.MCACHE_PATH):
-        os.unlink(config.MCACHE_PATH + "/" + path)
-
-
-def create_sssd_cleanup(request):
-    """Add teardown for stopping SSSD and removing its state"""
-    request.addfinalizer(cleanup_sssd_process)
-
-
-def simulate_offline():
-    pid = get_sssd_pid()
-    os.kill(pid, signal.SIGUSR1)
-
-
 def create_sssd_fixture(request):
     """Start SSSD and add teardown for stopping it and removing its state"""
-    create_sssd_process()
-    create_sssd_cleanup(request)
+    request.sssd = services.SSSD()
+    request.sssd.start()
+
+    def cleanup_sssd_process():
+        request.sssd.stop()
+        request.sssd.clean_cache()
+    request.addfinalizer(cleanup_sssd_process)
 
 
 @pytest.fixture
@@ -226,7 +189,7 @@ def add_tripled_netgroup(request, ldap_conn):
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    return None
+    return request.sssd
 
 
 def test_add_tripled_netgroup(add_tripled_netgroup):
@@ -471,13 +434,15 @@ def test_removing_nested_netgroups(removing_nested_netgroups, ldap_conn):
 
 
 def test_offline_netgroups(add_tripled_netgroup):
+    sssd = add_tripled_netgroup
+
     res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup")
     assert res == sssd_netgroup.NssReturnCode.SUCCESS
     assert netgrps == [("host", "user", "domain")]
 
     subprocess.check_call(["sss_cache", "-N"])
 
-    simulate_offline()
+    sssd.go_offline()
 
     res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup")
     assert res == sssd_netgroup.NssReturnCode.SUCCESS
