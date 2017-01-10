@@ -121,8 +121,6 @@
 #define DP_ERR_FATAL 3
 
 #define BE_ATTR_CORE 1
-#define BE_ATTR_MEM 2
-#define BE_ATTR_ALL 3
 
 #define BE_FILTER_NAME 1
 #define BE_FILTER_IDNUM 2
