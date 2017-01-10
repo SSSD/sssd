@@ -289,6 +289,7 @@ non_interactive_cmocka_based_tests += \
     ad_access_filter_tests \
     ad_gpo_tests \
     ad_common_tests \
+    test_sdap_initgr \
     test_ad_subdom \
     test_ipa_subdom_server \
     $(NULL)
@@ -2860,6 +2861,27 @@ test_fo_srv_LDADD = \
     $(DHASH_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
+    $(NULL)
+
+test_sdap_initgr_SOURCES = \
+    src/tests/cmocka/common_mock_sdap.c \
+    src/tests/cmocka/common_mock_sysdb_objects.c \
+    src/tests/cmocka/test_sdap_initgr.c \
+    $(NULL)
+test_sdap_initgr_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NDR_NBT_CFLAGS) \
+    $(NULL)
+test_sdap_initgr_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_ad_tests.la \
+    libsss_idmap.la \
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 test_ad_subdom_SOURCES = \
