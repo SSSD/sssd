@@ -34,8 +34,6 @@ static bool check_attr_type(uint32_t attr_type)
 {
     switch (attr_type) {
     case BE_ATTR_CORE:
-    case BE_ATTR_MEM:
-    case BE_ATTR_ALL:
         return true;
     default:
         return false;
