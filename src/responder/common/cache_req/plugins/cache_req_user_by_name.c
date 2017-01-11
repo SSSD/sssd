@@ -105,8 +105,13 @@ cache_req_user_by_name_lookup(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *domain,
                               struct ldb_result **_result)
 {
-    return sysdb_getpwnam_with_views(mem_ctx, domain, data->name.lookup,
-                                     _result);
+    if (data->attrs == NULL) {
+        return sysdb_getpwnam_with_views(mem_ctx, domain, data->name.lookup,
+                                         _result);
+    }
+
+    return sysdb_get_user_attr_with_views(mem_ctx, domain, data->name.lookup,
+                                          data->attrs, _result);
 }
 
 static errno_t
@@ -189,6 +194,28 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
     struct cache_req_data *data;
 
     data = cache_req_data_name(mem_ctx, CACHE_REQ_USER_BY_NAME, name);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         cache_refresh_percent, domain, data);
+}
+
+struct tevent_req *
+cache_req_user_by_name_attrs_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct resp_ctx *rctx,
+                                  struct sss_nc_ctx *ncache,
+                                  int cache_refresh_percent,
+                                  const char *domain,
+                                  const char *name,
+                                  const char **attrs)
+{
+    struct cache_req_data *data;
+
+    data = cache_req_data_name_attrs(mem_ctx, CACHE_REQ_USER_BY_NAME,
+                                     name, attrs);
     if (data == NULL) {
         return NULL;
     }
