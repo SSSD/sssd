@@ -106,7 +106,7 @@ def _diff(ent, pattern, desc_map={}):
         if not isinstance(ent, dict):
             return "not a dict, " + str(type(ent))
 
-        for key, value in pattern.iteritems():
+        for key, value in pattern.items():
             item_name, item_map = _get_desc(desc_map, key)
             d = _diff(ent[key], value, item_map)
             if d:
