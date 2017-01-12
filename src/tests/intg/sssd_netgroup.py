@@ -225,9 +225,10 @@ class NetgroupRetriever(object):
                     self.known_groups.append(nested_netgroup)
 
             if result_p[0].type == NetgroupType.TRIPLE_VAL:
-                result.append((result_p[0].val.triple.host,
-                               result_p[0].val.triple.user,
-                               result_p[0].val.triple.domain))
+                triple = result_p[0].val.triple
+                result.append((triple.host.decode('utf-8'),
+                               triple.user.decode('utf-8'),
+                               triple.domain.decode('utf-8')))
 
             res, errno, result_p = self._getnetgrent_r(result_p, buff,
                                                        buff_len)
