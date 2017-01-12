@@ -92,7 +92,7 @@ create_multidom_test_ctx(TALLOC_CTX *mem_ctx,
                          const char *cdb_file,
                          const char **domains,
                          const char *id_provider,
-                         struct sss_test_conf_param *params);
+                         struct sss_test_conf_param **params);
 
 struct sss_test_ctx *
 create_dom_test_ctx(TALLOC_CTX *mem_ctx,
