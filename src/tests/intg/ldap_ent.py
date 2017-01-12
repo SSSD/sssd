@@ -28,53 +28,54 @@ def user(base_dn, uid, uidNumber, gidNumber,
     """
     Generate an RFC2307(bis) user add-modlist for passing to ldap.add*
     """
-    uidNumber = str(uidNumber)
-    gidNumber = str(gidNumber)
+    uidNumber = str(uidNumber).encode('utf-8')
+    gidNumber = str(gidNumber).encode('utf-8')
     user = (
         "uid=" + uid + ",ou=Users," + base_dn,
         [
-            ('objectClass', ['top', 'inetOrgPerson', 'posixAccount']),
-            ('cn', [uidNumber if cn is None else cn]),
-            ('sn', ['User' if sn is None else sn]),
+            ('objectClass', [b'top', b'inetOrgPerson', b'posixAccount']),
+            ('cn', [uidNumber if cn is None else cn.encode('utf-8')]),
+            ('sn', [b'User' if sn is None else sn.encode('utf-8')]),
             ('uidNumber', [uidNumber]),
             ('gidNumber', [gidNumber]),
-            ('userPassword', ['Password' + uidNumber
+            ('userPassword', [b'Password' + uidNumber
                               if userPassword is None
-                              else userPassword]),
-            ('homeDirectory', ['/home/' + uid
+                              else userPassword.encode('utf-8')]),
+            ('homeDirectory', [b'/home/' + uid.encode('utf-8')
                                if homeDirectory is None
-                               else homeDirectory]),
-            ('loginShell', ['/bin/bash'
+                               else homeDirectory.encode('utf-8')]),
+            ('loginShell', [b'/bin/bash'
                             if loginShell is None
-                            else loginShell]),
+                            else loginShell.encode('utf-8')]),
         ]
     )
     if gecos is not None:
-        user[1].append(('gecos', [gecos]))
+        user[1].append(('gecos', [gecos.encode('utf-8')]))
     return user
 
 
-def group(base_dn, cn, gidNumber, member_uids=[]):
+def group(base_dn, cn, gidNumber, member_uids=()):
     """
     Generate an RFC2307 group add-modlist for passing to ldap.add*.
     """
-    gidNumber = str(gidNumber)
+    gidNumber = str(gidNumber).encode('utf-8')
     attr_list = [
-        ('objectClass', ['top', 'posixGroup']),
+        ('objectClass', [b'top', b'posixGroup']),
         ('gidNumber', [gidNumber])
     ]
     if len(member_uids) > 0:
-        attr_list.append(('memberUid', member_uids))
+        mem_uids = [member.encode('utf-8') for member in member_uids]
+        attr_list.append(('memberUid', mem_uids))
     return ("cn=" + cn + ",ou=Groups," + base_dn, attr_list)
 
 
-def group_bis(base_dn, cn, gidNumber, member_uids=[], member_gids=[]):
+def group_bis(base_dn, cn, gidNumber, member_uids=(), member_gids=()):
     """
     Generate an RFC2307bis group add-modlist for passing to ldap.add*.
     """
-    gidNumber = str(gidNumber)
+    gidNumber = str(gidNumber).encode('utf-8')
     attr_list = [
-        ('objectClass', ['top', 'extensibleObject', 'groupOfNames']),
+        ('objectClass', [b'top', b'extensibleObject', b'groupOfNames']),
         ('gidNumber', [gidNumber])
     ]
     member_list = []
@@ -83,7 +84,8 @@ def group_bis(base_dn, cn, gidNumber, member_uids=[], member_gids=[]):
     for gid in member_gids:
         member_list.append("cn=" + gid + ",ou=Groups," + base_dn)
     if len(member_list) > 0:
-        attr_list.append(('member', member_list))
+        mem_list = [member.encode('utf-8') for member in member_list]
+        attr_list.append(('member', mem_list))
     return ("cn=" + cn + ",ou=Groups," + base_dn, attr_list)
 
 
@@ -92,11 +94,13 @@ def netgroup(base_dn, cn, triples=(), members=()):
     Generate an RFC2307bis netgroup add-modlist for passing to ldap.add*.
     """
     attr_list = [
-        ('objectClass', ['top', 'nisNetgroup'])
+        ('objectClass', [b'top', b'nisNetgroup'])
     ]
     if triples:
+        triples = [triple.encode('utf-8') for triple in triples]
         attr_list.append(('nisNetgroupTriple', triples))
     if members:
+        members = [member.encode('utf-8') for member in members]
         attr_list.append(('memberNisNetgroup', members))
     return ("cn=" + cn + ",ou=Netgroups," + base_dn, attr_list)
 
