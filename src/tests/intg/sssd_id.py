@@ -61,8 +61,8 @@ def call_sssd_initgroups(user, gid):
     limit = c_long(-1)
     errno = POINTER(c_int)(c_int(0))
 
-    res = func(c_char_p(user), c_uint32(gid), start, size, p_groups, limit,
-               errno)
+    res = func(c_char_p(user.encode('utf-8)')), c_uint32(gid), start, size,
+               p_groups, limit, errno)
 
     gids = []
     if res == NssReturnCode.SUCCESS:
