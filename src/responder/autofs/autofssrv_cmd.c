@@ -320,7 +320,12 @@ static void sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
         if (reqret == ENOENT) {
             DEBUG(SSSDBG_TRACE_FUNC, "setautomntent did not find requested map\n");
             /* Notify the caller that this entry wasn't found */
-            sss_cmd_empty_packet(pctx->creq->out);
+            ret = sss_cmd_empty_packet(pctx->creq->out);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "sss_cmd_empty_packet() failed: %s [%d]\n",
+                      sss_strerror(ret), ret);
+            }
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "setautomntent found data\n");
             ret = sss_packet_grow(pctx->creq->out, 2*sizeof(uint32_t));
