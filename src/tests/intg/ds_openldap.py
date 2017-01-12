@@ -233,15 +233,15 @@ class DSOpenLDAP(DS):
         #
         modlist = [
             (ldap.MOD_DELETE, "olcObjectClasses",
-             "{7}( 2.5.6.9 NAME 'groupOfNames' "
-             "DESC 'RFC2256: a group of names (DNs)' SUP top "
-             "STRUCTURAL MUST ( member $ cn ) MAY ( businessCategory $ "
-             "seeAlso $ owner $ ou $ o $ description ) )"),
+             b"{7}( 2.5.6.9 NAME 'groupOfNames' "
+             b"DESC 'RFC2256: a group of names (DNs)' SUP top "
+             b"STRUCTURAL MUST ( member $ cn ) MAY ( businessCategory $ "
+             b"seeAlso $ owner $ ou $ o $ description ) )"),
             (ldap.MOD_ADD, "olcObjectClasses",
-             "{7}( 2.5.6.9 NAME 'groupOfNames' "
-             "DESC 'RFC2256: a group of names (DNs)' SUP top "
-             "STRUCTURAL MUST ( cn ) MAY ( member $ businessCategory $ "
-             "seeAlso $ owner $ ou $ o $ description ) )"),
+             b"{7}( 2.5.6.9 NAME 'groupOfNames' "
+             b"DESC 'RFC2256: a group of names (DNs)' SUP top "
+             b"STRUCTURAL MUST ( cn ) MAY ( member $ businessCategory $ "
+             b"seeAlso $ owner $ ou $ o $ description ) )"),
         ]
         ldap_conn = ldap.initialize(ldapi_url)
         ldap_conn.simple_bind_s(self.admin_rdn + ",cn=config", self.admin_pw)
@@ -254,15 +254,15 @@ class DSOpenLDAP(DS):
         ldap_conn = ldap.initialize(self.ldap_url)
         ldap_conn.simple_bind_s(self.admin_dn, self.admin_pw)
         ldap_conn.add_s(self.base_dn, [
-            ("objectClass", ["dcObject", "organization"]),
-            ("o", "Example Company"),
+            ("objectClass", [b"dcObject", b"organization"]),
+            ("o", b"Example Company"),
         ])
         ldap_conn.add_s("cn=Manager," + self.base_dn, [
-            ("objectClass", "organizationalRole"),
+            ("objectClass", b"organizationalRole"),
         ])
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
             ldap_conn.add_s("ou=" + ou + "," + self.base_dn, [
-                ("objectClass", ["top", "organizationalUnit"]),
+                ("objectClass", [b"top", b"organizationalUnit"]),
             ])
         ldap_conn.unbind_s()
 
