@@ -446,7 +446,7 @@ def test_add_remove_membership_rfc2307(ldap_conn, user_and_group_rfc2307):
     # Add user to group
     ent.assert_group_by_name("group", dict(mem=ent.contains_only()))
     ldap_conn.modify_s("cn=group,ou=Groups," + ldap_conn.ds_inst.base_dn,
-                       [(ldap.MOD_REPLACE, "memberUid", "user")])
+                       [(ldap.MOD_REPLACE, "memberUid", b"user")])
     time.sleep(INTERACTIVE_TIMEOUT)
     ent.assert_group_by_name("group", dict(mem=ent.contains_only("user")))
     # Remove user from group
@@ -462,19 +462,21 @@ def test_add_remove_membership_rfc2307_bis(ldap_conn,
     Test user and group membership addition and removal are reflected by SSSD,
     with RFC2307bis schema
     """
+    base_dn_bytes = ldap_conn.ds_inst.base_dn.encode('utf-8')
+
     time.sleep(INTERACTIVE_TIMEOUT/2)
     # Add user to group1
     ent.assert_group_by_name("group1", dict(mem=ent.contains_only()))
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
                        [(ldap.MOD_REPLACE, "member",
-                         "uid=user,ou=Users," + ldap_conn.ds_inst.base_dn)])
+                         b"uid=user,ou=Users," + base_dn_bytes)])
     time.sleep(INTERACTIVE_TIMEOUT)
     ent.assert_group_by_name("group1", dict(mem=ent.contains_only("user")))
 
     # Add group1 to group2
     ldap_conn.modify_s("cn=group2,ou=Groups," + ldap_conn.ds_inst.base_dn,
                        [(ldap.MOD_REPLACE, "member",
-                         "cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn)])
+                         b"cn=group1,ou=Groups," + base_dn_bytes)])
     time.sleep(INTERACTIVE_TIMEOUT)
     ent.assert_group_by_name("group2", dict(mem=ent.contains_only("user")))
 

@@ -426,8 +426,8 @@ def test_removing_nested_netgroups(removing_nested_netgroups, ldap_conn):
                                         ('host2', 'user2', 'domain2')])
 
     # removing of t2841_netgroup1 from t2841_netgroup3
-    old = {'memberNisNetgroup': ["t2841_netgroup1", "t2841_netgroup2"]}
-    new = {'memberNisNetgroup': ["t2841_netgroup2"]}
+    old = {'memberNisNetgroup': [b"t2841_netgroup1", b"t2841_netgroup2"]}
+    new = {'memberNisNetgroup': [b"t2841_netgroup2"]}
 
     ldif = ldap.modlist.modifyModlist(old, new)
     ldap_conn.modify_s(netgrp_dn, ldif)
@@ -448,7 +448,7 @@ def test_removing_nested_netgroups(removing_nested_netgroups, ldap_conn):
     assert netgroups == [('host2', 'user2', 'domain2')]
 
     # removing of t2841_netgroup2 from t2841_netgroup3
-    old = {'memberNisNetgroup': ["t2841_netgroup2"]}
+    old = {'memberNisNetgroup': [b"t2841_netgroup2"]}
     new = {'memberNisNetgroup': []}
 
     ldif = ldap.modlist.modifyModlist(old, new)

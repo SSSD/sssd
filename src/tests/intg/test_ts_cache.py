@@ -317,7 +317,7 @@ def test_group_2307bis_update_same_attrs(ldap_conn,
     # modifyTimestamp attribute, but the attributes themselves will be the same
     # from sssd's point of view
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
-                       [(ldap.MOD_ADD, "description", "group one")])
+                       [(ldap.MOD_ADD, "description", b"group one")])
     # wait for slapd to change its database
     time.sleep(1)
 
@@ -346,9 +346,9 @@ def test_group_2307bis_update_diff_attrs(ldap_conn,
                                                 ldb_conn, "group1",
                                                 ("user1", "user11", "user21"))
 
+    user_dn = "uid=user1,ou=Users," + ldap_conn.ds_inst.base_dn
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
-                       [(ldap.MOD_DELETE, "member",
-                         "uid=user1,ou=Users," + ldap_conn.ds_inst.base_dn)])
+                       [(ldap.MOD_DELETE, "member", user_dn.encode('utf-8'))])
     # wait for slapd to change its database
     time.sleep(1)
 
@@ -435,7 +435,7 @@ def test_group_2307_update_same_attrs(ldap_conn,
     # modifyTimestamp attribute, but the attributes themselves will be the same
     # from sssd's point of view
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
-                       [(ldap.MOD_ADD, "description", "group one")])
+                       [(ldap.MOD_ADD, "description", b"group one")])
     # wait for slapd to change its database
     time.sleep(1)
 
@@ -465,7 +465,7 @@ def test_group_2307_update_diff_attrs(ldap_conn,
                                                 ("user1", "user11", "user21"))
 
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
-                       [(ldap.MOD_DELETE, "memberUid", "user1")])
+                       [(ldap.MOD_DELETE, "memberUid", b"user1")])
     # wait for slapd to change its database
     time.sleep(1)
 
@@ -546,7 +546,7 @@ def test_user_update_same_attrs(ldap_conn,
     # modifyTimestamp attribute, but the attributes themselves will be the same
     # from sssd's point of view
     ldap_conn.modify_s("uid=user1,ou=Users," + ldap_conn.ds_inst.base_dn,
-                       [(ldap.MOD_ADD, "description", "user one")])
+                       [(ldap.MOD_ADD, "description", b"user one")])
     # wait for slapd to change its database
     time.sleep(1)
 
@@ -576,7 +576,7 @@ def test_user_update_diff_attrs(ldap_conn,
     # modifyTimestamp attribute, but the attributes themselves will be the same
     # from sssd's point of view
     ldap_conn.modify_s("uid=user1,ou=Users," + ldap_conn.ds_inst.base_dn,
-                       [(ldap.MOD_REPLACE, "loginShell", "/bin/zsh")])
+                       [(ldap.MOD_REPLACE, "loginShell", b"/bin/zsh")])
     # wait for slapd to change its database
     time.sleep(1)
 
