@@ -123,7 +123,7 @@ def _diff(ent, pattern, desc_map={}):
                 if not d:
                     pattern_matches[pi] += 1
 
-        unmatched_pattern = [pattern[pi] for pi in xrange(0, len(pattern))
+        unmatched_pattern = [pattern[pi] for pi in range(0, len(pattern))
                              if pattern_matches[pi] == 0]
 
         items = _get_desc(desc_map, None)[0] + "s"
@@ -144,9 +144,9 @@ def _diff(ent, pattern, desc_map={}):
                     pattern_matches[pi] += 1
                     ent_matches[ei] += 1
 
-        unmatched_pattern = [pattern[pi] for pi in xrange(0, len(pattern))
+        unmatched_pattern = [pattern[pi] for pi in range(0, len(pattern))
                              if pattern_matches[pi] == 0]
-        unmatched_ent = [ent[pi] for pi in xrange(0, len(ent))
+        unmatched_ent = [ent[pi] for pi in range(0, len(ent))
                          if ent_matches[pi] == 0]
 
         items = _get_desc(desc_map, None)[0] + "s"
