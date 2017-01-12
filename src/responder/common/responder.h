@@ -38,6 +38,7 @@
 #include "responder/common/negcache.h"
 #include "sss_client/sss_cli.h"
 #include "responder/common/cache_req/cache_req_domain.h"
+#include "util/session_recording.h"
 
 extern hash_table_t *dp_requests;
 
@@ -141,6 +142,8 @@ struct resp_ctx {
     char **etc_shells;
     char *shell_fallback;
     char *default_shell;
+
+    struct session_recording_conf sr_conf;
 
     uint32_t cache_req_num;
 
