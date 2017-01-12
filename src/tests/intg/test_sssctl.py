@@ -207,7 +207,7 @@ def get_call_output(cmd):
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     output, ret = process.communicate()
-    return output
+    return output.decode('utf-8')
 
 
 def test_user_show_basic_sanity(ldap_conn, sanity_rfc2307, portable_LC_ALL):

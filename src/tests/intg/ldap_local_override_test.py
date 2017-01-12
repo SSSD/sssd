@@ -586,11 +586,12 @@ def env_show_user_override(request, ldap_conn,
 
 def test_show_user_override(ldap_conn, env_show_user_override):
 
-    out = check_output(['sss_override', 'user-show', 'user1'])
+    out = check_output(['sss_override', 'user-show', 'user1']).decode('utf-8')
     assert out == "user1@LDAP:ov_user1:10010:20010:Overriden User 1:"\
                   "/home/ov/user1:/bin/ov_user1_shell:\n"
 
-    out = check_output(['sss_override', 'user-show', 'user2@LDAP'])
+    out = check_output(['sss_override', 'user-show',
+                        'user2@LDAP']).decode('utf-8')
     assert out == "user2@LDAP:ov_user2:10020:20020:Overriden User 2:"\
                   "/home/ov/user2:/bin/ov_user2_shell:\n"
 
@@ -612,7 +613,7 @@ def env_find_user_override(request, ldap_conn,
 
 def test_find_user_override(ldap_conn, env_find_user_override):
 
-    out = check_output(['sss_override', 'user-find'])
+    out = check_output(['sss_override', 'user-find']).decode('utf-8')
 
     # Expected override of users
     exp_usr_ovrd = ['user1@LDAP:ov_user1:10010:20010:Overriden User 1:'
@@ -624,7 +625,7 @@ def test_find_user_override(ldap_conn, env_find_user_override):
 
     out = check_output(['sss_override', 'user-find', '--domain=LDAP'])
 
-    assert set(out.splitlines()) == set(exp_usr_ovrd)
+    assert set(out.decode('utf-8').splitlines()) == set(exp_usr_ovrd)
 
     # Unexpected parameter is reported
     ret = subprocess.call(['sss_override', 'user-find', 'PARAM'])
