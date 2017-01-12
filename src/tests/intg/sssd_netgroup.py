@@ -73,7 +73,7 @@ class Netgrent(Structure):
 
 class NetgroupRetriever(object):
     def __init__(self, name):
-        self.name = name
+        self.name = name.encode('utf-8')
         self.needed_groups = []
         self.known_groups = []
         self.netgroups = []
