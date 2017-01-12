@@ -233,7 +233,7 @@ def get_passwd_list():
     for i, v in enumerate(passwd_list):
         if v.pw_name == "root" and v.pw_uid == 0 and v.pw_gid == 0:
             del passwd_list[i]
-            return map(_convert_passwd, passwd_list)
+            return list(map(_convert_passwd, passwd_list))
     raise Exception("no root user found")
 
 
@@ -393,7 +393,7 @@ def get_group_list():
     for i, v in enumerate(group_list):
         if v.gr_name == "root" and v.gr_gid == 0:
             del group_list[i]
-            return map(_convert_group, group_list)
+            return list(map(_convert_group, group_list))
     raise Exception("no root group found")
 
 
