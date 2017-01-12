@@ -145,7 +145,7 @@ def test_crd_ops(setup_for_secrets, secrets_cli):
     MAX_SECRETS = 10
 
     sec_value = "value"
-    for x in xrange(MAX_SECRETS):
+    for x in range(MAX_SECRETS):
         cli.set_secret(str(x), sec_value)
 
     with pytest.raises(HTTPError) as err507:
@@ -153,7 +153,7 @@ def test_crd_ops(setup_for_secrets, secrets_cli):
     assert str(err507.value).startswith("507")
 
     # Delete all stored secrets used for max secrets tests
-    for x in xrange(MAX_SECRETS):
+    for x in range(MAX_SECRETS):
         cli.del_secret(str(x))
 
     # Don't allow storing a secrets which has a payload larger
@@ -198,7 +198,7 @@ def test_containers(setup_for_secrets, secrets_cli):
     # Don't allow creating a container after reaching the max nested level
     DEFAULT_CONTAINERS_NEST_LEVEL = 4
     container = "mycontainer"
-    for x in xrange(DEFAULT_CONTAINERS_NEST_LEVEL):
+    for x in range(DEFAULT_CONTAINERS_NEST_LEVEL):
         container += "%s/" % str(x)
         cli.create_container(container)
 
