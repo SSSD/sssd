@@ -78,9 +78,6 @@ struct ad_sysdb_test_ctx {
 static int test_ad_sysdb_setup(void **state)
 {
     struct ad_sysdb_test_ctx *test_ctx;
-    struct sss_test_conf_param params[] = {
-        { NULL, NULL },             /* Sentinel */
-    };
 
     assert_true(leak_check_setup());
 
@@ -92,7 +89,7 @@ static int test_ad_sysdb_setup(void **state)
 
     test_ctx->tctx = create_multidom_test_ctx(test_ctx, TESTS_PATH,
                                               TEST_CONF_DB, domains,
-                                              TEST_ID_PROVIDER, params);
+                                              TEST_ID_PROVIDER, NULL);
     assert_non_null(test_ctx->tctx);
 
     *state = test_ctx;

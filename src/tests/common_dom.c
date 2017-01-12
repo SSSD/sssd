@@ -231,7 +231,7 @@ create_multidom_test_ctx(TALLOC_CTX *mem_ctx,
                          const char *cdb_file,
                          const char **domains,
                          const char *id_provider,
-                         struct sss_test_conf_param *params)
+                         struct sss_test_conf_param **params)
 {
     struct sss_domain_info *domain = NULL;
     struct sss_test_ctx *test_ctx = NULL;
@@ -255,7 +255,7 @@ create_multidom_test_ctx(TALLOC_CTX *mem_ctx,
     /* create confdb objects for the domains */
     for (i = 0; domains[i] != NULL; i++) {
         ret = mock_confdb_domain(test_ctx, test_ctx->confdb, tests_path,
-                                 domains[i], id_provider, params,
+                                 domains[i], id_provider, params != NULL ? params[i] : NULL,
                                  (cdb_path == NULL ? &cdb_path : NULL));
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize confdb domain "
@@ -302,7 +302,7 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
     const char *domains[] = {domain_name, NULL};
 
     return create_multidom_test_ctx(mem_ctx, tests_path, confdb_path, domains,
-                                    id_provider, params);
+                                    id_provider, &params);
 }
 
 void test_multidom_suite_cleanup(const char *tests_path,
