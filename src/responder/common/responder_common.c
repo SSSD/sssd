@@ -1301,6 +1301,15 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                             &rctx->default_shell);
     if (ret != EOK) goto fail;
 
+    /* Read session_recording section */
+    ret = session_recording_conf_load(rctx, rctx->cdb, &rctx->sr_conf);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed loading session recording configuration: %s\n",
+              strerror(ret));
+        goto fail;
+    }
+
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
                            svc_name, svc_version, MT_SVC_SERVICE,
                            rctx, &rctx->last_request_time,

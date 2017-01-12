@@ -574,6 +574,7 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/data_provider/rdp_client.c \
     src/monitor/monitor_iface_generated.c \
     src/providers/data_provider_req.c \
+    src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
@@ -2215,6 +2216,7 @@ responder_socket_access_tests_SOURCES = \
     src/responder/common/cache_req/cache_req_domain.c \
     src/responder/common/data_provider/rdp_message.c \
     src/responder/common/data_provider/rdp_client.c \
+    src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(NULL)
 responder_socket_access_tests_CFLAGS = \
@@ -2303,6 +2305,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/data_provider/rdp_message.c \
      src/responder/common/data_provider/rdp_client.c \
      src/responder/common/responder_utils.c \
+     src/util/session_recording.c \
      $(SSSD_CACHE_REQ_OBJ) \
      $(SSSD_RESPONDER_IFACE_OBJ) \
      $(NULL)
