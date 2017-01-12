@@ -659,6 +659,7 @@ dist_noinst_HEADERS = \
     src/util/util_creds.h \
     src/util/inotify.h \
     src/util/sss_iobuf.h \
+    src/util/tev_curl.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/monitor/monitor_iface_generated.h \
