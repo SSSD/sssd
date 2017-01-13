@@ -2138,6 +2138,23 @@ krb5_child_test_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
+if BUILD_WITH_LIBCURL
+tcurl_test_tool_SOURCES = \
+    src/tests/tcurl_test_tool.c \
+    src/util/tev_curl.c \
+    src/util/sss_iobuf.c \
+    $(NULL)
+tcurl_test_tool_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CURL_CFLAGS) \
+    $(NULL)
+tcurl_test_tool_LDADD = \
+    $(CURL_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+endif
+
 if BUILD_DBUS_TESTS
 
 sbus_tests_SOURCES = \
@@ -3246,6 +3263,9 @@ noinst_PROGRAMS += sss_sudo_cli
 endif
 if BUILD_AUTOFS
 noinst_PROGRAMS += autofs_test_client
+endif
+if BUILD_WITH_LIBCURL
+noinst_PROGRAMS += tcurl-test-tool
 endif
 
 pam_test_client_SOURCES = src/sss_client/pam_test_client.c
