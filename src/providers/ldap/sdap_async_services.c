@@ -572,7 +572,6 @@ enum_services_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, id_ctx->opts->service_map,
                                SDAP_OPTS_SERVICES, NULL,
                                &state->attrs, NULL);
