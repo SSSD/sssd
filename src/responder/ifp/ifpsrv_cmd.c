@@ -537,6 +537,7 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
     }
 
     state->res = talloc_steal(state, result->ldb_result);
+    state->dom = result->domain;
     talloc_zfree(result);
 
     fqdn = sss_create_internal_fqname(state, state->inp_name,
