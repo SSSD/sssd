@@ -128,6 +128,7 @@ struct resp_ctx {
 
     bool shutting_down;
     bool socket_activated;
+    bool dbus_activated;
 };
 
 struct cli_creds;
