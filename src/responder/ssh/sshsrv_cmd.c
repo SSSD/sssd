@@ -982,8 +982,7 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     struct ldb_message_element *el_user_cert_keys = NULL;
     uint32_t count = 0;
     const char *name;
-    char *fqname;
-    uint32_t fqname_len;
+    uint32_t name_len;
     TALLOC_CTX *tmp_ctx;
     struct ssh_ctx *ssh_ctx;
     struct cli_protocol *pctx;
@@ -1060,38 +1059,31 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
         goto done;
     }
 
-    fqname = talloc_asprintf(cmd_ctx, "%s@%s",
-                             name, cmd_ctx->domain->name);
-    if (!fqname) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    fqname_len = strlen(fqname)+1;
+    name_len = strlen(name) + 1;
 
     ret = decode_and_add_base64_data(cmd_ctx, el, false, ssh_ctx,
-                                     fqname_len, fqname, &c);
+                                     name_len, name, &c);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
         goto done;
     }
 
     ret = decode_and_add_base64_data(cmd_ctx, el_orig, false, ssh_ctx,
-                                     fqname_len, fqname, &c);
+                                     name_len, name, &c);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
         goto done;
     }
 
     ret = decode_and_add_base64_data(cmd_ctx, el_override, false, ssh_ctx,
-                                     fqname_len, fqname, &c);
+                                     name_len, name, &c);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
         goto done;
     }
 
     ret = decode_and_add_base64_data(cmd_ctx, el_user_cert_keys, true, ssh_ctx,
-                                     fqname_len, fqname, &c);
+                                     name_len, name, &c);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
         goto done;
