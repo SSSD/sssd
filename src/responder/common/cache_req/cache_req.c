@@ -78,7 +78,6 @@ static errno_t cache_req_set_plugin(struct cache_req *cr,
     }
 
     cr->reqname = plugin->name;
-    cr->dp_type = plugin->dp_type;
     cr->plugin = plugin;
 
     CACHE_REQ_DEBUG(SSSDBG_TRACE_INTERNAL, cr, "Setting \"%s\" plugin\n",
@@ -820,16 +819,11 @@ cache_req_create_result(TALLOC_CTX *mem_ctx,
     return result;
 }
 
-struct cache_req_result *
-cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
-                                 struct sss_domain_info *domain,
-                                 struct ldb_message *ldb_msg,
-                                 const char *lookup_name,
-                                 const char *well_known_domain)
+struct ldb_result *
+cache_req_create_ldb_result_from_msg(TALLOC_CTX *mem_ctx,
+                                     struct ldb_message *ldb_msg)
 {
-    struct cache_req_result *result;
     struct ldb_result *ldb_result;
-    errno_t ret;
 
     if (ldb_msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No message set!\n");
@@ -847,23 +841,38 @@ cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
     ldb_result->count = 1;
     ldb_result->msgs = talloc_zero_array(ldb_result, struct ldb_message *, 2);
     if (ldb_result->msgs == NULL) {
-        ret = ENOMEM;
-        goto done;
+        talloc_free(ldb_result);
+        return NULL;
     }
 
     ldb_result->msgs[0] = talloc_steal(ldb_result->msgs, ldb_msg);
 
+    return ldb_result;
+}
+
+struct cache_req_result *
+cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *domain,
+                                 struct ldb_message *ldb_msg,
+                                 const char *lookup_name,
+                                 const char *well_known_domain)
+{
+    struct cache_req_result *result;
+    struct ldb_result *ldb_result;
+
+    if (ldb_msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No message set!\n");
+        return NULL;
+    }
+
+    ldb_result = cache_req_create_ldb_result_from_msg(mem_ctx, ldb_msg);
+    if (ldb_result == NULL) {
+        return NULL;
+    }
+
     result = cache_req_create_result(mem_ctx, domain, ldb_result,
                                      lookup_name, well_known_domain);
     if (result == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
         talloc_free(ldb_result);
         return NULL;
     }
