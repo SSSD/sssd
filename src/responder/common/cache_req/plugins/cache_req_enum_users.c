@@ -44,24 +44,19 @@ cache_req_enum_users_lookup(TALLOC_CTX *mem_ctx,
     return sysdb_enumpwent_with_views(mem_ctx, domain, _result);
 }
 
-static errno_t
-cache_req_enum_users_dpreq_params(TALLOC_CTX *mem_ctx,
-                                  struct cache_req *cr,
-                                  struct ldb_result *result,
-                                  const char **_string,
-                                  uint32_t *_id,
-                                  const char **_flag)
+static struct tevent_req *
+cache_req_enum_users_dp_send(TALLOC_CTX *mem_ctx,
+                             struct cache_req *cr,
+                             struct cache_req_data *data,
+                             struct sss_domain_info *domain,
+                             struct ldb_result *result)
 {
-    *_id = 0;
-    *_string = NULL;
-    *_flag = NULL;
-
-    return EOK;
+    return sss_dp_get_account_send(mem_ctx, cr->rctx, domain, true,
+                                   SSS_DP_USER, NULL, 0, NULL);
 }
 
 const struct cache_req_plugin cache_req_enum_users = {
     .name = "Enumerate users",
-    .dp_type = SSS_DP_USER,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
     .ignore_default_domain = false,
@@ -81,7 +76,8 @@ const struct cache_req_plugin cache_req_enum_users = {
     .ncache_check_fn = NULL,
     .ncache_add_fn = NULL,
     .lookup_fn = cache_req_enum_users_lookup,
-    .dpreq_params_fn = cache_req_enum_users_dpreq_params
+    .dp_send_fn = cache_req_enum_users_dp_send,
+    .dp_recv_fn = cache_req_common_dp_recv
 };
 
 struct tevent_req *

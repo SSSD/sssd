@@ -102,9 +102,30 @@ cache_req_user_by_id_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static struct tevent_req *
+cache_req_user_by_id_dp_send(TALLOC_CTX *mem_ctx,
+                             struct cache_req *cr,
+                             struct cache_req_data *data,
+                             struct sss_domain_info *domain,
+                             struct ldb_result *result)
+{
+    const char *string;
+    const char *flag;
+    uint32_t id;
+    errno_t ret;
+
+    ret = cache_req_user_by_id_dpreq_params(mem_ctx, cr, result,
+                                            &string, &id, &flag);
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    return sss_dp_get_account_send(mem_ctx, cr->rctx, domain, true,
+                                   SSS_DP_USER, string, id, flag);
+}
+
 const struct cache_req_plugin cache_req_user_by_id = {
     .name = "User by ID",
-    .dp_type = SSS_DP_USER,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
     .ignore_default_domain = false,
@@ -124,7 +145,8 @@ const struct cache_req_plugin cache_req_user_by_id = {
     .ncache_check_fn = cache_req_user_by_id_ncache_check,
     .ncache_add_fn = NULL,
     .lookup_fn = cache_req_user_by_id_lookup,
-    .dpreq_params_fn = cache_req_user_by_id_dpreq_params
+    .dp_send_fn = cache_req_user_by_id_dp_send,
+    .dp_recv_fn = cache_req_common_dp_recv
 };
 
 struct tevent_req *

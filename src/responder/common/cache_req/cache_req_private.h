@@ -38,11 +38,6 @@ struct cache_req {
     struct sss_nc_ctx *ncache;
     int midpoint;
 
-    /* Data Provider request type resolved from @type.
-     * FIXME: This is currently needed for data provider calls. We should
-     * refactor responder_dp.c to get rid of this member. */
-    enum sss_dp_acct_type dp_type;
-
     /* Domain related informations. */
     struct sss_domain_info *domain;
 
@@ -116,6 +111,10 @@ cache_req_create_result(TALLOC_CTX *mem_ctx,
                         const char *lookup_name,
                         const char *well_known_domain);
 
+struct ldb_result *
+cache_req_create_ldb_result_from_msg(TALLOC_CTX *mem_ctx,
+                                     struct ldb_message *ldb_msg);
+
 struct cache_req_result *
 cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *domain,
@@ -131,5 +130,9 @@ cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
                                 const char *domname,
                                 const char *sid,
                                 const char *name);
+
+bool
+cache_req_common_dp_recv(struct tevent_req *subreq,
+                         struct cache_req *cr);
 
 #endif /* _CACHE_REQ_PRIVATE_H_ */
