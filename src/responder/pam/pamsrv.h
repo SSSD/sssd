@@ -88,6 +88,8 @@ int LOCAL_pam_handler(struct pam_auth_req *preq);
 
 errno_t p11_child_init(struct pam_ctx *pctx);
 
+struct cert_auth_info;
+
 struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
                                        int child_debug_fd,
