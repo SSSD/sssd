@@ -276,7 +276,8 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                                                const char *keytab_name,
                                                const krb5_deltat lifetime,
                                                const char **ccname_out,
-                                               time_t *expire_time_out)
+                                               time_t *expire_time_out,
+                                               char **_krb5_msg)
 {
     char *ccname;
     char *ccname_dummy;
@@ -522,7 +523,14 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     *expire_time_out = my_creds.times.endtime - kdc_time_offset;
 
 done:
-    if (krberr != 0) KRB5_SYSLOG(krberr);
+    if (krberr != 0) {
+        const char *krb5_msg;
+
+        KRB5_SYSLOG(krberr);
+        krb5_msg = sss_krb5_get_error_message(context, krberr);
+        *_krb5_msg = talloc_strdup(memctx, krb5_msg);
+        sss_krb5_free_error_message(context, krb5_msg);
+    }
     if (keytab) krb5_kt_close(context, keytab);
     if (context) krb5_free_context(context);
     talloc_free(tmp_ctx);
@@ -533,11 +541,11 @@ static int prepare_response(TALLOC_CTX *mem_ctx,
                             const char *ccname,
                             time_t expire_time,
                             krb5_error_code kerr,
+                            char *krb5_msg,
                             struct response **rsp)
 {
     int ret;
     struct response *r = NULL;
-    const char *krb5_msg = NULL;
 
     r = talloc_zero(mem_ctx, struct response);
     if (!r) return ENOMEM;
@@ -550,15 +558,13 @@ static int prepare_response(TALLOC_CTX *mem_ctx,
     if (kerr == 0) {
         ret = pack_buffer(r, EOK, kerr, ccname, expire_time);
     } else {
-        krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
         if (krb5_msg == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                    "sss_krb5_get_error_message failed.\n");
+                  "Empty krb5 error message for non-zero kerr: %"PRIi32"\n",
+                  kerr);
             return ENOMEM;
         }
-
         ret = pack_buffer(r, EFAULT, kerr, krb5_msg, 0);
-        sss_krb5_free_error_message(krb5_error_ctx, krb5_msg);
     }
 
     if (ret != EOK) {
@@ -605,6 +611,7 @@ int main(int argc, const char *argv[])
     uint8_t *buf = NULL;
     ssize_t len = 0;
     const char *ccname = NULL;
+    char *krb5_msg = NULL;
     time_t expire_time = 0;
     struct input_buffer *ibuf = NULL;
     struct response *resp = NULL;
@@ -721,13 +728,14 @@ int main(int argc, const char *argv[])
     kerr = ldap_child_get_tgt_sync(main_ctx, ibuf->context,
                                    ibuf->realm_str, ibuf->princ_str,
                                    ibuf->keytab_name, ibuf->lifetime,
-                                   &ccname, &expire_time);
+                                   &ccname, &expire_time, &krb5_msg);
     if (kerr != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync failed.\n");
         /* Do not return, must report failure */
     }
 
-    ret = prepare_response(main_ctx, ccname, expire_time, kerr, &resp);
+    ret = prepare_response(main_ctx, ccname, expire_time, kerr, krb5_msg,
+                           &resp);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "prepare_response failed. [%d][%s].\n",
                     ret, strerror(ret));
