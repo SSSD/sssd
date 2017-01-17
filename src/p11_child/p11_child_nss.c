@@ -72,8 +72,7 @@ static char *password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
 int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
             enum op_mode mode, const char *pin,
             struct cert_verify_opts *cert_verify_opts,
-            char **cert, char **token_name_out, char **module_name_out,
-            char **key_id_out)
+            char **_multi)
 {
     int ret;
     SECStatus rv;
@@ -110,7 +109,10 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
     PK11SlotListElement *le;
     SECItem *key_id = NULL;
     char *key_id_str = NULL;
-
+    CERTCertList *valid_certs = NULL;
+    char *cert_b64 = NULL;
+    char *multi = NULL;
+    PRCList *node;
 
     nss_ctx = NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters, flags);
     if (nss_ctx == NULL) {
@@ -303,6 +305,14 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
     }
 
     found_cert = NULL;
+    valid_certs = CERT_NewCertList();
+    if (valid_certs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_NewCertList failed [%d].\n",
+                                 PR_GetError());
+        ret = ENOMEM;
+        goto done;
+    }
+
     DEBUG(SSSDBG_TRACE_ALL, "Filtered certificates:\n");
     for (cert_list_node = CERT_LIST_HEAD(cert_list);
                 !CERT_LIST_END(cert_list_node, cert_list);
@@ -326,6 +336,13 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
                 }
             }
 
+            rv = CERT_AddCertToListTail(valid_certs, cert_list_node->cert);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "CERT_AddCertToListTail failed [%d].\n", PR_GetError());
+                ret = EIO;
+                goto done;
+            }
 
             if (found_cert == NULL) {
                 found_cert = cert_list_node->cert;
@@ -352,9 +369,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
 
     if (found_cert == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "No certificate found.\n");
-        *cert = NULL;
-        *token_name_out = NULL;
-        *module_name_out = NULL;
+        *_multi = NULL;
         ret = EOK;
         goto done;
     }
@@ -421,57 +436,73 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
               "Certificate verified and validated.\n");
     }
 
-    key_id = PK11_GetLowLevelKeyIDForCert(slot, found_cert, NULL);
-    if (key_id == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "PK11_GetLowLevelKeyIDForCert failed [%d].\n",
-                                 PR_GetError());
-        ret = EINVAL;
-        goto done;
-    }
-
-    key_id_str = CERT_Hexify(key_id, PR_FALSE);
-    if (key_id_str == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_Hexify failed [%d].\n", PR_GetError());
+    multi = talloc_strdup(mem_ctx, "");
+    if (multi == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create output string.\n");
         ret = ENOMEM;
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n", key_id_str);
+    for (cert_list_node = CERT_LIST_HEAD(valid_certs);
+                !CERT_LIST_END(cert_list_node, valid_certs);
+                cert_list_node = CERT_LIST_NEXT(cert_list_node)) {
 
-    *key_id_out = talloc_strdup(mem_ctx, key_id_str);
-    if (*key_id_out == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy key id.\n");
-        ret = ENOMEM;
-        goto done;
-    }
+        found_cert = cert_list_node->cert;
 
-    *cert = sss_base64_encode(mem_ctx, found_cert->derCert.data,
-                                       found_cert->derCert.len);
-    if (*cert == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_base64_encode failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
+        SECITEM_FreeItem(key_id, PR_TRUE);
+        PORT_Free(key_id_str);
+        key_id = PK11_GetLowLevelKeyIDForCert(slot, found_cert, NULL);
+        if (key_id == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "PK11_GetLowLevelKeyIDForCert failed [%d].\n",
+                  PR_GetError());
+            ret = EINVAL;
+            goto done;
+        }
 
-    *token_name_out = talloc_strdup(mem_ctx, token_name);
-    if (*token_name_out == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy slot name.\n");
-        ret = ENOMEM;
-        goto done;
-    }
+        key_id_str = CERT_Hexify(key_id, PR_FALSE);
+        if (key_id_str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "CERT_Hexify failed [%d].\n",
+                  PR_GetError());
+            ret = ENOMEM;
+            goto done;
+        }
 
-    *module_name_out = talloc_strdup(mem_ctx, module_name);
-    if (*module_name_out == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy module_name_out name.\n");
-        ret = ENOMEM;
-        goto done;
+        talloc_free(cert_b64);
+        cert_b64 = sss_base64_encode(mem_ctx, found_cert->derCert.data,
+                                     found_cert->derCert.len);
+        if (cert_b64 == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_base64_encode failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n",
+              key_id_str);
+
+        multi = talloc_asprintf_append(multi, "%s\n%s\n%s\n%s\n",
+                                       token_name, module_name, key_id_str,
+                                       cert_b64);
     }
+    *_multi = multi;
 
     ret = EOK;
 
 done:
     if (slot != NULL) {
         PK11_FreeSlot(slot);
+    }
+
+    if (valid_certs != NULL) {
+        /* The certificates can be found in valid_certs and cert_list and
+         * CERT_DestroyCertList() will free the certificates as well. To avoid
+         * a double free the nodes from valid_certs are removed first because
+         * valid_certs will only have a sub-set of the certificates. */
+        while (!PR_CLIST_IS_EMPTY(&valid_certs->list)) {
+            node = PR_LIST_HEAD(&valid_certs->list);
+            PR_REMOVE_LINK(node);
+        }
+        CERT_DestroyCertList(valid_certs);
     }
 
     if (cert_list != NULL) {
@@ -482,6 +513,8 @@ done:
     PORT_Free(key_id_str);
 
     PORT_Free(signed_random_value.data);
+
+    talloc_free(cert_b64);
 
     rv = NSS_ShutdownContext(nss_ctx);
     if (rv != SECSuccess) {
@@ -540,17 +573,14 @@ int main(int argc, const char *argv[])
     const char *opt_logger = NULL;
     errno_t ret;
     TALLOC_CTX *main_ctx = NULL;
-    char *cert;
     enum op_mode mode = OP_NONE;
     enum pin_mode pin_mode = PIN_NONE;
     char *pin = NULL;
     char *slot_name_in = NULL;
-    char *token_name_out = NULL;
-    char *module_name_out = NULL;
-    char *key_id_out = NULL;
     char *nss_db = NULL;
     struct cert_verify_opts *cert_verify_opts;
     char *verify_opts = NULL;
+    char *multi = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -715,17 +745,14 @@ int main(int argc, const char *argv[])
     }
 
     ret = do_work(main_ctx, nss_db, slot_name_in, mode, pin, cert_verify_opts,
-                  &cert, &token_name_out, &module_name_out, &key_id_out);
+                  &multi);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");
         goto fail;
     }
 
-    if (cert != NULL) {
-        fprintf(stdout, "%s\n", token_name_out);
-        fprintf(stdout, "%s\n", module_name_out);
-        fprintf(stdout, "%s\n", key_id_out);
-        fprintf(stdout, "%s\n", cert);
+    if (multi != NULL) {
+        fprintf(stdout, "%s", multi);
     }
 
     talloc_free(main_ctx);
