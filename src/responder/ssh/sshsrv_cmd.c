@@ -1012,7 +1012,7 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     el_orig = ldb_msg_find_element(cmd_ctx->result,
                                   ORIGINALAD_PREFIX SYSDB_SSH_PUBKEY);
     if (el_orig) {
-        count = el_orig->num_values;
+        count += el_orig->num_values;
     }
 
     if (DOM_HAS_VIEWS(cmd_ctx->domain)) {
