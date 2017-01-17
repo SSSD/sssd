@@ -152,9 +152,30 @@ cache_req_group_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static struct tevent_req *
+cache_req_group_by_name_dp_send(TALLOC_CTX *mem_ctx,
+                                struct cache_req *cr,
+                                struct cache_req_data *data,
+                                struct sss_domain_info *domain,
+                                struct ldb_result *result)
+{
+    const char *string;
+    const char *flag;
+    uint32_t id;
+    errno_t ret;
+
+    ret = cache_req_group_by_name_dpreq_params(mem_ctx, cr, result,
+                                             &string, &id, &flag);
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    return sss_dp_get_account_send(mem_ctx, cr->rctx, domain, true,
+                                   SSS_DP_GROUP, string, id, flag);
+}
+
 const struct cache_req_plugin cache_req_group_by_name = {
     .name = "Group by name",
-    .dp_type = SSS_DP_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = true,
     .ignore_default_domain = false,
@@ -174,7 +195,8 @@ const struct cache_req_plugin cache_req_group_by_name = {
     .ncache_check_fn = cache_req_group_by_name_ncache_check,
     .ncache_add_fn = cache_req_group_by_name_ncache_add,
     .lookup_fn = cache_req_group_by_name_lookup,
-    .dpreq_params_fn = cache_req_group_by_name_dpreq_params
+    .dp_send_fn = cache_req_group_by_name_dp_send,
+    .dp_recv_fn = cache_req_common_dp_recv
 };
 
 struct tevent_req *

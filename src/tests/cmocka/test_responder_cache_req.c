@@ -530,7 +530,7 @@ void test_user_by_name_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
     mock_parse_inp(users[0].short_name, NULL, ERR_OK);
 
     /* Test. */
@@ -547,7 +547,7 @@ void test_user_by_name_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
     mock_parse_inp(users[0].short_name, NULL, ERR_OK);
 
     /* Test. */
@@ -749,7 +749,7 @@ void test_user_by_upn_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
     mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
 
     /* Test. */
@@ -766,7 +766,7 @@ void test_user_by_upn_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
     mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
 
     /* Test. */
@@ -904,7 +904,7 @@ void test_user_by_id_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
 
     /* Test. */
     run_user_by_id(test_ctx, NULL, 0, ERR_OK);
@@ -920,7 +920,7 @@ void test_user_by_id_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
 
     /* Test. */
     run_user_by_id(test_ctx, NULL, 0, ENOENT);
@@ -1045,7 +1045,7 @@ void test_group_by_name_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
     mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
 
     /* Test. */
@@ -1062,7 +1062,7 @@ void test_group_by_name_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
     mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
 
     /* Test. */
@@ -1261,7 +1261,7 @@ void test_group_by_id_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
 
     /* Test. */
     run_group_by_id(test_ctx, NULL, 0, ERR_OK);
@@ -1277,7 +1277,7 @@ void test_group_by_id_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
 
     /* Test. */
     run_group_by_id(test_ctx, NULL, 0, ENOENT);
@@ -1912,7 +1912,7 @@ void test_object_by_sid_user_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, users[0].sid, attrs, 0, ERR_OK);
@@ -1929,7 +1929,7 @@ void test_object_by_sid_user_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, users[0].sid, attrs, 0, ENOENT);
@@ -2068,7 +2068,7 @@ void test_object_by_sid_group_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, groups[0].sid, attrs, 0, ERR_OK);
@@ -2085,7 +2085,7 @@ void test_object_by_sid_group_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_get_account_recv, 0);
+    will_return_always(sss_dp_req_recv, 0);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, groups[0].sid, attrs, 0, ENOENT);

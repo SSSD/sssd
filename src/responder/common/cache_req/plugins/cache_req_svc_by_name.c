@@ -120,24 +120,20 @@ cache_req_svc_by_name_lookup(TALLOC_CTX *mem_ctx,
                                data->svc.protocol.lookup, _result);
 }
 
-static errno_t
-cache_req_svc_by_name_dpreq_params(TALLOC_CTX *mem_ctx,
-                                   struct cache_req *cr,
-                                   struct ldb_result *result,
-                                   const char **_string,
-                                   uint32_t *_id,
-                                   const char **_flag)
+static struct tevent_req *
+cache_req_svc_by_name_dp_send(TALLOC_CTX *mem_ctx,
+                              struct cache_req *cr,
+                              struct cache_req_data *data,
+                              struct sss_domain_info *domain,
+                              struct ldb_result *result)
 {
-    *_id = 0;
-    *_string = cr->data->svc.name->lookup;
-    *_flag = cr->data->svc.protocol.lookup;
-
-    return EOK;
+    return sss_dp_get_account_send(mem_ctx, cr->rctx, domain, true,
+                                   SSS_DP_SERVICES, cr->data->svc.name->lookup,
+                                   0, cr->data->svc.protocol.lookup);
 }
 
 const struct cache_req_plugin cache_req_svc_by_name = {
     .name = "Service by name",
-    .dp_type = SSS_DP_SERVICES,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = true,
     .ignore_default_domain = false,
@@ -157,7 +153,8 @@ const struct cache_req_plugin cache_req_svc_by_name = {
     .ncache_check_fn = cache_req_svc_by_name_ncache_check,
     .ncache_add_fn = cache_req_svc_by_name_ncache_add,
     .lookup_fn = cache_req_svc_by_name_lookup,
-    .dpreq_params_fn = cache_req_svc_by_name_dpreq_params
+    .dp_send_fn = cache_req_svc_by_name_dp_send,
+    .dp_recv_fn = cache_req_common_dp_recv
 };
 
 struct tevent_req *

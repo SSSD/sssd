@@ -79,24 +79,20 @@ cache_req_object_by_id_lookup(TALLOC_CTX *mem_ctx,
                                      data->attrs, _result);
 }
 
-static errno_t
-cache_req_object_by_id_dpreq_params(TALLOC_CTX *mem_ctx,
-                                    struct cache_req *cr,
-                                    struct ldb_result *result,
-                                    const char **_string,
-                                    uint32_t *_id,
-                                    const char **_flag)
+static struct tevent_req *
+cache_req_object_by_id_dp_send(TALLOC_CTX *mem_ctx,
+                              struct cache_req *cr,
+                              struct cache_req_data *data,
+                              struct sss_domain_info *domain,
+                              struct ldb_result *result)
 {
-    *_id = cr->data->id;
-    *_string = NULL;
-    *_flag = NULL;
-
-    return EOK;
+    return sss_dp_get_account_send(mem_ctx, cr->rctx, domain, true,
+                                   SSS_DP_USER_AND_GROUP, NULL,
+                                   cr->data->id, NULL);
 }
 
 const struct cache_req_plugin cache_req_object_by_id = {
     .name = "Object by ID",
-    .dp_type = SSS_DP_USER_AND_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
     .ignore_default_domain = false,
@@ -116,7 +112,8 @@ const struct cache_req_plugin cache_req_object_by_id = {
     .ncache_check_fn = cache_req_object_by_id_ncache_check,
     .ncache_add_fn = NULL,
     .lookup_fn = cache_req_object_by_id_lookup,
-    .dpreq_params_fn = cache_req_object_by_id_dpreq_params
+    .dp_send_fn = cache_req_object_by_id_dp_send,
+    .dp_recv_fn = cache_req_common_dp_recv
 };
 
 struct tevent_req *

@@ -107,3 +107,43 @@ cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
 
     return result;
 }
+
+bool
+cache_req_common_dp_recv(struct tevent_req *subreq,
+                         struct cache_req *cr)
+{
+    char *err_msg;
+    dbus_uint16_t err_maj;
+    dbus_uint32_t err_min;
+    errno_t ret;
+    bool bret;
+
+    ret = sss_dp_req_recv(NULL, subreq, &err_maj, &err_min, &err_msg);
+    if (ret != EOK) {
+        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr,
+                        "Could not get account info [%d]: %s\n",
+                        ret, sss_strerror(ret));
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                        "Due to an error we will return cached data\n");
+
+        bret = false;
+        goto done;
+    }
+
+    if (err_maj) {
+        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr,
+                        "Data Provider Error: %u, %u, %s\n",
+                        (unsigned int)err_maj, (unsigned int)err_min, err_msg);
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                        "Due to an error we will return cached data\n");
+
+        bret = false;
+        goto done;
+    }
+
+    bret = true;
+
+done:
+    talloc_free(err_msg);
+    return bret;
+}

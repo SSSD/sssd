@@ -88,24 +88,20 @@ cache_req_initgroups_by_upn_lookup(TALLOC_CTX *mem_ctx,
                                    _result);
 }
 
-static errno_t
-cache_req_initgroups_by_upn_dpreq_params(TALLOC_CTX *mem_ctx,
-                                         struct cache_req *cr,
-                                         struct ldb_result *result,
-                                         const char **_string,
-                                         uint32_t *_id,
-                                         const char **_flag)
+static struct tevent_req *
+cache_req_initgroups_by_upn_dp_send(TALLOC_CTX *mem_ctx,
+                                    struct cache_req *cr,
+                                    struct cache_req_data *data,
+                                    struct sss_domain_info *domain,
+                                    struct ldb_result *result)
 {
-    *_id = 0;
-    *_string = cr->data->name.lookup;
-    *_flag = EXTRA_NAME_IS_UPN;
-
-    return EOK;
+    return sss_dp_get_account_send(mem_ctx, cr->rctx, domain, true,
+                                   SSS_DP_INITGROUPS, cr->data->name.lookup,
+                                   0, EXTRA_NAME_IS_UPN);
 }
 
 const struct cache_req_plugin cache_req_initgroups_by_upn = {
     .name = "Initgroups by UPN",
-    .dp_type = SSS_DP_INITGROUPS,
     .attr_expiration = SYSDB_INITGR_EXPIRE,
     .parse_name = false,
     .ignore_default_domain = false,
@@ -125,5 +121,6 @@ const struct cache_req_plugin cache_req_initgroups_by_upn = {
     .ncache_check_fn = cache_req_initgroups_by_upn_ncache_check,
     .ncache_add_fn = cache_req_initgroups_by_upn_ncache_add,
     .lookup_fn = cache_req_initgroups_by_upn_lookup,
-    .dpreq_params_fn = cache_req_initgroups_by_upn_dpreq_params
+    .dp_send_fn = cache_req_initgroups_by_upn_dp_send,
+    .dp_recv_fn = cache_req_common_dp_recv
 };

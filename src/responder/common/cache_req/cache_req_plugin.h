@@ -117,29 +117,35 @@ typedef errno_t
                        struct ldb_result **_result);
 
 /**
- * Return parameters for Data Provider request.
+ * Send Data Provider request.
  *
- * @return EOK If everything went fine.
- * @return Other errno code in case of an error.
+ * @return Tevent request on success.
+ * @return NULL on error.
  */
-typedef errno_t
-(*cache_req_dpreq_params_fn)(TALLOC_CTX *mem_ctx,
-                             struct cache_req *cr,
-                             struct ldb_result *result,
-                             const char **_string,
-                             uint32_t *_id,
-                             const char **_flag);
+typedef struct tevent_req *
+(*cache_req_dp_send_fn)(TALLOC_CTX *mem_ctx,
+                        struct cache_req *cr,
+                        struct cache_req_data *data,
+                        struct sss_domain_info *domain,
+                        struct ldb_result *result);
+
+/**
+ * Process result of Data Provider request.
+ *
+ * Do not free subreq! It will be freed in the caller.
+ *
+ * @return True if data provider request succeeded.
+ * @return False if there was an error.
+ */
+typedef bool
+(*cache_req_dp_recv_fn)(struct tevent_req *subreq,
+                        struct cache_req *cr);
 
 struct cache_req_plugin {
     /**
      * Plugin name.
      */
     const char *name;
-
-    /**
-     * Data provider request type.
-     */
-    enum sss_dp_acct_type dp_type;
 
     /**
      * Expiration timestamp attribute name.
@@ -202,7 +208,8 @@ struct cache_req_plugin {
     cache_req_ncache_check_fn ncache_check_fn;
     cache_req_ncache_add_fn ncache_add_fn;
     cache_req_lookup_fn lookup_fn;
-    cache_req_dpreq_params_fn dpreq_params_fn;
+    cache_req_dp_send_fn dp_send_fn;
+    cache_req_dp_recv_fn dp_recv_fn;
 };
 
 extern const struct cache_req_plugin cache_req_user_by_name;

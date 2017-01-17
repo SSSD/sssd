@@ -138,70 +138,6 @@ done:
     return ret;
 }
 
-static errno_t cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
-                                      struct cache_req *cr,
-                                      struct ldb_result *result,
-                                      const char **_string,
-                                      uint32_t *_id,
-                                      const char **_flag)
-{
-    errno_t ret;
-
-    if (cr->plugin->dpreq_params_fn == NULL) {
-        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
-                        "Bug: No dpreq params function specified\n");
-        return ERR_INTERNAL;
-    }
-
-
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_INTERNAL, cr,
-                    "Creating DP request parameters\n");
-
-    ret = cr->plugin->dpreq_params_fn(mem_ctx, cr, result, _string, _id, _flag);
-    if (ret != EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
-                        "Unable to create DP request parameters [%d]: %s\n",
-                        ret, sss_strerror(ret));
-        return ret;
-    }
-
-    return EOK;
-}
-
-static bool cache_req_search_process_dp(TALLOC_CTX *mem_ctx,
-                                        struct tevent_req *subreq,
-                                        struct cache_req *cr)
-{
-    char *err_msg;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
-    errno_t ret;
-
-    ret = sss_dp_get_account_recv(mem_ctx, subreq, &err_maj, &err_min, &err_msg);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr,
-                        "Could not get account info [%d]: %s\n",
-                        ret, sss_strerror(ret));
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
-                        "Due to an error we will return cached data\n");
-
-        return false;
-    }
-
-    if (err_maj) {
-        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr,
-                        "Data Provider Error: %u, %u, %s\n",
-                        (unsigned int)err_maj, (unsigned int)err_min, err_msg);
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
-                        "Due to an error we will return cached data\n");
-
-        return false;
-    }
-
-    return true;
-}
-
 static enum cache_object_status
 cache_req_expiration_status(struct cache_req *cr,
                             struct ldb_result *result)
@@ -316,18 +252,9 @@ static errno_t cache_req_search_dp(struct tevent_req *req,
 {
     struct cache_req_search_state *state;
     struct tevent_req *subreq;
-    const char *extra_flag;
-    const char *search_str;
-    uint32_t search_id;
     errno_t ret;
 
     state = tevent_req_data(req, struct cache_req_search_state);
-
-    ret = cache_req_dpreq_params(state, state->cr, state->result,
-                                 &search_str, &search_id, &extra_flag);
-    if (ret != EOK) {
-        return ret;
-    }
 
     switch (status) {
     case CACHE_OBJECT_MIDPOINT:
@@ -339,10 +266,10 @@ static errno_t cache_req_search_dp(struct tevent_req *req,
                         "Performing midpoint cache update of [%s]\n",
                         state->cr->debugobj);
 
-        subreq = sss_dp_get_account_send(state->cr->rctx, state->cr->rctx,
-                                         state->cr->domain, true,
-                                         state->cr->dp_type,
-                                         search_str, search_id, extra_flag);
+        subreq = state->cr->plugin->dp_send_fn(state->cr, state->cr,
+                                               state->cr->data,
+                                               state->cr->domain,
+                                               state->result);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory sending out-of-band "
                                        "data provider request\n");
@@ -351,31 +278,37 @@ static errno_t cache_req_search_dp(struct tevent_req *req,
             tevent_req_set_callback(subreq, cache_req_search_oob_done, req);
         }
 
-        return EOK;
+        ret = EOK;
+        break;
     case CACHE_OBJECT_EXPIRED:
     case CACHE_OBJECT_MISSING:
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Looking up [%s] in data provider\n",
                         state->cr->debugobj);
 
-        subreq = sss_dp_get_account_send(state, state->cr->rctx,
-                                         state->cr->domain, true,
-                                         state->cr->dp_type,
-                                         search_str, search_id, extra_flag);
+        subreq = state->cr->plugin->dp_send_fn(state->cr, state->cr,
+                                               state->cr->data,
+                                               state->cr->domain,
+                                               state->result);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
-            return ENOMEM;
+            ret = ENOMEM;
+            break;
         }
 
         tevent_req_set_callback(subreq, cache_req_search_done, req);
-        return EAGAIN;
+        ret = EAGAIN;
+        break;
     default:
         /* error */
         CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->cr,
                         "Unexpected status [%d]\n", status);
-        return ret;
+        ret = ERR_INTERNAL;
+        break;
     }
+
+    return ret;
 }
 
 static void cache_req_search_oob_done(struct tevent_req *subreq)
@@ -395,7 +328,8 @@ static void cache_req_search_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_search_state);
 
-    state->dp_success = cache_req_search_process_dp(state, subreq, state->cr);
+    state->dp_success = state->cr->plugin->dp_recv_fn(subreq, state->cr);
+    talloc_zfree(subreq);
 
     /* Get result from cache again. */
     ret = cache_req_search_cache(state, state->cr, &state->result);
