@@ -22,6 +22,7 @@
 #define _SSHSRV_PRIVATE_H_
 
 #include "responder/common/responder.h"
+#include "responder/common/cache_req/cache_req.h"
 
 #define SSS_SSH_KNOWN_HOSTS_PATH PUBCONF_PATH"/known_hosts"
 #define SSS_SSH_KNOWN_HOSTS_TEMP_TMPL PUBCONF_PATH"/.known_hosts.XXXXXX"
@@ -35,20 +36,36 @@ struct ssh_ctx {
     char *ca_db;
 };
 
-struct ssh_cmd_ctx {
-    struct cli_ctx *cctx;
-    char *name;
-    char *alias;
-    char *domname;
-    bool is_user;
-
-    struct sss_domain_info *domain;
-    bool check_next;
-    char *fqdn;
-
-    struct ldb_message *result;
-};
-
 struct sss_cmd_table *get_ssh_cmds(void);
+
+errno_t
+ssh_protocol_parse_user(struct cli_ctx *cli_ctx,
+                        const char *default_domain,
+                        const char **_name,
+                        const char **_domain);
+
+errno_t
+ssh_protocol_parse_host(struct cli_ctx *cli_ctx,
+                        const char **_name,
+                        const char **_alias,
+                        const char **_domain);
+
+void ssh_protocol_reply(struct cli_ctx *cli_ctx,
+                        struct cache_req_result *result);
+
+errno_t
+ssh_protocol_done(struct cli_ctx *cli_ctx, errno_t error);
+
+errno_t
+ssh_protocol_build_reply(struct sss_packet *packet,
+                         struct ssh_ctx *ssh_ctx,
+                         struct cache_req_result *result);
+
+errno_t
+ssh_update_known_hosts_file(struct sss_domain_info *domains,
+                            struct sss_domain_info *domain,
+                            const char *name,
+                            bool hash_known_hosts,
+                            int known_hosts_timeout);
 
 #endif /* _SSHSRV_PRIVATE_H_ */

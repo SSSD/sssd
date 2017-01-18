@@ -656,7 +656,7 @@ dist_noinst_HEADERS = \
     src/responder/common/negcache.h \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
-    src/responder/ssh/sshsrv_private.h \
+    src/responder/ssh/ssh_private.h \
     src/responder/ifp/ifp_iface_generated.h \
     src/responder/ifp/ifp_iface.h \
     src/responder/ifp/ifp_private.h \
@@ -1333,7 +1333,10 @@ endif
 if BUILD_SSH
 sssd_ssh_SOURCES = \
     src/responder/ssh/sshsrv.c \
-    src/responder/ssh/sshsrv_cmd.c \
+    src/responder/ssh/ssh_cmd.c \
+    src/responder/ssh/ssh_known_hosts.c \
+    src/responder/ssh/ssh_protocol.c \
+    src/responder/ssh/ssh_reply.c \
     $(SSSD_RESPONDER_OBJ) \
     $(NULL)
 sssd_ssh_LDADD = \
