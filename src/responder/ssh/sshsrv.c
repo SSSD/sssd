@@ -25,7 +25,7 @@
 #include "monitor/monitor_interfaces.h"
 #include "responder/common/responder.h"
 #include "responder/common/responder_sbus.h"
-#include "responder/ssh/sshsrv_private.h"
+#include "responder/ssh/ssh_private.h"
 #include "providers/data_provider.h"
 
 struct mon_cli_iface monitor_ssh_methods = {
