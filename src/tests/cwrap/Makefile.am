@@ -60,6 +60,7 @@ SSSD_CACHE_REQ_OBJ = \
     ../../../src/responder/common/cache_req/plugins/cache_req_svc_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_svc_by_port.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_netgroup_by_name.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_host_by_name.c \
     $(NULL)
 
 SSSD_RESPONDER_OBJ = \
@@ -68,6 +69,7 @@ SSSD_RESPONDER_OBJ = \
     ../../../src/responder/common/responder_cmd.c \
     ../../../src/responder/common/responder_common.c \
     ../../../src/responder/common/responder_dp.c \
+    ../../../src/responder/common/responder_dp_ssh.c \
     ../../../src/responder/common/responder_packet.c \
     ../../../src/responder/common/responder_get_domains.c \
     ../../../src/responder/common/responder_utils.c \

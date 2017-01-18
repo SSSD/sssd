@@ -56,6 +56,8 @@ cache_req_get_plugin(enum cache_req_type type)
         &cache_req_svc_by_port,
 
         &cache_req_netgroup_by_name,
+
+        &cache_req_host_by_name,
     };
 
     if (type >= CACHE_REQ_SENTINEL) {
