@@ -76,6 +76,7 @@ struct cache_req_data {
     uint32_t id;
     const char *cert;
     const char *sid;
+    const char *alias;
     const char **attrs;
 
     struct {

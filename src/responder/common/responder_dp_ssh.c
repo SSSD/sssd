@@ -21,13 +21,12 @@
 #include <talloc.h>
 #include <tevent.h>
 #include <dbus/dbus.h>
-#include "sbus/sssd_dbus.h"
 
 #include "util/util.h"
 #include "sbus/sbus_client.h"
+#include "sbus/sssd_dbus.h"
 #include "providers/data_provider/dp_responder_iface.h"
 #include "responder/common/responder.h"
-#include "responder/ssh/sshsrv_private.h"
 
 struct sss_dp_get_ssh_host_info {
     struct sss_domain_info *dom;
