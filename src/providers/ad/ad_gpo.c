@@ -871,7 +871,8 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
         /* gpo_func_version must be set to version 2 */
         if (candidate_gpo->gpo_func_version != 2) {
             DEBUG(SSSDBG_TRACE_ALL,
-                  "GPO not applicable to target per security filtering\n");
+                  "GPO not applicable to target per security filtering: "
+                  "gPCFunctionalityVersion is not 2\n");
             continue;
         }
 
@@ -887,7 +888,8 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
         /* gpo_flags value of 2 means that GPO's computer portion is disabled */
         if (candidate_gpo->gpo_flags == 2) {
             DEBUG(SSSDBG_TRACE_ALL,
-                  "GPO not applicable to target per security filtering\n");
+                  "GPO not applicable to target per security filtering: "
+                  "GPO's computer portion is disabled\n");
             continue;
         }
 
@@ -918,7 +920,8 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
             gpo_dn_idx++;
         } else {
             DEBUG(SSSDBG_TRACE_ALL,
-                  "GPO not applicable to target per security filtering\n");
+                  "GPO not applicable to target per security filtering: "
+                  "result of DACL evaluation\n");
             continue;
         }
     }
