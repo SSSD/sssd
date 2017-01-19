@@ -1691,7 +1691,8 @@ static bool sdap_object_in_domain(struct sdap_options *opts,
     sdmatch = sdap_domain_get_by_dn(opts, original_dn);
     if (sdmatch == NULL) {
         DEBUG(SSSDBG_FUNC_DATA,
-              "The group has no original DN, assuming our domain\n");
+              "The original DN of the group cannot "
+              "be related to any search base\n");
         return true;
     }
 
