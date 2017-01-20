@@ -746,11 +746,14 @@ struct ipa_sudo_conv_result_ctx {
 static const char *
 convert_host(TALLOC_CTX *mem_ctx,
              struct ipa_sudo_conv *conv,
-             const char *value)
+             const char *value,
+             bool *skip_entry)
 {
     char *rdn;
     const char *group;
     errno_t ret;
+
+    *skip_entry = false;
 
     ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_HOST(conv->map_host));
@@ -765,7 +768,8 @@ convert_host(TALLOC_CTX *mem_ctx,
     ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_HOSTGROUP(conv->map_hostgroup));
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s\n", value);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s: Skipping\n", value);
+        *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
@@ -782,11 +786,14 @@ convert_host(TALLOC_CTX *mem_ctx,
 static const char *
 convert_user(TALLOC_CTX *mem_ctx,
              struct ipa_sudo_conv *conv,
-             const char *value)
+             const char *value,
+             bool *skip_entry)
 {
     char *rdn;
     const char *group;
     errno_t ret;
+
+    *skip_entry = false;
 
     ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_USER(conv->map_user));
@@ -801,7 +808,8 @@ convert_user(TALLOC_CTX *mem_ctx,
     ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_GROUP(conv->map_group));
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s\n", value);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s: Skipping\n", value);
+        *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
@@ -818,12 +826,15 @@ convert_user(TALLOC_CTX *mem_ctx,
 static const char *
 convert_user_fqdn(TALLOC_CTX *mem_ctx,
                   struct ipa_sudo_conv *conv,
-                  const char *value)
+                  const char *value,
+                  bool *skip_entry)
 {
     const char *shortname = NULL;
     char *fqdn = NULL;
 
-    shortname = convert_user(mem_ctx, conv, value);
+    *skip_entry = false;
+
+    shortname = convert_user(mem_ctx, conv, value, skip_entry);
     if (shortname == NULL) {
         return NULL;
     }
@@ -836,15 +847,19 @@ convert_user_fqdn(TALLOC_CTX *mem_ctx,
 static const char *
 convert_group(TALLOC_CTX *mem_ctx,
               struct ipa_sudo_conv *conv,
-              const char *value)
+              const char *value,
+              bool *skip_entry)
 {
     char *rdn;
     errno_t ret;
 
+    *skip_entry = false;
+
     ret = ipa_get_rdn(mem_ctx, conv->dom->sysdb, value, &rdn,
                       MATCHRDN_GROUP(conv->map_group));
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s\n", value);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected DN %s: Skipping\n", value);
+        *skip_entry = true;
         return NULL;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_get_rdn() failed on value %s [%d]: %s\n",
@@ -866,8 +881,12 @@ convert_runasextusergroup(TALLOC_CTX *mem_ctx,
 static const char *
 convert_cat(TALLOC_CTX *mem_ctx,
             struct ipa_sudo_conv *conv,
-            const char *value)
+            const char *value,
+            bool *skip_entry)
 {
+
+    *skip_entry = false;
+
     if (strcmp(value, "all") == 0) {
         return talloc_strdup(mem_ctx, "ALL");
     }
@@ -885,12 +904,14 @@ convert_attributes(struct ipa_sudo_conv *conv,
     const char *value;
     errno_t ret;
     int i, j;
+    bool skip_entry;
     static struct {
         const char *ipa;
         const char *sudo;
         const char *(*conv_fn)(TALLOC_CTX *mem_ctx,
                                struct ipa_sudo_conv *conv,
-                               const char *value);
+                               const char *value,
+                               bool *skip_entry);
     } table[] = {{SYSDB_NAME,                            SYSDB_SUDO_CACHE_AT_CN         , NULL},
                  {SYSDB_IPA_SUDORULE_HOST,               SYSDB_SUDO_CACHE_AT_HOST       , convert_host},
                  {SYSDB_IPA_SUDORULE_USER,               SYSDB_SUDO_CACHE_AT_USER       , convert_user_fqdn},
@@ -931,10 +952,15 @@ convert_attributes(struct ipa_sudo_conv *conv,
 
         for (j = 0; values[j] != NULL; j++) {
             if (table[i].conv_fn != NULL) {
-                value = table[i].conv_fn(tmp_ctx, conv, values[j]);
+                value = table[i].conv_fn(tmp_ctx, conv, values[j], &skip_entry);
                 if (value == NULL) {
-                    ret = ENOMEM;
-                    goto done;
+                    if (skip_entry) {
+                        ret = ENOENT;
+                        continue;
+                    } else {
+                        ret = ENOMEM;
+                        goto done;
+                    }
                 }
             } else {
                 value = values[j];
