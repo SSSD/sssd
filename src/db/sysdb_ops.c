@@ -4590,8 +4590,35 @@ errno_t sysdb_search_object_by_name(TALLOC_CTX *mem_ctx,
                                     const char **attrs,
                                     struct ldb_result **res)
 {
-    return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_NAME_FILTER,
-                                           name, attrs, res);
+    TALLOC_CTX *tmp_ctx;
+    char *filter;
+    char *sanitized_name;
+    char *sanitized_alias_name;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, name, domain, &sanitized_name,
+                                      &sanitized_alias_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, SYSDB_NAME_FILTER, sanitized_alias_name,
+                             sanitized_name);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, res);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
