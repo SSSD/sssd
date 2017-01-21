@@ -199,7 +199,7 @@
 #define SYSDB_SID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_SID_STR"=%s))"
 #define SYSDB_UUID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_UUID"=%s))"
 #define SYSDB_NAME_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
-#define SYSDB_ID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))(|("SYSDB_UIDNUM"=%u)("SYSDB_GIDNUM"=%u)))"
+#define SYSDB_ID_FILTER "(|(&("SYSDB_UC")("SYSDB_UIDNUM"=%u))(&("SYSDB_GC")("SYSDB_GIDNUM"=%u)))"
 #define SYSDB_USER_CERT_FILTER "(&("SYSDB_UC")%s)"
 
 #define SYSDB_HAS_ENUMERATED "has_enumerated"
