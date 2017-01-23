@@ -5499,6 +5499,119 @@ START_TEST(test_sysdb_search_object_by_uuid)
 }
 END_TEST
 
+START_TEST(test_sysdb_search_object_by_name)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_result *res;
+    struct test_data *data;
+    const char *user_name = "John Doe";
+    const char *group_name = "Domain Users";
+    const char *lc_group_name = "domain users";
+    const char *returned_name;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    /* test for missing entry */
+    ret = sysdb_search_object_by_name(test_ctx, test_ctx->domain,
+                                      "nonexisting_name", NULL, &res);
+    fail_unless(ret == ENOENT, "sysdb_search_object_by_name failed with "
+                               "[%d][%s].", ret, strerror(ret));
+
+    /* test user search */
+    data = test_data_new_user(test_ctx, 23456);
+    fail_if(data == NULL);
+
+    data->username = user_name;
+
+    ret = test_add_user(data);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_name(test_ctx, test_ctx->domain,
+                                      user_name, NULL, &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_name failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, ""),
+    fail_unless(strcmp(returned_name, data->username) == 0,
+                "Unexpected object found, expected [%s], got [%s].",
+                user_name, returned_name);
+    talloc_free(res);
+
+    ret = test_remove_user(data);
+    fail_unless(ret == EOK,
+                "test_remove_user failed with [%d][%s].", ret, strerror(ret));
+
+    /* test group search */
+    data = test_data_new_group(test_ctx, 23456);
+    fail_if(data == NULL);
+
+    data->groupname = group_name;
+
+    ret = test_add_group(data);
+    fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_name(test_ctx, test_ctx->domain,
+                                      group_name, NULL, &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_name failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, ""),
+    fail_unless(strcmp(returned_name, data->groupname) == 0,
+                "Unexpected object found, expected [%s], got [%s].",
+                group_name, returned_name);
+    talloc_free(res);
+
+    ret = test_remove_group(data);
+    fail_unless(ret == EOK,
+                "test_remove_group failed with [%d][%s].", ret, strerror(ret));
+
+    /* test case insensitive search */
+    data = test_data_new_group(test_ctx, 23456);
+    fail_if(data == NULL);
+
+    data->groupname = group_name;
+    test_ctx->domain->case_sensitive = false;
+
+    data->attrs = sysdb_new_attrs(test_ctx);
+    fail_if(data->attrs == NULL);
+
+    ret = sysdb_attrs_add_lc_name_alias(data->attrs, group_name);
+    fail_unless(ret == EOK);
+
+    ret = test_add_group(data);
+    fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_name(test_ctx, test_ctx->domain,
+                                      lc_group_name, NULL, &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_name failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, ""),
+    fail_unless(strcmp(returned_name, data->groupname) == 0,
+                "Unexpected object found, expected [%s], got [%s].",
+                group_name, returned_name);
+
+    talloc_free(res);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 /* For simple searches the content of the certificate does not matter */
 #define TEST_USER_CERT_DERB64 "gJznJT7L0aETU5CMk+n+1Q=="
 START_TEST(test_sysdb_search_user_by_cert)
@@ -6795,6 +6908,9 @@ Suite *create_sysdb_suite(void)
 
     /* Test UUID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_object_by_uuid);
+
+    /* Test object by name */
+    tcase_add_test(tc_sysdb, test_sysdb_search_object_by_name);
 
     /* Test user by certificate searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_user_by_cert);
