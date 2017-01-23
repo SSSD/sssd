@@ -5331,6 +5331,127 @@ START_TEST(test_sysdb_search_sid_str)
 }
 END_TEST
 
+START_TEST(test_sysdb_search_object_by_id)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_result *res;
+    struct test_data *data;
+    const uint32_t id = 23456;
+    uint32_t returned_id;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    /* test for missing entry */
+    ret = sysdb_search_object_by_id(test_ctx, test_ctx->domain, 111, NULL,
+                                    &res);
+    fail_unless(ret == ENOENT, "sysdb_search_object_by_name failed with "
+                               "[%d][%s].", ret, strerror(ret));
+
+    /* test user search */
+    data = test_data_new_user(test_ctx, id);
+    fail_if(data == NULL);
+
+    ret = test_add_user(data);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_id(test_ctx, test_ctx->domain, id, NULL,
+                                    &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_id failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_id = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
+    fail_unless(id == returned_id,
+                "Unexpected object found, expected UID [%"PRIu32"], "
+                "got [%"PRIu32"].", id, returned_id);
+    talloc_free(res);
+
+    ret = test_remove_user(data);
+    fail_unless(ret == EOK,
+                "test_remove_user failed with [%d][%s].", ret, strerror(ret));
+
+    /* test group search */
+    data = test_data_new_group(test_ctx, id);
+    fail_if(data == NULL);
+
+    ret = test_add_group(data);
+    fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_id(test_ctx, test_ctx->domain, id, NULL,
+                                    &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_id failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_id = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
+    fail_unless(id == returned_id,
+                "Unexpected object found, expected GID [%"PRIu32"], "
+                "got [%"PRIu32"].", id, returned_id);
+    talloc_free(res);
+
+    ret = test_remove_group(data);
+    fail_unless(ret == EOK,
+                "test_remove_group failed with [%d][%s].", ret, strerror(ret));
+
+    /* test for bad search filter bug #3283 */
+    data = test_data_new_group(test_ctx, id);
+    fail_if(data == NULL);
+
+    ret = test_add_group(data);
+    fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
+                ret, strerror(ret));
+
+    test_ctx->domain->mpg = false;
+    ret = sysdb_add_user(test_ctx->domain, "user1", 4001, id,
+                         "User 1", "/home/user1", "/bin/bash",
+                         NULL, NULL, 0, 0);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_add_user(test_ctx->domain, "user2", 4002, id,
+                         "User 2", "/home/user2", "/bin/bash",
+                         NULL, NULL, 0, 0);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_id(test_ctx, test_ctx->domain, id, NULL,
+                                    &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_id failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_id = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
+    fail_unless(id == returned_id,
+                "Unexpected object found, expected GID [%"PRIu32"], "
+                "got [%"PRIu32"].", id, returned_id);
+    talloc_free(res);
+
+    data->uid = 4001;
+    ret = test_remove_user_by_uid(data);
+    fail_unless(ret == EOK);
+
+    data->uid = 4002;
+    ret = test_remove_user_by_uid(data);
+    fail_unless(ret == EOK);
+
+    ret = test_remove_group(data);
+    fail_unless(ret == EOK);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_sysdb_search_object_by_uuid)
 {
     errno_t ret;
@@ -6668,6 +6789,9 @@ Suite *create_sysdb_suite(void)
 
     /* Test SID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_sid_str);
+
+    /* Test object by ID searches */
+    tcase_add_test(tc_sysdb, test_sysdb_search_object_by_id);
 
     /* Test UUID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_object_by_uuid);
