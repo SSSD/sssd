@@ -40,11 +40,27 @@ def create_conf_fixture(request, contents):
 
 
 def create_sssd_secrets_fixture(request):
-    if subprocess.call(['sssd', "--genconf"]) != 0:
-        raise Exception("failed to regenerate confdb")
+    # Starting the process manually and waiting till the socket is
+    # created is something that has to be done as we cannot rely on
+    # systemd's socket-activation for the integration tests.
+    update_confdb_path = os.path.join(config.LIBEXEC_PATH, "sssd", "sssd_update_confdb")
+    update_confdb_pid = os.fork()
+    if update_confdb_pid == 0:
+        if subprocess.call(update_confdb_path) != 0:
+            raise Exception("sssd_secrets failed to start")
+
+    sock_path = os.path.join(config.RUNSTATEDIR, "update-confdb.socket")
+    sck = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    for _ in range(1, 10):
+        try:
+            sck.connect(udpdate_cdb_path)
+        except:
+            time.sleep(0.1)
+        else:
+            break
+    sck.close()
 
     resp_path = os.path.join(config.LIBEXEC_PATH, "sssd", "sssd_secrets")
-
     secpid = os.fork()
     if secpid == 0:
         if subprocess.call([resp_path, "--uid=0", "--gid=0"]) != 0:
@@ -62,10 +78,12 @@ def create_sssd_secrets_fixture(request):
     sck.close()
 
     def sec_teardown():
-        if secpid == 0:
-            return
+        if secpid != 0:
+            os.kill(secpid, signal.SIGTERM)
 
-        os.kill(secpid, signal.SIGTERM)
+        if update_confdb_pid != 0:
+            os.kill(update_confdb_pid, signal.SIGTERM)
+
         for secdb_file in os.listdir(config.SECDB_PATH):
             os.unlink(config.SECDB_PATH + "/" + secdb_file)
     request.addfinalizer(sec_teardown)

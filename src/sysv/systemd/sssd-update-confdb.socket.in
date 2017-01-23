@@ -1,0 +1,8 @@
+[Unit]
+Description=SSSD Update ConfDB socket
+
+[Socket]
+ListenStream=@localstatedir@/run/update-confdb.socket
+
+[Install]
+WantedBy=sockets.target

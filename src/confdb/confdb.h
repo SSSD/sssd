@@ -228,6 +228,8 @@
 #define CONFDB_SEC_MAX_SECRETS "max_secrets"
 #define CONFDB_SEC_MAX_PAYLOAD_SIZE "max_payload_size"
 
+/* Update confdb Service */
+#define CONFDB_UPDATE_CONF_ENTRY "config/updateconfdb"
 
 struct confdb_ctx;
 struct config_file_ctx;
