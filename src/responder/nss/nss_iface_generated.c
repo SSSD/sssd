@@ -35,7 +35,7 @@ int iface_nss_memorycache_InvalidateAllGroups_finish(struct sbus_request *req)
                                          DBUS_TYPE_INVALID);
 }
 
-int iface_nss_memorycache_InvalidateAllInitgrRecords_finish(struct sbus_request *req)
+int iface_nss_memorycache_InvalidateAllInitgroups_finish(struct sbus_request *req)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_INVALID);
@@ -65,10 +65,10 @@ const struct sbus_method_meta iface_nss_memorycache__methods[] = {
         NULL, /* no invoker */
     },
     {
-        "InvalidateAllInitgrRecords", /* name */
+        "InvalidateAllInitgroups", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
-        offsetof(struct iface_nss_memorycache, InvalidateAllInitgrRecords),
+        offsetof(struct iface_nss_memorycache, InvalidateAllInitgroups),
         NULL, /* no invoker */
     },
     { NULL, }
