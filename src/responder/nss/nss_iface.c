@@ -175,7 +175,7 @@ int nss_memorycache_invalidate_initgroups(struct sbus_request *req, void *data)
           "Invalidating all initgroup records in memory cache\n");
     sss_mmap_cache_reset(nctx->initgr_mc_ctx);
 
-    return iface_nss_memorycache_InvalidateAllInitgrRecords_finish(req);
+    return iface_nss_memorycache_InvalidateAllInitgroups_finish(req);
 }
 
 
@@ -202,7 +202,7 @@ struct iface_nss_memorycache iface_nss_memorycache = {
     .UpdateInitgroups = nss_memorycache_update_initgroups,
     .InvalidateAllUsers = nss_memorycache_invalidate_users,
     .InvalidateAllGroups = nss_memorycache_invalidate_groups,
-    .InvalidateAllInitgrRecords = nss_memorycache_invalidate_initgroups,
+    .InvalidateAllInitgroups = nss_memorycache_invalidate_initgroups,
 };
 
 static struct sbus_iface_map iface_map[] = {

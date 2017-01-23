@@ -12,7 +12,7 @@
         </method>
         <method name="InvalidateAllGroups">
         </method>
-        <method name="InvalidateAllInitgrRecords">
+        <method name="InvalidateAllInitgroups">
         </method>
     </interface>
 </node>
