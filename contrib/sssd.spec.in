@@ -799,6 +799,20 @@ done
 %{_sbindir}/sssd
 %if (0%{?use_systemd} == 1)
 %{_unitdir}/sssd.service
+%{_unitdir}/sssd-autofs.socket
+%{_unitdir}/sssd-autofs.service
+%{_unitdir}/sssd-ifp.service
+%{_unitdir}/sssd-nss.socket
+%{_unitdir}/sssd-nss.service
+%{_unitdir}/sssd-pac.socket
+%{_unitdir}/sssd-pac.service
+%{_unitdir}/sssd-pam.socket
+%{_unitdir}/sssd-pam-priv.socket
+%{_unitdir}/sssd-pam.service
+%{_unitdir}/sssd-ssh.socket
+%{_unitdir}/sssd-ssh.service
+%{_unitdir}/sssd-sudo.socket
+%{_unitdir}/sssd-sudo.service
 %{_unitdir}/sssd-secrets.socket
 %{_unitdir}/sssd-secrets.service
 %else
@@ -1133,16 +1147,43 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 # systemd
 %post common
 %systemd_post sssd.service
+%systemd_post sssd-autofs.socket
+%systemd_post sssd-nss.socket
+%systemd_post sssd-pac.socket
+%systemd_post sssd-pam.socket
+%systemd_post sssd-pam-priv.socket
 %systemd_post sssd-secrets.socket
+%systemd_post sssd-ssh.socket
+%systemd_post sssd-sudo.socket
 
 %preun common
 %systemd_preun sssd.service
+%systemd_preun sssd-autofs.socket
+%systemd_preun sssd-nss.socket
+%systemd_preun sssd-pac.socket
+%systemd_preun sssd-pam.socket
+%systemd_preun sssd-pam-priv.socket
 %systemd_preun sssd-secrets.socket
+%systemd_preun sssd-ssh.socket
+%systemd_preun sssd-sudo.socket
 
 %postun common
 %systemd_postun_with_restart sssd.service
+%systemd_postun_with_restart sssd-autofs.socket
+%systemd_postun_with_restart sssd-autofs.service
+%systemd_postun_with_restart sssd-nss.socket
+%systemd_postun_with_restart sssd-nss.service
+%systemd_postun_with_restart sssd-pac.socket
+%systemd_postun_with_restart sssd-pac.service
+%systemd_postun_with_restart sssd-pam.socket
+%systemd_postun_with_restart sssd-pam-priv.socket
+%systemd_postun_with_restart sssd-pam.service
 %systemd_postun_with_restart sssd-secrets.socket
 %systemd_postun_with_restart sssd-secrets.service
+%systemd_postun_with_restart sssd-ssh.socket
+%systemd_postun_with_restart sssd-ssh.service
+%systemd_postun_with_restart sssd-sudo.socket
+%systemd_postun_with_restart sssd-sudo.service
 
 %else
 # sysv

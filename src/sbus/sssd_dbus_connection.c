@@ -148,6 +148,8 @@ int sbus_init_connection(TALLOC_CTX *ctx,
                          struct tevent_context *ev,
                          DBusConnection *dbus_conn,
                          int connection_type,
+                         time_t *last_request_time,
+                         void *client_destructor_data,
                          struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
@@ -161,6 +163,8 @@ int sbus_init_connection(TALLOC_CTX *ctx,
     conn->type = SBUS_CONNECTION;
     conn->dbus.conn = dbus_conn;
     conn->connection_type = connection_type;
+    conn->last_request_time = last_request_time;
+    conn->client_destructor_data = client_destructor_data;
 
     ret = sbus_opath_hash_init(conn, conn, &conn->managed_paths);
     if (ret != EOK) {
@@ -259,7 +263,8 @@ static int sbus_conn_set_fns(struct sbus_connection *conn)
 }
 
 int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
-                        const char *address, struct sbus_connection **_conn)
+                        const char *address, time_t *last_request_time,
+                        struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
     DBusConnection *dbus_conn;
@@ -278,7 +283,8 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
         return EIO;
     }
 
-    ret = sbus_init_connection(ctx, ev, dbus_conn, SBUS_CONN_TYPE_SHARED, &conn);
+    ret = sbus_init_connection(ctx, ev, dbus_conn, SBUS_CONN_TYPE_SHARED,
+                               last_request_time, NULL, &conn);
     if (ret != EOK) {
         /* FIXME: release resources */
     }
@@ -605,4 +611,14 @@ void sbus_allow_uid(struct sbus_connection *conn, uid_t *uid)
     dbus_connection_set_unix_user_function(sbus_get_connection(conn),
                                            is_uid_sssd_user,
                                            uid, NULL);
+}
+
+void *sbus_connection_get_destructor_data(struct sbus_connection *conn)
+{
+    if (conn == NULL) {
+        /* Should never happen! */
+        return NULL;
+    }
+
+    return conn->client_destructor_data;
 }

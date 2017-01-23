@@ -440,7 +440,7 @@ static int proxy_cli_init(struct pc_ctx *ctx)
         return ENOMEM;
     }
 
-    ret = sbus_client_init(ctx, ctx->ev, sbus_address, &ctx->conn);
+    ret = sbus_client_init(ctx, ctx->ev, sbus_address, NULL, &ctx->conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sbus_client_init failed.\n");
         return ret;

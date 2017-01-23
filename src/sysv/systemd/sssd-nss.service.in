@@ -1,0 +1,13 @@
+[Unit]
+Description=SSSD NSS Service responder
+Documentation=man:sssd.conf(5)
+After=sssd.service
+BindsTo=sssd.service
+
+[Install]
+Also=sssd-nss.socket
+
+[Service]
+ExecStartPre=-/bin/chown root:root @logpath@/sssd_nss.log
+ExecStart=@libexecdir@/sssd/sssd_nss --debug-to-files --socket-activated
+Restart=on-failure

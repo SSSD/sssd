@@ -202,6 +202,11 @@
                             <para>
                                 Comma separated list of services that are
                                 started when sssd itself starts.
+                                <phrase condition="have_systemd">
+                                    The services' list is optional on platforms
+                                    where systemd is supported, as they will either
+                                    be socket or dbus activated when needed.
+                                </phrase>
                             </para>
                             <para>
                                 Supported services: nss, pam
@@ -210,6 +215,13 @@
                                 <phrase condition="with_ssh">, ssh</phrase>
                                 <phrase condition="with_pac_responder">, pac</phrase>
                                 <phrase condition="with_ifp">, ifp</phrase>
+                            </para>
+                            <para>
+                                <phrase condition="have_systemd">
+                                    By default, all services are disabled and the administrator
+                                    must enable the ones allowed to be used by executing:
+                                    "systemctl enable sssd-@service@.socket".
+                                </phrase>
                             </para>
                         </listitem>
                     </varlistentry>
@@ -359,6 +371,19 @@
                                 The user to drop the privileges to where
                                 appropriate to avoid running as the
                                 root user.
+                                <phrase condition="have_systemd">
+                                    This option does not work when running socket-activated
+                                    services, as the user set up to run the processes is
+                                    set up during compilation time.
+
+                                    The way to override the systemd unit files is by creating
+                                    the appropriate files in /etc/systemd/system/.
+
+                                    Keep in mind that any change in the socket user, group or
+                                    permissions may result in a non-usable SSSD. The same may
+                                    occur in case of changes of the user running the NSS
+                                    responder.
+                                </phrase>
                             </para>
                             <para>
                                 Default: not set, process will run as root
@@ -595,6 +620,28 @@
                         </para>
                         <para>
                             Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>responder_idle_timeout</term>
+                    <listitem>
+                        <para>
+                            This option specifies the number of seconds that
+                            an SSSD responder process can be up without being
+                            used. This value is limited in order to avoid
+                            resource exhaustion on the system.
+                            The minimum acceptable value for this option is 60
+                            seconds.
+                            Setting this option to 0 (zero) means that no
+                            timeout will be set up to the responder.
+
+                            This option only has effect when SSSD is built with
+                            systemd support and when services are either socket
+                            or dbus activated.
+                        </para>
+                        <para>
+                            Default: 300
                         </para>
                     </listitem>
                 </varlistentry>

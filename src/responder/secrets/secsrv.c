@@ -136,6 +136,8 @@ static int sec_process_init(TALLOC_CTX *mem_ctx,
     rctx->sock_name = SSS_SEC_SOCKET_NAME;
     rctx->confdb_service_path = CONFDB_SEC_CONF_ENTRY;
     rctx->shutting_down = false;
+    rctx->lfd = -1;
+    rctx->priv_lfd = -1;
 
     talloc_set_destructor((TALLOC_CTX*)rctx, sec_responder_ctx_destructor);
 

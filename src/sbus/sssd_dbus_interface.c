@@ -1089,6 +1089,10 @@ sbus_message_handler(DBusConnection *dbus_conn,
     }
     tevent_req_set_callback(req, sbus_message_handler_got_caller_id, sbus_req);
 
+    if (conn->last_request_time != NULL) {
+        *conn->last_request_time = time(NULL);
+    }
+
     return DBUS_HANDLER_RESULT_HANDLED;
 
 fail: ;

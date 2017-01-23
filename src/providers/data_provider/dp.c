@@ -42,7 +42,7 @@ static errno_t dp_init_dbus_server(struct data_provider *provider)
     ret = sbus_new_server(provider, provider->ev, sbus_address,
                           provider->uid, provider->gid, true,
                           &provider->srv_conn,
-                          dp_client_init, provider);
+                          dp_client_init, provider, NULL);
     talloc_free(sbus_address);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");

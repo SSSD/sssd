@@ -32,6 +32,9 @@
 #include "util/util.h"
 #include "util/sss_utf8.h"
 
+int socket_activated = 0;
+int dbus_activated = 0;
+
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, bool skip_empty,
                        char ***_list, int *size)
@@ -1276,4 +1279,22 @@ bool is_user_or_group_name(const char *sudo_user_value)
 
     /* Now it's either a username or a groupname */
     return true;
+}
+
+bool is_socket_activated(void)
+{
+#ifdef HAVE_SYSTEMD
+    return !!socket_activated;
+#else
+    return false;
+#endif
+}
+
+bool is_dbus_activated(void)
+{
+#ifdef HAVE_SYSTEMD
+    return !!dbus_activated;
+#else
+    return false;
+#endif
 }

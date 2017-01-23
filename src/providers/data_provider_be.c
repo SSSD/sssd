@@ -408,7 +408,8 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
 
     ret = sss_monitor_init(be_ctx, be_ctx->ev, &monitor_be_methods,
                            be_ctx->identity, DATA_PROVIDER_VERSION,
-                           be_ctx, &be_ctx->mon_conn);
+                           MT_SVC_PROVIDER, be_ctx, NULL,
+                           &be_ctx->mon_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize monitor connection\n");
         goto done;

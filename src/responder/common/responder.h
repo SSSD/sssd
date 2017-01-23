@@ -108,6 +108,10 @@ struct resp_ctx {
     int domains_timeout;
     int client_idle_timeout;
 
+    time_t last_request_time;
+    int idle_timeout;
+    struct tevent_timer *idle;
+
     struct sss_cmd_table *sss_cmds;
     const char *sss_pipe_name;
     const char *confdb_service_path;
@@ -127,6 +131,8 @@ struct resp_ctx {
     void *pvt_ctx;
 
     bool shutting_down;
+    bool socket_activated;
+    bool dbus_activated;
 };
 
 struct cli_creds;
@@ -146,6 +152,7 @@ struct cli_ctx {
     void *state_ctx;
 
     struct tevent_timer *idle;
+    time_t last_request_time;
 };
 
 struct sss_cmd_table {
@@ -315,11 +322,7 @@ bool sss_utf8_check(const uint8_t *s, size_t n);
 
 void responder_set_fd_limit(rlim_t fd_limit);
 
-errno_t reset_idle_timer(struct cli_ctx *cctx);
-void idle_handler(struct tevent_context *ev,
-                  struct tevent_timer *te,
-                  struct timeval current_time,
-                  void *data);
+errno_t reset_client_idle_timer(struct cli_ctx *cctx);
 
 #define GET_DOMAINS_DEFAULT_TIMEOUT 60
 

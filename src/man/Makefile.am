@@ -32,7 +32,10 @@ GPO_CONDS = ;gpo_default_enforcing
 else
 GPO_CONDS = ;gpo_default_permissive
 endif
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SEC_CONDS)
+if HAVE_SYSTEMD_UNIT
+SYSTEMD_CONDS = ;have_systemd
+endif
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)$(SEC_CONDS)$(SYSTEMD_CONDS)
 
 
 #Special Rules:

@@ -30,6 +30,11 @@
 
 static int sbus_server_destructor(void *ctx);
 
+struct new_connection_data {
+    struct sbus_connection *server;
+    void *client_destructor_data;
+};
+
 /*
  * new_connection_callback
  * Actions to be run upon each new client connection
@@ -41,19 +46,20 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
                                             DBusConnection *dbus_conn,
                                             void *data)
 {
-    struct sbus_connection *server;
+    struct new_connection_data *ncd;
     struct sbus_connection *conn;
     int ret;
 
     DEBUG(SSSDBG_FUNC_DATA,"Entering.\n");
-    server = talloc_get_type(data, struct sbus_connection);
-    if (!server) {
+    ncd = talloc_get_type(data, struct new_connection_data);
+    if (!ncd) {
         return;
     }
 
     DEBUG(SSSDBG_FUNC_DATA,"Adding connection %p.\n", dbus_conn);
-    ret = sbus_init_connection(server, server->ev, dbus_conn,
-                               SBUS_CONN_TYPE_PRIVATE, &conn);
+    ret = sbus_init_connection(ncd->server, ncd->server->ev, dbus_conn,
+                               SBUS_CONN_TYPE_PRIVATE, NULL,
+                               ncd->client_destructor_data, &conn);
     if (ret != 0) {
         dbus_connection_close(dbus_conn);
         DEBUG(SSSDBG_FUNC_DATA, "Closing connection (failed setup)\n");
@@ -69,7 +75,7 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
      * This function (or its callbacks) should also
      * set up connection-specific methods.
      */
-    ret = server->srv_init_fn(conn, server->srv_init_data);
+    ret = ncd->server->srv_init_fn(conn, ncd->server->srv_init_data);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,"Initialization failed!\n");
         dbus_connection_close(dbus_conn);
@@ -186,7 +192,8 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
                     bool use_symlink,
                     struct sbus_connection **_server,
                     sbus_server_conn_init_fn init_fn,
-                    void *init_pvt_data)
+                    void *init_pvt_data,
+                    void *client_destructor_data)
 {
     struct sbus_connection *server;
     DBusServer *dbus_server;
@@ -199,6 +206,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     const char *socket_address;
     struct stat stat_buf;
     TALLOC_CTX *tmp_ctx;
+    struct new_connection_data *ncd;
 
     *_server = NULL;
 
@@ -309,10 +317,21 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* This structure must be alive while server is alive. That's the
+     * reason for using server as its talloc context.
+     */
+    ncd = talloc_zero((TALLOC_CTX *)server, struct new_connection_data);
+    if (!ncd) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ncd->server = server;
+    ncd->client_destructor_data = client_destructor_data;
+
     /* Set up D-BUS new connection handler */
     dbus_server_set_new_connection_function(server->dbus.server,
                                             sbus_server_init_new_connection,
-                                            server, NULL);
+                                            ncd, NULL);
 
     /* Set up DBusWatch functions */
     dbret = dbus_server_set_watch_functions(server->dbus.server,

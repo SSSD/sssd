@@ -74,12 +74,6 @@ struct sbus_request;
 typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,
                                    void *handler_data);
 
-/*
- * sbus_conn_destructor_fn
- * Function to be called when a connection is finalized
- */
-typedef int (*sbus_conn_destructor_fn)(void *);
-
 typedef void (*sbus_conn_reconn_callback_fn)(struct sbus_connection *, int, void *);
 
 /*
@@ -141,7 +135,9 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
                     uid_t uid, gid_t gid,
                     bool use_symlink,
                     struct sbus_connection **server,
-                    sbus_server_conn_init_fn init_fn, void *init_pvt_data);
+                    sbus_server_conn_init_fn init_fn,
+                    void *init_pvt_data,
+                    void *client_destructor_data);
 
 /* Connection Functions */
 
@@ -155,6 +151,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
 int sbus_new_connection(TALLOC_CTX *ctx,
                         struct tevent_context *ev,
                         const char *address,
+                        time_t *last_request_time,
                         struct sbus_connection **conn);
 
 /* sbus_add_connection
@@ -173,6 +170,8 @@ int sbus_init_connection(TALLOC_CTX *ctx,
                          struct tevent_context *ev,
                          DBusConnection *dbus_conn,
                          int connection_type,
+                         time_t *last_request_time,
+                         void *destructor_data,
                          struct sbus_connection **_conn);
 
 DBusConnection *sbus_get_connection(struct sbus_connection *conn);
@@ -447,5 +446,11 @@ sbus_signal_listen(struct sbus_connection *conn,
                    const char *signal,
                    sbus_incoming_signal_fn handler_fn,
                    void *handler_data);
+
+/* This function returns the destructor data passed when in starting
+ * a new dbus server/connection. Its use, for now, must be restricted
+ * to {dbus,socket}-activated services in order to proper shut them
+ * down, unregistering them in the monitor. */
+void *sbus_connection_get_destructor_data(struct sbus_connection *conn);
 
 #endif /* _SSSD_DBUS_H_*/

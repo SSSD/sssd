@@ -95,11 +95,6 @@ int cmdline_debug_microseconds;
 
 struct svc_spy;
 
-enum mt_svc_type {
-    MT_SVC_SERVICE,
-    MT_SVC_PROVIDER
-};
-
 struct mt_svc {
     struct mt_svc *prev;
     struct mt_svc *next;
@@ -119,6 +114,7 @@ struct mt_svc {
     int kill_time;
 
     bool svc_started;
+    bool socket_activated; /* also used for dbus-activated services */
 
     int restarts;
     time_t last_restart;
@@ -177,6 +173,8 @@ static int start_service(struct mt_svc *mt_svc);
 
 static int monitor_service_init(struct sbus_connection *conn, void *data);
 
+static int monitor_service_shutdown(struct sbus_connection *conn, void *data);
+
 static int service_signal_reset_offline(struct mt_svc *svc);
 
 static int get_service_config(struct mt_ctx *ctx, const char *name,
@@ -189,6 +187,8 @@ static int add_new_service(struct mt_ctx *ctx,
 static int add_new_provider(struct mt_ctx *ctx,
                             const char *name,
                             int restarts);
+
+static char *check_service(char *service);
 
 static int mark_service_as_started(struct mt_svc *svc);
 
@@ -228,15 +228,100 @@ struct mon_init_conn {
 
 static int add_svc_conn_spy(struct mt_svc *svc);
 
+static int service_not_found(char *svc_name,
+                             struct mt_svc **_svc)
+{
+    DEBUG(SSSDBG_FATAL_FAILURE,
+         "Unable to find peer [%s] in list of services,"
+         " killing connection!\n", svc_name);
+
+    *_svc = NULL;
+    return ENOENT;
+}
+
+#ifdef HAVE_SYSTEMD
+static int socket_activated_service_not_found(struct mon_init_conn *mini,
+                                              char *svc_name,
+                                              bool is_provider,
+                                              struct mt_svc **_svc)
+{
+    struct mt_svc *svc = NULL;
+    int ret;
+
+    if (is_provider) {
+        return service_not_found(svc_name, _svc);
+    }
+
+    /* As the service is a responder and wasn't part of the services' list, it means
+     * the service has been socket/dbus activated and has to be configured and added
+     * to the services' list now */
+
+    *_svc = NULL;
+
+    if (check_service(svc_name) != NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Invalid service %s\n", svc_name);
+        return EINVAL;
+    }
+
+    mini->ctx->services_started = true;
+    mini->ctx->num_services++;
+
+    ret = get_service_config(mini->ctx, svc_name, &svc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+                "Unable to get the configuration for the service: %s\n",
+                svc_name);
+        return ret;
+    }
+    svc->restarts = 0;
+    svc->socket_activated = true;
+
+    DLIST_ADD(mini->ctx->svc_list, svc);
+
+    *_svc = svc;
+    return EOK;
+}
+#endif
+
+static int get_service_in_the_list(struct mon_init_conn *mini,
+                                   char *svc_name,
+                                   bool is_provider,
+                                   struct mt_svc **_svc)
+{
+    struct mt_svc *svc;
+
+    for (svc = mini->ctx->svc_list; svc != NULL; svc = svc->next) {
+        if (strcasecmp(svc->identity, svc_name) == 0) {
+            svc->socket_activated = false;
+            *_svc = svc;
+            return EOK;
+        }
+    }
+
+#if HAVE_SYSTEMD
+    return socket_activated_service_not_found(mini, svc_name, is_provider,
+                                              _svc);
+#else
+    return service_not_found(svc_name, _svc);
+#endif
+}
+
+static int sbus_connection_destructor(struct sbus_connection *conn)
+{
+    return monitor_service_shutdown(conn,
+                                    sbus_connection_get_destructor_data(conn));
+}
+
 /* registers a new client.
  * if operation is successful also sends back the Monitor version */
 static int client_registration(struct sbus_request *dbus_req, void *data)
 {
     dbus_uint16_t version = MONITOR_VERSION;
     struct mon_init_conn *mini;
-    struct mt_svc *svc;
+    struct mt_svc *svc = NULL;
     DBusError dbus_error;
     dbus_uint16_t svc_ver;
+    dbus_uint16_t svc_type;
     char *svc_name;
     dbus_bool_t dbret;
     int ret;
@@ -255,6 +340,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     dbret = dbus_message_get_args(dbus_req->message, &dbus_error,
                                   DBUS_TYPE_STRING, &svc_name,
                                   DBUS_TYPE_UINT16, &svc_ver,
+                                  DBUS_TYPE_UINT16, &svc_type,
                                   DBUS_TYPE_INVALID);
     if (!dbret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -270,26 +356,31 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
           "Received ID registration: (%s,%d)\n", svc_name, svc_ver);
 
     /* search this service in the list */
-    svc = mini->ctx->svc_list;
-    while (svc) {
-        ret = strcasecmp(svc->identity, svc_name);
-        if (ret == 0) {
-            break;
-        }
-        svc = svc->next;
-    }
-    if (!svc) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to find peer [%s] in list of services,"
-                  " killing connection!\n", svc_name);
+    ret = get_service_in_the_list(mini, svc_name, svc_type == MT_SVC_PROVIDER,
+                                  &svc);
+    if (ret != EOK) {
         sbus_disconnect(dbus_req->conn);
         sbus_request_finish(dbus_req, NULL);
         /* FIXME: should we just talloc_zfree(conn) ? */
-        goto done;
+
+        if (ret == ENOENT) {
+            goto done;
+        }
+
+        return ret;
     }
 
     /* Fill in svc structure with connection data */
     svc->conn = mini->conn;
+
+    /* For {dbus,socket}-activated services we will have to unregister then
+     * when the sbus_connection is freed. That's the reason we have to
+     * hook up on its destructor function, do the service unregistration
+     * from there and set the destructor back to NULL just before freeing
+     * the service itself. */
+    if (svc->socket_activated) {
+        talloc_set_destructor(svc->conn, sbus_connection_destructor);
+    }
 
     ret = mark_service_as_started(svc);
     if (ret) {
@@ -431,12 +522,14 @@ static int mark_service_as_started(struct mt_svc *svc)
             goto done;
         }
 
-        ctx->services_started = true;
+        if (ctx->services != NULL) {
+            ctx->services_started = true;
 
-        DEBUG(SSSDBG_CONF_SETTINGS, "Now starting services!\n");
-        /* then start all services */
-        for (i = 0; ctx->services[i]; i++) {
-            add_new_service(ctx, ctx->services[i], 0);
+            DEBUG(SSSDBG_CONF_SETTINGS, "Now starting services!\n");
+            /* then start all services */
+            for (i = 0; ctx->services[i]; i++) {
+                add_new_service(ctx, ctx->services[i], 0);
+            }
         }
     }
 
@@ -446,6 +539,12 @@ static int mark_service_as_started(struct mt_svc *svc)
 
     /* create the pid file if all services are alive */
     if (!ctx->pid_file_created && ctx->started_services == ctx->num_services) {
+        if (svc->socket_activated) {
+             /* There's no reason for trying to terminate the parent process
+              * when the responder was socket-activated. */
+            goto done;
+        }
+
         DEBUG(SSSDBG_TRACE_FUNC,
               "All services have successfully started, creating pid file\n");
         ret = pidfile(PID_PATH, MONITOR_NAME);
@@ -501,6 +600,10 @@ static void services_startup_timeout(struct tevent_context *ev,
 {
     struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
     int i;
+
+    if (ctx->services == NULL) {
+        return;
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Handling timeout\n");
 
@@ -558,7 +661,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
      * lose any access.
      */
     ret = sbus_new_server(ctx, ctx->ev, monitor_address, ctx->uid, ctx->gid,
-                          false, &ctx->sbus_srv, monitor_service_init, ctx);
+                          false, &ctx->sbus_srv, monitor_service_init, ctx, ctx);
 
     talloc_free(monitor_address);
 
@@ -809,21 +912,33 @@ done:
     return ret;
 }
 
-static char *check_services(char **services)
+static char *check_service(char *service)
 {
     const char * const *known_services = get_known_services();
     int i;
-    int ii;
+
+    for (i = 0; known_services[i] != NULL; i++) {
+        if (strcasecmp(service, known_services[i]) == 0) {
+            break;
+        }
+    }
+
+    if (known_services[i] == NULL) {
+        return service;
+    }
+
+    return NULL;
+}
+
+static char *check_services(char **services)
+{
+    if (services == NULL) {
+        return NULL;
+    }
 
     /* Check if services we are about to start are in the list if known */
-    for (i = 0; services[i]; i++) {
-        for (ii=0; known_services[ii]; ii++) {
-            if (strcasecmp(services[i], known_services[ii]) == 0) {
-                break;
-            }
-        }
-
-        if (known_services[ii] == NULL) {
+    for (int i = 0; services[i]; i++) {
+        if (check_service(services[i]) != NULL) {
             return services[i];
         }
     }
@@ -875,10 +990,19 @@ static int get_monitor_config(struct mt_ctx *ctx)
                                     CONFDB_MONITOR_CONF_ENTRY,
                                     CONFDB_MONITOR_ACTIVE_SERVICES,
                                     &ctx->services);
+
+#ifdef HAVE_SYSTEMD
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get the explicitly configured services!\n");
+        return EINVAL;
+    }
+#else
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No services configured!\n");
         return EINVAL;
     }
+#endif
 
     ret = add_implicit_services(ctx->cdb, ctx, &ctx->services);
     if (ret != EOK) {
@@ -895,8 +1019,11 @@ static int get_monitor_config(struct mt_ctx *ctx)
 
     ctx->started_services = 0;
     ctx->num_services = 0;
-    for (i = 0; ctx->services[i] != NULL; i++) {
-        ctx->num_services++;
+
+    if (ctx->services != NULL) {
+        for (i = 0; ctx->services[i] != NULL; i++) {
+            ctx->num_services++;
+        }
     }
 
     ret = get_service_user(ctx);
@@ -1324,6 +1451,13 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
 
     /* Kill all of our known children manually */
     DLIST_FOR_EACH(svc, mt_ctx->svc_list) {
+        if (svc->socket_activated && svc->conn != NULL) {
+            /* Unset the sbus_connection destructor used to
+             * unregister the service from the monitor as
+             * it may lead to a double-free here. */
+            talloc_set_destructor(svc->conn, NULL);
+        }
+
         if (svc->pid == 0) {
             /* The local provider has no PID */
             continue;
@@ -2245,7 +2379,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
         if (ret != EOK) {
             return ret;
         }
-    } else {
+    } else if (ctx->services != NULL) {
         int i;
 
         ctx->services_started = true;
@@ -2314,6 +2448,43 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
 
     return sbus_conn_register_iface(conn, &monitor_methods.vtable,
                                     MON_SRV_PATH, mini);
+}
+
+/*
+ * monitor_service_shutdown
+ * Unregister the client when it's connection is finished.
+ * Shuts down, from the monitor point of view, the service that just finished.
+ */
+static int monitor_service_shutdown(struct sbus_connection *conn, void *data)
+{
+    struct mt_ctx *ctx;
+    struct mt_svc *svc;
+
+    ctx = talloc_get_type(data, struct mt_ctx);
+
+    for (svc = ctx->svc_list; svc != NULL; svc = svc->next) {
+        if (svc->conn == conn) {
+            break;
+        }
+    }
+
+    if (svc != NULL) {
+        /* We must decrease the number of services when shutting down
+         * a {socket,dbus}-activted service. */
+        ctx->num_services--;
+
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Unregistering service %s (%p)\n", svc->identity, svc);
+
+        /* Before free'ing the service, let's unset the sbus_connection
+         * destructor that triggered this call, otherwise we may end up
+         * with a double-free due to a cycling call */
+        talloc_set_destructor(svc->conn, NULL);
+
+        talloc_zfree(svc);
+    }
+
+    return 0;
 }
 
 static void service_startup_handler(struct tevent_context *ev,
