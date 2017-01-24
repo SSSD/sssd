@@ -170,8 +170,8 @@ int sbus_init_connection(TALLOC_CTX *ctx,
         return EIO;
     }
 
-    ret = sbus_nodes_hash_init(conn, conn, &conn->nodes_fns);
-    if (ret != EOK) {
+    conn->nodes_fns = sbus_nodes_hash_init(conn);
+    if (conn->nodes_fns == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create node functions hash table\n");
         talloc_free(conn);
         return EIO;
