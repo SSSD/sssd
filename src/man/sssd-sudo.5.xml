@@ -110,8 +110,7 @@ ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
             <phrase condition="have_systemd">
                 It's important to note that on platforms where systemd is supported
                 there's no need to add the "sudo" provider to the list of services,
-                as it became optional. However, sssd-sudo.socket must be enabled
-                instead.
+                as it became optional.
             </phrase>
         </para>
         <para>

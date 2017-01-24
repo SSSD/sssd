@@ -220,9 +220,15 @@
                             </para>
                             <para>
                                 <phrase condition="have_systemd">
-                                    By default, all services are disabled and the administrator
-                                    must enable the ones allowed to be used by executing:
-                                    "systemctl enable sssd-@service@.socket".
+                                    By default, the following services are enabled: nss, pam
+                                    <phrase condition="with_sudo">, sudo</phrase>
+                                    <phrase condition="with_autofs">, autofs</phrase>
+                                    <phrase condition="with_ssh">, ssh</phrase>
+                                    <phrase condition="with_pac_responder">, pac</phrase>
+                                    <phrase condition="with_ifp">, ifp</phrase>
+                                    In case the Administrator wants to persistently disable
+                                    one of them, it can be done by running:
+                                    "systemctl mask sssd-@service@.socket"
                                 </phrase>
                             </para>
                         </listitem>
