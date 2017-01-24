@@ -180,9 +180,8 @@ sbus_signal_handler(DBusConnection *conn,
                     DBusMessage *message,
                     void *handler_data);
 
-errno_t
-sbus_incoming_signal_hash_init(TALLOC_CTX *mem_ctx,
-                               hash_table_t **_table);
+hash_table_t *
+sbus_incoming_signal_hash_init(TALLOC_CTX *mem_ctx);
 
 void sbus_register_common_signals(struct sbus_connection *conn, void *pvt);
 
