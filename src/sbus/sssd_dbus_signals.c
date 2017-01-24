@@ -23,6 +23,7 @@
 #include <dhash.h>
 
 #include "util/util.h"
+#include "util/sss_ptr_hash.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sssd_dbus_private.h"
 
@@ -60,11 +61,10 @@ struct sbus_incoming_signal_data {
     void *handler_data;
 };
 
-errno_t
-sbus_incoming_signal_hash_init(TALLOC_CTX *mem_ctx,
-                               hash_table_t **_table)
+hash_table_t *
+sbus_incoming_signal_hash_init(TALLOC_CTX *mem_ctx)
 {
-    return sss_hash_create(mem_ctx, 10, _table);
+    return sss_ptr_hash_create(mem_ctx, NULL, NULL);
 }
 
 static errno_t
@@ -76,27 +76,17 @@ sbus_incoming_signal_hash_add(hash_table_t *table,
 {
     TALLOC_CTX *tmp_ctx;
     struct sbus_incoming_signal_data *data;
-    hash_key_t key;
-    hash_value_t value;
+    char *key;
     errno_t ret;
-    bool has_key;
-    int hret;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
-    key.type = HASH_KEY_STRING;
-    key.str = talloc_asprintf(tmp_ctx, "%s.%s", iface, a_signal);
-    if (key.str == NULL) {
+    key = talloc_asprintf(tmp_ctx, "%s.%s", iface, a_signal);
+    if (key == NULL) {
         ret = ENOMEM;
-        goto done;
-    }
-
-    has_key = hash_has_key(table, &key);
-    if (has_key) {
-        ret = EEXIST;
         goto done;
     }
 
@@ -109,16 +99,11 @@ sbus_incoming_signal_hash_add(hash_table_t *table,
     data->handler_data = handler_data;
     data->handler_fn = handler_fn;
 
-    value.type = HASH_VALUE_PTR;
-    value.ptr = data;
-
-    hret = hash_enter(table, &key, &value);
-    if (hret != HASH_SUCCESS) {
-        ret = EIO;
+    ret = sss_ptr_hash_add(table, key, data, struct sbus_incoming_signal_data);
+    if (ret != EOK) {
         goto done;
     }
 
-    talloc_steal(table, key.str);
     talloc_steal(table, data);
 
     ret = EOK;
@@ -134,31 +119,16 @@ sbus_incoming_signal_hash_lookup(hash_table_t *table,
                                  const char *a_signal)
 {
     struct sbus_incoming_signal_data *data;
-    hash_key_t key;
-    hash_value_t value;
-    int hret;
+    char *key;
 
-    key.type = HASH_KEY_STRING;
-    key.str = talloc_asprintf(NULL, "%s.%s", iface, a_signal);
-    if (key.str == NULL) {
+    key = talloc_asprintf(NULL, "%s.%s", iface, a_signal);
+    if (key == NULL) {
         return NULL;
     }
 
-    hret = hash_lookup(table, &key, &value);
-    if (hret == HASH_ERROR_KEY_NOT_FOUND) {
-        data = NULL;
-        goto done;
-    } else if (hret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Unable to search hash table: hret=%d\n", hret);
-        data = NULL;
-        goto done;
-    }
+    data = sss_ptr_hash_lookup(table, key, struct sbus_incoming_signal_data);
+    talloc_free(key);
 
-    data = talloc_get_type(value.ptr, struct sbus_incoming_signal_data);
-
-done:
-    talloc_free(key.str);
     return data;
 }
 

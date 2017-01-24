@@ -177,8 +177,8 @@ int sbus_init_connection(TALLOC_CTX *ctx,
         return EIO;
     }
 
-    ret = sbus_incoming_signal_hash_init(conn, &conn->incoming_signals);
-    if (ret != EOK) {
+    conn->incoming_signals = sbus_incoming_signal_hash_init(conn);
+    if (conn->incoming_signals == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create incoming singals "
               "hash table\n");
         talloc_free(conn);
