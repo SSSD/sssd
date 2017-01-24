@@ -102,6 +102,8 @@ struct err_string error_to_str[] = {
     { "No proxy server for secrets available"}, /* ERR_SEC_NO_PROXY */
     { "The maximum number of stored secrets has been reached" }, /* ERR_SEC_INVALID_TOO_MANY_SECRETS */
     { "The secret payload size is too large" }, /* ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE */
+    { "No authentication methode available" }, /* ERR_NO_AUTH_METHOD_AVAILABLE */
+    { "Smartcard authentication not supported" }, /* ERR_SC_AUTH_NOT_SUPPORTED */
     { "ERR_LAST" } /* ERR_LAST */
 };
 
