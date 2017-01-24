@@ -247,8 +247,6 @@ sbus_opath_get_object_name(TALLOC_CTX *mem_ctx,
                            const char *object_path,
                            const char *base_path);
 
-bool sbus_conn_disconnecting(struct sbus_connection *conn);
-
 /* max_retries < 0: retry forever
  * max_retries = 0: never retry (why are you calling this function?)
  * max_retries > 0: obvious
