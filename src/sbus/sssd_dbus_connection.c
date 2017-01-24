@@ -27,9 +27,6 @@
 #include "sbus/sssd_dbus_private.h"
 #include "sbus/sssd_dbus_meta.h"
 
-/* Types */
-struct dbus_ctx_list;
-
 static int sbus_auto_reconnect(struct sbus_connection *conn);
 
 static void sbus_dispatch(struct tevent_context *ev,
@@ -499,12 +496,6 @@ void sbus_reconnect_init(struct sbus_connection *conn,
     conn->max_retries = max_retries;
     conn->reconnect_callback = callback;
     conn->reconnect_pvt = pvt;
-}
-
-bool sbus_conn_disconnecting(struct sbus_connection *conn)
-{
-    if (conn->disconnect == 1) return true;
-    return false;
 }
 
 int sss_dbus_conn_send(DBusConnection *dbus_conn,
