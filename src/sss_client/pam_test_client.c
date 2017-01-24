@@ -48,34 +48,44 @@ static struct pam_conv conv = {
 # error "Missing text based pam conversation function"
 #endif
 
+#define DEFAULT_ACTION "acct"
+#define DEFAULT_SERVICE "system-auth"
+
 int main(int argc, char *argv[]) {
 
     pam_handle_t *pamh;
     char *user;
     char *action;
+    char *service;
     int ret;
+    size_t c;
+    char **pam_env;
 
     if (argc == 1) {
-        fprintf(stderr, "missing action and user name, using default\n");
-        action = strdup("auth");
-        user = strdup("dummy");
+        fprintf(stderr, "Usage: pam_test_client USERNAME "
+                        "[auth|acct|setc|chau|open|clos] [pam_service]\n");
+        return 0;
     } else if (argc == 2) {
-        fprintf(stdout, "using first argument as action and default user name\n");
-        action = strdup(argv[1]);
-        user = strdup("dummy");
-    } else {
-        action = strdup(argv[1]);
-        user = strdup(argv[2]);
+        fprintf(stderr,"using first argument as user name and default action "
+                       "and service\n");
+    } else if (argc == 3) {
+        fprintf(stderr, "using first argument as user name, second as action "
+                        "and default service\n");
     }
 
-    if (action == NULL || user == NULL) {
+    user = strdup(argv[1]);
+    action =  argc > 2 ? strdup(argv[2]) : strdup(DEFAULT_ACTION);
+    service = argc > 3 ? strdup(argv[3]) : strdup(DEFAULT_SERVICE);
+
+    if (action == NULL || user == NULL || service == NULL) {
         fprintf(stderr, "Out of memory!\n");
         return 1;
     }
 
-    fprintf(stdout, "action: %s\nuser: %s\n", action,user);
+    fprintf(stdout, "user: %s\naction: %s\nservice: %s\n",
+                    user, action, service);
 
-    ret = pam_start("sss_test", user, &conv, &pamh);
+    ret = pam_start(service, user, &conv, &pamh);
     if (ret != PAM_SUCCESS) {
         fprintf(stderr, "pam_start failed: %s\n", pam_strerror(pamh, ret));
         return 1;
@@ -109,7 +119,24 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "unknown action\n");
     }
 
+    fprintf(stderr, "PAM Environment:\n");
+    pam_env = pam_getenvlist(pamh);
+    if (pam_env != NULL && pam_env[0] != NULL) {
+        for (c = 0; pam_env[c] != NULL; c++) {
+            fprintf(stderr," - %s\n", pam_env[c]);
+            free(pam_env[c]);
+        }
+    } else {
+        fprintf(stderr," - no env -\n");
+    }
+    free(pam_env);
+
+
     pam_end(pamh, ret);
+
+    free(user);
+    free(action);
+    free(service);
 
     return 0;
 }
