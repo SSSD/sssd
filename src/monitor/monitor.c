@@ -298,7 +298,7 @@ static int get_service_in_the_list(struct mon_init_conn *mini,
         }
     }
 
-#if HAVE_SYSTEMD
+#ifdef HAVE_SYSTEMD
     return socket_activated_service_not_found(mini, svc_name, is_provider,
                                               _svc);
 #else
