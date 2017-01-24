@@ -163,8 +163,8 @@ int sbus_init_connection(TALLOC_CTX *ctx,
     conn->last_request_time = last_request_time;
     conn->client_destructor_data = client_destructor_data;
 
-    ret = sbus_opath_hash_init(conn, conn, &conn->managed_paths);
-    if (ret != EOK) {
+    conn->managed_paths = sbus_opath_hash_init(conn, conn);
+    if (conn->managed_paths == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create object paths hash table\n");
         talloc_free(conn);
         return EIO;
