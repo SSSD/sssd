@@ -883,7 +883,9 @@ void test_pam_open_session(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_OPEN_SESSION);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    pam_test_ctx->exp_pam_status = PAM_NO_MODULE_DATA;
+    /* make sure pam_status is not touched by setting it to a value which is
+     * not used by SSSD. */
+    pam_test_ctx->exp_pam_status = _PAM_RETURN_VALUES;
     set_cmd_cb(test_pam_simple_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_OPEN_SESSION,
                           pam_test_ctx->pam_cmds);
