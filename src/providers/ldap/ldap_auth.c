@@ -645,7 +645,13 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
 
     /* The token must be a password token */
     if (sss_authtok_get_type(authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
-        tevent_req_error(req, ERR_AUTH_FAILED);
+        if (sss_authtok_get_type(authtok) == SSS_AUTHTOK_TYPE_SC_PIN
+            || sss_authtok_get_type(authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+            /* Tell frontend that we do not support Smartcard authentication */
+            tevent_req_error(req, ERR_SC_AUTH_NOT_SUPPORTED);
+        } else {
+            tevent_req_error(req, ERR_AUTH_FAILED);
+        }
         return tevent_req_post(req, ev);
     }
 
@@ -1027,6 +1033,9 @@ static void sdap_pam_auth_handler_done(struct tevent_req *subreq)
     case ERR_ACCOUNT_LOCKED:
         state->pd->account_locked = true;
         state->pd->pam_status = PAM_PERM_DENIED;
+        break;
+    case ERR_SC_AUTH_NOT_SUPPORTED:
+        state->pd->pam_status = PAM_BAD_ITEM;
         break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;
