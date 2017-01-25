@@ -24,9 +24,7 @@
 
 #include "sbus/sssd_dbus.h"
 #include "providers/data_provider/dp_private.h"
-#include "providers/backend.h"
 #include "util/dlinklist.h"
-#include "util/sss_utf8.h"
 #include "util/util.h"
 
 static int
