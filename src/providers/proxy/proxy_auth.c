@@ -737,6 +737,14 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
     state->auth_ctx = proxy_auth_ctx;
     state->be_ctx = params->be_ctx;
 
+    /* Tell frontend that we do not support Smartcard authentication */
+    if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_PIN
+            || sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+        pd->pam_status = PAM_BAD_ITEM;
+        goto immediately;
+    }
+
+
     switch (pd->cmd) {
     case SSS_PAM_AUTHENTICATE:
     case SSS_PAM_CHAUTHTOK:
