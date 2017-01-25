@@ -869,6 +869,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
                 D(("domain name: [%s]", &buf[p]));
+                free(pi->domain_name);
                 pi->domain_name = strdup((char *) &buf[p]);
                 if (pi->domain_name == NULL) {
                     D(("strdup failed"));
@@ -937,6 +938,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
 
+                free(pi->otp_vendor);
                 pi->otp_vendor = strdup((char *) &buf[p]);
                 if (pi->otp_vendor == NULL) {
                     D(("strdup failed"));
@@ -950,6 +952,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     pi->otp_vendor = NULL;
                     break;
                 }
+                free(pi->otp_token_id);
                 pi->otp_token_id = strdup((char *) &buf[p + offset]);
                 if (pi->otp_token_id == NULL) {
                     D(("strdup failed"));
@@ -963,6 +966,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     pi->otp_token_id = NULL;
                     break;
                 }
+                free(pi->otp_challenge);
                 pi->otp_challenge = strdup((char *) &buf[p + offset]);
                 if (pi->otp_challenge == NULL) {
                     D(("strdup failed"));
@@ -976,6 +980,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
 
+                free(pi->cert_user);
                 pi->cert_user = strdup((char *) &buf[p]);
                 if (pi->cert_user == NULL) {
                     D(("strdup failed"));
@@ -1010,6 +1015,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     pi->cert_user = NULL;
                     break;
                 }
+                free(pi->token_name);
                 pi->token_name = strdup((char *) &buf[p + offset]);
                 if (pi->token_name == NULL) {
                     D(("strdup failed"));
