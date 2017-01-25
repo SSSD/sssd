@@ -169,6 +169,13 @@ static void ipa_get_rdn_test(void **state)
     ret = ipa_get_rdn(test_ctx, test_ctx->sysdb, "cn=rdn,attr1=value1", &rdn, "cn", "attr1", "value1");
     assert_int_equal(ret, ENOENT);
     assert_null(rdn);
+
+    ret = ipa_get_rdn(test_ctx, test_ctx->sysdb,
+                      "cn=rdn+nsuniqueid=9b1e3301-c32611e6-bdcae37a-ef905e7c,"
+                      "attr1=value1,attr2=value2,dc=example,dc=com",
+                      &rdn, "cn", "attr1", "value1", "attr2", "value2");
+    assert_int_equal(ret, ENOENT);
+    assert_null(rdn);
 }
 
 int main(int argc, const char *argv[])
