@@ -3461,8 +3461,14 @@ if BUILD_WITH_LIBCURL
 noinst_PROGRAMS += tcurl-test-tool
 endif
 
-pam_test_client_SOURCES = src/sss_client/pam_test_client.c
-pam_test_client_LDADD = $(PAM_LIBS) $(PAM_MISC_LIBS)
+pam_test_client_SOURCES = \
+    src/sss_client/pam_test_client.c \
+    $(NULL)
+pam_test_client_LDADD = \
+    $(PAM_LIBS) \
+    $(PAM_MISC_LIBS) \
+    $(LIBADD_DL) \
+    $(NULL)
 
 if BUILD_AUTOFS
 autofs_test_client_SOURCES = \

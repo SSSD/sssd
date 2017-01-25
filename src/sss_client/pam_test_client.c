@@ -25,6 +25,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <dlfcn.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <nss.h>
+#include <errno.h>
 
 #include <security/pam_appl.h>
 
@@ -50,6 +55,70 @@ static struct pam_conv conv = {
 
 #define DEFAULT_ACTION "acct"
 #define DEFAULT_SERVICE "system-auth"
+
+#define DEFAULT_BUFSIZE 4096
+
+static int sss_getpwnam_check(const char *user)
+{
+    void *dl_handle = NULL;
+    enum nss_status (*sss_getpwnam_r)(const char *name, struct passwd *result,
+                                      char *buffer, size_t buflen,
+                                      int *errnop);
+    struct passwd pwd = { 0 };
+    enum nss_status status;
+    char *buffer = NULL;
+    size_t buflen;
+    int nss_errno;
+    int ret;
+
+    dl_handle = dlopen("libnss_sss.so.2", RTLD_NOW);
+    if (dl_handle == NULL) {
+        fprintf(stderr, "dlopen failed with [%s].\n", dlerror());
+        ret = EIO;
+        goto done;
+    }
+
+    sss_getpwnam_r = dlsym(dl_handle, "_nss_sss_getpwnam_r");
+    if (sss_getpwnam_r == NULL) {
+        fprintf(stderr, "dlsym failed with [%s].\n", dlerror());
+        ret = EIO;
+        goto done;
+    }
+
+    buflen = DEFAULT_BUFSIZE;
+    buffer = malloc(buflen);
+    if (buffer == NULL) {
+        fprintf(stderr, "malloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    status = sss_getpwnam_r(user, &pwd, buffer, buflen, &nss_errno);
+    if (status != NSS_STATUS_SUCCESS) {
+        fprintf(stderr, "sss_getpwnam_r failed with [%d].\n", status);
+        ret = EIO;
+        goto done;
+    }
+
+    fprintf(stdout, "SSSD nss user lookup result:\n");
+    fprintf(stdout, " - user name: %s\n", pwd.pw_name);
+    fprintf(stdout, " - user id: %d\n", pwd.pw_uid);
+    fprintf(stdout, " - group id: %d\n", pwd.pw_gid);
+    fprintf(stdout, " - gecos: %s\n", pwd.pw_gecos);
+    fprintf(stdout, " - home directory: %s\n", pwd.pw_dir);
+    fprintf(stdout, " - shell: %s\n", pwd.pw_shell);
+
+    ret = 0;
+
+done:
+    if (dl_handle != NULL) {
+        dlclose(dl_handle);
+    }
+
+    free(buffer);
+
+    return ret;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -84,6 +153,13 @@ int main(int argc, char *argv[]) {
 
     fprintf(stdout, "user: %s\naction: %s\nservice: %s\n",
                     user, action, service);
+
+    if (*user != '\0') {
+        ret = sss_getpwnam_check(user);
+        if (ret != 0) {
+            fprintf(stderr, "User name lookup with [%s] failed.\n", user);
+        }
+    }
 
     ret = pam_start(service, user, &conv, &pamh);
     if (ret != PAM_SUCCESS) {
