@@ -2405,6 +2405,7 @@ test_wbc_calls_LDFLAGS = \
     -Wl,-wrap,sss_nss_getnamebysid \
     $(NULL)
 test_wbc_calls_LDADD = \
+    $(CLIENT_LIBS) \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
