@@ -1,0 +1,9 @@
+windows_test_dir: '/home/Administrator'
+root_password: 'redhat'
+domains:
+  - name: testrelm.test
+    type: sssd
+    hosts:
+      - name: idm1.example.test
+        external_hostname: idm1.example.test
+        role: master
