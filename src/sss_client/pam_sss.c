@@ -689,7 +689,7 @@ static int user_info_account_expired(pam_handle_t *pamh, size_t buflen,
     ret = snprintf(user_msg, bufsize, "%s%s%.*s",
                    EXP_ACC_MSG,
                    msg_len > 0 ? SRV_MSG : "",
-                   msg_len,
+                   (int)msg_len,
                    msg_len > 0 ? (char *)(buf + 2 * sizeof(uint32_t)) : "" );
     if (ret < 0 || ret > bufsize) {
         D(("snprintf failed."));
@@ -744,7 +744,7 @@ static int user_info_chpass_error(pam_handle_t *pamh, size_t buflen,
     ret = snprintf(user_msg, bufsize, "%s%s%.*s",
                    _("Password change failed. "),
                    msg_len > 0 ? _("Server message: ") : "",
-                   msg_len,
+                   (int)msg_len,
                    msg_len > 0 ? (char *)(buf + 2 * sizeof(uint32_t)) : "" );
     if (ret < 0 || ret > bufsize) {
         D(("snprintf failed."));
