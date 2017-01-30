@@ -603,7 +603,7 @@ fail:
 
 /*==================The main program=================================== */
 
-static void print_group_info(struct group_info *g, int level)
+static void print_group_info(struct group_info *g, unsigned level)
 {
     int i;
     char padding[512];
@@ -634,7 +634,7 @@ static void print_group_info(struct group_info *g, int level)
     printf(_("\n%1$sMember groups: "), padding);
 }
 
-static void print_recursive(struct group_info **group_members, int level)
+static void print_recursive(struct group_info **group_members, unsigned level)
 {
     int i;
 
