@@ -1621,6 +1621,7 @@ py_hbac_evaluate(HbacRequest *self, PyObject *args)
             goto fail;
         }
         /* FALLTHROUGH */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     case HBAC_EVAL_DENY:
         ret = PYNUMBER_FROMLONG(eres);
         break;

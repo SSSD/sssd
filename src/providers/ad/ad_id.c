@@ -337,6 +337,7 @@ static bool ad_account_can_shortcut(struct be_ctx *be_ctx,
             goto done;
         }
         /* fall through */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     case BE_FILTER_SECID:
         csid = sid == NULL ? filter_value : sid;
 

@@ -1145,6 +1145,7 @@ fo_resolve_service_server(struct tevent_req *req)
                                 state->server->common);
         fo_set_server_status(state->server, SERVER_RESOLVING_NAME);
         /* FALLTHROUGH */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     case SERVER_RESOLVING_NAME:
         /* Name resolution is already under way. Just add ourselves into the
          * waiting queue so we get notified after the operation is finished. */
@@ -1284,6 +1285,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
          * "server" might be invalid now if the SRV
          * query collapsed
          * */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     case SRV_NEUTRAL: /* Request SRV lookup */
         if (server != NULL && server != state->meta) {
             /* A server created by expansion of meta server was marked as
@@ -1443,9 +1445,11 @@ resolve_srv_done(struct tevent_req *subreq)
         break;
     case ERR_SRV_NOT_FOUND:
         /* fall through */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     case ERR_SRV_LOOKUP_ERROR:
         fo_set_port_status(state->meta, PORT_NOT_WORKING);
         /* fall through */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unable to resolve SRV [%d]: %s\n",
                                   ret, sss_strerror(ret));

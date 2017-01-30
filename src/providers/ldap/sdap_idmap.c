@@ -516,6 +516,7 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
               "sssd-ad(5) for an explanation of how to resolve this issue.\n",
               sid_str);
         /* Fall through intentionally */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     default:
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not convert objectSID [%s] to a UNIX ID\n",
