@@ -434,8 +434,8 @@ static errno_t sssctl_fetch_object(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info **_dom)
 {
     TALLOC_CTX *tmp_ctx;
-    struct sysdb_attrs *entry;
-    struct sss_domain_info *dom;
+    struct sysdb_attrs *entry = NULL;
+    struct sss_domain_info *dom = NULL;
     const char **attrs;
     char *sanitized;
     errno_t ret;
