@@ -431,6 +431,30 @@ if test x"$sss_cv_attribute_warn_unused_result" = xyes ; then
              [whether compiler supports __attribute__((warn_unused_result))])
 fi
 
+SAFE_CFLAGS=$CFLAGS
+CFLAGS="-Werror"
+AC_CACHE_CHECK(
+    [whether compiler supports __attribute__((fallthrough))],
+    [sss_cv_attribute_fallthrough],
+    [AC_COMPILE_IFELSE(
+         [AC_LANG_SOURCE(
+             [ __attribute__ ((fallthrough)); ])
+         ],[
+             sss_cv_attribute_fallthrough=yes
+             sss_cv_attribute_fallthrough_val="__attribute__ ((fallthrough))"
+         ],[
+             sss_cv_attribute_fallthrough=no
+             sss_cv_attribute_fallthrough_val=
+         ])
+    ])
+CFLAGS=$SAFE_CFLAGS
+
+AC_DEFINE_UNQUOTED(
+    [SSS_ATTRIBUTE_FALLTHROUGH],
+    [$sss_cv_attribute_fallthrough_val],
+    [__attribute__((fallthrough)) if supported])
+
+
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.5], [have_check=1], [have_check=])
 if test x$have_check = x; then
     AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])

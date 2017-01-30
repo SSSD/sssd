@@ -230,6 +230,7 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
         }
 
         /* Falling through to default intentionally*/
+        SSS_ATTRIBUTE_FALLTHROUGH;
     default:
         /*
          * Timeout or other error occurred or something
