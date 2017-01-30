@@ -220,6 +220,7 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
         DEBUG(SSSDBG_FATAL_FAILURE,"The Data Provider returned an error [%s]\n",
                  dbus_message_get_error_name(reply));
         /* Falling through to default intentionally*/
+        SSS_ATTRIBUTE_FALLTHROUGH;
     default:
         /*
          * Timeout or other error occurred or something

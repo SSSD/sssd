@@ -971,6 +971,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_CRIT_FAILURE, "krb5_delete_ccname failed.\n");
         }
         /* FALLTHROUGH */
+        SSS_ATTRIBUTE_FALLTHROUGH;
 
     case ERR_CREDS_EXPIRED:
         /* If the password is expired we can safely remove the ccache from the

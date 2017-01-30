@@ -1335,6 +1335,7 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
                                  "Assume the user is only member of its "
                                  "primary group (%"SPRIgid")\n", pwd->pw_gid);
         /* fall through */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     case NSS_STATUS_SUCCESS:
         DEBUG(SSSDBG_CONF_SETTINGS, "User [%s] appears to be member of %lu "
               "groups\n", pwd->pw_name, num_gids);

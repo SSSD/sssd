@@ -2650,6 +2650,7 @@ static void ping_check(DBusPendingCall *pending, void *data)
               "A service PING returned an error [%s], closing connection.\n",
                dbus_error_name);
         /* Falling through to default intentionally*/
+        SSS_ATTRIBUTE_FALLTHROUGH;
     default:
         /*
          * Timeout or other error occurred or something

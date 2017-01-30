@@ -138,6 +138,7 @@ int sysdb_delete_entry(struct sysdb_ctx *sysdb,
             return EOK;
         }
         /* fall through */
+        SSS_ATTRIBUTE_FALLTHROUGH;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "LDB Error: %s(%d)\nError Message: [%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb));
