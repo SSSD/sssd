@@ -1041,41 +1041,7 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
 
 static void pam_forwarder_cb(struct tevent_req *req);
 static void pam_forwarder_cert_cb(struct tevent_req *req);
-static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                       const char *err_msg, void *ptr);
 static int pam_check_user_search(struct pam_auth_req *preq);
-
-static errno_t pam_cmd_assume_upn(struct pam_auth_req *preq)
-{
-    int ret;
-
-    if (!preq->pd->name_is_upn
-            && preq->pd->logon_name != NULL
-            && strchr(preq->pd->logon_name, '@') != NULL) {
-        DEBUG(SSSDBG_TRACE_ALL,
-              "No entry found so far, trying UPN/email lookup with [%s].\n",
-              preq->pd->logon_name);
-        /* Assuming Kerberos principal */
-        preq->domain = preq->cctx->rctx->domains;
-        preq->check_provider =
-                            NEED_CHECK_PROVIDER(preq->domain->provider);
-        preq->pd->user = talloc_strdup(preq->pd, preq->pd->logon_name);
-        if (preq->pd->user == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-            return ENOMEM;
-        }
-        preq->pd->name_is_upn = true;
-        preq->pd->domain = NULL;
-
-        ret = pam_check_user_search(preq);
-        if (ret == EOK) {
-            pam_dom_forwarder(preq);
-        }
-        return EOK;
-    }
-
-    return ENOENT;
-}
 
 
 /* TODO: we should probably return some sort of cookie that is set in the
@@ -1242,15 +1208,12 @@ static errno_t check_cert(TALLOC_CTX *mctx,
 
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
-    struct sss_domain_info *dom;
     struct pam_auth_req *preq;
     struct pam_data *pd;
     int ret;
-    errno_t ncret;
     struct pam_ctx *pctx =
             talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
     struct tevent_req *req;
-    char *name = NULL;
 
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
@@ -1294,67 +1257,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         goto done;
     }
 
-    if (pd->user != NULL) {
-        /* now check user is valid */
-        if (pd->domain) {
-            preq->domain = responder_get_domain(cctx->rctx, pd->domain);
-            if (!preq->domain) {
-                ret = ENOENT;
-                goto done;
-            }
-
-            name = sss_resp_create_fqname(preq, pctx->rctx, preq->domain,
-                                          preq->pd->name_is_upn,
-                                          preq->pd->user);
-            if (name == NULL) {
-                return ENOMEM;
-            }
-
-            ncret = sss_ncache_check_user(pctx->rctx->ncache,
-                                          preq->domain, name);
-            talloc_free(name);
-            if (ncret == EEXIST) {
-                /* User found in the negative cache */
-                ret = ENOENT;
-                goto done;
-            }
-        } else {
-            for (dom = preq->cctx->rctx->domains;
-                 dom;
-                 dom = get_next_domain(dom, 0)) {
-                if (dom->fqnames) continue;
-
-                name = sss_resp_create_fqname(preq, pctx->rctx, dom,
-                                              preq->pd->name_is_upn,
-                                              preq->pd->user);
-                if (name == NULL) {
-                    return ENOMEM;
-                }
-
-                ncret = sss_ncache_check_user(pctx->rctx->ncache,
-                                              dom, name);
-                talloc_free(name);
-                if (ncret == ENOENT) {
-                    /* User not found in the negative cache
-                     * Proceed with PAM actions
-                     */
-                    break;
-                }
-
-                /* Try the next domain */
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "User [%s@%s] filtered out (negative cache). "
-                       "Trying next domain.\n", pd->user, dom->name);
-            }
-
-            if (!dom) {
-                ret = ENOENT;
-                goto done;
-            }
-            preq->domain = dom;
-        }
-    }
-
     /* try backend first for authentication before doing local Smartcard
      * authentication */
     if (pd->cmd != SSS_PAM_AUTHENTICATE && may_do_cert_auth(pctx, pd)) {
@@ -1363,22 +1265,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         goto done;
     }
 
-
-    if (preq->domain->provider == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Domain [%s] has no auth provider.\n", preq->domain->name);
-        ret = EINVAL;
-        goto done;
-    }
-
-    preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
-
     ret = pam_check_user_search(preq);
-    if (ret == EOK) {
-        pam_dom_forwarder(preq);
-    } else if (ret == ENOENT) {
-        ret = pam_cmd_assume_upn(preq);
-    }
 
 done:
     return pam_check_user_done(preq, ret);
@@ -1420,9 +1307,6 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
                 ret = ENOENT;
             } else {
                 ret = pam_check_user_search(preq);
-                if (ret == EOK) {
-                    pam_dom_forwarder(preq);
-                }
             }
 
         }
@@ -1496,6 +1380,15 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                       "sss_parse_name_for_domains failed.\n");
                 goto done;
             }
+
+            /* cert_user will be returned to the PAM client as user name, so
+             * we can use it here already e.g. to set in initgroups timeout */
+            preq->pd->logon_name = talloc_strdup(preq->pd, cert_user);
+            if (preq->pd->logon_name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
         }
     } else {
         if (preq->pd->logon_name == NULL) {
@@ -1540,31 +1433,17 @@ static void pam_forwarder_cb(struct tevent_req *req)
 
     ret = pam_forwarder_parse_data(cctx, pd);
     if (ret == EAGAIN) {
-        if (strchr(preq->pd->logon_name, '@') == NULL) {
-            goto done;
-        }
-        /* Assuming Kerberos principal */
-        preq->domain = preq->cctx->rctx->domains;
-        preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
-        preq->pd->user = talloc_strdup(preq->pd, preq->pd->logon_name);
-        if (preq->pd->user == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Assuming %s is a UPN\n", pd->logon_name);
+        /* If not, cache_req will error out later */
+        pd->user = talloc_strdup(pd, pd->logon_name);
+        if (pd->user == NULL) {
             ret = ENOMEM;
             goto done;
         }
-        preq->pd->name_is_upn = true;
-        preq->pd->domain = NULL;
+        pd->domain = NULL;
     } else if (ret != EOK) {
         ret = EINVAL;
         goto done;
-    }
-
-    if (preq->pd->domain) {
-        preq->domain = responder_get_domain(cctx->rctx, preq->pd->domain);
-        if (preq->domain == NULL) {
-            ret = ENOENT;
-            goto done;
-        }
     }
 
     /* try backend first for authentication before doing local Smartcard
@@ -1576,11 +1455,6 @@ static void pam_forwarder_cb(struct tevent_req *req)
     }
 
     ret = pam_check_user_search(preq);
-    if (ret == EOK) {
-        pam_dom_forwarder(preq);
-    } else if  (ret == ENOENT) {
-        ret = pam_cmd_assume_upn(preq);
-    }
 
 done:
     pam_check_user_done(preq, ret);
@@ -1589,233 +1463,97 @@ done:
 static void pam_dp_send_acct_req_done(struct tevent_req *req);
 static int pam_check_user_search(struct pam_auth_req *preq)
 {
-    struct sss_domain_info *dom = preq->domain;
-    char *name = NULL;
-    time_t cacheExpire;
     int ret;
     struct tevent_req *dpreq;
-    struct dp_callback_ctx *cb_ctx;
-    struct pam_ctx *pctx =
-            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
-    static const char *user_attrs[] = SYSDB_PW_ATTRS;
-    struct ldb_result *res;
-    const char *sysdb_name;
+    struct pam_ctx *pctx;
+    struct cache_req_data *data;
 
-    while (dom) {
-       /* if it is a domainless search, skip domains that require fully
-        * qualified names instead */
-        while (dom && !preq->pd->domain && !preq->pd->name_is_upn
-               && dom->fqnames) {
-            dom = get_next_domain(dom, 0);
-        }
-
-        if (!dom) break;
-
-        if (dom != preq->domain) {
-            /* make sure we reset the check_provider flag when we check
-             * a new domain */
-            preq->check_provider = NEED_CHECK_PROVIDER(dom->provider);
-        }
-
-        /* make sure to update the preq if we changed domain */
-        preq->domain = dom;
-
-        talloc_free(name);
-
-        name = sss_resp_create_fqname(preq, pctx->rctx, dom,
-                                      preq->pd->name_is_upn,
-                                      preq->pd->user);
-        if (name == NULL) {
-            return ENOMEM;
-        }
-
-        /* Refresh the user's cache entry on any PAM query
-         * We put a timeout in the client context so that we limit
-         * the number of updates within a reasonable timeout
-         */
-        if (preq->check_provider) {
-            ret = pam_initgr_check_timeout(pctx->id_table,
-                                           preq->pd->logon_name);
-            if (ret != EOK
-                    && ret != ENOENT) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Could not look up initgroup timout\n");
-                return EIO;
-            } else if (ret == ENOENT) {
-                /* Call provider first */
-                break;
-            }
-            /* Entry is still valid, get it from the sysdb */
-        }
-
-        DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for [%s]\n", name);
-
-        if (dom->sysdb == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Fatal: Sysdb CTX not found for this domain!\n");
-            preq->pd->pam_status = PAM_SYSTEM_ERR;
-            return EFAULT;
-        }
-
-        if (preq->pd->name_is_upn) {
-            ret = sysdb_search_user_by_upn(preq, dom, name, user_attrs,
-                                           &preq->user_obj);
-            if (ret == EOK) {
-                /* Since sysdb_search_user_by_upn() searches the whole cache we
-                * have to set the domain so that it matches the result. */
-                sysdb_name = ldb_msg_find_attr_as_string(preq->user_obj,
-                                                         SYSDB_NAME, NULL);
-                if (sysdb_name == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "Cached entry has no name.\n");
-                    return EINVAL;
-                }
-                preq->domain = find_domain_by_object_name(
-                                                        get_domains_head(dom),
-                                                        sysdb_name);
-                if (preq->domain == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Cannot find matching domain for [%s].\n",
-                          sysdb_name);
-                    return EINVAL;
-                }
-            }
-        } else {
-            ret = sysdb_getpwnam_with_views(preq, dom, name, &res);
-            if (res->count > 1) {
-                DEBUG(SSSDBG_FATAL_FAILURE,
-                      "getpwnam call returned more than one result !?!\n");
-                sss_log(SSS_LOG_ERR,
-                        "More users have the same name [%s@%s] in SSSD cache. "
-                        "SSSD will not work correctly.\n",
-                        name, dom->name);
-                return ENOENT;
-            } else if (res->count == 0) {
-                ret = ENOENT;
-            } else {
-                preq->user_obj = res->msgs[0];
-            }
-        }
-        if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to make request to our cache!\n");
-            return EIO;
-        }
-
-        if (ret == ENOENT) {
-            if (preq->check_provider == false) {
-                /* set negative cache only if not result of cache check */
-                ret = sss_ncache_set_user(pctx->rctx->ncache,
-                                          false, dom, preq->pd->user);
-                if (ret != EOK) {
-                    /* Should not be fatal, just slower next time */
-                    DEBUG(SSSDBG_MINOR_FAILURE,
-                           "Cannot set ncache for [%s@%s]\n", name,
-                            dom->name);
-                }
-            }
-
-            /* if a multidomain search, try with next */
-            if (!preq->pd->domain) {
-                dom = get_next_domain(dom, 0);
-                continue;
-            }
-
-            DEBUG(SSSDBG_OP_FAILURE, "No results for getpwnam call\n");
-
-            /* TODO: store negative cache ? */
-
-            return ENOENT;
-        }
-
-        /* One result found */
-
-        /* if we need to check the remote account go on */
-        if (preq->check_provider) {
-            cacheExpire = ldb_msg_find_attr_as_uint64(preq->user_obj,
-                                                      SYSDB_CACHE_EXPIRE, 0);
-            if (cacheExpire < time(NULL)) {
-                break;
-            }
-        }
-
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Returning info for user [%s@%s]\n", name, dom->name);
-
-        /* We might have searched by alias. Pass on the primary name */
-        ret = pd_set_primary_name(preq->user_obj, preq->pd);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Could not canonicalize username\n");
-            return ret;
-        }
-
-        return EOK;
+    data = cache_req_data_name(preq,
+                               CACHE_REQ_INITGROUPS,
+                               preq->pd->user);
+    if (data == NULL) {
+        return ENOMEM;
     }
 
-    if (!dom) {
-        /* Ensure that we don't try to check a provider without a domain,
-         * since this will cause a NULL-dereference below.
-         */
-        preq->check_provider = false;
+    pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+
+    /* The initgr cache is used to make sure that during a single PAM session
+     * (auth, acct_mgtm, ....) the backend is contacted only once. logon_name
+     * is the name provided by the PAM client and will not be modified during
+     * the request, so it makes sense to use it here instead od the pd->user. */
+    ret = pam_initgr_check_timeout(pctx->id_table, preq->pd->logon_name);
+    if (ret == EOK) {
+        /* Entry is still valid, force to lookup in the cache first */
+        cache_req_data_set_bypass_cache(data, false);
+    } else if (ret == ENOENT) {
+        /* Call the data provider first */
+        cache_req_data_set_bypass_cache(data, true);
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not look up initgroup timeout\n");
+        return EIO;
     }
 
-    if (preq->check_provider) {
-
-        /* dont loop forever :-) */
-        preq->check_provider = false;
-
-        dpreq = sss_dp_get_account_send(preq, preq->cctx->rctx,
-                              dom, false, SSS_DP_INITGROUPS, name, 0,
-                              preq->pd->name_is_upn ? EXTRA_NAME_IS_UPN : NULL);
-        if (!dpreq) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Out of memory sending data provider request\n");
-            return ENOMEM;
-        }
-
-        cb_ctx = talloc_zero(preq, struct dp_callback_ctx);
-        if(!cb_ctx) {
-            talloc_zfree(dpreq);
-            return ENOMEM;
-        }
-
-        cb_ctx->callback = pam_check_user_dp_callback;
-        cb_ctx->ptr = preq;
-        cb_ctx->cctx = preq->cctx;
-        cb_ctx->mem_ctx = preq;
-
-        tevent_req_set_callback(dpreq, pam_dp_send_acct_req_done, cb_ctx);
-
-        /* tell caller we are in an async call */
-        return EAGAIN;
+    dpreq = cache_req_send(preq,
+                           preq->cctx->rctx->ev,
+                           preq->cctx->rctx,
+                           preq->cctx->rctx->ncache,
+                           0,
+                           preq->pd->domain,
+                           data);
+    if (!dpreq) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Out of memory sending data provider request\n");
+        return ENOMEM;
     }
 
-    DEBUG(SSSDBG_MINOR_FAILURE,
-          "No matching domain found for [%s], fail!\n", preq->pd->user);
-    return ENOENT;
+    tevent_req_set_callback(dpreq, pam_dp_send_acct_req_done, preq);
+
+    /* tell caller we are in an async call */
+    return EAGAIN;
 }
 
 static void pam_dp_send_acct_req_done(struct tevent_req *req)
 {
-    struct dp_callback_ctx *cb_ctx =
-            tevent_req_callback_data(req, struct dp_callback_ctx);
+    struct cache_req_result *result;
+    struct pam_auth_req *preq;
+    struct pam_ctx *pctx;
+    int ret;
 
-    errno_t ret;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
-    char *err_msg;
+    preq = tevent_req_callback_data(req, struct pam_auth_req);
+    pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
-    ret = sss_dp_get_account_recv(cb_ctx->mem_ctx, req,
-                                  &err_maj, &err_min,
-                                  &err_msg);
+    ret = cache_req_single_domain_recv(preq, req, &result);
     talloc_zfree(req);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Fatal error, killing connection!\n");
-        talloc_free(cb_ctx->cctx);
+        talloc_zfree(preq->cctx);
         return;
     }
 
-    cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
+    if (ret == EOK) {
+        preq->user_obj = result->msgs[0];
+        pd_set_primary_name(preq->user_obj, preq->pd);
+        preq->domain = result->domain;
+
+        ret = pam_initgr_cache_set(pctx->rctx->ev,
+                                   pctx->id_table,
+                                   preq->pd->logon_name,
+                                   pctx->id_timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not save initgr timestamp."
+                  "Proceeding with PAM actions\n");
+        }
+
+        pam_dom_forwarder(preq);
+    }
+
+    ret = pam_check_user_done(preq, ret);
+    if (ret != EOK) {
+        preq->pd->pam_status = PAM_SYSTEM_ERR;
+        pam_reply(preq);
+    }
 }
 
 static int pam_check_user_done(struct pam_auth_req *preq, int ret)
@@ -1845,48 +1583,6 @@ static int pam_check_user_done(struct pam_auth_req *preq, int ret)
     }
 
     return EOK;
-}
-
-static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                       const char *err_msg, void *ptr)
-{
-    struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
-    int ret;
-    struct pam_ctx *pctx =
-            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
-
-    if (err_maj) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Unable to get information from Data Provider\n"
-                  "Error: %u, %u, %s\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg);
-    }
-
-    ret = pam_check_user_search(preq);
-    if (ret == EOK) {
-        /* Make sure we don't go to the ID provider too often */
-        ret = pam_initgr_cache_set(pctx->rctx->ev, pctx->id_table,
-                                   preq->pd->logon_name, pctx->id_timeout);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Could not save initgr timestamp. "
-                   "Proceeding with PAM actions\n");
-            /* This is non-fatal, we'll just end up going to the
-             * data provider again next time.
-             */
-        }
-
-        pam_dom_forwarder(preq);
-    } else if (ret == ENOENT) {
-        ret = pam_cmd_assume_upn(preq);
-    }
-
-    ret = pam_check_user_done(preq, ret);
-
-    if (ret) {
-        preq->pd->pam_status = PAM_SYSTEM_ERR;
-        pam_reply(preq);
-    }
 }
 
 static errno_t pam_is_last_online_login_fresh(struct sss_domain_info *domain,
