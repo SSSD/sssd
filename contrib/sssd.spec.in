@@ -658,6 +658,25 @@ The libnfsidmap sssd module provides a way for rpc.idmapd to call SSSD to map
 UIDs/GIDs to names and vice versa. It can be also used for mapping principal
 (user) name to IDs(UID or GID) or to obtain groups which user are member of.
 
+%package -n libsss_certmap
+Summary: SSSD Certficate Mapping Library
+Group: Development/Libraries
+License: LGPLv3+
+Requires(post): /sbin/ldconfig
+Requires(postun): /sbin/ldconfig
+
+%description -n libsss_certmap
+Library to map certificates to users based on rules
+
+%package -n libsss_certmap-devel
+Summary: SSSD Certficate Mapping Library
+Group: Development/Libraries
+License: LGPLv3+
+Requires: libsss_certmap = %{version}-%{release}
+
+%description -n libsss_certmap-devel
+Library to map certificates to users based on rules
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -888,6 +907,7 @@ done
 %{_datadir}/sssd/sssd.api.d
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
+%{_mandir}/man5/sss-certmap.5*
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
@@ -1145,6 +1165,18 @@ done
 
 %files nfs-idmap
 %{_libdir}/libnfsidmap/sss.so
+
+%files -n libsss_certmap
+%defattr(-,root,root,-)
+%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%{_libdir}/libsss_certmap.so.*
+
+%files -n libsss_certmap-devel
+%defattr(-,root,root,-)
+%doc certmap_doc/html
+%{_includedir}/sss_certmap.h
+%{_libdir}/libsss_certmap.so
+%{_libdir}/pkgconfig/sss_certmap.pc
 
 %pre common
 getent group sssd >/dev/null || groupadd -r sssd
