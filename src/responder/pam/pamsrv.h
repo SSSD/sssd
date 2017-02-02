@@ -60,7 +60,6 @@ struct pam_auth_req {
     pam_dp_callback_t *callback;
 
     bool is_uid_trusted;
-    bool check_provider;
     void *data;
     bool use_cached_auth;
     /* whether cached authentication was tried and failed */
