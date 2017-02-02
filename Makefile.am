@@ -952,6 +952,7 @@ libsss_cert_la_LIBADD = \
     $(TALLOC_LIBS) \
     libsss_crypt.la \
     libsss_debug.la \
+    libsss_certmap.la \
     $(NULL)
 libsss_cert_la_LDFLAGS = \
     -avoid-version \

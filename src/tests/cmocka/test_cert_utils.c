@@ -297,11 +297,11 @@ void test_sss_cert_derb64_to_ldap_filter(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     assert_non_null(ts);
 
-    ret = sss_cert_derb64_to_ldap_filter(ts, NULL, NULL, NULL);
+    ret = sss_cert_derb64_to_ldap_filter(ts, NULL, NULL, NULL, NULL, NULL);
     assert_int_equal(ret, EINVAL);
 
     ret = sss_cert_derb64_to_ldap_filter(ts, "AAECAwQFBgcICQ==", "attrName",
-                                         &filter);
+                                         NULL, NULL, &filter);
     assert_int_equal(ret, EOK);
     assert_string_equal(filter,
                         "(attrName=\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09)");

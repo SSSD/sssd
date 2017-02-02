@@ -72,12 +72,17 @@ errno_t sss_cert_pem_to_derb64(TALLOC_CTX *mem_ctx, const char *pem,
 
 errno_t sss_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx, const char *derb64,
                                        const char *attr_name,
+                                       struct sss_certmap_ctx *certmap_ctx,
+                                       struct sss_domain_info *dom,
                                        char **ldap_filter)
 {
     int ret;
     unsigned char *der;
     size_t der_size;
     char *val;
+    char *filter = NULL;
+    char **domains = NULL;
+    size_t c;
 
     if (derb64 == NULL || attr_name == NULL) {
         return EINVAL;
@@ -89,18 +94,67 @@ errno_t sss_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx, const char *derb64,
         return EINVAL;
     }
 
-    ret = bin_to_ldap_filter_value(mem_ctx, der, der_size, &val);
-    talloc_free(der);
-    if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "bin_to_ldap_filter_value failed.\n");
-            return ret;
-    }
+    if (certmap_ctx == NULL) {
+        ret = bin_to_ldap_filter_value(mem_ctx, der, der_size, &val);
+        talloc_free(der);
+        if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "bin_to_ldap_filter_value failed.\n");
+                return ret;
+        }
 
-    *ldap_filter = talloc_asprintf(mem_ctx, "(%s=%s)", attr_name, val);
-    talloc_free(val);
-    if (*ldap_filter == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-            return ENOMEM;
+        *ldap_filter = talloc_asprintf(mem_ctx, "(%s=%s)", attr_name, val);
+        talloc_free(val);
+        if (*ldap_filter == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+                return ENOMEM;
+        }
+    } else {
+        ret = sss_certmap_get_search_filter(certmap_ctx, der, der_size,
+                                            &filter, &domains);
+        talloc_free(der);
+        if (ret != 0) {
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Certificate does not match matching-rules.\n");
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_certmap_get_search_filter failed.\n");
+            }
+        } else {
+            if (domains == NULL) {
+                if (IS_SUBDOMAIN(dom)) {
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                          "Rule applies only to local domain.\n");
+                    ret = ENOENT;
+                }
+            } else {
+                for (c = 0; domains[c] != NULL; c++) {
+                    if (strcasecmp(dom->name, domains[c]) == 0) {
+                        DEBUG(SSSDBG_TRACE_FUNC,
+                              "Rule applies to current domain [%s].\n",
+                              dom->name);
+                        ret = EOK;
+                        break;
+                    }
+                }
+                if (domains[c] == NULL) {
+                        DEBUG(SSSDBG_TRACE_FUNC,
+                              "Rule does not apply to current domain [%s].\n",
+                              dom->name);
+                    ret = ENOENT;
+                }
+            }
+        }
+
+        if (ret == EOK) {
+            *ldap_filter = talloc_strdup(mem_ctx, filter);
+            if (*ldap_filter == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+            }
+        }
+        sss_certmap_free_filter_and_domains(filter, domains);
+        return ret;
     }
 
     return EOK;

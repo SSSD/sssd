@@ -156,7 +156,7 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
         if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_BY_CERT) {
             ret = sss_cert_derb64_to_ldap_filter(mem_ctx, ar->filter_value,
                          ipa_opts->override_map[IPA_AT_OVERRIDE_USER_CERT].name,
-                         &cert_filter);
+                         NULL, NULL, &cert_filter);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "sss_cert_derb64_to_ldap_filter failed.\n");

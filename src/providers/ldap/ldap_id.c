@@ -247,7 +247,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         }
 
         ret = sss_cert_derb64_to_ldap_filter(state, filter_value, attr_name,
-                                             &user_filter);
+                                             NULL, NULL, &user_filter);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sss_cert_derb64_to_ldap_filter failed.\n");
