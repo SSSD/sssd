@@ -4661,7 +4661,7 @@ errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
     char *user_filter;
 
     ret = sss_cert_derb64_to_ldap_filter(mem_ctx, cert, SYSDB_USER_MAPPED_CERT,
-                                         &user_filter);
+                                         NULL, NULL, &user_filter);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_cert_derb64_to_ldap_filter failed.\n");
         return ret;
