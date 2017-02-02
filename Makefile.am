@@ -278,6 +278,7 @@ if HAVE_CMOCKA
         simple-access-tests \
         krb5_common_test \
         test_iobuf \
+        sss_certmap_test \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -1074,6 +1075,7 @@ SSSD_INTERNAL_LTLIBS = \
 lib_LTLIBRARIES = libipa_hbac.la \
                   libsss_idmap.la \
                   libsss_nss_idmap.la \
+                  libsss_certmap.la \
                   $(NULL)
 
 pkgconfig_DATA += src/lib/ipa_hbac/ipa_hbac.pc
@@ -1128,6 +1130,7 @@ include_HEADERS = \
     src/lib/ipa_hbac/ipa_hbac.h \
     src/lib/idmap/sss_idmap.h \
     src/sss_client/idmap/sss_nss_idmap.h \
+    src/lib/certmap/sss_certmap.h \
     $(NULL)
 
 if BUILD_LIBWBCLIENT
@@ -1710,6 +1713,38 @@ sssd_check_socket_activated_responders_LDADD = \
     $(POPT_LIBS) \
     $(INI_CONFIG_LIBS) \
     $(NULL)
+endif
+
+if HAVE_NSS
+pkgconfig_DATA += src/lib/certmap/sss_certmap.pc
+libsss_certmap_la_DEPENDENCIES = src/lib/certmap/sss_certmap.exports
+libsss_certmap_la_SOURCES = \
+    src/lib/certmap/sss_certmap.c \
+    src/lib/certmap/sss_certmap_attr_names.c \
+    src/lib/certmap/sss_cert_content_nss.c \
+    src/lib/certmap/sss_certmap_krb5_match.c \
+    src/lib/certmap/sss_certmap_ldap_mapping.c \
+    src/util/util_ext.c \
+    src/util/cert/cert_common.c \
+    src/util/crypto/nss/nss_base64.c \
+    src/util/cert/nss/cert.c \
+    src/util/crypto/nss/nss_util.c \
+    $(NULL)
+libsss_certmap_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(NSS_CFLAGS) \
+    $(NULL)
+libsss_certmap_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(NSS_LIBS) \
+    $(NULL)
+libsss_certmap_la_LDFLAGS = \
+    -Wl,--version-script,$(srcdir)/src/lib/certmap/sss_certmap.exports \
+    -version-info 0:0:0
+
+dist_noinst_DATA += src/lib/certmap/sss_certmap.exports
+dist_noinst_HEADERS += src/lib/certmap/sss_certmap_int.h
 endif
 
 #################
@@ -3245,6 +3280,25 @@ test_inotify_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+if HAVE_NSS
+sss_certmap_test_SOURCES = \
+    src/tests/cmocka/test_certmap.c \
+    src/lib/certmap/sss_certmap_attr_names.c \
+    $(NULL)
+sss_certmap_test_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NSS_CFLAGS) \
+    $(NULL)
+sss_certmap_test_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(NSS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    libsss_certmap.la \
+    $(NULL)
+endif
 endif # HAVE_CMOCKA
 
 noinst_PROGRAMS = pam_test_client
@@ -4404,6 +4458,7 @@ docs:
 	$(DOXYGEN) src/lib/ipa_hbac/ipa_hbac.doxy
 	$(DOXYGEN) src/lib/idmap/sss_idmap.doxy
 	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
+	$(DOXYGEN) src/lib/certmap/sss_certmap.doxy
 if BUILD_IFP
 	$(DOXYGEN) src/lib/sifp/sss_simpleifp.doxy
 endif
