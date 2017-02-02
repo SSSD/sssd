@@ -111,6 +111,9 @@ cache_req_data_host(TALLOC_CTX *mem_ctx,
                     const char *name,
                     const char *alias,
                     const char **attrs);
+void
+cache_req_data_set_bypass_cache(struct cache_req_data *data,
+                                bool bypass_cache);
 
 /* Output data. */
 
