@@ -214,7 +214,7 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
      */
     state->result = NULL;
     status = CACHE_OBJECT_MISSING;
-    if (!cr->plugin->bypass_cache) {
+    if (!cr->plugin->bypass_cache && !cr->data->bypass_cache) {
         ret = cache_req_search_cache(state, cr, &state->result);
         if (ret != EOK && ret != ENOENT) {
             goto done;

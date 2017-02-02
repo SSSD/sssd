@@ -357,3 +357,15 @@ cache_req_data_host(TALLOC_CTX *mem_ctx,
 
     return cache_req_data_create(mem_ctx, type, &input);
 }
+
+void
+cache_req_data_set_bypass_cache(struct cache_req_data *data,
+                                bool bypass_cache)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return;
+    }
+
+    data->bypass_cache = bypass_cache;
+}

@@ -84,6 +84,8 @@ struct cache_req_data {
         struct cache_req_cased_name protocol;
         uint16_t port;
     } svc;
+
+    bool bypass_cache;
 };
 
 struct tevent_req *
