@@ -372,11 +372,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
         sbus_request_finish(dbus_req, NULL);
         /* FIXME: should we just talloc_zfree(conn) ? */
 
-        if (ret == ENOENT) {
-            goto done;
-        }
-
-        return ret;
+        goto done;
     }
 
     /* Fill in svc structure with connection data */
