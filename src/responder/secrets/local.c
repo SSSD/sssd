@@ -853,6 +853,12 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         break;
 
     case HTTP_PUT:
+        if (secreq->body.length == 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "PUT with no data\n");
+            ret = EINVAL;
+            goto done;
+        }
+
         DEBUG(SSSDBG_TRACE_LIBS, "Processing HTTP PUT at [%s]\n", lc_req->path);
         if (body_is_json) {
             ret = sec_json_to_simple_secret(state, secreq->body.data,
