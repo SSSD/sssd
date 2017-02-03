@@ -3967,7 +3967,6 @@ systemdconf_DATA =
 if HAVE_SYSTEMD_UNIT
     systemdunit_DATA += \
         src/sysv/systemd/sssd.service \
-        src/sysv/systemd/sssd-nss.socket \
         src/sysv/systemd/sssd-nss.service \
         src/sysv/systemd/sssd-pam.socket \
         src/sysv/systemd/sssd-pam-priv.socket \
@@ -4057,7 +4056,6 @@ replace_script = \
 EXTRA_DIST += \
     src/sysv/systemd/sssd.service.in \
     src/sysv/systemd/journal.conf.in \
-    src/sysv/systemd/sssd-nss.socket.in \
     src/sysv/systemd/sssd-nss.service.in \
     src/sysv/systemd/sssd-pam.socket.in \
     src/sysv/systemd/sssd-pam-priv.socket.in \
@@ -4101,10 +4099,6 @@ src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	$(replace_script)
 
 src/sysv/systemd/journal.conf: src/sysv/systemd/journal.conf.in Makefile
-	@$(MKDIR_P) src/sysv/systemd/
-	$(replace_script)
-
-src/sysv/systemd/sssd-nss.socket: src/sysv/systemd/sssd-nss.socket.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 
@@ -4401,7 +4395,6 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-autofs.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-ifp.service
-	rm -f $(builddir)/src/sysv/systemd/sssd-nss.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-nss.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-pac.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-pac.service
