@@ -453,7 +453,7 @@ ifp_user_get_attr_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     state->ncache = ncache;
     state->search_type = search_type;
 
-    subreq = sss_parse_inp_send(req, rctx, inp);
+    subreq = sss_parse_inp_send(req, rctx, rctx->default_domain, inp);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;

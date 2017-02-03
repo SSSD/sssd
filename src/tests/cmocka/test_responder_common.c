@@ -192,7 +192,8 @@ void parse_inp_simple(void **state)
 
     will_return(__wrap_sss_parse_name_for_domains, WRAP_CALL_REAL);
 
-    req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx, NAME);
+    req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx,
+                             parse_inp_ctx->rctx->default_domain, NAME);
     assert_non_null(req);
     tevent_req_set_callback(req, parse_inp_simple_done, parse_inp_ctx);
 
@@ -213,7 +214,8 @@ void parse_inp_call_dp(void **state)
     /* The second one will succeed as the domains are up-to-date */
     will_return(__wrap_sss_parse_name_for_domains, WRAP_CALL_REAL);
 
-    req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx, NAME);
+    req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx,
+                             parse_inp_ctx->rctx->default_domain, NAME);
     assert_non_null(req);
     tevent_req_set_callback(req, parse_inp_simple_done, parse_inp_ctx);
 
@@ -235,7 +237,8 @@ void parse_inp_call_attach(void **state)
      * as the domains are up-to-date */
     will_return(__wrap_sss_parse_name_for_domains, WRAP_CALL_REAL);
 
-    req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx, NAME);
+    req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx,
+                             parse_inp_ctx->rctx->default_domain, NAME);
     assert_non_null(req);
     tevent_req_set_callback(req, parse_inp_simple_done, parse_inp_ctx);
 
@@ -271,7 +274,8 @@ void parse_inp_call_neg(void **state)
     will_return(__wrap_sss_parse_name_for_domains, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_parse_name_for_domains, EINVAL);
 
-    req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx, NAME);
+    req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx,
+                             parse_inp_ctx->rctx->default_domain, NAME);
     assert_non_null(req);
     tevent_req_set_callback(req, parse_inp_neg_done, parse_inp_ctx);
 

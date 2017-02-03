@@ -443,6 +443,7 @@ errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
 
 struct sss_parse_inp_state {
     struct resp_ctx *rctx;
+    const char *default_domain;
     const char *rawinp;
 
     char *name;
@@ -453,7 +454,9 @@ struct sss_parse_inp_state {
 static void sss_parse_inp_done(struct tevent_req *subreq);
 
 struct tevent_req *
-sss_parse_inp_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
+sss_parse_inp_send(TALLOC_CTX *mem_ctx,
+                   struct resp_ctx *rctx,
+                   const char *default_domain,
                    const char *rawinp)
 {
     errno_t ret;
@@ -465,8 +468,27 @@ sss_parse_inp_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     if (req == NULL) {
          return NULL;
     }
-    state->rawinp = rawinp;
+
+    if (rawinp == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Empty input!\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     state->rctx = rctx;
+
+    state->rawinp = talloc_strdup(state, rawinp);
+    if (state->rawinp == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+
+    state->default_domain = talloc_strdup(state, default_domain);
+    if (default_domain != NULL && state->default_domain == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* If the subdomains haven't been checked yet, we need to always
      * attach to the post-startup subdomain request and only then parse
@@ -474,7 +496,7 @@ sss_parse_inp_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
      * flat domain name specifier */
     if (rctx->get_domains_last_call.tv_sec > 0) {
         ret = sss_parse_name_for_domains(state, rctx->domains,
-                                         rctx->default_domain, rawinp,
+                                         default_domain, rawinp,
                                          &state->domname, &state->name);
         if (ret == EOK) {
             /* Was able to use cached domains */
@@ -532,7 +554,7 @@ static void sss_parse_inp_done(struct tevent_req *subreq)
     state->error = ERR_OK;
 
     ret = sss_parse_name_for_domains(state, state->rctx->domains,
-                                     state->rctx->default_domain,
+                                     state->default_domain,
                                      state->rawinp,
                                      &state->domname, &state->name);
     if (ret == EAGAIN && state->domname != NULL && state->name == NULL) {
