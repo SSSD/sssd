@@ -415,7 +415,8 @@ static errno_t cache_req_process_input(TALLOC_CTX *mem_ctx,
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                     "Parsing input name [%s]\n", cr->data->name.input);
 
-    subreq = sss_parse_inp_send(mem_ctx, cr->rctx, cr->data->name.input);
+    subreq = sss_parse_inp_send(mem_ctx, cr->rctx, cr->rctx->default_domain,
+                                cr->data->name.input);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return ENOMEM;

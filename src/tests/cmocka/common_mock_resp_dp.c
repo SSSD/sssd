@@ -80,7 +80,9 @@ void mock_account_recv_simple(void)
 }
 
 struct tevent_req *
-sss_parse_inp_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
+sss_parse_inp_send(TALLOC_CTX *mem_ctx,
+                   struct resp_ctx *rctx,
+                   const char *default_domain,
                    const char *rawinp)
 {
     return test_req_succeed_send(mem_ctx, rctx->ev);
