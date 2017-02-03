@@ -172,6 +172,7 @@ const struct cache_req_plugin cache_req_initgroups_by_name = {
     .dp_type = SSS_DP_INITGROUPS,
     .attr_expiration = SYSDB_INITGR_EXPIRE,
     .parse_name = true,
+    .ignore_default_domain = false,
     .bypass_cache = false,
     .only_one_result = false,
     .search_all_domains = false,

@@ -112,6 +112,7 @@ const struct cache_req_plugin cache_req_user_by_upn = {
     .dp_type = SSS_DP_USER,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
+    .ignore_default_domain = false,
     .bypass_cache = false,
     .only_one_result = true,
     .search_all_domains = false,

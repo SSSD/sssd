@@ -400,6 +400,7 @@ static errno_t cache_req_process_input(TALLOC_CTX *mem_ctx,
                                        const char *domain)
 {
     struct tevent_req *subreq;
+    const char *default_domain;
 
     if (cr->data->name.input == NULL) {
         /* Input was not name, there is no need to process it further. */
@@ -411,11 +412,16 @@ static errno_t cache_req_process_input(TALLOC_CTX *mem_ctx,
         return cache_req_set_name(cr, cr->data->name.input);
     }
 
+    default_domain = NULL;
+    if (!cr->plugin->ignore_default_domain) {
+        default_domain = cr->rctx->default_domain;
+    }
+
     /* Parse name since it may contain a domain name. */
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                     "Parsing input name [%s]\n", cr->data->name.input);
 
-    subreq = sss_parse_inp_send(mem_ctx, cr->rctx, cr->rctx->default_domain,
+    subreq = sss_parse_inp_send(mem_ctx, cr->rctx, default_domain,
                                 cr->data->name.input);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
