@@ -292,6 +292,13 @@ static int get_service_in_the_list(struct mon_init_conn *mini,
 
     for (svc = mini->ctx->svc_list; svc != NULL; svc = svc->next) {
         if (strcasecmp(svc->identity, svc_name) == 0) {
+            if (svc->svc_started) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Service \"%s\" is already running but only "
+                      "one instance of the service is allowed!\n",
+                      svc_name);
+                return EINVAL;
+            }
             svc->socket_activated = false;
             *_svc = svc;
             return EOK;
@@ -322,6 +329,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     DBusError dbus_error;
     dbus_uint16_t svc_ver;
     dbus_uint16_t svc_type;
+    dbus_uint32_t svc_pid;
     char *svc_name;
     dbus_bool_t dbret;
     int ret;
@@ -341,6 +349,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
                                   DBUS_TYPE_STRING, &svc_name,
                                   DBUS_TYPE_UINT16, &svc_ver,
                                   DBUS_TYPE_UINT16, &svc_type,
+                                  DBUS_TYPE_UINT32, &svc_pid,
                                   DBUS_TYPE_INVALID);
     if (!dbret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -362,6 +371,12 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
         sbus_disconnect(dbus_req->conn);
         sbus_request_finish(dbus_req, NULL);
         /* FIXME: should we just talloc_zfree(conn) ? */
+
+        if (ret == EINVAL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Sending a SIGTERM to the process %d\n", svc_pid);
+            kill(svc_pid, SIGTERM);
+        }
 
         goto done;
     }
