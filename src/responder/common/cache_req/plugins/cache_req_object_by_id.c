@@ -99,6 +99,7 @@ const struct cache_req_plugin cache_req_object_by_id = {
     .dp_type = SSS_DP_USER_AND_GROUP,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
+    .ignore_default_domain = false,
     .bypass_cache = false,
     .only_one_result = true,
     .search_all_domains = false,

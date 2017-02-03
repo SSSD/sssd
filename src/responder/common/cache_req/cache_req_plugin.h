@@ -157,6 +157,11 @@ struct cache_req_plugin {
     bool parse_name;
 
     /**
+     * True if default domain suffix should be ignored when parsing name.
+     */
+    bool ignore_default_domain;
+
+    /**
      * True if we always contact data provider.
      */
     bool bypass_cache;

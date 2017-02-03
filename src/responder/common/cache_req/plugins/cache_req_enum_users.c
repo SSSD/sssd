@@ -64,6 +64,7 @@ const struct cache_req_plugin cache_req_enum_users = {
     .dp_type = SSS_DP_USER,
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = false,
+    .ignore_default_domain = false,
     .bypass_cache = true,
     .only_one_result = false,
     .search_all_domains = true,
