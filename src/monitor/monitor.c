@@ -2403,6 +2403,15 @@ static int monitor_process_init(struct mt_ctx *ctx,
         }
     }
 
+    /* When the only provider set up is the local one (num_providers == 0) and
+     * there's no responder explicitly set up it means that we should notify
+     * systemd that SSSD is ready right now as any other provider/responder
+     * would be able to do so and the SSSD would end up hitting a systemd
+     * timeout! */
+    if (num_providers == 0 && ctx->services == NULL) {
+        ret = notify_startup();
+    }
+
     return EOK;
 }
 
