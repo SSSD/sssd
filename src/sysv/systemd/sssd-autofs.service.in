@@ -3,6 +3,7 @@ Description=SSSD AutoFS Service responder
 Documentation=man:sssd.conf(5)
 After=sssd.service
 BindsTo=sssd.service
+RefuseManualStart=true
 
 [Install]
 Also=sssd-autofs.socket

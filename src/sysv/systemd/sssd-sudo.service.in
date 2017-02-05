@@ -3,6 +3,7 @@ Description=SSSD Sudo Service responder
 Documentation=man:sssd.conf(5) man:sssd-sudo(5)
 After=sssd.service
 BindsTo=sssd.service
+RefuseManualStart=true
 
 [Install]
 Also=sssd-sudo.socket
