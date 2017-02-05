@@ -487,6 +487,26 @@ static void svc_child_info(struct mt_svc *svc, int wait_status)
     }
 }
 
+static int notify_startup(void)
+{
+#ifdef HAVE_SYSTEMD
+    int ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Sending startup notification to systemd\n");
+    ret = sd_notify(0, "READY=1");
+    if (ret < 0) {
+        ret = -ret;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "Error sending notification to systemd %d: %s\n",
+                ret, sss_strerror(ret));
+
+       return ret;
+    }
+#endif
+
+    return EOK;
+}
+
 static int mark_service_as_started(struct mt_svc *svc)
 {
     struct mt_ctx *ctx = svc->mt_ctx;
@@ -557,15 +577,7 @@ static int mark_service_as_started(struct mt_svc *svc)
 
         ctx->pid_file_created = true;
 
-#ifdef HAVE_SYSTEMD
-        DEBUG(SSSDBG_TRACE_FUNC, "Sending startup notification to systemd\n");
-        ret = sd_notify(0, "READY=1");
-        if (ret < 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Error sending notification to systemd %d: %s\n",
-                  -ret, strerror(-ret));
-        }
-#endif
+        notify_startup();
 
         /* Initialization is complete, terminate parent process if in daemon
          * mode. Make sure we send the signal to the right process */
