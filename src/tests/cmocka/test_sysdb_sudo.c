@@ -335,6 +335,11 @@ void test_store_sudo_case_insensitive(void **state)
 
     test_ctx->tctx->dom->case_sensitive = false;
 
+    ret = sysdb_attrs_add_lower_case_string(rule, false,
+                                            SYSDB_SUDO_CACHE_AT_USER,
+                                            users[0].name);
+    assert_int_equal(ret, EOK);
+
     ret = sysdb_sudo_store(test_ctx->tctx->dom, &rule, 1);
     assert_int_equal(ret, EOK);
 

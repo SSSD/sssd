@@ -857,7 +857,6 @@ static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
 {
     TALLOC_CTX *tmp_ctx;
     const char **users = NULL;
-    const char *lowered = NULL;
     errno_t ret;
 
     if (domain->case_sensitive == true || rule == NULL) {
@@ -884,19 +883,9 @@ static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
     }
 
     for (int i = 0; users[i] != NULL; i++) {
-        lowered = sss_tc_utf8_str_tolower(tmp_ctx, users[i]);
-        if (lowered == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        if (strcmp(users[i], lowered) == 0) {
-            /* It protects us from adding duplicate. */
-            continue;
-        }
-
-        ret = sysdb_attrs_add_string(rule, SYSDB_SUDO_CACHE_AT_USER, lowered);
+        ret = sysdb_attrs_add_lower_case_string(rule, true,
+                                                SYSDB_SUDO_CACHE_AT_USER,
+                                                users[i]);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Unable to add %s attribute [%d]: %s\n",
