@@ -362,6 +362,10 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ad_id_ctx->sdap_id_ctx->opts->idmap_ctx =
         id_ctx->sdap_id_ctx->opts->idmap_ctx;
 
+    /* Set up the certificate mapping context */
+    ad_id_ctx->sdap_id_ctx->opts->certmap_ctx =
+        id_ctx->sdap_id_ctx->opts->certmap_ctx;
+
     *_ad_id_ctx = ad_id_ctx;
     return EOK;
 }
