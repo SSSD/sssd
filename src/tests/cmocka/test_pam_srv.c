@@ -557,16 +557,22 @@ static void mock_input_pam(TALLOC_CTX *mem_ctx, const char *name,
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, buf);
     will_return(__wrap_sss_packet_get_body, buf_size);
+
+    mock_parse_inp(name, NULL, EOK);
+    mock_account_recv_simple();
 }
 
 static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
-                                const char *pin, const char *service)
+                                const char *pin, const char *service,
+                                acct_cb_t acct_cb, const char *cert,
+                                bool only_one_provider_call)
 {
     size_t buf_size;
     uint8_t *m_buf;
     uint8_t *buf;
     struct pam_items pi = { 0 };
     int ret;
+    bool already_mocked = false;
 
     if (name != NULL) {
         pi.pam_user = name;
@@ -603,6 +609,18 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, buf);
     will_return(__wrap_sss_packet_get_body, buf_size);
+
+    if (acct_cb != NULL) {
+        mock_account_recv(0, 0, NULL, acct_cb, discard_const(cert));
+        already_mocked = true;
+    }
+
+    if (name != NULL) {
+        mock_parse_inp(name, NULL, EOK);
+        if (!(only_one_provider_call && already_mocked)) {
+            mock_account_recv_simple();
+        }
+    }
 }
 
 static int test_pam_simple_check(uint32_t status, uint8_t *body, size_t blen)
@@ -1051,6 +1069,8 @@ void test_pam_cached_auth_success(void **state)
     /* Reset before next call */
     pam_test_ctx->provider_contacted = false;
 
+    pam_test_ctx->tctx->done = false;
+
     common_test_pam_cached_auth("12345");
 
     /* Back end should not be contacted */
@@ -1136,6 +1156,8 @@ void test_pam_cached_auth_success_combined_pw_with_cached_2fa(void **state)
 
     /* Reset before next call */
     pam_test_ctx->provider_contacted = false;
+
+    pam_test_ctx->tctx->done = false;
 
     common_test_pam_cached_auth("12345678");
 
@@ -1519,7 +1541,7 @@ void test_pam_preauth_no_logon_name(void **state)
 {
     int ret;
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1546,7 +1568,7 @@ void test_pam_preauth_cert_nocert(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1625,11 +1647,11 @@ void test_pam_preauth_cert_nomatch(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+                        test_lookup_by_cert_cb, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb, NULL);
 
     set_cmd_cb(test_pam_simple_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1647,12 +1669,11 @@ void test_pam_preauth_cert_match(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+                        test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
-                      discard_const(TEST_TOKEN_CERT));
 
     set_cmd_cb(test_pam_cert_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1671,12 +1692,11 @@ void test_pam_preauth_cert_match_gdm_smartcard(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, "gdm-smartcard");
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, "gdm-smartcard",
+                        test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
-                      discard_const(TEST_TOKEN_CERT));
 
     set_cmd_cb(test_pam_cert_check_gdm_smartcard);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1694,12 +1714,12 @@ void test_pam_preauth_cert_match_wrong_user(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+                        test_lookup_by_cert_wrong_user_cb,
+                        TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    mock_account_recv(0, 0, NULL, test_lookup_by_cert_wrong_user_cb,
-                      discard_const(TEST_TOKEN_CERT));
 
     set_cmd_cb(test_pam_simple_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1718,12 +1738,17 @@ void test_pam_preauth_cert_no_logon_name(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL);
+    /* If no logon name is given the user is looked by certificate first.
+     * Since there is a matching user the upcoming lookup by name will find
+     * the user entry. But since we force the lookup by name to go to the
+     * backend to make sure the group-membership data is up to date the
+     * backend response has to be mocked twice and the second argument of
+     * mock_input_pam_cert cannot be NULL but must match the user name. */
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+                        test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
-                      discard_const(TEST_TOKEN_CERT));
 
     set_cmd_cb(test_pam_cert_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1741,7 +1766,7 @@ void test_pam_preauth_no_cert_no_logon_name(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1762,11 +1787,11 @@ void test_pam_preauth_cert_no_logon_name_no_match(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+                        test_lookup_by_cert_cb, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb, NULL);
 
     set_cmd_cb(test_pam_user_unknown_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1784,12 +1809,17 @@ void test_pam_cert_auth(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", NULL);
+    /* Here the last option must be set to true because the backend is only
+     * connected once. During authentication the backend is connected first to
+     * see if it can handle Smartcard authentication, but before that the user
+     * is looked up. Since the first mocked reply already adds the certificate
+     * to the user entry the lookup by certificate will already find the user
+     * in the cache and no second request to the backend is needed. */
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", NULL,
+                        test_lookup_by_cert_cb, TEST_TOKEN_CERT, true);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
-                      discard_const(TEST_TOKEN_CERT));
 
     /* Assume backend cannot handle Smartcard credentials */
     pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
