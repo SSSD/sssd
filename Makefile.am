@@ -254,6 +254,7 @@ if HAVE_CMOCKA
         test_sysdb_ts_cache \
         test_sysdb_views \
         test_sysdb_subdomains \
+        test_sysdb_certmap \
         test_sysdb_sudo \
         test_sysdb_utils \
         test_wbc_calls \
@@ -974,6 +975,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_ranges.c \
     src/db/sysdb_idmap.c \
     src/db/sysdb_gpo.c \
+    src/db/sysdb_certmap.c \
     src/monitor/monitor_sbus.c \
     src/providers/dp_auth_util.c \
     src/providers/dp_pam_data_util.c \
@@ -2765,6 +2767,21 @@ test_sysdb_subdomains_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 test_sysdb_subdomains_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(LDB_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_sysdb_certmap_SOURCES = \
+    src/tests/cmocka/test_sysdb_certmap.c \
+    $(NULL)
+test_sysdb_certmap_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_sysdb_certmap_LDADD = \
     $(CMOCKA_LIBS) \
     $(LDB_LIBS) \
     $(POPT_LIBS) \
