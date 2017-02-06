@@ -56,6 +56,24 @@
 
 #define IPA_SUBDOMAIN_DISABLED_PERIOD 3600
 
+#define IPA_OC_CERTMAP_CONFIG_OBJECT "ipaCertMapConfigObject"
+#define IPA_CERTMAP_PROMPT_USERNAME "ipaCertMapPromptUserName"
+
+#define IPA_OC_CERTMAP_RULE "ipaCertMapRule"
+#define IPA_CERTMAP_MAPRULE "ipaCertMapMapRule"
+#define IPA_CERTMAP_MATCHRULE "ipaCertMapMatchRule"
+#define IPA_CERTMAP_PRIORITY "ipaCertMapPriority"
+#define IPA_ENABLED_FLAG "ipaEnabledFlag"
+#define IPA_TRUE_VALUE "TRUE"
+#define IPA_ASSOCIATED_DOMAIN "associatedDomain"
+
+#define OBJECTCLASS "objectClass"
+
+#define CERTMAP_FILTER "(|(&("OBJECTCLASS"="IPA_OC_CERTMAP_RULE")" \
+                              "("IPA_ENABLED_FLAG"="IPA_TRUE_VALUE"))" \
+                          "("OBJECTCLASS"="IPA_OC_CERTMAP_CONFIG_OBJECT"))"
+
+
 struct ipa_subdomains_ctx {
     struct be_ctx *be_ctx;
     struct ipa_id_ctx *ipa_id_ctx;
@@ -281,6 +299,193 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
 done:
     if (ret != EOK) {
         talloc_free(range_list);
+    }
+
+    return ret;
+}
+
+struct priv_sss_debug {
+    int level;
+};
+
+void ext_debug(void *private, const char *file, long line, const char *function,
+               const char *format, ...)
+{
+    va_list ap;
+    struct priv_sss_debug *data = private;
+    int level = SSSDBG_OP_FAILURE;
+
+    if (data != NULL) {
+        level = data->level;
+    }
+
+    if (DEBUG_IS_SET(level)) {
+        va_start(ap, format);
+        sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
+                      format, ap);
+        va_end(ap);
+    }
+}
+
+static errno_t ipa_certmap_parse_results(TALLOC_CTX *mem_ctx,
+                                         struct sss_domain_info *domain,
+                                         struct sdap_options *sdap_opts,
+                                         size_t count,
+                                         struct sysdb_attrs **reply,
+                                         struct certmap_info ***_certmap_list)
+{
+    struct certmap_info **certmap_list = NULL;
+    struct certmap_info *m;
+    const char *value;
+    const char **values;
+    size_t c;
+    size_t lc = 0;
+    int ret;
+    struct sss_certmap_ctx *certmap_ctx = NULL;
+    const char **ocs = NULL;
+    bool user_name_hint = false;
+
+    certmap_list = talloc_zero_array(mem_ctx, struct certmap_info *, count + 1);
+    if (certmap_list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        return ENOMEM;
+    }
+
+    for (c = 0; c < count; c++) {
+        ret = sysdb_attrs_get_string_array(reply[c], SYSDB_OBJECTCLASS, mem_ctx,
+                                           &ocs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing objectclasses for config objects.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (string_in_list(IPA_OC_CERTMAP_CONFIG_OBJECT, discard_const(ocs),
+                           false)) {
+            ret = sysdb_attrs_get_bool(reply[c], IPA_CERTMAP_PROMPT_USERNAME,
+                                       &user_name_hint);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to read user name hint option, skipping.\n");
+            }
+            continue;
+        }
+
+        m = talloc_zero(certmap_list, struct certmap_info);
+        if (m == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_CN, &value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        m->name = talloc_strdup(m, value);
+        if (m->name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_CERTMAP_MATCHRULE, &value);
+        if (ret == EOK) {
+            m->match_rule = talloc_strdup(m, value);
+            if (m->match_rule == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(reply[c], IPA_CERTMAP_MAPRULE, &value);
+        if (ret == EOK) {
+            m->map_rule = talloc_strdup(m, value);
+            if (m->map_rule == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string_array(reply[c], IPA_ASSOCIATED_DOMAIN, m,
+                                           &values);
+        if (ret == EOK) {
+            m->domains = values;
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_uint32_t(reply[c], IPA_CERTMAP_PRIORITY,
+                                       &m->priority);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        } else if (ret == ENOENT) {
+            m->priority = SSS_CERTMAP_MIN_PRIO;
+        }
+
+        certmap_list[lc++] = m;
+    }
+
+    certmap_list[lc] = NULL;
+
+    ret = sss_certmap_init(mem_ctx, ext_debug, NULL, &certmap_ctx);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_init failed.\n");
+        goto done;
+    }
+
+    for (c = 0; certmap_list[c] != NULL; c++) {
+        DEBUG(SSSDBG_TRACE_ALL, "Trying to add rule [%s][%d][%s][%s].\n",
+                                certmap_list[c]->name,
+                                certmap_list[c]->priority,
+                                certmap_list[c]->match_rule,
+                                certmap_list[c]->map_rule);
+
+        ret = sss_certmap_add_rule(certmap_ctx, certmap_list[c]->priority,
+                                   certmap_list[c]->match_rule,
+                                   certmap_list[c]->map_rule,
+                                   certmap_list[c]->domains);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_certmap_add_rule failed for rule [%s], skipping. "
+                  "Please check for typos and if rule syntax is supported.\n",
+                  certmap_list[c]->name);
+            goto done;
+        }
+    }
+
+    ret = sysdb_update_certmap(domain->sysdb, certmap_list, user_name_hint);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_certmap failed");
+        goto done;
+    }
+
+    sss_certmap_free_ctx(sdap_opts->certmap_ctx);
+    sdap_opts->certmap_ctx = talloc_steal(sdap_opts, certmap_ctx);
+
+    if (_certmap_list != NULL) {
+        *_certmap_list = certmap_list;
+    }
+    ret = EOK;
+
+done:
+    talloc_free(ocs);
+    if (ret != EOK) {
+        sss_certmap_free_ctx(certmap_ctx);
+        talloc_free(certmap_list);
     }
 
     return ret;
@@ -795,6 +1000,125 @@ done:
 }
 
 static errno_t ipa_subdomains_ranges_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+#define IPA_CERTMAP_SEARCH_BASE_TEMPLATE "cn=certmap,%s"
+
+struct ipa_subdomains_certmap_state {
+    struct sss_domain_info *domain;
+    struct sdap_options *sdap_opts;
+};
+
+static void ipa_subdomains_certmap_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_subdomains_certmap_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct ipa_subdomains_ctx *sd_ctx,
+                           struct sdap_handle *sh)
+{
+    struct ipa_subdomains_certmap_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+    char *ldap_basedn;
+    char *search_base;
+    const char *attrs[] = { OBJECTCLASS, IPA_CN,
+                            IPA_CERTMAP_MAPRULE, IPA_CERTMAP_MATCHRULE,
+                            IPA_CERTMAP_PRIORITY, IPA_ASSOCIATED_DOMAIN,
+                            IPA_CERTMAP_PROMPT_USERNAME,
+                            NULL };
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_subdomains_certmap_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->domain = sd_ctx->be_ctx->domain;
+    state->sdap_opts = sd_ctx->sdap_id_ctx->opts;
+
+    ret = domain_to_basedn(state, state->domain->name, &ldap_basedn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failed.\n");
+        goto immediately;
+    }
+
+    search_base = talloc_asprintf(state, IPA_CERTMAP_SEARCH_BASE_TEMPLATE,
+                                  ldap_basedn);
+    if (search_base == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    subreq = sdap_get_generic_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
+                                   search_base, LDAP_SCOPE_SUBTREE,
+                                   CERTMAP_FILTER,
+                                   attrs, NULL, 0, 0, false);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_certmap_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void ipa_subdomains_certmap_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_certmap_state *state;
+    struct tevent_req *req;
+    struct sysdb_attrs **reply;
+    size_t reply_count;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_certmap_state);
+
+    ret = sdap_get_generic_recv(subreq, state, &reply_count, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get data from LDAP [%d]: %s\n",
+                      ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = ipa_certmap_parse_results(state, state->domain,
+                                    state->sdap_opts,
+                                    reply_count, reply, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to parse certmap results [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t ipa_subdomains_certmap_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -1365,6 +1689,7 @@ struct ipa_subdomains_refresh_state {
 static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req);
 static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_view_done(struct tevent_req *subreq);
@@ -1482,6 +1807,35 @@ static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get IPA ranges "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ipa_subdomains_certmap_send(state, state->ev, state->sd_ctx,
+                                         sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_certmap_done, req);
+    return;
+}
+
+static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_certmap_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to read certificate mapping rules "
               "[%d]: %s\n", ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;

@@ -37,6 +37,8 @@
 #define IPA_CONFIG_SEARCH_BASE_TEMPLATE "cn=etc,%s"
 #define IPA_CONFIG_FILTER "(&(cn=ipaConfig)(objectClass=ipaGuiConfig))"
 
+#define IPA_OC_CONFIG "ipaConfig"
+
 struct tevent_req * ipa_get_config_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
                                         struct sdap_handle *sh,

@@ -25,6 +25,7 @@
 #include "providers/backend.h"
 #include <ldap.h>
 #include "util/sss_ldap.h"
+#include "lib/certmap/sss_certmap.h"
 
 struct sdap_msg {
     struct sdap_msg *next;
@@ -478,6 +479,9 @@ struct sdap_options {
 
     bool support_matching_rule;
     enum dc_functional_level dc_functional_level;
+
+    /* Certificate mapping support */
+    struct sss_certmap_ctx *certmap_ctx;
 };
 
 struct sdap_server_opts {
