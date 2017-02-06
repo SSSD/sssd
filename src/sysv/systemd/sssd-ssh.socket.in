@@ -3,6 +3,8 @@ Description=SSSD SSH Service responder socket
 Documentation=man:sssd.conf(5)
 After=sssd.service
 BindsTo=sssd.service
+DefaultDependencies=no
+Conflicts=shutdown.target
 
 [Socket]
 ListenStream=@pipepath@/ssh
