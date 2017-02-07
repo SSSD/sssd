@@ -4,4 +4,4 @@
 # run 'systemctl daemon-reload' and then restart the SSSD service
 # for this to take effect
 #ExecStart=
-#ExecStart=@sbindir@/sssd -D
+#ExecStart=@sbindir@/sssd -i
