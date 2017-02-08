@@ -2879,11 +2879,12 @@ test_sdap_initgr_CFLAGS = \
 test_sdap_initgr_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
+    $(DHASH_LIBS) \
     $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(LDB_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
-    libsss_ad_tests.la \
-    libsss_idmap.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
     $(NULL)
