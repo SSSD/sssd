@@ -174,12 +174,17 @@ static bool seuser_needs_update(struct input_buffer *ibuf)
 
     ret = get_seuser(ibuf, ibuf->username, &db_seuser, &db_mls_range);
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "get_seuser: ret: %d seuser: %s mls: %s\n",
-          ret, db_seuser ? db_seuser : "unknown",
+          "get_seuser: ret: %d msg: [%s] seuser: %s mls: %s\n",
+          ret, sss_strerror(ret),
+          db_seuser ? db_seuser : "unknown",
           db_mls_range ? db_mls_range : "unknown");
     if (ret == EOK && db_seuser && db_mls_range &&
             strcmp(db_seuser, ibuf->seuser) == 0 &&
             strcmp(db_mls_range, ibuf->mls_range) == 0) {
+        needs_update = false;
+    }
+    /* OR */
+    if (ret == ERR_SELINUX_NOT_MANAGED) {
         needs_update = false;
     }
 
