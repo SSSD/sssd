@@ -987,6 +987,7 @@ libsss_util_la_SOURCES = \
     src/sbus/sssd_dbus_common_signals.c \
     src/sbus/sssd_dbus_utils.c \
     src/util/util.c \
+    src/util/util_ext.c \
     src/util/memory.c \
     src/util/safe-format-string.c \
     src/util/server.c \
@@ -2355,19 +2356,23 @@ test_authtok_SOURCES = \
     src/tests/cmocka/test_authtok.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
-    src/util/util.c
+    src/util/util.c \
+    src/util/util_ext.c \
+    $(NULL)
 test_authtok_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
     $(POPT_CFLAGS) \
-    $(DHASH_CFLAGS)
+    $(DHASH_CFLAGS) \
+    $(NULL)
 test_authtok_LDADD = \
     $(TALLOC_LIBS) \
     $(CMOCKA_LIBS) \
     $(DHASH_LIBS) \
     $(POPT_LIBS) \
     libsss_test_common.la \
-    libsss_debug.la
+    libsss_debug.la \
+    $(NULL)
 
 sss_nss_idmap_tests_SOURCES = \
     src/tests/cmocka/sss_nss_idmap-tests.c
@@ -2839,6 +2844,7 @@ test_child_common_SOURCES = \
     src/util/atomic_io.c \
     src/util/util_errors.c \
     src/util/util.c \
+    src/util/util_ext.c \
     $(NULL)
 test_child_common_CFLAGS = \
     $(AM_CFLAGS) \
@@ -3774,6 +3780,7 @@ krb5_child_SOURCES = \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \
+    src/util/util_ext.c \
     src/util/signal.c \
     src/util/strtonum.c \
     src/util/become_user.c \
@@ -3807,6 +3814,7 @@ ldap_child_SOURCES = \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \
+    src/util/util_ext.c \
     src/util/signal.c \
     src/util/become_user.c \
     $(NULL)
@@ -3827,6 +3835,7 @@ selinux_child_SOURCES = \
     src/util/sss_semanage.c \
     src/util/atomic_io.c \
     src/util/util.c \
+    src/util/util_ext.c \
     $(NULL)
 selinux_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -3845,6 +3854,7 @@ gpo_child_SOURCES = \
     src/providers/ad/ad_gpo_child.c \
     src/util/atomic_io.c \
     src/util/util.c \
+    src/util/util_ext.c \
     src/util/signal.c
 gpo_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -3876,6 +3886,7 @@ p11_child_SOURCES = \
     src/p11_child/p11_child_nss.c \
     src/util/atomic_io.c \
     src/util/util.c \
+    src/util/util_ext.c \
     $(NULL)
 p11_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -3893,16 +3904,21 @@ p11_child_LDADD = \
 
 memberof_la_SOURCES = \
     src/ldb_modules/memberof.c \
-    src/util/util.c
+    src/util/util.c \
+    src/util/util_ext.c \
+    $(NULL)
 memberof_la_CFLAGS = \
-    $(AM_CFLAGS)
+    $(AM_CFLAGS) \
+    $(NULL)
 memberof_la_LIBADD = \
     libsss_debug.la \
     $(LDB_LIBS) \
-    $(DHASH_LIBS)
+    $(DHASH_LIBS) \
+    $(NULL)
 memberof_la_LDFLAGS = \
     -avoid-version \
-    -module
+    -module \
+    $(NULL)
 
 if BUILD_KRB5_LOCATOR_PLUGIN
 sssd_krb5_locator_plugin_la_SOURCES = \
