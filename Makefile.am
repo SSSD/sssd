@@ -4040,6 +4040,7 @@ selinux_child_SOURCES = \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
+    src/util/util_errors.c
     $(NULL)
 selinux_child_CFLAGS = \
     $(AM_CFLAGS) \
