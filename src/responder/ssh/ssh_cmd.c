@@ -213,7 +213,7 @@ static void ssh_cmd_get_host_pubkeys_done(struct tevent_req *subreq)
     cmd_ctx = tevent_req_callback_data(subreq, struct ssh_cmd_ctx);
     ssh_ctx = talloc_get_type(cmd_ctx->cli_ctx->rctx->pvt_ctx, struct ssh_ctx);
 
-    ret = cache_req_user_by_name_attrs_recv(cmd_ctx, subreq, &result);
+    ret = cache_req_host_by_name_recv(cmd_ctx, subreq, &result);
     talloc_zfree(subreq);
 
     if (ret == EOK || ret == ENOENT) {
