@@ -73,7 +73,7 @@ static void sss_semanage_close(semanage_handle_t *handle)
     semanage_handle_destroy(handle);
 }
 
-static semanage_handle_t *sss_semanage_init(void)
+static int sss_semanage_init(semanage_handle_t **_handle)
 {
     int ret;
     semanage_handle_t *handle = NULL;
@@ -81,7 +81,8 @@ static semanage_handle_t *sss_semanage_init(void)
     handle = semanage_handle_create();
     if (!handle) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create SELinux management handle\n");
-        return NULL;
+        ret = EIO;
+        goto done;
     }
 
     semanage_msg_set_callback(handle,
@@ -89,28 +90,41 @@ static semanage_handle_t *sss_semanage_init(void)
                               NULL);
 
     ret = semanage_is_managed(handle);
-    if (ret != 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "SELinux policy not managed\n");
-        goto fail;
+    if (ret == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "SELinux policy not managed via libsemanage\n");
+        ret = ERR_SELINUX_NOT_MANAGED;
+        goto done;
+    } else if (ret == -1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Call to semanage_is_managed failed\n");
+        ret = EIO;
+        goto done;
     }
 
     ret = semanage_access_check(handle);
     if (ret < SEMANAGE_CAN_READ) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot read SELinux policy store\n");
-        goto fail;
+        ret = EACCES;
+        goto done;
     }
 
     ret = semanage_connect(handle);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot estabilish SELinux management connection\n");
-        goto fail;
+        ret = EIO;
+        goto done;
     }
 
-    return handle;
-fail:
-    sss_semanage_close(handle);
-    return NULL;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        sss_semanage_close(handle);
+    } else {
+        *_handle = handle;
+    }
+
+    return ret;
 }
 
 static int sss_semanage_user_add(semanage_handle_t *handle,
@@ -228,10 +242,11 @@ int set_seuser(const char *login_name, const char *seuser_name,
         return EOK;
     }
 
-    handle = sss_semanage_init();
-    if (!handle) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot init SELinux management\n");
-        ret = EIO;
+    ret = sss_semanage_init(&handle);
+    if (ret == ERR_SELINUX_NOT_MANAGED) {
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create SELinux handle\n");
         goto done;
     }
 
@@ -295,10 +310,11 @@ int del_seuser(const char *login_name)
     int ret;
     int exists = 0;
 
-    handle = sss_semanage_init();
-    if (!handle) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot init SELinux management\n");
-        ret = EIO;
+    ret = sss_semanage_init(&handle);
+    if (ret == ERR_SELINUX_NOT_MANAGED) {
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create SELinux handle\n");
         goto done;
     }
 
@@ -377,10 +393,11 @@ int get_seuser(TALLOC_CTX *mem_ctx, const char *login_name,
     semanage_seuser_t *sm_user = NULL;
     semanage_seuser_key_t *sm_key = NULL;
 
-    sm_handle = sss_semanage_init();
-    if (sm_handle == NULL) {
+    ret = sss_semanage_init(&sm_handle);
+    if (ret == ERR_SELINUX_NOT_MANAGED) {
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create SELinux handle\n");
-        ret = EIO;
         goto done;
     }
 
