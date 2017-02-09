@@ -1173,7 +1173,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
                            svc_name, svc_version, MT_SVC_SERVICE,
-                           rctx, &rctx->last_request_time,
+                           getpid(), rctx, &rctx->last_request_time,
                            &rctx->mon_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");

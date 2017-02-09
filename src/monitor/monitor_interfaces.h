@@ -49,6 +49,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
                          const char *svc_name,
                          uint16_t svc_version,
                          uint16_t svc_type,
+                         uint32_t svc_pid,
                          void *pvt,
                          time_t *last_request_time,
                          struct sbus_connection **mon_conn);
