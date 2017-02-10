@@ -229,6 +229,11 @@ int dp_get_sbus_address(TALLOC_CTX *mem_ctx,
                         char **address, const char *domain_name);
 
 
+/* Reserved filter name for request which waits until the files provider finishes mirroring
+ * the file content
+ */
+#define DP_REQ_OPT_FILES_INITGR     "files_initgr_request"
+
 /* Helpers */
 
 #define NULL_STRING { .string = NULL }
