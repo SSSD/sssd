@@ -453,6 +453,12 @@ sss_dp_req_recv(TALLOC_CTX *mem_ctx,
  */
 static DBusMessage *sss_dp_get_account_msg(void *pvt);
 
+static int sss_dp_account_files_params(struct sss_domain_info *dom,
+                                       enum sss_dp_acct_type type_in,
+                                       const char *opt_name_in,
+                                       enum sss_dp_acct_type *_type_out,
+                                       const char **_opt_name_out);
+
 struct sss_dp_account_info {
     struct sss_domain_info *dom;
 
@@ -496,9 +502,28 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     }
 
     if (NEED_CHECK_PROVIDER(dom->provider) == false) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Domain %s does not check DP\n", dom->name);
-        ret = EOK;
-        goto error;
+        if (strcmp(dom->provider, "files") == 0) {
+            /* This is a special case. If the files provider is just being updated,
+             * we issue an enumeration request. We always use the same request type
+             * (user enumeration) to make sure concurrent requests are just chained
+             * in the Data Provider
+             */
+            ret = sss_dp_account_files_params(dom, type, opt_name,
+                                              &type, &opt_name);
+            if (ret == EOK) {
+                goto error;
+            } else if (ret != EAGAIN) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to set files provider update: %d: %s\n",
+                      ret, sss_strerror(ret));
+                goto error;
+            }
+            /* EAGAIN, fall through to issuing the request */
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Domain %s does not check DP\n", dom->name);
+            ret = EOK;
+            goto error;
+        }
     }
 
     info = talloc_zero(state, struct sss_dp_account_info);
@@ -552,6 +577,49 @@ error:
     }
     tevent_req_post(req, rctx->ev);
     return req;
+}
+
+static int sss_dp_account_files_params(struct sss_domain_info *dom,
+                                       enum sss_dp_acct_type type_in,
+                                       const char *opt_name_in,
+                                       enum sss_dp_acct_type *_type_out,
+                                       const char **_opt_name_out)
+{
+#if 0
+    if (sss_domain_get_state(dom) != DOM_INCONSISTENT) {
+        return EOK;
+    }
+#endif
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Domain files is not consistent, issuing update\n");
+
+    switch(type_in) {
+    case SSS_DP_USER:
+    case SSS_DP_GROUP:
+        *_type_out = type_in;
+        *_opt_name_out = NULL;
+        return EAGAIN;
+    case SSS_DP_INITGROUPS:
+        /* There is no initgroups enumeration so let's use a dummy
+         * name to let the DP chain the requests
+         */
+        *_type_out = type_in;
+        *_opt_name_out = DP_REQ_OPT_FILES_INITGR;
+        return EAGAIN;
+    /* These are not handled by the files provider, just fall back */
+    case SSS_DP_NETGR:
+    case SSS_DP_SERVICES:
+    case SSS_DP_SECID:
+    case SSS_DP_USER_AND_GROUP:
+    case SSS_DP_CERT:
+    case SSS_DP_WILDCARD_USER:
+    case SSS_DP_WILDCARD_GROUP:
+        return EOK;
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "Unhandled type %d\n", type_in);
+    return EINVAL;
 }
 
 static DBusMessage *
