@@ -248,6 +248,10 @@ enum sss_domain_state {
      * return cached data
      */
     DOM_INACTIVE,
+    /** Domain is being updated. Responders should ignore cached data and
+     * always contact the DP
+     */
+    DOM_INCONSISTENT,
 };
 
 /**
