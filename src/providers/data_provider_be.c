@@ -166,8 +166,10 @@ static void be_mark_subdom_offline(struct sss_domain_info *subdom,
     tv = tevent_timeval_current_ofs(reset_status_timeout, 0);
 
     switch (subdom->state) {
+    case DOM_INCONSISTENT:
     case DOM_DISABLED:
-        DEBUG(SSSDBG_MINOR_FAILURE, "Won't touch disabled subdomain\n");
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Won't touch disabled or inconsistent subdomain\n");
         return;
     case DOM_INACTIVE:
         DEBUG(SSSDBG_TRACE_ALL, "Subdomain already inactive\n");
