@@ -8,6 +8,7 @@ DefaultDependencies=no
 Conflicts=shutdown.target
 
 [Socket]
+ExecStartPre=/usr/libexec/sssd/sssd_check_socket_activated_responders -r pam
 ListenStream=@pipepath@/pam
 SocketUser=root
 SocketGroup=root
