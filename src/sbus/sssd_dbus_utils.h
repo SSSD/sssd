@@ -25,6 +25,13 @@ errno_t sbus_talloc_bound_message(TALLOC_CTX *mem_ctx, DBusMessage *msg);
 errno_t sbus_error_to_errno(DBusError *error);
 errno_t sbus_check_reply(DBusMessage *reply);
 
+/* Creates a DBusMessage from a vararg list. Please note that even though
+ * this function and sbus_create_message accept a talloc memory context,
+ * it is not valid to free the resulting message with talloc_free() directly.
+ * Instead, either free the parent memory context or directly call
+ * dbus_message_unref on the message if you pass NULL memory context to
+ * these functions
+ */
 DBusMessage *sbus_create_message_valist(TALLOC_CTX *mem_ctx,
                                         const char *bus,
                                         const char *path,
