@@ -877,6 +877,15 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
                          struct sysdb_attrs *attrs,
                          int mod_op);
 
+/* User/group invalidation of cache by direct writing to persistent cache
+ * WARNING: This function can cause performance issue!!
+ * is_user = true --> user invalidation
+ * is_user = false --> group invalidation
+ */
+int sysdb_invalidate_cache_entry(struct sss_domain_info *domain,
+                                 const char *name,
+                                 bool is_user);
+
 /* Replace user attrs */
 int sysdb_set_user_attr(struct sss_domain_info *domain,
                         const char *name,
