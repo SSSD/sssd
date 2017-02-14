@@ -5006,3 +5006,68 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+/* User/group invalidation of cache by direct writing to persistent cache
+ * WARNING: This function can cause performance issue!!
+ * is_user = true --> user invalidation
+ * is_user = false --> group invalidation
+ */
+int sysdb_invalidate_cache_entry(struct sss_domain_info *domain,
+                                 const char *name,
+                                 bool is_user)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_ctx *sysdb = domain->sysdb;
+    struct ldb_dn *entry_dn = NULL;
+    struct sysdb_attrs *attrs = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    if (is_user == true) {
+        entry_dn = sysdb_user_dn(tmp_ctx, domain, name);
+    } else {
+        entry_dn = sysdb_group_dn(tmp_ctx, domain, name);
+    }
+
+    if (entry_dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not create sysdb attributes\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE, 1);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not add expiration time to attributes\n");
+        goto done;
+    }
+
+    ret = sysdb_set_cache_entry_attr(sysdb->ldb, entry_dn,
+                                     attrs, SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set attrs for %s, %d [%s]\n",
+              ldb_dn_get_linearized(entry_dn), ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA,
+          "Cache entry [%s] has been invalidated.\n",
+          ldb_dn_get_linearized(entry_dn));
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
