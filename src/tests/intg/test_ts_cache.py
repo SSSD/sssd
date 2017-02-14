@@ -200,13 +200,11 @@ def ldb_examine(request):
     return ldb_conn
 
 
-def invalidate_group(name):
-    subprocess.call(["sss_cache", "-g", name])
+def invalidate_group(ldb_conn, name):
+    ldb_conn.invalidate_entry(name, sssd_ldb.TsCacheEntry.group, SSSD_DOMAIN)
 
-
-def invalidate_user(name):
-    subprocess.call(["sss_cache", "-u", name])
-
+def invalidate_user(ldb_conn, name):
+    ldb_conn.invalidate_entry(name, sssd_ldb.TsCacheEntry.user, SSSD_DOMAIN)
 
 def get_attrs(ldb_conn, type, name, domain, attr_list):
     sysdb_attrs = dict()
@@ -253,7 +251,7 @@ def prime_cache_group(ldb_conn, name, members):
 
     # just to force different stamps and make sure memcache is gone
     time.sleep(1)
-    invalidate_group(name)
+    invalidate_group(ldb_conn, name)
 
     return sysdb_attrs, ts_attrs
 
@@ -272,7 +270,7 @@ def prime_cache_user(ldb_conn, name, primary_gid):
 
     # just to force different stamps and make sure memcache is gone
     time.sleep(1)
-    invalidate_user(name)
+    invalidate_user(ldb_conn, name)
 
     return sysdb_attrs, ts_attrs
 
@@ -616,3 +614,59 @@ def test_user_2307bis_delete_user(ldap_conn,
     assert sysdb_attrs.get("originalModifyTimestamp") is None
     assert ts_attrs.get("dataExpireTimestamp") is None
     assert ts_attrs.get("originalModifyTimestamp") is None
+
+
+def test_sss_cache_invalidate_user(ldap_conn,
+                                   ldb_examine,
+                                   setup_rfc2307bis ):
+    """
+    Test that sss_cache invalidate user in both caches
+    """
+
+    ldb_conn = ldb_examine
+    old_sysdb_attrs, old_ts_attrs = prime_cache_user(ldb_conn, "user1", 2001)
+
+    subprocess.call(["sss_cache", "-u", "user1"])
+
+    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
+                                           SSSD_DOMAIN, TS_ATTRLIST)
+
+    assert sysdb_attrs.get("dataExpireTimestamp") == '1'
+    assert ts_attrs.get("dataExpireTimestamp") == '1'
+
+    time.sleep(1)
+    pwd.getpwnam("user1")
+    sysdb_attrs, ts_attrs = get_user_attrs(ldb_conn, "user1",
+                                           SSSD_DOMAIN, TS_ATTRLIST)
+
+    assert sysdb_attrs.get("dataExpireTimestamp") == '1'
+    assert_diff_attrval(ts_attrs, sysdb_attrs, "dataExpireTimestamp")
+
+
+def test_sss_cache_invalidate_group(ldap_conn,
+                                    ldb_examine,
+                                    setup_rfc2307bis ):
+    """
+    Test that sss_cache invalidate group in both caches
+    """
+
+    ldb_conn = ldb_examine
+    old_sysdb_attrs, old_ts_attrs = prime_cache_group(
+                                                ldb_conn, "group1",
+                                                ("user1", "user11", "user21"))
+
+    subprocess.call(["sss_cache", "-g", "group1"])
+
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
+
+    assert sysdb_attrs.get("dataExpireTimestamp") == '1'
+    assert ts_attrs.get("dataExpireTimestamp") == '1'
+
+    time.sleep(1)
+    grp.getgrnam("group1")
+    sysdb_attrs, ts_attrs = get_group_attrs(ldb_conn, "group1",
+                                            SSSD_DOMAIN, TS_ATTRLIST)
+
+    assert sysdb_attrs.get("dataExpireTimestamp") == '1'
+    assert_diff_attrval(ts_attrs, sysdb_attrs, "dataExpireTimestamp")

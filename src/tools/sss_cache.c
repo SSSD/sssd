@@ -134,6 +134,10 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
                                const char *filter, const char *name);
 static errno_t update_all_filters(struct cache_tool_ctx *tctx,
                                   struct sss_domain_info *dinfo);
+static int sysdb_invalidate_user_cache_entry(struct sss_domain_info *domain,
+                                             const char *name);
+static int sysdb_invalidate_group_cache_entry(struct sss_domain_info *domain,
+                                              const char *name);
 
 int main(int argc, const char *argv[])
 {
@@ -533,10 +537,18 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
 
                     ret = sysdb_set_user_attr(domain, name, sys_attrs,
                                               SYSDB_MOD_REP);
+                    if (ret != EOK) break;
+
+                    /* WARNING: Direct writing to persistent cache!! */
+                    ret = sysdb_invalidate_user_cache_entry(domain, name);
                     break;
                 case TYPE_GROUP:
                     ret = sysdb_set_group_attr(domain, name, sys_attrs,
                                                SYSDB_MOD_REP);
+                    if (ret != EOK) break;
+
+                    /* WARNING: Direct writing to persistent cache!! */
+                    ret = sysdb_invalidate_group_cache_entry(domain, name);
                     break;
                 case TYPE_NETGROUP:
                     ret = sysdb_set_netgroup_attr(domain, name, sys_attrs,
@@ -933,4 +945,18 @@ search_autofsmaps(TALLOC_CTX *mem_ctx,
 #else
     return ENOSYS;
 #endif  /* BUILD_AUTOFS */
+}
+
+/* WARNING: Direct writing to persistent cache!! */
+static int sysdb_invalidate_user_cache_entry(struct sss_domain_info *domain,
+                                             const char *name)
+{
+    return sysdb_invalidate_cache_entry(domain, name, true);
+}
+
+/* WARNING: Direct writing to persistent cache!! */
+static int sysdb_invalidate_group_cache_entry(struct sss_domain_info *domain,
+                                              const char *name)
+{
+    return sysdb_invalidate_cache_entry(domain, name, false);
 }
