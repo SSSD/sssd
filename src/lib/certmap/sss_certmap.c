@@ -311,87 +311,6 @@ done:
     return ret;
 }
 
-static int get_dn_str(struct sss_certmap_ctx *ctx, const char *conversion,
-                      const char **rdn_list, char **result)
-{
-    char *str = NULL;
-    size_t c;
-    int ret;
-    char *conv = NULL;
-
-    str = talloc_strdup(ctx, "");
-    if (str == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    if (conversion == NULL || strcmp(conversion, "nss_ldap") == 0
-                           || strcmp(conversion, "nss") == 0) {
-        for (c = 0; rdn_list[c] != NULL; c++);
-        while (c != 0) {
-            c--;
-            str = talloc_asprintf_append(str, "%s%s",
-                                         (rdn_list[c + 1] == NULL) ? "" : ",",
-                                         rdn_list[c]);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-        };
-    } else if (strcmp(conversion, "ad_ldap") == 0) {
-        for (c = 0; rdn_list[c] != NULL; c++);
-        while (c != 0) {
-            c--;
-            conv = check_ad_attr_name(str, rdn_list[c]);
-            str = talloc_asprintf_append(str, "%s%s",
-                                         (rdn_list[c + 1] == NULL) ? "" : ",",
-                                         conv == NULL ? rdn_list[c] : conv);
-            talloc_free(conv);
-            conv = NULL;
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-        };
-    } else if (strcmp(conversion, "nss_x500") == 0) {
-        for (c = 0; rdn_list[c] != NULL; c++) {
-            str = talloc_asprintf_append(str, "%s%s", (c == 0) ? "" : ",",
-                                                       rdn_list[c]);
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-    } else if (strcmp(conversion, "ad_x500") == 0
-                        || strcmp(conversion, "ad") == 0) {
-        for (c = 0; rdn_list[c] != NULL; c++) {
-            conv = check_ad_attr_name(str, rdn_list[c]);
-            str = talloc_asprintf_append(str, "%s%s",
-                                         (c == 0) ? "" : ",",
-                                         conv == NULL ? rdn_list[c] : conv);
-            talloc_free(conv);
-            conv = NULL;
-            if (str == NULL) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-    } else {
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = 0;
-
-done:
-    if (ret == 0) {
-        *result = str;
-    } else {
-        talloc_free(str);
-    }
-
-    return ret;
-}
-
 static int expand_san_blob(struct sss_certmap_ctx *ctx, enum san_opt san_opt,
                            struct san_list *san_list, char **expanded)
 {
@@ -458,7 +377,7 @@ static int expand_san_rdn_list(struct sss_certmap_ctx *ctx,
 
     DLIST_FOR_EACH(item, san_list) {
         if (item->san_opt == san_opt) {
-            ret = get_dn_str(ctx, conversion, item->rdn_list, &exp);
+            ret = rdn_list_2_dn_str(ctx, conversion, item->rdn_list, &exp);
             if (ret != 0) {
                 return ret;
             }
@@ -528,11 +447,11 @@ static int expand_template(struct sss_certmap_ctx *ctx,
     char *exp = NULL;
 
     if (strcmp("issuer_dn", parsed_template->name) == 0) {
-        ret = get_dn_str(ctx, parsed_template->conversion,
-                         cert_content->issuer_rdn_list, &exp);
+        ret = rdn_list_2_dn_str(ctx, parsed_template->conversion,
+                                cert_content->issuer_rdn_list, &exp);
     } else if (strcmp("subject_dn", parsed_template->name) == 0) {
-        ret = get_dn_str(ctx, parsed_template->conversion,
-                         cert_content->subject_rdn_list, &exp);
+        ret = rdn_list_2_dn_str(ctx, parsed_template->conversion,
+                                cert_content->subject_rdn_list, &exp);
     } else if (strncmp("subject_", parsed_template->name, 8) == 0) {
         ret = expand_san(ctx, parsed_template, cert_content->san_list, &exp);
     } else if (strcmp("cert", parsed_template->name) == 0) {
@@ -629,7 +548,7 @@ static bool check_san_regexp(struct sss_certmap_ctx *ctx,
         if (item->san_opt == san_opt) {
             if (item->san_opt == SAN_DIRECTORY_NAME) {
                 /* use LDAP order for matching */
-                ret = get_dn_str(ctx, NULL, item->rdn_list, &tmp_str);
+                ret = rdn_list_2_dn_str(ctx, NULL, item->rdn_list, &tmp_str);
                 if (ret != 0 || tmp_str == NULL) {
                     return false;
                 }
