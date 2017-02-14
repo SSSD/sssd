@@ -171,4 +171,8 @@ void dp_sbus_reset_users_ncache(struct data_provider *provider,
 void dp_sbus_reset_groups_ncache(struct data_provider *provider,
                                  struct sss_domain_info *dom);
 
+void dp_sbus_reset_users_memcache(struct data_provider *provider);
+void dp_sbus_reset_groups_memcache(struct data_provider *provider);
+void dp_sbus_reset_initgr_memcache(struct data_provider *provider);
+
 #endif /* _DP_H_ */

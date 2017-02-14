@@ -154,3 +154,38 @@ void dp_sbus_reset_groups_ncache(struct data_provider *provider,
     return dp_sbus_reset_ncache(provider, dom,
                                 IFACE_RESPONDER_NCACHE_RESETGROUPS);
 }
+
+static void dp_sbus_reset_memcache(struct data_provider *provider,
+                                   const char *method)
+{
+    DBusMessage *msg;
+
+    msg = sbus_create_message(NULL, NULL, NSS_MEMORYCACHE_PATH,
+                              IFACE_NSS_MEMORYCACHE, method);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
+        return;
+    }
+
+    send_msg_to_selected_clients(provider, msg, user_clients);
+    dbus_message_unref(msg);
+    return;
+}
+
+void dp_sbus_reset_users_memcache(struct data_provider *provider)
+{
+    return dp_sbus_reset_memcache(provider,
+                                  IFACE_NSS_MEMORYCACHE_INVALIDATEALLUSERS);
+}
+
+void dp_sbus_reset_groups_memcache(struct data_provider *provider)
+{
+    return dp_sbus_reset_memcache(provider,
+                                  IFACE_NSS_MEMORYCACHE_INVALIDATEALLGROUPS);
+}
+
+void dp_sbus_reset_initgr_memcache(struct data_provider *provider)
+{
+    return dp_sbus_reset_memcache(provider,
+                          IFACE_NSS_MEMORYCACHE_INVALIDATEALLINITGROUPS);
+}
