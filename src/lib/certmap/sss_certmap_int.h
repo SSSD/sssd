@@ -28,7 +28,10 @@
 #include <sys/types.h>
 #include <regex.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <talloc.h>
+
+#include "lib/certmap/sss_certmap.h"
 
 #define CM_DEBUG(cm_ctx, format, ...) do { \
     if (cm_ctx != NULL && cm_ctx->debug != NULL) { \
@@ -39,6 +42,9 @@
 
 #define DEFAULT_MATCH_RULE "<KU>digitalSignature<EKU>clientAuth"
 #define DEFAULT_MAP_RULE "LDAP:(userCertificate;binary={cert!bin})"
+
+#define PKINIT_OID "1.3.6.1.5.2.2"
+#define NT_PRINCIPAL_OID "1.3.6.1.4.1.311.20.2.3"
 
 enum san_opt {
     SAN_OTHER_NAME = 0,
@@ -161,9 +167,9 @@ struct san_list {
 #define SSS_KU_DECIPHER_ONLY        0x8000
 
 struct sss_cert_content {
-    const char *issuer_str;
+    char *issuer_str;
     const char **issuer_rdn_list;
-    const char *subject_str;
+    char *subject_str;
     const char **subject_rdn_list;
     uint32_t key_usage;
     const char **extended_key_usage_oids;
@@ -179,6 +185,8 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
 
 char *check_ad_attr_name(TALLOC_CTX *mem_ctx, const char *rdn);
 
+char *openssl_2_nss_attr_name(const char *attr);
+
 int parse_krb5_match_rule(struct sss_certmap_ctx *ctx,
                           const char *rule_start,
                           struct krb5_match_rule **match_rule);
@@ -186,4 +194,17 @@ int parse_krb5_match_rule(struct sss_certmap_ctx *ctx,
 int parse_ldap_mapping_rule(struct sss_certmap_ctx *ctx,
                             const char *rule_start,
                             struct ldap_mapping_rule **mapping_rule);
+
+int get_short_name(TALLOC_CTX *mem_ctx, const char *full_name,
+                   char delim, char **short_name);
+
+int add_to_san_list(TALLOC_CTX *mem_ctx, bool is_bin,
+                    enum san_opt san_opt, const uint8_t *data, size_t len,
+                    struct san_list **item);
+
+int add_principal_to_san_list(TALLOC_CTX *mem_ctx, enum san_opt san_opt,
+                              const char *princ, struct san_list **item);
+
+int rdn_list_2_dn_str(TALLOC_CTX *mem_ctx, const char *conversion,
+                      const char **rdn_list, char **result);
 #endif /* __SSS_CERTMAP_INT_H__ */
