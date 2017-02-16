@@ -5621,6 +5621,9 @@ START_TEST(test_sysdb_search_user_by_cert)
     struct ldb_result *res;
     struct ldb_val val;
     struct test_data *data;
+    struct test_data *data2;
+    const char *name;
+    const char *name2;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -5656,6 +5659,36 @@ START_TEST(test_sysdb_search_user_by_cert)
                       data->username) == 0, "Unexpected object found, " \
                       "expected [%s], got [%s].", data->username,
                       ldb_msg_find_attr_as_string(res->msgs[0],SYSDB_NAME, ""));
+
+    /* Add a second user with the same certificate */
+    data2 = test_data_new_user(test_ctx, 2345671);
+    fail_if(data2 == NULL);
+
+    ret = sysdb_attrs_add_val(data2->attrs, SYSDB_USER_CERT, &val);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = test_add_user(data2);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_user_by_cert(test_ctx, test_ctx->domain,
+                                    TEST_USER_CERT_DERB64, &res);
+    fail_unless(ret == EOK, "sysdb_search_user_by_cert failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 2, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 2, res->count);
+    name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, "");
+    fail_unless(name != NULL);
+    name2 = ldb_msg_find_attr_as_string(res->msgs[1], SYSDB_NAME, "");
+    fail_unless(name2 != NULL);
+    fail_unless(((strcmp(name, data->username) == 0
+                        && strcmp(name2, data2->username) == 0)
+                    || (strcmp(name, data2->username) == 0
+                        && strcmp(name2, data->username) == 0)),
+                "Unexpected names found, expected [%s,%s], got [%s,%s].",
+                data->username, data2->username, name, name2);
+
     talloc_free(test_ctx);
 }
 END_TEST
