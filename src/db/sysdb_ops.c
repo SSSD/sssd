@@ -4486,6 +4486,7 @@ static errno_t sysdb_search_object_attr(TALLOC_CTX *mem_ctx,
                                         struct sss_domain_info *domain,
                                         const char *filter,
                                         const char **attrs,
+                                        bool expect_only_one_result,
                                         struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
@@ -4519,7 +4520,7 @@ static errno_t sysdb_search_object_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (res->count > 1) {
+    if (res->count > 1 && expect_only_one_result) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Search with filter [%s] returned more than one object.\n",
               filter);
@@ -4555,6 +4556,7 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
                                                const char *filter_tmpl,
                                                const char *str,
                                                const char **attrs,
+                                               bool expect_only_one_result,
                                                struct ldb_result **_res)
 {
     char *filter;
@@ -4565,7 +4567,8 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, _res);
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs,
+                                   expect_only_one_result, _res);
 
     talloc_free(filter);
     return ret;
@@ -4585,7 +4588,7 @@ errno_t sysdb_search_object_by_id(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, res);
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, true, res);
 
     talloc_free(filter);
     return ret;
@@ -4621,7 +4624,7 @@ errno_t sysdb_search_object_by_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, res);
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, true, res);
 
 done:
     talloc_free(tmp_ctx);
@@ -4635,7 +4638,7 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    struct ldb_result **res)
 {
     return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_SID_FILTER,
-                                           sid_str, attrs, res);
+                                           sid_str, attrs, true, res);
 }
 
 errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,
@@ -4645,7 +4648,7 @@ errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,
                                     struct ldb_result **res)
 {
     return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_UUID_FILTER,
-                                           uuid_str, attrs, res);
+                                           uuid_str, attrs, true, res);
 }
 
 errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
@@ -4666,7 +4669,7 @@ errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_search_object_by_str_attr(mem_ctx, domain,
                                           SYSDB_USER_CERT_FILTER,
-                                          user_filter, attrs, res);
+                                          user_filter, attrs, false, res);
     talloc_free(user_filter);
 
     return ret;
