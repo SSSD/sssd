@@ -189,7 +189,7 @@ static errno_t enum_files_groups(TALLOC_CTX *mem_ctx,
         }
         grp->gr_passwd = talloc_strdup(grp, grp_iter->gr_passwd);
 
-        if (grp_iter->gr_mem != NULL && grp_iter->gr_mem[0] != '\0') {
+        if (grp_iter->gr_mem != NULL) {
             size_t nmem;
 
             for (nmem = 0; grp_iter->gr_mem[nmem] != NULL; nmem++);
