@@ -956,7 +956,6 @@ convert_attributes(struct ipa_sudo_conv *conv,
                 value = table[i].conv_fn(tmp_ctx, conv, values[j], &skip_entry);
                 if (value == NULL) {
                     if (skip_entry) {
-                        ret = ENOENT;
                         continue;
                     } else {
                         ret = ENOMEM;
