@@ -38,13 +38,13 @@ def set_user_dict(res, result_p):
         return dict()
 
     user_dict = dict()
-    user_dict['name'] = result_p[0].pw_name
-    user_dict['passwd'] = result_p[0].pw_passwd
+    user_dict['name'] = result_p[0].pw_name.decode('utf-8')
+    user_dict['passwd'] = result_p[0].pw_passwd.decode('utf-8')
     user_dict['uid'] = result_p[0].pw_uid
     user_dict['gid'] = result_p[0].pw_gid
-    user_dict['gecos'] = result_p[0].pw_gecos
-    user_dict['dir'] = result_p[0].pw_dir
-    user_dict['shell'] = result_p[0].pw_shell
+    user_dict['gecos'] = result_p[0].pw_gecos.decode('utf-8')
+    user_dict['dir'] = result_p[0].pw_dir.decode('utf-8')
+    user_dict['shell'] = result_p[0].pw_shell.decode('utf-8')
     return user_dict
 
 
@@ -64,6 +64,7 @@ def getpwnam_r(name, result_p, buffer_p, buflen):
 
     errno = POINTER(c_int)(c_int(0))
 
+    name = name.encode('utf-8')
     res = func(c_char_p(name), result_p, buffer_p, buflen, errno)
 
     return (int(res), int(errno[0]), result_p)

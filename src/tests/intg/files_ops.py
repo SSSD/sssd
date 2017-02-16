@@ -76,7 +76,8 @@ class FilesOps(object):
         return contents
 
     def _write_contents(self, contents):
-        tmp_file = tempfile.NamedTemporaryFile(dir=self.tmp_dir, delete=False)
+        tmp_file = tempfile.NamedTemporaryFile(mode='w', dir=self.tmp_dir,
+                                               delete=False)
         tmp_file.writelines(contents)
         tmp_file.flush()
 
