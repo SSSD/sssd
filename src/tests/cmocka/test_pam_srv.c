@@ -1612,6 +1612,38 @@ static int test_lookup_by_cert_cb(void *pvt)
     return EOK;
 }
 
+static int test_lookup_by_cert_double_cb(void *pvt)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    unsigned char *der = NULL;
+    size_t der_size;
+
+    if (pvt != NULL) {
+
+        ret = test_lookup_by_cert_cb(pvt);
+        assert_int_equal(ret, EOK);
+
+        attrs = sysdb_new_attrs(pam_test_ctx);
+        assert_non_null(attrs);
+
+        der = sss_base64_decode(pam_test_ctx, pvt, &der_size);
+        assert_non_null(der);
+
+        ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+        talloc_free(der);
+        assert_int_equal(ret, EOK);
+
+        ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                                  pam_test_ctx->wrong_user_fqdn,
+                                  attrs,
+                                  LDB_FLAG_MOD_ADD);
+        assert_int_equal(ret, EOK);
+    }
+
+    return EOK;
+}
+
 static int test_lookup_by_cert_wrong_user_cb(void *pvt)
 {
     int ret;
@@ -1760,6 +1792,28 @@ void test_pam_preauth_cert_no_logon_name(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_preauth_cert_no_logon_name_double_cert(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+                        test_lookup_by_cert_double_cb, TEST_TOKEN_CERT, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_creds_insufficient_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_pam_preauth_no_cert_no_logon_name(void **state)
 {
     int ret;
@@ -1824,6 +1878,31 @@ void test_pam_cert_auth(void **state)
     /* Assume backend cannot handle Smartcard credentials */
     pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
 
+
+    set_cmd_cb(test_pam_simple_check_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_cert_auth_double_cert(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", NULL,
+                        test_lookup_by_cert_double_cb, TEST_TOKEN_CERT, true);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
 
     set_cmd_cb(test_pam_simple_check_success);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
@@ -2118,6 +2197,9 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_no_logon_name,
                                         pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(
+                                test_pam_preauth_cert_no_logon_name_double_cert,
+                                pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_no_cert_no_logon_name,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(
@@ -2128,6 +2210,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_cert_auth,
                                         pam_test_setup_no_verification,
                                         pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth_double_cert,
+                                        pam_test_setup, pam_test_teardown),
 #endif /* HAVE_NSS */
 
         cmocka_unit_test_setup_teardown(test_filter_response,

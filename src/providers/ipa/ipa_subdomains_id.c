@@ -1007,6 +1007,12 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
                    ret, sss_strerror(ret));
             goto done;
         }
+        if (res->count != 1) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "More than one result found in our cache\n");
+            ret = EINVAL;
+            goto done;
+        }
 
         *_msg = res->msgs[0];
 
