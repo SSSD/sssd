@@ -1348,7 +1348,7 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
             preq->domain = result->domain;
         }
 
-        preq->cert_user_obj = talloc_steal(preq, result->msgs[0]);
+        preq->cert_user_objs = talloc_steal(preq, result->ldb_result);
 
         if (preq->pd->logon_name == NULL) {
             if (preq->pd->cmd != SSS_PAM_PREAUTH) {
@@ -1357,8 +1357,17 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 ret = ENOENT;
                 goto done;
             }
-            cert_user = ldb_msg_find_attr_as_string(preq->cert_user_obj,
-                                                    SYSDB_NAME, NULL);
+
+            if (preq->cert_user_objs->count != 1) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "More than one user mapped to certificate.\n");
+                /* TODO: send pam response to ask for a user name */
+                ret = ERR_NO_CREDS;
+                goto done;
+            }
+            cert_user = ldb_msg_find_attr_as_string(
+                                                  preq->cert_user_objs->msgs[0],
+                                                  SYSDB_NAME, NULL);
             if (cert_user == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Certificate user object has not name.\n");
@@ -1677,6 +1686,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
     const char *cert_user;
+    size_t c;
 
     if (!preq->pd->domain) {
         preq->pd->domain = preq->domain->name;
@@ -1713,75 +1723,82 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         return;
     }
 
-    if (may_do_cert_auth(pctx, preq->pd) && preq->cert_user_obj != NULL) {
+    if (may_do_cert_auth(pctx, preq->pd) && preq->cert_user_objs != NULL) {
         /* Check if user matches certificate user */
-        cert_user = ldb_msg_find_attr_as_string(preq->cert_user_obj, SYSDB_NAME,
-                                                NULL);
-        if (cert_user == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Certificate user object has no name.\n");
-            preq->pd->pam_status = PAM_USER_UNKNOWN;
-            pam_reply(preq);
-            return;
+        for (c = 0; c < preq->cert_user_objs->count; c++) {
+            cert_user = ldb_msg_find_attr_as_string(
+                                                  preq->cert_user_objs->msgs[c],
+                                                  SYSDB_NAME,
+                                                  NULL);
+            if (cert_user == NULL) {
+                /* Even if there might be other users mapped to the
+                 * certificate a missing SYSDB_NAME indicates some critical
+                 * condition which justifies that the whole request is aborted
+                 * */
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Certificate user object has no name.\n");
+                preq->pd->pam_status = PAM_USER_UNKNOWN;
+                pam_reply(preq);
+                return;
+            }
+
+            /* pam_check_user_search() calls pd_set_primary_name() is the search
+             * was successful, so pd->user contains the canonical sysdb name
+             * as well */
+            if (ldb_dn_compare(preq->cert_user_objs->msgs[c]->dn,
+                               preq->user_obj->dn) == 0) {
+
+                if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+                    ret = sss_authtok_set_sc(preq->pd->authtok,
+                                             SSS_AUTHTOK_TYPE_SC_PIN, NULL, 0,
+                                             preq->token_name, 0,
+                                             preq->module_name, 0,
+                                             preq->key_id, 0);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_set_sc failed, "
+                                                 "Smartcard authentication "
+                                                 "detection might fail in the "
+                                                 "backend.\n");
+                    }
+
+                    ret = add_pam_cert_response(preq->pd, cert_user,
+                                                preq->token_name,
+                                                preq->module_name,
+                                                preq->key_id);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
+                        preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+                    }
+                }
+
+                /* We are done if we do not have to call the backend */
+                if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
+                        && preq->cert_auth_local) {
+                    preq->pd->pam_status = PAM_SUCCESS;
+                    preq->callback = pam_reply;
+                    pam_reply(preq);
+                    return;
+                }
+            }
         }
 
-        /* pam_check_user_search() calls pd_set_primary_name() is the search
-         * was successful, so pd->user contains the canonical sysdb name
-         * as well */
-        if (ldb_dn_compare(preq->cert_user_obj->dn, preq->user_obj->dn) == 0) {
-            DEBUG(SSSDBG_TRACE_ALL, "User and cert user DN match.\n");
-
-            if (preq->pd->cmd == SSS_PAM_PREAUTH) {
-                ret = sss_authtok_set_sc(preq->pd->authtok,
-                                         SSS_AUTHTOK_TYPE_SC_PIN, NULL, 0,
-                                         preq->token_name, 0,
-                                         preq->module_name, 0,
-                                         preq->key_id, 0);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_set_sc failed, "
-                                             "Smartcard authentication "
-                                             "detection might fail in the "
-                                             "backend.\n");
-                }
-
-                ret = add_pam_cert_response(preq->pd, cert_user,
-                                            preq->token_name,
-                                            preq->module_name,
-                                            preq->key_id);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
-                    preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
-                }
-            }
-
-            /* We are done if we do not have to call the backend */
-            if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
-                    && preq->cert_auth_local) {
-                preq->pd->pam_status = PAM_SUCCESS;
-                preq->callback = pam_reply;
-                pam_reply(preq);
-                return;
-            }
+        if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "User and certificate user do not match, " \
+                  "continue with other authentication methods.\n");
         } else {
-            if (preq->pd->cmd == SSS_PAM_PREAUTH) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "User and certificate user do not match, " \
-                      "continue with other authentication methods.\n");
-            } else {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "User and certificate user do not match.\n");
-                preq->pd->pam_status = PAM_AUTH_ERR;
-                pam_reply(preq);
-                return;
-            }
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "User and certificate user do not match.\n");
+            preq->pd->pam_status = PAM_AUTH_ERR;
+            pam_reply(preq);
+            return;
         }
     }
 
     if (!NEED_CHECK_PROVIDER(preq->domain->provider) ) {
         preq->callback = pam_reply;
         ret = LOCAL_pam_handler(preq);
-    }
-    else {
+    } else {
         preq->callback = pam_reply;
         ret = pam_dp_send_req(preq, SSS_CLI_SOCKET_TIMEOUT/2);
         DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
