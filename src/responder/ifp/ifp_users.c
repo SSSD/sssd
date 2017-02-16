@@ -263,6 +263,8 @@ int ifp_users_find_by_cert(struct sbus_request *sbus_req, void *data,
     return EOK;
 }
 
+#define SBUS_ERROR_MORE_THAN_ONE "org.freedesktop.sssd.Error.MoreThanOne"
+
 static void ifp_users_find_by_cert_done(struct tevent_req *req)
 {
     DBusError *error;
@@ -285,6 +287,14 @@ static void ifp_users_find_by_cert_done(struct tevent_req *req)
         goto done;
     }
 
+    if (result->count > 1) {
+        ret = EINVAL;
+        error = sbus_error_new(sbus_req, SBUS_ERROR_MORE_THAN_ONE,
+                               "More than one user found. "
+                               "Use ListByCertificate to get all.");
+        goto done;
+    }
+
     object_path = ifp_users_build_path_from_msg(sbus_req, result->domain,
                                                 result->msgs[0]);
     if (object_path == NULL) {
@@ -300,6 +310,117 @@ done:
     }
 
     iface_ifp_users_FindByCertificate_finish(sbus_req, object_path);
+    return;
+}
+
+static int ifp_users_list_by_cert_step(struct ifp_list_ctx *list_ctx);
+static void ifp_users_list_by_cert_done(struct tevent_req *req);
+static void ifp_users_list_by_name_reply(struct ifp_list_ctx *list_ctx);
+static int ifp_users_list_copy(struct ifp_list_ctx *list_ctx,
+                               struct ldb_result *result);
+
+int ifp_users_list_by_cert(struct sbus_request *sbus_req, void *data,
+                           const char *pem_cert, uint32_t limit)
+{
+    struct ifp_ctx *ctx;
+    struct ifp_list_ctx *list_ctx;
+    char *derb64;
+    int ret;
+    DBusError *error;
+
+    ret = sss_cert_pem_to_derb64(sbus_req, pem_cert, &derb64);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
+
+        if (ret == ENOMEM) {
+            return ret;
+        }
+
+        error = sbus_error_new(sbus_req, DBUS_ERROR_INVALID_ARGS,
+                               "Invalid certificate format");
+        sbus_request_fail_and_finish(sbus_req, error);
+        /* the connection is already terminated with an error message, hence
+         * we have to return EOK to not terminate the connection twice. */
+        return EOK;
+    }
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return ERR_INTERNAL;
+    }
+
+    list_ctx = ifp_list_ctx_new(sbus_req, ctx, derb64, limit);
+    if (list_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    return ifp_users_list_by_cert_step(list_ctx);
+}
+
+static int ifp_users_list_by_cert_step(struct ifp_list_ctx *list_ctx)
+{
+    struct tevent_req *req;
+
+    req = cache_req_user_by_cert_send(list_ctx,
+                                      list_ctx->ctx->rctx->ev,
+                                      list_ctx->ctx->rctx,
+                                      list_ctx->ctx->rctx->ncache,
+                                      0,
+                                      list_ctx->dom->name,
+                                      list_ctx->filter);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ifp_users_list_by_cert_done, list_ctx);
+
+    return EOK;
+}
+
+static void ifp_users_list_by_cert_done(struct tevent_req *req)
+{
+    DBusError *error;
+    struct ifp_list_ctx *list_ctx;
+    struct sbus_request *sbus_req;
+    struct cache_req_result *result;
+    errno_t ret;
+
+    list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
+    sbus_req = list_ctx->sbus_req;
+
+    ret = cache_req_user_by_cert_recv(sbus_req, req, &result);
+    talloc_zfree(req);
+    if (ret != EOK && ret != ENOENT) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "user [%d]: %s\n", ret, sss_strerror(ret));
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    if (ret == EOK) {
+        ret = ifp_users_list_copy(list_ctx, result->ldb_result);
+        if (ret != EOK) {
+            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                                   "Failed to copy domain result");
+            sbus_request_fail_and_finish(sbus_req, error);
+            return;
+        }
+    }
+
+    list_ctx->dom = get_next_domain(list_ctx->dom, SSS_GND_DESCEND);
+    if (list_ctx->dom == NULL) {
+        return ifp_users_list_by_name_reply(list_ctx);
+    }
+
+    ret = ifp_users_list_by_cert_step(list_ctx);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                               "Failed to start next-domain search");
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
     return;
 }
 
