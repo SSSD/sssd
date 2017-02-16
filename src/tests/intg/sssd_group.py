@@ -46,6 +46,7 @@ def getgrnam_r(name, result_p, buffer_p, buflen):
 
     errno = POINTER(c_int)(c_int(0))
 
+    name = name.encode('utf-8')
     res = func(c_char_p(name), result_p, buffer_p, buflen, errno)
 
     return (int(res), int(errno[0]), result_p)
@@ -56,13 +57,14 @@ def set_group_dict(res, result_p):
         return dict()
 
     group_dict = dict()
-    group_dict['name'] = result_p[0].gr_name
+    group_dict['name'] = result_p[0].gr_name.decode('utf-8')
     group_dict['gid'] = result_p[0].gr_gid
     group_dict['mem'] = list()
 
     i = 0
     while result_p[0].gr_mem[i] != None:
-        group_dict['mem'].append(result_p[0].gr_mem[i])
+        grp_name = result_p[0].gr_mem[i].decode('utf-8')
+        group_dict['mem'].append(grp_name)
         i = i+1
 
     return group_dict
