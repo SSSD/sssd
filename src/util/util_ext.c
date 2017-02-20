@@ -24,6 +24,8 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <ctype.h>
+#include <string.h>
+#include <strings.h>
 
 #define EOK 0
 
@@ -118,4 +120,24 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+bool string_in_list(const char *string, char **list, bool case_sensitive)
+{
+    size_t c;
+    int(*compare)(const char *s1, const char *s2);
+
+    if (string == NULL || list == NULL || *list == NULL) {
+        return false;
+    }
+
+    compare = case_sensitive ? strcmp : strcasecmp;
+
+    for (c = 0; list[c] != NULL; c++) {
+        if (compare(string, list[c]) == 0) {
+            return true;
+        }
+    }
+
+    return false;
 }
