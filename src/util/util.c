@@ -617,26 +617,6 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     return EOK;
 }
 
-bool string_in_list(const char *string, char **list, bool case_sensitive)
-{
-    size_t c;
-    int(*compare)(const char *s1, const char *s2);
-
-    if (string == NULL || list == NULL || *list == NULL) {
-        return false;
-    }
-
-    compare = case_sensitive ? strcmp : strcasecmp;
-
-    for (c = 0; list[c] != NULL; c++) {
-        if (compare(string, list[c]) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void safezero(void *data, size_t size)
 {
     volatile uint8_t *p = data;
