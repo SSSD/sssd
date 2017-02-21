@@ -525,6 +525,23 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>enable_files_domain (boolean)</term>
+                        <listitem>
+                            <para>
+                                When this option is enabled, SSSD
+                                prepends an implicit domain with
+                                <quote>id_provider=files</quote> before
+                                any explicitly configured domains.
+                            </para>
+                            <para condition="no_enable_files_domain">
+                                Default: false
+                            </para>
+                            <para condition="enable_files_domain">
+                                Default: true
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>
