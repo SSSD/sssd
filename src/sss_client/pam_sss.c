@@ -54,6 +54,7 @@
 #define FLAGS_IGNORE_AUTHINFO_UNAVAIL (1 << 4)
 #define FLAGS_USE_2FA (1 << 5)
 #define FLAGS_ALLOW_MISSING_NAME (1 << 6)
+#define FLAGS_PROMPT_ALWAYS (1 << 7)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
 #define FD_DESTRUCTOR "pam_sss:fd_destructor"
@@ -1641,6 +1642,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             *flags |= FLAGS_USE_2FA;
         } else if (strcmp(*argv, "allow_missing_name") == 0) {
             *flags |= FLAGS_ALLOW_MISSING_NAME;
+        } else if (strcmp(*argv, "prompt_always") == 0) {
+            *flags |= FLAGS_PROMPT_ALWAYS;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -1655,7 +1658,10 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
 {
     int ret;
 
-    if (flags & FLAGS_USE_FIRST_PASS) {
+    if ((flags & FLAGS_USE_FIRST_PASS)
+            || ( pi->pamstack_authtok != NULL
+                    && *(pi->pamstack_authtok) != '\0'
+                    && !(flags & FLAGS_PROMPT_ALWAYS))) {
         pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
         pi->pam_authtok = strdup(pi->pamstack_authtok);
         if (pi->pam_authtok == NULL) {
@@ -1888,10 +1894,12 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 /*
                  * Only do preauth if
                  * - FLAGS_USE_FIRST_PASS is not set
-                 * - no password is on the stack
+                 * - no password is on the stack or FLAGS_PROMPT_ALWAYS is set
                  * - preauth indicator file exists.
                  */
-                if ( !(flags & FLAGS_USE_FIRST_PASS) && pi.pam_authtok == NULL
+                if ( !(flags & FLAGS_USE_FIRST_PASS)
+                        && (pi.pam_authtok == NULL
+                                || (flags & FLAGS_PROMPT_ALWAYS))
                         && access(PAM_PREAUTH_INDICATOR, F_OK) == 0) {
                     pam_status = send_and_receive(pamh, &pi, SSS_PAM_PREAUTH,
                                                   quiet_mode);

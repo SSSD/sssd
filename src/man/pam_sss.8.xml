@@ -47,6 +47,9 @@
             <arg choice='opt'>
                 <replaceable>allow_missing_name</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>prompt_always</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -179,6 +182,21 @@ auth sufficient pam_sss.so allow_missing_name
                         In this case SSSD will try to determine the user name
                         based on the content of the Smartcard, returns it to
                         pam_sss which will finally put it on the PAM stack.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>prompt_always</option>
+                </term>
+                <listitem>
+                    <para>
+                        Always prompt  the user for credentials. With this
+                        option credentials requested by other PAM modules,
+                        typically a password, will be ignored and pam_sss will
+                        prompt for credentials again. Based on the pre-auth
+                        reply by SSSD pam_sss might prompt for a password, a
+                        Smartcard PIN or other credentials.
                     </para>
                 </listitem>
             </varlistentry>
