@@ -73,6 +73,7 @@
 #define CONFDB_MONITOR_USER_RUNAS "user"
 #define CONFDB_MONITOR_CERT_VERIFICATION "certificate_verification"
 #define CONFDB_MONITOR_DISABLE_NETLINK "disable_netlink"
+#define CONFDB_MONITOR_ENABLE_FILES_DOM "enable_files_domain"
 
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"
@@ -372,6 +373,9 @@ int confdb_get_domain(struct confdb_ctx *cdb,
  */
 int confdb_get_domains(struct confdb_ctx *cdb,
                        struct sss_domain_info **domains);
+
+int confdb_ensure_files_domain(struct confdb_ctx *cdb,
+                               const char *implicit_files_dom_name);
 
 /**
  * Get a null-terminated linked-list of all domain names

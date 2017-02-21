@@ -64,6 +64,7 @@ option_strings = {
     'certificate_verification' : _('Tune certificate verification'),
     'override_space': _('All spaces in group or user names will be replaced with this character'),
     'disable_netlink' : _('Tune sssd to honor or ignore netlink state changes'),
+    'enable_files_domain' : _('Enable or disable the implicit files domain'),
 
     # [nss]
     'enum_cache_timeout' : _('Enumeration cache timeout length (seconds)'),
