@@ -33,6 +33,10 @@ from sssd_passwd import call_sssd_getpwnam, call_sssd_enumeration
 from sssd_group import call_sssd_getgrnam
 from files_ops import passwd_ops_setup, group_ops_setup
 from util import unindent
+from util import run_shell
+
+# Sync this with files_ops.c
+FILES_REALLOC_CHUNK = 64
 
 CANARY = dict(name='canary', passwd='x', uid=100001, gid=200001,
               gecos='Used to check if passwd is resolvable',
@@ -204,7 +208,7 @@ def sssd_id_sync(name):
 # Helper functions
 def user_generator(seqnum):
     return dict(name='user%d' % seqnum,
-                passwd='*',
+                passwd='x',
                 uid=10000 + seqnum,
                 gid=20000 + seqnum,
                 gecos='User for tests',
@@ -219,6 +223,12 @@ def check_user(exp_user, delay=1.0):
     res, found_user = sssd_getpwnam_sync(exp_user["name"])
     assert res == NssReturnCode.SUCCESS
     assert found_user == exp_user
+
+
+def group_generator(seqnum):
+    return dict(name='group%d' % seqnum,
+                gid=30000 + seqnum,
+                mem=[])
 
 
 def check_group(exp_group, delay=1.0):
@@ -690,3 +700,56 @@ def test_getgrnam_add_remove_ghosts(setup_pw_with_canary,
     assert res == sssd_id.NssReturnCode.SUCCESS
     assert len(groups) == 2
     assert 'group_nomem' in groups
+
+
+def realloc_users(pwd_ops, num):
+    # Intentionally not including the the last one because
+    # canary is added first
+    for i in range(1, num):
+        user = user_generator(i)
+        pwd_ops.useradd(**user)
+
+    user = user_generator(num-1)
+    check_user(user)
+
+
+def test_realloc_users_exact(setup_pw_with_canary, files_domain_only):
+    """
+    Test that returning exactly FILES_REALLOC_CHUNK users (see files_ops.c)
+    works fine to test reallocation logic. Test exact number of users to
+    check for off-by-one errors.
+    """
+    realloc_users(setup_pw_with_canary, FILES_REALLOC_CHUNK)
+
+
+def test_realloc_users(setup_pw_with_canary, files_domain_only):
+    """
+    Test that returning exactly FILES_REALLOC_CHUNK users (see files_ops.c)
+    works fine to test reallocation logic.
+    """
+    realloc_users(setup_pw_with_canary, FILES_REALLOC_CHUNK*3)
+
+
+def realloc_groups(grp_ops, num):
+    for i in range(1, num):
+        group = group_generator(i)
+        grp_ops.groupadd(**group)
+
+    group = group_generator(num-1)
+    check_group(group)
+
+def test_realloc_groups_exact(setup_gr_with_canary, files_domain_only):
+    """
+    Test that returning exactly FILES_REALLOC_CHUNK groups (see files_ops.c)
+    works fine to test reallocation logic. Test exact number of groups to
+    check for off-by-one errors.
+    """
+    realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK*3)
+
+def test_realloc_groups(setup_gr_with_canary, files_domain_only):
+    """
+    Test that returning exactly FILES_REALLOC_CHUNK groups (see files_ops.c)
+    works fine to test reallocation logic. Test exact number of groups to
+    check for off-by-one errors.
+    """
+    realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK*3)

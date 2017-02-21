@@ -27,6 +27,9 @@
 #include "util/inotify.h"
 #include "util/util.h"
 
+/* When changing this constant, make sure to also adjust the files integration
+ * test for reallocation branch
+ */
 #define FILES_REALLOC_CHUNK 64
 
 #define PWD_MAXSIZE         1024
@@ -108,7 +111,7 @@ static errno_t enum_files_users(TALLOC_CTX *mem_ctx,
             users = talloc_realloc(mem_ctx,
                                    users,
                                    struct passwd *,
-                                   talloc_get_size(users) + FILES_REALLOC_CHUNK);
+                                   talloc_array_length(users) + FILES_REALLOC_CHUNK);
             if (users == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -117,6 +120,7 @@ static errno_t enum_files_users(TALLOC_CTX *mem_ctx,
     }
 
     ret = EOK;
+    users[n_users] = NULL;
     *_users = users;
 done:
     if (ret != EOK) {
@@ -211,7 +215,7 @@ static errno_t enum_files_groups(TALLOC_CTX *mem_ctx,
             groups = talloc_realloc(mem_ctx,
                                     groups,
                                     struct group *,
-                                    talloc_get_size(groups) + FILES_REALLOC_CHUNK);
+                                    talloc_array_length(groups) + FILES_REALLOC_CHUNK);
             if (groups == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -220,6 +224,7 @@ static errno_t enum_files_groups(TALLOC_CTX *mem_ctx,
     }
 
     ret = EOK;
+    groups[n_groups] = NULL;
     *_groups = groups;
 done:
     if (ret != EOK) {
