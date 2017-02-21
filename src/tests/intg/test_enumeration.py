@@ -98,7 +98,12 @@ SCHEMA_RFC2307_BIS = "rfc2307bis"
 
 
 def format_basic_conf(ldap_conn, schema):
-    """Format a basic SSSD configuration"""
+    """
+    Format a basic SSSD configuration
+
+    The files domain is defined but not enabled in order to avoid enumerating
+    users from the files domain that would otherwise by implicitly enabled
+    """
     schema_conf = "ldap_schema         = " + schema + "\n"
     if schema == SCHEMA_RFC2307_BIS:
         schema_conf += "ldap_group_object_class = groupOfNames\n"
@@ -114,6 +119,9 @@ def format_basic_conf(ldap_conn, schema):
 
         [pam]
         debug_level         = 0xffff
+
+        [domain/files]
+        id_provider         = files
 
         [domain/LDAP]
         ldap_auth_disable_tls_never_use_in_production = true

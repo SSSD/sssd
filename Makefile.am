@@ -3239,6 +3239,7 @@ intgcheck-prepare:
 	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
 	    --enable-intgcheck-reqs \
 	    --without-semanage \
+	    --enable-files-domain \
 	    $(INTGCHECK_CONFIGURE_FLAGS); \
 	$(MAKE) $(AM_MAKEFLAGS); \
 	: Force single-thread install to workaround concurrency issues; \
