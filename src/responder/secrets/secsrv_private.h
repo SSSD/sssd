@@ -25,6 +25,7 @@
 #include "config.h"
 #include "responder/common/responder.h"
 #include "responder/secrets/secsrv.h"
+#include "util/sss_iobuf.h"
 #include <http_parser.h>
 
 struct sec_kvp {
@@ -129,6 +130,10 @@ int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
                                 int status_code, const char *reason,
                                 struct sec_kvp *headers, int num_headers,
                                 struct sec_data *body);
+errno_t sec_http_reply_iobuf(TALLOC_CTX *mem_ctx,
+                             struct sec_data *reply,
+                             int response_code,
+                             struct sss_iobuf *response);
 enum sec_http_status_codes sec_errno_to_http_status(errno_t err);
 
 int sec_json_to_simple_secret(TALLOC_CTX *mem_ctx,
