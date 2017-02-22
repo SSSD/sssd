@@ -205,6 +205,10 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
 
     ret=pam_get_item(pamh, PAM_CONV, (const void **) &conv);
     if (ret != PAM_SUCCESS) return ret;
+    if (conv == NULL || conv->conv == NULL) {
+        logger(pamh, LOG_ERR, "No conversation function");
+        return PAM_SYSTEM_ERR;
+    }
 
     do {
         pam_msg = malloc(sizeof(struct pam_message));
@@ -1303,6 +1307,10 @@ static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
     ret = pam_get_item(pamh, PAM_CONV, (const void **) &conv);
     if (ret != PAM_SUCCESS) {
         return ret;
+    }
+    if (conv == NULL || conv->conv == NULL) {
+        logger(pamh, LOG_ERR, "No conversation function");
+        return PAM_SYSTEM_ERR;
     }
 
     m[0].msg_style = PAM_PROMPT_ECHO_OFF;
