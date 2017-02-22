@@ -72,13 +72,15 @@ static char *password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
 int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
             enum op_mode mode, const char *pin,
             struct cert_verify_opts *cert_verify_opts,
-            char **cert, char **token_name_out)
+            char **cert, char **token_name_out, char **module_name_out,
+            char **key_id_out)
 {
     int ret;
     SECStatus rv;
     NSSInitContext *nss_ctx;
     SECMODModuleList *mod_list;
     SECMODModuleList *mod_list_item;
+    SECMODModule *module;
     const char *slot_name;
     const char *token_name;
     uint32_t flags = NSS_INIT_READONLY
@@ -91,6 +93,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
     PK11SlotInfo *slot = NULL;
     CK_SLOT_ID slot_id;
     SECMODModuleID module_id;
+    const char *module_name;
     CERTCertList *cert_list = NULL;
     CERTCertListNode *cert_list_node;
     const PK11DefaultArrayEntry friendly_attr = { "Publicly-readable certs",
@@ -105,6 +108,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
     CERTCertificate *found_cert = NULL;
     PK11SlotList *list = NULL;
     PK11SlotListElement *le;
+    SECItem *key_id = NULL;
+    char *key_id_str = NULL;
 
 
     nss_ctx = NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters, flags);
@@ -187,8 +192,11 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
     module_id = PK11_GetModuleID(slot);
     slot_name = PK11_GetSlotName(slot);
     token_name = PK11_GetTokenName(slot);
-    DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in slot [%s][%d] of module [%d].\n",
-          token_name, slot_name, (int) slot_id, (int) module_id);
+    module = PK11_GetModule(slot);
+    module_name = module->dllName == NULL ? "NSS-Internal" : module->dllName;
+
+    DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in slot [%s][%d] of module [%d][%s].\n",
+          token_name, slot_name, (int) slot_id, (int) module_id, module_name);
 
     if (PK11_IsFriendly(slot)) {
         DEBUG(SSSDBG_TRACE_ALL, "Token is friendly.\n");
@@ -346,6 +354,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
         DEBUG(SSSDBG_TRACE_ALL, "No certificate found.\n");
         *cert = NULL;
         *token_name_out = NULL;
+        *module_name_out = NULL;
         ret = EOK;
         goto done;
     }
@@ -412,6 +421,30 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
               "Certificate verified and validated.\n");
     }
 
+    key_id = PK11_GetLowLevelKeyIDForCert(slot, found_cert, NULL);
+    if (key_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "PK11_GetLowLevelKeyIDForCert failed [%d].\n",
+                                 PR_GetError());
+        ret = EINVAL;
+        goto done;
+    }
+
+    key_id_str = CERT_Hexify(key_id, PR_FALSE);
+    if (key_id_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_Hexify failed [%d].\n", PR_GetError());
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n", key_id_str);
+
+    *key_id_out = talloc_strdup(mem_ctx, key_id_str);
+    if (*key_id_out == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy key id.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     *cert = sss_base64_encode(mem_ctx, found_cert->derCert.data,
                                        found_cert->derCert.len);
     if (*cert == NULL) {
@@ -427,6 +460,13 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
         goto done;
     }
 
+    *module_name_out = talloc_strdup(mem_ctx, module_name);
+    if (*module_name_out == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy module_name_out name.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = EOK;
 
 done:
@@ -437,6 +477,9 @@ done:
     if (cert_list != NULL) {
         CERT_DestroyCertList(cert_list);
     }
+
+    SECITEM_FreeItem(key_id, PR_TRUE);
+    PORT_Free(key_id_str);
 
     PORT_Free(signed_random_value.data);
 
@@ -502,6 +545,8 @@ int main(int argc, const char *argv[])
     char *pin = NULL;
     char *slot_name_in = NULL;
     char *token_name_out = NULL;
+    char *module_name_out = NULL;
+    char *key_id_out = NULL;
     char *nss_db = NULL;
     struct cert_verify_opts *cert_verify_opts;
     char *verify_opts = NULL;
@@ -665,7 +710,7 @@ int main(int argc, const char *argv[])
     }
 
     ret = do_work(main_ctx, nss_db, slot_name_in, mode, pin, cert_verify_opts,
-                  &cert, &token_name_out);
+                  &cert, &token_name_out, &module_name_out, &key_id_out);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");
         goto fail;
@@ -673,6 +718,8 @@ int main(int argc, const char *argv[])
 
     if (cert != NULL) {
         fprintf(stdout, "%s\n", token_name_out);
+        fprintf(stdout, "%s\n", module_name_out);
+        fprintf(stdout, "%s\n", key_id_out);
         fprintf(stdout, "%s\n", cert);
     }
 

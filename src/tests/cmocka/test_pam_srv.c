@@ -48,6 +48,8 @@
 #define NSS_DB "sql:"NSS_DB_PATH
 
 #define TEST_TOKEN_NAME "SSSD Test Token"
+#define TEST_MODULE_NAME "NSS-Internal"
+#define TEST_KEY_ID "6822EDDD231DAB8DBCD83721BE16A13DD0E31C08"
 #define TEST_TOKEN_CERT \
 "MIIECTCCAvGgAwIBAgIBCDANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
 "REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNTA2MjMx" \
@@ -668,7 +670,10 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     assert_int_equal(val, SSS_PAM_CERT_INFO);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, (sizeof("pamuser@"TEST_DOM_NAME) + sizeof(TEST_TOKEN_NAME)));
+    assert_int_equal(val, (sizeof("pamuser@"TEST_DOM_NAME)
+                                + sizeof(TEST_TOKEN_NAME)
+                                + sizeof(TEST_MODULE_NAME)
+                                + sizeof(TEST_KEY_ID)));
 
     assert_int_equal(*(body + rp + sizeof("pamuser@"TEST_DOM_NAME) - 1), 0);
     assert_string_equal(body + rp, "pamuser@"TEST_DOM_NAME);
@@ -676,7 +681,17 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
 
     assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
     assert_string_equal(body + rp, TEST_TOKEN_NAME);
+    rp += sizeof(TEST_TOKEN_NAME);
 
+    assert_int_equal(*(body + rp + sizeof(TEST_MODULE_NAME) - 1), 0);
+    assert_string_equal(body + rp, TEST_MODULE_NAME);
+    rp += sizeof(TEST_MODULE_NAME);
+
+    assert_int_equal(*(body + rp + sizeof(TEST_KEY_ID) - 1), 0);
+    assert_string_equal(body + rp, TEST_KEY_ID);
+    rp += sizeof(TEST_KEY_ID);
+
+    assert_int_equal(rp, blen);
     return EOK;
 }
 
@@ -707,7 +722,10 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
     assert_int_equal(val, SSS_PAM_CERT_INFO);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, (sizeof("pamuser@"TEST_DOM_NAME) + sizeof(TEST_TOKEN_NAME)));
+    assert_int_equal(val, (sizeof("pamuser@"TEST_DOM_NAME)
+                                + sizeof(TEST_TOKEN_NAME)
+                                + sizeof(TEST_MODULE_NAME)
+                                + sizeof(TEST_KEY_ID)));
 
     assert_int_equal(*(body + rp + sizeof("pamuser@"TEST_DOM_NAME) - 1), 0);
     assert_string_equal(body + rp, "pamuser@"TEST_DOM_NAME);
@@ -715,6 +733,17 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
 
     assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
     assert_string_equal(body + rp, TEST_TOKEN_NAME);
+    rp += sizeof(TEST_TOKEN_NAME);
+
+    assert_int_equal(*(body + rp + sizeof(TEST_MODULE_NAME) - 1), 0);
+    assert_string_equal(body + rp, TEST_MODULE_NAME);
+    rp += sizeof(TEST_MODULE_NAME);
+
+    assert_int_equal(*(body + rp + sizeof(TEST_KEY_ID) - 1), 0);
+    assert_string_equal(body + rp, TEST_KEY_ID);
+    rp += sizeof(TEST_KEY_ID);
+
+    assert_int_equal(rp, blen);
 
     return EOK;
 }
