@@ -839,9 +839,9 @@ void test_user_by_upn_ncache(void **state)
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
-    /* Setup user. */
-    ret = sss_ncache_set_user(test_ctx->ncache, false,
-                              test_ctx->tctx->dom, users[0].upn);
+    /* Setup user's UPN. */
+    ret = sss_ncache_set_upn(test_ctx->ncache, false,
+                             test_ctx->tctx->dom, users[0].upn);
     assert_int_equal(ret, EOK);
 
     /* Mock values. */

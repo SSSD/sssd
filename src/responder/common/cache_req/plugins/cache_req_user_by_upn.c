@@ -66,7 +66,7 @@ cache_req_user_by_upn_ncache_check(struct sss_nc_ctx *ncache,
                                    struct sss_domain_info *domain,
                                    struct cache_req_data *data)
 {
-    return sss_ncache_check_user(ncache, domain, data->name.lookup);
+    return sss_ncache_check_upn(ncache, domain, data->name.lookup);
 }
 
 static errno_t
@@ -74,7 +74,7 @@ cache_req_user_by_upn_ncache_add(struct sss_nc_ctx *ncache,
                                  struct sss_domain_info *domain,
                                  struct cache_req_data *data)
 {
-    return sss_ncache_set_user(ncache, false, domain, data->name.lookup);
+    return sss_ncache_set_upn(ncache, false, domain, data->name.lookup);
 }
 
 static errno_t

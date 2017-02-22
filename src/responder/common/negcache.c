@@ -289,6 +289,24 @@ int sss_ncache_check_user(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
     return sss_cache_check_ent(ctx, dom, name, sss_ncache_check_user_int);
 }
 
+int sss_ncache_check_upn(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
+                         const char *name)
+{
+    char *neg_cache_name = NULL;
+    errno_t ret;
+
+    neg_cache_name = talloc_asprintf(ctx, "@%s", name);
+    if (neg_cache_name == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_cache_check_ent(ctx, dom, neg_cache_name,
+                              sss_ncache_check_user_int);
+    talloc_free(neg_cache_name);
+
+    return ret;
+}
+
 int sss_ncache_check_group(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
                            const char *name)
 {
@@ -538,6 +556,24 @@ int sss_ncache_set_user(struct sss_nc_ctx *ctx, bool permanent,
                         struct sss_domain_info *dom, const char *name)
 {
     return sss_ncache_set_ent(ctx, permanent, dom, name, sss_ncache_set_user_int);
+}
+
+int sss_ncache_set_upn(struct sss_nc_ctx *ctx, bool permanent,
+                       struct sss_domain_info *dom, const char *name)
+{
+    char *neg_cache_name = NULL;
+    errno_t ret;
+
+    neg_cache_name = talloc_asprintf(ctx, "@%s", name);
+    if (neg_cache_name == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_set_ent(ctx, permanent, dom, neg_cache_name,
+                             sss_ncache_set_user_int);
+    talloc_free(neg_cache_name);
+
+    return ret;
 }
 
 int sss_ncache_set_group(struct sss_nc_ctx *ctx, bool permanent,

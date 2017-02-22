@@ -171,6 +171,21 @@ int __wrap_sss_ncache_check_user(struct sss_nc_ctx *ctx,
     return ret;
 }
 
+int __real_sss_ncache_check_upn(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom, const char *name);
+
+int __wrap_sss_ncache_check_upn(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom, const char *name)
+{
+    int ret;
+
+    ret = __real_sss_ncache_check_upn(ctx, dom, name);
+    if (ret == EEXIST) {
+        nss_test_ctx->ncache_hits++;
+    }
+    return ret;
+}
+
 int __real_sss_ncache_check_uid(struct sss_nc_ctx *ctx,
                                 struct sss_domain_info *dom, uid_t uid);
 
@@ -2558,6 +2573,38 @@ void test_nss_getpwnam_upn(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_nss_getpwnam_upn_same_domain(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upnuser_upn@" TEST_DOM_NAME);
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with a valid user */
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &upn_user, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("upnuser_upn@" TEST_DOM_NAME);
+    mock_account_recv_simple();
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
+    mock_fill_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwnam_upn_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 /* Test that searching for a nonexistant user yields ENOENT.
  * Account callback will be called
  */
@@ -3742,6 +3789,8 @@ int main(int argc, const char *argv[])
                                         nss_test_setup,
                                         nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn_same_domain,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn_neg,
                                         nss_test_setup, nss_test_teardown),
