@@ -23,10 +23,15 @@
 #include "util/crypto/sss_crypto.h"
 #include "resolv/async_resolv.h"
 #include "util/sss_sockets.h"
+#include "util/sss_iobuf.h"
+#include "util/tev_curl.h"
+
+#define SEC_PROXY_TIMEOUT 5
 
 struct proxy_context {
     struct resolv_ctx *resctx;
     struct confdb_ctx *cdb;
+    struct tcurl_ctx *tcurl;
 };
 
 enum proxy_auth_type {
@@ -216,103 +221,177 @@ int proxy_sec_map_url(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
     return EOK;
 }
 
-int proxy_sec_map_headers(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
-                          struct proxy_cfg *pcfg, char **req_headers)
+static errno_t proxy_http_append_header(TALLOC_CTX *mem_ctx,
+                                        const char *name,
+                                        const char *value,
+                                        const char ***_headers,
+                                        size_t *_num_headers)
 {
-    int ret;
+    const char **headers = *_headers;
+    size_t num_headers = *_num_headers;
 
-    for (int i = 0; i < secreq->num_headers; i++) {
-        bool forward = false;
-        for (int j = 0; pcfg->fwd_headers[j]; j++) {
-            if (strcasecmp(secreq->headers[i].name,
-                           pcfg->fwd_headers[j]) == 0) {
-                forward = true;
+    num_headers++;
+    headers = talloc_realloc(mem_ctx, headers, const char *,
+                             num_headers + 1);
+    if (headers == NULL) {
+        return ENOMEM;
+    }
+
+    headers[num_headers - 1] = talloc_asprintf(headers, "%s: %s", name, value);
+    if (headers[num_headers - 1] == NULL) {
+        return ENOMEM;
+    }
+
+    headers[num_headers] = NULL;
+
+    *_headers = headers;
+    *_num_headers = num_headers;
+
+    return EOK;
+}
+
+static const char **
+proxy_http_create_headers(TALLOC_CTX *mem_ctx,
+                          struct sec_req_ctx *secreq,
+                          struct proxy_cfg *pcfg)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char **headers;
+    size_t num_headers;
+    errno_t ret;
+    int i, j;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    headers = talloc_zero_array(tmp_ctx, const char *, 1);
+    if (headers == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    num_headers = 0;
+    for (i = 0; i < secreq->num_headers; i++) {
+        for (j = 0; pcfg->fwd_headers[j]; j++) {
+            if (strcasecmp(secreq->headers[i].name, pcfg->fwd_headers[j]) == 0) {
+                DEBUG(SSSDBG_TRACE_LIBS, "Forwarding header %s: %s\n",
+                      secreq->headers[i].name, secreq->headers[i].value);
+
+                ret = proxy_http_append_header(tmp_ctx, secreq->headers[i].name,
+                                               secreq->headers[i].value,
+                                               &headers, &num_headers);
+                if (ret != EOK) {
+                    goto done;
+                }
+
                 break;
-            }
-        }
-        if (forward) {
-            DEBUG(SSSDBG_TRACE_LIBS, "Forwarding header %s:%s\n",
-                  secreq->headers[i].name, secreq->headers[i].value);
-
-            ret = sec_http_append_header(mem_ctx, req_headers,
-                                         secreq->headers[i].name,
-                                         secreq->headers[i].value);
-            if (ret) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Couldn't append header %s\n", secreq->headers[i].name);
-                return ret;
             }
         }
     }
 
     if (pcfg->auth_type == PAT_HEADER) {
-        DEBUG(SSSDBG_TRACE_LIBS,
-              "Forwarding header %s\n", pcfg->auth.header.name);
+        DEBUG(SSSDBG_TRACE_LIBS, "Forwarding header %s\n",
+              pcfg->auth.header.name);
 
-        ret = sec_http_append_header(mem_ctx, req_headers,
-                                     pcfg->auth.header.name,
-                                     pcfg->auth.header.value);
-        if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Couldn't append header %s\n", pcfg->auth.header.name);
-            return ret;
+        ret = proxy_http_append_header(tmp_ctx, pcfg->auth.header.name,
+                                       pcfg->auth.header.value,
+                                       &headers, &num_headers);
+        if (ret != EOK) {
+            goto done;
         }
     }
 
-    return EOK;
+    talloc_steal(mem_ctx, headers);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    return headers;
 }
 
-static int proxy_http_create_request(TALLOC_CTX *mem_ctx,
-                                     struct sec_req_ctx *secreq,
-                                     struct proxy_cfg *pcfg,
-                                     const char *http_uri,
-                                     struct sec_data **http_req)
+static errno_t proxy_http_create_request(TALLOC_CTX *mem_ctx,
+                                         struct sec_req_ctx *secreq,
+                                         struct proxy_cfg *pcfg,
+                                         const char *url,
+                                         struct tcurl_request **_tcurl_req)
 {
-    struct sec_data *req;
-    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct tcurl_request *tcurl_req;
+    enum tcurl_http_method method;
+    struct sss_iobuf *body;
+    const char **headers;
+    errno_t ret;
 
-    req = talloc_zero(mem_ctx, struct sec_data);
-    if (!req) return ENOMEM;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
 
-    /* Request-Line */
-    req->data = talloc_asprintf(req, "%s %s HTTP/1.1\r\n",
-                                http_method_str(secreq->method), http_uri);
-    if (!req->data) {
+    headers = proxy_http_create_headers(tmp_ctx, secreq, pcfg);
+    if (headers == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to construct HTTP headers!\n");
         ret = ENOMEM;
         goto done;
     }
 
-    /* Headers */
-    ret = proxy_sec_map_headers(req, secreq, pcfg, &req->data);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Couldn't map headers\n");
+    body = sss_iobuf_init_readonly(tmp_ctx, (uint8_t*)secreq->body.data,
+                                   secreq->body.length);
+    if (body == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create HTTP body!\n");
+        ret = ENOMEM;
         goto done;
     }
 
-    /* CRLF separator before body */
-    req->data = talloc_strdup_append_buffer(req->data, "\r\n");
-
-    req->length = strlen(req->data);
-
-    /* Message-Body */
-    if (secreq->body.length > 0) {
-        req->data = talloc_realloc_size(req, req->data,
-                                        req->length + secreq->body.length);
-        if (!req->data) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        memcpy(&req->data[req->length],
-               secreq->body.data, secreq->body.length);
-        req->length += secreq->body.length;
+    switch (secreq->method) {
+    case HTTP_GET:
+        method = TCURL_HTTP_GET;
+        break;
+    case HTTP_PUT:
+        method = TCURL_HTTP_PUT;
+        break;
+    case HTTP_POST:
+        method = TCURL_HTTP_POST;
+        break;
+    case HTTP_DELETE:
+        method = TCURL_HTTP_DELETE;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected HTTP method: %d\n",
+              secreq->method);
+        ret = EINVAL;
+        goto done;
     }
 
-    *http_req = req;
+    tcurl_req = tcurl_http(tmp_ctx, method, NULL, url, headers, body);
+    if (tcurl_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create TCURL request!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* TCURL will return response buffer also with headers. */
+    ret = tcurl_req_enable_rawoutput(tcurl_req);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    talloc_steal(tcurl_req, body);
+    *_tcurl_req = talloc_steal(mem_ctx, tcurl_req);
+
     ret = EOK;
 
 done:
-    if (ret) talloc_free(req);
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -911,8 +990,8 @@ struct tevent_req *proxy_secret_req(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req, *subreq;
     struct proxy_secret_state *state;
+    struct tcurl_request *tcurl_req;
     struct proxy_context *pctx;
-    struct sec_data *http_req;
     char *http_uri;
     int ret;
 
@@ -942,9 +1021,8 @@ struct tevent_req *proxy_secret_req(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-
     ret = proxy_http_create_request(state, state->secreq, state->pcfg,
-                                    http_uri, &http_req);
+                                    http_uri, &tcurl_req);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "proxy_http_create_request failed [%d]: %s\n",
@@ -952,10 +1030,9 @@ struct tevent_req *proxy_secret_req(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-
-    subreq = proxy_http_req_send(pctx, state, ev, state->secreq,
-                                 http_uri, http_req);
-    if (!subreq) {
+    subreq = tcurl_request_send(mem_ctx, ev, pctx->tcurl, tcurl_req,
+                                SEC_PROXY_TIMEOUT);
+    if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -981,32 +1058,30 @@ static void proxy_secret_req_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct proxy_secret_state *state;
-    struct proxy_http_reply *reply = NULL;
+    struct sss_iobuf *response;
+    int http_code;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct proxy_secret_state);
 
-    ret = proxy_http_req_recv(subreq, state, &reply);
+    ret = tcurl_request_recv(state, subreq, &response, &http_code);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "proxy_http request failed [%d]: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, "proxy_http request failed [%d]: %s\n",
               ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
 
-    ret = sec_http_reply_with_headers(state->secreq, &state->secreq->reply,
-                                      reply->status_code, reply->reason_phrase,
-                                      reply->headers, reply->num_headers,
-                                      &reply->body);
+    ret = sec_http_reply_iobuf(state->secreq, &state->secreq->reply,
+                               http_code, response);
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
-              "sec_http_reply_with_headers request failed [%d]: %s\n",
+              "sec_http_reply_iobuf request failed [%d]: %s\n",
               ret, sss_strerror(ret));
         tevent_req_error(req, ret);
     }
@@ -1034,6 +1109,11 @@ int proxy_secrets_provider_handle(struct sec_ctx *sctx,
 
     pctx->resctx = sctx->resctx;
     pctx->cdb = sctx->rctx->cdb;
+    pctx->tcurl = tcurl_init(pctx, sctx->rctx->ev);
+    if (pctx->tcurl == NULL) {
+        talloc_free(pctx);
+        return ENOMEM;
+    }
 
     handle->context = pctx;
 

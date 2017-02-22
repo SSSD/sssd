@@ -22,6 +22,7 @@
 #include "responder/secrets/secsrv_private.h"
 #include "responder/secrets/secsrv_local.h"
 #include "responder/secrets/secsrv_proxy.h"
+#include "util/sss_iobuf.h"
 #include <jansson.h>
 
 typedef int (*url_mapper_fn)(struct sec_req_ctx *secreq,
@@ -382,6 +383,25 @@ int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
 
         memcpy(&reply->data[reply->length], body->data, body->length);
         reply->length += body->length;
+    }
+
+    return EOK;
+}
+
+errno_t sec_http_reply_iobuf(TALLOC_CTX *mem_ctx,
+                             struct sec_data *reply,
+                             int response_code,
+                             struct sss_iobuf *response)
+{
+    DEBUG(SSSDBG_TRACE_LIBS, "HTTP reply %d\n", response_code);
+
+    reply->data = (char *)sss_iobuf_get_data(response);
+    reply->length = sss_iobuf_get_len(response);
+
+    talloc_steal(mem_ctx, reply->data);
+
+    if (reply->data == NULL) {
+        return EINVAL;
     }
 
     return EOK;
