@@ -36,7 +36,9 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
     int ret;
     int i, j;
 
-    for (dom = nctx->rctx->domains; dom; dom = get_next_domain(dom, 0)) {
+    for (dom = nctx->rctx->domains;
+         dom;
+         dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         if (strcasecmp(dom->name, domain) == 0) {
             break;
         }
