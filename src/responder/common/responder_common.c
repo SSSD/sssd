@@ -1101,6 +1101,17 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    ret = confdb_get_bool(rctx->cdb, rctx->confdb_service_path,
+                          CONFDB_RESPONDER_CACHE_FIRST,
+                          false, &rctx->cache_first);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get \"cache_first_option\".\n"
+              "Querying the caches first before querying the "
+              "Data Providers will not be enforced [%d]: %s.\n",
+              ret, sss_strerror(ret));
+    }
+
     ret = confdb_get_int(rctx->cdb, rctx->confdb_service_path,
                          CONFDB_RESPONDER_GET_DOMAINS_TIMEOUT,
                          GET_DOMAINS_DEFAULT_TIMEOUT, &rctx->domains_timeout);
