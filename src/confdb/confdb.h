@@ -88,6 +88,7 @@
 #define CONFDB_RESPONDER_LOCAL_NEG_TIMEOUT "local_negative_timeout"
 #define CONFDB_RESPONDER_IDLE_TIMEOUT "responder_idle_timeout"
 #define CONFDB_RESPONDER_IDLE_DEFAULT_TIMEOUT 300
+#define CONFDB_RESPONDER_CACHE_FIRST "cache_first"
 
 /* NSS */
 #define CONFDB_NSS_CONF_ENTRY "config/nss"

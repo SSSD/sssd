@@ -309,6 +309,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'fd_limit',
             'client_idle_timeout',
             'responder_idle_timeout',
+            'cache_first',
             'description',
             'certificate_verification',
             'override_space',

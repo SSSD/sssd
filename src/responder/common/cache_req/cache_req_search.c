@@ -181,7 +181,9 @@ static void cache_req_search_done(struct tevent_req *subreq);
 struct tevent_req *
 cache_req_search_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
-                      struct cache_req *cr)
+                      struct cache_req *cr,
+                      bool bypass_cache,
+                      bool bypass_dp)
 {
     struct cache_req_search_state *state;
     enum cache_object_status status;
@@ -214,7 +216,7 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
      */
     state->result = NULL;
     status = CACHE_OBJECT_MISSING;
-    if (!cr->plugin->bypass_cache && !cr->data->bypass_cache) {
+    if (!bypass_cache) {
         ret = cache_req_search_cache(state, cr, &state->result);
         if (ret != EOK && ret != ENOENT) {
             goto done;
@@ -229,7 +231,10 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = cache_req_search_dp(req, status);
+    if (!bypass_dp) {
+        ret = cache_req_search_dp(req, status);
+    }
+
     if (ret != EAGAIN) {
         goto done;
     }

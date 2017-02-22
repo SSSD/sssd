@@ -40,6 +40,8 @@ struct cache_req {
 
     /* Domain related informations. */
     struct sss_domain_info *domain;
+    bool cache_first;
+    bool bypass_cache;
 
     /* Debug information */
     uint32_t reqid;
@@ -91,7 +93,9 @@ struct cache_req_data {
 struct tevent_req *
 cache_req_search_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
-                      struct cache_req *cr);
+                      struct cache_req *cr,
+                      bool bypass_cache,
+                      bool bypass_dp);
 
 errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,

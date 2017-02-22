@@ -51,6 +51,7 @@ option_strings = {
     'fd_limit' : _('The number of file descriptors that may be opened by this responder'),
     'client_idle_timeout' : _('Idle time before automatic disconnection of a client'),
     'responder_idle_timeout' : _('Idle time before automatic shutdown of the responder'),
+    'cache_first': _('Always query all the caches before querying the Data Providers'),
 
     # [sssd]
     'services' : _('SSSD Services to start'),

@@ -662,6 +662,18 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>cache_first</term>
+                    <listitem>
+                        <para>
+                            This option specifies whether the responder should
+                            query all caches before querying the Data Providers.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

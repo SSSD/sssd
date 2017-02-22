@@ -118,6 +118,9 @@ cache_req_create(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    cr->cache_first = rctx->cache_first;
+    cr->bypass_cache = cr->plugin->bypass_cache || cr->data->bypass_cache;
+
     return cr;
 }
 
@@ -319,19 +322,11 @@ struct cache_req_search_domains_state {
     size_t num_results;
     bool check_next;
     bool dp_success;
+    bool bypass_cache;
+    bool bypass_dp;
 };
 
-static struct tevent_req *
-cache_req_search_domains_send(TALLOC_CTX *mem_ctx,
-                              struct tevent_context *ev,
-                              struct cache_req *cr,
-                              struct sss_domain_info *domain,
-                              bool check_next);
-
 static errno_t cache_req_search_domains_next(struct tevent_req *req);
-
-static errno_t cache_req_select_domains(struct tevent_req *req,
-                                        const char *domain_name);
 
 static void cache_req_search_domains_done(struct tevent_req *subreq);
 
@@ -339,7 +334,9 @@ struct tevent_req *cache_req_search_domains_send(TALLOC_CTX *mem_ctx,
                                                  struct tevent_context *ev,
                                                  struct cache_req *cr,
                                                  struct sss_domain_info *domain,
-                                                 bool check_next)
+                                                 bool check_next,
+                                                 bool bypass_cache,
+                                                 bool bypass_dp)
 {
     struct tevent_req *req;
     struct cache_req_search_domains_state *state = NULL;
@@ -358,6 +355,8 @@ struct tevent_req *cache_req_search_domains_send(TALLOC_CTX *mem_ctx,
     state->domain = domain;
     state->check_next = check_next;
     state->dp_success = true;
+    state->bypass_cache = bypass_cache;
+    state->bypass_dp = bypass_dp;
 
     ret = cache_req_search_domains_next(req);
     if (ret == EAGAIN) {
@@ -418,7 +417,8 @@ static errno_t cache_req_search_domains_next(struct tevent_req *req)
             return ret;
         }
 
-        subreq = cache_req_search_send(state, state->ev, cr);
+        subreq = cache_req_search_send(state, state->ev, cr,
+                                       state->bypass_cache, state->bypass_dp);
         if (subreq == NULL) {
             return ENOMEM;
         }
@@ -462,7 +462,6 @@ static void cache_req_search_domains_done(struct tevent_req *subreq)
     struct cache_req_search_domains_state *state;
     struct ldb_result *result;
     struct tevent_req *req;
-    struct tevent_req *req_send;
     bool dp_success;
     errno_t ret;
 
@@ -499,25 +498,12 @@ static void cache_req_search_domains_done(struct tevent_req *subreq)
         break;
     case ENOENT:
         if (state->check_next == false) {
-            /* Lookup domain was specified as input.
-             * We don't want to try the next domain,
-             * but we may want to try UPN search. */
-
-            if (cache_req_assume_upn(state->cr)) {
-                /* Here we need to access the request created by cache_req_send()
-                 * in order to pass it down to cache_req_select_domains() */
-                req_send = tevent_req_callback_data(req, struct tevent_req);
-
-                /* Try UPN now. */
-                ret = cache_req_select_domains(req_send, NULL);
-                goto done;
-            }
-
             /* Not found. */
             ret = ENOENT;
             goto done;
         }
 
+        /* Continue with next domain. */
         break;
     default:
         /* Some serious error has happened. Finish. */
@@ -565,14 +551,68 @@ cache_req_search_domains_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+/**
+ * Return true if we should issue another search.
+ */
+static bool cache_req_search_schema(struct cache_req *cr,
+                                    const char *input_domain,
+                                    bool first_iteration,
+                                    bool *_bypass_cache,
+                                    bool *_bypass_dp)
+{
+    bool bypass_cache;
+    bool bypass_dp;
+
+    if (cr->bypass_cache) {
+        /* The caller wants to contact Data Provider first
+         * or it is inferred by cache_req plug-in. */
+        bypass_cache = true;
+        bypass_dp = false;
+
+        if (!first_iteration) {
+            return false;
+        }
+    } else if (input_domain != NULL) {
+        /* We will search only one domain. */
+        bypass_cache = false;
+        bypass_dp = false;
+
+        if (!first_iteration) {
+            return false;
+        }
+     } else if (!cr->cache_first) {
+        /* We will search cache and on cache-miss
+         * contact domain provider sequentially. */
+        bypass_cache = false;
+        bypass_dp = false;
+
+        if (!first_iteration) {
+            return false;
+        }
+    } else {
+        /* We will first search the cache in all domains. If we don't get
+         * any match we will then contact Data Provider starting with the
+         * first domain again. */
+        bypass_cache = first_iteration ? false : true;
+        bypass_dp = first_iteration ? true : false;
+    }
+
+    *_bypass_cache = bypass_cache;
+    *_bypass_dp = bypass_dp;
+
+    return true;
+}
+
 struct cache_req_state {
     /* input data */
     struct tevent_context *ev;
     struct cache_req *cr;
+    const char *domain_name;
 
     /* work data */
     struct cache_req_result **results;
     size_t num_results;
+    bool first_iteration;
 };
 
 static errno_t cache_req_process_input(TALLOC_CTX *mem_ctx,
@@ -582,9 +622,14 @@ static errno_t cache_req_process_input(TALLOC_CTX *mem_ctx,
 
 static void cache_req_input_parsed(struct tevent_req *subreq);
 
+static errno_t cache_req_select_domains(struct tevent_req *req,
+                                        const char *domain_name);
+
 static errno_t cache_req_search_domains(struct tevent_req *req,
                                         struct sss_domain_info *domain,
-                                        bool check_next);
+                                        bool check_next,
+                                        bool bypass_cache,
+                                        bool bypass_dp);
 
 static void cache_req_done(struct tevent_req *subreq);
 
@@ -614,6 +659,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+    state->first_iteration = true;
 
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "New request '%s'\n", cr->reqname);
 
@@ -631,6 +677,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    state->domain_name = domain;
     ret = cache_req_select_domains(req, domain);
 
 done:
@@ -719,6 +766,7 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
         return;
     }
 
+    state->domain_name = domain;
     ret = cache_req_select_domains(req, domain);
     if (ret != EAGAIN) {
         tevent_req_error(req, ret);
@@ -732,8 +780,19 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
     struct cache_req_state *state = NULL;
     struct sss_domain_info *domain;
     bool check_next;
+    bool bypass_cache;
+    bool bypass_dp;
+    bool search;
 
     state = tevent_req_data(req, struct cache_req_state);
+
+    search = cache_req_search_schema(state->cr, domain_name,
+                                     state->first_iteration,
+                                     &bypass_cache, &bypass_dp);
+    if (!search) {
+        /* We're done here. */
+        return EOK;
+    }
 
     if (domain_name != NULL) {
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
@@ -753,20 +812,28 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
         check_next = true;
     }
 
-    return cache_req_search_domains(req, domain, check_next);
+    return cache_req_search_domains(req, domain, check_next,
+                                    bypass_cache, bypass_dp);
 }
 
 static errno_t cache_req_search_domains(struct tevent_req *req,
                                         struct sss_domain_info *domain,
-                                        bool check_next)
+                                        bool check_next,
+                                        bool bypass_cache,
+                                        bool bypass_dp)
 {
     struct tevent_req *subreq;
     struct cache_req_state *state = NULL;
 
     state = tevent_req_data(req, struct cache_req_state);
 
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
+                    "Search will %s the cache and %s the data provider\n",
+                    bypass_cache ? "bypass" : "check",
+                    bypass_dp ? "bypass" : "check");
+
     subreq = cache_req_search_domains_send(state, state->ev, state->cr, domain,
-                                           check_next);
+                                           check_next, bypass_cache, bypass_dp);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -786,6 +853,28 @@ static void cache_req_done(struct tevent_req *subreq)
 
     ret = cache_req_search_domains_recv(state, subreq, &state->results);
     talloc_zfree(subreq);
+
+    if (ret == ENOENT && state->first_iteration) {
+        /* Try again different search schema. */
+        state->first_iteration = false;
+        ret = cache_req_select_domains(req, state->domain_name);
+        if (ret == EOK) {
+            /* We're done searching and we have found nothing. */
+            ret = ENOENT;
+
+            if (state->domain_name != NULL) {
+                /* Lookup domain was specified as input. Since we haven't
+                 * found anything yet we may want to try UPN search with
+                 * some plug-ins. */
+
+                if (cache_req_assume_upn(state->cr)) {
+                    /* Try UPN now. */
+                    state->first_iteration = true;
+                    ret = cache_req_select_domains(req, NULL);
+                }
+            }
+        }
+    }
 
     switch (ret) {
     case EOK:
