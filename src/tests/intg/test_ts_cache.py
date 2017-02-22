@@ -33,7 +33,6 @@ import ldap_ent
 import sssd_ldb
 import sssd_id
 from util import unindent
-from util import run_shell
 
 LDAP_BASE_DN = "dc=example,dc=com"
 SSSD_DOMAIN = "LDAP"
