@@ -2192,6 +2192,7 @@ nss_srv_tests_CFLAGS = \
     $(AM_CFLAGS)
 nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_ncache_check_user \
+    -Wl,-wrap,sss_ncache_check_upn \
     -Wl,-wrap,sss_ncache_check_uid \
     -Wl,-wrap,sss_ncache_check_sid \
     -Wl,-wrap,sss_ncache_check_cert \
