@@ -61,6 +61,8 @@ struct pam_items {
 
     char *cert_user;
     char *token_name;
+    char *module_name;
+    char *key_id;
 };
 
 int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer);

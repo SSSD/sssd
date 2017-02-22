@@ -1401,7 +1401,9 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
-    ret = pam_check_cert_recv(req, preq, &cert, &preq->token_name);
+    ret = pam_check_cert_recv(req, preq, &cert, &preq->token_name,
+                                                &preq->module_name,
+                                                &preq->key_id);
     talloc_free(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "get_cert request failed.\n");
@@ -2051,7 +2053,9 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                 }
 
                 ret = add_pam_cert_response(preq->pd, cert_user,
-                                            preq->token_name);
+                                            preq->token_name,
+                                            preq->module_name,
+                                            preq->key_id);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
                     preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;

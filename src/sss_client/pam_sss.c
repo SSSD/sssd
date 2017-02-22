@@ -162,6 +162,12 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
 
     free(pi->token_name);
     pi->token_name = NULL;
+
+    free(pi->module_name);
+    pi->module_name = NULL;
+
+    free(pi->key_id);
+    pi->key_id = NULL;
 }
 
 static int null_strcmp(const char *s1, const char *s2) {
@@ -1019,10 +1025,47 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 pi->token_name = strdup((char *) &buf[p + offset]);
                 if (pi->token_name == NULL) {
                     D(("strdup failed"));
+                    free(pi->cert_user);
+                    pi->cert_user = NULL;
                     break;
                 }
-                D(("cert user: [%s] token name: [%s]", pi->cert_user,
-                                                       pi->token_name));
+
+                offset += strlen(pi->token_name) + 1;
+                if (offset >= len) {
+                    D(("Cert message size mismatch"));
+                    free(pi->cert_user);
+                    pi->cert_user = NULL;
+                    free(pi->token_name);
+                    pi->token_name = NULL;
+                    break;
+                }
+                free(pi->module_name);
+                pi->module_name = strdup((char *) &buf[p + offset]);
+                if (pi->module_name == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                offset += strlen(pi->module_name) + 1;
+                if (offset >= len) {
+                    D(("Cert message size mismatch"));
+                    free(pi->cert_user);
+                    pi->cert_user = NULL;
+                    free(pi->token_name);
+                    pi->token_name = NULL;
+                    free(pi->module_name);
+                    pi->module_name = NULL;
+                    break;
+                }
+                free(pi->key_id);
+                pi->key_id = strdup((char *) &buf[p + offset]);
+                if (pi->key_id == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+                D(("cert user: [%s] token name: [%s] module: [%s] key id: [%s]",
+                    pi->cert_user, pi->token_name, pi->module_name,
+                    pi->key_id));
                 break;
             case SSS_PASSWORD_PROMPTING:
                 D(("Password prompting available."));
@@ -1120,6 +1163,8 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
 
     pi->cert_user = NULL;
     pi->token_name = NULL;
+    pi->module_name = NULL;
+    pi->key_id = NULL;
 
     return PAM_SUCCESS;
 }

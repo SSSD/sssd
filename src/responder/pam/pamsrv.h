@@ -92,10 +92,12 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        const char *verify_opts,
                                        struct pam_data *pd);
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                            char **cert, char **token_name);
+                            char **cert, char **token_name, char **module_name,
+                            char **key_id);
 
 errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
-                              const char *token_name);
+                              const char *token_name, const char *module_name,
+                              const char *key_id);
 
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd);
 

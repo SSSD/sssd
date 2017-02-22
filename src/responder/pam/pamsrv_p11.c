@@ -133,7 +133,8 @@ static errno_t get_p11_child_write_buffer(TALLOC_CTX *mem_ctx,
 
 static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
                                         ssize_t buf_len, char **_cert,
-                                        char **_token_name)
+                                        char **_token_name, char **_module_name,
+                                        char **_key_id)
 {
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -141,6 +142,8 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
     uint8_t *pn;
     char *cert = NULL;
     char *token_name = NULL;
+    char *module_name = NULL;
+    char *key_id = NULL;
 
     if (buf_len < 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -187,6 +190,54 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
     }
 
     if (pn == p) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Missing module name in p11_child response.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    module_name = talloc_strndup(tmp_ctx, (char *) p, (pn - p));
+    if (module_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_ALL, "Found module name [%s].\n", module_name);
+
+    p = ++pn;
+    pn = memchr(p, '\n', buf_len - (p - buf));
+    if (pn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Missing new-line in p11_child response.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (pn == p) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Missing key id in p11_child response.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    key_id = talloc_strndup(tmp_ctx, (char *) p, (pn - p));
+    if (key_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_ALL, "Found key id [%s].\n", key_id);
+
+    p = pn + 1;
+    pn = memchr(p, '\n', buf_len - (p - buf));
+    if (pn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Missing new-line in p11_child response.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (pn == p) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing cert in p11_child response.\n");
         ret = EINVAL;
         goto done;
@@ -206,6 +257,8 @@ done:
     if (ret == EOK) {
         *_token_name = talloc_steal(mem_ctx, token_name);
         *_cert = talloc_steal(mem_ctx, cert);
+        *_module_name = talloc_steal(mem_ctx, module_name);
+        *_key_id = talloc_steal(mem_ctx, key_id);
     }
 
     talloc_free(tmp_ctx);
@@ -222,6 +275,8 @@ struct pam_check_cert_state {
     struct child_io_fds *io;
     char *cert;
     char *token_name;
+    char *module_name;
+    char *key_id;
 };
 
 static void p11_child_write_done(struct tevent_req *subreq);
@@ -296,6 +351,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     state->child_status = EFAULT;
     state->cert = NULL;
     state->token_name = NULL;
+    state->module_name = NULL;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
@@ -459,7 +515,8 @@ static void p11_child_done(struct tevent_req *subreq)
     PIPE_FD_CLOSE(state->io->read_from_child_fd);
 
     ret = parse_p11_child_response(state, buf, buf_len, &state->cert,
-                                   &state->token_name);
+                                   &state->token_name, &state->module_name,
+                                   &state->key_id);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "parse_p11_child_respose failed.\n");
         tevent_req_error(req, ret);
@@ -486,7 +543,8 @@ static void p11_child_timeout(struct tevent_context *ev,
 }
 
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                            char **cert, char **token_name)
+                            char **cert, char **token_name, char **module_name,
+                            char **key_id)
 {
     struct pam_check_cert_state *state =
                               tevent_req_data(req, struct pam_check_cert_state);
@@ -501,6 +559,14 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
         *token_name = talloc_steal(mem_ctx, state->token_name);
     }
 
+    if (module_name != NULL) {
+        *module_name = talloc_steal(mem_ctx, state->module_name);
+    }
+
+    if (key_id != NULL) {
+        *key_id = talloc_steal(mem_ctx, state->key_id);
+    }
+
     return EOK;
 }
 
@@ -513,23 +579,29 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 #define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
 
 errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
-                              const char *token_name)
+                              const char *token_name, const char *module_name,
+                              const char *key_id)
 {
     uint8_t *msg = NULL;
     char *env = NULL;
     size_t user_len;
     size_t msg_len;
     size_t slot_len;
+    size_t module_len;
+    size_t key_id_len;
     int ret;
 
-    if (sysdb_username == NULL || token_name == NULL) {
+    if (sysdb_username == NULL || token_name == NULL || module_name == NULL
+            || key_id == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing mandatory user or slot name.\n");
         return EINVAL;
     }
 
     user_len = strlen(sysdb_username) + 1;
     slot_len = strlen(token_name) + 1;
-    msg_len = user_len + slot_len;
+    module_len = strlen(module_name) + 1;
+    key_id_len = strlen(key_id) + 1;
+    msg_len = user_len + slot_len + module_len + key_id_len;
 
     msg = talloc_zero_size(pd, msg_len);
     if (msg == NULL) {
@@ -546,6 +618,8 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
      * being I think using sysdb_username is fine. */
     memcpy(msg, sysdb_username, user_len);
     memcpy(msg + user_len, token_name, slot_len);
+    memcpy(msg + user_len + slot_len, module_name, module_len);
+    memcpy(msg + user_len + slot_len + module_len, key_id, key_id_len);
 
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, msg_len, msg);
     talloc_free(msg);
