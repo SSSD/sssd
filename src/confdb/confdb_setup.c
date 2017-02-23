@@ -126,17 +126,117 @@ static int confdb_create_base(struct confdb_ctx *cdb)
     return EOK;
 }
 
+static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
+                                     const char *config_file,
+                                     const char *config_dir,
+                                     struct sss_ini_initdata *init_data,
+                                     const char **_timestr,
+                                     const char **_ldif)
+{
+    errno_t ret;
+    char timestr[21];
+    int version;
+
+    ret = sss_ini_config_access_check(init_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Permission check on config file failed.\n");
+        return EPERM;
+    }
+
+    ret = sss_ini_get_stat(init_data);
+    if (ret != EOK) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Status check on config file failed.\n");
+        return ret;
+    }
+
+    errno = 0;
+    ret = sss_ini_get_mtime(init_data, sizeof(timestr), timestr);
+    if (ret <= 0 || ret >= (int)sizeof(timestr)) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to convert time_t to string ??\n");
+        ret = errno ? errno : EFAULT;
+        return ret;
+    }
+
+    /* FIXME: Determine if the conf file or any snippet has changed
+     * since we last updated the confdb or if some snippet was
+     * added or removed.
+     */
+
+    ret = sss_ini_get_config(init_data, config_file, config_dir);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to load configuration\n");
+        return ret;
+    }
+
+    ret = sss_ini_call_validators(init_data,
+                                  SSSDDATADIR"/cfg_rules.ini");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to call validators\n");
+        /* This is not fatal, continue */
+    }
+
+    /* Make sure that the config file version matches the confdb version */
+    ret = sss_ini_get_cfgobj(init_data, "sssd", "config_file_version");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Internal error determining config_file_version\n");
+        return ret;
+    }
+
+    ret = sss_ini_check_config_obj(init_data);
+    if (ret != EOK) {
+        /* No known version. Use default. */
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Value of config_file_version option not found. "
+              "Assumed to be version %d.\n", CONFDB_DEFAULT_CFG_FILE_VER);
+    } else {
+        version = sss_ini_get_int_config_value(init_data,
+                                               CONFDB_DEFAULT_CFG_FILE_VER,
+                                               -1, &ret);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Config file version could not be determined\n");
+            return ret;
+        } else if (version < CONFDB_VERSION_INT) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Config file is an old version. "
+                  "Please run configuration upgrade script.\n");
+            return EINVAL;
+        } else if (version > CONFDB_VERSION_INT) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Config file version is newer than confdb\n");
+            return EINVAL;
+        }
+    }
+
+    ret = sss_confdb_create_ldif(mem_ctx, init_data, _ldif);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not create LDIF for confdb\n");
+        return ret;
+    }
+
+    *_timestr = talloc_strdup(mem_ctx, timestr);
+    if (*_timestr == NULL) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
 static int confdb_init_db(const char *config_file, const char *config_dir,
                           struct confdb_ctx *cdb)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
     int sret = EOK;
-    int version;
-    char timestr[21];
     bool in_transaction = false;
+    const char *timestr = NULL;
     const char *config_ldif;
-    const char *vals[2] = { timestr, NULL };
+    const char *vals[2] = { NULL, NULL };
     struct ldb_ldif *ldif;
     struct sss_ini_initdata *init_data;
 
@@ -156,94 +256,25 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
     /* Open config file */
     ret = sss_ini_config_file_open(init_data, config_file);
     if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "sss_ini_config_file_open failed: %s [%d]\n", strerror(ret),
-               ret);
-        if (ret == ENOENT) {
-            /* sss specific error denoting missing configuration file */
-            ret = ERR_MISSING_CONF;
-        }
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "sss_ini_config_file_open failed: %s [%d]\n", sss_strerror(ret),
+              ret);
         goto done;
     }
 
-    ret = sss_ini_config_access_check(init_data);
+    ret = confdb_ldif_from_ini_file(tmp_ctx,
+                                    config_file,
+                                    config_dir,
+                                    init_data,
+                                    &timestr,
+                                    &config_ldif);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Permission check on config file failed.\n");
-        ret = EPERM;
+              "Cannot convert INI to LDIF [%d]: [%s]\n",
+              ret, sss_strerror(ret));
         goto done;
     }
-
-    ret = sss_ini_get_stat(init_data);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Status check on config file failed.\n");
-        ret = errno;
-        goto done;
-    }
-
-    errno = 0;
-
-    ret = sss_ini_get_mtime(init_data, sizeof(timestr), timestr);
-    if (ret <= 0 || ret >= (int)sizeof(timestr)) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to convert time_t to string ??\n");
-        ret = errno ? errno : EFAULT;
-    }
-
-    /* FIXME: Determine if the conf file or any snippet has changed
-     * since we last updated the confdb or if some snippet was
-     * added or removed.
-     */
-
-    ret = sss_ini_get_config(init_data, config_file, config_dir);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to load configuration\n");
-        goto done;
-    }
-
-    ret = sss_ini_call_validators(init_data,
-                                  SSSDDATADIR"/cfg_rules.ini");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to call validators\n");
-        /* This is not fatal, continue */
-    }
-
-    /* Make sure that the config file version matches the confdb version */
-    ret = sss_ini_get_cfgobj(init_data, "sssd", "config_file_version");
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Internal error determining config_file_version\n");
-        goto done;
-    }
-
-    ret = sss_ini_check_config_obj(init_data);
-    if (ret != EOK) {
-        /* No known version. Use default. */
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Value of config_file_version option not found. "
-              "Assumed to be version %d.\n", CONFDB_DEFAULT_CFG_FILE_VER);
-    } else {
-        version = sss_ini_get_int_config_value(init_data,
-                                               CONFDB_DEFAULT_CFG_FILE_VER,
-                                               -1, &ret);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Config file version could not be determined\n");
-            goto done;
-        } else if (version < CONFDB_VERSION_INT) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Config file is an old version. "
-                  "Please run configuration upgrade script.\n");
-            ret = EINVAL;
-            goto done;
-        } else if (version > CONFDB_VERSION_INT) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Config file version is newer than confdb\n");
-            ret = EINVAL;
-            goto done;
-        }
-    }
+    DEBUG(SSSDBG_CONF_SETTINGS, "LDIF file to import: \n%s\n", config_ldif);
 
     /* Set up a transaction to replace the configuration */
     ret = ldb_transaction_start(cdb->ldb);
@@ -264,20 +295,12 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
         goto done;
     }
 
-    ret = sss_confdb_create_ldif(tmp_ctx, init_data, &config_ldif);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not create LDIF for confdb\n");
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_LIBS, "LDIF file to import: \n%s\n", config_ldif);
-
     while ((ldif = ldb_ldif_read_string(cdb->ldb, &config_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                    "Failed to initialize DB (%d,[%s]), aborting!\n",
-                     ret, ldb_errstring(cdb->ldb));
+                  "Failed to initialize DB (%d,[%s]), aborting!\n",
+                  ret, ldb_errstring(cdb->ldb));
             ret = EIO;
             goto done;
         }
@@ -287,10 +310,11 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
     /* now store the lastUpdate time so that we do not re-init if nothing
      * changed on restart */
 
+    vals[0] = timestr;
     ret = confdb_add_param(cdb, true, "config", "lastUpdate", vals);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-                "Failed to set last update time on db!\n");
+              "Failed to set last update time on db!\n");
         goto done;
     }
 
