@@ -183,6 +183,25 @@ errno_t sss_iobuf_read(struct sss_iobuf *iobuf,
     return EOK;
 }
 
+errno_t sss_iobuf_read_len(struct sss_iobuf *iobuf,
+                           size_t len,
+                           uint8_t *_buf)
+{
+    size_t read;
+    errno_t ret;
+
+    ret = sss_iobuf_read(iobuf, len, _buf, &read);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (read != len) {
+        return ENOBUFS;
+    }
+
+    return EOK;
+}
+
 errno_t sss_iobuf_write_len(struct sss_iobuf *iobuf,
                             uint8_t *buf,
                             size_t len)
@@ -200,5 +219,94 @@ errno_t sss_iobuf_write_len(struct sss_iobuf *iobuf,
 
     safealign_memcpy(iobuf_ptr(iobuf), buf, len, &iobuf->dp);
 
+    return EOK;
+}
+
+errno_t sss_iobuf_read_uint32(struct sss_iobuf *iobuf,
+                              uint32_t *_val)
+{
+    SAFEALIGN_COPY_UINT32_CHECK(_val, iobuf_ptr(iobuf),
+                                iobuf->capacity, &iobuf->dp);
+    return EOK;
+}
+
+errno_t sss_iobuf_read_int32(struct sss_iobuf *iobuf,
+                             int32_t *_val)
+{
+    SAFEALIGN_COPY_INT32_CHECK(_val, iobuf_ptr(iobuf),
+                               iobuf->capacity, &iobuf->dp);
+    return EOK;
+}
+
+errno_t sss_iobuf_write_uint32(struct sss_iobuf *iobuf,
+                               uint32_t val)
+{
+    errno_t ret;
+
+    ret = ensure_bytes(iobuf, sizeof(uint32_t));
+    if (ret != EOK) {
+        return ret;
+    }
+
+    SAFEALIGN_SETMEM_UINT32(iobuf_ptr(iobuf), val, &iobuf->dp);
+    return EOK;
+}
+
+errno_t sss_iobuf_write_int32(struct sss_iobuf *iobuf,
+                              int32_t val)
+{
+    errno_t ret;
+
+    ret = ensure_bytes(iobuf, sizeof(int32_t));
+    if (ret != EOK) {
+        return ret;
+    }
+
+    SAFEALIGN_SETMEM_INT32(iobuf_ptr(iobuf), val, &iobuf->dp);
+    return EOK;
+}
+
+errno_t sss_iobuf_read_stringz(struct sss_iobuf *iobuf,
+                               const char **_out)
+{
+    uint8_t *end;
+    size_t len;
+
+    if (iobuf == NULL) {
+        return EINVAL;
+    }
+
+    if (_out == NULL) {
+        return EINVAL;
+    }
+
+    *_out = NULL;
+
+    end = memchr(iobuf_ptr(iobuf), '\0', sss_iobuf_get_size(iobuf));
+    if (end == NULL) {
+        return EINVAL;
+    }
+
+    len = end + 1 - iobuf_ptr(iobuf);
+    if (sss_iobuf_get_size(iobuf) < len) {
+        return EINVAL;
+    }
+
+    *_out = (const char *) iobuf_ptr(iobuf);
+    iobuf->dp += len;
+    return EOK;
+}
+
+errno_t sss_iobuf_write_stringz(struct sss_iobuf *iobuf,
+                                const char *str)
+{
+    if (iobuf == NULL || str == NULL) {
+        return EINVAL;
+    }
+
+    SAFEALIGN_MEMCPY_CHECK(iobuf_ptr(iobuf),
+                           str, strlen(str)+1,
+                           sss_iobuf_get_size(iobuf),
+                           &iobuf->dp);
     return EOK;
 }

@@ -95,6 +95,22 @@ errno_t sss_iobuf_read(struct sss_iobuf *iobuf,
                        size_t *_read);
 
 /*
+ * @brief Read an exact number of bytes from an IO buffer
+ *
+ * Read exactly len bytes from an IO buffer. If the buffer contains fewer
+ * bytes than len, ENOBUFS is returned.
+ *
+ * @param[in]  iobuf        The IO buffer to read from
+ * @param[in]  len          The maximum number of bytes to read
+ * @param[out] _buf         The buffer to read data into from iobuf
+ *
+ * @return EOK on success, errno otherwise
+ */
+errno_t sss_iobuf_read_len(struct sss_iobuf *iobuf,
+                           size_t len,
+                           uint8_t *_buf);
+
+/*
  * @brief Write into an IO buffer
  *
  * Attempts to write len bytes into the iobuf. If the capacity is exceeded,
@@ -114,4 +130,21 @@ errno_t sss_iobuf_write_len(struct sss_iobuf *iobuf,
                             uint8_t *buf,
                             size_t len);
 
+errno_t sss_iobuf_read_uint32(struct sss_iobuf *iobuf,
+                              uint32_t *_val);
+
+errno_t sss_iobuf_write_uint32(struct sss_iobuf *iobuf,
+                               uint32_t val);
+
+errno_t sss_iobuf_read_int32(struct sss_iobuf *iobuf,
+                             int32_t *_val);
+
+errno_t sss_iobuf_write_int32(struct sss_iobuf *iobuf,
+                              int32_t val);
+
+errno_t sss_iobuf_read_stringz(struct sss_iobuf *iobuf,
+                               const char **_out);
+
+errno_t sss_iobuf_write_stringz(struct sss_iobuf *iobuf,
+                                const char *str);
 #endif /* __SSS_IOBUF_H_ */
