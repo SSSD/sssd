@@ -130,6 +130,12 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
     safealign_memcpy(dest, src, srclen, pctr); \
 } while(0)
 
+#define SAFEALIGN_COPY_UINT8_CHECK(dest, src, len, pctr) do { \
+    if ((*(pctr) + sizeof(uint8_t)) > (len) || \
+        SIZE_T_OVERFLOW(*(pctr), sizeof(uint8_t))) { return EINVAL; } \
+    safealign_memcpy(dest, src, sizeof(uint8_t), pctr); \
+} while(0)
+
 /* Aliases for backward compatibility. */
 #define SAFEALIGN_SET_VALUE SAFEALIGN_SETMEM_VALUE
 #define SAFEALIGN_SET_INT64 SAFEALIGN_SETMEM_INT64
