@@ -28,6 +28,14 @@
 #include "confdb_setup.h"
 #include "util/sss_ini.h"
 
+#ifndef SSSD_FALLBACK_CONFIG_LDIF
+#define SSSD_FALLBACK_CONFIG_LDIF \
+"dn: cn=config\n" \
+"version: 2\n\n" \
+"dn: cn=sssd,cn=config\n" \
+"cn: sssd\n" \
+"services: nss\n\n"
+#endif /* SSSD_FALLBACK_CONFIG_LDIF */
 
 static int confdb_test(struct confdb_ctx *cdb)
 {
@@ -227,6 +235,23 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static int confdb_fallback_ldif(TALLOC_CTX *mem_ctx,
+                                const char **_timestr,
+                                const char **_ldif)
+{
+#ifndef ADD_FILES_DOMAIN
+    return ERR_MISSING_CONF;
+#else
+    *_timestr = talloc_strdup(mem_ctx, "1");
+    *_ldif = talloc_strdup(mem_ctx, SSSD_FALLBACK_CONFIG_LDIF);
+    if (*_timestr == NULL || *_ldif == NULL) {
+        return ENOMEM;
+    }
+
+    return EOK;
+#endif
+}
+
 static int confdb_init_db(const char *config_file, const char *config_dir,
                           struct confdb_ctx *cdb)
 {
@@ -255,29 +280,34 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
 
     /* Open config file */
     ret = sss_ini_config_file_open(init_data, config_file);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "sss_ini_config_file_open failed: %s [%d]\n", strerror(ret),
-               ret);
-        if (ret == ENOENT) {
-            /* sss specific error denoting missing configuration file */
-            ret = ERR_MISSING_CONF;
+    if (ret == EOK) {
+        ret = confdb_ldif_from_ini_file(tmp_ctx,
+                                        config_file,
+                                        config_dir,
+                                        init_data,
+                                        &timestr,
+                                        &config_ldif);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot convert INI to LDIF [%d]: [%s]\n",
+                  ret, sss_strerror(ret));
+            goto done;
         }
+    } else if (ret == ENOENT) {
+        ret = confdb_fallback_ldif(tmp_ctx, &timestr, &config_ldif);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot create a fallback configuration [%d]: [%s]\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "sss_ini_config_file_open failed: %s [%d]\n", sss_strerror(ret),
+               ret);
         goto done;
     }
 
-    ret = confdb_ldif_from_ini_file(tmp_ctx,
-                                    config_file,
-                                    config_dir,
-                                    init_data,
-                                    &timestr,
-                                    &config_ldif);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot convert INI to LDIF [%d]: [%s]\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
     DEBUG(SSSDBG_CONF_SETTINGS, "LDIF file to import: \n%s\n", config_ldif);
 
 
