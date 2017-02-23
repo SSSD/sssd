@@ -1729,6 +1729,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
          * was successful, so pd->user contains the canonical sysdb name
          * as well */
         if (ldb_dn_compare(preq->cert_user_obj->dn, preq->user_obj->dn) == 0) {
+            DEBUG(SSSDBG_TRACE_ALL, "User and cert user DN match.\n");
 
             if (preq->pd->cmd == SSS_PAM_PREAUTH) {
                 ret = sss_authtok_set_sc(preq->pd->authtok,
