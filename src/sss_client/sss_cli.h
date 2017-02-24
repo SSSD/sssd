@@ -568,6 +568,12 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
                                      uint8_t **repbuf, size_t *replen,
                                      int *errnop);
 
+enum nss_status sss_nss_make_request_timeout(enum sss_cli_command cmd,
+                                             struct sss_cli_req_data *rd,
+                                             int timeout,
+                                             uint8_t **repbuf, size_t *replen,
+                                             int *errnop);
+
 int sss_pam_make_request(enum sss_cli_command cmd,
                          struct sss_cli_req_data *rd,
                          uint8_t **repbuf, size_t *replen,
