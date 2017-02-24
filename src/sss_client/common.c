@@ -87,6 +87,7 @@ static void sss_cli_close_socket(void)
  */
 static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
                                         struct sss_cli_req_data *rd,
+                                        int timeout,
                                         int *errnop)
 {
     uint32_t header[4];
@@ -110,7 +111,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
 
         do {
             errno = 0;
-            res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+            res = poll(&pfd, 1, timeout);
             error = errno;
 
             /* If error is EINTR here, we'll try again
@@ -188,6 +189,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
  */
 
 static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
+                                        int timeout,
                                         uint8_t **_buf, int *_len,
                                         int *errnop)
 {
@@ -218,7 +220,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
 
         do {
             errno = 0;
-            res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+            res = poll(&pfd, 1, timeout);
             error = errno;
 
             /* If error is EINTR here, we'll try again
@@ -344,6 +346,7 @@ failed:
 static enum sss_status sss_cli_make_request_nochecks(
                                        enum sss_cli_command cmd,
                                        struct sss_cli_req_data *rd,
+                                       int timeout,
                                        uint8_t **repbuf, size_t *replen,
                                        int *errnop)
 {
@@ -352,13 +355,13 @@ static enum sss_status sss_cli_make_request_nochecks(
     int len = 0;
 
     /* send data */
-    ret = sss_cli_send_req(cmd, rd, errnop);
+    ret = sss_cli_send_req(cmd, rd, timeout, errnop);
     if (ret != SSS_STATUS_SUCCESS) {
         return ret;
     }
 
     /* data sent, now get reply */
-    ret = sss_cli_recv_rep(cmd, &buf, &len, errnop);
+    ret = sss_cli_recv_rep(cmd, timeout, &buf, &len, errnop);
     if (ret != SSS_STATUS_SUCCESS) {
         return ret;
     }
@@ -384,7 +387,7 @@ static enum sss_status sss_cli_make_request_nochecks(
  * 0-3: 32bit unsigned version number
  */
 
-static bool sss_cli_check_version(const char *socket_name)
+static bool sss_cli_check_version(const char *socket_name, int timeout)
 {
     uint8_t *repbuf = NULL;
     size_t replen;
@@ -414,7 +417,7 @@ static bool sss_cli_check_version(const char *socket_name)
     req.len = sizeof(expected_version);
     req.data = &expected_version;
 
-    nret = sss_cli_make_request_nochecks(SSS_GET_VERSION, &req,
+    nret = sss_cli_make_request_nochecks(SSS_GET_VERSION, &req, timeout,
                                          &repbuf, &replen, &errnop);
     if (nret != SSS_STATUS_SUCCESS) {
         return false;
@@ -524,7 +527,7 @@ static int make_safe_fd(int fd)
     return new_fd;
 }
 
-static int sss_cli_open_socket(int *errnop, const char *socket_name)
+static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout)
 {
     struct sockaddr_un nssaddr;
     bool inprogress = true;
@@ -576,7 +579,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name)
             pfd.fd = sd;
             pfd.events = POLLOUT;
 
-            ret = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT - wait_time);
+            ret = poll(&pfd, 1, timeout - wait_time);
 
             if (ret > 0) {
                 errnosize = sizeof(connect_errno);
@@ -590,7 +593,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name)
             wait_time = time(NULL) - start_time;
             break;
         case EAGAIN:
-            if (wait_time < SSS_CLI_SOCKET_TIMEOUT) {
+            if (wait_time < timeout) {
                 sleep_time = rand() % 2 + 1;
                 sleep(sleep_time);
             }
@@ -601,7 +604,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name)
             break;
         }
 
-        if (wait_time >= SSS_CLI_SOCKET_TIMEOUT) {
+        if (wait_time >= timeout) {
             inprogress = false;
         }
 
@@ -624,7 +627,9 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name)
     return sd;
 }
 
-static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name)
+static enum sss_status sss_cli_check_socket(int *errnop,
+                                            const char *socket_name,
+                                            int timeout)
 {
     static pid_t mypid;
     struct stat mysb;
@@ -655,7 +660,7 @@ static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name
 
         do {
             errno = 0;
-            res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+            res = poll(&pfd, 1, timeout);
             error = errno;
 
             /* If error is EINTR here, we'll try again
@@ -690,14 +695,14 @@ static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name
         sss_cli_close_socket();
     }
 
-    mysd = sss_cli_open_socket(errnop, socket_name);
+    mysd = sss_cli_open_socket(errnop, socket_name, timeout);
     if (mysd == -1) {
         return SSS_STATUS_UNAVAIL;
     }
 
     sss_cli_sd = mysd;
 
-    if (sss_cli_check_version(socket_name)) {
+    if (sss_cli_check_version(socket_name, timeout)) {
         return SSS_STATUS_SUCCESS;
     }
 
@@ -708,8 +713,9 @@ static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name
 
 /* this function will check command codes match and returned length is ok */
 /* repbuf and replen report only the data section not the header */
-enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
+enum nss_status sss_nss_make_request_timeout(enum sss_cli_command cmd,
                       struct sss_cli_req_data *rd,
+                      int timeout,
                       uint8_t **repbuf, size_t *replen,
                       int *errnop)
 {
@@ -722,7 +728,7 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
         return NSS_STATUS_NOTFOUND;
     }
 
-    ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME);
+    ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME, timeout);
     if (ret != SSS_STATUS_SUCCESS) {
 #ifdef NONSTANDARD_SSS_NSS_BEHAVIOUR
         *errnop = 0;
@@ -733,10 +739,11 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
 #endif
     }
 
-    ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+                                        errnop);
     if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
         /* try reopen socket */
-        ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME);
+        ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME, timeout);
         if (ret != SSS_STATUS_SUCCESS) {
 #ifdef NONSTANDARD_SSS_NSS_BEHAVIOUR
             *errnop = 0;
@@ -748,7 +755,8 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
         }
 
         /* and make request one more time */
-        ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+        ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+                                            errnop);
     }
     switch (ret) {
     case SSS_STATUS_TRYAGAIN:
@@ -767,12 +775,22 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
     }
 }
 
+enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
+                      struct sss_cli_req_data *rd,
+                      uint8_t **repbuf, size_t *replen,
+                      int *errnop)
+{
+    return sss_nss_make_request_timeout(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                        repbuf, replen, errnop);
+}
+
 int sss_pac_check_and_open(void)
 {
     enum sss_status ret;
     int errnop;
 
-    ret = sss_cli_check_socket(&errnop, SSS_PAC_SOCKET_NAME);
+    ret = sss_cli_check_socket(&errnop, SSS_PAC_SOCKET_NAME,
+                               SSS_CLI_SOCKET_TIMEOUT);
     if (ret != SSS_STATUS_SUCCESS) {
         return EIO;
     }
@@ -787,6 +805,7 @@ int sss_pac_make_request(enum sss_cli_command cmd,
 {
     enum sss_status ret;
     char *envval;
+    int timeout = SSS_CLI_SOCKET_TIMEOUT;
 
     /* avoid looping in the nss daemon */
     envval = getenv("_SSS_LOOPS");
@@ -794,21 +813,23 @@ int sss_pac_make_request(enum sss_cli_command cmd,
         return NSS_STATUS_NOTFOUND;
     }
 
-    ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME);
+    ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME, timeout);
     if (ret != SSS_STATUS_SUCCESS) {
         return NSS_STATUS_UNAVAIL;
     }
 
-    ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+                                        errnop);
     if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
         /* try reopen socket */
-        ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME);
+        ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME, timeout);
         if (ret != SSS_STATUS_SUCCESS) {
             return NSS_STATUS_UNAVAIL;
         }
 
         /* and make request one more time */
-        ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+        ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+                                            errnop);
     }
     switch (ret) {
     case SSS_STATUS_TRYAGAIN:
@@ -872,6 +893,7 @@ int sss_pam_make_request(enum sss_cli_command cmd,
     char *envval;
     struct stat stat_buf;
     const char *socket_name;
+    int timeout = SSS_CLI_SOCKET_TIMEOUT;
 
     sss_pam_lock();
 
@@ -915,7 +937,7 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         }
     }
 
-    status = sss_cli_check_socket(errnop, socket_name);
+    status = sss_cli_check_socket(errnop, socket_name, timeout);
     if (status != SSS_STATUS_SUCCESS) {
         ret = PAM_SERVICE_ERR;
         goto out;
@@ -929,17 +951,19 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         goto out;
     }
 
-    status = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    status = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+                                           errnop);
     if (status == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
         /* try reopen socket */
-        status = sss_cli_check_socket(errnop, socket_name);
+        status = sss_cli_check_socket(errnop, socket_name, timeout);
         if (status != SSS_STATUS_SUCCESS) {
             ret = PAM_SERVICE_ERR;
             goto out;
         }
 
         /* and make request one more time */
-        status = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+        status = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+                                               errnop);
     }
 
     if (status == SSS_STATUS_SUCCESS) {
@@ -968,27 +992,30 @@ void sss_pam_close_fd(void)
 static enum sss_status
 sss_cli_make_request_with_checks(enum sss_cli_command cmd,
                                  struct sss_cli_req_data *rd,
+                                 int timeout,
                                  uint8_t **repbuf, size_t *replen,
                                  int *errnop,
                                  const char *socket_name)
 {
     enum sss_status ret = SSS_STATUS_UNAVAIL;
 
-    ret = sss_cli_check_socket(errnop, socket_name);
+    ret = sss_cli_check_socket(errnop, socket_name, timeout);
     if (ret != SSS_STATUS_SUCCESS) {
         return SSS_STATUS_UNAVAIL;
     }
 
-    ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+                                        errnop);
     if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
         /* try reopen socket */
-        ret = sss_cli_check_socket(errnop, socket_name);
+        ret = sss_cli_check_socket(errnop, socket_name, timeout);
         if (ret != SSS_STATUS_SUCCESS) {
             return SSS_STATUS_UNAVAIL;
         }
 
         /* and make request one more time */
-        ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+        ret = sss_cli_make_request_nochecks(cmd, rd, timeout, repbuf, replen,
+                                            errnop);
     }
 
     return ret;
@@ -999,7 +1026,8 @@ int sss_sudo_make_request(enum sss_cli_command cmd,
                           uint8_t **repbuf, size_t *replen,
                           int *errnop)
 {
-    return sss_cli_make_request_with_checks(cmd, rd, repbuf, replen, errnop,
+    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                            repbuf, replen, errnop,
                                             SSS_SUDO_SOCKET_NAME);
 }
 
@@ -1008,7 +1036,8 @@ int sss_autofs_make_request(enum sss_cli_command cmd,
                             uint8_t **repbuf, size_t *replen,
                             int *errnop)
 {
-    return sss_cli_make_request_with_checks(cmd, rd, repbuf, replen, errnop,
+    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                            repbuf, replen, errnop,
                                             SSS_AUTOFS_SOCKET_NAME);
 }
 
@@ -1017,7 +1046,8 @@ int sss_ssh_make_request(enum sss_cli_command cmd,
                          uint8_t **repbuf, size_t *replen,
                          int *errnop)
 {
-    return sss_cli_make_request_with_checks(cmd, rd, repbuf, replen, errnop,
+    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                            repbuf, replen, errnop,
                                             SSS_SSH_SOCKET_NAME);
 }
 
