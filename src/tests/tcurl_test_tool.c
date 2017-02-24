@@ -36,6 +36,7 @@ struct tool_ctx {
 struct tool_options {
     int debug;
     int verbose;
+    int raw;
 
     enum tcurl_http_method method;
     const char *socket_path;
@@ -173,6 +174,13 @@ prepare_requests(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        if (opts->raw) {
+            ret = tcurl_req_enable_rawoutput(requests[i]);
+            if (ret != EOK) {
+                goto done;
+            }
+        }
+
         i++;
     }
 
@@ -270,6 +278,7 @@ int main(int argc, const char *argv[])
         { "put", 'p', POPT_ARG_NONE, NULL, 'p', "Perform a HTTP PUT", NULL },
         { "post", 'o', POPT_ARG_NONE, NULL, 'o', "Perform a HTTP POST", NULL },
         { "del", 'd', POPT_ARG_NONE, NULL, 'd', "Perform a HTTP DELETE", NULL },
+        { "raw", 'r', POPT_ARG_NONE, &opts.raw, '\0', "Print raw protocol output", NULL },
         { "verbose", 'v', POPT_ARG_NONE, &opts.verbose, '\0', "Print response code and body", NULL },
         POPT_TABLEEND
     };
