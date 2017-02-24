@@ -28,26 +28,39 @@
 
 struct tool_ctx {
     bool verbose;
-
-    errno_t error;
     bool done;
 
     size_t nreqs;
 };
 
+struct tool_options {
+    int debug;
+    int verbose;
+
+    enum tcurl_http_method method;
+    const char *socket_path;
+};
+
 static void request_done(struct tevent_req *req)
 {
-    int http_code;
+    struct tool_ctx *tool_ctx;
     struct sss_iobuf *outbuf;
-    struct tool_ctx *tool_ctx = tevent_req_callback_data(req,
-                                                         struct tool_ctx);
+    int http_code;
+    errno_t ret;
 
-    tool_ctx->error = tcurl_request_recv(tool_ctx, req, &outbuf, &http_code);
+    tool_ctx = tevent_req_callback_data(req, struct tool_ctx);
+
+    ret = tcurl_request_recv(tool_ctx, req, &outbuf, &http_code);
     talloc_zfree(req);
 
-    if (tool_ctx->error != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "HTTP request failed: %d\n", tool_ctx->error);
+    tool_ctx->nreqs--;
+    if (tool_ctx->nreqs == 0) {
         tool_ctx->done = true;
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "HTTP request failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         return;
     } else if (tool_ctx->verbose) {
         printf("Request HTTP code: %d\n", http_code);
@@ -55,167 +68,171 @@ static void request_done(struct tevent_req *req)
                (const char *) sss_iobuf_get_data(outbuf));
         talloc_zfree(outbuf);
     }
-
-    tool_ctx->nreqs--;
-    if (tool_ctx->nreqs == 0) {
-        tool_ctx->done = true;
-    }
 }
 
-int main(int argc, const char *argv[])
+static errno_t
+parse_options(poptContext pc, struct tool_options *opts)
 {
     int opt;
-    poptContext pc;
-
-    int pc_debug = 0;
-    int pc_verbose = 0;
-    const char *socket_path = NULL;
-    const char *extra_arg_ptr;
-
-    static const char *headers[] = {
-        "Content-type: application/octet-stream",
-        NULL,
-    };
-
-    struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT, &pc_debug, 0,
-          "The debug level to run with", NULL },
-        { "socket-path", 's', POPT_ARG_STRING, &socket_path, 0,
-          "The path to the HTTP server socket", NULL },
-        { "get", 'g', POPT_ARG_NONE, NULL, 'g', "Perform a HTTP GET (default)", NULL },
-        { "put", 'p', POPT_ARG_NONE, NULL, 'p', "Perform a HTTP PUT", NULL },
-        { "post", 'o', POPT_ARG_NONE, NULL, 'o', "Perform a HTTP POST", NULL },
-        { "del", 'd', POPT_ARG_NONE, NULL, 'd', "Perform a HTTP DELETE", NULL },
-        { "verbose", 'v', POPT_ARG_NONE, NULL, 'v', "Print response code and body", NULL },
-        POPT_TABLEEND
-    };
-
-    struct tevent_req *req;
-    struct tevent_context *ev;
-    enum tcurl_http_method method = TCURL_HTTP_GET;
-    struct tcurl_ctx *ctx;
-    struct tcurl_request *tcurl_req;
-    struct tool_ctx *tool_ctx;
-
-    const char *urls[MAXREQ] = { 0 };
-    struct sss_iobuf **inbufs;
-
-    size_t n_reqs = 0;
-
-    debug_prg_name = argv[0];
-    pc = poptGetContext(NULL, argc, argv, long_options, 0);
-    poptSetOtherOptionHelp(pc, "HTTPDATA");
 
     while ((opt = poptGetNextOpt(pc)) > 0) {
         switch (opt) {
         case 'g':
-            method = TCURL_HTTP_GET;
+            opts->method = TCURL_HTTP_GET;
             break;
         case 'p':
-            method = TCURL_HTTP_PUT;
+            opts->method = TCURL_HTTP_PUT;
             break;
         case 'o':
-            method = TCURL_HTTP_POST;
+            opts->method = TCURL_HTTP_POST;
             break;
         case 'd':
-            method = TCURL_HTTP_DELETE;
-            break;
-        case 'v':
-            pc_verbose = 1;
+            opts->method = TCURL_HTTP_DELETE;
             break;
         default:
             DEBUG(SSSDBG_FATAL_FAILURE, "Unexpected option\n");
-            return 1;
-        }
-    }
-
-    DEBUG_CLI_INIT(pc_debug);
-
-    tool_ctx = talloc_zero(NULL, struct tool_ctx);
-    if (tool_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not init tool context\n");
-        return 1;
-    }
-
-    inbufs = talloc_zero_array(tool_ctx, struct sss_iobuf *, MAXREQ);
-    if (inbufs == NULL) {
-        talloc_zfree(tool_ctx);
-        return 1;
-    }
-
-    while ((extra_arg_ptr = poptGetArg(pc)) != NULL) {
-        switch(method) {
-        case TCURL_HTTP_GET:
-        case TCURL_HTTP_DELETE:
-        case TCURL_HTTP_POST:
-            urls[n_reqs++] = extra_arg_ptr;
-            break;
-        case TCURL_HTTP_PUT:
-            if (urls[n_reqs] == NULL) {
-                urls[n_reqs] = extra_arg_ptr;
-            } else {
-                inbufs[n_reqs] = sss_iobuf_init_readonly(
-                                              inbufs,
-                                              (uint8_t *) discard_const(extra_arg_ptr),
-                                              strlen(extra_arg_ptr));
-                if (inbufs[n_reqs] == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "Could not init input buffer\n");
-                    talloc_zfree(tool_ctx);
-                    return 1;
-                }
-                n_reqs++;
-            }
-            break;
+            return EINVAL;
         }
     }
 
     if (opt != -1) {
         poptPrintUsage(pc, stderr, 0);
         fprintf(stderr, "%s", poptStrerror(opt));
-        talloc_zfree(tool_ctx);
-        return 1;
+        return EINVAL;
     }
 
-    if (!socket_path) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Please specify the socket path\n");
-        poptPrintUsage(pc, stderr, 0);
-        talloc_zfree(tool_ctx);
-        return 1;
+    return EOK;
+}
+
+static errno_t
+prepare_requests(TALLOC_CTX *mem_ctx,
+                 poptContext pc,
+                 struct tool_options *opts,
+                 struct tcurl_request ***_requests,
+                 size_t *_num_requests)
+{
+    struct tcurl_request **requests;
+    const char *arg;
+    const char *url;
+    struct sss_iobuf *body;
+    errno_t ret;
+    size_t i;
+
+    static const char *headers[] = {
+        "Content-type: application/octet-stream",
+        NULL,
+    };
+
+    requests = talloc_zero_array(mem_ctx, struct tcurl_request *, MAXREQ + 1);
+    if (requests == NULL) {
+        return ENOMEM;
     }
 
-    tool_ctx->nreqs = n_reqs;
-    tool_ctx->verbose = !!pc_verbose;
+    i = 0;
+    while ((arg = poptGetArg(pc)) != NULL) {
+        if (i >= MAXREQ) {
+            fprintf(stderr, _("Too many requests!\n"));
+            ret = EINVAL;
+            goto done;
+        }
 
-    ev = tevent_context_init(tool_ctx);
+        switch(opts->method) {
+        case TCURL_HTTP_GET:
+        case TCURL_HTTP_DELETE:
+            url = arg;
+            body = NULL;
+            break;
+        case TCURL_HTTP_PUT:
+        case TCURL_HTTP_POST:
+            url = arg;
+
+            arg = poptGetArg(pc);
+            if (arg == NULL) {
+                body = NULL;
+                break;
+            }
+
+            body = sss_iobuf_init_readonly(requests,
+                                           discard_const_p(uint8_t, arg),
+                                           strlen(arg));
+            if (body == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid method!\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        requests[i] = tcurl_http(requests, opts->method, opts->socket_path,
+                                 url, headers, body);
+        if (requests[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        i++;
+    }
+
+    *_requests = requests;
+    *_num_requests = i;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(requests);
+    }
+
+    return ret;
+}
+
+static errno_t
+run_requests(struct tool_ctx *tool_ctx,
+             struct tcurl_request **requests)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct tcurl_ctx *tcurl_ctx;
+    struct tevent_context *ev;
+    struct tevent_req *req;
+    errno_t ret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    if (requests == NULL || requests[0] == NULL) {
+        ret = EOK;
+        goto done;
+    }
+
+    ev = tevent_context_init(tmp_ctx);
     if (ev == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not init tevent context\n");
-        talloc_zfree(tool_ctx);
-        return 1;
+        ret = ENOMEM;
+        goto done;
     }
 
-    ctx = tcurl_init(tool_ctx, ev);
-    if (ctx == NULL) {
+    tcurl_ctx = tcurl_init(tmp_ctx, ev);
+    if (tcurl_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not init tcurl context\n");
-        talloc_zfree(tool_ctx);
-        return 1;
+        ret = ENOMEM;
+        goto done;
     }
 
-    for (size_t i = 0; i < n_reqs; i++) {
-        tcurl_req = tcurl_http(tool_ctx, method, socket_path,
-                               urls[i], headers, inbufs[i]);
-        if (tcurl_req == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Unable to create TCURL request\n");
-            talloc_zfree(tool_ctx);
-            return 1;
+    for (i = 0; requests[i] != NULL; i++) {
+        req = tcurl_request_send(tmp_ctx, ev, tcurl_ctx, requests[i], 5);
+        if (req == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Could not create tevent request\n");
+            ret = ENOMEM;
+            goto done;
         }
 
-        req = tcurl_request_send(tool_ctx, ev, ctx, tcurl_req, 10);
-        if (ctx == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Could not create request\n");
-            talloc_zfree(tool_ctx);
-            return 1;
-        }
         tevent_req_set_callback(req, request_done, tool_ctx);
     }
 
@@ -226,11 +243,79 @@ int main(int argc, const char *argv[])
     if (tool_ctx->nreqs > 0) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "The tool finished with some pending requests, fail!\n");
-        talloc_zfree(tool_ctx);
-        return 1;
+        ret = EEXIST;
+        goto done;
     }
 
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int main(int argc, const char *argv[])
+{
+    struct tool_options opts = {0};
+    struct tool_ctx *tool_ctx;
+    struct tcurl_request **requests;
+    poptContext pc;
+    errno_t ret;
+
+    struct poptOption long_options[] = {
+        POPT_AUTOHELP
+        { "debug", '\0', POPT_ARG_INT, &opts.debug, 0, "The debug level to run with", NULL },
+        { "socket-path", 's', POPT_ARG_STRING, &opts.socket_path, 0, "The path to the HTTP server socket", NULL },
+        { "get", 'g', POPT_ARG_NONE, NULL, 'g', "Perform a HTTP GET (default)", NULL },
+        { "put", 'p', POPT_ARG_NONE, NULL, 'p', "Perform a HTTP PUT", NULL },
+        { "post", 'o', POPT_ARG_NONE, NULL, 'o', "Perform a HTTP POST", NULL },
+        { "del", 'd', POPT_ARG_NONE, NULL, 'd', "Perform a HTTP DELETE", NULL },
+        { "verbose", 'v', POPT_ARG_NONE, &opts.verbose, '\0', "Print response code and body", NULL },
+        POPT_TABLEEND
+    };
+
+    pc = poptGetContext(NULL, argc, argv, long_options, 0);
+    poptSetOtherOptionHelp(pc, "[URL HTTPDATA]*");
+
+    tool_ctx = talloc_zero(NULL, struct tool_ctx);
+    if (tool_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not init tool context\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = parse_options(pc, &opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to parse options [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG_CLI_INIT(opts.debug);
+    tool_ctx->verbose = opts.verbose;
+
+    ret = prepare_requests(tool_ctx, pc, &opts, &requests, &tool_ctx->nreqs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to prepare requests [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = run_requests(tool_ctx, requests);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to issue requests [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+
+done:
     talloc_free(tool_ctx);
     poptFreeContext(pc);
-    return 0;
+
+    if (ret != EOK) {
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
