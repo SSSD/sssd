@@ -34,8 +34,8 @@
 #include "util/util.h"
 #include "util/tev_curl.h"
 
-#define IOBUF_CHUNK   1024
-#define IOBUF_MAX     4096
+#define TCURL_IOBUF_CHUNK   1024
+#define TCURL_IOBUF_MAX     4096
 
 static bool global_is_curl_initialized;
 
@@ -71,39 +71,12 @@ struct tcurl_sock {
     struct tevent_fd *fde;      /* tevent tracker of the fd events */
 };
 
-/**
- * @brief A state of one curl transfer
- *
- * Intentionally breaking the tevent coding style here and making the struct available
- * in the whole module so that the structure is available to curl callbacks that
- * need to access the state of the transfer.
- *
- * @see handle_curlmsg_done()
- */
-struct tcurl_http_state {
-    /* Input parameters */
-    struct tcurl_ctx *tctx;
-    const char *socket_path;
-    const char *url;
-    int timeout;
-    struct sss_iobuf *inbuf;
-
-    /* Internal state */
-    CURL *http_handle;
-    struct curl_slist *curl_headers;
-
-    /* Output data */
-    struct sss_iobuf *outbuf;
-    long http_code;
-};
+static void tcurl_request_done(struct tevent_req *req,
+                               errno_t process_error,
+                               int response_code);
 
 static errno_t curl_code2errno(CURLcode crv)
 {
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "curl error %d: %s\n", crv, curl_easy_strerror(crv));
-    }
-
     switch (crv) {
     /* HTTP error does not fail the whole request, just returns the error
      * separately
@@ -121,6 +94,47 @@ static errno_t curl_code2errno(CURLcode crv)
         return ENOMEM;
     case CURLE_OPERATION_TIMEDOUT:
         return ETIMEDOUT;
+    case CURLE_SSL_ISSUER_ERROR:
+    case CURLE_SSL_CACERT_BADFILE:
+    case CURLE_SSL_CACERT:
+    case CURLE_SSL_CERTPROBLEM:
+        return ERR_INVALID_CERT;
+
+    case CURLE_SSL_CRL_BADFILE:
+    case CURLE_SSL_SHUTDOWN_FAILED:
+    case CURLE_SSL_ENGINE_INITFAILED:
+    case CURLE_USE_SSL_FAILED:
+    case CURLE_SSL_CIPHER:
+    case CURLE_SSL_ENGINE_SETFAILED:
+    case CURLE_SSL_ENGINE_NOTFOUND:
+    case CURLE_SSL_CONNECT_ERROR:
+        return ERR_SSL_FAILURE;
+    case CURLE_PEER_FAILED_VERIFICATION:
+        return ERR_UNABLE_TO_VERIFY_PEER;
+    case CURLE_COULDNT_RESOLVE_HOST:
+        return ERR_UNABLE_TO_RESOLVE_HOST;
+    default:
+        break;
+    }
+
+    return EIO;
+}
+
+static errno_t curlm_code2errno(CURLcode crv)
+{
+    switch (crv) {
+    case CURLM_OK:
+        return EOK;
+    case CURLM_BAD_SOCKET:
+        return EPIPE;
+    case CURLM_OUT_OF_MEMORY:
+        return ENOMEM;
+    case CURLM_BAD_HANDLE:
+    case CURLM_BAD_EASY_HANDLE:
+    case CURLM_UNKNOWN_OPTION:
+        return EINVAL;
+    case CURLM_INTERNAL_ERROR:
+        return ERR_INTERNAL;
     default:
         break;
     }
@@ -143,22 +157,6 @@ static errno_t tcurl_global_init(void)
 
     global_is_curl_initialized = true;
     return EOK;
-}
-
-static const char *http_req2str(enum tcurl_http_request req)
-{
-    switch (req) {
-    case TCURL_HTTP_GET:
-        return "GET";
-    case TCURL_HTTP_PUT:
-        return "PUT";
-    case TCURL_HTTP_DELETE:
-        return "DELETE";
-    case TCURL_HTTP_POST:
-        return "POST";
-    }
-
-    return "Uknown request type";
 }
 
 static int curl2tev_flags(int curlflags)
@@ -185,9 +183,9 @@ static void handle_curlmsg_done(CURLMsg *message)
     CURL *easy_handle;
     CURLcode crv;
     struct tevent_req *req;
+    long response_code = 0;
     char *done_url;
     errno_t ret;
-    struct tcurl_http_state *state;
 
     easy_handle = message->easy_handle;
     if (easy_handle == NULL) {
@@ -198,9 +196,8 @@ static void handle_curlmsg_done(CURLMsg *message)
     if (DEBUG_IS_SET(SSSDBG_TRACE_FUNC)) {
         crv = curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &done_url);
         if (crv != CURLE_OK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot get CURLINFO_EFFECTIVE_URL [%d]: %s\n",
-                  crv, curl_easy_strerror(crv));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get CURLINFO_EFFECTIVE_URL "
+                  "[%d]: %s\n", crv, curl_easy_strerror(crv));
             /* not fatal since we need this only for debugging */
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "Handled %s\n", done_url);
@@ -209,38 +206,32 @@ static void handle_curlmsg_done(CURLMsg *message)
 
     crv = curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, (void *) &req);
     if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot get CURLINFO_PRIVATE [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get CURLINFO_PRIVATE [%d]: %s\n",
               crv, curl_easy_strerror(crv));
-        return;
-    }
-
-    state = tevent_req_data(req, struct tcurl_http_state);
-    if (state == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: request has no state\n");
-        tevent_req_error(req, EFAULT);
-        return;
+        ret = curl_code2errno(crv);
+        goto done;
     }
 
     ret = curl_code2errno(message->data.result);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "curl operation failed [%d]: %s\n", ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        DEBUG(SSSDBG_OP_FAILURE, "CURL operation failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
     }
 
-    /* If there was no fatal error, let's read the HTTP error code and mark
-     * the request as done
-     */
-    crv = curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &state->http_code);
+    /* If there was no fatal error, let's read the response code
+     * and mark the request as done */
+    crv = curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
     if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot get HTTP status code\n");
-        tevent_req_error(req, EFAULT);
-        return;
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get response code\n");
+        ret = curl_code2errno(crv);
+        goto done;
     }
 
-    tevent_req_done(req);
+    ret = EOK;
+
+done:
+    tcurl_request_done(req, ret, response_code);
 }
 
 static void process_curl_activity(struct tcurl_ctx *tctx)
@@ -551,346 +542,42 @@ fail:
     return NULL;
 }
 
-static errno_t tcurl_add_headers(struct tcurl_http_state *state,
-                                 const char *headers[]);
+#define tcurl_set_option(tcurl_req, option, value)                          \
+({                                                                          \
+    CURLcode __curl_code;                                                   \
+    errno_t __ret;                                                          \
+                                                                            \
+    __curl_code = curl_easy_setopt((tcurl_req)->curl_easy_handle,           \
+                                   (option), (value));                      \
+    if (__curl_code == CURLE_OK) {                                          \
+        __ret = EOK;                                                        \
+    } else {                                                                \
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to set CURL option %s [%d]: %s\n", \
+              #option, __curl_code, curl_easy_strerror(__curl_code));       \
+        __ret = curl_code2errno(__curl_code);                               \
+    }                                                                       \
+    __ret;                                                                  \
+})
 
-static errno_t tcurl_set_options(struct tcurl_http_state *state,
-                                 struct tevent_req *req,
-                                 enum tcurl_http_request req_type);
-
-static int tcurl_http_cleanup_handle(TALLOC_CTX *ptr);
-
-static size_t tcurl_http_write_data(char *ptr,
-                                    size_t size,
-                                    size_t nmemb,
-                                    void *userdata);
-
-static size_t tcurl_http_read_data(void *ptr,
-                                   size_t size,
-                                   size_t nmemb,
-                                   void *userdata);
-
-struct tevent_req *tcurl_http_send(TALLOC_CTX *mem_ctx,
-                                   struct tevent_context *ev,
-                                   struct tcurl_ctx *tctx,
-                                   enum tcurl_http_request req_type,
-                                   const char *socket_path,
-                                   const char *url,
-                                   const char *headers[],
-                                   struct sss_iobuf *req_data,
-                                   int timeout)
-{
-    errno_t ret;
-    struct tevent_req *req;
-    struct tcurl_http_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct tcurl_http_state);
-    if (req == NULL) {
-        return NULL;
-    }
-
-    state->tctx = tctx;
-    state->socket_path = socket_path;
-    state->url = url;
-    state->inbuf = req_data;
-    state->timeout = timeout;
-
-    state->outbuf = sss_iobuf_init_empty(state, IOBUF_CHUNK, IOBUF_MAX);
-    if (state->outbuf == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "HTTP request %s for URL %s\n", http_req2str(req_type), url);
-    talloc_set_destructor((TALLOC_CTX *) state, tcurl_http_cleanup_handle);
-
-    /* All transfer share the same multi handle, but each trasfer has its own
-     * easy handle we can use to set per-transfer options
-     */
-    state->http_handle = curl_easy_init();
-    if (state->http_handle == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "curl_easy_init failed\n");
-        ret = EIO;
-        goto fail;
-    }
-
-    ret = tcurl_add_headers(state, headers);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to set CURL headers [%d]: %s\n", ret, sss_strerror(ret));
-        goto fail;
-    }
-
-    ret = tcurl_set_options(state, req, req_type);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to set CURL options [%d]: %s\n", ret, sss_strerror(ret));
-        goto fail;
-    }
-
-    /* Pass control to the curl handling which will mark the request as
-     * done
-     */
-    curl_multi_add_handle(tctx->multi_handle, state->http_handle);
-
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static int tcurl_http_cleanup_handle(TALLOC_CTX *ptr)
-{
-    struct tcurl_http_state *state = talloc_get_type(ptr, struct tcurl_http_state);
-
-    if (state == NULL) {
-        return 0;
-    }
-
-    /* it is safe to pass NULL here */
-    curl_multi_remove_handle(state->tctx->multi_handle, state->http_handle);
-    curl_slist_free_all(state->curl_headers);
-    curl_easy_cleanup(state->http_handle);
-    return 0;
-}
-
-static errno_t tcurl_add_headers(struct tcurl_http_state *state,
-                                 const char *headers[])
-{
-    if (headers == NULL) {
-        return EOK;
-    }
-
-    /* The headers will be freed later in tcurl_http_cleanup_handle */
-    for (int i = 0; headers[i] != NULL; i++) {
-        state->curl_headers = curl_slist_append(state->curl_headers, headers[i]);
-        if (state->curl_headers == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot add header %s\n", headers[i]);
-            return ENOMEM;
-        }
-    }
-
-    /* Add a dummy header to suppress libcurl adding Expect 100-continue which
-     * was causing libcurl to always wait for the internal timeout when sending
-     * a PUT/PATCH request
-     */
-    state->curl_headers = curl_slist_append(state->curl_headers, "Expect:");
-    if (state->curl_headers == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot add the dummy expect header\n");
-        return ENOMEM;
-    }
-
-    return EOK;
-}
-
-static errno_t tcurl_set_common_options(struct tcurl_http_state *state,
-                                        struct tevent_req *req)
-{
-    CURLcode crv;
-
-    crv = curl_easy_setopt(state->http_handle,
-                           CURLOPT_HTTPHEADER,
-                           state->curl_headers);
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to set HTTP headers [%d]: %s\n",
-              crv, curl_easy_strerror(crv));
-        return EIO;
-    }
-
-    crv = curl_easy_setopt(state->http_handle,
-                           CURLOPT_UNIX_SOCKET_PATH,
-                           state->socket_path);
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to set UNIX socket path %s [%d]: %s\n",
-              state->socket_path, crv, curl_easy_strerror(crv));
-        return EIO;
-    }
-
-    crv = curl_easy_setopt(state->http_handle, CURLOPT_URL, state->url);
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to set URL %s [%d]: %s\n",
-              state->url, crv, curl_easy_strerror(crv));
-        return EIO;
-    }
-
-    crv = curl_easy_setopt(state->http_handle, CURLOPT_PRIVATE, req);
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to set private data [%d]: %s\n",
-              crv, curl_easy_strerror(crv));
-        return EIO;
-    }
-
-    if (state->timeout > 0) {
-        crv = curl_easy_setopt(state->http_handle,
-                               CURLOPT_TIMEOUT,
-                               state->timeout);
-        if (crv != CURLE_OK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to set timeout [%d]: %s\n",
-                  crv, curl_easy_strerror(crv));
-            return EIO;
-        }
-    }
-
-    return EOK;
-}
-
-static errno_t tcurl_set_write_options(struct tcurl_http_state *state)
-{
-    CURLcode crv;
-
-    crv = curl_easy_setopt(state->http_handle,
-                           CURLOPT_WRITEFUNCTION,
-                           tcurl_http_write_data);
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to set write function [%d]: %s\n",
-              crv, curl_easy_strerror(crv));
-        return EIO;
-    }
-
-    crv = curl_easy_setopt(state->http_handle,
-                           CURLOPT_WRITEDATA,
-                           state->outbuf);
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to set write data [%d]: %s\n",
-              crv, curl_easy_strerror(crv));
-        return EIO;
-    }
-
-    return EOK;
-}
-
-static errno_t tcurl_set_read_options(struct tcurl_http_state *state)
-{
-    CURLcode crv;
-
-    crv = curl_easy_setopt(state->http_handle,
-                           CURLOPT_READFUNCTION,
-                           tcurl_http_read_data);
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to set read function [%d]: %s\n",
-              crv, curl_easy_strerror(crv));
-        return EIO;
-    }
-
-    crv = curl_easy_setopt(state->http_handle,
-                           CURLOPT_READDATA,
-                           state->inbuf);
-    if (crv != CURLE_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to set read data [%d]: %s\n",
-              crv, curl_easy_strerror(crv));
-        return EIO;
-    }
-
-    return EOK;
-}
-
-static errno_t tcurl_set_options(struct tcurl_http_state *state,
-                                 struct tevent_req *req,
-                                 enum tcurl_http_request req_type)
-{
-    CURLcode crv;
-    errno_t ret;
-
-    ret = tcurl_set_common_options(state, req);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ret = tcurl_set_write_options(state);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to set write callbacks [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
-    switch (req_type) {
-    case TCURL_HTTP_POST:
-        crv = curl_easy_setopt(state->http_handle,
-                               CURLOPT_CUSTOMREQUEST,
-                               "POST");
-        break;
-    case TCURL_HTTP_PUT:
-        /* CURLOPT_UPLOAD enables HTTP_PUT */
-        crv = curl_easy_setopt(state->http_handle,
-                               CURLOPT_UPLOAD,
-                               1L);
-        if (crv != CURLE_OK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to set the uplodad option [%d]: %s\n",
-                  crv, curl_easy_strerror(crv));
-            return EIO;
-        }
-
-        /* Causes libcurl to add a sane Content-Length header */
-        crv = curl_easy_setopt(state->http_handle,
-                               CURLOPT_INFILESIZE_LARGE,
-                               (curl_off_t) sss_iobuf_get_size(state->inbuf));
-        if (crv != CURLE_OK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to set CURLOPT_INFILESIZE_LARGE [%d]: %s\n",
-                  crv, curl_easy_strerror(crv));
-            return EIO;
-        }
-
-        ret = tcurl_set_read_options(state);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to set write callbacks [%d]: %s\n",
-                  ret, sss_strerror(ret));
-            return ret;
-        }
-        break;
-    case TCURL_HTTP_GET:
-        /* GET just needs the write callbacks, nothing to do here.. */
-        break;
-    case TCURL_HTTP_DELETE:
-        crv = curl_easy_setopt(state->http_handle,
-                               CURLOPT_CUSTOMREQUEST,
-                               "DELETE");
-        if (crv != CURLE_OK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to set the uplodad option [%d]: %s\n",
-                  crv, curl_easy_strerror(crv));
-            return EIO;
-        }
-        break;
-    default:
-        return EFAULT;
-    }
-
-    return EOK;
-}
-
-static size_t tcurl_http_write_data(char *ptr,
-                                    size_t size,
-                                    size_t nmemb,
-                                    void *userdata)
+static size_t tcurl_write_data(char *ptr,
+                               size_t size,
+                               size_t nmemb,
+                               void *userdata)
 {
     errno_t ret;
     size_t realsize = size * nmemb;
-    struct sss_iobuf *outbuf = talloc_get_type(userdata, struct sss_iobuf);
+    struct sss_iobuf *outbuf;
+
+    outbuf = talloc_get_type(userdata, struct sss_iobuf);
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "---> begin libcurl data\n");
     DEBUG(SSSDBG_TRACE_INTERNAL, "%s\n", ptr);
     DEBUG(SSSDBG_TRACE_INTERNAL, "<--- end libcurl data\n");
 
-    ret = sss_iobuf_write_len(outbuf, (uint8_t *) ptr, realsize);
+    ret = sss_iobuf_write_len(outbuf, (uint8_t *)ptr, realsize);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to write data to buffer [%d]: %s\n", ret, sss_strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to write data to buffer [%d]: %s\n",
+              ret, sss_strerror(ret));
         /* zero signifies an EOF */
         return 0;
     }
@@ -898,14 +585,16 @@ static size_t tcurl_http_write_data(char *ptr,
     return realsize;
 }
 
-static size_t tcurl_http_read_data(void *ptr,
-                                   size_t size,
-                                   size_t nmemb,
-                                   void *userdata)
+static size_t tcurl_read_data(void *ptr,
+                              size_t size,
+                              size_t nmemb,
+                              void *userdata)
 {
     errno_t ret;
     size_t readbytes;
-    struct sss_iobuf *inbuf = (struct sss_iobuf *) userdata;
+    struct sss_iobuf *inbuf;
+
+    inbuf = talloc_get_type(userdata, struct sss_iobuf);
 
     if (inbuf == NULL) {
         return CURL_READFUNC_ABORT;
@@ -919,22 +608,487 @@ static size_t tcurl_http_read_data(void *ptr,
     return readbytes;
 }
 
-int tcurl_http_recv(TALLOC_CTX *mem_ctx,
-                    struct tevent_req *req,
-                    int *_http_code,
-                    struct sss_iobuf **_outbuf)
+
+struct tcurl_request {
+    CURL *curl_easy_handle;
+
+    struct sss_iobuf *body;
+    struct curl_slist *headers;
+
+    const char *url;
+    const char *socket;
+
+    /* Associated tcurl context if this request is in progress. */
+    struct tcurl_ctx *tcurl_ctx;
+};
+
+struct tcurl_request_state {
+    struct tcurl_request *tcurl_req;
+    struct sss_iobuf *response;
+    int response_code;
+};
+
+struct tevent_req *
+tcurl_request_send(TALLOC_CTX *mem_ctx,
+                   struct tevent_context *ev,
+                   struct tcurl_ctx *tcurl_ctx,
+                   struct tcurl_request *tcurl_req,
+                   long int timeout)
 {
-    struct tcurl_http_state *state = tevent_req_data(req, struct tcurl_http_state);
+    struct tcurl_request_state *state;
+    struct tevent_req *req;
+    CURLMcode curl_code;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct tcurl_request_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Sending TCURL request for %s, at socket %s\n",
+          tcurl_req->url == NULL ? "<none>" : tcurl_req->url,
+          tcurl_req->socket == NULL ? "<none>" : tcurl_req->socket);
+
+    state->tcurl_req = talloc_steal(state, tcurl_req);
+
+    state->response = sss_iobuf_init_empty(state, TCURL_IOBUF_CHUNK, TCURL_IOBUF_MAX);
+    if (state->response == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_PRIVATE, req);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_TIMEOUT, timeout);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_WRITEFUNCTION, tcurl_write_data);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_WRITEDATA, state->response);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (tcurl_req->body != NULL) {
+        ret = tcurl_set_option(tcurl_req, CURLOPT_READFUNCTION, tcurl_read_data);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        ret = tcurl_set_option(tcurl_req, CURLOPT_READDATA, tcurl_req->body);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    curl_code = curl_multi_add_handle(tcurl_ctx->multi_handle,
+                                      tcurl_req->curl_easy_handle);
+    if (curl_code != CURLM_OK) {
+        ret = curlm_code2errno(curl_code);
+        goto done;
+    }
+
+    tcurl_req->tcurl_ctx = tcurl_ctx;
+
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void tcurl_request_done(struct tevent_req *req,
+                               errno_t process_error,
+                               int response_code)
+{
+    struct tcurl_request_state *state;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "TCURL request finished [%d]: %s\n",
+          process_error, sss_strerror(process_error));
+
+    if (req == NULL) {
+        /* To handle case where we fail to obtain request from private data. */
+        DEBUG(SSSDBG_MINOR_FAILURE, "No tevent request provided!\n");
+        return;
+    }
+
+    state = tevent_req_data(req, struct tcurl_request_state);
+
+    curl_multi_remove_handle(state->tcurl_req->tcurl_ctx->multi_handle,
+                             state->tcurl_req->curl_easy_handle);
+
+    /* This request is no longer associated with tcurl context. */
+    state->tcurl_req->tcurl_ctx = NULL;
+
+    if (process_error != EOK) {
+        tevent_req_error(req, process_error);
+        return;
+    }
+
+    state->response_code = response_code;
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t tcurl_request_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           struct sss_iobuf **_response,
+                           int *_response_code)
+{
+    struct tcurl_request_state *state;
+    state = tevent_req_data(req, struct tcurl_request_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (_http_code != NULL) {
-        *_http_code = state->http_code;
+    if (_response != NULL) {
+        *_response = talloc_steal(mem_ctx, state->response);
     }
 
-    if (_outbuf != NULL) {
-        *_outbuf = talloc_steal(mem_ctx, state->outbuf);
+    if (_response_code != NULL) {
+        *_response_code = state->response_code;
+    }
+
+    return EOK;
+}
+
+static struct curl_slist *
+tcurl_add_header(struct curl_slist *slist, const char *header)
+{
+    struct curl_slist *new;
+
+    new = curl_slist_append(slist, header);
+    if (new == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot add header %s\n", header);
+        if (slist != NULL) {
+            curl_slist_free_all(slist);
+        }
+
+        return NULL;
+    }
+
+    return new;
+}
+
+static errno_t
+tcurl_construct_headers(const char **headers,
+                        struct curl_slist **_slist)
+{
+    struct curl_slist *slist = NULL;
+    int i;
+
+    if (headers == NULL || headers[0] == NULL) {
+        *_slist = NULL;
+        return EOK;
+    }
+
+    for (i = 0; headers[i] != NULL; i++) {
+        slist = tcurl_add_header(slist, headers[i]);
+        if (slist == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    /* Add a dummy header to suppress libcurl adding Expect 100-continue which
+     * was causing libcurl to always wait for the internal timeout when sending
+     * a PUT/POST request because secrets responder does not implement this.
+     */
+    slist = tcurl_add_header(slist, "Expect: ");
+    if (slist == NULL) {
+        return ENOMEM;
+    }
+
+    *_slist = slist;
+
+    return EOK;
+}
+
+static int
+tcurl_request_destructor(struct tcurl_request *tcurl_req)
+{
+    if (tcurl_req->tcurl_ctx != NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Terminating TCURL request...\n");
+        curl_multi_remove_handle(tcurl_req->tcurl_ctx->multi_handle,
+                                 tcurl_req->curl_easy_handle);
+    }
+
+    if (tcurl_req->headers != NULL) {
+        curl_slist_free_all(tcurl_req->headers);
+    }
+
+    if (tcurl_req->curl_easy_handle != NULL) {
+        curl_easy_cleanup(tcurl_req->curl_easy_handle);
     }
 
     return 0;
+}
+
+static struct tcurl_request *
+tcurl_request_create(TALLOC_CTX *mem_ctx,
+                     const char *socket_path,
+                     const char *url,
+                     const char **headers,
+                     struct sss_iobuf *body)
+{
+    struct tcurl_request *tcurl_req;
+    errno_t ret;
+
+    tcurl_req = talloc_zero(mem_ctx, struct tcurl_request);
+    if (tcurl_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    if (url == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "URL cannot be NULL!\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Setup a curl easy handle. This handle contains state for the request
+     * and is later associated with curl multi handle which performs
+     * asynchronous processing. */
+    tcurl_req->curl_easy_handle = curl_easy_init();
+    if (tcurl_req->curl_easy_handle == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize curl easy handle!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tcurl_req->url = talloc_strdup(tcurl_req, url);
+    if (tcurl_req->url == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (socket_path != NULL) {
+        tcurl_req->socket = talloc_strdup(tcurl_req, socket_path);
+        if (tcurl_req->socket == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = tcurl_construct_headers(headers, &tcurl_req->headers);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to construct headers [%d]: %s\n",
+              ret, sss_strerror(ret));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tcurl_req->body = body;
+
+    talloc_set_destructor(tcurl_req, tcurl_request_destructor);
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_URL, url);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (socket_path != NULL) {
+        ret = tcurl_set_option(tcurl_req, CURLOPT_UNIX_SOCKET_PATH, socket_path);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    if (body != NULL) {
+        /* Curl will tell the underlying protocol about incoming data length.
+         * In case of HTTP it will add a sane Content-Length header. */
+        ret = tcurl_set_option(tcurl_req, CURLOPT_INFILESIZE_LARGE,
+                               (curl_off_t)sss_iobuf_get_size(body));
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(tcurl_req);
+        return NULL;
+    }
+
+    return tcurl_req;
+}
+
+struct tcurl_request *tcurl_http(TALLOC_CTX *mem_ctx,
+                                 enum tcurl_http_method method,
+                                 const char *socket_path,
+                                 const char *url,
+                                 const char **headers,
+                                 struct sss_iobuf *body)
+{
+    struct tcurl_request *tcurl_req;
+    errno_t ret;
+
+    tcurl_req = tcurl_request_create(mem_ctx, socket_path, url, headers, body);
+    if (tcurl_req == NULL) {
+        return NULL;
+    }
+
+    /* Set HTTP specific options. */
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_HTTPHEADER, tcurl_req->headers);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    switch (method) {
+    case TCURL_HTTP_GET:
+        /* Nothing to do here. GET is default. */
+        break;
+    case TCURL_HTTP_PUT:
+        ret = tcurl_set_option(tcurl_req, CURLOPT_UPLOAD, 1L);
+        if (ret != EOK) {
+            goto done;
+        }
+        break;
+    case TCURL_HTTP_POST:
+        ret = tcurl_set_option(tcurl_req, CURLOPT_CUSTOMREQUEST, "POST");
+        if (ret != EOK) {
+            goto done;
+        }
+        break;
+    case TCURL_HTTP_DELETE:
+        ret = tcurl_set_option(tcurl_req, CURLOPT_CUSTOMREQUEST, "DELETE");
+        if (ret != EOK) {
+            goto done;
+        }
+        break;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(tcurl_req);
+        return NULL;
+    }
+
+    return tcurl_req;
+}
+
+struct tevent_req *tcurl_http_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   struct tcurl_ctx *tcurl_ctx,
+                                   enum tcurl_http_method method,
+                                   const char *socket_path,
+                                   const char *url,
+                                   const char **headers,
+                                   struct sss_iobuf *body,
+                                   int timeout)
+{
+    struct tcurl_request *tcurl_req;
+    struct tevent_req *req;
+
+    tcurl_req = tcurl_http(mem_ctx, method, socket_path, url, headers, body);
+    if (tcurl_req == NULL) {
+        return NULL;
+    }
+
+    req = tcurl_request_send(mem_ctx, ev, tcurl_ctx, tcurl_req, timeout);
+    if (req == NULL) {
+        talloc_free(tcurl_req);
+    }
+
+    return req;
+}
+
+errno_t tcurl_http_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        int *_http_code,
+                        struct sss_iobuf **_response)
+{
+    return tcurl_request_recv(mem_ctx, req, _response, _http_code);
+}
+
+errno_t tcurl_req_enable_rawoutput(struct tcurl_request *tcurl_req)
+{
+    return tcurl_set_option(tcurl_req, CURLOPT_HEADER, 1L);
+}
+
+errno_t tcurl_req_verify_peer(struct tcurl_request *tcurl_req,
+                              const char *capath,
+                              const char *cacert,
+                              bool verify_peer,
+                              bool verify_host)
+{
+    errno_t ret;
+
+    long peer = verify_peer ? 1L : 0L;
+    long host = verify_host ? 2L : 0L;
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_SSL_VERIFYPEER, peer);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_SSL_VERIFYHOST, host);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (capath != NULL) {
+        ret = tcurl_set_option(tcurl_req, CURLOPT_CAPATH, capath);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    if (cacert != NULL) {
+        ret = tcurl_set_option(tcurl_req, CURLOPT_CAINFO, cacert);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+errno_t tcurl_req_set_client_cert(struct tcurl_request *tcurl_req,
+                                  const char *cert,
+                                  const char *key)
+{
+    errno_t ret;
+
+    if (cert == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "You must specify client certificate!\n");
+        return EINVAL;
+    }
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_SSLCERT, cert);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (key != NULL) {
+        /* If client's private key is in separate file. */
+        ret = tcurl_set_option(tcurl_req, CURLOPT_SSLKEY, key);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    return EOK;
 }

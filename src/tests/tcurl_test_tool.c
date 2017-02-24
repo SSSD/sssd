@@ -42,9 +42,7 @@ static void request_done(struct tevent_req *req)
     struct tool_ctx *tool_ctx = tevent_req_callback_data(req,
                                                          struct tool_ctx);
 
-    tool_ctx->error = tcurl_http_recv(tool_ctx, req,
-                                      &http_code,
-                                      &outbuf);
+    tool_ctx->error = tcurl_request_recv(tool_ctx, req, &outbuf, &http_code);
     talloc_zfree(req);
 
     if (tool_ctx->error != EOK) {
@@ -87,16 +85,17 @@ int main(int argc, const char *argv[])
           "The path to the HTTP server socket", NULL },
         { "get", 'g', POPT_ARG_NONE, NULL, 'g', "Perform a HTTP GET (default)", NULL },
         { "put", 'p', POPT_ARG_NONE, NULL, 'p', "Perform a HTTP PUT", NULL },
-        { "del", 'd', POPT_ARG_NONE, NULL, 'd', "Perform a HTTP DELETE", NULL },
         { "post", 'o', POPT_ARG_NONE, NULL, 'o', "Perform a HTTP POST", NULL },
+        { "del", 'd', POPT_ARG_NONE, NULL, 'd', "Perform a HTTP DELETE", NULL },
         { "verbose", 'v', POPT_ARG_NONE, NULL, 'v', "Print response code and body", NULL },
         POPT_TABLEEND
     };
 
     struct tevent_req *req;
     struct tevent_context *ev;
-    enum tcurl_http_request req_type = TCURL_HTTP_GET;
+    enum tcurl_http_method method = TCURL_HTTP_GET;
     struct tcurl_ctx *ctx;
+    struct tcurl_request *tcurl_req;
     struct tool_ctx *tool_ctx;
 
     const char *urls[MAXREQ] = { 0 };
@@ -111,16 +110,16 @@ int main(int argc, const char *argv[])
     while ((opt = poptGetNextOpt(pc)) > 0) {
         switch (opt) {
         case 'g':
-            req_type = TCURL_HTTP_GET;
+            method = TCURL_HTTP_GET;
             break;
         case 'p':
-            req_type = TCURL_HTTP_PUT;
-            break;
-        case 'd':
-            req_type = TCURL_HTTP_DELETE;
+            method = TCURL_HTTP_PUT;
             break;
         case 'o':
-            req_type = TCURL_HTTP_POST;
+            method = TCURL_HTTP_POST;
+            break;
+        case 'd':
+            method = TCURL_HTTP_DELETE;
             break;
         case 'v':
             pc_verbose = 1;
@@ -146,7 +145,7 @@ int main(int argc, const char *argv[])
     }
 
     while ((extra_arg_ptr = poptGetArg(pc)) != NULL) {
-        switch (req_type) {
+        switch(method) {
         case TCURL_HTTP_GET:
         case TCURL_HTTP_DELETE:
         case TCURL_HTTP_POST:
@@ -203,14 +202,16 @@ int main(int argc, const char *argv[])
     }
 
     for (size_t i = 0; i < n_reqs; i++) {
-        req = tcurl_http_send(tool_ctx, ev, ctx,
-                              req_type,
-                              socket_path,
-                              urls[i],
-                              headers,
-                              inbufs[i],
-                              5);
-        if (req == NULL) {
+        tcurl_req = tcurl_http(tool_ctx, method, socket_path,
+                               urls[i], headers, inbufs[i]);
+        if (tcurl_req == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Unable to create TCURL request\n");
+            talloc_zfree(tool_ctx);
+            return 1;
+        }
+
+        req = tcurl_request_send(tool_ctx, ev, ctx, tcurl_req, 10);
+        if (ctx == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Could not create request\n");
             talloc_zfree(tool_ctx);
             return 1;
