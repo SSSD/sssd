@@ -42,7 +42,7 @@
 #define DEFAULT_KADMIN_PORT 749
 #define DEFAULT_KPASSWD_PORT 464
 
-#define BUFSIZE 512
+#define BUFSIZE 4096
 #define PORT_STR_SIZE 7
 #define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
 #define SSSD_KRB5_LOCATOR_DISABLE "SSSD_KRB5_LOCATOR_DISABLE"
@@ -53,12 +53,15 @@
     } \
 } while(0)
 
+struct addr_port {
+    char *addr;
+    uint16_t port;
+};
+
 struct sssd_ctx {
     char *sssd_realm;
-    char *kdc_addr;
-    uint16_t kdc_port;
-    char *kpasswd_addr;
-    uint16_t kpasswd_port;
+    struct addr_port *kdc_addr;
+    struct addr_port *kpasswd_addr;
     bool debug;
     bool disabled;
 };
@@ -82,6 +85,186 @@ void plugin_debug_fn(const char *format, ...)
     free(s);
 }
 
+
+static void free_addr_port_list(struct addr_port **list)
+{
+    size_t c;
+
+    if (list == NULL || *list == NULL) {
+        return;
+    }
+
+    for (c = 0; (*list)[c].addr != NULL; c++) {
+        free((*list)[c].addr);
+    }
+    free(*list);
+    *list = NULL;
+}
+
+static int copy_addr_port_list(struct addr_port *src, bool clear_port,
+                               struct addr_port **dst)
+{
+    size_t c;
+    struct addr_port *d = NULL;
+    int ret;
+
+    /* only copy if dst is initialized to NULL */
+    if (dst == NULL || *dst != NULL) {
+        return EINVAL;
+    }
+
+    if (src == NULL) {
+        return 0;
+    }
+
+    for (c = 0; src[c].addr != NULL; c++);
+
+    d = calloc((c + 1), sizeof(struct addr_port));
+    if (d == NULL) {
+        return ENOMEM;
+    }
+
+    for (c = 0; src[c].addr != NULL; c++) {
+        d[c].addr = strdup(src[c].addr);
+        if (d[c].addr == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        if (clear_port) {
+            d[c].port = 0;
+        } else {
+            d[c].port = src[c].port;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        free_addr_port_list(&d);
+    } else {
+        *dst = d;
+    }
+
+    return ret;
+}
+
+static int buf_to_addr_port_list(struct sssd_ctx *ctx,
+                                 uint8_t *buf, size_t buf_size,
+                                 struct addr_port **list)
+{
+    struct addr_port *l = NULL;
+    int ret;
+    uint8_t *p;
+    uint8_t *pn;
+    size_t c;
+    size_t len;
+    char *tmp = NULL;
+    char *port_str;
+    long port;
+    char *endptr;
+
+    /* only create if list is initialized to NULL */
+    if (buf == NULL || buf_size == 0 || list == NULL || *list != NULL) {
+        return EINVAL;
+    }
+
+    c = 1; /* to account for a missing \n at the very end */
+    p = buf;
+    while ((p - buf) < buf_size
+                && (p = memchr(p, '\n', buf_size - (p - buf))) != NULL) {
+        p++;
+        c++;
+    }
+
+    l = calloc((c + 1), sizeof(struct addr_port));
+    if (l == NULL) {
+        return ENOMEM;
+    }
+
+    c = 0;
+    p = buf;
+    do {
+        pn = memchr(p, '\n', buf_size - (p - buf));
+        if (pn != NULL) {
+            len = pn - p;
+        } else {
+            len = buf_size - (p - buf);
+        }
+        if (len == 0) {
+            /* empty line no more processing */
+            break;
+        }
+
+        free(tmp);
+        tmp = strndup((char *) p, len);
+        if (tmp == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        port_str = strrchr(tmp, ':');
+        if (port_str == NULL) {
+            port = 0;
+        } else {
+            *port_str = '\0';
+            ++port_str;
+
+            if (isdigit(*port_str)) {
+                errno = 0;
+                port = strtol(port_str, &endptr, 10);
+                if (errno != 0) {
+                    ret = errno;
+                    PLUGIN_DEBUG(("strtol failed on [%s]: [%d][%s], "
+                                "assuming default.\n", port_str, ret,
+                                                       strerror(ret)));
+                    port = 0;
+                }
+                if (*endptr != '\0') {
+                    PLUGIN_DEBUG(("Found additional characters [%s] in port "
+                                "number [%s], assuming default.\n", endptr,
+                                                                    port_str));
+                    port = 0;
+                }
+
+                if (port < 0 || port > 65535) {
+                    PLUGIN_DEBUG(("Illegal port number [%ld], assuming "
+                                  "default.\n", port));
+                    port = 0;
+                }
+            } else {
+                PLUGIN_DEBUG(("Illegal port number [%s], assuming default.\n",
+                            port_str));
+                port = 0;
+            }
+        }
+
+        PLUGIN_DEBUG(("Found [%s][%d].\n", tmp, port));
+
+        l[c].addr = strdup(tmp);
+        if (l[c].addr == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        l[c].port = port;
+
+        c++;
+        p = pn == NULL ? NULL : (pn + 1);
+    } while (p != NULL);
+
+    ret = EOK;
+
+done:
+    free(tmp);
+    if (ret != EOK) {
+        free_addr_port_list(&l);
+    } else {
+        *list = l;
+    }
+
+    return ret;
+}
+
 static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
                         enum locate_service_type svc)
 {
@@ -91,9 +274,6 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
     uint8_t buf[BUFSIZE + 1];
     int fd = -1;
     const char *name_tmpl = NULL;
-    char *port_str;
-    long port;
-    char *endptr;
 
     switch (svc) {
         case locate_service_kdc:
@@ -148,62 +328,21 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
         PLUGIN_DEBUG(("Content of krb5info file [%s] is [%d] or larger.\n",
                       krb5info_name, BUFSIZE));
     }
-    PLUGIN_DEBUG(("Found [%s] in [%s].\n", buf, krb5info_name));
-
-    port_str = strrchr((char *) buf, ':');
-    if (port_str == NULL) {
-        port = 0;
-    } else {
-        *port_str = '\0';
-        ++port_str;
-
-        if (isdigit(*port_str)) {
-            errno = 0;
-            port = strtol(port_str, &endptr, 10);
-            if (errno != 0) {
-                ret = errno;
-                PLUGIN_DEBUG(("strtol failed on [%s]: [%d][%s], "
-                            "assuming default.\n", port_str, ret, strerror(ret)));
-                port = 0;
-            }
-            if (*endptr != '\0') {
-                PLUGIN_DEBUG(("Found additional characters [%s] in port number "
-                            "[%s], assuming default.\n", endptr, port_str));
-                port = 0;
-            }
-
-            if (port < 0 || port > 65535) {
-                PLUGIN_DEBUG(("Illegal port number [%ld], assuming default.\n",
-                            port));
-                port = 0;
-            }
-        } else {
-            PLUGIN_DEBUG(("Illegal port number [%s], assuming default.\n",
-                        port_str));
-            port = 0;
-        }
-    }
 
     switch (svc) {
         case locate_service_kdc:
-            free(ctx->kdc_addr);
-            ctx->kdc_addr = strdup((char *) buf);
-            if (ctx->kdc_addr == NULL) {
-                PLUGIN_DEBUG(("strdup failed.\n"));
-                ret = ENOMEM;
+            free_addr_port_list(&(ctx->kdc_addr));
+            ret = buf_to_addr_port_list(ctx, buf, len, &(ctx->kdc_addr));
+            if (ret != EOK) {
                 goto done;
             }
-            ctx->kdc_port = (uint16_t) port;
             break;
         case locate_service_kpasswd:
-            free(ctx->kpasswd_addr);
-            ctx->kpasswd_addr = strdup((char *) buf);
-            if (ctx->kpasswd_addr == NULL) {
-                PLUGIN_DEBUG(("strdup failed.\n"));
-                ret = ENOMEM;
+            free_addr_port_list(&(ctx->kpasswd_addr));
+            ret = buf_to_addr_port_list(ctx, buf, len, &(ctx->kpasswd_addr));
+            if (ret != EOK) {
                 goto done;
             }
-            ctx->kpasswd_port = (uint16_t) port;
             break;
         default:
             PLUGIN_DEBUG(("Unsupported service [%d].\n", svc));
@@ -256,8 +395,8 @@ void sssd_krb5_locator_close(void *private_data)
     ctx = (struct sssd_ctx *) private_data;
     PLUGIN_DEBUG(("sssd_krb5_locator_close called\n"));
 
-    free(ctx->kdc_addr);
-    free(ctx->kpasswd_addr);
+    free_addr_port_list(&(ctx->kdc_addr));
+    free_addr_port_list(&(ctx->kpasswd_addr));
     free(ctx->sssd_realm);
     free(ctx);
 
@@ -277,8 +416,10 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     struct sssd_ctx *ctx;
     struct addrinfo ai_hints;
     uint16_t port = 0;
-    const char *addr = NULL;
+    uint16_t default_port = 0;
+    struct addr_port *addr = NULL;
     char port_str[PORT_STR_SIZE];
+    size_t c;
 
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
@@ -308,9 +449,13 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
             if (ret != EOK) {
                 PLUGIN_DEBUG(("reading kpasswd address failed, "
                               "using kdc address.\n"));
-                free(ctx->kpasswd_addr);
-                ctx->kpasswd_addr = strdup(ctx->kdc_addr);
-                ctx->kpasswd_port = 0;
+                free_addr_port_list(&(ctx->kpasswd_addr));
+                ret = copy_addr_port_list(ctx->kdc_addr, true,
+                                          &(ctx->kpasswd_addr));
+                if (ret != EOK) {
+                    PLUGIN_DEBUG(("copying address list failed.\n"));
+                    return KRB5_PLUGIN_NO_HANDLE;
+                }
             }
         }
     }
@@ -322,19 +467,19 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     switch (svc) {
         case locate_service_kdc:
             addr = ctx->kdc_addr;
-            port = ctx->kdc_port ? ctx->kdc_port : DEFAULT_KERBEROS_PORT;
+            default_port = DEFAULT_KERBEROS_PORT;
             break;
         case locate_service_master_kdc:
             addr = ctx->kpasswd_addr;
-            port = DEFAULT_KERBEROS_PORT;
+            default_port = DEFAULT_KERBEROS_PORT;
             break;
         case locate_service_kadmin:
             addr = ctx->kpasswd_addr;
-            port = DEFAULT_KADMIN_PORT;
+            default_port = DEFAULT_KADMIN_PORT;
             break;
         case locate_service_kpasswd:
             addr = ctx->kpasswd_addr;
-            port = ctx->kpasswd_port ? ctx->kpasswd_port : DEFAULT_KPASSWD_PORT;
+            default_port = DEFAULT_KPASSWD_PORT;
             break;
         case locate_service_krb524:
             return KRB5_PLUGIN_NO_HANDLE;
@@ -362,46 +507,49 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     if (strcmp(realm, ctx->sssd_realm) != 0)
         return KRB5_PLUGIN_NO_HANDLE;
 
-    memset(port_str, 0, PORT_STR_SIZE);
-    ret = snprintf(port_str, PORT_STR_SIZE-1, "%u", port);
-    if (ret < 0 || ret >= (PORT_STR_SIZE-1)) {
-        PLUGIN_DEBUG(("snprintf failed.\n"));
-        return KRB5_PLUGIN_NO_HANDLE;
-    }
-
-    memset(&ai_hints, 0, sizeof(struct addrinfo));
-    ai_hints.ai_flags = AI_NUMERICHOST|AI_NUMERICSERV;
-    ai_hints.ai_socktype = socktype;
-
-    ret = getaddrinfo(addr, port_str, &ai_hints, &ai);
-    if (ret != 0) {
-        PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", ret,
-                                                        gai_strerror(ret)));
-        if (ret == EAI_SYSTEM) {
-            PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", errno,
-                                                            strerror(errno)));
+    for (c = 0; addr[c].addr != NULL; c++) {
+        port = (addr[c].port == 0 ? default_port : addr[c].port);
+        memset(port_str, 0, PORT_STR_SIZE);
+        ret = snprintf(port_str, PORT_STR_SIZE-1, "%u", port);
+        if (ret < 0 || ret >= (PORT_STR_SIZE-1)) {
+            PLUGIN_DEBUG(("snprintf failed.\n"));
+            return KRB5_PLUGIN_NO_HANDLE;
         }
-        return KRB5_PLUGIN_NO_HANDLE;
-    }
 
-    PLUGIN_DEBUG(("addr[%s:%s] family[%d] socktype[%d]\n", addr, port_str,
-                 ai->ai_family, ai->ai_socktype));
+        memset(&ai_hints, 0, sizeof(struct addrinfo));
+        ai_hints.ai_flags = AI_NUMERICHOST|AI_NUMERICSERV;
+        ai_hints.ai_socktype = socktype;
 
-    if ((family == AF_UNSPEC || ai->ai_family == family) &&
-        ai->ai_socktype == socktype) {
-
-        ret = cbfunc(cbdata, socktype, ai->ai_addr);
+        ret = getaddrinfo(addr[c].addr, port_str, &ai_hints, &ai);
         if (ret != 0) {
-            PLUGIN_DEBUG(("cbfunc failed\n"));
-            freeaddrinfo(ai);
-            return ret;
-        } else {
-            PLUGIN_DEBUG(("[%s] used\n", addr));
+            PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", ret,
+                                                            gai_strerror(ret)));
+            if (ret == EAI_SYSTEM) {
+                PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n",
+                              errno, strerror(errno)));
+            }
+            return KRB5_PLUGIN_NO_HANDLE;
         }
-    } else {
-        PLUGIN_DEBUG(("[%s] NOT used\n", addr));
+
+        PLUGIN_DEBUG(("addr[%s:%s] family[%d] socktype[%d]\n", addr[c].addr,
+                     port_str, ai->ai_family, ai->ai_socktype));
+
+        if ((family == AF_UNSPEC || ai->ai_family == family) &&
+            ai->ai_socktype == socktype) {
+
+            ret = cbfunc(cbdata, socktype, ai->ai_addr);
+            if (ret != 0) {
+                PLUGIN_DEBUG(("cbfunc failed\n"));
+                freeaddrinfo(ai);
+                return ret;
+            } else {
+                PLUGIN_DEBUG(("[%s] used\n", addr[c].addr));
+            }
+        } else {
+            PLUGIN_DEBUG(("[%s] NOT used\n", addr[c].addr));
+        }
+        freeaddrinfo(ai);
     }
-    freeaddrinfo(ai);
 
     return 0;
 }
