@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <dhash.h>
 #include "config.h"
 
 #include "util/sss_format.h"
@@ -574,6 +575,143 @@ done:
     } while(0)
 
 
+static errno_t remove_duplicit_group_members(TALLOC_CTX *mem_ctx,
+                                             struct group *orig_grp,
+                                             struct group **_grp)
+{
+    TALLOC_CTX *tmp_ctx;
+    hash_table_t *member_tbl = NULL;
+    struct hash_iter_context_t *iter;
+    hash_entry_t *entry;
+    hash_key_t key;
+    hash_value_t value;
+    struct group *grp;
+    size_t orig_member_count= 0;
+    size_t member_count= 0;
+    size_t i;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
+        return ENOMEM;
+    }
+
+    if (orig_grp->gr_mem == NULL) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    for (i=0; orig_grp->gr_mem[i] != NULL; i++) {
+        orig_member_count++;
+    }
+
+    if (orig_member_count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = sss_hash_create(tmp_ctx, orig_member_count, &member_tbl);
+    if (ret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create hash table.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i=0; orig_grp->gr_mem[i] != NULL; i++) {
+        key.type = HASH_KEY_STRING;
+        key.str = talloc_strdup(member_tbl, orig_grp->gr_mem[i]);
+        if (key.str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        value.type = HASH_VALUE_PTR;
+        value.ptr = talloc_strdup(member_tbl, orig_grp->gr_mem[i]);
+        if (key.str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = hash_enter(member_tbl, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            talloc_free(key.str);
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    member_count = hash_count(member_tbl);
+    if (member_count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    grp = talloc(mem_ctx, struct group);
+    if (grp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    grp->gr_mem = talloc_zero_array(grp, char *, member_count + 1);
+    if (grp->gr_mem == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    iter = new_hash_iter_context(member_tbl);
+    if (iter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "new_hash_iter_context failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    i = 0;
+    while ((entry = iter->next(iter)) != NULL) {
+        grp->gr_mem[i] = talloc_strdup(grp, entry->key.str);
+        if (grp->gr_mem[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        i++;
+    }
+    grp->gr_mem[i] = NULL;
+
+    grp->gr_gid = orig_grp->gr_gid;
+
+    grp->gr_name = talloc_strdup(grp, orig_grp->gr_name);
+    if (grp->gr_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    grp->gr_passwd = talloc_strdup(grp, orig_grp->gr_passwd);
+    if (grp->gr_passwd == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_grp = talloc_steal(mem_ctx, grp);
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    if (ret == ENOENT) {
+        *_grp = talloc_steal(mem_ctx, orig_grp);
+        ret = EOK;
+    }
+
+    return ret;
+}
+
 static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
                                            struct sss_domain_info *domain,
                                            struct sysdb_attrs *group_attrs,
@@ -585,6 +723,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                       const char *alias) /* already qualified */
 {
     errno_t ret, sret;
+    struct group *ngroup = NULL;
     struct sysdb_attrs *attrs = NULL;
     TALLOC_CTX *tmp_ctx;
     time_t now = time(NULL);
@@ -596,7 +735,13 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         return ENOMEM;
     }
 
-    DEBUG_GR_MEM(SSSDBG_TRACE_LIBS, grp);
+    ret = remove_duplicit_group_members(tmp_ctx, grp, &ngroup);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to remove duplicit group members\n");
+        goto done;
+    }
+
+    DEBUG_GR_MEM(SSSDBG_TRACE_LIBS, ngroup);
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
@@ -605,7 +750,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     }
     in_transaction = true;
 
-    if (grp->gr_mem && grp->gr_mem[0]) {
+    if (ngroup->gr_mem && ngroup->gr_mem[0]) {
         attrs = sysdb_new_attrs(tmp_ctx);
         if (!attrs) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
@@ -615,7 +760,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
 
         fq_gr_mem = sss_create_internal_fqname_list(
                                             tmp_ctx,
-                                            (const char *const*) grp->gr_mem,
+                                            (const char *const*) ngroup->gr_mem,
                                             dom->name);
         if (fq_gr_mem == NULL) {
             ret = ENOMEM;
@@ -647,7 +792,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
 
     ret = sysdb_store_group(dom,
                             real_name,
-                            grp->gr_gid,
+                            ngroup->gr_gid,
                             attrs,
                             dom->group_timeout,
                             now);
