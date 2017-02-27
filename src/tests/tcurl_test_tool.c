@@ -37,9 +37,14 @@ struct tool_options {
     int debug;
     int verbose;
     int raw;
+    int tls;
+    int verify_peer;
+    int verify_host;
 
     enum tcurl_http_method method;
     const char *socket_path;
+    const char *capath;
+    const char *cacert;
 };
 
 static void request_done(struct tevent_req *req)
@@ -181,6 +186,14 @@ prepare_requests(TALLOC_CTX *mem_ctx,
             }
         }
 
+        if (opts->tls) {
+            ret = tcurl_req_verify_peer(requests[i], opts->capath, opts->cacert,
+                                        opts->verify_peer, opts->verify_host);
+            if (ret != EOK) {
+                goto done;
+            }
+        }
+
         i++;
     }
 
@@ -280,6 +293,12 @@ int main(int argc, const char *argv[])
         { "del", 'd', POPT_ARG_NONE, NULL, 'd', "Perform a HTTP DELETE", NULL },
         { "raw", 'r', POPT_ARG_NONE, &opts.raw, '\0', "Print raw protocol output", NULL },
         { "verbose", 'v', POPT_ARG_NONE, &opts.verbose, '\0', "Print response code and body", NULL },
+        /* TLS */
+        { "tls", '\0', POPT_ARG_NONE, &opts.tls, '\0', "Enable TLS", NULL },
+        { "verify-peer", '\0', POPT_ARG_NONE, &opts.verify_peer, '\0', "Verify peer when TLS is enabled", NULL },
+        { "verify-host", '\0', POPT_ARG_NONE, &opts.verify_host, '\0', "Verify host when TLS is enabled", NULL },
+        { "capath", '\0', POPT_ARG_STRING, &opts.capath, '\0', "Path to CA directory where peer certificate is stored", NULL },
+        { "cacert", '\0', POPT_ARG_STRING, &opts.cacert, '\0', "Path to CA certificate", NULL },
         POPT_TABLEEND
     };
 
