@@ -118,7 +118,6 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     }
 
     dom->enumerate = enumerate;
-    dom->fqnames = true;
     dom->mpg = mpg;
     dom->state = DOM_ACTIVE;
 
@@ -146,6 +145,12 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->netgroup_timeout = parent->netgroup_timeout;
     dom->service_timeout = parent->service_timeout;
     dom->names = parent->names;
+
+    /* If the parent domain requires fully-qualified names, the subdomain should
+     * do as well */
+    inherit_option = string_in_list(CONFDB_DOMAIN_FQ,
+                                    parent->sd_inherit, false);
+    dom->fqnames = inherit_option ? parent->fqnames : true;
 
     dom->override_homedir = parent->override_homedir;
     dom->fallback_homedir = parent->fallback_homedir;
