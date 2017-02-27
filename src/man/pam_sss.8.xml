@@ -4,10 +4,8 @@
 <reference>
 <title>SSSD Manual pages</title>
 <refentry>
-    <refentryinfo>
-        <productname>SSSD</productname>
-        <orgname>The SSSD upstream - http://fedorahosted.org/sssd</orgname>
-    </refentryinfo>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
+                href="include/upstream.xml" />
 
     <refmeta>
         <refentrytitle>pam_sss</refentrytitle>
