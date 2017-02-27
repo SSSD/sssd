@@ -936,23 +936,22 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
             continue;
         }
 
-        /*
-         * [MS-ADTS] 5.1.3.3.4:
-         * If the security descriptor has no DACL or its "DACL Present" bit
-         * is not set, then grant requester the requested control access right.
-         */
+        if ((sd->type & SEC_DESC_DACL_PRESENT) && (dacl != NULL)) {
+            ret = ad_gpo_evaluate_dacl(dacl, idmap_ctx, user_sid, host_sid,
+                                       group_sids, group_size, &access_allowed);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "Could not determine if GPO is applicable\n");
+                continue;
+            }
+        } else {
+            /*
+             * [MS-ADTS] 5.1.3.3.4:
+             * If the security descriptor has no DACL or its "DACL Present" bit
+             * is not set, then grant requester the requested control access right.
+             */
 
-        if ((!(sd->type & SEC_DESC_DACL_PRESENT)) || (dacl == NULL)) {
             DEBUG(SSSDBG_TRACE_ALL, "DACL is not present\n");
             access_allowed = true;
-            break;
-        }
-
-        ret = ad_gpo_evaluate_dacl(dacl, idmap_ctx, user_sid, host_sid,
-                                   group_sids, group_size, &access_allowed);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not determine if GPO is applicable\n");
-            continue;
         }
 
         if (access_allowed) {
