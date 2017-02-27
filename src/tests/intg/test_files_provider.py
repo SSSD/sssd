@@ -125,6 +125,54 @@ def files_domain_only(request):
     return None
 
 
+@pytest.fixture
+def no_sssd_domain(request):
+    conf = unindent("""\
+        [sssd]
+        services            = nss
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def no_files_domain(request):
+    conf = unindent("""\
+        [sssd]
+        domains             = local
+        services            = nss
+
+        [domain/local]
+        id_provider = local
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def disabled_files_domain(request):
+    conf = unindent("""\
+        [sssd]
+        domains             = local
+        services            = nss
+        enable_files_domain = false
+
+        [domain/local]
+        id_provider = local
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def no_sssd_conf(request):
+    create_sssd_fixture(request)
+    return None
+
+
 def setup_pw_with_list(request, user_list):
     pwd_ops = passwd_ops_setup(request)
     for user in user_list:
@@ -754,3 +802,49 @@ def test_realloc_groups(setup_gr_with_canary, files_domain_only):
     check for off-by-one errors.
     """
     realloc_groups(setup_gr_with_canary, FILES_REALLOC_CHUNK*3)
+
+
+# Files domain autoconfiguration tests
+def test_no_sssd_domain(add_user_with_canary, no_sssd_domain):
+    """
+    Test that if no sssd domain is configured, sssd will add the implicit one
+    """
+    res, user = sssd_getpwnam_sync(USER1["name"])
+    assert res == NssReturnCode.SUCCESS
+    assert user == USER1
+
+
+def test_no_files_domain(add_user_with_canary, no_files_domain):
+    """
+    Test that if no files domain is configured, sssd will add the implicit one
+    before any explicitly configured domains
+    """
+    # Add a user with a different UID than the one in files
+    subprocess.check_call(
+        ["sss_useradd", "-u", "10009", "-M", USER1["name"]])
+
+    # Even though the local domain is the only one configured,
+    # files will be resolved first
+    res, user = sssd_getpwnam_sync(USER1["name"])
+    assert res == NssReturnCode.SUCCESS
+    assert user == USER1
+
+
+def test_disable_files_domain(add_user_with_canary, disabled_files_domain):
+    """
+    Test that if no files domain is configured, sssd will add the implicit one
+    before any explicitly configured domains
+    """
+    # The local user will not be resolvable through nss_sss now
+    res, user = sssd_getpwnam_sync(USER1["name"])
+    assert res != NssReturnCode.SUCCESS
+
+
+def test_no_sssd_conf(add_user_with_canary, no_sssd_conf):
+    """
+    Test that running without sssd.conf implicitly configures one with
+    id_provider=files
+    """
+    res, user = sssd_getpwnam_sync(USER1["name"])
+    assert res == NssReturnCode.SUCCESS
+    assert user == USER1
