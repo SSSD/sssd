@@ -179,6 +179,8 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
     size_t rb;
     size_t len;
     void *buf;
+    size_t new_len;
+    int ret;
 
     buf = (uint8_t *)packet->buffer + packet->iop;
     if (packet->iop > 4) len = sss_packet_get_len(packet) - packet->iop;
@@ -205,7 +207,24 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
     }
 
     if (sss_packet_get_len(packet) > packet->memsize) {
-        return EINVAL;
+        /* Allow certificate based requests to use larger buffer but not
+         * larger than SSS_CERT_PACKET_MAX_RECV_SIZE. Due to the way
+         * sss_packet_grow() works the packet len must be set to '0' first and
+         * then grow to the expected size. */
+        if ((sss_packet_get_cmd(packet) == SSS_NSS_GETNAMEBYCERT
+                    || sss_packet_get_cmd(packet) == SSS_NSS_GETLISTBYCERT)
+                && packet->memsize < SSS_CERT_PACKET_MAX_RECV_SIZE
+                && (new_len = sss_packet_get_len(packet))
+                                   < SSS_CERT_PACKET_MAX_RECV_SIZE) {
+            new_len = sss_packet_get_len(packet);
+            sss_packet_set_len(packet, 0);
+            ret = sss_packet_grow(packet, new_len);
+            if (ret != EOK) {
+                return ret;
+            }
+        } else {
+            return EINVAL;
+        }
     }
 
     packet->iop += rb;

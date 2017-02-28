@@ -25,6 +25,7 @@
 #include "sss_client/sss_cli.h"
 
 #define SSS_PACKET_MAX_RECV_SIZE 1024
+#define SSS_CERT_PACKET_MAX_RECV_SIZE ( 10 * SSS_PACKET_MAX_RECV_SIZE )
 
 struct sss_packet;
 
