@@ -88,6 +88,7 @@ struct iface_ifp_users iface_ifp_users = {
     .FindByID = ifp_users_find_by_id,
     .FindByCertificate = ifp_users_find_by_cert,
     .ListByCertificate = ifp_users_list_by_cert,
+    .FindByNameAndCertificate = ifp_users_find_by_name_and_cert,
     .ListByName = ifp_users_list_by_name,
     .ListByDomainAndName = ifp_users_list_by_domain_and_name
 };
