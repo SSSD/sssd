@@ -59,6 +59,13 @@ struct proxy_cfg {
         struct pat_basic_auth basic;
         struct pat_header header;
     } auth;
+
+    char *key;
+    char *cert;
+    char *cacert;
+    char *capath;
+    bool verify_peer;
+    bool verify_host;
 };
 
 static int proxy_get_config_string(struct proxy_context *pctx,
@@ -128,6 +135,38 @@ static int proxy_sec_get_cfg(struct proxy_context *pctx,
             goto done;
         }
     }
+
+    ret = confdb_get_bool(pctx->cdb, secreq->cfg_section, "verify_peer",
+                          true, &cfg->verify_peer);
+    if (ret) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS, "verify_peer: %s\n",
+          (&cfg->verify_peer ? "true" : "false"));
+
+    ret = confdb_get_bool(pctx->cdb, secreq->cfg_section, "verify_host",
+                              true, &cfg->verify_host);
+    if (ret) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS, "verify_host: %s\n",
+          (&cfg->verify_host ? "true" : "false"));
+
+    ret = proxy_get_config_string(pctx, cfg, false, secreq,
+                                  "capath", &cfg->capath);
+    if (ret) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS, "capath: %s\n", cfg->capath);
+
+    ret = proxy_get_config_string(pctx, cfg, false, secreq,
+                                  "cacert", &cfg->cacert);
+    if (ret) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS, "cacert: %s\n", cfg->cacert);
+
+    ret = proxy_get_config_string(pctx, cfg, false, secreq,
+                                  "cert", &cfg->cert);
+    if (ret) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS, "cert: %s\n", cfg->cert);
+
+    ret = proxy_get_config_string(pctx, cfg, false, secreq,
+                                  "key", &cfg->key);
+    if (ret) goto done;
+    DEBUG(SSSDBG_CONF_SETTINGS, "key: %s\n", cfg->key);
 
     ret = confdb_get_string_as_list(pctx->cdb, cfg, secreq->cfg_section,
                                     "forward_headers", &cfg->fwd_headers);
@@ -383,6 +422,22 @@ static errno_t proxy_http_create_request(TALLOC_CTX *mem_ctx,
     ret = tcurl_req_enable_rawoutput(tcurl_req);
     if (ret != EOK) {
         goto done;
+    }
+
+    /* Set TLS settings to verify peer.
+     * This has no effect for HTTP protocol so we can set it anyway. */
+    ret = tcurl_req_verify_peer(tcurl_req, pcfg->capath, pcfg->cacert,
+                                pcfg->verify_peer, pcfg->verify_host);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Set client's certificate if required. */
+    if (pcfg->cert != NULL) {
+        ret = tcurl_req_set_client_cert(tcurl_req, pcfg->cert, pcfg->key);
+        if (ret != EOK) {
+            goto done;
+        }
     }
 
     talloc_steal(tcurl_req, body);
