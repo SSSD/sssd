@@ -45,6 +45,9 @@ struct tool_options {
     const char *socket_path;
     const char *capath;
     const char *cacert;
+
+    const char *username;
+    const char *password;
 };
 
 static void request_done(struct tevent_req *req)
@@ -194,6 +197,14 @@ prepare_requests(TALLOC_CTX *mem_ctx,
             }
         }
 
+        if (opts->username != NULL && opts->password != NULL) {
+            ret = tcurl_req_http_basic_auth(requests[i], opts->username,
+                                            opts->password);
+            if (ret != EOK) {
+                goto done;
+            }
+        }
+
         i++;
     }
 
@@ -299,6 +310,9 @@ int main(int argc, const char *argv[])
         { "verify-host", '\0', POPT_ARG_NONE, &opts.verify_host, '\0', "Verify host when TLS is enabled", NULL },
         { "capath", '\0', POPT_ARG_STRING, &opts.capath, '\0', "Path to CA directory where peer certificate is stored", NULL },
         { "cacert", '\0', POPT_ARG_STRING, &opts.cacert, '\0', "Path to CA certificate", NULL },
+        /* BASIC AUTH */
+        { "username", '\0', POPT_ARG_STRING, &opts.username, '\0', "Username for basic authentication", NULL },
+        { "password", '\0', POPT_ARG_STRING, &opts.password, '\0', "Password for basic authentication", NULL },
         POPT_TABLEEND
     };
 

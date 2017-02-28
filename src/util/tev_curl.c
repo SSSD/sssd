@@ -1092,3 +1092,27 @@ errno_t tcurl_req_set_client_cert(struct tcurl_request *tcurl_req,
 
     return EOK;
 }
+
+errno_t tcurl_req_http_basic_auth(struct tcurl_request *tcurl_req,
+                                  const char *username,
+                                  const char *password)
+{
+    errno_t ret;
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_USERNAME, username);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = tcurl_set_option(tcurl_req, CURLOPT_PASSWORD, password);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
