@@ -10,10 +10,14 @@ More information about SSSD can be found on its project page -
 https://pagure.io/SSSD/sssd/
 
 ## Building and installation
-Please see the file BUILD.txt for details
+Please see the [our developer documentation](https://docs.pagure.org/SSSD.sssd/developers/)
 
 ## Documentation
-The most up-to-date documentation can be found at https://fedorahosted.org/sssd/wiki/Documentation
+The most up-to-date documentation can be found at https://docs.pagure.org/SSSD.sssd/
+
+## Submitting bugs
+Please file an issue in the [SSSD pagure instance](https://pagure.io/SSSD/sssd/issues).
+Make sure to follow the [guide on reporting SSSD bugs](https://docs.pagure.org/SSSD.sssd/users/reporting_bugs.html)
 
 ## Licensing
 Please see the file called COPYING.
