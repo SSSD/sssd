@@ -243,4 +243,19 @@ errno_t tcurl_req_set_client_cert(struct tcurl_request *tcurl_req,
                                   const char *cert,
                                   const char *key);
 
+/**
+ * @brief Force HTTP basic authentication with @username and @password.
+ *
+ * @param[in]  tcurl_request
+ * @param[in]  username
+ * @param[in]  password
+ *
+ * @returns errno code
+ *
+ * @see tcurl_http
+ */
+errno_t tcurl_req_http_basic_auth(struct tcurl_request *tcurl_req,
+                                  const char *username,
+                                  const char *password);
+
 #endif /* __TEV_CURL_H */
