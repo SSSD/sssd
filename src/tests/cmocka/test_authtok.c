@@ -604,8 +604,15 @@ void test_sss_authtok_sc_pin(void **state)
                      SSS_AUTHTOK_TYPE_SC_PIN);
     size = sss_authtok_get_size(ts->authtoken);
     assert_int_equal(size, 28);
-    assert_memory_equal(sss_authtok_get_data(ts->authtoken), "\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345678\0\0\0\0",
-                                             size);
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken),
+                        "\11\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345678\0\0\0\0",
+                        size);
+#else
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken),
+                        "\0\0\0\11\0\0\0\1\0\0\0\1\0\0\0\1" "12345678\0\0\0\0",
+                        size);
+#endif
 
     ret = sss_authtok_set_sc_pin(ts->authtoken, "12345678", 5);
     assert_int_equal(ret, EOK);
@@ -613,8 +620,15 @@ void test_sss_authtok_sc_pin(void **state)
                      SSS_AUTHTOK_TYPE_SC_PIN);
     size = sss_authtok_get_size(ts->authtoken);
     assert_int_equal(size, 25);
-    assert_memory_equal(sss_authtok_get_data(ts->authtoken), "\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345\0\0\0\0",
-                                             size);
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken),
+                        "\6\0\0\0\1\0\0\0\1\0\0\0\1\0\0\0" "12345\0\0\0\0",
+                        size);
+#else
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken),
+                        "\0\0\0\6\0\0\0\1\0\0\0\1\0\0\0\1" "12345\0\0\0\0",
+                        size);
+#endif
 
     ret = sss_authtok_get_sc_pin(ts->authtoken, &pin, &len);
     assert_int_equal(ret, EOK);
