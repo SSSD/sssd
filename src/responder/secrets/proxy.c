@@ -440,6 +440,15 @@ static errno_t proxy_http_create_request(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* Set basic authentication if required. */
+    if (pcfg->auth_type == PAT_BASIC_AUTH) {
+        ret = tcurl_req_http_basic_auth(tcurl_req, pcfg->auth.basic.username,
+                                        pcfg->auth.basic.password);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
     talloc_steal(tcurl_req, body);
     *_tcurl_req = talloc_steal(mem_ctx, tcurl_req);
 
