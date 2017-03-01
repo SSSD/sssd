@@ -231,7 +231,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         ret = dp_opt_set_string(ad_options->id->basic, SDAP_USER_EXTRA_ATTRS,
                                 extra_attrs);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "dp_opt_get_string failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "dp_opt_set_string failed.\n");
             talloc_free(ad_options);
             return ret;
         }
