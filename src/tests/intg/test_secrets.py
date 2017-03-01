@@ -16,8 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from __future__ import print_function
 import os
 import stat
+import sys
 import config
 import signal
 import subprocess
@@ -46,20 +48,25 @@ def create_sssd_secrets_fixture(request):
     resp_path = os.path.join(config.LIBEXEC_PATH, "sssd", "sssd_secrets")
 
     secpid = os.fork()
+    assert secpid >= 0
+
     if secpid == 0:
         if subprocess.call([resp_path, "--uid=0", "--gid=0"]) != 0:
-            raise Exception("sssd_secrets failed to start")
+            print("sssd_secrets failed to start")
+            sys.exit(99)
+    else:
+        sock_path = os.path.join(config.RUNSTATEDIR, "secrets.socket")
+        sck = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        for _ in range(1, 10):
+            try:
+                sck.connect(sock_path)
+            except:
+                time.sleep(0.1)
+            else:
+                break
+        sck.close()
 
-    sock_path = os.path.join(config.RUNSTATEDIR, "secrets.socket")
-    sck = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    for _ in range(1, 10):
-        try:
-            sck.connect(sock_path)
-        except:
-            time.sleep(0.1)
-        else:
-            break
-    sck.close()
+        assert os.path.exists(sock_path)
 
     def sec_teardown():
         if secpid == 0:
