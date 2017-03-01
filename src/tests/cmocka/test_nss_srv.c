@@ -3219,7 +3219,7 @@ static int nss_subdom_test_setup(void **state)
                                   nss_test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
-    nss_test_ctx->subdom = subdomain;
+    nss_test_ctx->subdom = nss_test_ctx->tctx->dom->subdomains;
     return 0;
 }
 
