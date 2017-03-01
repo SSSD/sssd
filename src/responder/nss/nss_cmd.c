@@ -929,7 +929,7 @@ static errno_t nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
 static errno_t nss_cmd_getnamebycert(struct cli_ctx *cli_ctx)
 {
     return nss_getby_cert(cli_ctx, CACHE_REQ_USER_BY_CERT,
-                          nss_protocol_fill_name);
+                          nss_protocol_fill_single_name);
 }
 
 struct sss_cmd_table *get_nss_cmds(void)
