@@ -418,6 +418,26 @@ static errno_t store_user(struct nss_test_ctx *ctx,
     return ret;
 }
 
+static errno_t delete_user(struct nss_test_ctx *ctx,
+                           struct sss_domain_info *dom,
+                           struct passwd *user)
+{
+    errno_t ret;
+    char *fqname;
+
+    fqname = sss_create_internal_fqname(ctx,
+                                        user->pw_name,
+                                        dom->name);
+    if (fqname == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_delete_user(dom, fqname, user->pw_uid);
+
+    talloc_free(fqname);
+    return ret;
+}
+
 static errno_t set_user_attr(struct nss_test_ctx *ctx,
                              struct sss_domain_info *dom,
                              struct passwd *user,
@@ -491,6 +511,27 @@ static errno_t store_group(struct nss_test_ctx *ctx,
     return ret;
 }
 
+static errno_t delete_group(struct nss_test_ctx *ctx,
+                            struct sss_domain_info *dom,
+                            struct group *group)
+{
+    errno_t ret;
+    char *fqname;
+
+    fqname = sss_create_internal_fqname(ctx,
+                                        group->gr_name,
+                                        dom->name);
+
+    if (fqname == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_delete_group(dom, fqname, group->gr_gid);
+
+    talloc_free(fqname);
+    return ret;
+}
+
 static void assert_groups_equal(struct group *expected,
                                 struct group *gr, const int nmem)
 {
@@ -540,6 +581,42 @@ static errno_t store_group_member(struct nss_test_ctx *ctx,
     return ret;
 }
 
+static errno_t remove_group_member(struct nss_test_ctx *ctx,
+                                   const char *shortname_group,
+                                   struct sss_domain_info *group_dom,
+                                   const char *shortname_member,
+                                   struct sss_domain_info *member_dom,
+                                   enum sysdb_member_type type)
+{
+    errno_t ret;
+    char *group_fqname = NULL;
+    char *member_fqname = NULL;
+
+    group_fqname = sss_create_internal_fqname(ctx,
+                                        shortname_group,
+                                        group_dom->name);
+    if (group_fqname == NULL) {
+        return ENOMEM;
+    }
+
+    member_fqname = sss_create_internal_fqname(ctx,
+                                        shortname_member,
+                                        member_dom->name);
+    if (member_fqname == NULL) {
+        talloc_free(group_fqname);
+        return ENOMEM;
+    }
+
+    ret = sysdb_remove_group_member(group_dom,
+                                    group_fqname,
+                                    member_fqname,
+                                    type,
+                                    false);
+
+    talloc_free(group_fqname);
+    talloc_free(member_fqname);
+    return ret;
+}
 
 /* ====================== The tests =============================== */
 struct passwd getpwnam_usr = {
@@ -1599,34 +1676,6 @@ void test_nss_getgrnam_members_subdom(void **state)
 {
     errno_t ret;
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->subdom,
-                      &testsubdomgroup, 0);
-    assert_int_equal(ret, EOK);
-
-    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
-                     &submember1, NULL, 0);
-    assert_int_equal(ret, EOK);
-
-    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
-                     &submember2, NULL, 0);
-    assert_int_equal(ret, EOK);
-
-    ret = store_group_member(nss_test_ctx,
-                             testsubdomgroup.gr_name,
-                             nss_test_ctx->subdom,
-                             submember1.pw_name,
-                             nss_test_ctx->subdom,
-                             SYSDB_MEMBER_USER);
-    assert_int_equal(ret, EOK);
-
-    ret = store_group_member(nss_test_ctx,
-                             testsubdomgroup.gr_name,
-                             nss_test_ctx->subdom,
-                             submember2.pw_name,
-                             nss_test_ctx->subdom,
-                             SYSDB_MEMBER_USER);
-    assert_int_equal(ret, EOK);
-
     mock_input_user_or_group("testsubdomgroup@"TEST_SUBDOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1756,6 +1805,14 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
 void test_nss_getgrnam_mix_dom_fqdn(void **state)
 {
     errno_t ret;
+
+    ret = store_group_member(nss_test_ctx,
+                             testgroup_members.gr_name,
+                             nss_test_ctx->tctx->dom,
+                             submember1.pw_name,
+                             nss_test_ctx->subdom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
 
     nss_test_ctx->tctx->dom->fqnames = true;
 
@@ -3220,6 +3277,35 @@ static int nss_subdom_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     nss_test_ctx->subdom = nss_test_ctx->tctx->dom->subdomains;
+
+    ret = store_group(nss_test_ctx, nss_test_ctx->subdom,
+                      &testsubdomgroup, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
+                     &submember1, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
+                     &submember2, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group_member(nss_test_ctx,
+                             testsubdomgroup.gr_name,
+                             nss_test_ctx->subdom,
+                             submember1.pw_name,
+                             nss_test_ctx->subdom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group_member(nss_test_ctx,
+                             testsubdomgroup.gr_name,
+                             nss_test_ctx->subdom,
+                             submember2.pw_name,
+                             nss_test_ctx->subdom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
     return 0;
 }
 
@@ -3239,6 +3325,38 @@ static int nss_test_teardown(void **state)
 {
     talloc_free(nss_test_ctx);
     return 0;
+}
+
+static int nss_subdom_test_teardown(void **state)
+{
+    errno_t ret;
+
+    ret = remove_group_member(nss_test_ctx,
+                              testsubdomgroup.gr_name,
+                              nss_test_ctx->subdom,
+                              submember2.pw_name,
+                              nss_test_ctx->subdom,
+                              SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    ret = remove_group_member(nss_test_ctx,
+                              testsubdomgroup.gr_name,
+                              nss_test_ctx->subdom,
+                              submember1.pw_name,
+                              nss_test_ctx->subdom,
+                              SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    ret = delete_user(nss_test_ctx, nss_test_ctx->subdom, &submember2);
+    assert_int_equal(ret, EOK);
+
+    ret = delete_user(nss_test_ctx, nss_test_ctx->subdom, &submember1);
+    assert_int_equal(ret, EOK);
+
+    ret = delete_group(nss_test_ctx, nss_test_ctx->subdom, &testsubdomgroup);
+    assert_int_equal(ret, EOK);
+
+    return nss_test_teardown(state);
 }
 
 struct passwd testbysid = {
@@ -3904,16 +4022,16 @@ int main(int argc, const char *argv[])
                                         nss_fqdn_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_subdom,
                                         nss_subdom_test_setup,
-                                        nss_test_teardown),
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom,
                                         nss_subdom_test_setup,
-                                        nss_test_teardown),
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn,
                                         nss_subdom_test_setup,
-                                        nss_test_teardown),
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_subdom,
                                         nss_subdom_test_setup,
-                                        nss_test_teardown),
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_space,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_space_sub,
