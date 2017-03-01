@@ -196,7 +196,7 @@ const struct cache_req_plugin cache_req_object_by_name = {
     .allow_missing_fqn = false,
     .allow_switch_to_upn = true,
     .upn_equivalent = CACHE_REQ_USER_BY_UPN,
-    .get_next_domain_flags = 0,
+    .get_next_domain_flags = SSS_GND_DESCEND,
 
     .is_well_known_fn = cache_req_object_by_name_well_known,
     .prepare_domain_data_fn = cache_req_object_by_name_prepare_domain_data,

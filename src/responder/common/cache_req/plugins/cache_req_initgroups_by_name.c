@@ -201,7 +201,7 @@ const struct cache_req_plugin cache_req_initgroups_by_name = {
     .allow_missing_fqn = false,
     .allow_switch_to_upn = true,
     .upn_equivalent = CACHE_REQ_INITGROUPS_BY_UPN,
-    .get_next_domain_flags = 0,
+    .get_next_domain_flags = SSS_GND_DESCEND,
 
     .is_well_known_fn = NULL,
     .prepare_domain_data_fn = cache_req_initgroups_by_name_prepare_domain_data,
