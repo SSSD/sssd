@@ -1051,7 +1051,7 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
         case BE_REQ_USER_AND_GROUP:
             if (ar->extra_value
                     && strcmp(ar->extra_value, EXTRA_NAME_IS_UPN) == 0) {
-                ret = sysdb_search_user_by_upn(mem_ctx, dom, ar->filter_value,
+                ret = sysdb_search_user_by_upn(mem_ctx, dom, false, ar->filter_value,
                                                attrs, &msg);
             } else {
                 ret = sysdb_search_user_by_name(mem_ctx, dom, ar->filter_value,

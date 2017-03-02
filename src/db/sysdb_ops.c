@@ -538,6 +538,7 @@ int sysdb_search_user_by_sid_str(TALLOC_CTX *mem_ctx,
 
 int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *domain,
+                                 bool domain_scope,
                                  const char *upn,
                                  const char **attrs,
                                  struct ldb_result **out_res)
@@ -555,7 +556,11 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    base_dn = sysdb_base_dn(domain->sysdb, tmp_ctx);
+    if (domain_scope == true) {
+        base_dn = sysdb_user_base_dn(tmp_ctx, domain);
+    } else {
+        base_dn = sysdb_base_dn(domain->sysdb, tmp_ctx);
+    }
     if (base_dn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -599,6 +604,7 @@ done:
 
 int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
+                             bool domain_scope,
                              const char *upn,
                              const char **attrs,
                              struct ldb_message **msg)
@@ -613,7 +619,7 @@ int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_user_by_upn_res(tmp_ctx, domain, upn, attrs, &res);
+    ret = sysdb_search_user_by_upn_res(tmp_ctx, domain, domain_scope, upn, attrs, &res);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC, "No entry with upn [%s] found.\n", upn);
         goto done;

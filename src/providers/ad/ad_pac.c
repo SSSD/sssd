@@ -51,7 +51,7 @@ static errno_t find_user_entry(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     }
 
     if (ar->extra_value && strcmp(ar->extra_value, EXTRA_NAME_IS_UPN) == 0) {
-        ret = sysdb_search_user_by_upn(tmp_ctx, dom, ar->filter_value,
+        ret = sysdb_search_user_by_upn(tmp_ctx, dom, false, ar->filter_value,
                                        user_attrs, &msg);
     } else {
         switch (ar->filter_type) {

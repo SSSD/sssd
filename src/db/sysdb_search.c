@@ -454,6 +454,7 @@ static char *enum_filter(TALLOC_CTX *mem_ctx,
 
 int sysdb_getpwupn(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domain,
+                   bool domain_scope,
                    const char *upn,
                    struct ldb_result **_res)
 {
@@ -468,7 +469,7 @@ int sysdb_getpwupn(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_user_by_upn_res(tmp_ctx, domain, upn, attrs, &res);
+    ret = sysdb_search_user_by_upn_res(tmp_ctx, domain, domain_scope, upn, attrs, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_upn_res() failed.\n");
         goto done;
@@ -1322,7 +1323,7 @@ int sysdb_initgroups_by_upn(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_user_by_upn(tmp_ctx, domain, upn, attrs, &msg);
+    ret = sysdb_search_user_by_upn(tmp_ctx, domain, false, upn, attrs, &msg);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_upn() failed.\n");
         goto done;
@@ -2113,7 +2114,7 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
     }
 
     if (res->count == 0) {
-        ret = sysdb_search_user_by_upn(tmp_ctx, domain, name_or_upn_or_sid,
+        ret = sysdb_search_user_by_upn(tmp_ctx, domain, false, name_or_upn_or_sid,
                                        NULL, &msg);
         if (ret == ENOENT) {
             ret = sysdb_search_user_by_sid_str(tmp_ctx, domain,
