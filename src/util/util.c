@@ -589,6 +589,16 @@ errno_t sss_filter_sanitize_ex(TALLOC_CTX *mem_ctx,
             output[j++] = '5';
             output[j++] = 'c';
             break;
+        case '\r':
+            output[j++] = '\\';
+            output[j++] = '0';
+            output[j++] = 'd';
+            break;
+        case '\n':
+            output[j++] = '\\';
+            output[j++] = '0';
+            output[j++] = 'a';
+            break;
         default:
             output[j++] = input[i];
         }
