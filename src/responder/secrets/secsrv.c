@@ -100,6 +100,11 @@ static int sec_get_config(struct sec_ctx *sctx)
         sctx->rctx->client_idle_timeout = 10;
     }
 
+    ret = responder_setup_idle_timeout_config(sctx->rctx);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     ret = EOK;
 
 fail:
