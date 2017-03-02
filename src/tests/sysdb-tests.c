@@ -6253,12 +6253,12 @@ START_TEST(test_upn_basic)
                            attrs, NULL, -1, 0);
     fail_unless(ret == EOK, "Could not store user.");
 
-    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain, false,
                                    "abc@def.ghi", NULL, &msg);
     fail_unless(ret == ENOENT,
                 "sysdb_search_user_by_upn failed with non-existing UPN.");
 
-    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain, false,
                                    UPN_PRINC, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
 
@@ -6290,7 +6290,7 @@ START_TEST(test_upn_basic_case)
         return;
     }
 
-    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain, false,
                                    UPN_PRINC_WRONG_CASE, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
 
@@ -6322,7 +6322,7 @@ START_TEST(test_upn_canon)
         return;
     }
 
-    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain, false,
                                    UPN_CANON_PRINC, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
 
@@ -6359,7 +6359,7 @@ START_TEST(test_upn_canon_case)
         return;
     }
 
-    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain, false,
                                    UPN_CANON_PRINC_WRONG_CASE, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
 
@@ -6410,12 +6410,12 @@ START_TEST(test_upn_dup)
                            attrs, NULL, -1, 0);
     fail_unless(ret == EOK, "Could not store user.");
 
-    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain, false,
                                    UPN_CANON_PRINC, NULL, &msg);
     fail_unless(ret == EINVAL,
                 "sysdb_search_user_by_upn failed for duplicated UPN.");
 
-    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain, false,
                                    UPN_PRINC, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
 

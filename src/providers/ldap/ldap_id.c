@@ -526,7 +526,7 @@ static void users_get_done(struct tevent_req *subreq)
             return;
         case BE_FILTER_NAME:
             if (state->name_is_upn == true) {
-                ret = sysdb_search_user_by_upn(state, state->domain,
+                ret = sysdb_search_user_by_upn(state, state->domain, false,
                                                state->filter_value,
                                                NULL, &msg);
                 if (ret != EOK) {
