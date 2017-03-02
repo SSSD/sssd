@@ -389,24 +389,6 @@ struct ad_common_test_ctx {
     struct sss_domain_info *subdom;
 };
 
-static void test_ad_create_default_options(void **state)
-{
-    struct ad_options *ad_options;
-    const char *s;
-
-    ad_options = ad_create_default_options(global_talloc_context);
-
-    assert_non_null(ad_options->basic);
-
-    /* Not too much to test here except some defaults */
-    s = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
-    assert_null(s);
-
-    assert_non_null(ad_options->id);
-
-    talloc_free(ad_options);
-}
-
 static int test_ad_common_setup(void **state)
 {
     struct ad_common_test_ctx *test_ctx;
@@ -462,9 +444,12 @@ static void test_ad_create_1way_trust_options(void **state)
     /* Make sure this is not the keytab that __wrap_krb5_kt_default uses */
     mock_keytab_with_contents(test_ctx, ONEWAY_KEYTAB_PATH, ONEWAY_TEST_PRINC);
 
+    test_ctx->subdom->name = discard_const(ONEWAY_DOMNAME);
     test_ctx->ad_ctx->ad_options = ad_create_1way_trust_options(
                                                             test_ctx->ad_ctx,
-                                                            ONEWAY_DOMNAME,
+                                                            NULL,
+                                                            NULL,
+                                                            test_ctx->subdom,
                                                             ONEWAY_HOST_NAME,
                                                             ONEWAY_KEYTAB_PATH,
                                                             ONEWAY_AUTHID);
@@ -524,13 +509,17 @@ static void test_ad_create_2way_trust_options(void **state)
 
     call_real_sasl_options = true;
     mock_keytab_with_contents(test_ctx, KEYTAB_PATH, KEYTAB_TEST_PRINC);
+    test_ctx->subdom->name = discard_const(DOMNAME);
 
     test_ctx->ad_ctx->ad_options = ad_create_2way_trust_options(
-                                                            test_ctx->ad_ctx,
-                                                            REALMNAME,
-                                                            DOMNAME,
-                                                            HOST_NAME,
-                                                            NULL);
+                                        test_ctx->ad_ctx,
+                                        NULL,
+                                        NULL,
+                                        REALMNAME,
+                                        test_ctx->subdom,
+                                        HOST_NAME,
+                                        NULL);
+
     assert_non_null(test_ctx->ad_ctx->ad_options);
 
     assert_int_equal(test_ctx->ad_ctx->ad_options->id->schema_type,
@@ -592,11 +581,15 @@ test_ldap_conn_setup(void **state)
 
     ad_ctx = test_ctx->ad_ctx;
 
-    ad_ctx->ad_options = ad_create_2way_trust_options(ad_ctx,
-                                                      REALMNAME,
-                                                      DOMNAME,
-                                                      HOST_NAME,
-                                                      NULL);
+    test_ctx->ad_ctx->ad_options = ad_create_2way_trust_options(
+                                        ad_ctx,
+                                        NULL,
+                                        NULL,
+                                        REALMNAME,
+                                        test_ctx->subdom,
+                                        HOST_NAME,
+                                        NULL);
+
     assert_non_null(ad_ctx->ad_options);
 
     ad_ctx->gc_ctx = talloc_zero(ad_ctx, struct sdap_id_conn_ctx);
@@ -889,7 +882,6 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_ad_create_default_options),
         cmocka_unit_test_setup_teardown(test_ad_create_1way_trust_options,
                                         test_ad_common_setup,
                                         test_ad_common_teardown),

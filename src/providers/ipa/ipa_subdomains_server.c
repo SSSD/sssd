@@ -129,6 +129,8 @@ const char *ipa_trust_dir2str(uint32_t direction)
 
 static struct ad_options *
 ipa_create_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
+                          struct be_ctx *be_ctx,
+                          const char *subdom_conf_path,
                           const char *forest,
                           const char *forest_realm,
                           struct sss_domain_info *subdom)
@@ -136,9 +138,7 @@ ipa_create_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
     char *keytab;
     char *principal;
     struct ad_options *ad_options;
-    const char *ad_domain;
 
-    ad_domain = subdom->name;
     keytab = forest_keytab(id_ctx, forest);
     principal = subdomain_trust_princ(id_ctx, forest_realm, subdom);
     if (keytab == NULL || principal == NULL) {
@@ -146,7 +146,9 @@ ipa_create_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
     }
 
     ad_options = ad_create_1way_trust_options(id_ctx,
-                                              ad_domain,
+                                              be_ctx->cdb,
+                                              subdom_conf_path,
+                                              subdom,
                                               id_ctx->server_mode->hostname,
                                               keytab,
                                               principal);
@@ -159,32 +161,46 @@ ipa_create_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
     return ad_options;
 }
 
-static struct ad_options *ipa_ad_options_new(struct ipa_id_ctx *id_ctx,
+static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
+                                             struct ipa_id_ctx *id_ctx,
                                              struct sss_domain_info *subdom)
 {
     struct ad_options *ad_options = NULL;
     uint32_t direction;
     const char *forest;
     const char *forest_realm;
+    char *subdom_conf_path;
 
     /* Trusts are only established with forest roots */
     direction = subdom->forest_root->trust_direction;
     forest_realm = subdom->forest_root->realm;
     forest = subdom->forest_root->forest;
 
+    subdom_conf_path = create_subdom_conf_path(id_ctx,
+                                               be_ctx->conf_path,
+                                               subdom->name);
+    if (subdom_conf_path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "subdom_conf_path failed\n");
+        return NULL;
+    }
+
     if (direction & LSA_TRUST_DIRECTION_OUTBOUND) {
         ad_options = ad_create_2way_trust_options(id_ctx,
+                                                  be_ctx->cdb,
+                                                  subdom_conf_path,
                                                   id_ctx->server_mode->realm,
-                                                  subdom->name,
+                                                  subdom,
                                                   id_ctx->server_mode->hostname,
                                                   NULL);
     } else if (direction & LSA_TRUST_DIRECTION_INBOUND) {
-        ad_options = ipa_create_1way_trust_ctx(id_ctx, forest,
+        ad_options = ipa_create_1way_trust_ctx(id_ctx, be_ctx,
+                                               subdom_conf_path, forest,
                                                forest_realm, subdom);
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported trust direction!\n");
         ad_options = NULL;
     }
+    talloc_free(subdom_conf_path);
 
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
@@ -214,7 +230,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ad_domain = subdom->name;
     DEBUG(SSSDBG_TRACE_LIBS, "Setting up AD subdomain %s\n", subdom->name);
 
-    ad_options = ipa_ad_options_new(id_ctx, subdom);
+    ad_options = ipa_ad_options_new(be_ctx, id_ctx, subdom);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
@@ -311,6 +327,13 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     sdom = sdap_domain_get(ad_id_ctx->sdap_id_ctx->opts, subdom);
     if (sdom == NULL) {
         return EFAULT;
+    }
+
+    ret = ad_set_search_bases(ad_options->id);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD search bases\n");
+        talloc_free(ad_options);
+        return ret;
     }
 
     sdap_inherit_options(subdom->parent->sd_inherit,
