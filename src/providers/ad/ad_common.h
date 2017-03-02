@@ -99,6 +99,10 @@ struct ad_options {
     struct be_nsupdate_ctx *dyndns_ctx;
 };
 
+char *create_subdom_conf_path(TALLOC_CTX *mem_ctx,
+                              const char *conf_path,
+                              const char *subdom_name);
+
 errno_t
 ad_get_common_options(TALLOC_CTX *mem_ctx,
                       struct confdb_ctx *cdb,
@@ -106,19 +110,31 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
                       struct sss_domain_info *dom,
                       struct ad_options **_opts);
 
-struct ad_options *ad_create_default_options(TALLOC_CTX *mem_ctx);
+/* FIXME: ad_get_common_options and ad_create_options are
+ * similar. The later is subdomain specific. It may be
+ * good to merge the two into one more generic funtion. */
+struct ad_options *ad_create_options(TALLOC_CTX *mem_ctx,
+                                     struct confdb_ctx *cdb,
+                                     const char *conf_path,
+                                     struct sss_domain_info *subdom);
 
 struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
+                                                struct confdb_ctx *cdb,
+                                                const char *conf_path,
                                                 const char *realm,
-                                                const char *ad_domain,
+                                                struct sss_domain_info *subdom,
                                                 const char *hostname,
                                                 const char *keytab);
 
 struct ad_options *ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
-                                                const char *ad_domain,
+                                                struct confdb_ctx *cdb,
+                                                const char *conf_path,
+                                                struct sss_domain_info *subdom,
                                                 const char *hostname,
                                                 const char *keytab,
                                                 const char *sasl_authid);
+
+errno_t ad_set_search_bases(struct sdap_options *id_opts);
 
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,

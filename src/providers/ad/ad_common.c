@@ -33,6 +33,13 @@ errno_t ad_set_search_bases(struct sdap_options *id_opts);
 static errno_t ad_set_sdap_options(struct ad_options *ad_opts,
                                    struct sdap_options *id_opts);
 
+char *create_subdom_conf_path(TALLOC_CTX *mem_ctx,
+                              const char *conf_path,
+                              const char *subdom_name)
+{
+    return talloc_asprintf(mem_ctx, "%s/%s", conf_path, subdom_name);
+}
+
 static struct sdap_options *
 ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
 {
@@ -107,146 +114,6 @@ fail:
     return NULL;
 }
 
-struct ad_options *
-ad_create_default_options(TALLOC_CTX *mem_ctx)
-{
-    struct ad_options *ad_options;
-    errno_t ret;
-
-    ad_options = talloc_zero(mem_ctx, struct ad_options);
-    if (ad_options == NULL) return NULL;
-
-    ret = dp_copy_defaults(ad_options,
-                           ad_basic_opts,
-                           AD_OPTS_BASIC,
-                           &ad_options->basic);
-    if (ret != EOK) {
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    ad_options->id = ad_create_default_sdap_options(ad_options);
-    if (ad_options->id == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD LDAP options\n");
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    return ad_options;
-}
-
-static errno_t
-set_common_ad_trust_opts(struct ad_options *ad_options,
-                         const char *realm,
-                         const char *ad_domain,
-                         const char *hostname,
-                         const char *keytab)
-{
-    errno_t ret;
-
-    ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM, realm);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD krb5 realm\n");
-        return ret;
-    }
-
-    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
-        return ret;
-    }
-
-    ret = dp_opt_set_string(ad_options->basic, AD_HOSTNAME, hostname);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD hostname\n");
-        return ret;
-    }
-
-    if (keytab != NULL) {
-        ret = dp_opt_set_string(ad_options->basic, AD_KEYTAB, keytab);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot set keytab\n");
-            return ret;
-        }
-    }
-
-    return EOK;
-}
-
-struct ad_options *
-ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
-                             const char *realm,
-                             const char *ad_domain,
-                             const char *hostname,
-                             const char *keytab)
-{
-    struct ad_options *ad_options;
-    errno_t ret;
-
-    ad_options = ad_create_default_options(mem_ctx);
-    if (ad_options == NULL) return NULL;
-
-    ret = set_common_ad_trust_opts(ad_options, realm, ad_domain, hostname,
-                                   keytab);
-    if (ret != EOK) {
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    ret = ad_set_sdap_options(ad_options, ad_options->id);
-    if (ret != EOK) {
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    return ad_options;
-}
-
-struct ad_options *
-ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
-                             const char *ad_domain,
-                             const char *hostname,
-                             const char *keytab,
-                             const char *sasl_authid)
-{
-    struct ad_options *ad_options;
-    const char *realm;
-    errno_t ret;
-
-    ad_options = ad_create_default_options(mem_ctx);
-    if (ad_options == NULL) return NULL;
-
-    realm = get_uppercase_realm(ad_options, ad_domain);
-    if (!realm) {
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    ret = set_common_ad_trust_opts(ad_options, realm,
-                                   ad_domain, hostname, keytab);
-    if (ret != EOK) {
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    /* Set SDAP_SASL_AUTHID to the trust principal */
-    ret = dp_opt_set_string(ad_options->id->basic,
-                            SDAP_SASL_AUTHID, sasl_authid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set SASL authid\n");
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    ret = ad_set_sdap_options(ad_options, ad_options->id);
-    if (ret != EOK) {
-        talloc_free(ad_options);
-        return NULL;
-    }
-
-    return ad_options;
-}
-
 static errno_t
 ad_create_sdap_options(TALLOC_CTX *mem_ctx,
                        struct confdb_ctx *cdb,
@@ -254,7 +121,19 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
                        struct sdap_options **_id_opts)
 {
     struct sdap_options *id_opts;
-    errno_t ret;
+    errno_t ret = EOK;
+
+    if (cdb == NULL || conf_path == NULL) {
+        /* Fallback to defaults if there is no confdb */
+        id_opts = ad_create_default_sdap_options(mem_ctx);
+        if (id_opts == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to initialize default sdap options\n");
+            ret = EIO;
+        }
+        /* Nothing to do without cdb */
+        goto done;
+    }
 
     id_opts = talloc_zero(mem_ctx, struct sdap_options);
     if (!id_opts) {
@@ -333,9 +212,190 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
     }
 
     ret = EOK;
-    *_id_opts = id_opts;
 done:
+    if (ret == EOK) {
+        *_id_opts = id_opts;
+    } else {
+        talloc_free(id_opts);
+    }
+
     return ret;
+}
+
+struct ad_options *
+ad_create_options(TALLOC_CTX *mem_ctx,
+                  struct confdb_ctx *cdb,
+                  const char *conf_path,
+                  struct sss_domain_info *subdom)
+{
+    struct ad_options *ad_options;
+    errno_t ret;
+
+    ad_options = talloc_zero(mem_ctx, struct ad_options);
+    if (ad_options == NULL) return NULL;
+
+    if (cdb != NULL && conf_path != NULL) {
+        ret = dp_get_options(ad_options,
+                             cdb,
+                             conf_path,
+                             ad_basic_opts,
+                             AD_OPTS_BASIC,
+                             &ad_options->basic);
+    } else {
+        /* Fallback to reading the defaults only if no confdb
+         * is available */
+        ret = dp_copy_defaults(ad_options,
+                               ad_basic_opts,
+                               AD_OPTS_BASIC,
+                               &ad_options->basic);
+    }
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get basic AD options\n");
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ret = ad_create_sdap_options(ad_options,
+                                 cdb,
+                                 conf_path,
+                                 &ad_options->id);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD LDAP options\n");
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    return ad_options;
+}
+
+static errno_t
+set_common_ad_trust_opts(struct ad_options *ad_options,
+                         const char *realm,
+                         const char *ad_domain,
+                         const char *hostname,
+                         const char *keytab)
+{
+    errno_t ret;
+
+    ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM, realm);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD krb5 realm\n");
+        return ret;
+    }
+
+    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
+        return ret;
+    }
+
+    ret = dp_opt_set_string(ad_options->basic, AD_HOSTNAME, hostname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD hostname\n");
+        return ret;
+    }
+
+    if (keytab != NULL) {
+        ret = dp_opt_set_string(ad_options->basic, AD_KEYTAB, keytab);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot set keytab\n");
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+struct ad_options *
+ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
+                             struct confdb_ctx *cdb,
+                             const char *conf_path,
+                             const char *realm,
+                             struct sss_domain_info *subdom,
+                             const char *hostname,
+                             const char *keytab)
+{
+    struct ad_options *ad_options;
+    errno_t ret;
+
+    ad_options = ad_create_options(mem_ctx, cdb, conf_path, subdom);
+    if (ad_options == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ad_create_options failed\n");
+        return NULL;
+    }
+
+    ret = set_common_ad_trust_opts(ad_options, realm, subdom->name, hostname,
+                                   keytab);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "set_common_ad_trust_opts failed\n");
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ret = ad_set_sdap_options(ad_options, ad_options->id);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ad_set_sdap_options failed");
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    return ad_options;
+}
+
+struct ad_options *
+ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
+                             struct confdb_ctx *cdb,
+                             const char *subdom_conf_path,
+                             struct sss_domain_info *subdom,
+                             const char *hostname,
+                             const char *keytab,
+                             const char *sasl_authid)
+{
+    struct ad_options *ad_options;
+    const char *realm;
+    errno_t ret;
+
+    ad_options = ad_create_options(mem_ctx, cdb, subdom_conf_path, subdom);
+    if (ad_options == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ad_create_options failed\n");
+        return NULL;
+    }
+
+    realm = get_uppercase_realm(ad_options, subdom->name);
+    if (!realm) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get uppercase realm\n");
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ret = set_common_ad_trust_opts(ad_options, realm,
+                                   subdom->name, hostname, keytab);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "set_common_ad_trust_opts failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    /* Set SDAP_SASL_AUTHID to the trust principal */
+    ret = dp_opt_set_string(ad_options->id->basic,
+                            SDAP_SASL_AUTHID, sasl_authid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set SASL authid\n");
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ret = ad_set_sdap_options(ad_options, ad_options->id);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ad_set_sdap_options failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    return ad_options;
 }
 
 errno_t
