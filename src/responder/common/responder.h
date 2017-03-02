@@ -344,6 +344,8 @@ void responder_set_fd_limit(rlim_t fd_limit);
 
 errno_t reset_client_idle_timer(struct cli_ctx *cctx);
 
+errno_t responder_setup_idle_timeout_config(struct resp_ctx *rctx);
+
 #define GET_DOMAINS_DEFAULT_TIMEOUT 60
 
 struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
