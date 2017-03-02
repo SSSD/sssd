@@ -24,6 +24,10 @@
                 <listitem><para>fully qualified user name (user@domain)</para></listitem>
             </varlistentry>
             <varlistentry>
+                <term>%l</term>
+                <listitem><para>The first letter of the login name.</para></listitem>
+            </varlistentry>
+            <varlistentry>
                 <term>%P</term>
                 <listitem><para>UPN - User Principal Name (name@REALM)</para></listitem>
             </varlistentry>
