@@ -828,6 +828,9 @@ done
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
 %{_libexecdir}/%{servicename}/p11_child
+%if (0%{?use_systemd} == 1)
+%{_libexecdir}/%{servicename}/sssd_check_socket_activated_responders
+%endif
 
 %dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_simple.so
