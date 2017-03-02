@@ -88,6 +88,24 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx,
                 talloc_free(username);
                 break;
 
+            case 'l':
+                if (homedir_ctx->username == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Cannot expand first letter of user name template "
+                          "because user name is empty.\n");
+                    goto done;
+                }
+                username = sss_output_name(tmp_ctx, homedir_ctx->username,
+                                           case_sensitive, 0);
+                if (username == NULL) {
+                    goto done;
+                }
+
+                username[1] = '\0';
+                result = talloc_asprintf_append(result, "%s%s", p, username);
+                talloc_free(username);
+                break;
+
             case 'U':
                 if (homedir_ctx->uid == 0) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand uid template "
