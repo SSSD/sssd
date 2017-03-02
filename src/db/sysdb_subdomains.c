@@ -32,6 +32,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       bool mpg,
                                       bool enumerate,
                                       const char *forest,
+                                      const char **upn_suffixes,
                                       uint32_t trust_direction)
 {
     struct sss_domain_info *dom;
@@ -104,6 +105,14 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         dom->forest = talloc_strdup(dom, forest);
         if (dom->forest == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to copy forest.\n");
+            goto fail;
+        }
+    }
+
+    if (upn_suffixes != NULL) {
+        dom->upn_suffixes = dup_string_list(dom, upn_suffixes);
+        if (dom->upn_suffixes == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy UPN upn_suffixes.\n");
             goto fail;
         }
     }
@@ -442,7 +451,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
         if (dom == NULL) {
             dom = new_subdomain(domain, domain, name, realm,
                                 flat, id, mpg, enumerate, forest,
-                                trust_direction);
+                                upn_suffixes, trust_direction);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;

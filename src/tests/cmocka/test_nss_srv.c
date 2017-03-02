@@ -3159,7 +3159,7 @@ static int nss_subdom_test_setup(void **state)
 
     subdomain = new_subdomain(nss_test_ctx, nss_test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[3],
-                              false, false, NULL, 0);
+                              false, false, NULL, NULL, 0);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(nss_test_ctx->tctx->sysdb,
