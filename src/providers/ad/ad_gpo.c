@@ -136,7 +136,7 @@ struct gp_gpo {
     const char *policy_filename;
 };
 
-enum ace_eval_status {
+enum ace_eval_agp_status {
     AD_GPO_ACE_DENIED,
     AD_GPO_ACE_ALLOWED,
     AD_GPO_ACE_NEUTRAL
@@ -715,41 +715,55 @@ ad_gpo_ace_includes_client_sid(const char *user_sid,
 }
 
 /*
- * This function determines whether use of the extended right
- * named "ApplyGroupPolicy" (AGP) is allowed, by comparing the specified
- * user_sid and group_sids against the specified access control entry (ACE).
+ * This function determines whether use of the extended right named
+ * "ApplyGroupPolicy" (AGP) is allowed for the GPO, by comparing the
+ * specified user_sid and group_sids against the passed access control
+ * entry (ACE).
  * This function returns ALLOWED, DENIED, or NEUTRAL depending on whether
  * the ACE explicitly allows, explicitly denies, or does neither.
  *
- * Note that the 'M' abbreviation used in the evaluation algorithm stands for
- * "access_mask", which represents the set of access rights associated with an
- * individual ACE. The access right of interest to the GPO code is
+ * Notes:
+ * (1) Abbreviation 'M' used in the evaluation algorithm stands for
+ * "access_mask", which represents the set of access rights associated with
+ * the passed ACE. The access right of interest to the GPO code is
  * RIGHT_DS_CONTROL_ACCESS, which serves as a container for all control access
  * rights. The specific control access right is identified by a GUID in the
  * ACE's ObjectType. In our case, this is the GUID corresponding to AGP.
+ * (2) ACE that require an evaluation algorithm different from [MS-ADTS]
+ * 5.1.3.3.4, e. g. RIGHT_DS_CONTROL_ACCESS (CR) is not present in M, are
+ * ignored.
  *
  * The ACE evaluation algorithm is specified in [MS-ADTS] 5.1.3.3.4:
- * - Deny access by default
- * - If the "Inherit Only" (IO) flag is set in the ACE, skip the ACE.
- * - If the SID in the ACE does not match any SID in the requester's
- *   security context, skip the ACE
- * - If the ACE type is "Object Access Allowed", the access right
- *   RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
- *   field in the ACE is either not present OR contains a GUID value equal
- *   to AGP, then grant requested control access right. Stop access checking.
- * - If the ACE type is "Object Access Denied", the access right
- *   RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
- *   field in the ACE is either not present OR contains a GUID value equal to
- *   AGP, then deny the requested control access right. Stop access checking.
+ * Evaluate the DACL by examining each ACE in sequence, starting with the first
+ * ACE. Perform the following sequence of actions for each ACE in the order as
+ * shown:
+ * 1. If the "Inherit Only" (IO) flag is set in the ACE, skip the ACE.
+ * 2. If the SID in the ACE does not match any SID in the requester's
+ *    security context, skip the ACE.
+ * 3. If the ACE type is "Object Access Allowed", the access right
+ *    RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
+ *    field in the ACE is not present, then grant the requested control
+ *    access right. Stop any further access checks.
+ * 4. If the ACE type is "Object Access Allowed" the access right
+ *    RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
+ *    field in the ACE contains a GUID value equal to AGP, then grant
+ *    the requested control access right. Stop any further access checks.
+ * 5. If the ACE type is "Object Access Denied", the access right
+ *    RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
+ *    field in the ACE is not present, then deny the requested control
+ *    access right. Stop any further access checks.
+ * 6. If the ACE type is "Object Access Denied" the access right
+ *    RIGHT_DS_CONTROL_ACCESS (CR) is present in M, and the ObjectType
+ *    field in the ACE contains a GUID value equal to AGP, then deny
+ *    the requested control access right. Stop any further access checks.
  */
-static enum ace_eval_status ad_gpo_evaluate_ace(struct security_ace *ace,
-                                                struct sss_idmap_ctx *idmap_ctx,
-                                                const char *user_sid,
-                                                const char *host_sid,
-                                                const char **group_sids,
-                                                int group_size)
+static enum ace_eval_agp_status ad_gpo_evaluate_ace(struct security_ace *ace,
+                                                    struct sss_idmap_ctx *idmap_ctx,
+                                                    const char *user_sid,
+                                                    const char *host_sid,
+                                                    const char **group_sids,
+                                                    int group_size)
 {
-    bool agp_included = false;
     bool included = false;
     int ret = 0;
     struct security_ace_object object;
@@ -771,36 +785,101 @@ static enum ace_eval_status ad_gpo_evaluate_ace(struct security_ace *ace,
         return AD_GPO_ACE_NEUTRAL;
     }
 
-    object = ace->object.object;
-    GUID_from_string(AD_AGP_GUID, &ext_right_agp_guid);
-
-    if (object.flags & SEC_ACE_OBJECT_TYPE_PRESENT) {
-        if (GUID_equal(&object.type.type, &ext_right_agp_guid)) {
-            agp_included = true;
-        }
-    } else {
-        agp_included = false;
-    }
-
     if (ace->access_mask & SEC_ADS_CONTROL_ACCESS) {
-        if (agp_included) {
-            if (ace->type == SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT) {
-                return AD_GPO_ACE_ALLOWED;
-            } else if (ace->type == SEC_ACE_TYPE_ACCESS_DENIED_OBJECT) {
-                return AD_GPO_ACE_DENIED;
+        object = ace->object.object;
+        if (object.flags & SEC_ACE_OBJECT_TYPE_PRESENT) {
+            GUID_from_string(AD_AGP_GUID, &ext_right_agp_guid);
+            if (!GUID_equal(&object.type.type, &ext_right_agp_guid)) {
+                return AD_GPO_ACE_NEUTRAL;
             }
         }
+        if (ace->type == SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT) {
+            return AD_GPO_ACE_ALLOWED;
+        } else if (ace->type == SEC_ACE_TYPE_ACCESS_DENIED_OBJECT) {
+            return AD_GPO_ACE_DENIED;
+        }
     }
 
-    return AD_GPO_ACE_DENIED;
+    return AD_GPO_ACE_NEUTRAL;
 }
+
+/*
+ * This function evaluates, which standard access rights the passed access
+ * control entry (ACE) allows or denies for the entire GPO.
+ *
+ * Notes:
+ * (1) Abbreviation 'M' used in the evaluation algorithm stands for
+ * "access_mask", which represents the set of access rights associated with
+ * the passed ACE.
+ * (2) Abbreviation 'G' used in the evaluation algorithm stands for
+ * "granted rights", which represents the set of access rights, that
+ * have already been granted by previously evaluated ACEs.
+ * (3) Abbreviation 'D' used in the evaluation algorithm stands for
+ * "denied rights", which represents the set of access rights, that
+ * have already been explicitly denied by previously evaluated ACEs.
+ *
+ * The simple ACE evaluation algorithm is specified in [MS-ADTS] 5.1.3.3.2:
+ * Evaluate the DACL by examining each ACE in sequence, starting with the first
+ * ACE. Perform the following sequence of actions for each ACE in the order as
+ * shown:
+ * 1. If the "Inherit Only" (IO) flag is set in the ACE, skip the ACE.
+ * 2. If the SID in the ACE does not match any SID in the requester's
+ *    security context, skip the ACE.
+ * 3. If the ACE type is "Access Denied" and the access rights in M
+ *    are not in G, then add the rights in M to D.
+ * 4. If the ACE type is "Access Allowed" and the access rights in M
+ *    are not in D, then add the rights in M to G.
+ */
+static errno_t ad_gpo_simple_evaluate_ace(struct security_ace *ace,
+                                          struct sss_idmap_ctx *idmap_ctx,
+                                          const char *user_sid,
+                                          const char *host_sid,
+                                          const char **group_sids,
+                                          int group_size,
+                                          uint32_t *_gpo_access_granted_status,
+                                          uint32_t *_gpo_access_denied_status)
+{
+    bool included = false;
+    uint32_t filtered_access_rights = 0;
+    int ret = 0;
+
+    if (ace->flags & SEC_ACE_FLAG_INHERIT_ONLY) {
+        return EOK;
+    }
+
+    ret = ad_gpo_ace_includes_client_sid(user_sid, host_sid, group_sids, group_size,
+                                         ace->trustee, idmap_ctx, &included);
+
+    if (ret != EOK || !included) {
+        return ret;
+    }
+
+    if (ace->type == SEC_ACE_TYPE_ACCESS_DENIED) {
+        filtered_access_rights = ace->access_mask & ~*_gpo_access_granted_status;
+        *_gpo_access_denied_status |= filtered_access_rights;
+    } else if (ace->type == SEC_ACE_TYPE_ACCESS_ALLOWED) {
+        filtered_access_rights = ace->access_mask & ~*_gpo_access_denied_status;
+        *_gpo_access_granted_status |= filtered_access_rights;
+    }
+
+    return ret;
+}
+
 
 /*
  * This function extracts the GPO's DACL (discretionary access control list)
  * from the GPO's specified security descriptor, and determines whether
  * the GPO is applicable to the policy target, by comparing the specified
  * user_sid and group_sids against each access control entry (ACE) in the DACL.
- * The boolean result is assigned to the _access_allowed output parameter.
+ * The GPO is only applicable to the target, if the requester has been granted
+ * read access (RIGHT_DS_READ_PROPERTY) to the properties of the GPO and
+ * control access (RIGHT_DS_CONTROL_ACCESS) to apply the GPO (AGP).
+ * The required read and control access rights for a particular trustee are
+ * usually located in different ACEs, i.e. one ACE for control of read access
+ * and one for control access.
+ * If it comes to the end of the DACL, and the required access is still not
+ * explicitly allowed or denied, SSSD denies access to the object as specified
+ * in [MS-ADTS] 5.1.3.1.
  */
 static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
                                     struct sss_idmap_ctx *idmap_ctx,
@@ -811,14 +890,19 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
                                     bool *_dacl_access_allowed)
 {
     uint32_t num_aces = 0;
-    enum ace_eval_status ace_status;
-    int i = 0;
+    uint32_t access_granted_status = 0;
+    uint32_t access_denied_status = 0;
+    enum ace_eval_agp_status ace_status;
     struct security_ace *ace = NULL;
+    int i = 0;
+    int ret = 0;
+    enum idmap_error_code err;
+    char *trustee_dom_sid_str = NULL;
 
     num_aces = dacl->num_aces;
 
     /*
-     * [MS-ADTS] 5.1.3.3.4:
+     * [MS-ADTS] 5.1.3.3.2. and 5.1.3.3.4:
      * If the DACL does not have any ACE, then deny the requester the
      * requested control access right.
      */
@@ -827,22 +911,83 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
         return EOK;
     }
 
+    /*
+     * [MS-GOPD] 2.4:
+     * To process a policy that applies to a Group Policy client, the core
+     * Group Policy engine must be able to read the policy data from the
+     * directory service so that the policy settings can be applied to the
+     * Group Policy client or the interactive user.
+     */
+    for (i = 0; i < dacl->num_aces; i++) {
+        ace = &dacl->aces[i];
+
+        ret = ad_gpo_simple_evaluate_ace(ace, idmap_ctx, user_sid, host_sid,
+                                         group_sids, group_size,
+                                         &access_granted_status,
+                                         &access_denied_status);
+
+        if (ret != EOK) {
+            err = sss_idmap_smb_sid_to_sid(idmap_ctx, &ace->trustee,
+                                           &trustee_dom_sid_str);
+            if (err != IDMAP_SUCCESS) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "    sss_idmap_smb_sid_to_sid failed.\n");
+                return EFAULT;
+            }
+
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "    Could not determine if ACE is applicable; "
+                  " Trustee: %s\n", trustee_dom_sid_str);
+            sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
+            trustee_dom_sid_str = NULL;
+            continue;
+        }
+    }
+
     for (i = 0; i < dacl->num_aces; i ++) {
         ace = &dacl->aces[i];
+
+        err = sss_idmap_smb_sid_to_sid(idmap_ctx, &ace->trustee,
+                                       &trustee_dom_sid_str);
+        if (err != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, "    sss_idmap_smb_sid_to_sid failed.\n");
+            return EFAULT;
+        }
 
         ace_status = ad_gpo_evaluate_ace(ace, idmap_ctx, user_sid, host_sid,
                                          group_sids, group_size);
 
         switch (ace_status) {
         case AD_GPO_ACE_NEUTRAL:
-            continue;
+            break;
         case AD_GPO_ACE_ALLOWED:
-            *_dacl_access_allowed = true;
-            return EOK;
+            if (access_granted_status & SEC_ADS_READ_PROP) {
+                *_dacl_access_allowed = true;
+                sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
+                return EOK;
+            } else {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "    GPO read properties access denied (security); "
+                      " Trustee: %s\n", trustee_dom_sid_str);
+                break;
+            }
         case AD_GPO_ACE_DENIED:
-            *_dacl_access_allowed = false;
-            return EOK;
+            if (access_granted_status & SEC_ADS_READ_PROP) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "    GPO denied (security); "
+                      " Trustee: %s\n", trustee_dom_sid_str);
+                sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
+                *_dacl_access_allowed = false;
+                return EOK;
+            } else {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "    GPO read properties access denied (security); "
+                      " Trustee: %s\n", trustee_dom_sid_str);
+                break;
+            }
         }
+        sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
+        trustee_dom_sid_str = NULL;
     }
 
     *_dacl_access_allowed = false;
