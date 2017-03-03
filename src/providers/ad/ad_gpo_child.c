@@ -531,7 +531,7 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
 {
     char *smb_uri = NULL;
     char *gpt_main_folder = NULL;
-    SMBCFILE *file;
+    SMBCFILE *file = NULL;
     int ret;
     uint8_t *buf = NULL;
     int buflen = 0;
@@ -620,6 +620,10 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
     }
 
  done:
+    if (file != NULL) {
+        smbc_getFunctionClose(smbc_ctx)(smbc_ctx, file);
+    }
+
     talloc_free(tmp_ctx);
     return ret;
 }
