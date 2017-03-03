@@ -23,6 +23,7 @@
 */
 
 #include <sys/types.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <popt.h>
@@ -529,6 +530,7 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
                            const char *smb_cse_suffix)
 {
     char *smb_uri = NULL;
+    char *gpt_main_folder = NULL;
     SMBCFILE *file;
     int ret;
     uint8_t *buf = NULL;
@@ -554,10 +556,41 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
     errno = 0;
     file = smbc_getFunctionOpen(smbc_ctx)(smbc_ctx, smb_uri, O_RDONLY, 0755);
     if (file == NULL) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, "smbc_getFunctionOpen failed [%d][%s]\n",
-              ret, strerror(ret));
-        goto done;
+        // ENOENT: A directory component in pathname does not exist
+        if (errno == ENOENT) {
+            /*
+             * DCs may use upper case names for the main folder, where GPTs are
+             * stored. libsmbclient does not allow us to request case insensitive
+             * file name lookups on DCs with case sensitive file systems.
+             */
+            gpt_main_folder = strstr(smb_uri, "/Machine/");
+            if (gpt_main_folder == NULL) {
+                /* At this moment we do not use any GPO from user settings,
+                 * but it can change in the future so let's keep the following
+                 * line around to make this part of the code 'just work' also
+                 * with the user GPO settings. */
+                gpt_main_folder = strstr(smb_uri, "/User/");
+            }
+            if (gpt_main_folder != NULL) {
+                ++gpt_main_folder;
+                while (gpt_main_folder != NULL && *gpt_main_folder != '/') {
+                    *gpt_main_folder = toupper(*gpt_main_folder);
+                    ++gpt_main_folder;
+                }
+
+                DEBUG(SSSDBG_TRACE_FUNC, "smb_uri: %s\n", smb_uri);
+
+                errno = 0;
+                file = smbc_getFunctionOpen(smbc_ctx)(smbc_ctx, smb_uri, O_RDONLY, 0755);
+            }
+        }
+
+        if (file == NULL) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "smbc_getFunctionOpen failed [%d][%s]\n",
+                  ret, strerror(ret));
+            goto done;
+        }
     }
 
     buf = talloc_array(tmp_ctx, uint8_t, SMB_BUFFER_SIZE);
