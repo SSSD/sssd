@@ -608,6 +608,8 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
 
     DEBUG(SSSDBG_TRACE_ALL, "smb_buflen: %d\n", buflen);
 
+    smbc_getFunctionClose(smbc_ctx)(smbc_ctx, file);
+
     ret = gpo_cache_store_file(smb_path, smb_cse_suffix, buf, buflen);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
