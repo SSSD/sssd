@@ -85,10 +85,10 @@ cache_req_user_by_upn_lookup(TALLOC_CTX *mem_ctx,
                              struct ldb_result **_result)
 {
     if (data->attrs == NULL) {
-        return sysdb_getpwupn(mem_ctx, domain, false, data->name.lookup, _result);
+        return sysdb_getpwupn(mem_ctx, domain, true, data->name.lookup, _result);
     }
 
-    return sysdb_search_user_by_upn_res(mem_ctx, domain, false,
+    return sysdb_search_user_by_upn_res(mem_ctx, domain, true,
                                         data->name.lookup, data->attrs,
                                         _result);
 }
