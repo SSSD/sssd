@@ -931,12 +931,12 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
                                            &trustee_dom_sid_str);
             if (err != IDMAP_SUCCESS) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "    sss_idmap_smb_sid_to_sid failed.\n");
+                      "sss_idmap_smb_sid_to_sid failed.\n");
                 return EFAULT;
             }
 
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "    Could not determine if ACE is applicable; "
+                  "Could not determine if ACE is applicable; "
                   " Trustee: %s\n", trustee_dom_sid_str);
             sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
             trustee_dom_sid_str = NULL;
@@ -950,7 +950,7 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
         err = sss_idmap_smb_sid_to_sid(idmap_ctx, &ace->trustee,
                                        &trustee_dom_sid_str);
         if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_OP_FAILURE, "    sss_idmap_smb_sid_to_sid failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "sss_idmap_smb_sid_to_sid failed.\n");
             return EFAULT;
         }
 
@@ -966,28 +966,33 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
                 sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
                 return EOK;
             } else {
-                DEBUG(SSSDBG_TRACE_ALL,
-                      "    GPO read properties access denied (security); "
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "GPO read properties access denied (security); "
                       " Trustee: %s\n", trustee_dom_sid_str);
                 break;
             }
         case AD_GPO_ACE_DENIED:
             if (access_granted_status & SEC_ADS_READ_PROP) {
-                DEBUG(SSSDBG_TRACE_ALL,
-                      "    GPO denied (security); "
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "GPO denied (security); "
                       " Trustee: %s\n", trustee_dom_sid_str);
                 sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
                 *_dacl_access_allowed = false;
                 return EOK;
             } else {
-                DEBUG(SSSDBG_TRACE_ALL,
-                      "    GPO read properties access denied (security); "
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "GPO read properties access denied (security); "
                       " Trustee: %s\n", trustee_dom_sid_str);
                 break;
             }
         }
         sss_idmap_free_sid(idmap_ctx, trustee_dom_sid_str);
         trustee_dom_sid_str = NULL;
+    }
+
+    if (access_granted_status & SEC_ADS_READ_PROP) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "GPO apply group policy access denied (security)\n");
     }
 
     *_dacl_access_allowed = false;
@@ -1053,12 +1058,12 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
         access_allowed = false;
         candidate_gpo = candidate_gpos[i];
 
-        DEBUG(SSSDBG_TRACE_ALL, "examining dacl candidate_gpo_guid:%s\n",
-                                candidate_gpo->gpo_guid);
+        DEBUG(SSSDBG_TRACE_FUNC, "examining dacl candidate_gpo_guid:%s\n",
+              candidate_gpo->gpo_guid);
 
         /* gpo_func_version must be set to version 2 */
         if (candidate_gpo->gpo_func_version != 2) {
-            DEBUG(SSSDBG_TRACE_ALL,
+            DEBUG(SSSDBG_TRACE_FUNC,
                   "GPO not applicable to target per security filtering: "
                   "gPCFunctionalityVersion is not 2\n");
             continue;
@@ -1066,7 +1071,7 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
 
         sd = candidate_gpo->gpo_sd;
         if (sd == NULL) {
-            DEBUG(SSSDBG_TRACE_ALL, "Security descriptor is missing\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "Security descriptor is missing\n");
             ret = EINVAL;
             goto done;
         }
@@ -1075,7 +1080,7 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
 
         /* gpo_flags value of 2 means that GPO's computer portion is disabled */
         if (candidate_gpo->gpo_flags == 2) {
-            DEBUG(SSSDBG_TRACE_ALL,
+            DEBUG(SSSDBG_TRACE_FUNC,
                   "GPO not applicable to target per security filtering: "
                   "GPO's computer portion is disabled\n");
             continue;
@@ -1085,7 +1090,8 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
             ret = ad_gpo_evaluate_dacl(dacl, idmap_ctx, user_sid, host_sid,
                                        group_sids, group_size, &access_allowed);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Could not determine if GPO is applicable\n");
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Could not determine if GPO is applicable\n");
                 continue;
             }
         } else {
@@ -1100,13 +1106,13 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
         }
 
         if (access_allowed) {
-            DEBUG(SSSDBG_TRACE_ALL,
+            DEBUG(SSSDBG_TRACE_FUNC,
                   "GPO applicable to target per security filtering\n");
             dacl_filtered_gpos[gpo_dn_idx] = talloc_steal(dacl_filtered_gpos,
                                                           candidate_gpo);
             gpo_dn_idx++;
         } else {
-            DEBUG(SSSDBG_TRACE_ALL,
+            DEBUG(SSSDBG_TRACE_FUNC,
                   "GPO not applicable to target per security filtering: "
                   "result of DACL evaluation\n");
             continue;
