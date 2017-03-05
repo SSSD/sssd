@@ -358,8 +358,44 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                         <para>
                             GPO-based access control functionality uses GPO
                             policy settings to determine whether or not a
-                            particular user is allowed to logon to a particular
-                            host.
+                            particular user is allowed to logon to the host.
+                            For more information on the supported policy
+                            settings please refer to the
+                            <quote>ad_gpo_map</quote> options.
+                        </para>
+                        <para>
+                            Before performing access control SSSD applies group
+                            policy security filtering on the GPOs. For every
+                            single user login, the applicability of the GPOs
+                            that are linked to the host is checked. In order for
+                            a GPO to apply to a user, the user or at least one
+                            of the groups to which it belongs must have
+                            following permissions on the GPO:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        Read: The user or one of its groups must
+                                        have read access to the properties of the
+                                        GPO (RIGHT_DS_READ_PROPERTY)
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        Apply Group Policy: The user or at least
+                                        one of its groups must be allowed to
+                                        apply the GPO (RIGHT_DS_CONTROL_ACCESS).
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            By default, the Authenticated Users group is present
+                            on a GPO and this group has both Read and Apply Group
+                            Policy access rights. Since authentication of a user
+                            must have been completed successfully before GPO
+                            security filtering and access control are started,
+                            the Authenticated Users group permissions on the GPO
+                            always apply also to the user.
                         </para>
                         <para>
                             NOTE: The current version of SSSD does not support
@@ -379,7 +415,13 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                             will output a syslog message if access would have
                             been denied. By examining the logs, administrators
                             can then make the necessary changes before setting
-                            the mode to enforcing.
+                            the mode to enforcing. For logging GPO-based access
+                            control debug level 'trace functions' is required (see
+                            <citerefentry>
+                                <refentrytitle>sssctl</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>
+                            manual page).
                         </para>
                         <para>
                             There are three supported values for this option:
@@ -481,6 +523,18 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                             which GPO-based access control is evaluated based on
                             the InteractiveLogonRight and
                             DenyInteractiveLogonRight policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny interactive
+                            logon setting for the user or one of its groups, the
+                            user is denied local access.
+                            If none of the evaluated GPOs has an interactive
+                            logon right defined, the user is granted local
+                            access. If at least one evaluated GPO contains
+                            interactive logon right settings, the user is
+                            granted local access only, if it or at least one of
+                            its groups is part of the policy settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor
@@ -576,6 +630,19 @@ ad_gpo_map_interactive = +my_pam_service, -login
                             which GPO-based access control is evaluated based on
                             the RemoteInteractiveLogonRight and
                             DenyRemoteInteractiveLogonRight policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny remote
+                            logon setting for the user or one of its groups, the
+                            user is denied remote interactive access.
+                            If none of the evaluated GPOs has a remote
+                            interactive logon right defined, the user is granted
+                            remote access. If at least one evaluated GPO
+                            contains remote interactive logon right settings,
+                            the user is granted remote access only, if it or at
+                            least one of its groups is part of the policy
+                            settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor this
@@ -622,6 +689,18 @@ ad_gpo_map_remote_interactive = +my_pam_service, -sshd
                             which GPO-based access control is evaluated based on
                             the NetworkLogonRight and DenyNetworkLogonRight
                             policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny network
+                            logon setting for the user or one of its groups, the
+                            user is denied network logon access.
+                            If none of the evaluated GPOs has a network
+                            logon right defined, the user is granted logon
+                            access. If at least one evaluated GPO contains
+                            network logon right settings, the user is
+                            granted logon access only, if it or at least one of
+                            its groups is part of the policy settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor
@@ -668,6 +747,18 @@ ad_gpo_map_network = +my_pam_service, -ftp
                             which GPO-based access control is evaluated based on
                             the BatchLogonRight and DenyBatchLogonRight
                             policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny batch
+                            logon setting for the user or one of its groups, the
+                            user is denied batch logon access.
+                            If none of the evaluated GPOs has a batch
+                            logon right defined, the user is granted logon
+                            access. If at least one evaluated GPO contains
+                            batch logon right settings, the user is
+                            granted logon access only, if it or at least one of
+                            its groups is part of the policy settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor
@@ -709,6 +800,18 @@ ad_gpo_map_batch = +my_pam_service, -crond
                             which GPO-based access control is evaluated based on
                             the ServiceLogonRight and DenyServiceLogonRight
                             policy settings.
+                            Only those GPOs are evaluated for which the user has
+                            Read and Apply Group Policy permission (see option
+                            <quote>ad_gpo_access_control</quote>).
+                            If an evaluated GPO contains the deny service
+                            logon setting for the user or one of its groups, the
+                            user is denied service logon access.
+                            If none of the evaluated GPOs has a service
+                            logon right defined, the user is granted logon
+                            access. If at least one evaluated GPO contains
+                            service logon right settings, the user is
+                            granted logon access only, if it or at least one of
+                            its groups is part of the policy settings.
                         </para>
                         <para>
                             Note: Using the Group Policy Management Editor
