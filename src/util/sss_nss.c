@@ -101,8 +101,7 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx,
                     goto done;
                 }
 
-                username[1] = '\0';
-                result = talloc_asprintf_append(result, "%s%s", p, username);
+                result = talloc_asprintf_append(result, "%s%c", p, username[0]);
                 talloc_free(username);
                 break;
 
