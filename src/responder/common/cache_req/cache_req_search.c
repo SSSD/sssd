@@ -266,7 +266,7 @@ static errno_t cache_req_search_dp(struct tevent_req *req,
                         "Performing midpoint cache update of [%s]\n",
                         state->cr->debugobj);
 
-        subreq = state->cr->plugin->dp_send_fn(state->cr, state->cr,
+        subreq = state->cr->plugin->dp_send_fn(state->rctx, state->cr,
                                                state->cr->data,
                                                state->cr->domain,
                                                state->result);
