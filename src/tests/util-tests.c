@@ -415,6 +415,24 @@ START_TEST(test_sss_filter_sanitize)
                 "Expected [%s], got [%s]",
                 has_all_expected, sanitized);
 
+    const char has_new_line[] = "user\nname";
+    const char has_new_line_expected[] = "user\\0aname";
+    ret = sss_filter_sanitize(test_ctx, has_new_line, &sanitized);
+    fail_unless(ret == EOK, "has_new_line error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(has_new_line_expected, sanitized) == 0,
+                "Expected [%s], got [%s]",
+                has_new_line_expected, sanitized);
+
+    const char has_carriage_ret[] = "user\rname";
+    const char has_carriage_ret_expected[] = "user\\0dname";
+    ret = sss_filter_sanitize(test_ctx, has_carriage_ret, &sanitized);
+    fail_unless(ret == EOK, "has_carriage_ret error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(has_carriage_ret_expected, sanitized) == 0,
+                "Expected [%s], got [%s]",
+                has_carriage_ret_expected, sanitized);
+
     talloc_free(test_ctx);
 }
 END_TEST
