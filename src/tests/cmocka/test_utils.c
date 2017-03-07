@@ -41,6 +41,7 @@
 #define STR(tok) MACRO_EXPAND(tok)
 
 #define USERNAME "sssduser"
+#define FIRST_LETTER "s"
 #define UID      1234
 #define DOMAIN   "sssddomain"
 #define ORIGINAL_HOME "/home/user"
@@ -1217,12 +1218,18 @@ void test_expand_homedir_template(void **state)
     check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%%"DUMMY2,
                                                DUMMY"%"DUMMY2);
 
+    check_expanded_value(tmp_ctx, homedir_ctx, "%l", FIRST_LETTER);
+    check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%l", DUMMY FIRST_LETTER);
+    check_expanded_value(tmp_ctx, homedir_ctx, "%l"DUMMY, FIRST_LETTER DUMMY);
+    check_expanded_value(tmp_ctx, homedir_ctx, DUMMY"%l"DUMMY2,
+                                               DUMMY FIRST_LETTER DUMMY2);
+
     /* test all format strings */
     check_expanded_value(tmp_ctx, homedir_ctx,
-                         DUMMY"/%u/%U/%d/%f/%o/%F/%%/%H/"DUMMY2,
+                         DUMMY"/%u/%U/%d/%f/%o/%F/%%/%H/%l/"DUMMY2,
                          DUMMY"/"USERNAME"/" STR(UID) "/"DOMAIN"/"
                          USERNAME"@"DOMAIN"/"ORIGINAL_HOME"/"FLATNAME"/%/"
-                         HOMEDIR_SUBSTR"/"DUMMY2);
+                         HOMEDIR_SUBSTR"/"FIRST_LETTER"/"DUMMY2);
     talloc_free(tmp_ctx);
 }
 
