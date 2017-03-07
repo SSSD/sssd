@@ -222,6 +222,7 @@ BuildRequires: systemtap-sdt-devel
 %endif
 BuildRequires: http-parser-devel
 BuildRequires: jansson-devel
+BuildRequires: libuuid-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and

@@ -711,6 +711,9 @@ dist_noinst_HEADERS = \
     src/responder/secrets/secsrv_proxy.h \
     src/responder/kcm/kcm.h \
     src/responder/kcm/kcmsrv_pvt.h \
+    src/responder/kcm/kcmsrv_ccache.h \
+    src/responder/kcm/kcmsrv_ccache_pvt.h \
+    src/responder/kcm/kcmsrv_ccache_be.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_meta.h \
@@ -1488,16 +1491,22 @@ if BUILD_KCM
 sssd_kcm_SOURCES = \
     src/responder/kcm/kcm.c \
     src/responder/kcm/kcmsrv_cmd.c \
+    src/responder/kcm/kcmsrv_ccache.c \
     src/util/sss_sockets.c \
+    src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     $(SSSD_RESPONDER_OBJ) \
     $(NULL)
 sssd_kcm_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS) \
+    $(UUID_CFLAGS) \
     $(NULL)
 sssd_kcm_LDADD = \
     $(KRB5_LIBS) \
     $(SSSD_LIBS) \
+    $(UUID_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 endif
