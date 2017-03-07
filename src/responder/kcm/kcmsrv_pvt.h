@@ -46,6 +46,7 @@ struct kcm_data {
  */
 struct kcm_resp_ctx {
     krb5_context k5c;
+    struct kcm_ccdb *db;
 };
 
 /*
