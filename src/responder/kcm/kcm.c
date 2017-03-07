@@ -22,9 +22,9 @@
 #include "config.h"
 
 #include <popt.h>
-#include <krb5/krb5.h>
 
 #include "responder/kcm/kcm.h"
+#include "responder/kcm/kcmsrv_ccache.h"
 #include "responder/kcm/kcmsrv_pvt.h"
 #include "responder/common/responder.h"
 #include "util/util.h"
@@ -110,7 +110,8 @@ static int kcm_data_destructor(void *ptr)
     return 0;
 }
 
-static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx)
+static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev)
 {
     struct kcm_resp_ctx *kcm_data;
     krb5_error_code kret;
@@ -118,6 +119,12 @@ static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx)
     kcm_data = talloc_zero(mem_ctx, struct kcm_resp_ctx);
     if (kcm_data == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing kcm data\n");
+        return NULL;
+    }
+
+    kcm_data->db = kcm_ccdb_init(kcm_data, ev, CCDB_BE_MEMORY);
+    if (kcm_data->db == NULL) {
+        talloc_free(kcm_data);
         return NULL;
     }
 
@@ -169,7 +176,7 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    kctx->kcm_data = kcm_data_setup(kctx);
+    kctx->kcm_data = kcm_data_setup(kctx, ev);
     if (kctx->kcm_data == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "fatal error initializing responder data\n");

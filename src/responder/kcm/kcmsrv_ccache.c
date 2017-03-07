@@ -240,7 +240,7 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
     switch (cc_be) {
     case CCDB_BE_MEMORY:
         DEBUG(SSSDBG_FUNC_DATA, "KCM back end: memory\n");
-        /* Not implemented yet */
+        ccdb->ops = &ccdb_mem_ops;
         break;
     case CCDB_BE_SECRETS:
         DEBUG(SSSDBG_FUNC_DATA, "KCM back end: sssd-secrets\n");
