@@ -1206,6 +1206,7 @@ done
 %config(noreplace) %{_sysconfdir}/krb5.conf.d/kcm_default_ccache
 %{_unitdir}/sssd-kcm.socket
 %{_unitdir}/sssd-kcm.service
+%{_mandir}/man8/sssd-kcm.8*
 %endif
 
 %pre common
