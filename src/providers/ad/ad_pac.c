@@ -134,7 +134,7 @@ errno_t check_if_pac_is_available(TALLOC_CTX *mem_ctx,
     pac_expires = ldb_msg_find_attr_as_uint64(msg, SYSDB_PAC_BLOB_EXPIRE, 0);
     now = time(NULL);
     if (pac_expires < now) {
-        DEBUG(SSSDBG_TRACE_FUNC, "PAC avaiable but too old.\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "PAC available but too old.\n");
         talloc_free(msg);
         return ENOENT;
     }
