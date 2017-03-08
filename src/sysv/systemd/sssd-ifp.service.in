@@ -3,7 +3,6 @@ Description=SSSD IFP Service responder
 Documentation=man:sssd-ifp(5)
 After=sssd.service
 BindsTo=sssd.service
-RefuseManualStart=true
 
 [Service]
 Type=dbus
