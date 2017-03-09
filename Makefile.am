@@ -4107,6 +4107,7 @@ selinux_child_LDADD = \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
     $(SEMANAGE_LIBS) \
+    $(SELINUX_LIBS) \
     $(NULL)
 endif
 
