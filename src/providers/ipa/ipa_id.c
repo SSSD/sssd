@@ -489,6 +489,8 @@ struct ipa_id_get_account_info_state {
     size_t group_cnt;
     size_t group_idx;
 
+    struct ldb_result *res;
+    size_t res_index;
     int dp_error;
 };
 
@@ -717,6 +719,7 @@ static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
     return EOK;
 }
 
+static int ipa_id_get_account_info_post_proc_step(struct tevent_req *req);
 static void ipa_id_get_user_groups_done(struct tevent_req *subreq);
 
 static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
@@ -727,9 +730,14 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                                           struct ipa_id_get_account_info_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
-    const char *uuid;
-    const char *class;
-    enum sysdb_member_type type;
+    const char *attrs[] = { SYSDB_NAME,
+                            SYSDB_UIDNUM,
+                            SYSDB_SID_STR,
+                            SYSDB_OBJECTCLASS,
+                            SYSDB_UUID,
+                            SYSDB_GHOST,
+                            SYSDB_HOMEDIR,
+                            NULL };
 
     ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL, NULL);
     talloc_zfree(subreq);
@@ -744,24 +752,79 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = get_object_from_cache(state, state->domain, state->ar,
-                                &state->obj_msg);
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Object not found, ending request\n");
-        state->dp_error = DP_ERR_OK;
-        tevent_req_done(req);
+    /* Lookups by certificate can return muliple results and need special
+     * handling because get_object_from_cache() expects a unique match */
+    state->res = NULL;
+    state->res_index = 0;
+    if (state->ar->filter_type == BE_FILTER_CERT) {
+        ret = sysdb_search_object_by_cert(state, state->domain,
+                                          state->ar->filter_value, attrs,
+                                          &(state->res));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to make request to our cache: [%d]: [%s]\n",
+                  ret, sss_strerror(ret));
+            goto fail;
+        }
+        if (state->res->count == 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Object not found in our cache.\n");
+            ret = ENOENT;
+            goto fail;
+        }
+
+        state->obj_msg = state->res->msgs[0];
+        if (state->res->count == 1) {
+            /* Just process the unique result, no need to iterate */
+            state->res = NULL;
+        }
+    } else {
+        ret = get_object_from_cache(state, state->domain, state->ar,
+                                    &state->obj_msg);
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Object not found, ending request\n");
+            state->dp_error = DP_ERR_OK;
+            tevent_req_done(req);
+            return;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
+            goto fail;
+        }
+    }
+
+    ret = ipa_id_get_account_info_post_proc_step(req);
+    if (ret == EAGAIN) {
         return;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_id_get_account_info_post_proc_step failed.\n");
         goto fail;
     }
+
+    state->dp_error = DP_ERR_OK;
+    tevent_req_done(req);
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+    return;
+}
+
+static int ipa_id_get_account_info_post_proc_step(struct tevent_req *req)
+{
+    int ret;
+    const char *uuid;
+    const char *class;
+    enum sysdb_member_type type;
+    struct tevent_req *subreq;
+    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
+                                          struct ipa_id_get_account_info_state);
 
     class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCLASS,
                                         NULL);
     if (class == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find an objectclass.\n");
         ret = EINVAL;
-        goto fail;
+        goto done;
     }
 
 
@@ -781,7 +844,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                                          &state->user_groups);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "Cannot get UUID list: %d\n", ret);
-                goto fail;
+                goto done;
             }
         }
     }
@@ -792,14 +855,14 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         if (uuid == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find a UUID.\n");
             ret = EINVAL;
-            goto fail;
+            goto done;
         }
 
         ret = get_dp_id_data_for_uuid(state, uuid, state->domain->name,
                                        &state->ar);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
-            goto fail;
+            goto done;
         }
 
         subreq = ipa_get_ad_override_send(state, state->ev,
@@ -811,10 +874,11 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         if (subreq == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
         tevent_req_set_callback(subreq, ipa_id_get_account_info_done, req);
-        return;
+        ret = EAGAIN;
+        goto done;
     } else {
         if (strcmp(class, SYSDB_USER_CLASS) == 0) {
             type = SYSDB_MEMBER_USER;
@@ -827,7 +891,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                                    state->override_attrs, state->obj_msg->dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_override failed.\n");
-            goto fail;
+            goto done;
         }
     }
 
@@ -840,10 +904,11 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         if (subreq == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_resolve_user_list_send failed.\n");
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
         tevent_req_set_callback(subreq, ipa_id_get_user_list_done, req);
-        return;
+        ret = EAGAIN;
+        goto done;
     }
 
     if (state->user_groups != NULL) {
@@ -854,20 +919,23 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         if (subreq == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_resolve_user_list_send failed.\n");
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
         tevent_req_set_callback(subreq, ipa_id_get_user_groups_done, req);
-        return;
+        ret = EAGAIN;
+        goto done;
     }
 
-    state->dp_error = DP_ERR_OK;
-    tevent_req_done(req);
-    return;
+    ret = EOK;
 
-fail:
-    state->dp_error = dp_error;
-    tevent_req_error(req, ret);
-    return;
+done:
+    if (ret == EOK && state->res != NULL
+            && ++state->res_index < state->res->count) {
+        state->obj_msg = state->res->msgs[state->res_index];
+        ret = ipa_id_get_account_info_post_proc_step(req);
+    }
+
+    return ret;
 }
 
 static void ipa_id_get_account_info_done(struct tevent_req *subreq)
@@ -940,6 +1008,18 @@ static void ipa_id_get_account_info_done(struct tevent_req *subreq)
         return;
     }
 
+    if (state->res != NULL && ++state->res_index < state->res->count) {
+        state->obj_msg = state->res->msgs[state->res_index];
+        ret = ipa_id_get_account_info_post_proc_step(req);
+        if (ret == EAGAIN) {
+            return;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ipa_id_get_account_info_post_proc_step failed.\n");
+            goto fail;
+        }
+    }
+
     state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
@@ -966,6 +1046,18 @@ static void ipa_id_get_user_list_done(struct tevent_req *subreq)
         goto fail;
     }
 
+    if (state->res != NULL && ++state->res_index < state->res->count) {
+        state->obj_msg = state->res->msgs[state->res_index];
+        ret = ipa_id_get_account_info_post_proc_step(req);
+        if (ret == EAGAIN) {
+            return;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ipa_id_get_account_info_post_proc_step failed.\n");
+            goto fail;
+        }
+    }
+
     state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
@@ -990,6 +1082,18 @@ static void ipa_id_get_user_groups_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA resolve user groups %d\n", ret);
         goto fail;
+    }
+
+    if (state->res != NULL && ++state->res_index < state->res->count) {
+        state->obj_msg = state->res->msgs[state->res_index];
+        ret = ipa_id_get_account_info_post_proc_step(req);
+        if (ret == EAGAIN) {
+            return;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ipa_id_get_account_info_post_proc_step failed.\n");
+            goto fail;
+        }
     }
 
     state->dp_error = DP_ERR_OK;
