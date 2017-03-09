@@ -229,6 +229,18 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
             ret = EOK;
             goto done;
         }
+
+        /* If bypass_dp is true but we found the object in this domain,
+         * we will contact the data provider anyway to refresh it so
+         * we can return it without searching the rest of the domains.
+         */
+        if (status != CACHE_OBJECT_MISSING) {
+            CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                            "Object found, but needs to be refreshed.\n");
+            bypass_dp = false;
+        } else {
+            ret = ENOENT;
+        }
     }
 
     if (!bypass_dp) {
