@@ -2765,6 +2765,28 @@ subdomain_inherit = ldap_purge_cache_timeout
 
     </refsect1>
 
+    <refsect1 id='trusted-domains'>
+        <title>TRUSTED DOMAIN SECTION</title>
+        <para>
+            Some options used in the domain section can also be used in the
+            trusted domain section, that is, in a section called
+            <quote>[domain/<replaceable>DOMAIN_NAME</replaceable>]/<replaceable>TRUSTED_DOMAIN_NAME</replaceable>]</quote>.
+            Currently supported options in the trusted domain section are:
+        </para>
+            <para>ldap_search_base,</para>
+            <para>ldap_user_search_base,</para>
+            <para>ldap_group_search_base,</para>
+            <para>ldap_netgroup_search_base,</para>
+            <para>ldap_service_search_base,</para>
+            <para>ad_server,</para>
+            <para>ad_backup_server,</para>
+            <para>ad_site.</para>
+        <para>
+            For more details about these options see their individual description
+            in the manual page.
+        </para>
+    </refsect1>
+
     <refsect1 id='example'>
         <title>EXAMPLE</title>
         <para>
