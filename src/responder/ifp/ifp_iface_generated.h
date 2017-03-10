@@ -72,6 +72,8 @@
 #define IFACE_IFP_USERS_FINDBYNAME "FindByName"
 #define IFACE_IFP_USERS_FINDBYID "FindByID"
 #define IFACE_IFP_USERS_FINDBYCERTIFICATE "FindByCertificate"
+#define IFACE_IFP_USERS_LISTBYCERTIFICATE "ListByCertificate"
+#define IFACE_IFP_USERS_FINDBYNAMEANDCERTIFICATE "FindByNameAndCertificate"
 #define IFACE_IFP_USERS_LISTBYNAME "ListByName"
 #define IFACE_IFP_USERS_LISTBYDOMAINANDNAME "ListByDomainAndName"
 
@@ -247,6 +249,8 @@ struct iface_ifp_users {
     int (*FindByName)(struct sbus_request *req, void *data, const char *arg_name);
     int (*FindByID)(struct sbus_request *req, void *data, uint32_t arg_id);
     int (*FindByCertificate)(struct sbus_request *req, void *data, const char *arg_pem_cert);
+    int (*ListByCertificate)(struct sbus_request *req, void *data, const char *arg_pem_cert, uint32_t arg_limit);
+    int (*FindByNameAndCertificate)(struct sbus_request *req, void *data, const char *arg_name, const char *arg_pem_cert);
     int (*ListByName)(struct sbus_request *req, void *data, const char *arg_name_filter, uint32_t arg_limit);
     int (*ListByDomainAndName)(struct sbus_request *req, void *data, const char *arg_domain_name, const char *arg_name_filter, uint32_t arg_limit);
 };
@@ -259,6 +263,12 @@ int iface_ifp_users_FindByID_finish(struct sbus_request *req, const char *arg_re
 
 /* finish function for FindByCertificate */
 int iface_ifp_users_FindByCertificate_finish(struct sbus_request *req, const char *arg_result);
+
+/* finish function for ListByCertificate */
+int iface_ifp_users_ListByCertificate_finish(struct sbus_request *req, const char *arg_result[], int len_result);
+
+/* finish function for FindByNameAndCertificate */
+int iface_ifp_users_FindByNameAndCertificate_finish(struct sbus_request *req, const char *arg_result);
 
 /* finish function for ListByName */
 int iface_ifp_users_ListByName_finish(struct sbus_request *req, const char *arg_result[], int len_result);

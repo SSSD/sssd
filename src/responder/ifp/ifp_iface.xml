@@ -152,6 +152,16 @@
             <arg name="pem_cert" type="s" direction="in" />
             <arg name="result" type="o" direction="out" />
         </method>
+        <method name="ListByCertificate">
+            <arg name="pem_cert" type="s" direction="in" />
+            <arg name="limit" type="u" direction="in" />
+            <arg name="result" type="ao" direction="out" />
+        </method>
+        <method name="FindByNameAndCertificate">
+            <arg name="name" type="s" direction="in" />
+            <arg name="pem_cert" type="s" direction="in" />
+            <arg name="result" type="o" direction="out" />
+        </method>
         <method name="ListByName">
             <arg name="name_filter" type="s" direction="in" />
             <arg name="limit" type="u" direction="in" />

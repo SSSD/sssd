@@ -389,6 +389,21 @@ nss_get_ad_name(TALLOC_CTX *mem_ctx,
 }
 
 errno_t
+nss_protocol_fill_single_name(struct nss_ctx *nss_ctx,
+                              struct nss_cmd_ctx *cmd_ctx,
+                              struct sss_packet *packet,
+                              struct cache_req_result *result)
+{
+    if (result->ldb_result->count > 1) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Lookup returned more than one result "
+                                 "but only one was expected.\n");
+        return EEXIST;
+    }
+
+    return nss_protocol_fill_name(nss_ctx, cmd_ctx, packet, result);
+}
+
+errno_t
 nss_protocol_fill_name(struct nss_ctx *nss_ctx,
                        struct nss_cmd_ctx *cmd_ctx,
                        struct sss_packet *packet,
