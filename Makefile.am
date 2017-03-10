@@ -505,6 +505,7 @@ EXTRA_DIST =
 
 SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/cache_req.c \
+	src/responder/common/cache_req/cache_req_result.c \
 	src/responder/common/cache_req/cache_req_search.c \
 	src/responder/common/cache_req/cache_req_data.c \
 	src/responder/common/cache_req/plugins/cache_req_common.c \
