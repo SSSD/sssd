@@ -321,8 +321,11 @@ struct cache_req_state {
     bool dp_success;
 };
 
-static errno_t cache_req_add_result(struct cache_req_state *state,
-                                    struct cache_req_result *new);
+static errno_t
+cache_req_add_result(TALLOC_CTX *mem_ctx,
+                     struct cache_req_result *new_result,
+                     struct cache_req_result ***_results,
+                     size_t *_num_results);
 
 static errno_t cache_req_process_input(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
@@ -370,7 +373,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 
     ret = cache_req_is_well_known_object(state, cr, &result);
     if (ret == EOK) {
-        ret = cache_req_add_result(state, result);
+        ret = cache_req_add_result(state, result, &state->results,
+                                   &state->num_results);
         goto done;
     } else if (ret != ENOENT) {
         goto done;
@@ -588,49 +592,56 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
 }
 
 static errno_t
-cache_req_add_result(struct cache_req_state *state,
-                     struct cache_req_result *new)
+cache_req_add_result(TALLOC_CTX *mem_ctx,
+                     struct cache_req_result *new_result,
+                     struct cache_req_result ***_results,
+                     size_t *_num_results)
 {
-    struct cache_req_result **results = state->results;
+    struct cache_req_result **results = *_results;
     size_t index;
     size_t count;
 
     /* Make space for new results. */
-    index = state->num_results;
-    count = state->num_results + 1;
+    index = *_num_results;
+    count = *_num_results + 1;
 
-    results = talloc_realloc(state, results, struct cache_req_result *, count + 1);
+    results = talloc_realloc(mem_ctx, results, struct cache_req_result *,
+                             count + 1);
     if (results == NULL) {
         return ENOMEM;
     }
 
-    results[index] = talloc_steal(results, new);
+    results[index] = talloc_steal(results, new_result);
     results[index + 1] = NULL;
-    state->results = results;
-    state->num_results = count;
+
+    *_results = results;
+    *_num_results = count;
 
     return EOK;
 }
 
 static errno_t
-cache_req_create_and_add_result(struct cache_req_state *state,
+cache_req_create_and_add_result(TALLOC_CTX *mem_ctx,
+                                struct cache_req *cr,
                                 struct sss_domain_info *domain,
                                 struct ldb_result *ldb_result,
-                                const char *name)
+                                const char *name,
+                                struct cache_req_result ***_results,
+                                size_t *_num_results)
 {
     struct cache_req_result *item;
     errno_t ret;
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                     "Found %u entries in domain %s\n",
                     ldb_result->count, domain->name);
 
-    item = cache_req_create_result(state, domain, ldb_result, name, NULL);
+    item = cache_req_create_result(mem_ctx, domain, ldb_result, name, NULL);
     if (item == NULL) {
         return ENOMEM;
     }
 
-    ret = cache_req_add_result(state, item);
+    ret = cache_req_add_result(mem_ctx, item, _results, _num_results);
     if (ret != EOK) {
         talloc_free(item);
     }
@@ -658,9 +669,13 @@ static void cache_req_done(struct tevent_req *subreq)
     switch (ret) {
     case EOK:
         /* We got some data from this search. Save it. */
-        ret = cache_req_create_and_add_result(state, state->selected_domain,
+        ret = cache_req_create_and_add_result(state,
+                                              state->cr,
+                                              state->selected_domain,
                                               result,
-                                              state->cr->data->name.lookup);
+                                              state->cr->data->name.lookup,
+                                              &state->results,
+                                              &state->num_results);
         if (ret != EOK) {
             /* We were unable to save data. */
             goto done;
