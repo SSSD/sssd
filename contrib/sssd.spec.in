@@ -791,7 +791,7 @@ done
 
 touch sssd.lang
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
-                  sssd_client
+                  sssd_client sssd_dbus
 do
     touch $subpackage.lang
 done
@@ -827,6 +827,9 @@ do
         sssd-proxy*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_proxy.lang
             ;;
+        sssd-ifp*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_dbus.lang
+            ;;
         *)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
             ;;
@@ -846,7 +849,7 @@ cat python3_sssdconfig.lang
 %endif
 
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
-                  sssd_client
+                  sssd_client sssd_dbus
 do
     echo "$subpackage.lang:"
     cat $subpackage.lang
@@ -1025,7 +1028,7 @@ done
 %attr(4750,root,sssd) %{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
 
-%files dbus
+%files dbus -f sssd_dbus.lang
 %defattr(-,root,root,-)
 %doc COPYING
 %{_libexecdir}/%{servicename}/sssd_ifp
