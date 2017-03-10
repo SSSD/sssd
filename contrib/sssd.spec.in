@@ -791,7 +791,7 @@ done
 
 touch sssd.lang
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
-                  sssd_client sssd_dbus
+                  sssd_client sssd_dbus sssd_nfs_idmap
 do
     touch $subpackage.lang
 done
@@ -802,6 +802,9 @@ do
     case `basename $man` in
         sss_cache*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
+            ;;
+        sss_rpcidmapd*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_nfs_idmap.lang
             ;;
         sss_*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_tools.lang
@@ -849,7 +852,7 @@ cat python3_sssdconfig.lang
 %endif
 
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
-                  sssd_client sssd_dbus
+                  sssd_client sssd_dbus sssd_nfs_idmap
 do
     echo "$subpackage.lang:"
     cat $subpackage.lang
@@ -965,7 +968,6 @@ done
 %if (0%{?with_secrets} == 1)
 %{_mandir}/man5/sssd-secrets.5*
 %endif
-%{_mandir}/man5/sss_rpcidmapd.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*
 %if (0%{?enable_systemtap} == 1)
@@ -1217,7 +1219,8 @@ done
 %{_libdir}/samba/idmap/sss.so
 %{_mandir}/man8/idmap_sss.8*
 
-%files nfs-idmap
+%files nfs-idmap -f sssd_nfs_idmap.lang
+%{_mandir}/man5/sss_rpcidmapd.5*
 %{_libdir}/libnfsidmap/sss.so
 
 %files -n libsss_certmap
