@@ -107,12 +107,27 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               struct cache_req_data *data);
 
+errno_t
+cache_req_add_result(TALLOC_CTX *mem_ctx,
+                     struct cache_req_result *new_result,
+                     struct cache_req_result ***_results,
+                     size_t *_num_results);
+
 struct cache_req_result *
 cache_req_create_result(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *domain,
                         struct ldb_result *ldb_result,
                         const char *lookup_name,
                         const char *well_known_domain);
+
+errno_t
+cache_req_create_and_add_result(TALLOC_CTX *mem_ctx,
+                                struct cache_req *cr,
+                                struct sss_domain_info *domain,
+                                struct ldb_result *ldb_result,
+                                const char *name,
+                                struct cache_req_result ***_results,
+                                size_t *_num_results);
 
 struct ldb_result *
 cache_req_create_ldb_result_from_msg(TALLOC_CTX *mem_ctx,
