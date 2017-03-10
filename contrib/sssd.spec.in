@@ -790,11 +790,10 @@ done
 %endif
 
 touch sssd.lang
-touch sssd_tools.lang
-touch sssd_client.lang
-for provider in ldap krb5 ipa ad proxy
+for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
+                  sssd_client
 do
-    touch sssd_$provider.lang
+    touch $subpackage.lang
 done
 
 for man in `find $RPM_BUILD_ROOT/%{_mandir}/??/man?/ -type f | sed -e "s#$RPM_BUILD_ROOT/%{_mandir}/##"`
@@ -832,6 +831,25 @@ do
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
             ;;
     esac
+done
+
+# Print these to the rpmbuild log
+echo "sssd.lang:"
+cat sssd.lang
+
+echo "python2_sssdconfig.lang:"
+cat python2_sssdconfig.lang
+
+%if (0%{?with_python3} == 1)
+echo "python3_sssdconfig.lang:"
+cat python3_sssdconfig.lang
+%endif
+
+for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
+                  sssd_client
+do
+    echo "$subpackage.lang:"
+    cat $subpackage.lang
 done
 
 %files
