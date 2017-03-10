@@ -812,6 +812,9 @@ do
         sss_*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_tools.lang
             ;;
+        sssctl*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_tools.lang
+            ;;
         sssd_krb5_*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_client.lang
             ;;
