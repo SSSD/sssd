@@ -803,6 +803,9 @@ do
         sss_cache*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
             ;;
+        sss_ssh*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
+            ;;
         sss_rpcidmapd*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_nfs_idmap.lang
             ;;
