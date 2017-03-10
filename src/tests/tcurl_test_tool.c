@@ -40,6 +40,7 @@ struct tool_options {
     int tls;
     int verify_peer;
     int verify_host;
+    const char **headers;
 
     enum tcurl_http_method method;
     const char *socket_path;
@@ -121,13 +122,14 @@ prepare_requests(TALLOC_CTX *mem_ctx,
                  size_t *_num_requests)
 {
     struct tcurl_request **requests;
+    struct sss_iobuf *body;
+    const char **headers;
     const char *arg;
     const char *url;
-    struct sss_iobuf *body;
     errno_t ret;
     size_t i;
 
-    static const char *headers[] = {
+    static const char *default_headers[] = {
         "Content-type: application/octet-stream",
         NULL,
     };
@@ -136,6 +138,8 @@ prepare_requests(TALLOC_CTX *mem_ctx,
     if (requests == NULL) {
         return ENOMEM;
     }
+
+    headers = opts->headers == NULL ? default_headers : opts->headers;
 
     i = 0;
     while ((arg = poptGetArg(pc)) != NULL) {
@@ -302,6 +306,9 @@ int main(int argc, const char *argv[])
         { "put", 'p', POPT_ARG_NONE, NULL, 'p', "Perform a HTTP PUT", NULL },
         { "post", 'o', POPT_ARG_NONE, NULL, 'o', "Perform a HTTP POST", NULL },
         { "del", 'd', POPT_ARG_NONE, NULL, 'd', "Perform a HTTP DELETE", NULL },
+#ifdef POPT_ARG_ARGV
+        { "header", 'h', POPT_ARG_ARGV, &opts.headers, '\0', "Add HTTP header", NULL },
+#endif
         { "raw", 'r', POPT_ARG_NONE, &opts.raw, '\0', "Print raw protocol output", NULL },
         { "verbose", 'v', POPT_ARG_NONE, &opts.verbose, '\0', "Print response code and body", NULL },
         /* TLS */
