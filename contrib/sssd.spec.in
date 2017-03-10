@@ -1285,6 +1285,15 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_postun_with_restart sssd-sudo.socket
 %systemd_postun_with_restart sssd-sudo.service
 
+%post dbus
+%systemd_post sssd-ifp.service
+
+%preun dbus
+%systemd_preun sssd-ifp.service
+
+%postun dbus
+%systemd_postun_with_restart sssd-ifp.service
+
 %else
 # sysv
 %post common
