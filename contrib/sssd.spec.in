@@ -791,7 +791,7 @@ done
 
 touch sssd.lang
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
-                  sssd_client sssd_dbus sssd_nfs_idmap
+                  sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap
 do
     touch $subpackage.lang
 done
@@ -839,6 +839,9 @@ do
         sssd-ifp*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_dbus.lang
             ;;
+        idmap_sss*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_winbind_idmap.lang
+            ;;
         *)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
             ;;
@@ -858,7 +861,7 @@ cat python3_sssdconfig.lang
 %endif
 
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
-                  sssd_client sssd_dbus sssd_nfs_idmap
+                  sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap
 do
     echo "$subpackage.lang:"
     cat $subpackage.lang
@@ -1220,7 +1223,7 @@ done
 %{_libdir}/%{name}/modules/libwbclient.so
 %{_libdir}/pkgconfig/wbclient_sssd.pc
 
-%files winbind-idmap
+%files winbind-idmap -f sssd_winbind_idmap.lang
 %dir %{_libdir}/samba/idmap
 %{_libdir}/samba/idmap/sss.so
 %{_mandir}/man8/idmap_sss.8*
