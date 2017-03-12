@@ -1246,6 +1246,9 @@ errno_t sysdb_search_user_by_cert(TALLOC_CTX *mem_ctx,
 errno_t sysdb_remove_cert(struct sss_domain_info *domain,
                           const char *cert);
 
+errno_t sysdb_remove_mapped_data(struct sss_domain_info *domain,
+                                 struct sysdb_attrs *mapped_attr);
+
 /* === Functions related to GPOs === */
 
 #define SYSDB_GPO_CONTAINER "cn=gpos,cn=ad,cn=custom"
