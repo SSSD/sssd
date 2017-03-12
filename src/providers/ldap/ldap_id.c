@@ -442,7 +442,7 @@ static void users_get_search(struct tevent_req *req)
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
                                                 SDAP_SEARCH_TIMEOUT),
-                                 lookup_type);
+                                 lookup_type, NULL);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -507,7 +507,7 @@ static void users_get_done(struct tevent_req *subreq)
             ret = sdap_fallback_local_user(state, state->shortname, uid, &usr_attrs);
             if (ret == EOK) {
                 ret = sdap_save_user(state, state->ctx->opts, state->domain,
-                                     usr_attrs[0], NULL, 0);
+                                     usr_attrs[0], NULL, NULL, 0);
             }
         }
     }

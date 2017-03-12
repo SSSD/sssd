@@ -117,6 +117,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
                    struct sdap_options *opts,
                    struct sss_domain_info *dom,
                    struct sysdb_attrs *attrs,
+                   struct sysdb_attrs *mapped_attrs,
                    char **_usn_value,
                    time_t now)
 {
@@ -511,6 +512,11 @@ int sdap_save_user(TALLOC_CTX *memctx,
                            user_attrs, missing, cache_timeout, now);
     if (ret) goto done;
 
+    if (mapped_attrs != NULL) {
+        ret = sysdb_set_user_attr(dom, user_name, mapped_attrs, SYSDB_MOD_ADD);
+        if (ret) return ret;
+    }
+
     if (_usn_value) {
         *_usn_value = talloc_steal(memctx, usn_value);
     }
@@ -537,6 +543,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
                     struct sdap_options *opts,
                     struct sysdb_attrs **users,
                     int num_users,
+                    struct sysdb_attrs *mapped_attrs,
                     char **_usn_value)
 {
     TALLOC_CTX *tmpctx;
@@ -565,11 +572,20 @@ int sdap_save_users(TALLOC_CTX *memctx,
     }
     in_transaction = true;
 
+    if (mapped_attrs != NULL) {
+        ret = sysdb_remove_mapped_data(dom, mapped_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_remove_mapped_data failed, "
+                  "some cached entries might contain invalid mapping data.\n");
+        }
+    }
+
     now = time(NULL);
     for (i = 0; i < num_users; i++) {
         usn_value = NULL;
 
-        ret = sdap_save_user(tmpctx, opts, dom, users[i], &usn_value, now);
+        ret = sdap_save_user(tmpctx, opts, dom, users[i], mapped_attrs,
+                             &usn_value, now);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
@@ -868,6 +884,7 @@ struct sdap_get_users_state {
 
     char *higher_usn;
     struct sysdb_attrs **users;
+    struct sysdb_attrs *mapped_attrs;
     size_t count;
 };
 
@@ -883,7 +900,8 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        const char **attrs,
                                        const char *filter,
                                        int timeout,
-                                       enum sdap_entry_lookup_type lookup_type)
+                                       enum sdap_entry_lookup_type lookup_type,
+                                       struct sysdb_attrs *mapped_attrs)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -899,6 +917,23 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
 
     state->filter = filter;
     PROBE(SDAP_SEARCH_USER_SEND, state->filter);
+
+    if (mapped_attrs == NULL) {
+        state->mapped_attrs = NULL;
+    } else {
+        state->mapped_attrs = sysdb_new_attrs(state);
+        if (state->mapped_attrs == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_copy(mapped_attrs, state->mapped_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_copy failed.\n");
+            goto done;
+        }
+    }
 
     subreq = sdap_search_user_send(state, ev, dom, opts, search_bases,
                                    sh, attrs, filter, timeout, lookup_type);
@@ -938,9 +973,11 @@ static void sdap_get_users_done(struct tevent_req *subreq)
     }
 
     PROBE(SDAP_SEARCH_USER_SAVE_BEGIN, state->filter);
+
     ret = sdap_save_users(state, state->sysdb,
                           state->dom, state->opts,
                           state->users, state->count,
+                          state->mapped_attrs,
                           &state->higher_usn);
     PROBE(SDAP_SEARCH_USER_SAVE_END, state->filter);
     if (ret) {

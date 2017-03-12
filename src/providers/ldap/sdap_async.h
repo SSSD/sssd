@@ -90,7 +90,8 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        const char **attrs,
                                        const char *filter,
                                        int timeout,
-                                       enum sdap_entry_lookup_type lookup_type);
+                                       enum sdap_entry_lookup_type lookup_type,
+                                       struct sysdb_attrs *mapped_attrs);
 int sdap_get_users_recv(struct tevent_req *req,
                         TALLOC_CTX *mem_ctx, char **timestamp);
 

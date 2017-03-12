@@ -635,7 +635,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
                                                 SDAP_ENUM_SEARCH_TIMEOUT),
-                                 SDAP_LOOKUP_ENUMERATE);
+                                 SDAP_LOOKUP_ENUMERATE, NULL);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;

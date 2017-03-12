@@ -94,6 +94,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
                     struct sdap_options *opts,
                     struct sysdb_attrs **users,
                     int num_users,
+                    struct sysdb_attrs *mapped_attrs,
                     char **_usn_value);
 
 int sdap_initgr_common_store(struct sysdb_ctx *sysdb,

@@ -4685,6 +4685,67 @@ errno_t sysdb_search_user_by_cert(TALLOC_CTX *mem_ctx,
     return sysdb_search_object_by_cert(mem_ctx, domain, cert, user_attrs, res);
 }
 
+errno_t sysdb_remove_mapped_data(struct sss_domain_info *domain,
+                                 struct sysdb_attrs *mapped_attr)
+{
+    int ret;
+    char *val;
+    char *filter;
+    const char *attrs[] = {SYSDB_NAME, NULL};
+    struct ldb_result *res = NULL;
+    size_t c;
+    bool all_ok = true;
+
+    if (mapped_attr->num != 1 || mapped_attr->a[0].num_values != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unsupported number of attributes.\n");
+        return EINVAL;
+    }
+
+    ret = bin_to_ldap_filter_value(NULL, mapped_attr->a[0].values[0].data,
+                                   mapped_attr->a[0].values[0].length, &val);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "bin_to_ldap_filter_value failed.\n");
+        return ret;
+    }
+
+    filter = talloc_asprintf(NULL, "(&("SYSDB_UC")(%s=%s))",
+                             mapped_attr->a[0].name, val);
+    talloc_free(val);
+    if (filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_object_attr(NULL, domain, filter, attrs, false, &res);
+    talloc_free(filter);
+    if (ret == ENOENT || res == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Mapped data not found.\n");
+        talloc_free(res);
+        return EOK;
+    } else if (ret != EOK) {
+        talloc_free(res);
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_object_attr failed.\n");
+        return ret;
+    }
+
+    for (c = 0; c < res->count; c++) {
+        DEBUG(SSSDBG_TRACE_ALL, "Removing mapped data from [%s].\n",
+                                ldb_dn_get_linearized(res->msgs[c]->dn));
+        /* The timestamp cache is skipped on purpose here. */
+        ret = sysdb_set_cache_entry_attr(domain->sysdb->ldb, res->msgs[c]->dn,
+                                         mapped_attr, SYSDB_MOD_DEL);
+        if (ret != EOK) {
+            all_ok = false;
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to remove mapped data from [%s], skipping.\n",
+                  ldb_dn_get_linearized(res->msgs[c]->dn));
+        }
+    }
+    talloc_free(res);
+
+    return (all_ok ? EOK : EIO);
+}
+
 errno_t sysdb_remove_cert(struct sss_domain_info *domain,
                           const char *cert)
 {
