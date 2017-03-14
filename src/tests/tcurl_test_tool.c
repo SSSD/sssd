@@ -88,6 +88,7 @@ int main(int argc, const char *argv[])
         { "get", 'g', POPT_ARG_NONE, NULL, 'g', "Perform a HTTP GET (default)", NULL },
         { "put", 'p', POPT_ARG_NONE, NULL, 'p', "Perform a HTTP PUT", NULL },
         { "del", 'd', POPT_ARG_NONE, NULL, 'd', "Perform a HTTP DELETE", NULL },
+        { "post", 'o', POPT_ARG_NONE, NULL, 'o', "Perform a HTTP POST", NULL },
         { "verbose", 'v', POPT_ARG_NONE, NULL, 'v', "Print response code and body", NULL },
         POPT_TABLEEND
     };
@@ -118,6 +119,9 @@ int main(int argc, const char *argv[])
         case 'd':
             req_type = TCURL_HTTP_DELETE;
             break;
+        case 'o':
+            req_type = TCURL_HTTP_POST;
+            break;
         case 'v':
             pc_verbose = 1;
             break;
@@ -145,6 +149,7 @@ int main(int argc, const char *argv[])
         switch (req_type) {
         case TCURL_HTTP_GET:
         case TCURL_HTTP_DELETE:
+        case TCURL_HTTP_POST:
             urls[n_reqs++] = extra_arg_ptr;
             break;
         case TCURL_HTTP_PUT:
