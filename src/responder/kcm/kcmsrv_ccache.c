@@ -244,7 +244,7 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
         break;
     case CCDB_BE_SECRETS:
         DEBUG(SSSDBG_FUNC_DATA, "KCM back end: sssd-secrets\n");
-        /* Not implemented yet */
+        ccdb->ops = &ccdb_sec_ops;
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown ccache database\n");
