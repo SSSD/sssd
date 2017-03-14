@@ -887,6 +887,22 @@ AC_DEFUN([WITH_SECRETS],
     AM_CONDITIONAL([BUILD_SECRETS], [test x"$with_secrets" = xyes])
   ])
 
+AC_DEFUN([WITH_KCM],
+  [ AC_ARG_WITH([kcm],
+                [AC_HELP_STRING([--with-kcm],
+                                [Whether to build with KCM server support [yes]]
+                               )
+                ],
+                [with_kcm=$withval],
+                with_kcm=yes
+               )
+
+    if test x"$with_kcm" = xyes; then
+        AC_DEFINE(BUILD_KCM, 1, [whether to build with KCM server support])
+    fi
+    AM_CONDITIONAL([BUILD_KCM], [test x"$with_kcm" = xyes])
+  ])
+
 AC_DEFUN([WITH_SECRETS_DB_PATH],
   [ AC_ARG_WITH([secrets-db-path],
                 [AC_HELP_STRING([--with-secrets-db-path=PATH],

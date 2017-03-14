@@ -87,6 +87,7 @@ sudolibdir = @sudolibpath@
 polkitdir = @polkitdir@
 pamconfdir = $(sysconfdir)/pam.d
 systemtap_tapdir = @tapset_dir@
+krb5sysincludedir = $(sysconfdir)/krb5.conf.d
 
 if HAVE_SYSTEMD_UNIT
 ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --debug-to-files --dbus-activated
@@ -186,6 +187,11 @@ endif
 if BUILD_SECRETS
 sssdlibexec_PROGRAMS += sssd_secrets
 endif
+if BUILD_KCM
+sssdlibexec_PROGRAMS += sssd_kcm
+dist_krb5sysinclude_DATA = contrib/kcm_default_ccache
+endif
+
 
 if BUILD_PAC_RESPONDER
     sssdlibexec_PROGRAMS += sssd_pac
@@ -277,6 +283,7 @@ if HAVE_CMOCKA
         test_ipa_dn \
         simple-access-tests \
         krb5_common_test \
+        test_iobuf \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -658,6 +665,8 @@ dist_noinst_HEADERS = \
     src/util/util_sss_idmap.h \
     src/util/util_creds.h \
     src/util/inotify.h \
+    src/util/sss_iobuf.h \
+    src/util/tev_curl.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/monitor/monitor_iface_generated.h \
@@ -695,6 +704,12 @@ dist_noinst_HEADERS = \
     src/responder/secrets/secsrv_private.h \
     src/responder/secrets/secsrv_local.h \
     src/responder/secrets/secsrv_proxy.h \
+    src/responder/kcm/kcm.h \
+    src/responder/kcm/kcmsrv_pvt.h \
+    src/responder/kcm/kcmsrv_ccache.h \
+    src/responder/kcm/kcmsrv_ccache_pvt.h \
+    src/responder/kcm/kcmsrv_ccache_be.h \
+    src/responder/kcm/kcmsrv_ops.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_meta.h \
@@ -1463,6 +1478,30 @@ sssd_secrets_LDADD = \
     $(NULL)
 endif
 
+if BUILD_KCM
+sssd_kcm_SOURCES = \
+    src/responder/kcm/kcm.c \
+    src/responder/kcm/kcmsrv_cmd.c \
+    src/responder/kcm/kcmsrv_ccache.c \
+    src/responder/kcm/kcmsrv_ccache_mem.c \
+    src/responder/kcm/kcmsrv_ops.c \
+    src/util/sss_sockets.c \
+    src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
+    $(SSSD_RESPONDER_OBJ) \
+    $(NULL)
+sssd_kcm_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS) \
+    $(NULL)
+sssd_kcm_LDADD = \
+    $(KRB5_LIBS) \
+    $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+endif
+
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \
     src/providers/data_provider_req.c \
@@ -1840,6 +1879,7 @@ krb5_utils_tests_SOURCES = \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_opts.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
@@ -2115,6 +2155,7 @@ krb5_child_test_SOURCES = \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_opts.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
@@ -2133,6 +2174,23 @@ krb5_child_test_LDADD = \
     $(CHECK_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
+
+if BUILD_WITH_LIBCURL
+tcurl_test_tool_SOURCES = \
+    src/tests/tcurl_test_tool.c \
+    src/util/tev_curl.c \
+    src/util/sss_iobuf.c \
+    $(NULL)
+tcurl_test_tool_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CURL_CFLAGS) \
+    $(NULL)
+tcurl_test_tool_LDADD = \
+    $(CURL_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+endif
 
 if BUILD_DBUS_TESTS
 
@@ -2786,6 +2844,7 @@ test_copy_ccache_SOURCES = \
     src/tests/cmocka/test_copy_ccache.c \
     src/providers/krb5/krb5_ccache.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     $(NULL)
 test_copy_ccache_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2804,6 +2863,7 @@ test_copy_keytab_SOURCES = \
     src/tests/cmocka/test_copy_keytab.c \
     src/providers/krb5/krb5_keytab.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     $(NULL)
 test_copy_keytab_CFLAGS = \
     $(AM_CFLAGS) \
@@ -3166,6 +3226,19 @@ test_ipa_dn_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+test_iobuf_SOURCES = \
+    src/util/sss_iobuf.c \
+    src/tests/cmocka/test_iobuf.c \
+    $(NULL)
+test_iobuf_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_iobuf_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(NULL)
+
+
 EXTRA_simple_access_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
 simple_access_tests_SOURCES = \
@@ -3227,6 +3300,9 @@ noinst_PROGRAMS += sss_sudo_cli
 endif
 if BUILD_AUTOFS
 noinst_PROGRAMS += autofs_test_client
+endif
+if BUILD_WITH_LIBCURL
+noinst_PROGRAMS += tcurl-test-tool
 endif
 
 pam_test_client_SOURCES = src/sss_client/pam_test_client.c
@@ -3498,6 +3574,7 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_init_shared.c \
     src/providers/krb5/krb5_ccache.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/util/become_user.c \
     $(NULL)
 libsss_krb5_common_la_CFLAGS = \
@@ -3727,6 +3804,7 @@ krb5_child_SOURCES = \
     src/providers/dp_pam_data_util.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/util/find_uid.c \
     src/util/atomic_io.c \
     src/util/authtok.c \
@@ -3760,6 +3838,7 @@ ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
     src/providers/krb5/krb5_keytab.c \
     src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
     src/util/atomic_io.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
@@ -4114,6 +4193,12 @@ if BUILD_SUDO
         src/sysv/systemd/sssd-sudo.service \
         $(NULL)
 endif
+if BUILD_KCM
+    systemdunit_DATA += \
+        src/sysv/systemd/sssd-kcm.socket \
+        src/sysv/systemd/sssd-kcm.service \
+        $(NULL)
+endif
 if WITH_JOURNALD
     systemdconf_DATA += \
         src/sysv/systemd/journal.conf
@@ -4205,6 +4290,12 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-sudo.service.in \
     $(NULL)
 endif
+if BUILD_KCM
+EXTRA_DIST += \
+    src/sysv/systemd/sssd-kcm.socket.in \
+    src/sysv/systemd/sssd-kcm.service.in \
+    $(NULL)
+endif
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
@@ -4284,6 +4375,16 @@ src/sysv/systemd/sssd-sudo.socket: src/sysv/systemd/sssd-sudo.socket.in Makefile
 	$(replace_script)
 
 src/sysv/systemd/sssd-sudo.service: src/sysv/systemd/sssd-sudo.service.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+endif
+
+if BUILD_KCM
+src/sysv/systemd/sssd-kcm.socket: src/sysv/systemd/sssd-kcm.socket.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
+src/sysv/systemd/sssd-kcm.service: src/sysv/systemd/sssd-kcm.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 endif
@@ -4450,6 +4551,9 @@ install-data-hook:
 if BUILD_SAMBA
 	mv $(DESTDIR)/$(winbindplugindir)/winbind_idmap_sss.so $(DESTDIR)/$(winbindplugindir)/sss.so
 endif
+if BUILD_KCM
+	$(MKDIR_P) $(DESTDIR)/$(krb5sysincludedir)
+endif
 
 uninstall-hook:
 	if [ -f $(abs_builddir)/src/config/.files2 ]; then \
@@ -4524,6 +4628,8 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-sudo.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
+	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.socket
+	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
 
 CLEANFILES += *.X */*.X */*/*.X

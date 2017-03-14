@@ -1,0 +1,9 @@
+[Unit]
+Description=SSSD Secrets Service responder socket
+Documentation=man:sssd-kcm(5)
+
+[Socket]
+ListenStream=@localstatedir@/run/kcm.socket
+
+[Install]
+WantedBy=sockets.target

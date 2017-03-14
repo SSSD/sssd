@@ -26,6 +26,9 @@ dist_noinst_DATA = \
     files_ops.py \
     test_files_ops.py \
     test_files_provider.py \
+    kdc.py \
+    krb5utils.py \
+    test_kcm.py \
     $(NULL)
 
 config.py: config.py.m4
@@ -38,6 +41,7 @@ config.py: config.py.m4
 	   -D "secdbpath=\`$(secdbpath)'" \
 	   -D "libexecpath=\`$(libexecdir)'" \
 	   -D "runstatedir=\`$(runstatedir)'" \
+	   -D "abs_builddir=\`$(abs_builddir)'" \
 	   $< > $@
 
 root:
@@ -79,5 +83,6 @@ intgcheck-installed: config.py passwd group
 	NSS_WRAPPER_MODULE_FN_PREFIX="sss" \
 	UID_WRAPPER=1 \
 	UID_WRAPPER_ROOT=1 \
+	NON_WRAPPED_UID=$$(echo $$UID) \
 	    fakeroot $(PYTHON2) $(PYTEST) -v --tb=native $(INTGCHECK_PYTEST_ARGS) .
 	rm -f $(DESTDIR)$(logpath)/*

@@ -24,6 +24,7 @@
 
 #include "config.h"
 
+#include "util/sss_iobuf.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
@@ -1127,4 +1128,198 @@ done:
     krb5_free_context(context);
 
     return res;
+}
+
+static errno_t iobuf_read_uint32be(struct sss_iobuf *iobuf,
+                                   uint32_t *_val)
+{
+    uint32_t beval;
+    errno_t ret;
+
+    ret = sss_iobuf_read_uint32(iobuf, &beval);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    *_val = be32toh(beval);
+    return EOK;
+}
+
+static errno_t iobuf_write_uint32be(struct sss_iobuf *iobuf,
+                                    uint32_t val)
+{
+    uint32_t beval;
+
+    beval = htobe32(val);
+    return sss_iobuf_write_uint32(iobuf, beval);
+}
+
+static errno_t iobuf_get_len_bytes(TALLOC_CTX *mem_ctx,
+                                   struct sss_iobuf *iobuf,
+                                   uint32_t *_nbytes,
+                                   uint8_t **_bytes)
+{
+    errno_t ret;
+    uint32_t nbytes;
+    uint8_t *bytes = NULL;
+
+    ret = iobuf_read_uint32be(iobuf, &nbytes);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    bytes = talloc_zero_size(mem_ctx, nbytes);
+    if (bytes == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_iobuf_read_len(iobuf, nbytes, bytes);
+    if (ret != EOK) {
+        talloc_free(bytes);
+        return ret;
+    }
+
+    *_bytes = bytes;
+    *_nbytes = nbytes;
+    return EOK;
+}
+
+static errno_t get_krb5_data(TALLOC_CTX *mem_ctx,
+                             struct sss_iobuf *iobuf,
+                             krb5_data *k5data)
+{
+    errno_t ret;
+    uint32_t nbytes;
+    uint8_t *bytes = NULL;
+
+    ret = iobuf_get_len_bytes(mem_ctx, iobuf,  &nbytes, &bytes);
+    if (ret != EOK) {
+        talloc_free(bytes);
+        return ret;
+    }
+
+    k5data->data = (char *) bytes; /* FIXME - the cast is ugly */
+    k5data->length = nbytes;
+    return EOK;
+}
+
+static errno_t set_krb5_data(struct sss_iobuf *iobuf,
+                             krb5_data *k5data)
+{
+    errno_t ret;
+
+    ret = iobuf_write_uint32be(iobuf, k5data->length);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (k5data->length > 0) {
+        ret = sss_iobuf_write_len(iobuf,
+                                  (uint8_t *) k5data->data,
+                                  k5data->length);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+/* FIXME - it would be nice if Kerberos exported these APIs.. */
+krb5_error_code sss_krb5_unmarshal_princ(TALLOC_CTX *mem_ctx,
+                                         struct sss_iobuf *iobuf,
+                                         krb5_principal *_princ)
+{
+    krb5_principal princ = NULL;
+    krb5_error_code ret;
+    uint32_t ncomps;
+
+    if (iobuf == NULL || _princ == NULL) {
+        return EINVAL;
+    }
+
+    princ = talloc_zero(mem_ctx, struct krb5_principal_data);
+    if (princ == NULL) {
+        return ENOMEM;
+    }
+
+    princ->magic = KV5M_PRINCIPAL;
+
+    ret = iobuf_read_uint32be(iobuf, (uint32_t *) &princ->type);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = iobuf_read_uint32be(iobuf, &ncomps);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    if (ncomps > sss_iobuf_get_capacity(iobuf)) {
+        /* Sanity check to avoid large allocations */
+        ret = EINVAL;
+        goto fail;
+    }
+
+    if (ncomps != 0) {
+        princ->data = talloc_zero_array(princ, krb5_data, ncomps);
+        if (princ->data == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        princ->length = ncomps;
+    }
+
+    ret = get_krb5_data(princ, iobuf, &princ->realm);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    for (size_t i = 0; i < ncomps; i++) {
+        ret = get_krb5_data(princ->data, iobuf, &princ->data[i]);
+        if (ret != EOK) {
+            goto fail;
+        }
+    }
+
+    *_princ = princ;
+    return 0;
+
+fail:
+    talloc_free(princ);
+    return ret;
+}
+
+krb5_error_code sss_krb5_marshal_princ(krb5_principal princ,
+                                       struct sss_iobuf *iobuf)
+{
+    krb5_error_code ret;
+
+    if (iobuf == NULL || princ == NULL) {
+        return EINVAL;
+    }
+
+    ret = iobuf_write_uint32be(iobuf, princ->type);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = iobuf_write_uint32be(iobuf, princ->length);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = set_krb5_data(iobuf, &princ->realm);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    for (int i = 0; i < princ->length; i++) {
+        ret = set_krb5_data(iobuf, &princ->data[i]);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+    return EOK;
 }
