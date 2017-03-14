@@ -49,6 +49,12 @@ struct kcm_resp_ctx {
     struct kcm_ccdb *db;
 };
 
+/* Supported ccache back ends */
+enum kcm_ccdb_be {
+    CCDB_BE_MEMORY,
+    CCDB_BE_SECRETS,
+};
+
 /*
  * responder context that contains both the responder data,
  * like the ccaches and the sssd-specific stuff like the
@@ -58,6 +64,7 @@ struct kcm_ctx {
     struct resp_ctx *rctx;
     int fd_limit;
     char *socket_path;
+    enum kcm_ccdb_be cc_be;
 
     struct kcm_resp_ctx *kcm_data;
 };

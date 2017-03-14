@@ -234,6 +234,7 @@
 /* KCM Service */
 #define CONFDB_KCM_CONF_ENTRY "config/kcm"
 #define CONFDB_KCM_SOCKET "socket_path"
+#define CONFDB_KCM_DB "ccache_storage" /* Undocumented on purpose */
 
 struct confdb_ctx;
 struct config_file_ctx;

@@ -29,6 +29,7 @@
 #include "util/util.h"
 #include "util/sss_iobuf.h"
 #include "util/util_creds.h"
+#include "responder/kcm/kcmsrv_pvt.h"
 
 #define UUID_BYTES    16
 #define UUID_STR_SIZE 37
@@ -112,11 +113,6 @@ errno_t kcm_cc_store_cred_blob(struct kcm_ccache *cc,
  */
 struct kcm_cred *kcm_cc_get_cred(struct kcm_ccache *cc);
 struct kcm_cred *kcm_cc_next_cred(struct kcm_cred *crd);
-
-enum kcm_ccdb_be {
-    CCDB_BE_MEMORY,
-    CCDB_BE_SECRETS,
-};
 
 /* An opaque database that contains all the ccaches */
 struct kcm_ccdb;

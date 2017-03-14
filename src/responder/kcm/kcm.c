@@ -47,6 +47,37 @@ static int kcm_responder_ctx_destructor(void *ptr)
     return 0;
 }
 
+static errno_t kcm_get_ccdb_be(struct kcm_ctx *kctx)
+{
+    errno_t ret;
+    char *str_db;
+
+    ret = confdb_get_string(kctx->rctx->cdb,
+                            kctx->rctx,
+                            kctx->rctx->confdb_service_path,
+                            CONFDB_KCM_DB,
+                            "secrets",
+                            &str_db);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get the KCM database type [%d]: %s\n",
+               ret, strerror(ret));
+        return ret;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "KCM database type: %s\n", str_db);
+    if (strcasecmp(str_db, "memory") == 0) {
+        kctx->cc_be = CCDB_BE_MEMORY;
+        return EOK;
+    } else if (strcasecmp(str_db, "secrets") == 0) {
+        kctx->cc_be = CCDB_BE_SECRETS;
+        return EOK;
+    }
+
+    DEBUG(SSSDBG_FATAL_FAILURE, "Unexpected KCM database type %s\n", str_db);
+    return EOK;
+}
+
 static int kcm_get_config(struct kcm_ctx *kctx)
 {
     int ret;
@@ -88,14 +119,21 @@ static int kcm_get_config(struct kcm_ctx *kctx)
                             &sock_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the client idle timeout [%d]: %s\n",
+              "Cannot get KCM socket path [%d]: %s\n",
                ret, strerror(ret));
         goto done;
     }
     kctx->rctx->sock_name = sock_name;
 
-    ret = EOK;
+    ret = kcm_get_ccdb_be(kctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get KCM ccache DB [%d]: %s\n",
+               ret, strerror(ret));
+        goto done;
+    }
 
+    ret = EOK;
 done:
     return ret;
 }
@@ -111,7 +149,8 @@ static int kcm_data_destructor(void *ptr)
 }
 
 static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev)
+                                           struct tevent_context *ev,
+                                           enum kcm_ccdb_be cc_be)
 {
     struct kcm_resp_ctx *kcm_data;
     krb5_error_code kret;
@@ -122,7 +161,7 @@ static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    kcm_data->db = kcm_ccdb_init(kcm_data, ev, CCDB_BE_MEMORY);
+    kcm_data->db = kcm_ccdb_init(kcm_data, ev, cc_be);
     if (kcm_data->db == NULL) {
         talloc_free(kcm_data);
         return NULL;
@@ -176,7 +215,7 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    kctx->kcm_data = kcm_data_setup(kctx, ev);
+    kctx->kcm_data = kcm_data_setup(kctx, ev, kctx->cc_be);
     if (kctx->kcm_data == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "fatal error initializing responder data\n");
