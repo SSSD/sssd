@@ -156,6 +156,8 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     struct sdap_domain *sdom;
     errno_t ret;
     const char *realm;
+    const char *servers;
+    const char *backup_servers;
     const char *hostname;
     const char *keytab;
     char *subdom_conf_path;
@@ -201,7 +203,10 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ret = ad_failover_init(ad_options, be_ctx, NULL, NULL, realm,
+    servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
+    backup_servers = dp_opt_get_string(ad_options->basic, AD_BACKUP_SERVER);
+
+    ret = ad_failover_init(ad_options, be_ctx, servers, backup_servers, realm,
                            service_name, gc_service_name,
                            subdom->name, &ad_options->service);
     if (ret != EOK) {

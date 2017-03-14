@@ -223,6 +223,8 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     struct ad_srv_plugin_ctx *srv_ctx;
     const char *ad_domain;
     const char *ad_site_override;
+    const char *ad_servers;
+    const char *ad_backup_servers;
     struct sdap_domain *sdom;
     errno_t ret;
     const char *extra_attrs;
@@ -279,9 +281,12 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
+    ad_servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
+    ad_backup_servers = dp_opt_get_string(ad_options->basic, AD_BACKUP_SERVER);
+
     /* Set KRB5 realm to same as the one of IPA when IPA
      * is able to attach PAC. For testing, use hardcoded. */
-    ret = ad_failover_init(ad_options, be_ctx, NULL, NULL,
+    ret = ad_failover_init(ad_options, be_ctx, ad_servers, ad_backup_servers,
                            id_ctx->server_mode->realm,
                            service_name, gc_service_name,
                            subdom->name, &ad_options->service);
