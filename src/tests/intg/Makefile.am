@@ -38,6 +38,7 @@ config.py: config.py.m4
 	   -D "secdbpath=\`$(secdbpath)'" \
 	   -D "libexecpath=\`$(libexecdir)'" \
 	   -D "runstatedir=\`$(runstatedir)'" \
+	   -D "abs_builddir=\`$(abs_builddir)'" \
 	   $< > $@
 
 root:
