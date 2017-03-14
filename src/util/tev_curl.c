@@ -154,6 +154,8 @@ static const char *http_req2str(enum tcurl_http_request req)
         return "PUT";
     case TCURL_HTTP_DELETE:
         return "DELETE";
+    case TCURL_HTTP_POST:
+        return "POST";
     }
 
     return "Uknown request type";
@@ -815,6 +817,11 @@ static errno_t tcurl_set_options(struct tcurl_http_state *state,
     }
 
     switch (req_type) {
+    case TCURL_HTTP_POST:
+        crv = curl_easy_setopt(state->http_handle,
+                               CURLOPT_CUSTOMREQUEST,
+                               "POST");
+        break;
     case TCURL_HTTP_PUT:
         /* CURLOPT_UPLOAD enables HTTP_PUT */
         crv = curl_easy_setopt(state->http_handle,

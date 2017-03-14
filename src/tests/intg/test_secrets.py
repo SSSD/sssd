@@ -271,6 +271,34 @@ def test_curlwrap_crd_ops(setup_for_secrets,
                        'http://localhost/secrets/foo'],
                       404)
 
+    # Create a container
+    run_curlwrap_tool([curlwrap_tool, '-o',
+                       '-v', '-s', sock_path,
+                       'http://localhost/secrets/cont/'],
+                      200)
+
+    # set a secret foo:bar
+    run_curlwrap_tool([curlwrap_tool, '-p',
+                       '-v', '-s', sock_path,
+                       'http://localhost/secrets/cont/cfoo',
+                       'foo_under_cont'],
+                      200)
+
+    # list secrets
+    output = run_curlwrap_tool([curlwrap_tool,
+                                '-v', '-s', sock_path,
+                                'http://localhost/secrets/cont/'],
+                               200)
+    assert "cfoo" in output
+
+    # get the foo secret
+    output = run_curlwrap_tool([curlwrap_tool,
+                                '-v', '-s', sock_path,
+                                'http://localhost/secrets/cont/cfoo'],
+                               200)
+    assert "foo_under_cont" in output
+
+
 
 def test_curlwrap_parallel(setup_for_secrets,
                            curlwrap_tool):
