@@ -42,7 +42,7 @@
  * Features:
  * - Only string 's' fields are supported
  * - All the varargs should be strings, followed by a NULL argument
- * - Both positional '%$1s' and non-positional '%s' are supported
+ * - Both positional '%1$s' and non-positional '%s' are supported
  * - Field widths '%8s' work as expected
  * - Precision '%.8s' works, but precision cannot be read from a field
  * - Left alignment flag is supported '%-8s'.
