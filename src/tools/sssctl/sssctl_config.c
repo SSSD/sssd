@@ -63,7 +63,10 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
 
     /* Open config file */
     ret = sss_ini_config_file_open(init_data, SSSD_CONFIG_FILE);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ERROR("File %1$s does not exist.\n", SSSD_CONFIG_FILE);
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "sss_ini_config_file_open failed: %s [%d]\n",
               sss_strerror(ret),
