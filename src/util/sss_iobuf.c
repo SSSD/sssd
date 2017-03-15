@@ -49,7 +49,7 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
 }
 
 struct sss_iobuf *sss_iobuf_init_readonly(TALLOC_CTX *mem_ctx,
-                                          uint8_t *data,
+                                          const uint8_t *data,
                                           size_t size)
 {
     struct sss_iobuf *iobuf;
