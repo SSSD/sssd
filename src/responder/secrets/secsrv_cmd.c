@@ -451,7 +451,8 @@ int sec_send_data(int fd, struct sec_data *data)
 
     data->length -= len;
     data->data += len;
-    DEBUG(SSSDBG_TRACE_INTERNAL, "sent %zu bytes\n", data->length);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "sent %zu bytes, %zu bytes remaining\n",
+          len, data->length);
     return EOK;
 }
 
