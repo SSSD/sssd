@@ -9,6 +9,5 @@ RefuseManualStart=true
 Also=sssd-nss.socket
 
 [Service]
-ExecStartPre=-/bin/chown root:root @logpath@/sssd_nss.log
 ExecStart=@libexecdir@/sssd/sssd_nss --debug-to-files --socket-activated
 Restart=on-failure
