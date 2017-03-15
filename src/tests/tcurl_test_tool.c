@@ -204,8 +204,8 @@ int main(int argc, const char *argv[])
                               urls[i],
                               headers,
                               inbufs[i],
-                              10);
-        if (ctx == NULL) {
+                              5);
+        if (req == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Could not create request\n");
             talloc_zfree(tool_ctx);
             return 1;
