@@ -22,11 +22,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sys/types.h>
-#include <regex.h>
-
 #ifndef __SSS_CERTMAP_INT_H__
 #define __SSS_CERTMAP_INT_H__
+
+#include <sys/types.h>
+#include <regex.h>
+#include <stdint.h>
+#include <talloc.h>
 
 #define CM_DEBUG(cm_ctx, format, ...) do { \
     if (cm_ctx != NULL && cm_ctx->debug != NULL) { \
