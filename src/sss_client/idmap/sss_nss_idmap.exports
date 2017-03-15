@@ -25,3 +25,9 @@ SSS_NSS_IDMAP_0.2.0 {
     global:
         sss_nss_getnamebycert;
 } SSS_NSS_IDMAP_0.1.0;
+
+SSS_NSS_IDMAP_0.3.0 {
+    # public functions
+    global:
+        sss_nss_getlistbycert;
+} SSS_NSS_IDMAP_0.2.0;

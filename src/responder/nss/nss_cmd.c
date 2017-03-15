@@ -932,6 +932,12 @@ static errno_t nss_cmd_getnamebycert(struct cli_ctx *cli_ctx)
                           nss_protocol_fill_single_name);
 }
 
+static errno_t nss_cmd_getlistbycert(struct cli_ctx *cli_ctx)
+{
+    return nss_getby_cert(cli_ctx, CACHE_REQ_USER_BY_CERT,
+                          nss_protocol_fill_name_list);
+}
+
 struct sss_cmd_table *get_nss_cmds(void)
 {
     static struct sss_cmd_table nss_cmds[] = {
@@ -961,6 +967,7 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_GETIDBYSID, nss_cmd_getidbysid },
         { SSS_NSS_GETORIGBYNAME, nss_cmd_getorigbyname },
         { SSS_NSS_GETNAMEBYCERT, nss_cmd_getnamebycert },
+        { SSS_NSS_GETLISTBYCERT, nss_cmd_getlistbycert },
         { SSS_CLI_NULL, NULL }
     };
 

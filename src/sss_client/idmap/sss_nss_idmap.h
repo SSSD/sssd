@@ -130,13 +130,28 @@ int sss_nss_getorigbyname(const char *fq_name, struct sss_nss_kv **kv_list,
  * @param[in] cert     base64 encoded certificate
  * @param[out] fq_name Fully qualified name of a user or a group,
  *                     must be freed by the caller
- * @param[out] type    Type of the object related to the SID
+ * @param[out] type    Type of the object related to the cert
  *
  * @return
  *  - see #sss_nss_getsidbyname
  */
 int sss_nss_getnamebycert(const char *cert, char **fq_name,
                           enum sss_id_type *type);
+
+/**
+ * @brief Return a list of fully qualified names for the given base64 encoded
+ * X.509 certificate in DER format
+ *
+ * @param[in] cert     base64 encoded certificate
+ * @param[out] fq_name List of fully qualified name of users or groups,
+ *                     must be freed by the caller
+ * @param[out] type    List of types of the objects related to the cert
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname
+ */
+int sss_nss_getlistbycert(const char *cert, char ***fq_name,
+                          enum sss_id_type **type);
 
 /**
  * @brief Free key-value list returned by sss_nss_getorigbyname()

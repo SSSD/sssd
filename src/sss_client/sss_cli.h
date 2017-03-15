@@ -260,6 +260,11 @@ SSS_NSS_GETNAMEBYCERT = 0x0116, /**< Takes the zero terminated string
                                      of a X509 certificate and returns the zero
                                      terminated fully qualified name of the
                                      related object. */
+SSS_NSS_GETLISTBYCERT = 0x0117, /**< Takes the zero terminated string
+                                     of the base64 encoded DER representation
+                                     of a X509 certificate and returns a list
+                                     of zero terminated fully qualified names
+                                     of the related objects. */
 };
 
 /**

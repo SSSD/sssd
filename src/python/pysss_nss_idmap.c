@@ -36,9 +36,37 @@ enum lookup_type {
     SIDBYID,
     NAMEBYSID,
     IDBYSID,
-    NAMEBYCERT
+    NAMEBYCERT,
+    LISTBYCERT
 };
 
+static int add_dict_to_list(PyObject *py_list, PyObject *res_type,
+                            PyObject *res, PyObject *id_type)
+{
+    int ret;
+    PyObject *py_dict;
+
+    py_dict =  PyDict_New();
+    if (py_dict == NULL) {
+        return ENOMEM;
+    }
+
+    ret = PyDict_SetItem(py_dict, res_type, res);
+    if (ret != 0) {
+        Py_XDECREF(py_dict);
+        return ret;
+    }
+
+    ret = PyDict_SetItem(py_dict, PyBytes_FromString(SSS_TYPE_KEY), id_type);
+    if (ret != 0) {
+        Py_XDECREF(py_dict);
+        return ret;
+    }
+
+    ret = PyList_Append(py_list, py_dict);
+
+    return ret;
+}
 static int add_dict(PyObject *py_result, PyObject *key, PyObject *res_type,
                     PyObject *res, PyObject *id_type)
 {
@@ -191,6 +219,57 @@ static int do_getnamebycert(PyObject *py_result, PyObject *py_cert)
     return ret;
 }
 
+static int do_getlistbycert(PyObject *py_result, PyObject *py_cert)
+{
+    int ret;
+    const char *cert;
+    char **names = NULL;
+    enum sss_id_type *id_types = NULL;
+    size_t c;
+
+    cert = py_string_or_unicode_as_string(py_cert);
+    if (cert == NULL) {
+        return EINVAL;
+    }
+
+    ret = sss_nss_getlistbycert(cert, &names, &id_types);
+    if (ret == 0) {
+
+        PyObject *py_list;
+
+        py_list =  PyList_New(0);
+        if (py_list == NULL) {
+            return ENOMEM;
+        }
+
+        for (c = 0; names[c] != NULL; c++) {
+            ret = add_dict_to_list(py_list,
+                                   PyBytes_FromString(SSS_NAME_KEY),
+                                   PyUnicode_FromString(names[c]),
+                                   PYNUMBER_FROMLONG(id_types[c]));
+            if (ret != 0) {
+                goto done;
+            }
+        }
+        ret = PyDict_SetItem(py_result, py_cert, py_list);
+        if (ret != 0) {
+            goto done;
+        }
+    }
+
+done:
+    free(id_types);
+    if (names != NULL) {
+        for (c = 0; names[c] != NULL; c++) {
+            free(names[c]);
+        }
+        free(names);
+    }
+
+    return ret;
+}
+
+
 static int do_getidbysid(PyObject *py_result, PyObject *py_sid)
 {
     const char *sid;
@@ -230,6 +309,9 @@ static int do_lookup(enum lookup_type type, PyObject *py_result,
         break;
     case NAMEBYCERT:
         return do_getnamebycert(py_result, py_inp);
+        break;
+    case LISTBYCERT:
+        return do_getlistbycert(py_result, py_inp);
         break;
     default:
         return ENOSYS;
@@ -368,7 +450,7 @@ static PyObject * py_getidbysid(PyObject *module, PyObject *args)
 }
 
 PyDoc_STRVAR(getnamebycert_doc,
-"getnamebycert(sid or list/tuple of certificates) -> dict(sid => dict(results))\n\
+"getnamebycert(certificate or list/tuple of certificates) -> dict(certificate => dict(results))\n\
 \n\
 Returns a dictionary with a dictonary of results for each given certificates.\n\
 The result dictonary contain the name and the type of the object which can be\n\
@@ -382,6 +464,21 @@ static PyObject * py_getnamebycert(PyObject *module, PyObject *args)
     return check_args(NAMEBYCERT, args);
 }
 
+PyDoc_STRVAR(getlistbycert_doc,
+"getnamebycert(certificate or list/tuple of certificates) -> dict(certificate => dict(results))\n\
+\n\
+Returns a dictionary with a dictonary of results for each given certificates.\n\
+The result dictonary contain the name and the type of the object which can be\n\
+accessed with the key constants NAME_KEY and TYPE_KEY, respectively.\n\
+\n\
+NOTE: getlistbycert currently works only with id_provider set as \"ad\" or \"ipa\""
+);
+
+static PyObject * py_getlistbycert(PyObject *module, PyObject *args)
+{
+    return check_args(LISTBYCERT, args);
+}
+
 static PyMethodDef methods[] = {
     { sss_py_const_p(char, "getsidbyname"), (PyCFunction) py_getsidbyname,
       METH_VARARGS, getsidbyname_doc },
@@ -393,6 +490,8 @@ static PyMethodDef methods[] = {
       METH_VARARGS, getidbysid_doc },
     { sss_py_const_p(char, "getnamebycert"), (PyCFunction) py_getnamebycert,
       METH_VARARGS, getnamebycert_doc },
+    { sss_py_const_p(char, "getlistbycert"), (PyCFunction) py_getlistbycert,
+      METH_VARARGS, getlistbycert_doc },
     { NULL,NULL, 0, NULL }
 };
 
