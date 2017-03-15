@@ -47,7 +47,7 @@ struct sss_iobuf *sss_iobuf_init_empty(TALLOC_CTX *mem_ctx,
  * @return The newly created buffer on success or NULL on an error.
  */
 struct sss_iobuf *sss_iobuf_init_readonly(TALLOC_CTX *mem_ctx,
-                                          uint8_t *data,
+                                          const uint8_t *data,
                                           size_t size);
 
 /*
