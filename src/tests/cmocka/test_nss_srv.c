@@ -3454,6 +3454,16 @@ struct passwd testbycert = {
     .pw_passwd = discard_const("*"),
 };
 
+struct passwd testbycert2 = {
+    .pw_name = discard_const("testcertuser2"),
+    .pw_uid = 23457,
+    .pw_gid = 6890,
+    .pw_dir = discard_const("/home/testcertuser2"),
+    .pw_gecos = discard_const("test cert user2"),
+    .pw_shell = discard_const("/bin/sh"),
+    .pw_passwd = discard_const("*"),
+};
+
 #define TEST_TOKEN_CERT \
 "MIIECTCCAvGgAwIBAgIBCDANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
 "REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNTA2MjMx" \
@@ -3494,6 +3504,57 @@ static int test_nss_getnamebycert_check(uint32_t status, uint8_t *body, size_t b
 
     return EOK;
 }
+
+static int test_nss_getlistbycert_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    size_t rp = 0;
+    uint32_t id_type;
+    uint32_t num;
+    uint32_t reserved;
+    const char *name;
+    int found = 0;
+    const char *fq_name1 = "testcertuser@"TEST_DOM_NAME ;
+    const char *fq_name2 = "testcertuser2@"TEST_DOM_NAME;
+
+    assert_int_equal(status, EOK);
+
+    /* num_results and reserved */
+    SAFEALIGN_COPY_UINT32(&num, body + rp, &rp);
+    assert_in_range(num, 1, 2);
+    SAFEALIGN_COPY_UINT32(&reserved, body + rp, &rp);
+    assert_int_equal(reserved, 0);
+
+    SAFEALIGN_COPY_UINT32(&id_type, body + rp, &rp);
+    assert_int_equal(id_type, SSS_ID_TYPE_UID);
+
+    name = (const char *)body + rp;
+    if (num == 1) {
+        assert_string_equal(name, fq_name1);
+        return EOK;
+    }
+
+    rp += strlen(name) + 1;
+    if (strcmp(name, fq_name1) == 0) {
+        found = 1;
+    } else if (strcmp(name, fq_name2) == 0) {
+        found = 2;
+    }
+    assert_in_range(found, 1, 2);
+
+    SAFEALIGN_COPY_UINT32(&id_type, body + rp, &rp);
+    assert_int_equal(id_type, SSS_ID_TYPE_UID);
+
+    name = (const char *)body + rp;
+    if (found == 1) {
+        assert_string_equal(name, fq_name2);
+    } else {
+        assert_string_equal(name, fq_name1);
+    }
+
+
+    return EOK;
+}
+
 
 static void test_nss_getnamebycert(void **state)
 {
@@ -3570,6 +3631,99 @@ void test_nss_getnamebycert_neg(void **state)
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
     assert_int_equal(nss_test_ctx->ncache_hits, 1);
+}
+
+static void test_nss_getlistbycert(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    unsigned char *der = NULL;
+    size_t der_size;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    der = sss_base64_decode(nss_test_ctx, TEST_TOKEN_CERT, &der_size);
+    assert_non_null(der);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+    talloc_free(der);
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with a valid user */
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &testbycert, attrs, 0);
+    assert_int_equal(ret, EOK);
+    talloc_free(attrs);
+
+    mock_input_cert(TEST_TOKEN_CERT);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETLISTBYCERT);
+    mock_fill_bysid();
+
+    /* Query for that user, call a callback when command finishes */
+    /* Should go straight to back end, without contacting DP. */
+    /* If there is only a single user mapped the result will look like the */
+    /* result of getnamebycert. */
+    set_cmd_cb(test_nss_getlistbycert_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETLISTBYCERT,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static void test_nss_getlistbycert_multi(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    unsigned char *der = NULL;
+    size_t der_size;
+
+    der = sss_base64_decode(nss_test_ctx, TEST_TOKEN_CERT, &der_size);
+    assert_non_null(der);
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with two valid user */
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &testbycert, attrs, 0);
+    assert_int_equal(ret, EOK);
+    talloc_free(attrs);
+
+    /* Looks like attrs is modified during store_user() makes sure we start
+     * with fresh data. */
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+    talloc_free(der);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &testbycert2, attrs, 0);
+    assert_int_equal(ret, EOK);
+    talloc_free(attrs);
+
+    mock_input_cert(TEST_TOKEN_CERT);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETLISTBYCERT);
+    mock_fill_bysid();
+
+    /* Query for that user, call a callback when command finishes */
+    /* Should go straight to back end, without contacting DP */
+    set_cmd_cb(test_nss_getlistbycert_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETLISTBYCERT,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
 }
 
 struct passwd sid_user = {
@@ -3817,6 +3971,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_getnamebycert_neg,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getnamebycert,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getlistbycert,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getlistbycert_multi,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getsidbyname,
                                         nss_test_setup, nss_test_teardown),

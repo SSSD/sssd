@@ -31,6 +31,7 @@
 #include "util/strtonum.h"
 
 #define DATA_START (3 * sizeof(uint32_t))
+#define LIST_START (2 * sizeof(uint32_t))
 union input {
     const char *str;
     uint32_t id;
@@ -38,10 +39,12 @@ union input {
 
 struct output {
     enum sss_id_type type;
+    enum sss_id_type *types;
     union {
         char *str;
         uint32_t id;
         struct sss_nss_kv *kv_list;
+        char **names;
     } d;
 };
 
@@ -70,6 +73,63 @@ void sss_nss_free_kv(struct sss_nss_kv *kv_list)
         }
         free(kv_list);
     }
+}
+
+void sss_nss_free_list(char **l)
+{
+    size_t c;
+
+    if (l != NULL) {
+        for (c = 0; l[c] != NULL; c++) {
+            free(l[c]);
+        }
+        free(l);
+    }
+}
+
+static int buf_to_name_type_list(uint8_t *buf, size_t buf_len, uint32_t num,
+                                 char ***names, enum sss_id_type **types)
+{
+    int ret;
+    size_t c;
+    char **n = NULL;
+    enum sss_id_type *t = NULL;
+    size_t rp = 0;
+
+    n = calloc(num + 1, sizeof(char *));
+    if (n == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    t = calloc(num + 1, sizeof(enum sss_id_type));
+    if (t == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; c < num; c++) {
+        SAFEALIGN_COPY_UINT32(&(t[c]), buf + rp, &rp);
+        n[c] = strdup((char *) buf + rp);
+        if (n[c] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        rp += strlen(n[c]) + 1;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        sss_nss_free_list(n);
+        free(t);
+    } else {
+        *names = n;
+        *types = t;
+    }
+
+    return ret;
 }
 
 static int  buf_to_kv_list(uint8_t *buf, size_t buf_len,
@@ -153,14 +213,26 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd ,
     size_t data_len;
     uint32_t c;
     struct sss_nss_kv *kv_list;
+    char **names;
+    enum sss_id_type *types;
 
     switch (cmd) {
     case SSS_NSS_GETSIDBYNAME:
     case SSS_NSS_GETNAMEBYSID:
     case SSS_NSS_GETIDBYSID:
     case SSS_NSS_GETORIGBYNAME:
-    case SSS_NSS_GETNAMEBYCERT:
         ret = sss_strnlen(inp.str, 2048, &inp_len);
+        if (ret != EOK) {
+            return EINVAL;
+        }
+
+        rd.len = inp_len + 1;
+        rd.data = inp.str;
+
+        break;
+    case SSS_NSS_GETNAMEBYCERT:
+    case SSS_NSS_GETLISTBYCERT:
+        ret = sss_strnlen(inp.str, 10 * 1024 , &inp_len);
         if (ret != EOK) {
             return EINVAL;
         }
@@ -195,7 +267,7 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd ,
     if (num_results == 0) {
         ret = ENOENT;
         goto done;
-    } else if (num_results > 1) {
+    } else if (num_results > 1 && cmd != SSS_NSS_GETLISTBYCERT) {
         ret = EBADMSG;
         goto done;
     }
@@ -235,6 +307,18 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd ,
 
         SAFEALIGN_COPY_UINT32(&c, repbuf + DATA_START, NULL);
         out->d.id = c;
+
+        break;
+    case SSS_NSS_GETLISTBYCERT:
+        ret = buf_to_name_type_list(repbuf + LIST_START, replen - LIST_START,
+                                    num_results,
+                                    &names, &types);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        out->types = types;
+        out->d.names = names;
 
         break;
     case SSS_NSS_GETORIGBYNAME:
@@ -388,6 +472,28 @@ int sss_nss_getnamebycert(const char *cert, char **fq_name,
     if (ret == EOK) {
         *fq_name = out.d.str;
         *type = out.type;
+    }
+
+    return ret;
+}
+
+int sss_nss_getlistbycert(const char *cert, char ***fq_name,
+                          enum sss_id_type **type)
+{
+    int ret;
+    union input inp;
+    struct output out;
+
+    if (fq_name == NULL || cert == NULL || *cert == '\0') {
+        return EINVAL;
+    }
+
+    inp.str = cert;
+
+    ret = sss_nss_getyyybyxxx(inp, SSS_NSS_GETLISTBYCERT, &out);
+    if (ret == EOK) {
+        *fq_name = out.d.names;
+        *type = out.types;
     }
 
     return ret;
