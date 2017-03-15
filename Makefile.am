@@ -278,8 +278,11 @@ if HAVE_CMOCKA
         simple-access-tests \
         krb5_common_test \
         test_iobuf \
-        sss_certmap_test \
         $(NULL)
+
+if HAVE_NSS
+non_interactive_cmocka_based_tests +=  sss_certmap_test
+endif #HAVE_NSS
 
 if HAVE_LIBRESOLV
 non_interactive_cmocka_based_tests += test_resolv_fake
@@ -1715,7 +1718,6 @@ sssd_check_socket_activated_responders_LDADD = \
     $(NULL)
 endif
 
-if HAVE_NSS
 pkgconfig_DATA += src/lib/certmap/sss_certmap.pc
 libsss_certmap_la_DEPENDENCIES = src/lib/certmap/sss_certmap.exports
 libsss_certmap_la_SOURCES = \
@@ -1726,26 +1728,38 @@ libsss_certmap_la_SOURCES = \
     src/lib/certmap/sss_certmap_ldap_mapping.c \
     src/util/util_ext.c \
     src/util/cert/cert_common.c \
-    src/util/crypto/nss/nss_base64.c \
-    src/util/cert/nss/cert.c \
-    src/util/crypto/nss/nss_util.c \
     $(NULL)
 libsss_certmap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
-    $(NSS_CFLAGS) \
     $(NULL)
 libsss_certmap_la_LIBADD = \
     $(TALLOC_LIBS) \
-    $(NSS_LIBS) \
     $(NULL)
 libsss_certmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/certmap/sss_certmap.exports \
     -version-info 0:0:0
 
+if HAVE_NSS
+libsss_certmap_la_SOURCES += \
+    src/util/crypto/nss/nss_base64.c \
+    src/util/cert/nss/cert.c \
+    src/util/crypto/nss/nss_util.c \
+    $(NULL)
+libsss_certmap_la_CFLAGS += $(NSS_CFLAGS)
+libsss_certmap_la_LIBADD += $(NSS_LIBS)
+else
+libsss_certmap_la_SOURCES += \
+    src/util/crypto/libcrypto/crypto_base64.c \
+    src/util/cert/libcrypto/cert.c \
+    $(NULL)
+
+libsss_certmap_la_CFLAGS += $(CRYPTO_CFLAGS)
+libsss_certmap_la_LIBADD += $(CRYPTO_LIBS)
+endif
+
 dist_noinst_DATA += src/lib/certmap/sss_certmap.exports
 dist_noinst_HEADERS += src/lib/certmap/sss_certmap_int.h
-endif
 
 #################
 # Feature Tests #
