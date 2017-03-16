@@ -42,6 +42,10 @@
 
 #define SSSD_KRB5_CHANGEPW_PRINCIPAL "kadmin/changepw"
 
+#define IS_SC_AUTHTOK(tok) ( \
+    sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_PIN \
+        || sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_KEYPAD)
+
 enum k5c_fast_opt {
     K5C_FAST_NEVER,
     K5C_FAST_TRY,
@@ -1529,12 +1533,17 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
              * pre-auth module is missing or no Smartcard is inserted and only
              * pkinit is available KRB5_PREAUTH_FAILED is returned.
              * ERR_NO_AUTH_METHOD_AVAILABLE is used to indicate to the
-             * frontend that local authentication might be tried. */
+             * frontend that local authentication might be tried.
+             * Same is true if Smartcard credentials are given but only other
+             * authentication methods are available. */
             if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
                     && kerr == KRB5_PREAUTH_FAILED
-                    && kr->password_prompting == false
-                    && kr->otp == false
-                    && kr->pkinit_prompting == false) {
+                    && kr->pkinit_prompting == false
+                    && (( kr->password_prompting == false
+                              && kr->otp == false)
+                            || ((kr->otp == true
+                                    || kr->password_prompting == true)
+                              && IS_SC_AUTHTOK(kr->pd->authtok))) ) {
                 return ERR_NO_AUTH_METHOD_AVAILABLE;
             }
             return kerr;
