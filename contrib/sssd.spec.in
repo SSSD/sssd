@@ -1080,6 +1080,7 @@ done
 %{_sbindir}/sss_debuglevel
 %{_sbindir}/sss_seed
 %{_sbindir}/sssctl
+%{_sbindir}/sss_pam_test_client
 %{_mandir}/man8/sss_groupadd.8*
 %{_mandir}/man8/sss_groupdel.8*
 %{_mandir}/man8/sss_groupmod.8*

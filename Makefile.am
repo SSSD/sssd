@@ -146,6 +146,7 @@ sbin_PROGRAMS = \
     sss_override \
     sss_seed \
     sssctl \
+    sss_pam_test_client \
     $(NULL)
 
 sssdlibexec_PROGRAMS = \
@@ -3450,7 +3451,7 @@ endif # BUILD_KCM
 
 endif # HAVE_CMOCKA
 
-noinst_PROGRAMS = pam_test_client
+noinst_PROGRAMS =
 if BUILD_SUDO
 noinst_PROGRAMS += sss_sudo_cli
 endif
@@ -3461,10 +3462,10 @@ if BUILD_WITH_LIBCURL
 noinst_PROGRAMS += tcurl-test-tool
 endif
 
-pam_test_client_SOURCES = \
+sss_pam_test_client_SOURCES = \
     src/sss_client/pam_test_client.c \
     $(NULL)
-pam_test_client_LDADD = \
+sss_pam_test_client_LDADD = \
     $(PAM_LIBS) \
     $(PAM_MISC_LIBS) \
     $(LIBADD_DL) \
