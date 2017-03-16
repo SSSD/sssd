@@ -30,8 +30,11 @@
 #include <pwd.h>
 #include <nss.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <security/pam_appl.h>
+
+#include "lib/sifp/sss_sifp.h"
 
 #ifdef HAVE_SECURITY_PAM_MISC_H
 # include <security/pam_misc.h>
@@ -57,6 +60,69 @@ static struct pam_conv conv = {
 #define DEFAULT_SERVICE "system-auth"
 
 #define DEFAULT_BUFSIZE 4096
+
+static int get_ifp_user(const char *user)
+{
+    sss_sifp_ctx *sifp;
+    sss_sifp_error error;
+    sss_sifp_object *user_obj;
+    const char *tmp_str;
+    uint32_t tmp_uint32;
+    size_t c;
+
+    struct ifp_user_attr {
+        const char *name;
+        bool is_string;
+    } ifp_user_attr[] = {
+        { "name", true },
+        { "uidNumber", false },
+        { "gidNumber", false },
+        { "gecos", true },
+        { "homeDirectory", true },
+        { "loginShell", true },
+        { NULL, false }
+    };
+
+    error = sss_sifp_init(&sifp);
+    if (error != SSS_SIFP_OK) {
+        fprintf(stderr, "Unable to connect to the InfoPipe");
+        return EFAULT;
+    }
+
+    error = sss_sifp_fetch_user_by_name(sifp, user, &user_obj);
+    if (error != SSS_SIFP_OK) {
+        fprintf(stderr, "Unable to get user object");
+        return EIO;
+    }
+
+    fprintf(stdout, "SSSD InfoPipe user lookup result:\n");
+    for (c = 0; ifp_user_attr[c].name != NULL; c++) {
+        if (ifp_user_attr[c].is_string) {
+            error = sss_sifp_find_attr_as_string(user_obj->attrs,
+                                                 ifp_user_attr[c].name,
+                                                 &tmp_str);
+        } else {
+            error = sss_sifp_find_attr_as_uint32(user_obj->attrs,
+                                                 ifp_user_attr[c].name,
+                                                 &tmp_uint32);
+        }
+        if (error != SSS_SIFP_OK) {
+            fprintf(stderr, "Unable to get user name attr");
+            return EIO;
+        }
+
+        if (ifp_user_attr[c].is_string) {
+            fprintf(stdout, " - %s: %s\n", ifp_user_attr[c].name, tmp_str);
+        } else {
+            fprintf(stdout, " - %s: %"PRIu32"\n", ifp_user_attr[c].name,
+                                                  tmp_uint32);
+        }
+    }
+
+    sss_sifp_free_object(sifp, &user_obj);
+    sss_sifp_free(&sifp);
+    return 0;
+}
 
 static int sss_getpwnam_check(const char *user)
 {
@@ -158,6 +224,11 @@ int main(int argc, char *argv[]) {
         ret = sss_getpwnam_check(user);
         if (ret != 0) {
             fprintf(stderr, "User name lookup with [%s] failed.\n", user);
+        }
+
+        ret = get_ifp_user(user);
+        if (ret != 0) {
+            fprintf(stderr, "InforPipe User lookup with [%s] failed.\n", user);
         }
     }
 

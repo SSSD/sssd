@@ -3468,6 +3468,7 @@ pam_test_client_LDADD = \
     $(PAM_LIBS) \
     $(PAM_MISC_LIBS) \
     $(LIBADD_DL) \
+    libsss_simpleifp.la \
     $(NULL)
 
 if BUILD_AUTOFS
