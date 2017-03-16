@@ -204,7 +204,7 @@ ssh_get_output_keys(TALLOC_CTX *mem_ctx,
     uint32_t i = 0;
     errno_t ret;
 
-    elements = talloc_zero_array(mem_ctx, struct ldb_message_element *, 5);
+    elements = talloc_zero_array(mem_ctx, struct ldb_message_element *, 6);
     if (elements == NULL) {
         return ENOMEM;
     }
@@ -241,6 +241,24 @@ ssh_get_output_keys(TALLOC_CTX *mem_ctx,
             elements[i]->flags |= SSS_EL_FLAG_BIN_DATA;
             num_keys += elements[i]->num_values;
             i++;
+        }
+    }
+
+    if (DOM_HAS_VIEWS(domain)) {
+        user_cert = ldb_msg_find_element(msg, OVERRIDE_PREFIX SYSDB_USER_CERT);
+        if (user_cert != NULL) {
+            ret = get_valid_certs_keys(elements, ssh_ctx, user_cert,
+                                       &elements[i]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_valid_certs_keys failed.\n");
+                goto done;
+            }
+
+            if (elements[i] != NULL) {
+                elements[i]->flags |= SSS_EL_FLAG_BIN_DATA;
+                num_keys += elements[i]->num_values;
+                i++;
+            }
         }
     }
 
