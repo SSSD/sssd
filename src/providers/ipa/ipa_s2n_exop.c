@@ -1156,6 +1156,13 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
         need_v1 = true;
     }
 
+    if (state->req_input.type == REQ_INP_NAME
+            && state->req_input.inp.name != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Sending request_type: [%s] for group [%s].\n",
+                                 ipa_s2n_reqtype2str(state->request_type),
+                                 state->list[state->list_idx]);
+    }
+
     subreq = ipa_s2n_exop_send(state, state->ev, state->sh, need_v1,
                                state->exop_timeout, bv_req);
     if (subreq == NULL) {
@@ -1193,6 +1200,9 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
         goto fail;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Received [%s] attributes from IPA server.\n",
+                             state->attrs->a.name);
 
     if (is_default_view(state->ipa_ctx->view_name)) {
         ret = ipa_s2n_get_list_save_step(req);
@@ -1374,6 +1384,11 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto fail;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Sending request_type: [%s] for trust user [%s] "
+                            "to IPA server\n",
+                            ipa_s2n_reqtype2str(state->request_type),
+                            req_input->inp.name);
 
     subreq = ipa_s2n_exop_send(state, state->ev, state->sh, is_v1,
                                state->exop_timeout, bv_req);
@@ -1661,6 +1676,19 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         state->attrs = attrs;
 
         if (attrs->response_type == RESP_USER_GROUPLIST) {
+
+            if (DEBUG_IS_SET(SSSDBG_TRACE_FUNC)) {
+                size_t c;
+
+                DEBUG(SSSDBG_TRACE_FUNC, "Received [%zu] groups in group list "
+                                         "from IPA Server\n", attrs->ngroups);
+
+                for (c = 0; c < attrs->ngroups; c++) {
+                    DEBUG(SSSDBG_TRACE_FUNC, "[%s].\n", attrs->groups[c]);
+                }
+            }
+
+
             ret = get_group_dn_list(state, state->dom,
                                     attrs->ngroups, attrs->groups,
                                     &group_dn_list, &missing_list);
