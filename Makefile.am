@@ -1572,6 +1572,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider/dp_target_subdomains.c \
     src/providers/data_provider/dp_target_id.c \
     src/providers/data_provider/dp_target_auth.c \
+    src/util/session_recording.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     $(LIBADD_DL) \

@@ -428,6 +428,15 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Read session_recording section */
+    ret = session_recording_conf_load(be_ctx, cdb, &be_ctx->sr_conf);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed loading session recording configuration: %s\n",
+              strerror(ret));
+        goto done;
+    }
+
     /* Initialize be_refresh periodic task. */
     be_ctx->refresh_ctx = be_refresh_ctx_init(be_ctx);
     if (be_ctx->refresh_ctx == NULL) {
