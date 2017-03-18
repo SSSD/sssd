@@ -71,7 +71,7 @@ intgcheck-installed: config.py passwd group
 	unset HOME; \
 	PATH="$$(dirname -- $(SLAPD)):$$PATH" \
 	PATH="$(DESTDIR)$(sbindir):$(DESTDIR)$(bindir):$$PATH" \
-	PATH="$(abs_builddir):$(abs_srcdir):$$PATH" \
+	PATH="$$PATH:$(abs_builddir):$(abs_srcdir)" \
 	PYTHONPATH="$(abs_builddir):$(abs_srcdir)" \
 	LDB_MODULES_PATH="$(DESTDIR)$(ldblibdir)" \
 	LD_PRELOAD="$$nss_wrapper $$uid_wrapper" \
