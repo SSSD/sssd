@@ -303,4 +303,53 @@ void kcm_debug_uuid(uuid_t uuid);
  */
 errno_t kcm_check_name(const char *name, struct cli_creds *client);
 
+/*
+ * ccahe marshalling to and from JSON. This is used when the ccaches
+ * are stored in the secrets store
+ */
+
+/*
+ * The secrets store is a key-value store at heart. We store the UUID
+ * and the name in the key to allow easy lookups be either key
+ */
+bool sec_key_match_name(const char *sec_key,
+                        const char *name);
+
+bool sec_key_match_uuid(const char *sec_key,
+                        uuid_t uuid);
+
+const char *sec_key_get_name(const char *sec_key);
+
+errno_t sec_key_get_uuid(const char *sec_key,
+                         uuid_t uuid);
+
+/* Create a URL for the default client's ccache */
+const char *sec_dfl_url_create(TALLOC_CTX *mem_ctx,
+                               struct cli_creds *client);
+
+/* Create a URL for the client's ccache container */
+const char *sec_container_url_create(TALLOC_CTX *mem_ctx,
+                                     struct cli_creds *client);
+
+const char *sec_cc_url_create(TALLOC_CTX *mem_ctx,
+                              struct cli_creds *client,
+                              const char *sec_key);
+
+/*
+ * sec_key is a concatenation of the ccache's UUID and name
+ * sec_value is the JSON dump of the ccache contents
+ */
+errno_t sec_kv_to_ccache(TALLOC_CTX *mem_ctx,
+                         const char *sec_key,
+                         const char *sec_value,
+                         struct cli_creds *client,
+                         struct kcm_ccache **_cc);
+
+/* Convert a kcm_ccache to a key-value pair to be stored in secrets */
+errno_t kcm_ccache_to_sec_input(TALLOC_CTX *mem_ctx,
+                                struct kcm_ccache *cc,
+                                struct cli_creds *client,
+                                const char **_url,
+                                struct sss_iobuf **_payload);
+
 #endif /* _KCMSRV_CCACHE_H_ */

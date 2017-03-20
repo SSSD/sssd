@@ -109,6 +109,8 @@ struct err_string error_to_str[] = {
     { "KCM operation not implemented" }, /* ERR_KCM_OP_NOT_IMPLEMENTED */
     { "End of credential cache reached" }, /* ERR_KCM_CC_END */
     { "Credential cache name not allowed" }, /* ERR_KCM_WRONG_CCNAME_FORMAT */
+    { "Cannot encode a JSON object to string" }, /* ERR_JSON_ENCODING */
+    { "Cannot decode a JSON object from string" }, /* ERR_JSON_DECODING */
     { "ERR_LAST" } /* ERR_LAST */
 };
 
