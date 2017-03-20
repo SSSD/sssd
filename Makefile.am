@@ -303,6 +303,10 @@ if HAVE_INOTIFY
 non_interactive_cmocka_based_tests += test_inotify
 endif   # HAVE_INOTIFY
 
+if BUILD_KCM
+non_interactive_cmocka_based_tests += test_kcm_json
+endif   # BUILD_KCM
+
 if BUILD_SAMBA
 non_interactive_cmocka_based_tests += \
     ad_access_filter_tests \
@@ -1494,19 +1498,26 @@ sssd_kcm_SOURCES = \
     src/responder/kcm/kcmsrv_cmd.c \
     src/responder/kcm/kcmsrv_ccache.c \
     src/responder/kcm/kcmsrv_ccache_mem.c \
+    src/responder/kcm/kcmsrv_ccache_json.c \
+    src/responder/kcm/kcmsrv_ccache_secrets.c \
     src/responder/kcm/kcmsrv_ops.c \
     src/util/sss_sockets.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
+    src/util/tev_curl.c \
     $(SSSD_RESPONDER_OBJ) \
     $(NULL)
 sssd_kcm_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS) \
     $(UUID_CFLAGS) \
+    $(CURL_CFLAGS) \
+    $(JANSSON_CFLAGS) \
     $(NULL)
 sssd_kcm_LDADD = \
     $(KRB5_LIBS) \
+    $(CURL_LIBS) \
+    $(JANSSON_LIBS) \
     $(SSSD_LIBS) \
     $(UUID_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
@@ -3369,6 +3380,30 @@ sss_certmap_test_LDADD = \
     libsss_certmap.la \
     $(NULL)
 endif
+
+if BUILD_KCM
+test_kcm_json_SOURCES = \
+    src/tests/cmocka/test_kcm_json_marshalling.c \
+    src/responder/kcm/kcmsrv_ccache_json.c \
+    src/responder/kcm/kcmsrv_ccache.c \
+    src/util/sss_krb5.c \
+    src/util/sss_iobuf.c \
+    $(NULL)
+test_kcm_json_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(UUID_CFLAGS) \
+    $(NULL)
+test_kcm_json_LDADD = \
+    $(JANSSON_LIBS) \
+    $(UUID_LIBS) \
+    $(KRB5_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+endif # BUILD_KCM
+
 endif # HAVE_CMOCKA
 
 noinst_PROGRAMS = pam_test_client
@@ -3431,8 +3466,9 @@ intgcheck-prepare:
 	    --enable-intgcheck-reqs \
 	    --without-semanage \
 	    --enable-files-domain \
-	    $(INTGCHECK_CONFIGURE_FLAGS); \
-	$(MAKE) $(AM_MAKEFLAGS); \
+	    $(INTGCHECK_CONFIGURE_FLAGS) \
+	    CFLAGS="$$CFLAGS $(AM_CFLAGS) -DKCM_PEER_UID=$$(id -u)"; \
+	$(MAKE) $(AM_MAKEFLAGS) ; \
 	: Force single-thread install to workaround concurrency issues; \
 	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
 	: Remove .la files from LDB module directory to avoid loader warnings; \

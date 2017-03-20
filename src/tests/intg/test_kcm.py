@@ -27,7 +27,8 @@ import signal
 import kdc
 import krb5utils
 import config
-from util import unindent, run_shell
+from util import unindent
+from test_secrets import create_sssd_secrets_fixture
 
 class KcmTestEnv(object):
     def __init__(self, k5kdc, k5util):
@@ -107,15 +108,8 @@ def create_sssd_kcm_fixture(sock_path, request):
     return kcm_pid
 
 
-@pytest.fixture
-def setup_for_kcm(request, kdc_instance):
-    """
-    Just set up the local provider for tests and enable the KCM
-    responder
-    """
-    kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
-
-    sssd_conf = unindent("""\
+def create_sssd_conf(kcm_path, ccache_storage):
+    return unindent("""\
         [sssd]
         domains = local
         services = nss
@@ -125,8 +119,11 @@ def setup_for_kcm(request, kdc_instance):
 
         [kcm]
         socket_path = {kcm_path}
+        ccache_storage = {ccache_storage}
     """).format(**locals())
 
+
+def common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf):
     kcm_socket_include = unindent("""
     [libdefaults]
     default_ccache_name = KCM:
@@ -142,11 +139,35 @@ def setup_for_kcm(request, kdc_instance):
     return KcmTestEnv(kdc_instance, k5util)
 
 
-def test_kcm_init_list_destroy(setup_for_kcm):
+@pytest.fixture
+def setup_for_kcm_mem(request, kdc_instance):
+    """
+    Just set up the local provider for tests and enable the KCM
+    responder
+    """
+    kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
+    sssd_conf = create_sssd_conf(kcm_path, "memory")
+    return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
+
+@pytest.fixture
+def setup_secrets(request):
+    create_sssd_secrets_fixture(request)
+
+@pytest.fixture
+def setup_for_kcm_sec(request, kdc_instance):
+    """
+    Just set up the local provider for tests and enable the KCM
+    responder
+    """
+    kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
+    sssd_conf = create_sssd_conf(kcm_path, "secrets")
+    return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
+
+
+def kcm_init_list_destroy(testenv):
     """
     Test that kinit, kdestroy and klist work with KCM
     """
-    testenv = setup_for_kcm
     testenv.k5kdc.add_principal("kcmtest", "Secret123")
 
     ok = testenv.k5util.has_principal("kcmtest@KCMTEST")
@@ -172,12 +193,22 @@ def test_kcm_init_list_destroy(setup_for_kcm):
     assert nprincs == 0
 
 
-def test_kcm_overwrite(setup_for_kcm):
+def test_kcm_mem_init_list_destroy(setup_for_kcm_mem):
+    testenv = setup_for_kcm_mem
+    kcm_init_list_destroy(testenv)
+
+
+def test_kcm_sec_init_list_destroy(setup_for_kcm_sec,
+                                   setup_secrets):
+    testenv = setup_for_kcm_sec
+    kcm_init_list_destroy(testenv)
+
+
+def kcm_overwrite(testenv):
     """
     That that reusing a ccache reinitializes the cache and doesn't
     add the same principal twice
     """
-    testenv = setup_for_kcm
     testenv.k5kdc.add_principal("kcmtest", "Secret123")
     exp_ccache = {'kcmtest@KCMTEST': ['krbtgt/KCMTEST@KCMTEST']}
 
@@ -192,12 +223,22 @@ def test_kcm_overwrite(setup_for_kcm):
     assert exp_ccache == testenv.k5util.list_all_princs()
 
 
-def test_collection_init_list_destroy(setup_for_kcm):
+def test_kcm_mem_overwrite(setup_for_kcm_mem):
+    testenv = setup_for_kcm_mem
+    kcm_overwrite(testenv)
+
+
+def test_kcm_sec_overwrite(setup_for_kcm_sec,
+                           setup_secrets):
+    testenv = setup_for_kcm_sec
+    kcm_overwrite(testenv)
+
+
+def collection_init_list_destroy(testenv):
     """
     Test that multiple principals and service tickets can be stored
     in a collection.
     """
-    testenv = setup_for_kcm
     testenv.k5kdc.add_principal("alice", "alicepw")
     testenv.k5kdc.add_principal("bob", "bobpw")
     testenv.k5kdc.add_principal("carol", "carolpw")
@@ -241,7 +282,11 @@ def test_collection_init_list_destroy(setup_for_kcm):
 
     out = testenv.k5util.kdestroy()
     assert out == 0
-    assert testenv.k5util.default_principal() == 'bob@KCMTEST'
+    # If the default is removed, KCM just uses whetever is the first entry
+    # in the collection as the default. And sine the KCM back ends don't
+    # guarantee if they are FIFO or LIFO, just check for either alice or bob
+    assert testenv.k5util.default_principal() in \
+            ['alice@KCMTEST', 'bob@KCMTEST']
     cc_coll = testenv.k5util.list_all_princs()
     assert len(cc_coll) == 2
     assert cc_coll['alice@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
@@ -255,11 +300,21 @@ def test_collection_init_list_destroy(setup_for_kcm):
     #assert len(cc_coll) == 0
 
 
-def test_kswitch(setup_for_kcm):
+def test_kcm_mem_collection_init_list_destroy(setup_for_kcm_mem):
+    testenv = setup_for_kcm_mem
+    collection_init_list_destroy(testenv)
+
+
+def test_kcm_sec_collection_init_list_destroy(setup_for_kcm_sec,
+                                              setup_secrets):
+    testenv = setup_for_kcm_sec
+    collection_init_list_destroy(testenv)
+
+
+def exercise_kswitch(testenv):
     """
     Test switching between principals
     """
-    testenv = setup_for_kcm
     testenv.k5kdc.add_principal("alice", "alicepw")
     testenv.k5kdc.add_principal("bob", "bobpw")
     testenv.k5kdc.add_principal("host/somehostname")
@@ -301,12 +356,22 @@ def test_kswitch(setup_for_kcm):
                                     'host/differenthostname@KCMTEST'])
 
 
-def test_subsidiaries(setup_for_kcm):
+def test_kcm_mem_kswitch(setup_for_kcm_mem):
+    testenv = setup_for_kcm_mem
+    exercise_kswitch(testenv)
+
+
+def test_kcm_sec_kswitch(setup_for_kcm_sec,
+                         setup_secrets):
+    testenv = setup_for_kcm_sec
+    exercise_kswitch(testenv)
+
+
+def exercise_subsidiaries(testenv):
     """
     Test that subsidiary caches are usable and KCM: without specifying UID
     can be used to identify the collection
     """
-    testenv = setup_for_kcm
     testenv.k5kdc.add_principal("alice", "alicepw")
     testenv.k5kdc.add_principal("bob", "bobpw")
     testenv.k5kdc.add_principal("host/somehostname")
@@ -346,11 +411,21 @@ def test_subsidiaries(setup_for_kcm):
                                             'host/differenthostname@KCMTEST'])
 
 
-def test_kdestroy_nocache(setup_for_kcm):
+def test_kcm_mem_subsidiaries(setup_for_kcm_mem):
+    testenv = setup_for_kcm_mem
+    exercise_subsidiaries(testenv)
+
+
+def test_kcm_sec_subsidiaries(setup_for_kcm_sec,
+                              setup_secrets):
+    testenv = setup_for_kcm_sec
+    exercise_subsidiaries(testenv)
+
+
+def kdestroy_nocache(testenv):
     """
     Destroying a non-existing ccache should not throw an error
     """
-    testenv = setup_for_kcm
     testenv.k5kdc.add_principal("alice", "alicepw")
     out, _, _ = testenv.k5util.kinit("alice", "alicepw")
     assert out == 0
@@ -359,3 +434,14 @@ def test_kdestroy_nocache(setup_for_kcm):
     assert out == 0
     out = testenv.k5util.kdestroy()
     assert out == 0
+
+
+def test_kcm_mem_kdestroy_nocache(setup_for_kcm_mem):
+    testenv = setup_for_kcm_mem
+    exercise_subsidiaries(testenv)
+
+
+def test_kcm_sec_kdestroy_nocache(setup_for_kcm_sec,
+                                  setup_secrets):
+    testenv = setup_for_kcm_sec
+    exercise_subsidiaries(testenv)

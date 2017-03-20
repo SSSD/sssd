@@ -131,6 +131,8 @@ enum sssd_errors {
     ERR_KCM_OP_NOT_IMPLEMENTED,
     ERR_KCM_CC_END,
     ERR_KCM_WRONG_CCNAME_FORMAT,
+    ERR_JSON_ENCODING,
+    ERR_JSON_DECODING,
     ERR_LAST            /* ALWAYS LAST */
 };
 
