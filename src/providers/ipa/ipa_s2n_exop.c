@@ -979,6 +979,22 @@ done:
     return ret;
 }
 
+static const char *ipa_s2n_reqtype2str(enum request_types request_type)
+{
+    switch (request_type) {
+    case REQ_SIMPLE:
+        return "REQ_SIMPLE";
+    case REQ_FULL:
+        return "REQ_FULL";
+    case REQ_FULL_WITH_MEMBERS:
+        return "REQ_FULL_WITH_MEMBERS";
+    default:
+        break;
+    }
+
+    return "Unknown request type";
+}
+
 struct ipa_s2n_get_list_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
