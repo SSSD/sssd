@@ -28,6 +28,12 @@
                     <manvolnum>5</manvolnum>
                 </citerefentry>,
             </phrase>
+            <phrase condition="with_secrets">
+                <citerefentry>
+                    <refentrytitle>sssd-secrets</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry>,
+            </phrase>
             <citerefentry>
                 <refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
