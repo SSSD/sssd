@@ -2244,7 +2244,9 @@ static int reply_weight_rearrange(int len,
             new_end = r;
         }
     }
-    new_end->next = NULL;
+    if (new_end) {
+        new_end->next = NULL;
+    }
 
     /* return the rearranged list */
     *start = new_start;

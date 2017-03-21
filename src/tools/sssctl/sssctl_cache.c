@@ -30,11 +30,11 @@
 
 #define NOT_FOUND_MSG(obj) _(obj " %s is not present in cache.\n")
 
-#define SSSCTL_CACHE_NAME   {_("Name"), SYSDB_NAME, attr_name}
-#define SSSCTL_CACHE_CREATE {_("Cache entry creation date"), SYSDB_CREATE_TIME, attr_time}
-#define SSSCTL_CACHE_UPDATE {_("Cache entry last update time"), SYSDB_LAST_UPDATE, attr_time}
-#define SSSCTL_CACHE_EXPIRE {_("Cache entry expiration time"), SYSDB_CACHE_EXPIRE, attr_expire}
-#define SSSCTL_CACHE_IFP    {_("Cached in InfoPipe"), SYSDB_IFP_CACHED, attr_yesno}
+#define SSSCTL_CACHE_NAME   {_("Name"), SYSDB_NAME, get_attr_name}
+#define SSSCTL_CACHE_CREATE {_("Cache entry creation date"), SYSDB_CREATE_TIME, get_attr_time}
+#define SSSCTL_CACHE_UPDATE {_("Cache entry last update time"), SYSDB_LAST_UPDATE, get_attr_time}
+#define SSSCTL_CACHE_EXPIRE {_("Cache entry expiration time"), SYSDB_CACHE_EXPIRE, get_attr_expire}
+#define SSSCTL_CACHE_IFP    {_("Cached in InfoPipe"), SYSDB_IFP_CACHED, get_attr_yesno}
 #define SSSCTL_CACHE_NULL   {NULL, NULL, NULL}
 
 enum cache_object {
@@ -87,11 +87,11 @@ static errno_t time_to_string(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t attr_name(TALLOC_CTX *mem_ctx,
-                           struct sysdb_attrs *entry,
-                           struct sss_domain_info *dom,
-                           const char *attr,
-                           const char **_value)
+static errno_t get_attr_name(TALLOC_CTX *mem_ctx,
+                             struct sysdb_attrs *entry,
+                             struct sss_domain_info *dom,
+                             const char *attr,
+                             const char **_value)
 {
     errno_t ret;
     const char *orig_name;
@@ -123,11 +123,11 @@ static errno_t attr_name(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t attr_time(TALLOC_CTX *mem_ctx,
-                         struct sysdb_attrs *entry,
-                         struct sss_domain_info *dom,
-                         const char *attr,
-                         const char **_value)
+static errno_t get_attr_time(TALLOC_CTX *mem_ctx,
+                             struct sysdb_attrs *entry,
+                             struct sss_domain_info *dom,
+                             const char *attr,
+                             const char **_value)
 {
     uint32_t value;
     errno_t ret;
@@ -140,11 +140,11 @@ static errno_t attr_time(TALLOC_CTX *mem_ctx,
     return time_to_string(mem_ctx, value, _value);
 }
 
-static errno_t attr_expire(TALLOC_CTX *mem_ctx,
-                           struct sysdb_attrs *entry,
-                           struct sss_domain_info *dom,
-                           const char *attr,
-                           const char **_value)
+static errno_t get_attr_expire(TALLOC_CTX *mem_ctx,
+                               struct sysdb_attrs *entry,
+                               struct sss_domain_info *dom,
+                               const char *attr,
+                               const char **_value)
 {
     uint32_t value;
     errno_t ret;
@@ -187,11 +187,11 @@ static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
     return time_to_string(mem_ctx, value, _value);
 }
 
-static errno_t attr_yesno(TALLOC_CTX *mem_ctx,
-                          struct sysdb_attrs *entry,
-                          struct sss_domain_info *dom,
-                          const char *attr,
-                          const char **_value)
+static errno_t get_attr_yesno(TALLOC_CTX *mem_ctx,
+                              struct sysdb_attrs *entry,
+                              struct sss_domain_info *dom,
+                              const char *attr,
+                              const char **_value)
 {
     errno_t ret;
     bool val;
