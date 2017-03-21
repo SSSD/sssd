@@ -25,6 +25,7 @@
 #include "config.h"
 
 #include <sys/types.h>
+#include <krb5/krb5.h>
 #include "responder/common/responder.h"
 
 /*
@@ -65,6 +66,7 @@ struct kcm_ctx {
     int fd_limit;
     char *socket_path;
     enum kcm_ccdb_be cc_be;
+    struct kcm_ops_queue_ctx *qctx;
 
     struct kcm_resp_ctx *kcm_data;
 };
@@ -77,5 +79,23 @@ int kcm_connection_setup(struct cli_ctx *cctx);
  * nicely, but the client expects libkrb5 error codes.
  */
 krb5_error_code sss2krb5_error(errno_t err);
+
+/* We enqueue all requests by the same UID to avoid concurrency issues
+ * especially when performing multiple round-trips to sssd-secrets. In
+ * future, we should relax the queue to allow multiple read-only operations
+ * if no write operations are in progress.
+ */
+struct kcm_ops_queue_entry;
+
+struct kcm_ops_queue_ctx *kcm_ops_queue_create(TALLOC_CTX *mem_ctx);
+
+struct tevent_req *kcm_op_queue_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct kcm_ops_queue_ctx *qctx,
+                                     struct cli_creds *client);
+
+errno_t kcm_op_queue_recv(struct tevent_req *req,
+                          TALLOC_CTX *mem_ctx,
+                          struct kcm_ops_queue_entry **_entry);
 
 #endif /* __KCMSRV_PVT_H__ */
