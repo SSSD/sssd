@@ -147,4 +147,9 @@ do { \
 #define DLIST_FOR_EACH(p, list) \
     for ((p) = (list); (p) != NULL; (p) = (p)->next)
 
+#define DLIST_FOR_EACH_SAFE(p, q, list) \
+    for ((p) = (list), (q) = (p) != NULL ? (p)->next : NULL; \
+         (p) != NULL; \
+         (p) = (q), (q) = (p) != NULL ? (p)->next : NULL)
+
 #endif /* _DLINKLIST_H */
