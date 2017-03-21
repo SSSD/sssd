@@ -26,6 +26,9 @@
 
 #define MKEY_SIZE (256 / 8)
 
+#define SECRETS_BASEDN  "cn=secrets"
+#define KCM_BASEDN      "cn=kcm"
+
 struct local_context {
     struct ldb_context *ldb;
     struct sec_data master_key;
@@ -119,6 +122,7 @@ static int local_encrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
 
 static int local_db_dn(TALLOC_CTX *mem_ctx,
                        struct ldb_context *ldb,
+                       const char *basedn,
                        const char *req_path,
                        struct ldb_dn **req_dn)
 {
@@ -126,7 +130,7 @@ static int local_db_dn(TALLOC_CTX *mem_ctx,
     const char *s, *e;
     int ret;
 
-    dn = ldb_dn_new(mem_ctx, ldb, "cn=secrets");
+    dn = ldb_dn_new(mem_ctx, ldb, basedn);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -738,6 +742,11 @@ static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
         lc_req->path = talloc_strdup(lc_req,
                                      secreq->mapped_path + (sizeof(SEC_BASEPATH) - 1));
         basedn = SECRETS_BASEDN;
+    } else if (strncmp(secreq->mapped_path,
+               SEC_KCM_BASEPATH, sizeof(SEC_KCM_BASEPATH) - 1) == 0) {
+        lc_req->path = talloc_strdup(lc_req,
+                                     secreq->mapped_path + (sizeof(SEC_KCM_BASEPATH) - 1));
+        basedn = KCM_BASEDN;
     } else {
         ret = EINVAL;
         goto done;
@@ -820,7 +829,10 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_LIBS, "Content-Type: %s\n", content_type);
 
     ret = local_secrets_map_path(state, lctx->ldb, secreq, &lc_req);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot map request path to local path\n");
+        goto done;
+    }
 
     switch (secreq->method) {
     case HTTP_GET:

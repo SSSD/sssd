@@ -24,6 +24,14 @@
 #include "responder/secrets/secsrv_proxy.h"
 #include <jansson.h>
 
+typedef int (*url_mapper_fn)(struct sec_req_ctx *secreq,
+                             char **mapped_path);
+
+struct url_pfx_router {
+    const char *prefix;
+    url_mapper_fn mapper_fn;
+};
+
 static int sec_map_url_to_user_path(struct sec_req_ctx *secreq,
                                     char **mapped_path)
 {
@@ -42,9 +50,42 @@ static int sec_map_url_to_user_path(struct sec_req_ctx *secreq,
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, "User-specific path is [%s]\n", *mapped_path);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "User-specific secrets path is [%s]\n", *mapped_path);
     return EOK;
 }
+
+static int kcm_map_url_to_path(struct sec_req_ctx *secreq,
+                               char **mapped_path)
+{
+    uid_t c_euid;
+
+    c_euid = client_euid(secreq->cctx->creds);
+    if (c_euid != KCM_PEER_UID) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "UID %"SPRIuid" is not allowed to access "
+              "the "SEC_KCM_BASEPATH" hive\n",
+              c_euid);
+        return EPERM;
+    }
+
+    *mapped_path = talloc_strdup(secreq, secreq->parsed_url.path );
+    if (!*mapped_path) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to map request to user specific url\n");
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "User-specific KCM path is [%s]\n", *mapped_path);
+    return EOK;
+}
+
+static struct url_pfx_router secrets_url_mapping[] = {
+    { SEC_BASEPATH, sec_map_url_to_user_path },
+    { SEC_KCM_BASEPATH, kcm_map_url_to_path },
+    { NULL, NULL },
+};
 
 int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
                     struct provider_handle **handle)
@@ -55,21 +96,35 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
     char *provider;
     int num_sections;
     int ret;
+    url_mapper_fn mapper_fn = NULL;
 
     sctx = talloc_get_type(secreq->cctx->rctx->pvt_ctx, struct sec_ctx);
 
-    /* patch must start with /secrets/ for now */
-    ret = strncasecmp(secreq->parsed_url.path,
-                      SEC_BASEPATH, sizeof(SEC_BASEPATH) - 1);
-    if (ret != 0) {
+    for (int i = 0; secrets_url_mapping[i].prefix != NULL; i++) {
+        if (strncasecmp(secreq->parsed_url.path,
+                        secrets_url_mapping[i].prefix,
+                        strlen(secrets_url_mapping[i].prefix)) == 0) {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "Mapping prefix %s\n", secrets_url_mapping[i].prefix);
+            mapper_fn = secrets_url_mapping[i].mapper_fn;
+            break;
+        }
+    }
+
+    if (mapper_fn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Path [%s] does not start with "SEC_BASEPATH"\n",
+              "Path [%s] does not start with any allowed prefix\n",
               secreq->parsed_url.path);
         return EPERM;
     }
 
-    ret = sec_map_url_to_user_path(secreq, &secreq->mapped_path);
-    if (ret) return ret;
+    ret = mapper_fn(secreq, &secreq->mapped_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to map the user path [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
 
     /* source default provider */
     ret = confdb_get_string(secreq->cctx->rctx->cdb, mem_ctx,
