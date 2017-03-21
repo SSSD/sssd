@@ -34,6 +34,7 @@ const char *kcm_opt_name(struct kcm_op *op);
 
 struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
                                 struct tevent_context *ev,
+                                struct kcm_ops_queue_ctx *qctx,
                                 struct kcm_resp_ctx *kcm_data,
                                 struct cli_creds *client,
                                 struct kcm_data *input,

@@ -67,17 +67,21 @@ struct kcm_op {
 
 struct kcm_cmd_state {
     struct kcm_op *op;
+    struct tevent_context *ev;
 
+    struct kcm_ops_queue_entry *queue_entry;
     struct kcm_op_ctx *op_ctx;
     struct sss_iobuf *reply;
 
     uint32_t op_ret;
 };
 
+static void kcm_cmd_queue_done(struct tevent_req *subreq);
 static void kcm_cmd_done(struct tevent_req *subreq);
 
 struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
                                 struct tevent_context *ev,
+                                struct kcm_ops_queue_ctx *qctx,
                                 struct kcm_resp_ctx *kcm_data,
                                 struct cli_creds *client,
                                 struct kcm_data *input,
@@ -93,6 +97,7 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
     state->op = op;
+    state->ev = ev;
 
     if (op == NULL) {
         ret = EINVAL;
@@ -154,18 +159,43 @@ struct tevent_req *kcm_cmd_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    subreq = op->fn_send(state, ev, state->op_ctx);
+    subreq = kcm_op_queue_send(state, ev, qctx, client);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediate;
     }
-    tevent_req_set_callback(subreq, kcm_cmd_done, req);
+    tevent_req_set_callback(subreq, kcm_cmd_queue_done, req);
     return req;
 
 immediate:
     tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
+}
+
+static void kcm_cmd_queue_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
+    struct kcm_cmd_state *state = tevent_req_data(req, struct kcm_cmd_state);
+    errno_t ret;
+
+    /* When this request finishes, it frees the queue_entry which unblocks
+     * other requests by the same UID
+     */
+    ret = kcm_op_queue_recv(subreq, state, &state->queue_entry);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot acquire queue slot\n");
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = state->op->fn_send(state, state->ev, state->op_ctx);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, kcm_cmd_done, req);
 }
 
 static void kcm_cmd_done(struct tevent_req *subreq)

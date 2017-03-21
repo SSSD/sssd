@@ -353,14 +353,18 @@ struct kcm_req_ctx {
 
 static void kcm_cmd_request_done(struct tevent_req *req);
 
-static errno_t kcm_cmd_dispatch(struct kcm_req_ctx *req_ctx)
+static errno_t kcm_cmd_dispatch(struct kcm_ctx *kctx,
+                                struct kcm_req_ctx *req_ctx)
 {
     struct tevent_req *req;
     struct cli_ctx *cctx;
 
     cctx = req_ctx->cctx;
 
-    req = kcm_cmd_send(req_ctx, cctx->ev, req_ctx->kctx->kcm_data,
+    req = kcm_cmd_send(req_ctx,
+                       cctx->ev,
+                       kctx->qctx,
+                       req_ctx->kctx->kcm_data,
                        req_ctx->cctx->creds,
                        &req_ctx->op_io.request,
                        req_ctx->op_io.op);
@@ -505,7 +509,7 @@ static void kcm_recv(struct cli_ctx *cctx)
     /* do not read anymore, client is done sending */
     TEVENT_FD_NOT_READABLE(cctx->cfde);
 
-    ret = kcm_cmd_dispatch(req);
+    ret = kcm_cmd_dispatch(kctx, req);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to dispatch KCM operation [%d]: %s\n",

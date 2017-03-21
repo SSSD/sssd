@@ -304,7 +304,10 @@ non_interactive_cmocka_based_tests += test_inotify
 endif   # HAVE_INOTIFY
 
 if BUILD_KCM
-non_interactive_cmocka_based_tests += test_kcm_json
+non_interactive_cmocka_based_tests += \
+	test_kcm_json \
+	test_kcm_queue \
+        $(NULL)
 endif   # BUILD_KCM
 
 if BUILD_SAMBA
@@ -1501,6 +1504,7 @@ sssd_kcm_SOURCES = \
     src/responder/kcm/kcmsrv_ccache_json.c \
     src/responder/kcm/kcmsrv_ccache_secrets.c \
     src/responder/kcm/kcmsrv_ops.c \
+    src/responder/kcm/kcmsrv_op_queue.c \
     src/util/sss_sockets.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
@@ -3402,6 +3406,21 @@ test_kcm_json_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     $(NULL)
+
+test_kcm_queue_SOURCES = \
+    src/tests/cmocka/test_kcm_queue.c \
+    src/responder/kcm/kcmsrv_op_queue.c \
+    $(NULL)
+test_kcm_queue_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_kcm_queue_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
 endif # BUILD_KCM
 
 endif # HAVE_CMOCKA
