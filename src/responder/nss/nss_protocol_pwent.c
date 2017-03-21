@@ -120,6 +120,46 @@ nss_get_homedir(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
+nss_get_shell(struct nss_ctx *nss_ctx,
+              struct sss_domain_info *domain,
+              struct ldb_message *msg,
+              const char *name,
+              uint32_t uid,
+              const char **_shell)
+{
+    const char *shell = NULL;
+
+    if (nss_ctx->rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL) {
+        shell = SESSION_RECORDING_SHELL;
+    } else if (nss_ctx->rctx->sr_conf.scope ==
+               SESSION_RECORDING_SCOPE_SOME) {
+        const char *sr_enabled;
+        sr_enabled = ldb_msg_find_attr_as_string(
+                                    msg, SYSDB_SESSION_RECORDING, NULL);
+        if (sr_enabled == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "%s attribute not found for %s[%u]! Skipping\n",
+                  SYSDB_SESSION_RECORDING, name, uid);
+            return EINVAL;
+        } else if (strcmp(sr_enabled, "TRUE") == 0) {
+            shell = SESSION_RECORDING_SHELL;
+        } else if (strcmp(sr_enabled, "FALSE") != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Skipping %s[%u] "
+                  "because its %s attribute value is invalid: %s\n",
+                  name, uid, SYSDB_SESSION_RECORDING, sr_enabled);
+            return EINVAL;
+        }
+    }
+    if (shell == NULL) {
+        shell = sss_resp_get_shell_override(msg, nss_ctx->rctx, domain);
+    }
+
+    *_shell = shell;
+    return EOK;
+}
+
+static errno_t
 nss_get_pwent(TALLOC_CTX *mem_ctx,
               struct nss_ctx *nss_ctx,
               struct sss_domain_info *domain,
@@ -156,7 +196,13 @@ nss_get_pwent(TALLOC_CTX *mem_ctx,
     gecos = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_GECOS,
                                                  NULL);
     homedir = nss_get_homedir(mem_ctx, nss_ctx, domain, msg, name, upn, uid);
-    shell = sss_resp_get_shell_override(msg, nss_ctx->rctx, domain);
+    ret = nss_get_shell(nss_ctx, domain, msg, name, uid, &shell);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "failed retrieving shell for %s[%u], skipping [%d]: %s\n",
+              name, uid, ret, sss_strerror(ret));
+        return ret;
+    }
 
     /* Convert to sized strings. */
     ret = sized_output_name(mem_ctx, nss_ctx->rctx, name, domain, _name);
