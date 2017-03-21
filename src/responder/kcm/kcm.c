@@ -133,6 +133,15 @@ static int kcm_get_config(struct kcm_ctx *kctx)
         goto done;
     }
 
+    if (kctx->cc_be == CCDB_BE_SECRETS) {
+        ret = responder_setup_idle_timeout_config(kctx->rctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot set up idle responder timeout\n");
+            /* Not fatal */
+        }
+    }
+
     kctx->qctx = kcm_ops_queue_create(kctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
