@@ -1855,6 +1855,7 @@ int sysdb_add_user(struct sss_domain_info *domain,
     struct sysdb_attrs *id_attrs;
     uint32_t id;
     int ret;
+    bool posix;
 
     if (domain->mpg) {
         if (gid != 0) {
@@ -1926,7 +1927,28 @@ int sysdb_add_user(struct sss_domain_info *domain,
         /* Not fatal */
     }
 
-    if (uid == 0) {
+    if (!attrs) {
+        attrs = sysdb_new_attrs(tmp_ctx);
+        if (!attrs) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = sysdb_attrs_get_bool(attrs, SYSDB_POSIX, &posix);
+    if (ret == ENOENT) {
+        posix = true;
+        ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, true);
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add posix attribute.\n");
+            goto done;
+        }
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to get posix attribute.\n");
+        goto done;
+    }
+
+    if (uid == 0 && posix == true) {
         ret = sysdb_get_new_id(domain, &id);
         if (ret) goto done;
 
@@ -1946,14 +1968,6 @@ int sysdb_add_user(struct sss_domain_info *domain,
         ret = sysdb_set_user_attr(domain, name, id_attrs, SYSDB_MOD_REP);
         /* continue on success, to commit additional attrs */
         if (ret) goto done;
-    }
-
-    if (!attrs) {
-        attrs = sysdb_new_attrs(tmp_ctx);
-        if (!attrs) {
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     if (!now) {

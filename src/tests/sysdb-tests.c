@@ -1428,6 +1428,59 @@ START_TEST (test_sysdb_get_user_attr_subdomain)
 }
 END_TEST
 
+START_TEST (test_sysdb_add_nonposix_user)
+{
+    struct sysdb_test_ctx *test_ctx;
+    const char *get_attrs[] = { SYSDB_GIDNUM,
+                                SYSDB_UIDNUM,
+                                SYSDB_POSIX,
+                                NULL };
+    struct ldb_result *res;
+    const char *attrval;
+    const char *username = "test_sysdb_add_nonposix_user";
+    const char *fq_name;
+    struct sysdb_attrs *user_attrs;
+    int ret;
+    uint64_t id;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    /* Create user */
+    fq_name = sss_create_internal_fqname(test_ctx, username, test_ctx->domain->name);
+    fail_if(fq_name == NULL, "Failed to create fq name.");
+
+    user_attrs = sysdb_new_attrs(test_ctx);
+    fail_if(user_attrs == NULL);
+
+    ret = sysdb_attrs_add_bool(user_attrs, SYSDB_POSIX, false);
+    fail_if(ret != EOK, "Could not add attribute");
+
+    ret = sysdb_add_user(test_ctx->domain, fq_name, 0, 0, "Gecos",
+                         "/home/userhome", "/bin/bash", NULL, user_attrs, 0, 0);
+    fail_if(ret != EOK, "sysdb_add_user failed.");
+
+    /* Test */
+    ret = sysdb_get_user_attr(test_ctx, test_ctx->domain, fq_name,
+                              get_attrs, &res);
+    fail_if(ret != EOK, "Could not get user attributes.");
+    fail_if(res->count != 1, "Invalid number of entries, expected 1, got %d",
+            res->count);
+
+    attrval = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_POSIX, NULL);
+    fail_if(strcasecmp(attrval, "false") != 0, "Got bad attribute value.");
+
+    id = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 123);
+    fail_unless(id == 0, "Wrong UID value");
+
+    id = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 123);
+    fail_unless(id == 0, "Wrong GID value");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_add_group_member)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -7043,6 +7096,9 @@ Suite *create_sysdb_suite(void)
 
     /* Test GetUserAttr with subdomain user */
     tcase_add_test(tc_sysdb, test_sysdb_get_user_attr_subdomain);
+
+    /* Test adding a non-POSIX user */
+    tcase_add_test(tc_sysdb, test_sysdb_add_nonposix_user);
 
 /* ===== NETGROUP TESTS ===== */
 
