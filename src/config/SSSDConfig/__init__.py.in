@@ -483,7 +483,7 @@ class SSSDConfigSchema(SSSDChangeConf):
             self.readfp(fd)
             fd.close()
             # Read in the provider files
-            for file in filter(lambda f: re.search('^sssd-.*\.conf$', f),
+            for file in filter(lambda f: re.search(r'^sssd-.*\.conf$', f),
                                          os.listdir(schemaplugindir)):
                 fd = open(schemaplugindir+ "/" + file)
                 self.readfp(fd)
