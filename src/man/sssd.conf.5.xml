@@ -1512,6 +1512,39 @@ pam_account_locked_message = Account locked, please contact help desk.
             <quote>[domain/<replaceable>NAME</replaceable>]</quote>
             <variablelist>
                 <varlistentry>
+                    <term>domain_type (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies whether the domain is meant to be used
+                            by POSIX-aware clients such as the Name Service Switch
+                            or by applications that do not need POSIX data to be
+                            present or generated. Only objects from POSIX domains
+                            are available to the operating system interfaces and
+                            utilities.
+                        </para>
+                        <para>
+                            Allowed values for this option are <quote>posix</quote>
+                            and <quote>application</quote>.
+                        </para>
+                        <para>
+                            POSIX domains are reachable by all services. Application
+                            domains are only reachable from the InfoPipe responder (see
+                            <citerefentry>
+                                <refentrytitle>sssd-ifp</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>) and the PAM responder.
+                        </para>
+                        <para>
+                            NOTE: The application domains are currently well tested with
+                            <quote>id_provider=ldap</quote> only.
+                        </para>
+                        <para>
+                            Default: posix
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>min_id,max_id (integer)</term>
                     <listitem>
                         <para>

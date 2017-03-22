@@ -1367,6 +1367,22 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
+    domain->type = DOM_TYPE_POSIX;
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_DOMAIN_TYPE,
+                                      CONFDB_DOMAIN_TYPE_POSIX);
+    if (tmp != NULL) {
+        if (strcasecmp(tmp, CONFDB_DOMAIN_TYPE_POSIX) == 0) {
+            domain->type = DOM_TYPE_POSIX;
+        } else if (strcasecmp(tmp, CONFDB_DOMAIN_TYPE_APP) == 0) {
+            domain->type = DOM_TYPE_APPLICATION;
+        } else {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Invalid value %s for [%s]\n", tmp, CONFDB_DOMAIN_TYPE);
+            goto done;
+        }
+    }
+
     ret = get_entry_as_uint32(res->msgs[0], &domain->subdomain_refresh_interval,
                               CONFDB_DOMAIN_SUBDOMAIN_REFRESH, 14400);
     if (ret != EOK || domain->subdomain_refresh_interval == 0) {
@@ -1444,7 +1460,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         if (ret) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Error (%d [%s]) retrieving domain [%s], skipping!\n",
-                      ret, sss_strerror(ret), domlist[i]);
+                  ret, sss_strerror(ret), domlist[i]);
             continue;
         }
 
