@@ -209,6 +209,9 @@
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT "offline_timeout"
 #define CONFDB_DOMAIN_SUBDOMAIN_INHERIT "subdomain_inherit"
 #define CONFDB_DOMAIN_CACHED_AUTH_TIMEOUT "cached_auth_timeout"
+#define CONFDB_DOMAIN_TYPE "domain_type"
+#define CONFDB_DOMAIN_TYPE_POSIX "posix"
+#define CONFDB_DOMAIN_TYPE_APP "application"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -261,11 +264,23 @@ enum sss_domain_state {
     DOM_INCONSISTENT,
 };
 
+/** Whether the domain only supports looking up POSIX entries */
+enum sss_domain_type {
+    /** This is the default domain type. It resolves only entries
+     * with the full POSIX set of attributes
+     */
+    DOM_TYPE_POSIX,
+    /** In this mode, entries are typically resolved only by name */
+    DOM_TYPE_APPLICATION,
+};
+
 /**
  * Data structure storing all of the basic features
  * of a domain.
  */
 struct sss_domain_info {
+    enum sss_domain_type type;
+
     char *name;
     char *conn_name;
     char *provider;

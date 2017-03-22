@@ -885,3 +885,17 @@ char *subdomain_create_conf_path(TALLOC_CTX *mem_ctx,
                            subdomain->parent->name,
                            subdomain->name);
 }
+
+const char *sss_domain_type_str(struct sss_domain_info *dom)
+{
+    if (dom == NULL) {
+        return "BUG: Invalid domain";
+    }
+    switch (dom->type) {
+    case DOM_TYPE_POSIX:
+        return "POSIX";
+    case DOM_TYPE_APPLICATION:
+        return "Application";
+    }
+    return "Unknown";
+}

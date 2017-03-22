@@ -148,6 +148,7 @@ option_strings = {
     'selinux_provider' : _('SELinux provider'),
 
     # [domain]
+    'domain_type' : _('Whether the domain is usable by the OS or by applications'),
     'min_id' : _('Minimum user ID'),
     'max_id' : _('Maximum user ID'),
     'enumerate' : _('Enable enumerating all users/groups'),
