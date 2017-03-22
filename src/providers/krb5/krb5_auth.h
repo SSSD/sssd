@@ -50,6 +50,7 @@
 struct krb5child_req {
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
+    struct sss_domain_info *dom;
 
     const char *ccname;
     const char *old_ccname;
@@ -118,6 +119,7 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
                           struct krb5_child_response **_res);
 
 errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
+                                                  struct sss_domain_info *domain,
                                                   struct pam_data *pd,
                                                   uid_t uid);
 errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,

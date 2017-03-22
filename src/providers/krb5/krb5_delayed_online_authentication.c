@@ -234,6 +234,7 @@ static void delayed_online_authentication_callback(void *private_data)
 }
 
 errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
+                                                  struct sss_domain_info *domain,
                                                   struct pam_data *pd,
                                                   uid_t uid)
 {
@@ -241,6 +242,12 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
     hash_key_t key;
     hash_value_t value;
     struct pam_data *new_pd;
+
+    if (domain->type != DOM_TYPE_POSIX) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Domain type does not support delayed authentication\n");
+        return ENOTSUP;
+    }
 
     if (krb5_ctx->deferred_auth_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
