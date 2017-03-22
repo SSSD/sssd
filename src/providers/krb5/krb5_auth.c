@@ -42,6 +42,8 @@
 #include "providers/krb5/krb5_utils.h"
 #include "providers/krb5/krb5_ccache.h"
 
+#define  NON_POSIX_CCNAME_FMT       "MEMORY:sssd_nonposix_dummy_%u"
+
 static int krb5_mod_ccname(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
                            struct sss_domain_info *domain,
@@ -200,6 +202,7 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx,
     talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
 
     kr->pd = pd;
+    kr->dom = dom;
     kr->krb5_ctx = krb5_ctx;
 
     ret = get_krb_primary(krb5_ctx->name_to_primary,
@@ -275,8 +278,11 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
         return;
     }
 
-    ret = add_user_to_delayed_online_authentication(krb5_ctx, pd, uid);
-    if (ret != EOK) {
+    ret = add_user_to_delayed_online_authentication(krb5_ctx, domain, pd, uid);
+    if (ret == ENOTSUP) {
+        /* This error is not fatal */
+        DEBUG(SSSDBG_MINOR_FAILURE, "Delayed authentication not supported\n");
+    } else if (ret != EOK) {
         /* This error is not fatal */
         DEBUG(SSSDBG_CRIT_FAILURE,
               "add_user_to_delayed_online_authentication failed.\n");
@@ -291,21 +297,43 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
 {
     const char *ccname_template;
 
-    ccname_template = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_CCNAME_TMPL);
+    switch (kr->dom->type) {
+    case DOM_TYPE_POSIX:
+        ccname_template = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_CCNAME_TMPL);
 
-    kr->ccname = expand_ccname_template(kr, kr, ccname_template,
-                                        kr->krb5_ctx->illegal_path_re, true,
-                                        be_ctx->domain->case_sensitive);
-    if (kr->ccname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "expand_ccname_template failed.\n");
-        return ENOMEM;
-    }
+        kr->ccname = expand_ccname_template(kr, kr, ccname_template,
+                                            kr->krb5_ctx->illegal_path_re, true,
+                                            be_ctx->domain->case_sensitive);
+        if (kr->ccname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "expand_ccname_template failed.\n");
+            return ENOMEM;
+        }
 
-    kr->old_ccname = ldb_msg_find_attr_as_string(user_msg,
-                                                 SYSDB_CCACHE_FILE, NULL);
-    if (kr->old_ccname == NULL) {
-        DEBUG(SSSDBG_TRACE_LIBS,
-                "No ccache file for user [%s] found.\n", kr->pd->user);
+        kr->old_ccname = ldb_msg_find_attr_as_string(user_msg,
+                                                    SYSDB_CCACHE_FILE, NULL);
+        if (kr->old_ccname == NULL) {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                    "No ccache file for user [%s] found.\n", kr->pd->user);
+        }
+        break;
+    case DOM_TYPE_APPLICATION:
+        DEBUG(SSSDBG_TRACE_FUNC,
+               "Domain type application, will use in-memory ccache\n");
+        /* We don't care about using cryptographic randomness, just
+         * a non-predictable ccname, so using rand() here is fine
+         */
+        kr->ccname = talloc_asprintf(kr,
+                                     NON_POSIX_CCNAME_FMT,
+                                     rand() % UINT_MAX);
+        if (kr->ccname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+            return ENOMEM;
+        }
+
+        break;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unsupported domain type\n");
+        return EINVAL;
     }
 
     return EOK;
@@ -617,7 +645,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         kr->uid = sss_view_ldb_msg_find_attr_as_uint64(state->domain,
                                                        res->msgs[0],
                                                        SYSDB_UIDNUM, 0);
-        if (kr->uid == 0) {
+        if (kr->uid == 0 && state->domain->type == DOM_TYPE_POSIX) {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "UID for user [%s] not known.\n", pd->user);
             ret = ENOENT;
@@ -627,7 +655,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         kr->gid = sss_view_ldb_msg_find_attr_as_uint64(state->domain,
                                                        res->msgs[0],
                                                        SYSDB_GIDNUM, 0);
-        if (kr->gid == 0) {
+        if (kr->gid == 0 && state->domain->type == DOM_TYPE_POSIX) {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "GID for user [%s] not known.\n", pd->user);
             ret = ENOENT;

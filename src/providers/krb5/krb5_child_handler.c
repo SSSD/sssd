@@ -107,6 +107,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     uint32_t validate;
     uint32_t send_pac;
     uint32_t use_enterprise_principal;
+    uint32_t posix_domain;
     size_t username_len = 0;
     errno_t ret;
 
@@ -131,6 +132,17 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
             break;
     }
 
+    switch (kr->dom->type) {
+    case DOM_TYPE_POSIX:
+        posix_domain = 1;
+        break;
+    case DOM_TYPE_APPLICATION:
+        posix_domain = 0;
+        break;
+    default:
+        return EINVAL;
+    }
+
     if (kr->pd->cmd == SSS_CMD_RENEW || kr->is_offline) {
         use_enterprise_principal = false;
     } else {
@@ -151,7 +163,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
         kr->pd->cmd == SSS_CMD_RENEW ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
-        buf->size += 4*sizeof(uint32_t) + strlen(kr->ccname) + strlen(keytab) +
+        buf->size += 5*sizeof(uint32_t) + strlen(kr->ccname) + strlen(keytab) +
                      sss_authtok_get_size(kr->pd->authtok);
 
         buf->size += sizeof(uint32_t);
@@ -182,6 +194,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->uid, &rp);
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->gid, &rp);
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &validate, &rp);
+    SAFEALIGN_COPY_UINT32(&buf->data[rp], &posix_domain, &rp);
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->is_offline, &rp);
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &send_pac, &rp);
     SAFEALIGN_COPY_UINT32(&buf->data[rp], &use_enterprise_principal, &rp);

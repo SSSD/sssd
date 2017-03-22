@@ -80,6 +80,7 @@ struct krb5_req {
     char *ccname;
     char *keytab;
     bool validate;
+    bool posix_domain;
     bool send_pac;
     bool use_enterprise_princ;
     char *fast_ccname;
@@ -101,6 +102,16 @@ struct krb5_req {
 
 static krb5_context krb5_error_ctx;
 #define KRB5_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
+
+static errno_t k5c_become_user(uid_t uid, gid_t gid, bool is_posix)
+{
+    if (is_posix == false) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Will not drop privileges for a non-POSIX user\n");
+        return EOK;
+    }
+    return become_user(uid, gid);
+}
 
 static krb5_error_code set_lifetime_options(struct cli_opts *cli_opts,
                                             krb5_get_init_creds_opt *options)
@@ -1561,6 +1572,15 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         DEBUG(SSSDBG_CONF_SETTINGS, "TGT validation is disabled.\n");
     }
 
+    /* In a non-POSIX environment, we only care about the return code from
+     * krb5_child, so let's not even attempt to create the ccache
+     */
+    if (kr->posix_domain == false) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Finished authentication in a non-POSIX domain\n");
+        goto done;
+    }
+
     /* If kr->ccname is cache collection (DIR:/...), we want to work
      * directly with file ccache (DIR::/...), but cache collection
      * should be returned back to back end.
@@ -2146,6 +2166,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     size_t p = 0;
     uint32_t len;
     uint32_t validate;
+    uint32_t posix_domain;
     uint32_t send_pac;
     uint32_t use_enterprise_princ;
     struct pam_data *pd;
@@ -2167,6 +2188,8 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     SAFEALIGN_COPY_UINT32_CHECK(&kr->gid, buf + p, size, &p);
     SAFEALIGN_COPY_UINT32_CHECK(&validate, buf + p, size, &p);
     kr->validate = (validate == 0) ? false : true;
+    SAFEALIGN_COPY_UINT32_CHECK(&posix_domain, buf + p, size, &p);
+    kr->posix_domain = (posix_domain == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(offline, buf + p, size, &p);
     SAFEALIGN_COPY_UINT32_CHECK(&send_pac, buf + p, size, &p);
     kr->send_pac = (send_pac == 0) ? false : true;
@@ -2331,6 +2354,7 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
                                          krb5_context ctx,
                                          uid_t fast_uid,
                                          gid_t fast_gid,
+                                         bool posix_domain,
                                          struct cli_opts *cli_opts,
                                          const char *primary,
                                          const char *realm,
@@ -2420,7 +2444,7 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
                 /* Try to carry on */
             }
 
-            kerr = become_user(fast_uid, fast_gid);
+            kerr = k5c_become_user(fast_uid, fast_gid, posix_domain);
             if (kerr != 0) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed: %d\n", kerr);
                 exit(1);
@@ -2572,7 +2596,7 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
     }
 
     kerr = check_fast_ccache(kr, kr->ctx, kr->fast_uid, kr->fast_gid,
-                             kr->cli_opts,
+                             kr->posix_domain, kr->cli_opts,
                              fast_principal, fast_principal_realm,
                              kr->keytab, &kr->fast_ccname);
     if (kerr != 0) {
@@ -2773,7 +2797,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
          * the user who is logging in. The same applies to the offline case
          * the user who is logging in. The same applies to the offline case.
          */
-        kerr = become_user(kr->uid, kr->gid);
+        kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
         if (kerr != 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
             return kerr;
@@ -3075,7 +3099,7 @@ int main(int argc, const char *argv[])
     if ((sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_SC_PIN
             && sss_authtok_get_type(kr->pd->authtok)
                                         != SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
-        kerr = become_user(kr->uid, kr->gid);
+        kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
         if (kerr != 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
             ret = EFAULT;
