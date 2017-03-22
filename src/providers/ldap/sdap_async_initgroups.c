@@ -376,7 +376,7 @@ struct sdap_initgr_rfc2307_state {
     struct sdap_handle *sh;
     const char **attrs;
     const char *name;
-    const char *base_filter;
+    char *base_filter;
     const char *orig_dn;
     char *filter;
     int timeout;
@@ -473,17 +473,31 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     }
 
     state->base_filter = talloc_asprintf(state,
-                             "(&(%s=%s)(%s)(%s=*)(&(%s=*)(!(%s=0))))",
+                             "(&(%s=%s)(%s)(%s=*)",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                              clean_name, oc_list,
-                             opts->group_map[SDAP_AT_GROUP_NAME].name,
-                             opts->group_map[SDAP_AT_GROUP_GID].name,
-                             opts->group_map[SDAP_AT_GROUP_GID].name);
+                             opts->group_map[SDAP_AT_GROUP_NAME].name);
     if (!state->base_filter) {
         talloc_zfree(req);
         return NULL;
     }
     talloc_zfree(clean_name);
+
+    switch (domain->type) {
+    case DOM_TYPE_APPLICATION:
+        state->base_filter = talloc_asprintf_append(state->base_filter, ")");
+        break;
+    case DOM_TYPE_POSIX:
+        state->base_filter = talloc_asprintf_append(state->base_filter,
+                                        "(&(%s=*)(!(%s=0))))",
+                                        opts->group_map[SDAP_AT_GROUP_GID].name,
+                                        opts->group_map[SDAP_AT_GROUP_GID].name);
+        break;
+    }
+    if (!state->base_filter) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     ret = sdap_initgr_rfc2307_next_base(req);
 
@@ -2666,6 +2680,7 @@ struct sdap_get_initgr_state {
     char *shortname;
     char *filter;
     int timeout;
+    bool non_posix;
 
     struct sysdb_attrs *orig_user;
 
@@ -2722,6 +2737,10 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
               "Initgroups lookup request without a user search base\n");
         ret = EINVAL;
         goto done;
+    }
+
+    if (state->dom->type == DOM_TYPE_APPLICATION) {
+        state->non_posix = true;
     }
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
@@ -2813,7 +2832,10 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         }
     }
 
-    if (use_id_mapping) {
+    if (state->non_posix) {
+        state->user_base_filter = talloc_asprintf_append(state->user_base_filter,
+                                                         ")");
+    } else if (use_id_mapping) {
         /* When mapping IDs or looking for SIDs, we don't want to limit
          * ourselves to users with a UID value. But there must be a SID to map
          * from.
@@ -2822,7 +2844,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         "(%s=*))",
                                         id_ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name);
     } else {
-        /* When not ID-mapping, make sure there is a non-NULL UID */
+        /* When not ID-mapping or looking up app users, make sure there
+         * is a non-NULL UID */
         state->user_base_filter = talloc_asprintf_append(state->user_base_filter,
                                         "(&(%s=*)(!(%s=0))))",
                                         id_ctx->opts->user_map[SDAP_AT_USER_UID].name,
