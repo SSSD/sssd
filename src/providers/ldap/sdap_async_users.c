@@ -112,6 +112,28 @@ done:
     return ret;
 }
 
+static errno_t sdap_set_non_posix_flag(struct sysdb_attrs *attrs,
+                                       const char *pkey)
+{
+    errno_t ret;
+
+    ret = sysdb_attrs_add_uint32(attrs, pkey, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to add a zero ID to a non-posix object!\n");
+        return ret;
+    }
+
+    ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, false);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Error: Failed to mark objects as non-posix!\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
 /* FIXME: support storing additional attributes */
 int sdap_save_user(TALLOC_CTX *memctx,
                    struct sdap_options *opts,
@@ -130,8 +152,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
     const char *homedir;
     const char *shell;
     const char *orig_dn = NULL;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid = 0;
+    gid_t gid = 0;
     struct sysdb_attrs *user_attrs;
     char *upn = NULL;
     size_t i;
@@ -146,6 +168,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     size_t c;
     char *p1;
     char *p2;
+    bool is_posix = true;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Save user\n");
 
@@ -295,19 +318,29 @@ int sdap_save_user(TALLOC_CTX *memctx,
         ret = sysdb_attrs_get_uint32_t(attrs,
                                        opts->user_map[SDAP_AT_USER_UID].sys_name,
                                        &uid);
-        if (ret != EOK) {
+        if (ret == ENOENT && dom->type == DOM_TYPE_APPLICATION) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Marking object as non-posix and setting ID=0!\n");
+            ret = sdap_set_non_posix_flag(user_attrs,
+                    opts->user_map[SDAP_AT_USER_UID].sys_name);
+            if (ret != EOK) {
+                goto done;
+            }
+            is_posix = false;
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "no uid provided for [%s] in domain [%s].\n",
+                  "Cannot retrieve UID for [%s] in domain [%s].\n",
                    user_name, dom->name);
-            ret = EINVAL;
+            ret = ERR_NO_POSIX;
             goto done;
         }
     }
-    /* check that the uid is valid for this domain */
-    if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "User [%s] filtered out! (uid out of range)\n",
-                      user_name);
+
+    /* check that the uid is valid for this domain if the user is a POSIX one */
+    if (is_posix == true && OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "User [%s] filtered out! (uid out of range)\n",
+              user_name);
         ret = EINVAL;
         goto done;
     }
@@ -349,17 +382,26 @@ int sdap_save_user(TALLOC_CTX *memctx,
         ret = sysdb_attrs_get_uint32_t(attrs,
                                        opts->user_map[SDAP_AT_USER_GID].sys_name,
                                        &gid);
-        if (ret != EOK) {
+        if (ret == ENOENT && dom->type == DOM_TYPE_APPLICATION) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Marking object as non-posix and setting ID=0!\n");
+            ret = sdap_set_non_posix_flag(attrs,
+                    opts->user_map[SDAP_AT_USER_GID].sys_name);
+            if (ret != EOK) {
+                goto done;
+            }
+            is_posix = false;
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "no gid provided for [%s] in domain [%s].\n",
-                  user_name, dom->name);
-            ret = EINVAL;
+                  "Cannot retrieve GID for [%s] in domain [%s].\n",
+                   user_name, dom->name);
+            ret = ERR_NO_POSIX;
             goto done;
         }
     }
 
     /* check that the gid is valid for this domain */
-    if (IS_SUBDOMAIN(dom) == false &&
+    if (is_posix == true && IS_SUBDOMAIN(dom) == false &&
             OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "User [%s] filtered out! (primary gid out of range)\n",
