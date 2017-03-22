@@ -761,6 +761,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct resp_attrs *simple_attrs,
                                     const char *view_name,
                                     struct sysdb_attrs *override_attrs,
+                                    struct sysdb_attrs *mapped_attrs,
                                     bool update_initgr_timeout);
 
 static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
@@ -1009,6 +1010,7 @@ struct ipa_s2n_get_list_state {
     struct resp_attrs *attrs;
     struct sss_domain_info *obj_domain;
     struct sysdb_attrs *override_attrs;
+    struct sysdb_attrs *mapped_attrs;
 };
 
 static errno_t ipa_s2n_get_list_step(struct tevent_req *req);
@@ -1025,7 +1027,8 @@ static struct tevent_req *ipa_s2n_get_list_send(TALLOC_CTX *mem_ctx,
                                                 int entry_type,
                                                 enum request_types request_type,
                                                 enum req_input_type list_type,
-                                                char **list)
+                                                char **list,
+                                                struct sysdb_attrs *mapped_attrs)
 {
     int ret;
     struct ipa_s2n_get_list_state *state;
@@ -1057,6 +1060,7 @@ static struct tevent_req *ipa_s2n_get_list_send(TALLOC_CTX *mem_ctx,
     state->request_type = request_type;
     state->attrs = NULL;
     state->override_attrs = NULL;
+    state->mapped_attrs = mapped_attrs;
 
     ret = ipa_s2n_get_list_step(req);
     if (ret != EOK) {
@@ -1288,7 +1292,8 @@ static errno_t ipa_s2n_get_list_save_step(struct tevent_req *req)
 
     ret = ipa_s2n_save_objects(state->dom, &state->req_input, state->attrs,
                                NULL, state->ipa_ctx->view_name,
-                               state->override_attrs, false);
+                               state->override_attrs, state->mapped_attrs,
+                               false);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
         return ret;
@@ -1704,7 +1709,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                                                  BE_REQ_GROUP,
                                                  REQ_FULL_WITH_MEMBERS,
                                                  REQ_INP_NAME,
-                                                 missing_list);
+                                                 missing_list, NULL);
                 if (subreq == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "ipa_s2n_get_list_send failed.\n");
@@ -1732,7 +1737,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                                                  BE_REQ_USER,
                                                  REQ_FULL_WITH_MEMBERS,
                                                  REQ_INP_NAME,
-                                                 missing_list);
+                                                 missing_list, NULL);
                 if (subreq == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "ipa_s2n_get_list_send failed.\n");
@@ -1810,7 +1815,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
     if (ret == ENOENT || is_default_view(state->ipa_ctx->view_name)) {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                                   state->simple_attrs, NULL, NULL, true);
+                                   state->simple_attrs, NULL, NULL, NULL, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
             goto done;
@@ -1978,6 +1983,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct resp_attrs *simple_attrs,
                                     const char *view_name,
                                     struct sysdb_attrs *override_attrs,
+                                    struct sysdb_attrs *mapped_attrs,
                                     bool update_initgr_timeout)
 {
     int ret;
@@ -2305,6 +2311,15 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 goto done;
             }
 
+            if (mapped_attrs != NULL) {
+                ret = sysdb_set_user_attr(dom, name, mapped_attrs,
+                                          SYSDB_MOD_ADD);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_user_attr failed.\n");
+                    goto done;
+                }
+            }
+
             if (gid_override_attrs != NULL) {
                 ret = sysdb_set_user_attr(dom, name, gid_override_attrs,
                                           SYSDB_MOD_REP);
@@ -2487,7 +2502,7 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
                                  &sid_str);
     if (ret == ENOENT) {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                                   state->simple_attrs, NULL, NULL, true);
+                                   state->simple_attrs, NULL, NULL, NULL, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
             goto fail;
@@ -2525,7 +2540,7 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
                                    state->simple_attrs,
                                    state->ipa_ctx->view_name,
-                                   state->override_attrs, true);
+                                   state->override_attrs, NULL, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
             tevent_req_error(req, ret);
@@ -2561,7 +2576,7 @@ static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq)
 
     ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
                                state->simple_attrs, state->ipa_ctx->view_name,
-                               override_attrs, true);
+                               override_attrs, NULL, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
         tevent_req_error(req, ret);
@@ -2662,7 +2677,7 @@ struct tevent_req *ipa_get_subdom_acct_process_pac_send(TALLOC_CTX *mem_ctx,
                                dp_opt_get_int(ipa_ctx->sdap_id_ctx->opts->basic,
                                               SDAP_SEARCH_TIMEOUT),
                                BE_REQ_BY_SECID, REQ_FULL, REQ_INP_SECID,
-                               state->missing_sids);
+                               state->missing_sids, NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_list_send failed.\n");
         ret = ENOMEM;
