@@ -27,33 +27,6 @@
 #include "responder/nss/nss_private.h"
 
 const char *
-nss_get_name_from_msg(struct sss_domain_info *domain,
-                      struct ldb_message *msg)
-{
-    const char *name;
-
-    /* If domain has a view associated we return overridden name
-     * if possible. */
-    if (DOM_HAS_VIEWS(domain)) {
-        name = ldb_msg_find_attr_as_string(msg, OVERRIDE_PREFIX SYSDB_NAME,
-                                           NULL);
-        if (name != NULL) {
-            return name;
-        }
-    }
-
-    /* Otherwise we try to return name override from
-     * Default Truest View for trusted users. */
-    name = ldb_msg_find_attr_as_string(msg, SYSDB_DEFAULT_OVERRIDE_NAME, NULL);
-    if (name != NULL) {
-        return name;
-    }
-
-    /* If no override is found we return the original name. */
-    return ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-}
-
-const char *
 nss_get_pwfield(struct nss_ctx *nctx,
                struct sss_domain_info *dom)
 {

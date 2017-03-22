@@ -41,7 +41,7 @@ nss_get_grent(TALLOC_CTX *mem_ctx,
     }
 
     /* Get fields. */
-    name = nss_get_name_from_msg(domain, msg);
+    name = sss_get_name_from_msg(domain, msg);
     gid = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, SYSDB_GIDNUM, 0);
 
     if (name == NULL || gid == 0) {
