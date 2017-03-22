@@ -489,6 +489,17 @@ int sysdb_transaction_cancel(struct sysdb_ctx *sysdb);
 /* functions related to subdomains */
 errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name);
 
+errno_t sysdb_domain_get_domain_resolution_order(
+                                        TALLOC_CTX *mem_ctx,
+                                        struct sysdb_ctx *sysdb,
+                                        const char *domain_name,
+                                        const char **_domain_resolution_order);
+
+errno_t sysdb_domain_update_domain_resolution_order(
+                                        struct sysdb_ctx *sysdb,
+                                        const char *domain_name,
+                                        const char *domain_resolution_order);
+
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id,
