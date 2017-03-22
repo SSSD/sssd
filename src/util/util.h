@@ -304,6 +304,15 @@ char *sss_output_name(TALLOC_CTX *mem_ctx,
                       bool case_sensitive,
                       const char replace_space);
 
+int sss_output_fqname(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *domain,
+                      const char *name,
+                      char override_space,
+                      char **_output_name);
+
+const char *sss_get_name_from_msg(struct sss_domain_info *domain,
+                                  struct ldb_message *msg);
+
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 

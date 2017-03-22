@@ -225,7 +225,7 @@ nss_get_pwent(TALLOC_CTX *mem_ctx,
 
     /* Get fields. */
     upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
-    name = nss_get_name_from_msg(domain, msg);
+    name = sss_get_name_from_msg(domain, msg);
     gid = nss_get_gid(domain, msg);
     uid = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, SYSDB_UIDNUM, 0);
 

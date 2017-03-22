@@ -1685,28 +1685,12 @@ int sized_output_name(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
-    char *username;
+    char *name_str;
     struct sized_string *name;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
-    }
-
-    username = sss_output_name(tmp_ctx, orig_name, name_dom->case_preserve,
-                               rctx->override_space);
-    if (username == NULL) {
-        ret = EIO;
-        goto done;
-    }
-
-    if (name_dom->fqnames) {
-        username = sss_tc_fqname(tmp_ctx, name_dom->names, name_dom, username);
-        if (username == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
-            ret = EIO;
-            goto done;
-        }
     }
 
     name = talloc_zero(tmp_ctx, struct sized_string);
@@ -1715,8 +1699,13 @@ int sized_output_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    to_sized_string(name, username);
-    name->str = talloc_steal(name, username);
+    ret = sss_output_fqname(mem_ctx, name_dom, orig_name,
+                            rctx->override_space, &name_str);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    to_sized_string(name, name_str);
     *_name = talloc_steal(mem_ctx, name);
     ret = EOK;
 done:
