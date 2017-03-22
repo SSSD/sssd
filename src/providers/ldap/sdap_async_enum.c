@@ -717,6 +717,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     struct enum_groups_state *state;
     int ret;
     bool use_mapping;
+    bool non_posix = false;
     char *oc_list;
 
     req = tevent_req_create(memctx, &state, struct enum_groups_state);
@@ -726,6 +727,10 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     state->sdom = sdom;
     state->ctx = ctx;
     state->op = op;
+
+    if (sdom->dom->type == DOM_TYPE_APPLICATION) {
+        non_posix = true;
+    }
 
     use_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                         ctx->opts->idmap_ctx,
@@ -749,7 +754,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    if (use_mapping) {
+    if (!non_posix && use_mapping) {
         /* If we're ID-mapping, check for the objectSID as well */
         state->filter = talloc_asprintf_append_buffer(
                 state->filter, "(%s=*)",
