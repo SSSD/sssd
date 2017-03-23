@@ -263,7 +263,7 @@ static void add_test_subdomains(struct trust_test_ctx *test_ctx,
                                 direction, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
 }
