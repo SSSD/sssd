@@ -656,7 +656,8 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
         /* Just continue */
     }
 
-    ret = sysdb_update_subdomains(subdoms_ctx->be_ctx->domain);
+    ret = sysdb_update_subdomains(subdoms_ctx->be_ctx->domain,
+                                  subdoms_ctx->be_ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
         return ret;

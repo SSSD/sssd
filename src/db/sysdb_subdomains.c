@@ -23,6 +23,10 @@
 #include "util/util.h"
 #include "db/sysdb_private.h"
 
+static errno_t
+check_subdom_config_file(struct confdb_ctx *confdb,
+                         struct sss_domain_info *subdomain);
+
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,
                                       const char *name,
@@ -33,10 +37,12 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       bool enumerate,
                                       const char *forest,
                                       const char **upn_suffixes,
-                                      uint32_t trust_direction)
+                                      uint32_t trust_direction,
+                                      struct confdb_ctx *confdb)
 {
     struct sss_domain_info *dom;
     bool inherit_option;
+    errno_t ret;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Creating [%s] as subdomain of [%s]!\n", name, parent->name);
@@ -160,11 +166,61 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     }
     dom->sysdb = parent->sysdb;
 
+    if (confdb != NULL) {
+        /* If confdb was provided, also check for sssd.conf */
+        ret = check_subdom_config_file(confdb, dom);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read subdomain configuration [%d]: %s",
+                   ret, sss_strerror(ret));
+            goto fail;
+        }
+    }
+
     return dom;
 
 fail:
     talloc_free(dom);
     return NULL;
+}
+
+static errno_t
+check_subdom_config_file(struct confdb_ctx *confdb,
+                         struct sss_domain_info *subdomain)
+{
+    char *sd_conf_path;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    sd_conf_path = subdomain_create_conf_path(tmp_ctx, subdomain);
+    if (sd_conf_path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* use_fully_qualified_names */
+    ret = confdb_get_bool(confdb, sd_conf_path, CONFDB_DOMAIN_FQ,
+                          true, &subdomain->fqnames);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get %s option for the subdomain: %s\n",
+              CONFDB_DOMAIN_FQ, subdomain->name);
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "%s/%s has value %s\n",
+          sd_conf_path, CONFDB_DOMAIN_FQ,
+          subdomain->fqnames ? "TRUE" : "FALSE");
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static bool is_forest_root(struct sss_domain_info *d)
@@ -232,7 +288,8 @@ static void link_forest_roots(struct sss_domain_info *domain)
     }
 }
 
-errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
+                                struct confdb_ctx *confdb)
 {
     int i;
     errno_t ret;
@@ -451,7 +508,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
         if (dom == NULL) {
             dom = new_subdomain(domain, domain, name, realm,
                                 flat, id, mpg, enumerate, forest,
-                                upn_suffixes, trust_direction);
+                                upn_suffixes, trust_direction, confdb);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;

@@ -494,7 +494,8 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               uint32_t trust_direction,
                               struct ldb_message_element *upn_suffixes);
 
-errno_t sysdb_update_subdomains(struct sss_domain_info *domain);
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
+                                struct confdb_ctx *confdb);
 
 errno_t sysdb_master_domain_update(struct sss_domain_info *domain);
 

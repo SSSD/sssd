@@ -126,7 +126,7 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
         return ret;
     }
 
-    ret = sysdb_update_subdomains(ctx->be_ctx->domain);
+    ret = sysdb_update_subdomains(ctx->be_ctx->domain, ctx->be_ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
         return ret;
@@ -780,7 +780,8 @@ done:
 static errno_t ipa_apply_view(struct sss_domain_info *domain,
                               struct ipa_id_ctx *ipa_id_ctx,
                               const char *view_name,
-                              bool read_at_init)
+                              bool read_at_init,
+                              struct confdb_ctx *confdb)
 {
     const char *current = ipa_id_ctx->view_name;
     struct sysdb_ctx *sysdb = domain->sysdb;
@@ -876,7 +877,7 @@ static errno_t ipa_apply_view(struct sss_domain_info *domain,
             goto done;
         }
 
-        ret = sysdb_update_subdomains(domain);
+        ret = sysdb_update_subdomains(domain, confdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed "
                   "[%d]: %s\n", ret, sss_strerror(ret));
@@ -1654,7 +1655,8 @@ static void ipa_subdomains_view_name_done(struct tevent_req *subreq)
 
     ret = ipa_apply_view(state->sd_ctx->be_ctx->domain,
                          state->sd_ctx->ipa_id_ctx, view_name,
-                         state->sd_ctx->view_read_at_init);
+                         state->sd_ctx->view_read_at_init,
+                         state->sd_ctx->be_ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set view [%d]: %s\n",
               ret, sss_strerror(ret));
