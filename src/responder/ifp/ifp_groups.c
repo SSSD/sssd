@@ -307,12 +307,14 @@ static void ifp_groups_list_by_name_done(struct tevent_req *req)
         return;
     }
 
-    ret = ifp_groups_list_copy(list_ctx, result->ldb_result);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to copy domain result");
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
+    if (ret == EOK) {
+        ret = ifp_groups_list_copy(list_ctx, result->ldb_result);
+        if (ret != EOK) {
+            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                                   "Failed to copy domain result");
+            sbus_request_fail_and_finish(sbus_req, error);
+            return;
+        }
     }
 
     list_ctx->dom = get_next_domain(list_ctx->dom, SSS_GND_DESCEND);
@@ -394,11 +396,13 @@ static void ifp_groups_list_by_domain_and_name_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = ifp_groups_list_copy(list_ctx, result->ldb_result);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to copy domain result");
-        goto done;
+    if (ret == EOK) {
+        ret = ifp_groups_list_copy(list_ctx, result->ldb_result);
+        if (ret != EOK) {
+            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                                   "Failed to copy domain result");
+            goto done;
+        }
     }
 
 done:
