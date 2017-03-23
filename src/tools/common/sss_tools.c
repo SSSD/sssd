@@ -154,7 +154,7 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
             }
 
             /* Update list of subdomains for this domain */
-            ret = sysdb_update_subdomains(dom);
+            ret = sysdb_update_subdomains(dom, confdb);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Failed to update subdomains for domain %s.\n",

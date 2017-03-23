@@ -103,7 +103,7 @@ static void test_sysdb_subdomain_create(void **state)
                                 false, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     assert_non_null(test_ctx->tctx->dom->subdomains);
@@ -115,7 +115,7 @@ static void test_sysdb_subdomain_create(void **state)
                                 false, false, NULL, 1, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     assert_non_null(test_ctx->tctx->dom->subdomains->next);
@@ -133,7 +133,7 @@ static void test_sysdb_subdomain_create(void **state)
                                 false, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     assert_int_equal(test_ctx->tctx->dom->subdomains->trust_direction, 1);
@@ -145,7 +145,7 @@ static void test_sysdb_subdomain_create(void **state)
     ret = sysdb_subdomain_delete(test_ctx->tctx->sysdb, dom1[0]);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     assert_int_equal(sss_domain_get_state(test_ctx->tctx->dom->subdomains),
@@ -235,11 +235,11 @@ static void test_sysdb_link_forest_root_ipa(void **state)
                                 0, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     /* Also update dom2 */
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     sub = find_domain_by_name(test_ctx->tctx->dom, dom1[0], true);
@@ -315,11 +315,11 @@ static void test_sysdb_link_forest_root_ad(void **state)
                                 0, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     /* Also update dom2 */
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     assert_non_null(test_ctx->tctx->dom->forest_root);
@@ -395,14 +395,15 @@ static void test_sysdb_link_forest_member_ad(void **state)
     ret = sysdb_master_domain_update(test_ctx->tctx->dom);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     /* Also update dom2 */
     ret = sysdb_master_domain_update(test_ctx->tctx->dom->next);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next);
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next,
+                                  test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     /* Checks */
@@ -472,7 +473,7 @@ static void test_sysdb_link_ad_multidom(void **state)
     ret = sysdb_master_domain_update(main_dom1);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(main_dom1);
+    ret = sysdb_update_subdomains(main_dom1, NULL);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_master_domain_add_info(main_dom2,
@@ -492,7 +493,7 @@ static void test_sysdb_link_ad_multidom(void **state)
     ret = sysdb_master_domain_update(main_dom2);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(main_dom2);
+    ret = sysdb_update_subdomains(main_dom2, NULL);
     assert_int_equal(ret, EOK);
 
     main_dom1 = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM1_NAME, true);

@@ -2803,7 +2803,8 @@ subdomain_inherit = ldap_purge_cache_timeout
             <para>ldap_service_search_base,</para>
             <para>ad_server,</para>
             <para>ad_backup_server,</para>
-            <para>ad_site.</para>
+            <para>ad_site,</para>
+            <para>use_fully_qualified_names.</para>
         <para>
             For more details about these options see their individual description
             in the manual page.

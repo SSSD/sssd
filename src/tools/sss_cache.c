@@ -158,7 +158,7 @@ int main(int argc, const char *argv[])
             dinfo = get_next_domain(dinfo, SSS_GND_DESCEND)) {
         if (!IS_SUBDOMAIN(dinfo)) {
             /* Update list of subdomains for this domain */
-            ret = sysdb_update_subdomains(dinfo);
+            ret = sysdb_update_subdomains(dinfo, tctx->confdb);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Failed to update subdomains for domain %s.\n", dinfo->name);

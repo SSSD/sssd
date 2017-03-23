@@ -3427,7 +3427,8 @@ static int nss_subdom_test_setup(void **state)
 
     subdomain = new_subdomain(nss_test_ctx, nss_test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[3],
-                              false, false, NULL, NULL, 0);
+                              false, false, NULL, NULL, 0,
+                              nss_test_ctx->tctx->confdb);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(nss_test_ctx->tctx->sysdb,
@@ -3435,7 +3436,8 @@ static int nss_subdom_test_setup(void **state)
                                 false, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom,
+                                  nss_test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
     ret = sss_resp_populate_cr_domains(nss_test_ctx->rctx);
