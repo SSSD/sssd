@@ -22,6 +22,9 @@
 #include "util/util.h"
 #include "util/cert.h"
 #include "db/sysdb_private.h"
+#include "db/sysdb_domain_resolution_order.h"
+
+#define SYSDB_VIEWS_BASE "cn=views,cn=sysdb"
 
 /* In general is should not be possible that there is a view container without
  * a view name set. But to be on the safe side we return both information
@@ -173,6 +176,69 @@ errno_t sysdb_update_view_name(struct sysdb_ctx *sysdb,
         ret = sysdb_error_to_errno(ret);
         goto done;
     }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_get_view_domain_resolution_order(TALLOC_CTX *mem_ctx,
+                                       struct sysdb_ctx *sysdb,
+                                       const char **_domain_resolution_order)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_VIEWS_BASE);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_get_domain_resolution_order(mem_ctx, sysdb, dn,
+                                            _domain_resolution_order);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_update_view_domain_resolution_order(struct sysdb_ctx *sysdb,
+                                          const char *domain_resolution_order)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_VIEWS_BASE);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_update_domain_resolution_order(sysdb, dn,
+                                               domain_resolution_order);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_update_domain_resolution_order() failed [%d]: [%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);

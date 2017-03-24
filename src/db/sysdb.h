@@ -532,6 +532,15 @@ errno_t sysdb_update_view_name(struct sysdb_ctx *sysdb, const char *view_name);
 errno_t sysdb_get_view_name(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                             char **view_name);
 
+errno_t sysdb_update_view_domain_resolution_order(
+                                        struct sysdb_ctx *sysdb,
+                                        const char *domain_resolution_order);
+
+errno_t sysdb_get_view_domain_resolution_order(
+                                        TALLOC_CTX *mem_ctx,
+                                        struct sysdb_ctx *sysdb,
+                                        const char **_domain_resolution_order);
+
 static inline bool is_default_view(const char *view_name)
 {
     /* NULL is treated as default */
