@@ -84,6 +84,7 @@ struct be_ctx {
     const char *conf_path;
     uid_t uid;
     gid_t gid;
+    char override_space;
     struct session_recording_conf sr_conf;
     struct be_failover_ctx *be_fo;
     struct be_resolv_ctx *be_res;

@@ -377,6 +377,7 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
     uint32_t refresh_interval;
     struct tevent_signal *tes;
     struct be_ctx *be_ctx;
+    char *str = NULL;
     errno_t ret;
 
     be_ctx = talloc_zero(mem_ctx, struct be_ctx);
@@ -426,6 +427,27 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup fully qualified name "
               "format for %s\n", be_ctx->domain->name);
         goto done;
+    }
+
+    /* Read the global override_space option, for output name formatting */
+    ret = confdb_get_string(cdb, be_ctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_OVERRIDE_SPACE, NULL,
+                            &str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannnot get the space substitution character [%d]: %s\n",
+               ret, strerror(ret));
+        goto done;
+    }
+
+    if (str != NULL) {
+        if (strlen(str) > 1) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Option %s is longer than 1 character "
+                  "only the first character %c will be used\n",
+                  CONFDB_MONITOR_OVERRIDE_SPACE, str[0]);
+        }
+
+        be_ctx->override_space = str[0];
     }
 
     /* Read session_recording section */
