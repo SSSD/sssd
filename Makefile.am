@@ -1787,7 +1787,6 @@ libsss_certmap_la_DEPENDENCIES = src/lib/certmap/sss_certmap.exports
 libsss_certmap_la_SOURCES = \
     src/lib/certmap/sss_certmap.c \
     src/lib/certmap/sss_certmap_attr_names.c \
-    src/lib/certmap/sss_cert_content_nss.c \
     src/lib/certmap/sss_certmap_krb5_match.c \
     src/lib/certmap/sss_certmap_ldap_mapping.c \
     src/util/util_ext.c \
@@ -1806,6 +1805,7 @@ libsss_certmap_la_LDFLAGS = \
 
 if HAVE_NSS
 libsss_certmap_la_SOURCES += \
+    src/lib/certmap/sss_cert_content_nss.c \
     src/util/crypto/nss/nss_base64.c \
     src/util/cert/nss/cert.c \
     src/util/crypto/nss/nss_util.c \
@@ -1814,6 +1814,7 @@ libsss_certmap_la_CFLAGS += $(NSS_CFLAGS)
 libsss_certmap_la_LIBADD += $(NSS_LIBS)
 else
 libsss_certmap_la_SOURCES += \
+    src/lib/certmap/sss_cert_content_crypto.c \
     src/util/crypto/libcrypto/crypto_base64.c \
     src/util/cert/libcrypto/cert.c \
     $(NULL)
