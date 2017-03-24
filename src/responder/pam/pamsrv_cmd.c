@@ -1315,7 +1315,9 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
 
 
     req = cache_req_user_by_cert_send(preq, cctx->ev, cctx->rctx,
-                                      pctx->rctx->ncache, 0, NULL, cert);
+                                      pctx->rctx->ncache, 0,
+                                      CACHE_REQ_POSIX_DOM, NULL,
+                                      cert);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert_send failed.\n");
         ret = ENOMEM;
@@ -1507,6 +1509,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
                            preq->cctx->rctx,
                            preq->cctx->rctx->ncache,
                            0,
+                           CACHE_REQ_POSIX_DOM,
                            preq->pd->domain,
                            data);
     if (!dpreq) {

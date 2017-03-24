@@ -105,6 +105,7 @@ cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
                             struct resp_ctx *rctx,
                             struct sss_nc_ctx *ncache,
                             int cache_refresh_percent,
+                            enum cache_req_dom_type req_dom_type,
                             const char *domain,
                             const char *pem_cert)
 {
@@ -117,5 +118,6 @@ cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
                                          cache_refresh_percent,
-                                         domain, data);
+                                         req_dom_type, domain,
+                                         data);
 }

@@ -42,6 +42,8 @@ struct cache_req {
     struct sss_domain_info *domain;
     bool cache_first;
     bool bypass_cache;
+    /* Only contact domains with this type */
+    enum cache_req_dom_type req_dom_type;
 
     /* Debug information */
     uint32_t reqid;
@@ -108,6 +110,7 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               struct resp_ctx *rctx,
                               struct sss_nc_ctx *ncache,
                               int cache_refresh_percent,
+                              enum cache_req_dom_type req_dom_type,
                               const char *domain,
                               struct cache_req_data *data);
 

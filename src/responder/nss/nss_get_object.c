@@ -190,7 +190,8 @@ nss_get_object_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = cache_req_send(req, ev, cli_ctx->rctx, cli_ctx->rctx->ncache,
-                            state->nss_ctx->cache_refresh_percent, NULL, data);
+                            state->nss_ctx->cache_refresh_percent,
+                            CACHE_REQ_POSIX_DOM, NULL, data);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send cache request!\n");
         ret = ENOMEM;

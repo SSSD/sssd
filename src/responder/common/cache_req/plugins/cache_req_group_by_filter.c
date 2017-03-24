@@ -140,6 +140,7 @@ struct tevent_req *
 cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
                                struct tevent_context *ev,
                                struct resp_ctx *rctx,
+                               enum cache_req_dom_type req_dom_type,
                                const char *domain,
                                const char *filter)
 {
@@ -151,5 +152,7 @@ cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, NULL,
-                                         0, domain, data);
+                                         0,
+                                         req_dom_type, domain,
+                                         data);
 }

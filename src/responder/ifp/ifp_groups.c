@@ -118,7 +118,9 @@ int ifp_groups_find_by_name(struct sbus_request *sbus_req,
     }
 
     req = cache_req_group_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
-                                       ctx->rctx->ncache, 0, NULL, name);
+                                       ctx->rctx->ncache, 0,
+                                       CACHE_REQ_POSIX_DOM, NULL,
+                                       name);
     if (req == NULL) {
         return ENOMEM;
     }
@@ -271,6 +273,7 @@ static int ifp_groups_list_by_name_step(struct ifp_list_ctx *list_ctx)
     req = cache_req_group_by_filter_send(list_ctx,
                                         list_ctx->ctx->rctx->ev,
                                         list_ctx->ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
                                         list_ctx->dom->name,
                                         list_ctx->filter);
     if (req == NULL) {
@@ -355,7 +358,8 @@ int ifp_groups_list_by_domain_and_name(struct sbus_request *sbus_req,
     }
 
     req = cache_req_group_by_filter_send(list_ctx, ctx->rctx->ev, ctx->rctx,
-                                        domain, filter);
+                                         CACHE_REQ_POSIX_DOM,
+                                         domain, filter);
     if (req == NULL) {
         return ENOMEM;
     }
@@ -522,7 +526,10 @@ static struct tevent_req *resolv_ghosts_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = cache_req_group_by_name_send(state, ev, ctx->rctx,
-                                          ctx->rctx->ncache, 0, domain->name, name);
+                                          ctx->rctx->ncache, 0,
+                                          CACHE_REQ_POSIX_DOM,
+                                          domain->name,
+                                          name);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -601,6 +608,7 @@ errno_t resolv_ghosts_step(struct tevent_req *req)
 
     subreq = cache_req_user_by_name_send(state, state->ev, state->ctx->rctx,
                                          state->ctx->rctx->ncache, 0,
+                                         CACHE_REQ_POSIX_DOM,
                                          state->domain->name,
                                          state->ghosts[state->index]);
     if (subreq == NULL) {
