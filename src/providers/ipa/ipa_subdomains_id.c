@@ -399,6 +399,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
         case BE_REQ_USER:
         case BE_REQ_GROUP:
         case BE_REQ_BY_SECID:
+        case BE_REQ_BY_CERT:
         case BE_REQ_USER_AND_GROUP:
             ret = EOK;
             break;
