@@ -184,6 +184,8 @@
 #define SYSDB_OVERRIDE_GROUP_CLASS "groupOverride"
 #define SYSDB_OVERRIDE_DN "overrideDN"
 #define SYSDB_OVERRIDE_OBJECT_DN "overrideObjectDN"
+#define SYSDB_USE_DOMAIN_RESOLUTION_ORDER "useDomainResolutionOrder"
+#define SYSDB_DOMAIN_RESOLUTION_ORDER "domainResolutionOrder"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
