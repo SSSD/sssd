@@ -1808,7 +1808,7 @@ static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq);
-static void ipa_subdomains_refresh_view_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq);
 static void ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq);
 
 static struct tevent_req *
@@ -2023,11 +2023,12 @@ static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq)
         return;
     }
 
-    tevent_req_set_callback(subreq, ipa_subdomains_refresh_view_done, req);
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_view_name_done,
+                            req);
     return;
 }
 
-static void ipa_subdomains_refresh_view_done(struct tevent_req *subreq)
+static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_refresh_state *state;
     struct tevent_req *req;
