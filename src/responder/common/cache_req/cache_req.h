@@ -57,6 +57,18 @@ enum cache_req_type {
     CACHE_REQ_SENTINEL
 };
 
+/* Whether to limit the request type to a certain domain type
+ * (POSIX/non-POSIX)
+ */
+enum cache_req_dom_type {
+    /* Only look up data in POSIX domains */
+    CACHE_REQ_POSIX_DOM,
+    /* Only look up data in application domains */
+    CACHE_REQ_APPLICATION_DOM,
+    /* Look up data in any domain type */
+    CACHE_REQ_ANY_DOM
+};
+
 /* Input data. */
 
 struct cache_req_data;
@@ -172,6 +184,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   struct resp_ctx *rctx,
                                   struct sss_nc_ctx *ncache,
                                   int midpoint,
+                                  enum cache_req_dom_type req_dom_type,
                                   const char *domain,
                                   struct cache_req_data *data);
 
@@ -191,6 +204,7 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
                             struct resp_ctx *rctx,
                             struct sss_nc_ctx *ncache,
                             int cache_refresh_percent,
+                            enum cache_req_dom_type req_dom_type,
                             const char *domain,
                             const char *name);
 
@@ -228,6 +242,7 @@ cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
                             struct resp_ctx *rctx,
                             struct sss_nc_ctx *ncache,
                             int cache_refresh_percent,
+                            enum cache_req_dom_type req_dom_type,
                             const char *domain,
                             const char *pem_cert);
 
@@ -240,6 +255,7 @@ cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
                              struct resp_ctx *rctx,
                              struct sss_nc_ctx *ncache,
                              int cache_refresh_percent,
+                             enum cache_req_dom_type req_dom_type,
                              const char *domain,
                              const char *name);
 
@@ -264,6 +280,7 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
                               struct resp_ctx *rctx,
                               struct sss_nc_ctx *ncache,
                               int cache_refresh_percent,
+                              enum cache_req_dom_type req_dom_type,
                               const char *domain,
                               const char *name);
 
@@ -274,6 +291,7 @@ struct tevent_req *
 cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
                               struct tevent_context *ev,
                               struct resp_ctx *rctx,
+                              enum cache_req_dom_type req_dom_type,
                               const char *domain,
                               const char *filter);
 
@@ -284,6 +302,7 @@ struct tevent_req *
 cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
                               struct tevent_context *ev,
                               struct resp_ctx *rctx,
+                              enum cache_req_dom_type req_dom_type,
                               const char *domain,
                               const char *filter);
 

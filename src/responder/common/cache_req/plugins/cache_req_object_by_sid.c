@@ -143,5 +143,7 @@ cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
     }
 
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
-                                         cache_refresh_percent, domain, data);
+                                         cache_refresh_percent,
+                                         CACHE_REQ_POSIX_DOM, domain,
+                                         data);
 }

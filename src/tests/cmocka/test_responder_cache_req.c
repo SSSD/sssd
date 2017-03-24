@@ -84,6 +84,28 @@ struct test_group {
     talloc_free(req_mem_ctx);                                               \
 } while (0)
 
+#define run_cache_req_domtype(ctx, send_fn, done_fn, dom, crp, domtype, lookup, expret) do { \
+    TALLOC_CTX *req_mem_ctx;                                                                 \
+    struct tevent_req *req;                                                                  \
+    errno_t ret;                                                                             \
+                                                                                             \
+    req_mem_ctx = talloc_new(global_talloc_context);                                         \
+    check_leaks_push(req_mem_ctx);                                                           \
+                                                                                             \
+    req = send_fn(req_mem_ctx, ctx->tctx->ev, ctx->rctx,                                     \
+                  ctx->ncache, crp,                                                          \
+                  domtype,                                                                   \
+                  (dom == NULL ? NULL : dom->name), lookup);                                 \
+    assert_non_null(req);                                                                    \
+    tevent_req_set_callback(req, done_fn, ctx);                                              \
+                                                                                             \
+    ret = test_ev_loop(ctx->tctx);                                                           \
+    assert_int_equal(ret, expret);                                                           \
+    assert_true(check_leaks_pop(req_mem_ctx));                                               \
+                                                                                             \
+    talloc_free(req_mem_ctx);                                                                \
+} while (0)
+
 struct cache_req_test_ctx {
     struct sss_test_ctx *tctx;
     struct resp_ctx *rctx;
@@ -211,9 +233,11 @@ static void run_user_by_name(struct cache_req_test_ctx *test_ctx,
                              int cache_refresh_percent,
                              errno_t exp_ret)
 {
-    run_cache_req(test_ctx, cache_req_user_by_name_send,
-                  cache_req_user_by_name_test_done, domain,
-                  cache_refresh_percent, users[0].short_name, exp_ret);
+    run_cache_req_domtype(test_ctx, cache_req_user_by_name_send,
+                          cache_req_user_by_name_test_done, domain,
+                          cache_refresh_percent,
+                          CACHE_REQ_POSIX_DOM,
+                          users[0].short_name, exp_ret);
 }
 
 static void run_user_by_upn(struct cache_req_test_ctx *test_ctx,
@@ -221,9 +245,11 @@ static void run_user_by_upn(struct cache_req_test_ctx *test_ctx,
                             int cache_refresh_percent,
                             errno_t exp_ret)
 {
-    run_cache_req(test_ctx, cache_req_user_by_name_send,
-                  cache_req_user_by_name_test_done, domain,
-                  cache_refresh_percent, users[0].upn, exp_ret);
+    run_cache_req_domtype(test_ctx, cache_req_user_by_name_send,
+                          cache_req_user_by_name_test_done, domain,
+                          cache_refresh_percent,
+                          CACHE_REQ_POSIX_DOM,
+                          users[0].upn, exp_ret);
 }
 
 static void run_user_by_id(struct cache_req_test_ctx *test_ctx,
@@ -318,9 +344,11 @@ static void run_group_by_name(struct cache_req_test_ctx *test_ctx,
                               int cache_refresh_percent,
                               errno_t exp_ret)
 {
-    run_cache_req(test_ctx, cache_req_group_by_name_send,
-                  cache_req_group_by_name_test_done, domain,
-                  cache_refresh_percent, groups[0].short_name, exp_ret);
+    run_cache_req_domtype(test_ctx, cache_req_group_by_name_send,
+                          cache_req_group_by_name_test_done, domain,
+                          cache_refresh_percent,
+                          CACHE_REQ_POSIX_DOM,
+                          groups[0].short_name, exp_ret);
 }
 
 static void run_group_by_id(struct cache_req_test_ctx *test_ctx,
@@ -605,7 +633,9 @@ void test_user_by_name_multiple_domains_parse(void **state)
     check_leaks_push(req_mem_ctx);
 
     req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
-                                      test_ctx->rctx, test_ctx->ncache, 0,
+                                      test_ctx->rctx, test_ctx->ncache,
+                                      CACHE_REQ_POSIX_DOM,
+                                      0,
                                       NULL, input_fqn);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
@@ -1119,7 +1149,8 @@ void test_group_by_name_multiple_domains_parse(void **state)
 
     req = cache_req_group_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                        test_ctx->rctx, test_ctx->ncache, 0,
-                                       NULL, input_fqn);
+                                       CACHE_REQ_POSIX_DOM, NULL,
+                                       input_fqn);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_group_by_name_test_done, test_ctx);
 
@@ -1421,6 +1452,7 @@ void test_user_by_recent_filter_valid(void **state)
     /* User TEST_USER is created with a DP callback. */
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
                                         TEST_USER_PREFIX);
     assert_non_null(req);
@@ -1463,6 +1495,7 @@ void test_users_by_recent_filter_valid(void **state)
     /* User TEST_USER1 and TEST_USER2 are created with a DP callback. */
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
                                         TEST_USER_PREFIX);
     assert_non_null(req);
@@ -1524,6 +1557,7 @@ void test_users_by_filter_filter_old(void **state)
 
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
                                         TEST_USER_PREFIX);
     assert_non_null(req);
@@ -1559,6 +1593,7 @@ void test_users_by_filter_notfound(void **state)
 
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
                                         "nosuchuser*");
     assert_non_null(req);
@@ -1592,6 +1627,7 @@ static void test_users_by_filter_multiple_domains_notfound(void **state)
 
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
                                         domain->name,
                                         "nosuchuser*");
     assert_non_null(req);
@@ -1636,6 +1672,7 @@ void test_group_by_recent_filter_valid(void **state)
     /* Group TEST_GROUP is created with a DP callback. */
     req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                          test_ctx->rctx,
+                                         CACHE_REQ_POSIX_DOM,
                                          test_ctx->tctx->dom->name,
                                          TEST_USER_PREFIX);
     assert_non_null(req);
@@ -1680,6 +1717,7 @@ void test_groups_by_recent_filter_valid(void **state)
     /* Group TEST_GROUP1 and TEST_GROUP2 are created with a DP callback. */
     req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                          test_ctx->rctx,
+                                         CACHE_REQ_POSIX_DOM,
                                          test_ctx->tctx->dom->name,
                                          TEST_USER_PREFIX);
     assert_non_null(req);
@@ -1738,6 +1776,7 @@ void test_groups_by_filter_notfound(void **state)
 
     req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
                                         test_ctx->tctx->dom->name,
                                         "nosuchgroup*");
     assert_non_null(req);
@@ -1770,6 +1809,7 @@ void test_groups_by_filter_multiple_domains_notfound(void **state)
 
     req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
+                                        CACHE_REQ_POSIX_DOM,
                                         domain->name,
                                         "nosuchgroup*");
     assert_non_null(req);

@@ -89,12 +89,31 @@ static errno_t cache_req_set_plugin(struct cache_req *cr,
     return EOK;
 }
 
+static const char *
+cache_req_dom_type_as_str(struct cache_req *cr)
+{
+    if (cr == NULL) {
+        return "BUG: Invalid cache_req pointer\n";
+    }
+    switch (cr->req_dom_type) {
+    case CACHE_REQ_POSIX_DOM:
+        return "POSIX-only";
+    case CACHE_REQ_APPLICATION_DOM:
+        return "Application-only";
+    case CACHE_REQ_ANY_DOM:
+        return "Any";
+    }
+
+    return "Unknown";
+}
+
 static struct cache_req *
 cache_req_create(TALLOC_CTX *mem_ctx,
                  struct resp_ctx *rctx,
                  struct cache_req_data *data,
                  struct sss_nc_ctx *ncache,
-                 int midpoint)
+                 int midpoint,
+                 enum cache_req_dom_type req_dom_type)
 {
     struct cache_req *cr;
     errno_t ret;
@@ -108,6 +127,7 @@ cache_req_create(TALLOC_CTX *mem_ctx,
     cr->data = data;
     cr->ncache = ncache;
     cr->midpoint = midpoint;
+    cr->req_dom_type = req_dom_type;
     cr->req_start = time(NULL);
 
     /* It is perfectly fine to just overflow here. */
@@ -145,8 +165,8 @@ cache_req_set_name(struct cache_req *cr, const char *name)
 }
 
 static bool
-cache_req_validate_domain(struct cache_req *cr,
-                          struct sss_domain_info *domain)
+cache_req_validate_domain_enumeration(struct cache_req *cr,
+                                      struct sss_domain_info *domain)
 {
     if (!cr->plugin->require_enumeration) {
         return true;
@@ -160,6 +180,52 @@ cache_req_validate_domain(struct cache_req *cr,
 
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Domain %s supports enumeration\n",
                     domain->name);
+
+    return true;
+}
+
+static bool
+cache_req_validate_domain_type(struct cache_req *cr,
+                               struct sss_domain_info *domain)
+{
+    bool valid = false;
+
+    switch (cr->req_dom_type) {
+    case CACHE_REQ_POSIX_DOM:
+        valid = domain->type == DOM_TYPE_POSIX ? true : false;
+        break;
+    case CACHE_REQ_APPLICATION_DOM:
+        valid = domain->type == DOM_TYPE_APPLICATION ? true : false;
+        break;
+    case CACHE_REQ_ANY_DOM:
+        valid = true;
+        break;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Request type %s for domain %s type %s is %svalid\n",
+          cache_req_dom_type_as_str(cr),
+          domain->name,
+          sss_domain_type_str(domain),
+          valid ? "" : "not ");
+    return valid;
+}
+
+static bool
+cache_req_validate_domain(struct cache_req *cr,
+                          struct sss_domain_info *domain)
+{
+    bool ok;
+
+    ok = cache_req_validate_domain_enumeration(cr, domain);
+    if (ok == false) {
+        return false;
+    }
+
+    ok = cache_req_validate_domain_type(cr, domain);
+    if (ok == false) {
+        return false;
+    }
 
     return true;
 }
@@ -651,6 +717,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   struct resp_ctx *rctx,
                                   struct sss_nc_ctx *ncache,
                                   int midpoint,
+                                  enum cache_req_dom_type req_dom_type,
                                   const char *domain,
                                   struct cache_req_data *data)
 {
@@ -667,7 +734,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    state->cr = cr = cache_req_create(state, rctx, data, ncache, midpoint);
+    state->cr = cr = cache_req_create(state, rctx, data,
+                                      ncache, midpoint, req_dom_type);
     if (state->cr == NULL) {
         ret = ENOMEM;
         goto done;
@@ -952,13 +1020,15 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               struct resp_ctx *rctx,
                               struct sss_nc_ctx *ncache,
                               int cache_refresh_percent,
+                              enum cache_req_dom_type req_dom_type,
                               const char *domain,
                               struct cache_req_data *data)
 {
     struct tevent_req *req;
 
     req = cache_req_send(mem_ctx, ev, rctx, ncache,
-                         cache_refresh_percent, domain, data);
+                         cache_refresh_percent,
+                         req_dom_type, domain, data);
     if (req == NULL) {
         talloc_zfree(data);
         return NULL;
