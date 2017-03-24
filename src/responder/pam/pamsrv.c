@@ -122,7 +122,7 @@ done:
     return ret;
 }
 
-static errno_t get_public_domains(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx)
+static errno_t get_public_domains(struct pam_ctx *pctx)
 {
     char *domains_str = NULL;
     errno_t ret;
@@ -137,7 +137,7 @@ static errno_t get_public_domains(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx)
 
     if (strcmp(domains_str, ALL_DOMAIMS_ARE_PUBLIC) == 0) { /* all */
         /* copy all domains */
-        ret = get_dom_names(mem_ctx,
+        ret = get_dom_names(pctx,
                             pctx->rctx->domains,
                             &pctx->public_domains,
                             &pctx->public_domains_count);
@@ -149,7 +149,7 @@ static errno_t get_public_domains(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx)
         pctx->public_domains = NULL;
         pctx->public_domains_count = 0;
     } else {
-        ret = split_on_separator(mem_ctx, domains_str, ',', true, false,
+        ret = split_on_separator(pctx, domains_str, ',', true, false,
                                  &pctx->public_domains,
                                  &pctx->public_domains_count);
         if (ret != EOK) {
@@ -212,7 +212,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = get_public_domains(pctx, pctx);
+    ret = get_public_domains(pctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "get_public_domains failed: %d:[%s].\n",
               ret, sss_strerror(ret));
