@@ -614,7 +614,8 @@ done:
 static errno_t
 cache_req_search_domains_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
-                              struct cache_req_result ***_results)
+                              struct cache_req_result ***_results,
+                              size_t *_num_results)
 {
     struct cache_req_search_domains_state *state;
 
@@ -624,6 +625,9 @@ cache_req_search_domains_recv(TALLOC_CTX *mem_ctx,
 
     if (_results != NULL) {
         *_results = talloc_steal(mem_ctx, state->results);
+    }
+    if (_num_results != NULL) {
+        *_num_results = state->num_results;
     }
 
     return EOK;
@@ -1010,7 +1014,8 @@ static void cache_req_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_state);
 
-    ret = cache_req_search_domains_recv(state, subreq, &state->results);
+    ret = cache_req_search_domains_recv(state, subreq,
+                                        &state->results, &state->num_results);
     talloc_zfree(subreq);
 
     if (ret == ENOENT && state->first_iteration) {
