@@ -508,8 +508,12 @@ ifp_user_get_attr_lookup(struct tevent_req *subreq)
         return;
     }
 
+    /* IFP serves both POSIX and application domains. Requests that need
+     * to differentiate between the two must be qualified
+     */
     subreq = cache_req_send(state, state->rctx->ev, state->rctx,
-                            state->ncache, 0, CACHE_REQ_POSIX_DOM,
+                            state->ncache, 0,
+                            CACHE_REQ_ANY_DOM,
                             state->domname, data);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);

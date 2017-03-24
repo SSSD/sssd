@@ -35,25 +35,33 @@ char * ifp_groups_build_path_from_msg(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *domain,
                                       struct ldb_message *msg)
 {
-    const char *gid;
+    const char *key = NULL;
 
-    gid = ldb_msg_find_attr_as_string(msg, SYSDB_GIDNUM, NULL);
+    switch (domain->type) {
+    case DOM_TYPE_APPLICATION:
+        key = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        break;
+    case DOM_TYPE_POSIX:
+        key = ldb_msg_find_attr_as_string(msg, SYSDB_GIDNUM, NULL);
+        break;
+    }
 
-    if (gid == NULL) {
+
+    if (key == NULL) {
         return NULL;
     }
 
-    return sbus_opath_compose(mem_ctx, IFP_PATH_GROUPS, domain->name, gid);
+    return sbus_opath_compose(mem_ctx, IFP_PATH_GROUPS, domain->name, key);
 }
 
-static errno_t ifp_groups_decompose_path(struct sss_domain_info *domains,
+static errno_t ifp_groups_decompose_path(TALLOC_CTX *mem_ctx,
+                                         struct sss_domain_info *domains,
                                          const char *path,
                                          struct sss_domain_info **_domain,
-                                         gid_t *_gid)
+                                         char **_key)
 {
     char **parts = NULL;
     struct sss_domain_info *domain;
-    gid_t gid;
     errno_t ret;
 
     ret = sbus_opath_decompose_exact(NULL, path, IFP_PATH_GROUPS, 2, &parts);
@@ -67,14 +75,8 @@ static errno_t ifp_groups_decompose_path(struct sss_domain_info *domains,
         goto done;
     }
 
-    gid = strtouint32(parts[1], NULL, 10);
-    ret = errno;
-    if (ret != EOK) {
-        goto done;
-    }
-
     *_domain = domain;
-    *_gid = gid;
+    *_key = talloc_steal(mem_ctx, parts[1]);
 
 done:
     talloc_free(parts);
@@ -119,7 +121,7 @@ int ifp_groups_find_by_name(struct sbus_request *sbus_req,
 
     req = cache_req_group_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
                                        ctx->rctx->ncache, 0,
-                                       CACHE_REQ_POSIX_DOM, NULL,
+                                       CACHE_REQ_ANY_DOM, NULL,
                                        name);
     if (req == NULL) {
         return ENOMEM;
@@ -273,7 +275,7 @@ static int ifp_groups_list_by_name_step(struct ifp_list_ctx *list_ctx)
     req = cache_req_group_by_filter_send(list_ctx,
                                         list_ctx->ctx->rctx->ev,
                                         list_ctx->ctx->rctx,
-                                        CACHE_REQ_POSIX_DOM,
+                                        CACHE_REQ_ANY_DOM,
                                         list_ctx->dom->name,
                                         list_ctx->filter);
     if (req == NULL) {
@@ -358,7 +360,7 @@ int ifp_groups_list_by_domain_and_name(struct sbus_request *sbus_req,
     }
 
     req = cache_req_group_by_filter_send(list_ctx, ctx->rctx->ev, ctx->rctx,
-                                         CACHE_REQ_POSIX_DOM,
+                                         CACHE_REQ_ANY_DOM,
                                          domain, filter);
     if (req == NULL) {
         return ENOMEM;
@@ -412,16 +414,65 @@ done:
 }
 
 static errno_t
+ifp_groups_get_from_cache(struct sbus_request *sbus_req,
+                         struct sss_domain_info *domain,
+                         const char *key,
+                         struct ldb_message **_group)
+{
+    struct ldb_result *group_res;
+    errno_t ret;
+    gid_t gid;
+
+    switch (domain->type) {
+    case DOM_TYPE_POSIX:
+        gid = strtouint32(key, NULL, 10);
+        ret = errno;
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid UID value\n");
+            return ret;
+        }
+
+        ret = sysdb_getgrgid_with_views(sbus_req, domain, gid, &group_res);
+        if (ret == EOK && group_res->count == 0) {
+            *_group = NULL;
+            return ENOENT;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup group %u@%s [%d]: %s\n",
+                  gid, domain->name, ret, sss_strerror(ret));
+            return ret;
+        }
+        break;
+    case DOM_TYPE_APPLICATION:
+        ret = sysdb_getgrnam_with_views(sbus_req, domain, key, &group_res);
+        if (ret == EOK && group_res->count == 0) {
+            *_group = NULL;
+            return ENOENT;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup group %s@%s [%d]: %s\n",
+                  key, domain->name, ret, sss_strerror(ret));
+            return ret;
+        }
+        break;
+    }
+
+    if (group_res->count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "More groups matched by the single key\n");
+        return EIO;
+    }
+
+    *_group = group_res->msgs[0];
+    return EOK;
+}
+
+static errno_t
 ifp_groups_group_get(struct sbus_request *sbus_req,
                      void *data,
-                     gid_t *_gid,
                      struct sss_domain_info **_domain,
                      struct ldb_message **_group)
 {
     struct ifp_ctx *ctx;
     struct sss_domain_info *domain;
-    struct ldb_result *res;
-    uid_t gid;
+    char *key;
     errno_t ret;
 
     ctx = talloc_get_type(data, struct ifp_ctx);
@@ -430,8 +481,9 @@ ifp_groups_group_get(struct sbus_request *sbus_req,
         return ERR_INTERNAL;
     }
 
-    ret = ifp_groups_decompose_path(ctx->rctx->domains, sbus_req->path,
-                                    &domain, &gid);
+    ret = ifp_groups_decompose_path(sbus_req,
+                                    ctx->rctx->domains, sbus_req->path,
+                                    &domain, &key);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to decompose object path"
               "[%s] [%d]: %s\n", sbus_req->path, ret, sss_strerror(ret));
@@ -439,28 +491,15 @@ ifp_groups_group_get(struct sbus_request *sbus_req,
     }
 
     if (_group != NULL) {
-        ret = sysdb_getgrgid_with_views(sbus_req, domain, gid, &res);
-        if (ret == EOK && res->count == 0) {
-            *_group = NULL;
-            ret = ENOENT;
-        }
-
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup group %u@%s [%d]: %s\n",
-                  gid, domain->name, ret, sss_strerror(ret));
-        } else {
-            *_group = res->msgs[0];
-        }
+        ret = ifp_groups_get_from_cache(sbus_req, domain, key, _group);
     }
 
     if (ret == EOK || ret == ENOENT) {
-        if (_gid != NULL) {
-            *_gid = gid;
-        }
-
         if (_domain != NULL) {
             *_domain = domain;
         }
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve group from cache\n");
     }
 
     return ret;
@@ -513,7 +552,7 @@ static struct tevent_req *resolv_ghosts_send(TALLOC_CTX *mem_ctx,
     state->ctx = ctx;
     state->data = data;
 
-    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &group);
+    ret = ifp_groups_group_get(sbus_req, data, &domain, &group);
     if (ret != EOK) {
         goto immediately;
     }
@@ -527,7 +566,7 @@ static struct tevent_req *resolv_ghosts_send(TALLOC_CTX *mem_ctx,
 
     subreq = cache_req_group_by_name_send(state, ev, ctx->rctx,
                                           ctx->rctx->ncache, 0,
-                                          CACHE_REQ_POSIX_DOM,
+                                          CACHE_REQ_ANY_DOM,
                                           domain->name,
                                           name);
     if (subreq == NULL) {
@@ -561,7 +600,7 @@ static void resolv_ghosts_group_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct resolv_ghosts_state);
 
-    ret = ifp_groups_group_get(state->sbus_req, state->data, NULL,
+    ret = ifp_groups_group_get(state->sbus_req, state->data,
                                &state->domain, &group);
     if (ret != EOK) {
         goto done;
@@ -608,7 +647,7 @@ errno_t resolv_ghosts_step(struct tevent_req *req)
 
     subreq = cache_req_user_by_name_send(state, state->ev, state->ctx->rctx,
                                          state->ctx->rctx->ncache, 0,
-                                         CACHE_REQ_POSIX_DOM,
+                                         CACHE_REQ_ANY_DOM,
                                          state->domain->name,
                                          state->ghosts[state->index]);
     if (subreq == NULL) {
@@ -719,7 +758,7 @@ void ifp_groups_group_get_name(struct sbus_request *sbus_req,
         return;
     }
 
-    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &msg);
+    ret = ifp_groups_group_get(sbus_req, data, &domain, &msg);
     if (ret != EOK) {
         *_out = NULL;
         return;
@@ -744,7 +783,7 @@ void ifp_groups_group_get_gid_number(struct sbus_request *sbus_req,
     struct sss_domain_info *domain;
     errno_t ret;
 
-    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &msg);
+    ret = ifp_groups_group_get(sbus_req, data, &domain, &msg);
     if (ret != EOK) {
         *_out = 0;
         return;
@@ -763,7 +802,7 @@ void ifp_groups_group_get_unique_id(struct sbus_request *sbus_req,
     struct sss_domain_info *domain;
     errno_t ret;
 
-    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &msg);
+    ret = ifp_groups_group_get(sbus_req, data, &domain, &msg);
     if (ret != EOK) {
         *_out = 0;
         return;
@@ -803,7 +842,7 @@ ifp_groups_group_get_members(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &group);
+    ret = ifp_groups_group_get(sbus_req, data, &domain, &group);
     if (ret != EOK) {
         goto done;
     }
@@ -954,7 +993,7 @@ int ifp_cache_object_store_group(struct sbus_request *sbus_req,
     struct ldb_message *group;
     errno_t ret;
 
-    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &group);
+    ret = ifp_groups_group_get(sbus_req, data, &domain, &group);
     if (ret != EOK) {
         error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
                                "group [%d]: %s\n", ret, sss_strerror(ret));
@@ -973,7 +1012,7 @@ int ifp_cache_object_remove_group(struct sbus_request *sbus_req,
     struct ldb_message *group;
     errno_t ret;
 
-    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &group);
+    ret = ifp_groups_group_get(sbus_req, data, &domain, &group);
     if (ret != EOK) {
         error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
                                "group [%d]: %s\n", ret, sss_strerror(ret));
