@@ -52,7 +52,8 @@ enum response_types {
     RESP_USER,
     RESP_GROUP,
     RESP_USER_GROUPLIST,
-    RESP_GROUP_MEMBERS
+    RESP_GROUP_MEMBERS,
+    RESP_NAME_LIST
 };
 
 /* ==Sid2Name Extended Operation============================================= */
@@ -366,8 +367,8 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
             break;
         case BE_REQ_BY_CERT:
             if (req_input->type == REQ_INP_CERT) {
-            ret = ber_printf(ber, "{ees}", INP_CERT, request_type,
-                                           req_input->inp.cert);
+                ret = ber_printf(ber, "{ees}", INP_CERT, request_type,
+                                               req_input->inp.cert);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
                                           req_input->type);
@@ -463,6 +464,11 @@ done:
  * GroupMemberList ::= SEQUENCE OF OCTET STRING
  */
 
+struct name_list {
+    char *domain_name;
+    char *name;
+};
+
 struct resp_attrs {
     enum response_types response_type;
     char *domain_name;
@@ -475,6 +481,7 @@ struct resp_attrs {
     size_t ngroups;
     char **groups;
     struct sysdb_attrs *sysdb_attrs;
+    char **name_list;
 };
 
 static errno_t get_extra_attrs(BerElement *ber, struct resp_attrs *resp_attrs)
@@ -782,6 +789,9 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     struct resp_attrs *attrs = NULL;
     char *sid_str;
     bool is_v1 = false;
+    char **name_list = NULL;
+    ber_len_t ber_len;
+    char *fq_name = NULL;
 
     if (retoid == NULL || retdata == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing OID or data.\n");
@@ -947,6 +957,53 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                 goto done;
             }
             break;
+        case RESP_NAME_LIST:
+            tag = ber_scanf(ber, "{");
+            if (tag == LBER_ERROR) {
+                DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+                ret = EINVAL;
+                goto done;
+            }
+
+            while (ber_peek_tag(ber, &ber_len) ==  LBER_SEQUENCE) {
+                tag = ber_scanf(ber, "{aa}", &domain_name, &name);
+                if (tag == LBER_ERROR) {
+                    DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+                    ret = EINVAL;
+                    goto done;
+                }
+
+                fq_name = sss_create_internal_fqname(attrs, name, domain_name);
+                if (fq_name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_create_internal_fqname failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+                DEBUG(SSSDBG_TRACE_ALL, "[%s][%s][%s].\n", domain_name, name,
+                                                           fq_name);
+
+                ret = add_string_to_list(attrs, fq_name, &name_list);
+                ber_memfree(domain_name);
+                ber_memfree(name);
+                talloc_free(fq_name);
+                domain_name = NULL;
+                name = NULL;
+                fq_name = NULL;
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "add_to_name_list failed.\n");
+                    goto done;
+                }
+            }
+
+            tag = ber_scanf(ber, "}}");
+            if (tag == LBER_ERROR) {
+                DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+                ret = EINVAL;
+                goto done;
+            }
+            attrs->name_list = name_list;
+            break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, "Unexpected response type [%d].\n",
                                       type);
@@ -955,7 +1012,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     }
 
     attrs->response_type = type;
-    if (type != RESP_SID) {
+    if (type != RESP_SID && type != RESP_NAME_LIST) {
         attrs->domain_name = talloc_strdup(attrs, domain_name);
         if (attrs->domain_name == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
@@ -969,6 +1026,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
 done:
     ber_memfree(domain_name);
     ber_memfree(name);
+    talloc_free(fq_name);
     ber_free(ber, 1);
 
     if (ret == EOK) {
@@ -1332,6 +1390,7 @@ struct ipa_s2n_get_user_state {
     struct resp_attrs *attrs;
     struct resp_attrs *simple_attrs;
     struct sysdb_attrs *override_attrs;
+    struct sysdb_attrs *mapped_attrs;
     int exop_timeout;
 };
 
@@ -1382,6 +1441,11 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
                               "cannot resolve objects from trusted domains.\n");
         ret = EIO;
         goto fail;
+    }
+
+    if (entry_type == BE_REQ_BY_CERT) {
+        /* Only REQ_SIMPLE is supported for BE_REQ_BY_CERT */
+        state->request_type = REQ_SIMPLE;
     }
 
     ret = s2n_encode_request(state, dom->name, entry_type, state->request_type,
@@ -1783,6 +1847,43 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
             goto done;
+        }
+
+        if (state->simple_attrs->response_type == RESP_NAME_LIST
+                && state->req_input->type == REQ_INP_CERT) {
+            state->mapped_attrs = sysdb_new_attrs(state);
+            if (state->mapped_attrs == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_attrs_add_base64_blob(state->mapped_attrs,
+                                              SYSDB_USER_MAPPED_CERT,
+                                              state->req_input->inp.cert);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_base64_blob failed.\n");
+                goto done;
+            }
+
+            subreq = ipa_s2n_get_list_send(state, state->ev,
+                                           state->ipa_ctx, state->dom,
+                                           state->sh, state->exop_timeout,
+                                           BE_REQ_USER,
+                                           REQ_FULL_WITH_MEMBERS,
+                                           REQ_INP_NAME,
+                                           state->simple_attrs->name_list,
+                                           state->mapped_attrs);
+            if (subreq == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "ipa_s2n_get_list_send failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            tevent_req_set_callback(subreq, ipa_s2n_get_list_done,
+                                    req);
+
+            return;
         }
 
         break;
