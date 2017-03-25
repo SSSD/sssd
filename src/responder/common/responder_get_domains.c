@@ -192,6 +192,13 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
 
     if (state->dom == NULL) {
         /* All domains were local */
+        ret = sss_resp_populate_cr_domains(state->rctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_resp_populate_cr_domains() failed [%d]: [%s]\n",
+                  ret, sss_strerror(ret));
+            goto immediately;
+        }
         ret = EOK;
         goto immediately;
     }
@@ -253,6 +260,13 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
     if (state->dom == NULL) {
         /* All domains were local */
         set_time_of_last_request(state->rctx);
+        ret = sss_resp_populate_cr_domains(state->rctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_resp_populate_cr_domains() failed [%d]: [%s]\n",
+                  ret, sss_strerror(ret));
+            goto fail;
+        }
         tevent_req_done(req);
         return;
     }

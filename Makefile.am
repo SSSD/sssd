@@ -528,6 +528,7 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/cache_req_result.c \
 	src/responder/common/cache_req/cache_req_search.c \
 	src/responder/common/cache_req/cache_req_data.c \
+	src/responder/common/cache_req/cache_req_domain.c \
 	src/responder/common/cache_req/plugins/cache_req_common.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_users.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_groups.c \
@@ -689,6 +690,7 @@ dist_noinst_HEADERS = \
     src/responder/common/iface/responder_iface.h \
     src/responder/common/iface/responder_iface_generated.h \
     src/responder/common/cache_req/cache_req.h \
+    src/responder/common/cache_req/cache_req_domain.h \
     src/responder/common/cache_req/cache_req_plugin.h \
     src/responder/common/cache_req/cache_req_private.h \
     src/responder/common/data_provider/rdp.h \
@@ -2199,6 +2201,7 @@ responder_socket_access_tests_SOURCES = \
     src/responder/common/responder_common.c \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_cmd.c \
+    src/responder/common/cache_req/cache_req_domain.c \
     src/responder/common/data_provider/rdp_message.c \
     src/responder/common/data_provider/rdp_client.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
