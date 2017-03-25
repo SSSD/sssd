@@ -51,6 +51,12 @@ mock_rctx(TALLOC_CTX *mem_ctx,
     rctx->ev = ev;
     rctx->domains = domains;
     rctx->pvt_ctx = pvt_ctx;
+    if (domains != NULL) {
+        ret = sss_resp_populate_cr_domains(rctx);
+        if (ret != EOK) {
+            return NULL;
+        }
+    }
     return rctx;
 }
 

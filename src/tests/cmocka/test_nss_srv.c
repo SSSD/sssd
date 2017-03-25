@@ -3438,6 +3438,10 @@ static int nss_subdom_test_setup(void **state)
     ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom);
     assert_int_equal(ret, EOK);
 
+    ret = sss_resp_populate_cr_domains(nss_test_ctx->rctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(nss_test_ctx->rctx->cr_domains);
+
     nss_test_ctx->subdom = nss_test_ctx->tctx->dom->subdomains;
 
     ret = store_group(nss_test_ctx, nss_test_ctx->subdom,

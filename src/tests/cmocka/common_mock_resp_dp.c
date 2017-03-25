@@ -21,6 +21,7 @@
 */
 
 #include "util/util.h"
+#include "responder/common/responder.h"
 #include "tests/cmocka/common_mock_resp.h"
 
 /* Mock DP requests that finish immediatelly and return
@@ -165,6 +166,12 @@ sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
                         bool force,
                         const char *hint)
 {
+    errno_t ret;
+    ret = sss_resp_populate_cr_domains(rctx);
+    if (ret != EOK) {
+        return NULL;
+    }
+
     return test_req_succeed_send(mem_ctx, rctx->ev);
 }
 
