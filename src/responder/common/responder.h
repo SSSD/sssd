@@ -115,6 +115,7 @@ struct resp_ctx {
     int client_idle_timeout;
 
     struct cache_req_domain *cr_domains;
+    const char *domain_resolution_order;
 
     time_t last_request_time;
     int idle_timeout;

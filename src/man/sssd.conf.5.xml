@@ -542,6 +542,26 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>domain_resolution_order</term>
+                        <listitem>
+                            <para>
+                                Comma separated list of domains and subdomains
+                                representing the lookup order that will be
+                                followed.
+                                The list doesn't have to include all possible
+                                domains as the missing domains will be looked
+                                up based on the order they're presented in the
+                                <quote>domains</quote> configuration option.
+                                The subdomains which are not listed as part of
+                                <quote>lookup_order</quote> will be looked up
+                                in a random order for each parent domain.
+                            </para>
+                            <para>
+                                Default: Not set
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>

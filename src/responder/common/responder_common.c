@@ -1163,6 +1163,19 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         rctx->override_space = tmp[0];
     }
 
+    ret = confdb_get_string(rctx->cdb, rctx,
+                            CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_DOMAIN_RESOLUTION_ORDER, NULL,
+                            &tmp);
+    if (ret == EOK) {
+        rctx->domain_resolution_order = sss_replace_char(rctx, tmp, ',', ':');
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot get the \"domain_resolution_order\" option.\n"
+              "The set up lookup_order won't be followed [%d]: %s.\n",
+              ret, sss_strerror(ret));
+    }
+
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
                            svc_name, svc_version, MT_SVC_SERVICE,
                            rctx, &rctx->last_request_time,
@@ -1545,6 +1558,20 @@ errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx)
     struct cache_req_domain *cr_domains = NULL;
     struct sss_domain_info *dom;
     errno_t ret;
+
+    if (rctx->domain_resolution_order != NULL) {
+        cr_domains = cache_req_domain_new_list_from_domain_resolution_order(
+                            rctx, rctx->domains, rctx->domain_resolution_order);
+
+        if (cr_domains == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to use domain_resolution_order set in the config file.\n"
+                  "Trying to fallback to use ipaDomainOrderResolution setup by "
+                  "IPA.\n");
+        } else {
+            goto done;
+        }
+    }
 
     for (dom = rctx->domains; dom != NULL; dom = dom->next) {
         if (dom->provider != NULL && strcmp(dom->provider, "ipa") == 0) {

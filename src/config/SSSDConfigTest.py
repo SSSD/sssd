@@ -94,6 +94,10 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertTrue('default_domain_suffix' in new_options)
         self.assertEquals(new_options['default_domain_suffix'][0], str)
 
+        self.assertTrue('domain_resolution_order' in new_options)
+        self.assertEquals(new_options['domain_resolution_order'][0], list)
+        self.assertEquals(new_options['domain_resolution_order'][1], str)
+
         del sssdconfig
 
     def testDomains(self):
@@ -314,7 +318,8 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'certificate_verification',
             'override_space',
             'disable_netlink',
-            'enable_files_domain']
+            'enable_files_domain',
+            'domain_resolution_order']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
