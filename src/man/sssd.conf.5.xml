@@ -1325,6 +1325,18 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_app_services (string)</term>
+                    <listitem>
+                        <para>
+                            Which PAM services are permitted to contact
+                            domains of type <quote>application</quote>
+                        </para>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
 
             </variablelist>
         </refsect2>

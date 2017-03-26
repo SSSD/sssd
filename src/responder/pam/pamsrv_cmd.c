@@ -1161,6 +1161,25 @@ static bool is_domain_public(char *name,
     return false;
 }
 
+static enum cache_req_dom_type
+get_domain_request_type(struct pam_auth_req *preq,
+                        struct pam_ctx *pctx)
+{
+    enum cache_req_dom_type req_dom_type;
+
+    /* By default, only POSIX domains are to be contacted */
+    req_dom_type = CACHE_REQ_POSIX_DOM;
+
+    for (int i = 0; pctx->app_services[i]; i++) {
+        if (strcmp(pctx->app_services[i], preq->pd->service) == 0) {
+            req_dom_type = CACHE_REQ_APPLICATION_DOM;
+            break;
+        }
+    }
+
+    return req_dom_type;
+}
+
 static errno_t check_cert(TALLOC_CTX *mctx,
                           struct tevent_context *ev,
                           struct pam_ctx *pctx,
@@ -1257,6 +1276,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         goto done;
     }
 
+    /* Determine what domain type to contact */
+    preq->req_dom_type = get_domain_request_type(preq, pctx);
+
     /* try backend first for authentication before doing local Smartcard
      * authentication */
     if (pd->cmd != SSS_PAM_AUTHENTICATE && may_do_cert_auth(pctx, pd)) {
@@ -1316,7 +1338,7 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
 
     req = cache_req_user_by_cert_send(preq, cctx->ev, cctx->rctx,
                                       pctx->rctx->ncache, 0,
-                                      CACHE_REQ_POSIX_DOM, NULL,
+                                      preq->req_dom_type, NULL,
                                       cert);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert_send failed.\n");
@@ -1509,7 +1531,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
                            preq->cctx->rctx,
                            preq->cctx->rctx->ncache,
                            0,
-                           CACHE_REQ_POSIX_DOM,
+                           preq->req_dom_type,
                            preq->pd->domain,
                            data);
     if (!dpreq) {

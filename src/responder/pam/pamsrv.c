@@ -166,6 +166,32 @@ done:
     return ret;
 }
 
+static errno_t get_app_services(struct pam_ctx *pctx)
+{
+    errno_t ret;
+
+    ret = confdb_get_string_as_list(pctx->rctx->cdb, pctx,
+                                    CONFDB_PAM_CONF_ENTRY,
+                                    CONFDB_PAM_APP_SERVICES,
+                                    &pctx->app_services);
+    if (ret == ENOENT) {
+        pctx->app_services = talloc_zero_array(pctx, char *, 1);
+        if (pctx->app_services == NULL) {
+            return ENOMEM;
+        }
+        /* Allocating an empty array makes it easier for the consumer
+         * to iterate over it
+         */
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot read "CONFDB_PAM_APP_SERVICES" [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    return EOK;
+}
+
 static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct confdb_ctx *cdb,
@@ -215,6 +241,13 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     ret = get_public_domains(pctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "get_public_domains failed: %d:[%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = get_app_services(pctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "get_app_services failed: %d:[%s].\n",
               ret, sss_strerror(ret));
         goto done;
     }
