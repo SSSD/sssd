@@ -66,6 +66,7 @@ option_strings = {
     'override_space': _('All spaces in group or user names will be replaced with this character'),
     'disable_netlink' : _('Tune sssd to honor or ignore netlink state changes'),
     'enable_files_domain' : _('Enable or disable the implicit files domain'),
+    'domain_resolution_order': _('A specific order of the domains to be looked up'),
 
     # [nss]
     'enum_cache_timeout' : _('Enumeration cache timeout length (seconds)'),
