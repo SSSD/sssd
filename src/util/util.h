@@ -600,6 +600,11 @@ errno_t name_to_well_known_sid(const char *dom, const char *name,
                                const char **sid);
 
 /* from string_utils.c */
+char *sss_replace_char(TALLOC_CTX *mem_ctx,
+                       const char *in,
+                       const char match,
+                       const char sub);
+
 char * sss_replace_space(TALLOC_CTX *mem_ctx,
                          const char *orig_name,
                          const char replace_char);
