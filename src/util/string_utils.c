@@ -22,10 +22,10 @@
 
 #include "util/util.h"
 
-static char *replace_char(TALLOC_CTX *mem_ctx,
-                          const char *in,
-                          const char match,
-                          const char sub)
+char *sss_replace_char(TALLOC_CTX *mem_ctx,
+                       const char *in,
+                       const char match,
+                       const char sub)
 {
     char *p;
     char *out;
@@ -63,7 +63,7 @@ char * sss_replace_space(TALLOC_CTX *mem_ctx,
         return talloc_strdup(mem_ctx, orig_name);
     }
 
-    return replace_char(mem_ctx, orig_name, ' ', subst);
+    return sss_replace_char(mem_ctx, orig_name, ' ', subst);
 }
 
 char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
@@ -81,7 +81,7 @@ char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
         return talloc_strdup(mem_ctx, orig_name);
     }
 
-    return replace_char(mem_ctx, orig_name, subst, ' ');
+    return sss_replace_char(mem_ctx, orig_name, subst, ' ');
 }
 
 errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
