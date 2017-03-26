@@ -186,6 +186,15 @@ struct pam_ctx *mock_pctx(TALLOC_CTX *mem_ctx)
     ret = sss_hash_create(pctx, 10, &pctx->id_table);
     assert_int_equal(ret, EOK);
 
+    /* Two NULLs so that tests can just assign a const to the first slot
+     * should they need it. The code iterates until first NULL anyway
+     */
+    pctx->app_services = talloc_zero_array(pctx, char *, 2);
+    if (pctx->app_services == NULL) {
+        talloc_free(pctx);
+        return NULL;
+    }
+
     return pctx;
 }
 
@@ -495,8 +504,12 @@ int __wrap_pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     return EOK;
 }
 
-static void mock_input_pam(TALLOC_CTX *mem_ctx, const char *name,
-                           const char *pwd, const char *fa2)
+static void mock_input_pam_ex(TALLOC_CTX *mem_ctx,
+                              const char *name,
+                              const char *pwd,
+                              const char *fa2,
+                              const char *svc,
+                              bool contact_dp)
 {
     size_t buf_size;
     uint8_t *m_buf;
@@ -536,7 +549,10 @@ static void mock_input_pam(TALLOC_CTX *mem_ctx, const char *name,
         }
     }
 
-    pi.pam_service = "pam_test_service";
+    if (svc == NULL) {
+        svc = "pam_test_service";
+    }
+    pi.pam_service = svc;
     pi.pam_service_size = strlen(pi.pam_service) + 1;
     pi.pam_tty = "/dev/tty";
     pi.pam_tty_size = strlen(pi.pam_tty) + 1;
@@ -559,7 +575,17 @@ static void mock_input_pam(TALLOC_CTX *mem_ctx, const char *name,
     will_return(__wrap_sss_packet_get_body, buf_size);
 
     mock_parse_inp(name, NULL, EOK);
-    mock_account_recv_simple();
+    if (contact_dp) {
+        mock_account_recv_simple();
+    }
+}
+
+static void mock_input_pam(TALLOC_CTX *mem_ctx,
+                           const char *name,
+                           const char *pwd,
+                           const char *fa2)
+{
+    return mock_input_pam_ex(mem_ctx, name, pwd, fa2, NULL, true);
 }
 
 static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
@@ -2097,6 +2123,127 @@ void test_filter_response(void **state)
     talloc_free(pd);
 }
 
+static int pam_test_setup_appsvc_posix_dom(void **state)
+{
+    int ret;
+
+    ret = pam_test_setup(state);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* This config option is only read on startup, which is not executed
+     * in test, so we can't just pass in a param
+     */
+    pam_test_ctx->pctx->app_services[0] = discard_const("app_svc");
+    return 0;
+}
+
+void test_appsvc_posix_dom(void **state)
+{
+    int ret;
+
+    /* The domain is POSIX, the request will skip over it */
+    mock_input_pam_ex(pam_test_ctx, "pamuser", NULL, NULL, "app_svc", false);
+    pam_test_ctx->exp_pam_status = PAM_USER_UNKNOWN;
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_user_unknown_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_not_appsvc_posix_dom(void **state)
+{
+    int ret;
+
+    /* A different service than the app one can authenticate against a POSIX domain */
+    mock_input_pam_ex(pam_test_ctx, "pamuser", NULL, NULL, "not_app_svc", true);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_simple_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static int pam_test_setup_appsvc_app_dom(void **state)
+{
+    struct sss_test_conf_param dom_params[] = {
+        { "domain_type", "application" },
+        { NULL, NULL },             /* Sentinel */
+    };
+    struct sss_test_conf_param pam_params[] = {
+        { NULL, NULL },             /* Sentinel */
+    };
+    struct sss_test_conf_param monitor_params[] = {
+        { NULL, NULL },             /* Sentinel */
+    };
+
+
+    test_pam_setup(dom_params, pam_params, monitor_params, state);
+    pam_test_setup_common();
+
+    /* This config option is only read on startup, which is not executed
+     * in test, so we can't just pass in a param
+     */
+    pam_test_ctx->pctx->app_services[0] = discard_const("app_svc");
+    return 0;
+}
+
+void test_appsvc_app_dom(void **state)
+{
+    int ret;
+
+    /* The domain is POSIX, the request will skip over it */
+    mock_input_pam_ex(pam_test_ctx, "pamuser", NULL, NULL, "app_svc", true);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_simple_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_not_appsvc_app_dom(void **state)
+{
+    int ret;
+
+    /* A different service than the app one can authenticate against a POSIX domain */
+    mock_input_pam_ex(pam_test_ctx, "pamuser", NULL, NULL, "not_app_svc", false);
+
+    pam_test_ctx->exp_pam_status = PAM_USER_UNKNOWN;
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_user_unknown_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -2216,6 +2363,18 @@ int main(int argc, const char *argv[])
 
         cmocka_unit_test_setup_teardown(test_filter_response,
                                         pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_appsvc_posix_dom,
+                                        pam_test_setup_appsvc_posix_dom,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_not_appsvc_posix_dom,
+                                        pam_test_setup_appsvc_posix_dom,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_appsvc_app_dom,
+                                        pam_test_setup_appsvc_app_dom,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_not_appsvc_app_dom,
+                                        pam_test_setup_appsvc_posix_dom,
+                                        pam_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
