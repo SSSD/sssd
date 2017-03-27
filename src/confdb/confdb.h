@@ -164,6 +164,7 @@
 /* Domains */
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"
 #define CONFDB_DOMAIN_BASEDN "cn=domain,cn=config"
+#define CONFDB_APP_DOMAIN_BASEDN "cn=application,cn=config"
 #define CONFDB_DOMAIN_ID_PROVIDER "id_provider"
 #define CONFDB_DOMAIN_AUTH_PROVIDER "auth_provider"
 #define CONFDB_DOMAIN_ACCESS_PROVIDER "access_provider"
@@ -212,6 +213,7 @@
 #define CONFDB_DOMAIN_TYPE "domain_type"
 #define CONFDB_DOMAIN_TYPE_POSIX "posix"
 #define CONFDB_DOMAIN_TYPE_APP "application"
+#define CONFDB_DOMAIN_INHERIT_FROM "inherit_from"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -397,6 +399,8 @@ int confdb_get_domains(struct confdb_ctx *cdb,
 
 int confdb_ensure_files_domain(struct confdb_ctx *cdb,
                                const char *implicit_files_dom_name);
+
+int confdb_expand_app_domains(struct confdb_ctx *cdb);
 
 /**
  * Get a null-terminated linked-list of all domain names
