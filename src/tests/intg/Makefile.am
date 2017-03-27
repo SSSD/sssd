@@ -76,6 +76,7 @@ intgcheck-installed: config.py passwd group
 	PATH="$(abs_builddir):$(abs_srcdir):$$PATH" \
 	PYTHONPATH="$(abs_builddir):$(abs_srcdir)" \
 	LDB_MODULES_PATH="$(DESTDIR)$(ldblibdir)" \
+	NON_WRAPPED_UID=$$(id -u) \
 	LD_PRELOAD="$$nss_wrapper $$uid_wrapper" \
 	NSS_WRAPPER_PASSWD="$(abs_builddir)/passwd" \
 	NSS_WRAPPER_GROUP="$(abs_builddir)/group" \
@@ -83,6 +84,5 @@ intgcheck-installed: config.py passwd group
 	NSS_WRAPPER_MODULE_FN_PREFIX="sss" \
 	UID_WRAPPER=1 \
 	UID_WRAPPER_ROOT=1 \
-	NON_WRAPPED_UID=$$(echo $$UID) \
 	    fakeroot $(PYTHON2) $(PYTEST) -v --tb=native $(INTGCHECK_PYTEST_ARGS) .
 	rm -f $(DESTDIR)$(logpath)/*
