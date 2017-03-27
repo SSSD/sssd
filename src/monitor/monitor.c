@@ -1064,6 +1064,14 @@ static int get_monitor_config(struct mt_ctx *ctx)
         /* Not fatal */
     }
 
+    ret = confdb_expand_app_domains(ctx->cdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to expand application domains\n");
+        /* This must not be fatal so that SSSD keeps running and lets
+         * admin correct the error.
+         */
+    }
+
     ret = confdb_get_domains(ctx->cdb, &ctx->domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured.\n");

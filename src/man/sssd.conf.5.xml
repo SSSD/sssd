@@ -1539,6 +1539,10 @@ pam_account_locked_message = Account locked, please contact help desk.
                             <quote>id_provider=ldap</quote> only.
                         </para>
                         <para>
+                            For an easy way to configure a non-POSIX domains, please
+                            see the <quote>Application domains</quote> section.
+                        </para>
+                        <para>
                             Default: posix
                         </para>
                     </listitem>
@@ -2691,6 +2695,79 @@ subdomain_inherit = ldap_purge_cache_timeout
 
             </variablelist>
         </para>
+
+        <refsect2 id='app_domains'>
+            <title>Application domains</title>
+            <para>
+                SSSD, with its D-Bus interface (see
+                <citerefentry>
+                    <refentrytitle>sssd-ifp</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry>) is appealing to applications
+                as a gateway to an LDAP directory where users and groups
+                are stored. However, contrary to the traditional SSSD
+                deployment where all users and groups either have POSIX
+                attributes or those attributes can be inferred from the
+                Windows SIDs, in many cases the users and groups in the
+                application support scenario have no POSIX attributes.
+                Instead of setting a
+                <quote>[domain/<replaceable>NAME</replaceable>]</quote>
+                section, the administrator can set up an
+                <quote>[application/<replaceable>NAME</replaceable>]</quote>
+                section that internally represents a domain with type
+                <quote>application</quote> optionally inherits settings
+                from a tradition SSSD domain.
+            </para>
+            <para>
+                Please note that the application domain must still be
+                explicitly enabled in the <quote>domains</quote> parameter
+                so that the lookup order between the application domain
+                and its POSIX sibling domain is set correctly.
+            </para>
+            <variablelist>
+                <title>Application domain parameters</title>
+                <varlistentry>
+                    <term>inherit_from (string)</term>
+                    <listitem>
+                        <para>
+                            The SSSD POSIX-type domain the application
+                            domain inherits all settings from. The
+                            application domain can moreover add its own
+                            settings to the application settings that augment
+                            or override the <quote>sibling</quote>
+                            domain settings.
+                        </para>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+            <para>
+                The following example illustrates the use of an application
+                domain. In this setup, the POSIX domain is connected to an LDAP
+                server and is used by the OS through the NSS responder. In addition,
+                the application domains also requests the telephoneNumber attribute,
+                stores it as the phone attribute in the cache and makes the phone
+                attribute reachable through the D-Bus interface.
+            </para>
+<programlisting>
+[sssd]
+domains = appdom, posixdom
+
+[ifp]
+user_attributes = +phone
+
+[domain/posixdom]
+id_provider = ldap
+ldap_uri = ldap://ldap.example.com
+ldap_search_base = dc=example,dc=com
+
+[application/appdom]
+inherit_from = posixdom
+ldap_user_extra_attrs = phone:telephoneNumber
+</programlisting>
+        </refsect2>
 
         <refsect2 id='local_domain'>
             <title>The local domain section</title>
