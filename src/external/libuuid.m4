@@ -4,7 +4,7 @@ AC_SUBST(UUID_CFLAGS)
 PKG_CHECK_MODULES([UUID], [uuid], [found_uuid=yes], [found_uuid=no])
 
 SSS_AC_EXPAND_LIB_DIR()
-AS_IF([test x"$found_uuid" = xyes],
+AS_IF([test x"$found_uuid" != xyes],
     [AC_CHECK_HEADERS([uuid/uuid.h],
         [AC_CHECK_LIB([uuid],
                       [uuid_generate],
