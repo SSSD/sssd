@@ -386,6 +386,15 @@ size_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
 {
     size_t capacity = list_ctx->limit - list_ctx->path_count;
 
+    if (list_ctx->limit == 0) {
+        list_ctx->paths = talloc_zero_array(list_ctx, const char *, entries);
+        if (list_ctx->paths == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
+            return 0;
+        }
+        return entries;
+    }
+
     if (capacity < entries) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "IFP list request has limit of %"PRIu32" entries but back end "
