@@ -39,12 +39,14 @@ if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
         "--with-syslog=syslog"
         "--without-python3-bindings"
         "--without-kcm"
+        "--without-secrets"
     )
 fi
 
 if [[ "$DISTRO_BRANCH" == -redhat-fedora-2[0-2]* ]]; then
     CONFIGURE_ARG_LIST+=(
         "--without-kcm"
+        "--without-secrets"
     )
 fi
 
