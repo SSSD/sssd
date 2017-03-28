@@ -176,9 +176,7 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
     forest_realm = subdom->forest_root->realm;
     forest = subdom->forest_root->forest;
 
-    subdom_conf_path = create_subdom_conf_path(id_ctx,
-                                               be_ctx->conf_path,
-                                               subdom->name);
+    subdom_conf_path = subdomain_create_conf_path(id_ctx, subdom);
     if (subdom_conf_path == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "subdom_conf_path failed\n");
         return NULL;

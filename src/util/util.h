@@ -551,6 +551,9 @@ find_domain_by_object_name(struct sss_domain_info *domain,
 bool subdomain_enumerates(struct sss_domain_info *parent,
                           const char *sd_name);
 
+char *subdomain_create_conf_path(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *subdomain);
+
 errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
                          struct confdb_ctx *cdb,
                          const char *domain_name,

@@ -870,3 +870,18 @@ bool is_email_from_domain(const char *email, struct sss_domain_info *dom)
 
     return false;
 }
+
+char *subdomain_create_conf_path(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *subdomain)
+{
+    if (!IS_SUBDOMAIN(subdomain)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "The domain \"%s\" is not a subdomain.\n",
+              subdomain->name);
+        return NULL;
+    }
+
+    return talloc_asprintf(mem_ctx, CONFDB_DOMAIN_PATH_TMPL "/%s",
+                           subdomain->parent->name,
+                           subdomain->name);
+}
