@@ -112,6 +112,12 @@
     %global enable_systemtap_opt --enable-systemtap
 %endif
 
+%if (0%{?fedora} || 0%{?epel} >= 7)
+    %global with_secrets 1
+%else
+    %global with_secret_responder --without-secrets
+%endif
+
 %if (0%{?fedora} >= 23 || 0%{?rhel} >= 7)
     %global with_kcm 1
     %global with_kcm_option --with-kcm
@@ -220,8 +226,10 @@ BuildRequires: libsmbclient-devel
 %if (0%{?enable_systemtap} == 1)
 BuildRequires: systemtap-sdt-devel
 %endif
+%if (0%{?with_secrets} == 1)
 BuildRequires: http-parser-devel
 BuildRequires: jansson-devel
+%endif
 BuildRequires: libuuid-devel
 BuildRequires: libcurl-devel
 
@@ -727,6 +735,7 @@ autoreconf -ivf
     %{?with_python3_option} \
     %{?enable_polkit_rules_option} \
     %{?enable_systemtap_opt} \
+    %{?with_secret_responder} \
     %{?with_kcm_option} \
     %{?experimental}
 
@@ -865,7 +874,9 @@ done
 %{_libexecdir}/%{servicename}/sssd_nss
 %{_libexecdir}/%{servicename}/sssd_pam
 %{_libexecdir}/%{servicename}/sssd_autofs
+%if (0%{?with_secrets} == 1)
 %{_libexecdir}/%{servicename}/sssd_secrets
+%endif
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
 %{_libexecdir}/%{servicename}/p11_child
@@ -900,7 +911,9 @@ done
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,sssd,sssd) %dir %{dbpath}
 %attr(755,sssd,sssd) %dir %{mcpath}
+%if (0%{?with_secrets} == 1)
 %attr(700,root,root) %dir %{secdbpath}
+%endif
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/passwd
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/initgroups
@@ -933,7 +946,9 @@ done
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
+%if (0%{?with_secrets} == 1)
 %{_mandir}/man5/sssd-secrets.5*
+%endif
 %{_mandir}/man5/sss_rpcidmapd.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*

@@ -46,6 +46,10 @@ def create_sssd_secrets_fixture(request):
         raise Exception("failed to regenerate confdb")
 
     resp_path = os.path.join(config.LIBEXEC_PATH, "sssd", "sssd_secrets")
+    if not os.access(resp_path, os.X_OK):
+        # It would be cleaner to use pytest.mark.skipif on the package level
+        # but upstream insists on supporting RHEL-6.
+        pytest.skip("No Secrets responder, skipping")
 
     secpid = os.fork()
     assert secpid >= 0
