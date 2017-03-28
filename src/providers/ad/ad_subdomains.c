@@ -702,7 +702,7 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
                                     "will not be created.\n");
     }
 
-    ret = sss_write_krb5_conf_snippet(path, canonicalize);
+    ret = sss_write_krb5_conf_snippet(path, canonicalize, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
         /* Just continue */
