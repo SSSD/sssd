@@ -622,6 +622,9 @@ char **concatenate_string_array(TALLOC_CTX *mem_ctx,
                                 char **arr1, size_t len1,
                                 char **arr2, size_t len2);
 
+char *create_subdom_conf_path(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *subdomain);
+
 /* from become_user.c */
 errno_t become_user(uid_t uid, gid_t gid);
 struct sss_creds;

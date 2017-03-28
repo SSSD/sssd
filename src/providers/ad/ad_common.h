@@ -99,10 +99,6 @@ struct ad_options {
     struct be_nsupdate_ctx *dyndns_ctx;
 };
 
-char *create_subdom_conf_path(TALLOC_CTX *mem_ctx,
-                              const char *conf_path,
-                              const char *subdom_name);
-
 errno_t
 ad_get_common_options(TALLOC_CTX *mem_ctx,
                       struct confdb_ctx *cdb,
