@@ -188,15 +188,15 @@ errno_t sss_iobuf_read_len(struct sss_iobuf *iobuf,
                            size_t len,
                            uint8_t *_buf)
 {
-    size_t read;
+    size_t read_bytes;
     errno_t ret;
 
-    ret = sss_iobuf_read(iobuf, len, _buf, &read);
+    ret = sss_iobuf_read(iobuf, len, _buf, &read_bytes);
     if (ret != EOK) {
         return ret;
     }
 
-    if (read != len) {
+    if (read_bytes != len) {
         return ENOBUFS;
     }
 
