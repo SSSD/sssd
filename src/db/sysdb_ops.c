@@ -1422,6 +1422,12 @@ int sysdb_get_new_id(struct sss_domain_info *domain,
         return ENOMEM;
     }
 
+    if (strcasecmp(domain->provider, "local") != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Generating new ID is only supported in the local domain!\n");
+        return ENOTSUP;
+    }
+
     base_dn = sysdb_domain_dn(tmp_ctx, domain);
     if (!base_dn) {
         talloc_zfree(tmp_ctx);
