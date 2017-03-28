@@ -801,7 +801,7 @@ static void ifp_users_list_by_name_done(struct tevent_req *req)
     DBusError *error;
     struct ifp_list_ctx *list_ctx;
     struct sbus_request *sbus_req;
-    struct cache_req_result *result;
+    struct cache_req_result *result = NULL;
     errno_t ret;
 
     list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
@@ -816,12 +816,14 @@ static void ifp_users_list_by_name_done(struct tevent_req *req)
         return;
     }
 
-    ret = ifp_users_list_copy(list_ctx, result->ldb_result);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
-                               "Failed to copy domain result");
-        sbus_request_fail_and_finish(sbus_req, error);
-        return;
+    if (ret == EOK) {
+        ret = ifp_users_list_copy(list_ctx, result->ldb_result);
+        if (ret != EOK) {
+            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                                "Failed to copy domain result");
+            sbus_request_fail_and_finish(sbus_req, error);
+            return;
+        }
     }
 
     list_ctx->dom = get_next_domain(list_ctx->dom, SSS_GND_DESCEND);
