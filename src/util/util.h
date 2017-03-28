@@ -582,7 +582,8 @@ errno_t sss_get_domain_mappings_content(TALLOC_CTX *mem_ctx,
 
 errno_t sss_write_domain_mappings(struct sss_domain_info *domain);
 
-errno_t sss_write_krb5_conf_snippet(const char *path, bool canonicalize);
+errno_t sss_write_krb5_conf_snippet(const char *path, bool canonicalize,
+                                    bool udp_limit);
 
 errno_t get_dom_names(TALLOC_CTX *mem_ctx,
                       struct sss_domain_info *start_dom,
