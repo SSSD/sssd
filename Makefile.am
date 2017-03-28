@@ -3486,7 +3486,7 @@ intgcheck-prepare:
 	    --without-semanage \
 	    --enable-files-domain \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
-	    CFLAGS="$$CFLAGS $(AM_CFLAGS) -DKCM_PEER_UID=$$(id -u)"; \
+	    CFLAGS="$$CFLAGS -DKCM_PEER_UID=$$(id -u)"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
 	: Force single-thread install to workaround concurrency issues; \
 	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
