@@ -399,3 +399,86 @@ int resp_resolve_group_names_recv(TALLOC_CTX *mem_ctx,
     *_initgr_named_res = talloc_steal(mem_ctx, state->initgr_named_res);
     return EOK;
 }
+
+const char *
+sss_resp_get_shell_override(struct ldb_message *msg,
+                            struct resp_ctx *rctx,
+                            struct sss_domain_info *domain)
+{
+    const char *shell;
+    int i;
+
+    /* Check whether we are unconditionally overriding
+     * the server for the login shell. */
+    if (domain->override_shell) {
+        return domain->override_shell;
+    } else if (rctx->override_shell) {
+        return rctx->override_shell;
+    }
+
+    shell = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_SHELL,
+                                                 NULL);
+    if (shell == NULL) {
+        /* Check whether there is a default shell specified */
+        if (domain->default_shell) {
+            return domain->default_shell;
+        } else if (rctx->default_shell) {
+            return rctx->default_shell;
+        }
+
+        return "";
+    }
+
+    if (rctx->allowed_shells == NULL && rctx->vetoed_shells == NULL) {
+        return shell;
+    }
+
+    if (rctx->vetoed_shells) {
+        for (i = 0; rctx->vetoed_shells[i]; i++) {
+            if (strcmp(rctx->vetoed_shells[i], shell) == 0) {
+                DEBUG(SSSDBG_FUNC_DATA,
+                      "The shell '%s' is vetoed. Using fallback.\n",
+                      shell);
+                return rctx->shell_fallback;
+            }
+        }
+    }
+
+    if (rctx->etc_shells) {
+        for (i = 0; rctx->etc_shells[i]; i++) {
+            if (strcmp(shell, rctx->etc_shells[i]) == 0) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Shell %s found in /etc/shells\n", shell);
+                break;
+            }
+        }
+
+        if (rctx->etc_shells[i]) {
+            DEBUG(SSSDBG_TRACE_ALL, "Using original shell '%s'\n", shell);
+            return shell;
+        }
+    }
+
+    if (rctx->allowed_shells) {
+        if (strcmp(rctx->allowed_shells[0], "*") == 0) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "The shell '%s' is allowed but does not exist. "
+                  "Using fallback\n", shell);
+            return rctx->shell_fallback;
+        } else {
+            for (i = 0; rctx->allowed_shells[i]; i++) {
+                if (strcmp(rctx->allowed_shells[i], shell) == 0) {
+                    DEBUG(SSSDBG_FUNC_DATA,
+                          "The shell '%s' is allowed but does not exist. "
+                          "Using fallback\n", shell);
+                    return rctx->shell_fallback;
+                }
+            }
+        }
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA,
+          "The shell '%s' is not allowed and does not exist.\n", shell);
+
+    return NOLOGIN_SHELL;
+}

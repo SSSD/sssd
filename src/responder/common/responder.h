@@ -404,6 +404,11 @@ char *sss_resp_create_fqname(TALLOC_CTX *mem_ctx,
 
 errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx);
 
+const char *
+sss_resp_get_shell_override(struct ldb_message *msg,
+                            struct resp_ctx *rctx,
+                            struct sss_domain_info *domain);
+
 /**
  * Helper functions to format output names
  */
