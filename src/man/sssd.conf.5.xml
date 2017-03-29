@@ -542,6 +542,26 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>domain_resolution_order</term>
+                        <listitem>
+                            <para>
+                                Comma separated list of domains and subdomains
+                                representing the lookup order that will be
+                                followed.
+                                The list doesn't have to include all possible
+                                domains as the missing domains will be looked
+                                up based on the order they're presented in the
+                                <quote>domains</quote> configuration option.
+                                The subdomains which are not listed as part of
+                                <quote>lookup_order</quote> will be looked up
+                                in a random order for each parent domain.
+                            </para>
+                            <para>
+                                Default: Not set
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>
@@ -2491,6 +2511,9 @@ pam_account_locked_message = Account locked, please contact help desk.
                             ldap_user_principal
                         </para>
                         <para>
+                            use_fully_qualified_names
+                        </para>
+                        <para>
                             ldap_krb5_keytab (the value of krb5_keytab will be
                             used if ldap_krb5_keytab is not set explicitly)
                         </para>
@@ -2780,7 +2803,8 @@ subdomain_inherit = ldap_purge_cache_timeout
             <para>ldap_service_search_base,</para>
             <para>ad_server,</para>
             <para>ad_backup_server,</para>
-            <para>ad_site.</para>
+            <para>ad_site,</para>
+            <para>use_fully_qualified_names.</para>
         <para>
             For more details about these options see their individual description
             in the manual page.

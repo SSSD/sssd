@@ -172,8 +172,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     }
 
     subdom_conf_path = create_subdom_conf_path(id_ctx,
-                                               be_ctx->conf_path,
-                                               subdom->name);
+                                               subdom);
     if (subdom_conf_path == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "subdom_conf_path failed\n");
         return ENOMEM;
@@ -658,7 +657,8 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
         /* Just continue */
     }
 
-    ret = sysdb_update_subdomains(subdoms_ctx->be_ctx->domain);
+    ret = sysdb_update_subdomains(subdoms_ctx->be_ctx->domain,
+                                  subdoms_ctx->be_ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
         return ret;

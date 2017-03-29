@@ -22,6 +22,11 @@
 
 #include "util/util.h"
 #include "db/sysdb_private.h"
+#include "db/sysdb_domain_resolution_order.h"
+
+static errno_t
+check_subdom_config_file(struct confdb_ctx *confdb,
+                         struct sss_domain_info *subdomain);
 
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,
@@ -33,10 +38,12 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       bool enumerate,
                                       const char *forest,
                                       const char **upn_suffixes,
-                                      uint32_t trust_direction)
+                                      uint32_t trust_direction,
+                                      struct confdb_ctx *confdb)
 {
     struct sss_domain_info *dom;
     bool inherit_option;
+    errno_t ret;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Creating [%s] as subdomain of [%s]!\n", name, parent->name);
@@ -118,7 +125,6 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     }
 
     dom->enumerate = enumerate;
-    dom->fqnames = true;
     dom->mpg = mpg;
     dom->state = DOM_ACTIVE;
 
@@ -147,6 +153,12 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->service_timeout = parent->service_timeout;
     dom->names = parent->names;
 
+    /* If the parent domain requires fully-qualified names, the subdomain should
+     * do as well */
+    inherit_option = string_in_list(CONFDB_DOMAIN_FQ,
+                                    parent->sd_inherit, false);
+    dom->fqnames = inherit_option ? parent->fqnames : true;
+
     dom->override_homedir = parent->override_homedir;
     dom->fallback_homedir = parent->fallback_homedir;
     dom->subdomain_homedir = parent->subdomain_homedir;
@@ -160,6 +172,17 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     }
     dom->sysdb = parent->sysdb;
 
+    if (confdb != NULL) {
+        /* If confdb was provided, also check for sssd.conf */
+        ret = check_subdom_config_file(confdb, dom);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read subdomain configuration [%d]: %s",
+                   ret, sss_strerror(ret));
+            goto fail;
+        }
+    }
+
     return dom;
 
 fail:
@@ -167,6 +190,60 @@ fail:
     return NULL;
 }
 
+static errno_t
+check_subdom_config_file(struct confdb_ctx *confdb,
+                         struct sss_domain_info *subdomain)
+{
+    char *sd_conf_path;
+    TALLOC_CTX *tmp_ctx;
+    bool inherit_option;
+    bool fqnames;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    sd_conf_path = create_subdom_conf_path(tmp_ctx,
+                                           subdomain);
+    if (sd_conf_path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_get_bool(confdb, sd_conf_path, CONFDB_DOMAIN_FQ,
+                          true, &fqnames);
+    if (ret != EOK) {
+        inherit_option = string_in_list(CONFDB_DOMAIN_FQ,
+                                        subdomain->parent->sd_inherit,
+                                        false);
+        if (!inherit_option) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to get %s option for the subdomain: %s\n",
+                  CONFDB_DOMAIN_FQ, subdomain->name);
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Failed to get %s option from the sudbomain: %s\n"
+                  "As the option was also set as an inherit_option, the old "
+                  "value has been kept",
+                  CONFDB_DOMAIN_FQ, subdomain->name);
+            ret = EOK;
+        }
+        goto done;
+    }
+
+    subdomain->fqnames = fqnames;
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "%s/%s has value %s\n",
+          sd_conf_path, CONFDB_DOMAIN_FQ,
+          subdomain->fqnames ? "TRUE" : "FALSE");
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 static bool is_forest_root(struct sss_domain_info *d)
 {
     if (d->forest == NULL) {
@@ -232,7 +309,8 @@ static void link_forest_roots(struct sss_domain_info *domain)
     }
 }
 
-errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
+                                struct confdb_ctx *confdb)
 {
     int i;
     errno_t ret;
@@ -451,7 +529,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
         if (dom == NULL) {
             dom = new_subdomain(domain, domain, name, realm,
                                 flat, id, mpg, enumerate, forest,
-                                upn_suffixes, trust_direction);
+                                upn_suffixes, trust_direction, confdb);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -1148,6 +1226,72 @@ errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name)
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_recursive failed.\n");
         goto done;
     }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_domain_get_domain_resolution_order(TALLOC_CTX *mem_ctx,
+                                         struct sysdb_ctx *sysdb,
+                                         const char *domain_name,
+                                         const char **_domain_resolution_order)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain_name);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_get_domain_resolution_order(mem_ctx, sysdb, dn,
+                                            _domain_resolution_order);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_domain_update_domain_resolution_order(struct sysdb_ctx *sysdb,
+                                            const char *domain_name,
+                                            const char *domain_resolution_order)
+{
+
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain_name);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_update_domain_resolution_order(sysdb, dn,
+                                               domain_resolution_order);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_update_domain_resolution_order() failed [%d]: [%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);

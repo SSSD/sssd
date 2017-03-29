@@ -184,6 +184,8 @@
 #define SYSDB_OVERRIDE_GROUP_CLASS "groupOverride"
 #define SYSDB_OVERRIDE_DN "overrideDN"
 #define SYSDB_OVERRIDE_OBJECT_DN "overrideObjectDN"
+#define SYSDB_USE_DOMAIN_RESOLUTION_ORDER "useDomainResolutionOrder"
+#define SYSDB_DOMAIN_RESOLUTION_ORDER "domainResolutionOrder"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
@@ -487,6 +489,17 @@ int sysdb_transaction_cancel(struct sysdb_ctx *sysdb);
 /* functions related to subdomains */
 errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name);
 
+errno_t sysdb_domain_get_domain_resolution_order(
+                                        TALLOC_CTX *mem_ctx,
+                                        struct sysdb_ctx *sysdb,
+                                        const char *domain_name,
+                                        const char **_domain_resolution_order);
+
+errno_t sysdb_domain_update_domain_resolution_order(
+                                        struct sysdb_ctx *sysdb,
+                                        const char *domain_name,
+                                        const char *domain_resolution_order);
+
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id,
@@ -494,7 +507,8 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               uint32_t trust_direction,
                               struct ldb_message_element *upn_suffixes);
 
-errno_t sysdb_update_subdomains(struct sss_domain_info *domain);
+errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
+                                struct confdb_ctx *confdb);
 
 errno_t sysdb_master_domain_update(struct sss_domain_info *domain);
 
@@ -518,6 +532,15 @@ errno_t sysdb_update_view_name(struct sysdb_ctx *sysdb, const char *view_name);
 
 errno_t sysdb_get_view_name(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                             char **view_name);
+
+errno_t sysdb_update_view_domain_resolution_order(
+                                        struct sysdb_ctx *sysdb,
+                                        const char *domain_resolution_order);
+
+errno_t sysdb_get_view_domain_resolution_order(
+                                        TALLOC_CTX *mem_ctx,
+                                        struct sysdb_ctx *sysdb,
+                                        const char **_domain_resolution_order);
 
 static inline bool is_default_view(const char *view_name)
 {

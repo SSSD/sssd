@@ -597,6 +597,11 @@ errno_t name_to_well_known_sid(const char *dom, const char *name,
                                const char **sid);
 
 /* from string_utils.c */
+char *sss_replace_char(TALLOC_CTX *mem_ctx,
+                       const char *in,
+                       const char match,
+                       const char sub);
+
 char * sss_replace_space(TALLOC_CTX *mem_ctx,
                          const char *orig_name,
                          const char replace_char);
@@ -616,6 +621,9 @@ const char *get_last_x_chars(const char *str, size_t x);
 char **concatenate_string_array(TALLOC_CTX *mem_ctx,
                                 char **arr1, size_t len1,
                                 char **arr2, size_t len2);
+
+char *create_subdom_conf_path(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *subdomain);
 
 /* from become_user.c */
 errno_t become_user(uid_t uid, gid_t gid);

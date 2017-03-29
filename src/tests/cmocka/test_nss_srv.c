@@ -418,6 +418,26 @@ static errno_t store_user(struct nss_test_ctx *ctx,
     return ret;
 }
 
+static errno_t delete_user(struct nss_test_ctx *ctx,
+                           struct sss_domain_info *dom,
+                           struct passwd *user)
+{
+    errno_t ret;
+    char *fqname;
+
+    fqname = sss_create_internal_fqname(ctx,
+                                        user->pw_name,
+                                        dom->name);
+    if (fqname == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_delete_user(dom, fqname, user->pw_uid);
+
+    talloc_free(fqname);
+    return ret;
+}
+
 static errno_t set_user_attr(struct nss_test_ctx *ctx,
                              struct sss_domain_info *dom,
                              struct passwd *user,
@@ -491,6 +511,27 @@ static errno_t store_group(struct nss_test_ctx *ctx,
     return ret;
 }
 
+static errno_t delete_group(struct nss_test_ctx *ctx,
+                            struct sss_domain_info *dom,
+                            struct group *group)
+{
+    errno_t ret;
+    char *fqname;
+
+    fqname = sss_create_internal_fqname(ctx,
+                                        group->gr_name,
+                                        dom->name);
+
+    if (fqname == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_delete_group(dom, fqname, group->gr_gid);
+
+    talloc_free(fqname);
+    return ret;
+}
+
 static void assert_groups_equal(struct group *expected,
                                 struct group *gr, const int nmem)
 {
@@ -540,6 +581,42 @@ static errno_t store_group_member(struct nss_test_ctx *ctx,
     return ret;
 }
 
+static errno_t remove_group_member(struct nss_test_ctx *ctx,
+                                   const char *shortname_group,
+                                   struct sss_domain_info *group_dom,
+                                   const char *shortname_member,
+                                   struct sss_domain_info *member_dom,
+                                   enum sysdb_member_type type)
+{
+    errno_t ret;
+    char *group_fqname = NULL;
+    char *member_fqname = NULL;
+
+    group_fqname = sss_create_internal_fqname(ctx,
+                                        shortname_group,
+                                        group_dom->name);
+    if (group_fqname == NULL) {
+        return ENOMEM;
+    }
+
+    member_fqname = sss_create_internal_fqname(ctx,
+                                        shortname_member,
+                                        member_dom->name);
+    if (member_fqname == NULL) {
+        talloc_free(group_fqname);
+        return ENOMEM;
+    }
+
+    ret = sysdb_remove_group_member(group_dom,
+                                    group_fqname,
+                                    member_fqname,
+                                    type,
+                                    false);
+
+    talloc_free(group_fqname);
+    talloc_free(member_fqname);
+    return ret;
+}
 
 /* ====================== The tests =============================== */
 struct passwd getpwnam_usr = {
@@ -1571,16 +1648,29 @@ static int test_nss_getgrnam_members_check_subdom(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom, submember1.pw_name);
-    assert_non_null(exp_members[0]);
-    exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom, submember2.pw_name);
-    assert_non_null(exp_members[1]);
+    if (nss_test_ctx->subdom->fqnames) {
+        exp_members[0] = sss_tc_fqname(tmp_ctx,
+                                       nss_test_ctx->subdom->names,
+                                       nss_test_ctx->subdom,
+                                       submember1.pw_name);
+        assert_non_null(exp_members[0]);
 
-    expected.gr_name = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                     nss_test_ctx->subdom, testsubdomgroup.gr_name);
-    assert_non_null(expected.gr_name);
+        exp_members[1] = sss_tc_fqname(tmp_ctx,
+                                       nss_test_ctx->subdom->names,
+                                       nss_test_ctx->subdom,
+                                       submember2.pw_name);
+        assert_non_null(exp_members[1]);
+
+        expected.gr_name = sss_tc_fqname(tmp_ctx,
+                                         nss_test_ctx->subdom->names,
+                                         nss_test_ctx->subdom,
+                                         testsubdomgroup.gr_name);
+        assert_non_null(expected.gr_name);
+    } else {
+        exp_members[0] = submember1.pw_name;
+        exp_members[1] = submember2.pw_name;
+        expected.gr_name = testsubdomgroup.gr_name;
+    }
 
     assert_int_equal(status, EOK);
 
@@ -1599,35 +1689,30 @@ void test_nss_getgrnam_members_subdom(void **state)
 {
     errno_t ret;
 
-    ret = store_group(nss_test_ctx, nss_test_ctx->subdom,
-                      &testsubdomgroup, 0);
-    assert_int_equal(ret, EOK);
-
-    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
-                     &submember1, NULL, 0);
-    assert_int_equal(ret, EOK);
-
-    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
-                     &submember2, NULL, 0);
-    assert_int_equal(ret, EOK);
-
-    ret = store_group_member(nss_test_ctx,
-                             testsubdomgroup.gr_name,
-                             nss_test_ctx->subdom,
-                             submember1.pw_name,
-                             nss_test_ctx->subdom,
-                             SYSDB_MEMBER_USER);
-    assert_int_equal(ret, EOK);
-
-    ret = store_group_member(nss_test_ctx,
-                             testsubdomgroup.gr_name,
-                             nss_test_ctx->subdom,
-                             submember2.pw_name,
-                             nss_test_ctx->subdom,
-                             SYSDB_MEMBER_USER);
-    assert_int_equal(ret, EOK);
-
     mock_input_user_or_group("testsubdomgroup@"TEST_SUBDOM_NAME);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_members_check_subdom);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getgrnam_members_subdom_nonfqnames(void **state)
+{
+    errno_t ret;
+
+    nss_test_ctx->subdom->fqnames = false;
+
+    mock_input_user_or_group("testsubdomgroup");
+    mock_account_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
@@ -1661,9 +1746,15 @@ static int test_nss_getgrnam_check_mix_dom(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom, submember1.pw_name);
-    assert_non_null(exp_members[0]);
+    if (nss_test_ctx->subdom->fqnames) {
+        exp_members[0] = sss_tc_fqname(tmp_ctx,
+                                       nss_test_ctx->subdom->names,
+                                       nss_test_ctx->subdom,
+                                       submember1.pw_name);
+        assert_non_null(exp_members[0]);
+    } else {
+        exp_members[0] = submember1.pw_name;
+    }
     exp_members[1] = testmember1.pw_name;
     exp_members[2] = testmember2.pw_name;
 
@@ -1707,6 +1798,35 @@ void test_nss_getgrnam_mix_dom(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_nss_getgrnam_mix_dom_nonfqnames(void **state)
+{
+    errno_t ret;
+
+    nss_test_ctx->subdom->fqnames = false;
+
+    ret = store_group_member(nss_test_ctx,
+                             testgroup_members.gr_name,
+                             nss_test_ctx->tctx->dom,
+                             submember1.pw_name,
+                             nss_test_ctx->subdom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testgroup_members");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_check_mix_dom);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
                                                 uint8_t *body, size_t blen)
 {
@@ -1724,21 +1844,33 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom, submember1.pw_name);
-    assert_non_null(exp_members[0]);
-    exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
-                                   nss_test_ctx->tctx->dom, testmember1.pw_name);
-    assert_non_null(exp_members[1]);
-    exp_members[2] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
-                                   nss_test_ctx->tctx->dom, testmember2.pw_name);
-    assert_non_null(exp_members[2]);
+    if (nss_test_ctx->subdom->fqnames) {
+        exp_members[0] = sss_tc_fqname(tmp_ctx,
+                                       nss_test_ctx->subdom->names,
+                                       nss_test_ctx->subdom,
+                                       submember1.pw_name);
+        assert_non_null(exp_members[0]);
+    } else {
+        exp_members[0] = submember1.pw_name;
+    }
+    if (nss_test_ctx->tctx->dom->fqnames) {
+        exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
+                                       nss_test_ctx->tctx->dom, testmember1.pw_name);
+        assert_non_null(exp_members[1]);
+        exp_members[2] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
+                                       nss_test_ctx->tctx->dom, testmember2.pw_name);
+        assert_non_null(exp_members[2]);
 
-    expected.gr_name = sss_tc_fqname(tmp_ctx,
-                                     nss_test_ctx->tctx->dom->names,
-                                     nss_test_ctx->tctx->dom,
-                                     testgroup_members.gr_name);
-    assert_non_null(expected.gr_name);
+        expected.gr_name = sss_tc_fqname(tmp_ctx,
+                                         nss_test_ctx->tctx->dom->names,
+                                         nss_test_ctx->tctx->dom,
+                                         testgroup_members.gr_name);
+        assert_non_null(expected.gr_name);
+    } else {
+        exp_members[1] = testmember1.pw_name;
+        exp_members[2] = testmember2.pw_name;
+        expected.gr_name = testgroup_members.gr_name;
+    }
 
     assert_int_equal(status, EOK);
 
@@ -1757,9 +1889,51 @@ void test_nss_getgrnam_mix_dom_fqdn(void **state)
 {
     errno_t ret;
 
+    ret = store_group_member(nss_test_ctx,
+                             testgroup_members.gr_name,
+                             nss_test_ctx->tctx->dom,
+                             submember1.pw_name,
+                             nss_test_ctx->subdom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
     nss_test_ctx->tctx->dom->fqnames = true;
 
     mock_input_user_or_group("testgroup_members@"TEST_DOM_NAME);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_check_mix_dom_fqdn);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+
+    /* Restore FQDN settings */
+    nss_test_ctx->tctx->dom->fqnames = false;
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getgrnam_mix_dom_fqdn_nonfqnames(void **state)
+{
+    errno_t ret;
+
+    ret = store_group_member(nss_test_ctx,
+                             testgroup_members.gr_name,
+                             nss_test_ctx->tctx->dom,
+                             submember1.pw_name,
+                             nss_test_ctx->subdom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    nss_test_ctx->tctx->dom->fqnames = false;
+    nss_test_ctx->subdom->fqnames = false;
+
+
+    mock_input_user_or_group("testgroup_members");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
@@ -1794,20 +1968,37 @@ static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    exp_members[0] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom, submember1.pw_name);
-    assert_non_null(exp_members[0]);
-    exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                   nss_test_ctx->subdom, submember2.pw_name);
-    assert_non_null(exp_members[1]);
+    if (nss_test_ctx->subdom->fqnames) {
+        exp_members[0] = sss_tc_fqname(tmp_ctx,
+                                       nss_test_ctx->subdom->names,
+                                       nss_test_ctx->subdom,
+                                       submember1.pw_name);
+        assert_non_null(exp_members[0]);
+
+        exp_members[1] = sss_tc_fqname(tmp_ctx,
+                                       nss_test_ctx->subdom->names,
+                                       nss_test_ctx->subdom,
+                                       submember2.pw_name);
+        assert_non_null(exp_members[1]);
+    } else {
+        exp_members[0] = submember1.pw_name;
+        exp_members[1] = submember2.pw_name;
+    }
+
     /* Important: this member is from a non-qualified domain, so his name will
      * not be qualified either
      */
     exp_members[2] = testmember1.pw_name;
 
-    expected.gr_name = sss_tc_fqname(tmp_ctx, nss_test_ctx->subdom->names,
-                                     nss_test_ctx->subdom, testsubdomgroup.gr_name);
-    assert_non_null(expected.gr_name);
+    if (nss_test_ctx->subdom->fqnames) {
+        expected.gr_name = sss_tc_fqname(tmp_ctx,
+                                         nss_test_ctx->subdom->names,
+                                         nss_test_ctx->subdom,
+                                         testsubdomgroup.gr_name);
+        assert_non_null(expected.gr_name);
+    } else {
+        expected.gr_name = testsubdomgroup.gr_name;
+    }
 
     assert_int_equal(status, EOK);
 
@@ -1835,6 +2026,36 @@ void test_nss_getgrnam_mix_subdom(void **state)
     assert_int_equal(ret, EOK);
 
     mock_input_user_or_group("testsubdomgroup@"TEST_SUBDOM_NAME);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_check_mix_subdom);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getgrnam_mix_subdom_nonfqnames(void **state)
+{
+    errno_t ret;
+
+    nss_test_ctx->subdom->fqnames = false;
+
+    ret = store_group_member(nss_test_ctx,
+                             testsubdomgroup.gr_name,
+                             nss_test_ctx->subdom,
+                             testmember1.pw_name,
+                             nss_test_ctx->tctx->dom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testsubdomgroup");
+    mock_account_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
@@ -3206,7 +3427,8 @@ static int nss_subdom_test_setup(void **state)
 
     subdomain = new_subdomain(nss_test_ctx, nss_test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[3],
-                              false, false, NULL, NULL, 0);
+                              false, false, NULL, NULL, 0,
+                              nss_test_ctx->tctx->confdb);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(nss_test_ctx->tctx->sysdb,
@@ -3214,10 +3436,44 @@ static int nss_subdom_test_setup(void **state)
                                 false, false, NULL, 0, NULL);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom);
+    ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom,
+                                  nss_test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
 
-    nss_test_ctx->subdom = subdomain;
+    ret = sss_resp_populate_cr_domains(nss_test_ctx->rctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(nss_test_ctx->rctx->cr_domains);
+
+    nss_test_ctx->subdom = nss_test_ctx->tctx->dom->subdomains;
+
+    ret = store_group(nss_test_ctx, nss_test_ctx->subdom,
+                      &testsubdomgroup, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
+                     &submember1, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
+                     &submember2, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group_member(nss_test_ctx,
+                             testsubdomgroup.gr_name,
+                             nss_test_ctx->subdom,
+                             submember1.pw_name,
+                             nss_test_ctx->subdom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group_member(nss_test_ctx,
+                             testsubdomgroup.gr_name,
+                             nss_test_ctx->subdom,
+                             submember2.pw_name,
+                             nss_test_ctx->subdom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
     return 0;
 }
 
@@ -3237,6 +3493,38 @@ static int nss_test_teardown(void **state)
 {
     talloc_free(nss_test_ctx);
     return 0;
+}
+
+static int nss_subdom_test_teardown(void **state)
+{
+    errno_t ret;
+
+    ret = remove_group_member(nss_test_ctx,
+                              testsubdomgroup.gr_name,
+                              nss_test_ctx->subdom,
+                              submember2.pw_name,
+                              nss_test_ctx->subdom,
+                              SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    ret = remove_group_member(nss_test_ctx,
+                              testsubdomgroup.gr_name,
+                              nss_test_ctx->subdom,
+                              submember1.pw_name,
+                              nss_test_ctx->subdom,
+                              SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    ret = delete_user(nss_test_ctx, nss_test_ctx->subdom, &submember2);
+    assert_int_equal(ret, EOK);
+
+    ret = delete_user(nss_test_ctx, nss_test_ctx->subdom, &submember1);
+    assert_int_equal(ret, EOK);
+
+    ret = delete_group(nss_test_ctx, nss_test_ctx->subdom, &testsubdomgroup);
+    assert_int_equal(ret, EOK);
+
+    return nss_test_teardown(state);
 }
 
 struct passwd testbysid = {
@@ -3902,16 +4190,28 @@ int main(int argc, const char *argv[])
                                         nss_fqdn_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_subdom,
                                         nss_subdom_test_setup,
-                                        nss_test_teardown),
+                                        nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_subdom_nonfqnames,
+                                        nss_subdom_test_setup,
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom,
                                         nss_subdom_test_setup,
-                                        nss_test_teardown),
+                                        nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_nonfqnames,
+                                        nss_subdom_test_setup,
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn,
                                         nss_subdom_test_setup,
-                                        nss_test_teardown),
+                                        nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn_nonfqnames,
+                                        nss_subdom_test_setup,
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_subdom,
                                         nss_subdom_test_setup,
-                                        nss_test_teardown),
+                                        nss_subdom_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_subdom_nonfqnames,
+                                        nss_subdom_test_setup,
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_space,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_space_sub,

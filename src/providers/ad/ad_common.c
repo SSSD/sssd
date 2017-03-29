@@ -33,13 +33,6 @@ errno_t ad_set_search_bases(struct sdap_options *id_opts);
 static errno_t ad_set_sdap_options(struct ad_options *ad_opts,
                                    struct sdap_options *id_opts);
 
-char *create_subdom_conf_path(TALLOC_CTX *mem_ctx,
-                              const char *conf_path,
-                              const char *subdom_name)
-{
-    return talloc_asprintf(mem_ctx, "%s/%s", conf_path, subdom_name);
-}
-
 static struct sdap_options *
 ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
 {

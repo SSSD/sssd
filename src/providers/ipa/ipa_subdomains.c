@@ -29,6 +29,7 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_opts.h"
+#include "providers/ipa/ipa_config.h"
 
 #include <ctype.h>
 
@@ -50,6 +51,8 @@
 #define OBJECTCLASS "objectClass"
 
 #define IPA_ASSIGNED_ID_VIEW "ipaAssignedIDView"
+
+#define IPA_DOMAIN_RESOLUTION_ORDER "ipaDomainResolutionOrder"
 
 /* do not refresh more often than every 5 seconds for now */
 #define IPA_SUBDOMAIN_REFRESH_LIMIT 5
@@ -126,7 +129,7 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
         return ret;
     }
 
-    ret = sysdb_update_subdomains(ctx->be_ctx->domain);
+    ret = sysdb_update_subdomains(ctx->be_ctx->domain, ctx->be_ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
         return ret;
@@ -780,7 +783,8 @@ done:
 static errno_t ipa_apply_view(struct sss_domain_info *domain,
                               struct ipa_id_ctx *ipa_id_ctx,
                               const char *view_name,
-                              bool read_at_init)
+                              bool read_at_init,
+                              struct confdb_ctx *confdb)
 {
     const char *current = ipa_id_ctx->view_name;
     struct sysdb_ctx *sysdb = domain->sysdb;
@@ -876,7 +880,7 @@ static errno_t ipa_apply_view(struct sss_domain_info *domain,
             goto done;
         }
 
-        ret = sysdb_update_subdomains(domain);
+        ret = sysdb_update_subdomains(domain, confdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed "
                   "[%d]: %s\n", ret, sss_strerror(ret));
@@ -1654,7 +1658,8 @@ static void ipa_subdomains_view_name_done(struct tevent_req *subreq)
 
     ret = ipa_apply_view(state->sd_ctx->be_ctx->domain,
                          state->sd_ctx->ipa_id_ctx, view_name,
-                         state->sd_ctx->view_read_at_init);
+                         state->sd_ctx->view_read_at_init,
+                         state->sd_ctx->be_ctx->cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set view [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1679,6 +1684,262 @@ static errno_t ipa_subdomains_view_name_recv(struct tevent_req *req)
     return EOK;
 }
 
+struct ipa_subdomains_view_domain_resolution_order_state {
+    struct sss_domain_info *domain;
+    const char *view_name;
+};
+
+static void
+ipa_subdomains_view_domain_resolution_order_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_subdomains_view_domain_resolution_order_send(
+                                            TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct ipa_subdomains_ctx *sd_ctx,
+                                            struct sdap_handle *sh)
+{
+    struct ipa_subdomains_view_domain_resolution_order_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    const char *attrs[] = { IPA_DOMAIN_RESOLUTION_ORDER, NULL };
+    char *ldap_basedn;
+    char *base;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                    struct ipa_subdomains_view_domain_resolution_order_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->domain = sd_ctx->be_ctx->domain;
+    state->view_name = sd_ctx->ipa_id_ctx->view_name;
+
+    ret = domain_to_basedn(state, sd_ctx->be_ctx->domain->name, &ldap_basedn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failed.\n");
+        goto immediately;
+    }
+
+    base = talloc_asprintf(state, "cn=%s,cn=views,cn=accounts,%s",
+                           sd_ctx->ipa_id_ctx->view_name, ldap_basedn);
+    if (base == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    subreq = sdap_get_generic_send(
+                            state, ev, sd_ctx->sdap_id_ctx->opts, sh,
+                            base, LDAP_SCOPE_BASE, NULL, attrs, NULL, 0,
+                            dp_opt_get_int(sd_ctx->sdap_id_ctx->opts->basic,
+                                           SDAP_ENUM_SEARCH_TIMEOUT),
+                            false);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomains_view_domain_resolution_order_done,
+                            req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void
+ipa_subdomains_view_domain_resolution_order_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_view_domain_resolution_order_state *state;
+    struct tevent_req *req;
+    size_t reply_count;
+    struct sysdb_attrs **reply;
+    const char *domain_resolution_order;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req,
+                    struct ipa_subdomains_view_domain_resolution_order_state);
+
+    ret = sdap_get_generic_recv(subreq, state, &reply_count, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get view name [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (reply_count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "More than one object returned.\n");
+        ret = EINVAL;
+        goto done;
+    } else if (reply_count == 0) {
+        domain_resolution_order = NULL;
+    } else {
+        /* reply_count == 1 */
+        ret = sysdb_attrs_get_string(reply[0], IPA_DOMAIN_RESOLUTION_ORDER,
+                                     &domain_resolution_order);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to get the view domains' resolution order "
+                  "configuration value for view [%s] [%d]: %s\n",
+                  state->view_name, ret, sss_strerror(ret));
+            goto done;
+        } else if (ret == ENOENT) {
+            domain_resolution_order = NULL;
+        }
+    }
+
+    ret = sysdb_update_view_domain_resolution_order(state->domain->sysdb,
+                                                    domain_resolution_order);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_update_view_domain_resolution_order() [%d]: [%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t
+ipa_subdomains_view_domain_resolution_order_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct ipa_domain_resolution_order_state {
+    struct sss_domain_info *domain;
+};
+
+static void ipa_domain_resolution_order_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_domain_resolution_order_send(TALLOC_CTX *mem_ctx,
+                                 struct tevent_context *ev,
+                                 struct ipa_subdomains_ctx *sd_ctx,
+                                 struct sdap_handle *sh)
+{
+    struct ipa_domain_resolution_order_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    const char *attrs[] = {IPA_DOMAIN_RESOLUTION_ORDER, NULL};
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_domain_resolution_order_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    state->domain = sd_ctx->be_ctx->domain;
+
+    subreq = ipa_get_config_send(state, ev, sh, sd_ctx->sdap_id_ctx->opts,
+                                 state->domain->name, attrs);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_domain_resolution_order_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void ipa_domain_resolution_order_done(struct tevent_req *subreq)
+{
+    struct ipa_domain_resolution_order_state *state;
+    struct tevent_req *req;
+    struct sysdb_attrs *config = NULL;
+    const char *domain_resolution_order = NULL;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_domain_resolution_order_state);
+
+    ret = ipa_get_config_recv(subreq, state, &config);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get the domains' resolution order configuration "
+              "from the server [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (config != NULL) {
+        ret = sysdb_attrs_get_string(config, IPA_DOMAIN_RESOLUTION_ORDER,
+                                     &domain_resolution_order);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to get the domains' resolution order configuration "
+                  "value [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        } else if (ret == ENOENT) {
+            domain_resolution_order = NULL;
+        }
+    }
+
+    ret = sysdb_domain_update_domain_resolution_order(
+                        state->domain->sysdb, state->domain->name,
+                        domain_resolution_order);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_domain_update_resolution_order() [%d]: [%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t ipa_domain_resolution_order_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
 
 struct ipa_subdomains_refresh_state {
     struct tevent_context *ev;
@@ -1692,7 +1953,10 @@ static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq);
-static void ipa_subdomains_refresh_view_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq);
+static void ipa_subdomains_refresh_view_domain_resolution_order_done(
+                                                    struct tevent_req *subreq);
+static void ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 ipa_subdomains_refresh_send(TALLOC_CTX *mem_ctx,
@@ -1906,11 +2170,79 @@ static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq)
         return;
     }
 
-    tevent_req_set_callback(subreq, ipa_subdomains_refresh_view_done, req);
+    tevent_req_set_callback(subreq, ipa_subdomains_refresh_view_name_done,
+                            req);
     return;
 }
 
-static void ipa_subdomains_refresh_view_done(struct tevent_req *subreq)
+static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_view_name_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to get view name [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ipa_subdomains_view_domain_resolution_order_send(
+                                            state,
+                                            state->ev,
+                                            state->sd_ctx,
+                                            sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq,
+                    ipa_subdomains_refresh_view_domain_resolution_order_done,
+                    req);
+}
+
+static void
+ipa_subdomains_refresh_view_domain_resolution_order_done(struct tevent_req *subreq)
+{
+    struct ipa_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
+
+    ret = ipa_subdomains_view_domain_resolution_order_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to get view domain_resolution order [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ipa_domain_resolution_order_send(state, state->ev, state->sd_ctx,
+                                            sdap_id_op_handle(state->sdap_op));
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq,
+                            ipa_domain_refresh_resolution_order_done,
+                            req);
+}
+
+static void
+ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_refresh_state *state;
     struct tevent_req *req;
@@ -1920,26 +2252,24 @@ static void ipa_subdomains_refresh_view_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
 
-    ret = ipa_subdomains_view_name_recv(subreq);
+    ret = ipa_domain_resolution_order_recv(subreq);
     talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Unable to get the domains order resolution [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
     if (dp_error == DP_ERR_OK && ret != EOK) {
         /* retry */
         ret = ipa_subdomains_refresh_retry(req);
-        if (ret != EOK) {
-            goto done;
-        }
-        return;
     } else if (dp_error == DP_ERR_OFFLINE) {
         ret = ERR_OFFLINE;
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get view name "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
     }
 
-done:
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC, "Unable to refresh subdomains [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1947,7 +2277,6 @@ done:
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Subdomains refreshed.\n");
     tevent_req_done(req);
 }
 

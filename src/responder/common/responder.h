@@ -37,6 +37,7 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/common/negcache.h"
 #include "sss_client/sss_cli.h"
+#include "responder/common/cache_req/cache_req_domain.h"
 
 extern hash_table_t *dp_requests;
 
@@ -112,6 +113,9 @@ struct resp_ctx {
     struct sss_domain_info *domains;
     int domains_timeout;
     int client_idle_timeout;
+
+    struct cache_req_domain *cr_domains;
+    const char *domain_resolution_order;
 
     time_t last_request_time;
     int idle_timeout;
@@ -386,5 +390,7 @@ char *sss_resp_create_fqname(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *dom,
                              bool name_is_upn,
                              const char *orig_name);
+
+errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx);
 
 #endif /* __SSS_RESPONDER_H__ */

@@ -263,6 +263,7 @@ if HAVE_CMOCKA
         test_sysdb_certmap \
         test_sysdb_sudo \
         test_sysdb_utils \
+        test_sysdb_domain_resolution_order \
         test_wbc_calls \
         test_be_ptask \
         test_copy_ccache \
@@ -527,6 +528,7 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/cache_req_result.c \
 	src/responder/common/cache_req/cache_req_search.c \
 	src/responder/common/cache_req/cache_req_data.c \
+	src/responder/common/cache_req/cache_req_domain.c \
 	src/responder/common/cache_req/plugins/cache_req_common.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_users.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_groups.c \
@@ -688,6 +690,7 @@ dist_noinst_HEADERS = \
     src/responder/common/iface/responder_iface.h \
     src/responder/common/iface/responder_iface_generated.h \
     src/responder/common/cache_req/cache_req.h \
+    src/responder/common/cache_req/cache_req_domain.h \
     src/responder/common/cache_req/cache_req_plugin.h \
     src/responder/common/cache_req/cache_req_private.h \
     src/responder/common/data_provider/rdp.h \
@@ -736,6 +739,7 @@ dist_noinst_HEADERS = \
     src/db/sysdb_private.h \
     src/db/sysdb_services.h \
     src/db/sysdb_ssh.h \
+    src/db/sysdb_domain_resolution_order.h \
     src/confdb/confdb.h \
     src/confdb/confdb_private.h \
     src/confdb/confdb_setup.h \
@@ -995,6 +999,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_idmap.c \
     src/db/sysdb_gpo.c \
     src/db/sysdb_certmap.c \
+    src/db/sysdb_domain_resolution_order.c \
     src/monitor/monitor_sbus.c \
     src/providers/dp_auth_util.c \
     src/providers/dp_pam_data_util.c \
@@ -2196,6 +2201,7 @@ responder_socket_access_tests_SOURCES = \
     src/responder/common/responder_common.c \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_cmd.c \
+    src/responder/common/cache_req/cache_req_domain.c \
     src/responder/common/data_provider/rdp_message.c \
     src/responder/common/data_provider/rdp_client.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
@@ -2865,6 +2871,21 @@ test_sysdb_utils_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 test_sysdb_utils_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(LDB_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_sysdb_domain_resolution_order_SOURCES = \
+    src/tests/cmocka/test_sysdb_domain_resolution_order.c \
+    $(NULL)
+test_sysdb_domain_resolution_order_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_sysdb_domain_resolution_order_LDADD = \
     $(CMOCKA_LIBS) \
     $(LDB_LIBS) \
     $(POPT_LIBS) \

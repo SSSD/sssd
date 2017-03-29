@@ -74,6 +74,7 @@
 #define CONFDB_MONITOR_CERT_VERIFICATION "certificate_verification"
 #define CONFDB_MONITOR_DISABLE_NETLINK "disable_netlink"
 #define CONFDB_MONITOR_ENABLE_FILES_DOM "enable_files_domain"
+#define CONFDB_MONITOR_DOMAIN_RESOLUTION_ORDER "domain_resolution_order"
 
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"
