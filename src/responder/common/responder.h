@@ -139,6 +139,13 @@ struct resp_ctx {
     char *default_domain;
     char override_space;
 
+    char **allowed_shells;
+    char *override_shell;
+    char **vetoed_shells;
+    char **etc_shells;
+    char *shell_fallback;
+    char *default_shell;
+
     uint32_t cache_req_num;
 
     void *pvt_ctx;

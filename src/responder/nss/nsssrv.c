@@ -52,9 +52,6 @@
 #define DEFAULT_PWFIELD "*"
 #define DEFAULT_NSS_FD_LIMIT 8192
 
-#define SHELL_REALLOC_INCREMENT 5
-#define SHELL_REALLOC_MAX       50
-
 static int nss_clear_memcache(struct sbus_request *dbus_req, void *data);
 static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *data);
 
@@ -150,72 +147,6 @@ static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *da
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
-static errno_t nss_get_etc_shells(TALLOC_CTX *mem_ctx, char ***_shells)
-{
-    int i = 0;
-    char *sh;
-    char **shells = NULL;
-    TALLOC_CTX *tmp_ctx;
-    errno_t ret;
-    int size;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
-
-    shells = talloc_array(tmp_ctx, char *, SHELL_REALLOC_INCREMENT);
-    if (!shells) {
-        ret = ENOMEM;
-        goto done;
-    }
-    size = SHELL_REALLOC_INCREMENT;
-
-    setusershell();
-    while ((sh = getusershell())) {
-        shells[i] = talloc_strdup(shells, sh);
-        if (!shells[i]) {
-            endusershell();
-            ret = ENOMEM;
-            goto done;
-        }
-        DEBUG(SSSDBG_TRACE_FUNC, "Found shell %s in /etc/shells\n", shells[i]);
-        i++;
-
-        if (i == size) {
-            size += SHELL_REALLOC_INCREMENT;
-            if (size > SHELL_REALLOC_MAX) {
-                DEBUG(SSSDBG_FATAL_FAILURE,
-                      "Reached maximum number of shells [%d]. "
-                          "Users may be denied access. "
-                          "Please check /etc/shells for sanity\n",
-                          SHELL_REALLOC_MAX);
-                break;
-            }
-            shells = talloc_realloc(NULL, shells, char *,
-                                    size);
-            if (!shells) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-    }
-    endusershell();
-
-    if (i + 1 < size) {
-        shells = talloc_realloc(NULL, shells, char *, i + 1);
-        if (!shells) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-    shells[i] = NULL;
-
-    *_shells = talloc_move(mem_ctx, &shells);
-    ret = EOK;
-done:
-    talloc_zfree(tmp_ctx);
-    return ret;
-}
-
 static int nss_get_config(struct nss_ctx *nctx,
                           struct confdb_ctx *cdb)
 {
@@ -262,36 +193,6 @@ static int nss_get_config(struct nss_ctx *nctx,
     ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
                             CONFDB_NSS_FALLBACK_HOMEDIR, NULL,
                             &nctx->fallback_homedir);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
-                            CONFDB_NSS_OVERRIDE_SHELL, NULL,
-                            &nctx->override_shell);
-    if (ret != EOK && ret != ENOENT) goto done;
-
-    ret = confdb_get_string_as_list(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
-                                    CONFDB_NSS_ALLOWED_SHELL,
-                                    &nctx->allowed_shells);
-    if (ret != EOK && ret != ENOENT) goto done;
-
-    ret = confdb_get_string_as_list(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
-                                    CONFDB_NSS_VETOED_SHELL,
-                                    &nctx->vetoed_shells);
-    if (ret != EOK && ret != ENOENT) goto done;
-
-    ret = nss_get_etc_shells(nctx, &nctx->etc_shells);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
-                            CONFDB_NSS_SHELL_FALLBACK,
-                            CONFDB_DEFAULT_SHELL_FALLBACK,
-                            &nctx->shell_fallback);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
-                            CONFDB_NSS_DEFAULT_SHELL,
-                            NULL,
-                            &nctx->default_shell);
     if (ret != EOK) goto done;
 
     ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
