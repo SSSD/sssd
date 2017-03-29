@@ -682,6 +682,90 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd);
 static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
                                     time_t expire_date, time_t delayed_until, bool cached_auth);
 
+/*
+ * Add a request to add a variable to the PAM user environment, containing the
+ * actual (not overridden) user shell, in case session recording is enabled.
+ */
+static int pam_reply_sr_export_shell(struct pam_auth_req *preq,
+                                     const char *var_name)
+{
+    int ret;
+    TALLOC_CTX *ctx = NULL;
+    bool enabled;
+    const char *enabled_str;
+    const char *shell;
+    char *buf;
+
+    /* Create temporary talloc context */
+    ctx = talloc_new(NULL);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Check if session recording is enabled */
+    if (preq->cctx->rctx->sr_conf.scope ==
+            SESSION_RECORDING_SCOPE_NONE) {
+        enabled = false;
+    } else if (preq->cctx->rctx->sr_conf.scope ==
+            SESSION_RECORDING_SCOPE_ALL) {
+        enabled = true;
+    } else {
+        enabled_str = ldb_msg_find_attr_as_string(preq->user_obj,
+                                                  SYSDB_SESSION_RECORDING, NULL);
+        if (enabled_str == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "%s attribute not found\n", SYSDB_SESSION_RECORDING);
+            ret = ENOENT;
+            goto done;
+        } else if (strcmp(enabled_str, "TRUE") == 0) {
+            enabled = true;
+        } else if (strcmp(enabled_str, "FALSE") == 0) {
+            enabled = false;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "invalid value of %s attribute: %s\n",
+                  SYSDB_SESSION_RECORDING, enabled_str);
+            ret = ENOENT;
+            goto done;
+        }
+    }
+
+    /* Export original shell if recording is enabled and so it's overridden */
+    if (enabled) {
+        /* Extract the shell */
+        shell = sss_resp_get_shell_override(preq->user_obj,
+                                            preq->cctx->rctx, preq->domain);
+        if (shell == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "user has no shell\n");
+            ret = ENOENT;
+            goto done;
+        }
+
+        /* Format environment entry */
+        buf = talloc_asprintf(ctx, "%s=%s", var_name, shell);
+        if (buf == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Add request to add the entry to user environment */
+        ret = pam_add_response(preq->pd, SSS_PAM_ENV_ITEM,
+                               strlen(buf) + 1, (uint8_t *)buf);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(ctx);
+    return ret;
+}
+
 static void pam_reply(struct pam_auth_req *preq)
 {
     struct cli_ctx *cctx;
@@ -914,6 +998,18 @@ static void pam_reply(struct pam_auth_req *preq)
                                (uint8_t *) pd->domain);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+            goto done;
+        }
+    }
+
+    /*
+     * Export non-overridden shell to tlog-rec-session when opening the session
+     */
+    if (pd->cmd == SSS_PAM_OPEN_SESSION && pd->pam_status == PAM_SUCCESS) {
+        ret = pam_reply_sr_export_shell(preq, "TLOG_REC_SESSION_SHELL");
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "failed to export the shell to tlog-rec-session.\n");
             goto done;
         }
     }
