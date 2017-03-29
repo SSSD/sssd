@@ -50,6 +50,9 @@
 #include <systemd/sd-daemon.h>
 #endif
 
+#define SHELL_REALLOC_INCREMENT 5
+#define SHELL_REALLOC_MAX       50
+
 static errno_t set_close_on_exec(int fd)
 {
     int v;
@@ -1056,6 +1059,72 @@ done:
     return ret;
 }
 
+static errno_t sss_get_etc_shells(TALLOC_CTX *mem_ctx, char ***_shells)
+{
+    int i = 0;
+    char *sh;
+    char **shells = NULL;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    int size;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    shells = talloc_array(tmp_ctx, char *, SHELL_REALLOC_INCREMENT);
+    if (!shells) {
+        ret = ENOMEM;
+        goto done;
+    }
+    size = SHELL_REALLOC_INCREMENT;
+
+    setusershell();
+    while ((sh = getusershell())) {
+        shells[i] = talloc_strdup(shells, sh);
+        if (!shells[i]) {
+            endusershell();
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_FUNC, "Found shell %s in /etc/shells\n", shells[i]);
+        i++;
+
+        if (i == size) {
+            size += SHELL_REALLOC_INCREMENT;
+            if (size > SHELL_REALLOC_MAX) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "Reached maximum number of shells [%d]. "
+                          "Users may be denied access. "
+                          "Please check /etc/shells for sanity\n",
+                          SHELL_REALLOC_MAX);
+                break;
+            }
+            shells = talloc_realloc(NULL, shells, char *,
+                                    size);
+            if (!shells) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    }
+    endusershell();
+
+    if (i + 1 < size) {
+        shells = talloc_realloc(NULL, shells, char *, i + 1);
+        if (!shells) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    shells[i] = NULL;
+
+    *_shells = talloc_move(mem_ctx, &shells);
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
@@ -1194,6 +1263,37 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
               "The set up lookup_order won't be followed [%d]: %s.\n",
               ret, sss_strerror(ret));
     }
+
+    /* Read shell settings */
+    ret = confdb_get_string(cdb, rctx, CONFDB_NSS_CONF_ENTRY,
+                            CONFDB_NSS_OVERRIDE_SHELL, NULL,
+                            &rctx->override_shell);
+    if (ret != EOK && ret != ENOENT) goto fail;
+
+    ret = confdb_get_string_as_list(cdb, rctx, CONFDB_NSS_CONF_ENTRY,
+                                    CONFDB_NSS_ALLOWED_SHELL,
+                                    &rctx->allowed_shells);
+    if (ret != EOK && ret != ENOENT) goto fail;
+
+    ret = confdb_get_string_as_list(cdb, rctx, CONFDB_NSS_CONF_ENTRY,
+                                    CONFDB_NSS_VETOED_SHELL,
+                                    &rctx->vetoed_shells);
+    if (ret != EOK && ret != ENOENT) goto fail;
+
+    ret = sss_get_etc_shells(rctx, &rctx->etc_shells);
+    if (ret != EOK) goto fail;
+
+    ret = confdb_get_string(cdb, rctx, CONFDB_NSS_CONF_ENTRY,
+                            CONFDB_NSS_SHELL_FALLBACK,
+                            CONFDB_DEFAULT_SHELL_FALLBACK,
+                            &rctx->shell_fallback);
+    if (ret != EOK) goto fail;
+
+    ret = confdb_get_string(cdb, rctx, CONFDB_NSS_CONF_ENTRY,
+                            CONFDB_NSS_DEFAULT_SHELL,
+                            NULL,
+                            &rctx->default_shell);
+    if (ret != EOK) goto fail;
 
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
                            svc_name, svc_version, MT_SVC_SERVICE,

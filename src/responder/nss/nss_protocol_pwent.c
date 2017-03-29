@@ -121,7 +121,7 @@ nss_get_homedir(TALLOC_CTX *mem_ctx,
 
 static const char *
 nss_get_shell_override(struct ldb_message *msg,
-                       struct nss_ctx *nss_ctx,
+                       struct resp_ctx *rctx,
                        struct sss_domain_info *domain)
 {
     const char *shell;
@@ -131,8 +131,8 @@ nss_get_shell_override(struct ldb_message *msg,
      * the server for the login shell. */
     if (domain->override_shell) {
         return domain->override_shell;
-    } else if (nss_ctx->override_shell) {
-        return nss_ctx->override_shell;
+    } else if (rctx->override_shell) {
+        return rctx->override_shell;
     }
 
     shell = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_SHELL,
@@ -141,56 +141,56 @@ nss_get_shell_override(struct ldb_message *msg,
         /* Check whether there is a default shell specified */
         if (domain->default_shell) {
             return domain->default_shell;
-        } else if (nss_ctx->default_shell) {
-            return nss_ctx->default_shell;
+        } else if (rctx->default_shell) {
+            return rctx->default_shell;
         }
 
         return "";
     }
 
-    if (nss_ctx->allowed_shells == NULL && nss_ctx->vetoed_shells == NULL) {
+    if (rctx->allowed_shells == NULL && rctx->vetoed_shells == NULL) {
         return shell;
     }
 
-    if (nss_ctx->vetoed_shells) {
-        for (i = 0; nss_ctx->vetoed_shells[i]; i++) {
-            if (strcmp(nss_ctx->vetoed_shells[i], shell) == 0) {
+    if (rctx->vetoed_shells) {
+        for (i = 0; rctx->vetoed_shells[i]; i++) {
+            if (strcmp(rctx->vetoed_shells[i], shell) == 0) {
                 DEBUG(SSSDBG_FUNC_DATA,
                       "The shell '%s' is vetoed. Using fallback.\n",
                       shell);
-                return nss_ctx->shell_fallback;
+                return rctx->shell_fallback;
             }
         }
     }
 
-    if (nss_ctx->etc_shells) {
-        for (i = 0; nss_ctx->etc_shells[i]; i++) {
-            if (strcmp(shell, nss_ctx->etc_shells[i]) == 0) {
+    if (rctx->etc_shells) {
+        for (i = 0; rctx->etc_shells[i]; i++) {
+            if (strcmp(shell, rctx->etc_shells[i]) == 0) {
                 DEBUG(SSSDBG_TRACE_ALL,
                       "Shell %s found in /etc/shells\n", shell);
                 break;
             }
         }
 
-        if (nss_ctx->etc_shells[i]) {
+        if (rctx->etc_shells[i]) {
             DEBUG(SSSDBG_TRACE_ALL, "Using original shell '%s'\n", shell);
             return shell;
         }
     }
 
-    if (nss_ctx->allowed_shells) {
-        if (strcmp(nss_ctx->allowed_shells[0], "*") == 0) {
+    if (rctx->allowed_shells) {
+        if (strcmp(rctx->allowed_shells[0], "*") == 0) {
             DEBUG(SSSDBG_FUNC_DATA,
                   "The shell '%s' is allowed but does not exist. "
                   "Using fallback\n", shell);
-            return nss_ctx->shell_fallback;
+            return rctx->shell_fallback;
         } else {
-            for (i = 0; nss_ctx->allowed_shells[i]; i++) {
-                if (strcmp(nss_ctx->allowed_shells[i], shell) == 0) {
+            for (i = 0; rctx->allowed_shells[i]; i++) {
+                if (strcmp(rctx->allowed_shells[i], shell) == 0) {
                     DEBUG(SSSDBG_FUNC_DATA,
                           "The shell '%s' is allowed but does not exist. "
                           "Using fallback\n", shell);
-                    return nss_ctx->shell_fallback;
+                    return rctx->shell_fallback;
                 }
             }
         }
@@ -239,7 +239,7 @@ nss_get_pwent(TALLOC_CTX *mem_ctx,
     gecos = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_GECOS,
                                                  NULL);
     homedir = nss_get_homedir(mem_ctx, nss_ctx, domain, msg, name, upn, uid);
-    shell = nss_get_shell_override(msg, nss_ctx, domain);
+    shell = nss_get_shell_override(msg, nss_ctx->rctx, domain);
 
     /* Convert to sized strings. */
     ret = sized_output_name(mem_ctx, nss_ctx->rctx, name, domain, _name);
