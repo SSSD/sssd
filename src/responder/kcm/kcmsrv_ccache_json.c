@@ -109,6 +109,28 @@ static const char *sec_key_create(TALLOC_CTX *mem_ctx,
                            "%s%c%s", uuid_str, SEC_KEY_SEPARATOR, name);
 }
 
+static bool sec_key_valid(const char *sec_key)
+{
+    if (sec_key == NULL) {
+        return false;
+    }
+
+    if (strlen(sec_key) < UUID_STR_SIZE + 1) {
+        /* One char for separator (at UUID_STR_SIZE, because strlen doesn't
+         * include the '\0', but UUID_STR_SIZE does) and at least one for
+         * the name */
+        DEBUG(SSSDBG_CRIT_FAILURE, "Key %s is too short\n", sec_key);
+        return false;
+    }
+
+    if (sec_key[UUID_STR_SIZE-1] != SEC_KEY_SEPARATOR) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Key doesn't contain the separator\n");
+        return false;
+    }
+
+    return true;
+}
+
 static errno_t sec_key_parse(TALLOC_CTX *mem_ctx,
                              const char *sec_key,
                              const char **_name,
@@ -116,9 +138,7 @@ static errno_t sec_key_parse(TALLOC_CTX *mem_ctx,
 {
     char uuid_str[UUID_STR_SIZE];
 
-    if (strlen(sec_key) < UUID_STR_SIZE + 2) {
-        /* One char for separator and at least one for the name */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Key %s is too short\n", sec_key);
+    if (!sec_key_valid(sec_key)) {
         return EINVAL;
     }
 
@@ -143,14 +163,7 @@ errno_t sec_key_get_uuid(const char *sec_key,
 {
     char uuid_str[UUID_STR_SIZE];
 
-    if (strlen(sec_key) < UUID_STR_SIZE + 2) {
-        /* One char for separator and at least one for the name */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Key %s is too short\n", sec_key);
-        return EINVAL;
-    }
-
-    if (sec_key[UUID_STR_SIZE-1] != SEC_KEY_SEPARATOR) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Key doesn't contain the separator\n");
+    if (!sec_key_valid(sec_key)) {
         return EINVAL;
     }
 
@@ -162,9 +175,7 @@ errno_t sec_key_get_uuid(const char *sec_key,
 
 const char *sec_key_get_name(const char *sec_key)
 {
-    if (strlen(sec_key) < UUID_STR_SIZE + 2) {
-        /* One char for separator and at least one for the name */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Key %s is too short\n", sec_key);
+    if (!sec_key_valid(sec_key)) {
         return NULL;
     }
 
@@ -174,9 +185,7 @@ const char *sec_key_get_name(const char *sec_key)
 bool sec_key_match_name(const char *sec_key,
                         const char *name)
 {
-    if (strlen(sec_key) < UUID_STR_SIZE + 2) {
-        /* One char for separator and at least one for the name */
-        DEBUG(SSSDBG_MINOR_FAILURE, "Key %s is too short\n", sec_key);
+    if (!sec_key_valid(sec_key) || name == NULL) {
         return false;
     }
 
