@@ -32,6 +32,12 @@
 
 #define TEST_CREDS                "TESTCREDS"
 
+#define TEST_UUID_STR             "5f8f296b-02be-4e86-9235-500e82354186"
+#define TEST_SEC_KEY_ONEDIGIT     TEST_UUID_STR"-0"
+#define TEST_SEC_KEY_MULTIDIGITS  TEST_UUID_STR"-123456"
+
+#define TEST_SEC_KEY_NOSEP        TEST_UUID_STR"+0"
+
 const struct kcm_ccdb_ops ccdb_mem_ops;
 const struct kcm_ccdb_ops ccdb_sec_ops;
 
@@ -188,6 +194,72 @@ static void test_kcm_ccache_marshall_unmarshall(void **state)
     assert_int_equal(ret, EOK);
 
     assert_cc_equal(cc, cc2);
+
+    /* This key is exactly one byte shorter than it should be */
+    ret = sec_kv_to_ccache(test_ctx,
+                           TEST_UUID_STR"-",
+                           (const char *) data,
+                           &owner,
+                           &cc2);
+    assert_int_equal(ret, EINVAL);
+}
+
+void test_sec_key_get_uuid(void **state)
+{
+    errno_t ret;
+    uuid_t uuid;
+    char str_uuid[UUID_STR_SIZE];
+
+    uuid_clear(uuid);
+    ret = sec_key_get_uuid(TEST_SEC_KEY_ONEDIGIT, uuid);
+    assert_int_equal(ret, EOK);
+    uuid_unparse(uuid, str_uuid);
+    assert_string_equal(TEST_UUID_STR, str_uuid);
+
+    ret = sec_key_get_uuid(TEST_SEC_KEY_NOSEP, uuid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sec_key_get_uuid(TEST_UUID_STR, uuid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sec_key_get_uuid(NULL, uuid);
+    assert_int_equal(ret, EINVAL);
+}
+
+void test_sec_key_get_name(void **state)
+{
+    const char *name;
+
+    name = sec_key_get_name(TEST_SEC_KEY_ONEDIGIT);
+    assert_non_null(name);
+    assert_string_equal(name, "0");
+
+    name = sec_key_get_name(TEST_SEC_KEY_MULTIDIGITS);
+    assert_non_null(name);
+    assert_string_equal(name, "123456");
+
+    name = sec_key_get_name(TEST_UUID_STR);
+    assert_null(name);
+
+    name = sec_key_get_name(TEST_SEC_KEY_NOSEP);
+    assert_null(name);
+
+    name = sec_key_get_name(NULL);
+    assert_null(name);
+}
+
+void test_sec_key_match_name(void **state)
+{
+    assert_true(sec_key_match_name(TEST_SEC_KEY_ONEDIGIT, "0"));
+    assert_true(sec_key_match_name(TEST_SEC_KEY_MULTIDIGITS, "123456"));
+
+    assert_false(sec_key_match_name(TEST_SEC_KEY_MULTIDIGITS, "0"));
+    assert_false(sec_key_match_name(TEST_SEC_KEY_ONEDIGIT, "123456"));
+
+    assert_false(sec_key_match_name(TEST_UUID_STR, "0"));
+    assert_false(sec_key_match_name(TEST_SEC_KEY_NOSEP, "0"));
+    assert_false(sec_key_match_name(TEST_SEC_KEY_ONEDIGIT, NULL));
+    assert_false(sec_key_match_name(NULL, "0"));
 }
 
 int main(int argc, const char *argv[])
@@ -205,6 +277,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_kcm_ccache_marshall_unmarshall,
                                         setup_kcm_marshalling,
                                         teardown_kcm_marshalling),
+        cmocka_unit_test(test_sec_key_get_uuid),
+        cmocka_unit_test(test_sec_key_get_name),
+        cmocka_unit_test(test_sec_key_match_name),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
