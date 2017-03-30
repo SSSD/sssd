@@ -1,17 +1,5 @@
-AC_ARG_ENABLE([curl],
-              [AS_HELP_STRING([--disable-curl-support],
-                              [do not build with libcurl support])],
-              [enable_libcurl=$enableval],
-              [enable_libcurl=yes])
-
-found_libcurl="no"
-AS_IF([test x$enable_libcurl = xyes],
-      [PKG_CHECK_MODULES([CURL],
-                         [libcurl],
-                         [found_libcurl=yes],
-                         [AC_MSG_ERROR([
-The libcurl development library was not found.])
-      ])])
+PKG_CHECK_MODULES([CURL], [libcurl], [found_libcurl=yes],
+              [AC_MSG_ERROR([The libcurl development library was not found.])])
 
 AS_IF([test x"$found_libcurl" = xyes],
     CFLAGS="$CFLAGS $CURL_CFLAGS"

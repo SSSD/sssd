@@ -22,6 +22,7 @@
 #include "responder/secrets/secsrv_private.h"
 #include "responder/secrets/secsrv_local.h"
 #include "responder/secrets/secsrv_proxy.h"
+#include "util/sss_iobuf.h"
 #include <jansson.h>
 
 typedef int (*url_mapper_fn)(struct sec_req_ctx *secreq,
@@ -382,6 +383,89 @@ int sec_http_reply_with_headers(TALLOC_CTX *mem_ctx, struct sec_data *reply,
 
         memcpy(&reply->data[reply->length], body->data, body->length);
         reply->length += body->length;
+    }
+
+    return EOK;
+}
+
+static errno_t
+sec_http_iobuf_split(struct sss_iobuf *response,
+                     const char **headers,
+                     const char **body)
+{
+    const char *data = (const char *)sss_iobuf_get_data(response);
+    char *delim;
+
+    /* The last header ends with \r\n and then comes \r\n again as a separator
+     * of body from headers. We can use this to find this point. */
+    delim = strstr(data, "\r\n\r\n");
+    if (delim == NULL) {
+        return EINVAL;
+    }
+
+    /* Skip to the body delimiter. */
+    delim = delim + sizeof("\r\n") - 1;
+
+    /* Replace \r\n with zeros turning data into:
+     * from HEADER\r\nBODY into HEADER\0\0BODY format. */
+    delim[0] = '\0';
+    delim[1] = '\0';
+
+    /* Split the buffer. */
+    *headers = data;
+    *body = delim + 2;
+
+    return 0;
+}
+
+static const char *
+sec_http_iobuf_add_content_length(TALLOC_CTX *mem_ctx,
+                                  const char *headers,
+                                  size_t body_len)
+{
+    /* If Content-Length is already present we do nothing. */
+    if (strstr(headers, "Content-Length:") != NULL) {
+        return headers;
+    }
+
+    return talloc_asprintf(mem_ctx, "%sContent-Length: %zu\r\n",
+                           headers, body_len);
+}
+
+errno_t sec_http_reply_iobuf(TALLOC_CTX *mem_ctx,
+                             struct sec_data *reply,
+                             int response_code,
+                             struct sss_iobuf *response)
+{
+    const char *headers;
+    const char *body;
+    size_t body_len;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_LIBS, "HTTP reply %d\n", response_code);
+
+    ret = sec_http_iobuf_split(response, &headers, &body);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected HTTP reply, "
+              "returning what we got from server\n");
+        reply->data = (char *)sss_iobuf_get_data(response);
+        reply->length = sss_iobuf_get_len(response);
+
+        return EOK;
+    }
+
+    /* Add Content-Length header if not present so client does not await
+     * not-existing incoming data. */
+    body_len = strlen(body);
+    headers = sec_http_iobuf_add_content_length(mem_ctx, headers, body_len);
+    if (headers == NULL) {
+        return ENOMEM;
+    }
+
+    reply->length = strlen(headers) + sizeof("\r\n") - 1 + body_len;
+    reply->data = talloc_asprintf(mem_ctx, "%s\r\n%s", headers, body);
+    if (reply->data == NULL) {
+        return ENOMEM;
     }
 
     return EOK;

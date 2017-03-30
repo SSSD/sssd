@@ -137,6 +137,12 @@ option_strings = {
     'forward_headers': _('The list of the headers to forward to the Custodia server together with the request'),
     'username': _('The username to use when authenticating to a Custodia server using basic_auth'),
     'password': _('The password to use when authenticating to a Custodia server using basic_auth'),
+    'verify_peer': _('If true peer\'s certificate is verified if proxy_url uses https protocol'),
+    'verify_host': _('If false peer\'s certificate may contain different hostname then proxy_url when https protocol is used'),
+    'capath': _('Path to directory where certificate authority certificates are stored'),
+    'cacert': _('Path to file containing server\'s CA certificate'),
+    'cert': _('Path to file containing client\'s certificate'),
+    'key': _('Path to file containing client\'s private key'),
 
     # [provider]
     'id_provider' : _('Identity provider'),

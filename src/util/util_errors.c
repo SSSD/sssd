@@ -111,6 +111,10 @@ struct err_string error_to_str[] = {
     { "Credential cache name not allowed" }, /* ERR_KCM_WRONG_CCNAME_FORMAT */
     { "Cannot encode a JSON object to string" }, /* ERR_JSON_ENCODING */
     { "Cannot decode a JSON object from string" }, /* ERR_JSON_DECODING */
+    { "Invalid certificate provided" }, /* ERR_INVALID_CERT */
+    { "Unable to initialize SSL" }, /* ERR_SSL_FAILURE */
+    { "Unable to verify peer" }, /* ERR_UNABLE_TO_VERIFY_PEER */
+    { "Unable to resolve host" }, /* ERR_UNABLE_TO_RESOLVE_HOST */
     { "ERR_LAST" } /* ERR_LAST */
 };
 
