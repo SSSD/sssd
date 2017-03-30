@@ -35,6 +35,9 @@
 #include <security/pam_appl.h>
 
 #include "lib/sifp/sss_sifp.h"
+#include "util/util.h"
+#include "tools/common/sss_tools.h"
+#include "tools/sssctl/sssctl.h"
 
 #ifdef HAVE_SECURITY_PAM_MISC_H
 # include <security/pam_misc.h>
@@ -85,17 +88,17 @@ static int get_ifp_user(const char *user)
 
     error = sss_sifp_init(&sifp);
     if (error != SSS_SIFP_OK) {
-        fprintf(stderr, "Unable to connect to the InfoPipe");
+        fprintf(stderr, _("Unable to connect to the InfoPipe"));
         return EFAULT;
     }
 
     error = sss_sifp_fetch_user_by_name(sifp, user, &user_obj);
     if (error != SSS_SIFP_OK) {
-        fprintf(stderr, "Unable to get user object");
+        fprintf(stderr, _("Unable to get user object"));
         return EIO;
     }
 
-    fprintf(stdout, "SSSD InfoPipe user lookup result:\n");
+    fprintf(stdout, _("SSSD InfoPipe user lookup result:\n"));
     for (c = 0; ifp_user_attr[c].name != NULL; c++) {
         if (ifp_user_attr[c].is_string) {
             error = sss_sifp_find_attr_as_string(user_obj->attrs,
@@ -107,7 +110,7 @@ static int get_ifp_user(const char *user)
                                                  &tmp_uint32);
         }
         if (error != SSS_SIFP_OK) {
-            fprintf(stderr, "Unable to get user name attr");
+            fprintf(stderr, _("Unable to get user name attr"));
             return EIO;
         }
 
@@ -118,6 +121,7 @@ static int get_ifp_user(const char *user)
                                                   tmp_uint32);
         }
     }
+    fprintf(stdout, "\n");
 
     sss_sifp_free_object(sifp, &user_obj);
     sss_sifp_free(&sifp);
@@ -138,14 +142,14 @@ static int sss_getpwnam_check(const char *user)
 
     dl_handle = dlopen("libnss_sss.so.2", RTLD_NOW);
     if (dl_handle == NULL) {
-        fprintf(stderr, "dlopen failed with [%s].\n", dlerror());
+        fprintf(stderr, _("dlopen failed with [%s].\n"), dlerror());
         ret = EIO;
         goto done;
     }
 
     getpwnam_r = dlsym(dl_handle, "_nss_sss_getpwnam_r");
     if (getpwnam_r == NULL) {
-        fprintf(stderr, "dlsym failed with [%s].\n", dlerror());
+        fprintf(stderr, _("dlsym failed with [%s].\n"), dlerror());
         ret = EIO;
         goto done;
     }
@@ -153,25 +157,25 @@ static int sss_getpwnam_check(const char *user)
     buflen = DEFAULT_BUFSIZE;
     buffer = malloc(buflen);
     if (buffer == NULL) {
-        fprintf(stderr, "malloc failed.\n");
+        fprintf(stderr, _("malloc failed.\n"));
         ret = ENOMEM;
         goto done;
     }
 
     status = getpwnam_r(user, &pwd, buffer, buflen, &nss_errno);
     if (status != NSS_STATUS_SUCCESS) {
-        fprintf(stderr, "sss_getpwnam_r failed with [%d].\n", status);
+        fprintf(stderr, _("sss_getpwnam_r failed with [%d].\n"), status);
         ret = EIO;
         goto done;
     }
 
-    fprintf(stdout, "SSSD nss user lookup result:\n");
-    fprintf(stdout, " - user name: %s\n", pwd.pw_name);
-    fprintf(stdout, " - user id: %d\n", pwd.pw_uid);
-    fprintf(stdout, " - group id: %d\n", pwd.pw_gid);
-    fprintf(stdout, " - gecos: %s\n", pwd.pw_gecos);
-    fprintf(stdout, " - home directory: %s\n", pwd.pw_dir);
-    fprintf(stdout, " - shell: %s\n", pwd.pw_shell);
+    fprintf(stdout, _("SSSD nss user lookup result:\n"));
+    fprintf(stdout, _(" - user name: %s\n"), pwd.pw_name);
+    fprintf(stdout, _(" - user id: %d\n"), pwd.pw_uid);
+    fprintf(stdout, _(" - group id: %d\n"), pwd.pw_gid);
+    fprintf(stdout, _(" - gecos: %s\n"), pwd.pw_gecos);
+    fprintf(stdout, _(" - home directory: %s\n"), pwd.pw_dir);
+    fprintf(stdout, _(" - shell: %s\n\n"), pwd.pw_shell);
 
     ret = 0;
 
@@ -185,87 +189,90 @@ done:
     return ret;
 }
 
-int main(int argc, char *argv[]) {
+errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
+                           struct sss_tool_ctx *tool_ctx,
+                           void *pvt)
+{
 
     pam_handle_t *pamh;
-    char *user;
-    char *action;
-    char *service;
+    const char *user = NULL;
+    const char *action = DEFAULT_ACTION;
+    const char *service = DEFAULT_SERVICE;
     int ret;
     size_t c;
     char **pam_env;
 
-    if (argc == 1) {
-        fprintf(stderr, "Usage: pam_test_client USERNAME "
-                        "[auth|acct|setc|chau|open|clos] [pam_service]\n");
-        return 0;
-    } else if (argc == 2) {
-        fprintf(stderr,"using first argument as user name and default action "
-                       "and service\n");
-    } else if (argc == 3) {
-        fprintf(stderr, "using first argument as user name, second as action "
-                        "and default service\n");
+    /* Parse command line. */
+    struct poptOption options[] = {
+        {"action", 'a', POPT_ARG_STRING , &action, 0,
+            _("PAM action [auth|acct|setc|chau|open|clos], default: "
+                DEFAULT_ACTION),
+            NULL },
+        {"service", 's', POPT_ARG_STRING , &service, 0,
+            _("PAM service, default: " DEFAULT_SERVICE), NULL },
+        POPT_TABLEEND
+    };
+
+    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+                           NULL, NULL, "USERNAME", _("Specify user name."),
+                           &user, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
+        return ret;
     }
 
-    user = strdup(argv[1]);
-    action =  argc > 2 ? strdup(argv[2]) : strdup(DEFAULT_ACTION);
-    service = argc > 3 ? strdup(argv[3]) : strdup(DEFAULT_SERVICE);
-
-    if (action == NULL || user == NULL || service == NULL) {
-        fprintf(stderr, "Out of memory!\n");
-        return 1;
-    }
-
-    fprintf(stdout, "user: %s\naction: %s\nservice: %s\n",
+    fprintf(stdout, _("user: %s\naction: %s\nservice: %s\n\n"),
                     user, action, service);
 
     if (*user != '\0') {
         ret = sss_getpwnam_check(user);
         if (ret != 0) {
-            fprintf(stderr,"User name lookup with [%s] failed.\n", user);
+            fprintf(stderr, _("User name lookup with [%s] failed.\n"), user);
         }
 
         ret = get_ifp_user(user);
         if (ret != 0) {
-            fprintf(stderr,"InforPipe User lookup with [%s] failed.\n", user);
+            fprintf(stderr, _("InforPipe User lookup with [%s] failed.\n"),
+                            user);
         }
     }
 
     ret = pam_start(service, user, &conv, &pamh);
     if (ret != PAM_SUCCESS) {
-        fprintf(stderr, "pam_start failed: %s\n", pam_strerror(pamh, ret));
+        fprintf(stderr, _("pam_start failed: %s\n"), pam_strerror(pamh, ret));
         return 1;
     }
 
     if ( strncmp(action, "auth", 4)== 0 ) {
-        fprintf(stdout, "testing pam_authenticate\n");
+        fprintf(stdout, _("testing pam_authenticate\n\n"));
         ret = pam_authenticate(pamh, 0);
-        fprintf(stderr, "pam_authenticate: %s\n", pam_strerror(pamh, ret));
+        fprintf(stderr, _("pam_authenticate: %s\n\n"), pam_strerror(pamh, ret));
     } else if ( strncmp(action, "chau", 4)== 0 ) {
-        fprintf(stdout, "testing pam_chauthtok\n");
+        fprintf(stdout, _("testing pam_chauthtok\n\n"));
         ret = pam_chauthtok(pamh, 0);
-        fprintf(stderr, "pam_chauthtok: %s\n", pam_strerror(pamh, ret));
+        fprintf(stderr, _("pam_chauthtok: %s\n\n"), pam_strerror(pamh, ret));
     } else if ( strncmp(action, "acct", 4)== 0 ) {
-        fprintf(stdout, "testing pam_acct_mgmt\n");
+        fprintf(stdout, _("testing pam_acct_mgmt\n\n"));
         ret = pam_acct_mgmt(pamh, 0);
-        fprintf(stderr, "pam_acct_mgmt: %s\n", pam_strerror(pamh, ret));
+        fprintf(stderr, _("pam_acct_mgmt: %s\n\n"), pam_strerror(pamh, ret));
     } else if ( strncmp(action, "setc", 4)== 0 ) {
-        fprintf(stdout, "testing pam_setcred\n");
+        fprintf(stdout, _("testing pam_setcred\n\n"));
         ret = pam_setcred(pamh, 0);
-        fprintf(stderr, "pam_setcred: %d[%s]\n", ret, pam_strerror(pamh, ret));
+        fprintf(stderr, _("pam_setcred: [%s]\n\n"), pam_strerror(pamh, ret));
     } else if ( strncmp(action, "open", 4)== 0 ) {
-        fprintf(stdout, "testing pam_open_session\n");
+        fprintf(stdout, _("testing pam_open_session\n\n"));
         ret = pam_open_session(pamh, 0);
-        fprintf(stderr, "pam_open_session: %s\n", pam_strerror(pamh, ret));
+        fprintf(stderr, _("pam_open_session: %s\n\n"), pam_strerror(pamh, ret));
     } else if ( strncmp(action, "clos", 4)== 0 ) {
-        fprintf(stdout, "testing pam_close_session\n");
+        fprintf(stdout, _("testing pam_close_session\n\n"));
         ret = pam_close_session(pamh, 0);
-        fprintf(stderr, "pam_close_session: %s\n", pam_strerror(pamh, ret));
+        fprintf(stderr, _("pam_close_session: %s\n\n"),
+                        pam_strerror(pamh, ret));
     } else {
-        fprintf(stderr, "unknown action\n");
+        fprintf(stderr, _("unknown action\n"));
     }
 
-    fprintf(stderr, "PAM Environment:\n");
+    fprintf(stderr, _("PAM Environment:\n"));
     pam_env = pam_getenvlist(pamh);
     if (pam_env != NULL && pam_env[0] != NULL) {
         for (c = 0; pam_env[c] != NULL; c++) {
@@ -273,16 +280,12 @@ int main(int argc, char *argv[]) {
             free(pam_env[c]);
         }
     } else {
-        fprintf(stderr," - no env -\n");
+        fprintf(stderr, _(" - no env -\n"));
     }
     free(pam_env);
 
 
     pam_end(pamh, ret);
-
-    free(user);
-    free(action);
-    free(service);
 
     return 0;
 }

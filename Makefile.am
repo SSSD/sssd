@@ -146,7 +146,6 @@ sbin_PROGRAMS = \
     sss_override \
     sss_seed \
     sssctl \
-    sss_pam_test_client \
     $(NULL)
 
 sssdlibexec_PROGRAMS = \
@@ -1725,11 +1724,15 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_domains.c \
     src/tools/sssctl/sssctl_sifp.c \
     src/tools/sssctl/sssctl_config.c \
+    src/tools/sssctl/sssctl_user_checks.c \
     $(SSSD_TOOLS_OBJ) \
     $(NULL)
 sssctl_LDADD = \
     $(TOOLS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(PAM_LIBS) \
+    $(PAM_MISC_LIBS) \
+    $(LIBADD_DL) \
     libsss_simpleifp.la \
     $(NULL)
 sssctl_CFLAGS = \
@@ -3461,16 +3464,6 @@ endif
 if BUILD_WITH_LIBCURL
 noinst_PROGRAMS += tcurl-test-tool
 endif
-
-sss_pam_test_client_SOURCES = \
-    src/sss_client/pam_test_client.c \
-    $(NULL)
-sss_pam_test_client_LDADD = \
-    $(PAM_LIBS) \
-    $(PAM_MISC_LIBS) \
-    $(LIBADD_DL) \
-    libsss_simpleifp.la \
-    $(NULL)
 
 if BUILD_AUTOFS
 autofs_test_client_SOURCES = \
