@@ -147,16 +147,17 @@ errno_t sss_cert_pem_to_der(TALLOC_CTX *mem_ctx, const char *pem,
         return EINVAL;
     }
 
+    if ((pem = strstr(pem, NS_CERT_HEADER)) == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing PEM header.");
+        return EINVAL;
+    }
+
     pem_len = strlen(pem);
     if (pem_len <= NS_CERT_HEADER_LEN + NS_CERT_TRAILER_LEN) {
         DEBUG(SSSDBG_CRIT_FAILURE, "PEM data too short.\n");
         return EINVAL;
     }
 
-    if (strncmp(pem, NS_CERT_HEADER, NS_CERT_HEADER_LEN) != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Wrong PEM header.\n");
-        return EINVAL;
-    }
     if (pem[NS_CERT_HEADER_LEN] != '\n') {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing newline in PEM data.\n");
         return EINVAL;
