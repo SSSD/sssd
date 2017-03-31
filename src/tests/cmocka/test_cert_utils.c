@@ -128,6 +128,13 @@ const uint8_t test_cert_der[] = {
 "lBPDhfTVcWXQwN385uycW/ARtSzzSME2jKKWSIQ=\n" \
 "-----END CERTIFICATE-----\n"
 
+#define TEST_CERT_PEM_WITH_METADATA "Bag Attributes\n" \
+"    friendlyName: ipa-devel\n" \
+"    localKeyID: 8E 0D 04 1F BC 13 73 54 00 8F 65 57 D7 A8 AF 34 0C 18 B3 99\n" \
+"subject= /O=IPA.DEVEL/CN=ipa-devel.ipa.devel\n" \
+"issuer= /O=IPA.DEVEL/CN=Certificate Authority\n" \
+TEST_CERT_PEM
+
 #define TEST_CERT_DERB64 \
 "MIIECTCCAvGgAwIBAgIBCTANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
 "REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNTA0Mjgx" \
@@ -214,6 +221,15 @@ void test_sss_cert_pem_to_der(void **state)
     assert_int_equal(ret, EINVAL);
 
     ret = sss_cert_pem_to_der(ts, TEST_CERT_PEM, &der, &der_size);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(sizeof(test_cert_der), der_size);
+    assert_memory_equal(der, test_cert_der, der_size);
+
+    talloc_free(der);
+
+    /* https://pagure.io/SSSD/sssd/issue/3354
+       https://tools.ietf.org/html/rfc7468#section-2 */
+    ret = sss_cert_pem_to_der(ts, TEST_CERT_PEM_WITH_METADATA, &der, &der_size);
     assert_int_equal(ret, EOK);
     assert_int_equal(sizeof(test_cert_der), der_size);
     assert_memory_equal(der, test_cert_der, der_size);
