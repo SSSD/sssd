@@ -1909,7 +1909,7 @@ static int confdb_add_app_domain(TALLOC_CTX *mem_ctx,
 
     cdb_path = talloc_asprintf(mem_ctx, CONFDB_DOMAIN_PATH_TMPL, name);
     if (cdb_path == NULL) {
-    return ENOMEM;
+        return ENOMEM;
     }
 
     val[0] = CONFDB_DOMAIN_TYPE_APP;
@@ -1933,6 +1933,7 @@ static int confdb_merge_parent_domain(const char *name,
     struct ldb_message *replace_msg = NULL;
     struct ldb_message *app_msg = NULL;
     struct ldb_dn *domain_dn;
+    struct ldb_message_element *el = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
 
     tmp_ctx = talloc_new(NULL);
@@ -1974,6 +1975,12 @@ static int confdb_merge_parent_domain(const char *name,
             replace_msg->elements[i].flags = LDB_FLAG_MOD_ADD;
         }
 
+        el = ldb_msg_find_element(replace_msg, "cn");
+        if (el != NULL) {
+            /* Don't add second cn */
+            ldb_msg_remove_element(replace_msg, el);
+        }
+
         ret = ldb_modify(cdb->ldb, replace_msg);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
@@ -1993,7 +2000,14 @@ static int confdb_merge_parent_domain(const char *name,
     app_msg->dn = domain_dn;
 
     for (unsigned i = 0; i < app_section->msgs[0]->num_elements; i++) {
-        struct ldb_message_element *el = NULL;
+        struct ldb_message_element *app_el = &app_section->msgs[0]->elements[i];
+
+        /* These elements will be skipped when replacing attributes in
+         * a domain to avoid EEXIST errors
+         */
+        if (strcasecmp(app_el->name, "cn") == 0) {
+            continue;
+        }
 
         if (replace_msg != NULL) {
             el = ldb_msg_find_element(replace_msg,
@@ -2013,12 +2027,16 @@ static int confdb_merge_parent_domain(const char *name,
         ret = ldb_msg_add(app_msg,
                           &app_section->msgs[0]->elements[i],
                           ldb_flag);
-        if (ret != EOK) {
+        if (ret != LDB_SUCCESS) {
             continue;
         }
     }
 
-    ret = ldb_modify(cdb->ldb, app_msg);
+    /* We use permissive modification here because adding cn or
+     * distinguishedName from the app_section to the application
+     * message would throw EEXIST
+     */
+    ret = sss_ldb_modify_permissive(cdb->ldb, app_msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         DEBUG(SSSDBG_OP_FAILURE,
