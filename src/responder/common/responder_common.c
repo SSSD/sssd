@@ -97,7 +97,7 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     SEC_CTX secctx;
     int ret;
 
-    cctx->creds = talloc(cctx, struct cli_creds);
+    cctx->creds = talloc_zero(cctx, struct cli_creds);
     if (!cctx->creds) return ENOMEM;
 
 #ifdef HAVE_UCRED
@@ -464,6 +464,22 @@ static void client_fd_handler(struct tevent_context *ev,
 
 static errno_t setup_client_idle_timer(struct cli_ctx *cctx);
 
+static int cli_ctx_destructor(struct cli_ctx *cctx)
+{
+    if (cctx->creds == NULL) {
+        return 0;
+    }
+
+    if (cctx->creds->selinux_ctx == NULL) {
+        return 0;
+    }
+
+    SELINUX_context_free(cctx->creds->selinux_ctx);
+    cctx->creds->selinux_ctx = NULL;
+
+    return 0;
+}
+
 struct accept_fd_ctx {
     struct resp_ctx *rctx;
     bool is_private;
@@ -519,6 +535,8 @@ static void accept_fd_handler(struct tevent_context *ev,
         close(client_fd);
         return;
     }
+
+    talloc_set_destructor(cctx, cli_ctx_destructor);
 
     len = sizeof(cctx->addr);
     cctx->cfd = accept(fd, (struct sockaddr *)&cctx->addr, &len);
