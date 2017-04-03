@@ -1054,6 +1054,33 @@ static const char *ipa_s2n_reqtype2str(enum request_types request_type)
     return "Unknown request type";
 }
 
+static const char *ipa_s2n_reqinp2str(TALLOC_CTX *mem_ctx,
+                                      struct req_input *req_input)
+{
+    const char *str = NULL;
+
+    switch (req_input->type) {
+    case REQ_INP_NAME:
+        str = talloc_strdup(mem_ctx, req_input->inp.name);
+        break;
+    case REQ_INP_SECID:
+        str = talloc_strdup(mem_ctx, req_input->inp.secid);
+        break;
+    case REQ_INP_CERT:
+        str = talloc_strdup(mem_ctx, req_input->inp.cert);
+        break;
+    case REQ_INP_ID:
+        str = talloc_asprintf(mem_ctx, "%u", req_input->inp.id);
+        break;
+    }
+
+    if (str == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+    }
+
+    return str;
+}
+
 struct ipa_s2n_get_list_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
@@ -1410,6 +1437,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct berval *bv_req = NULL;
+    const char *input;
     int ret = EFAULT;
     bool is_v1 = false;
 
@@ -1454,10 +1482,14 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Sending request_type: [%s] for trust user [%s] "
-                            "to IPA server\n",
-                            ipa_s2n_reqtype2str(state->request_type),
-                            req_input->inp.name);
+    if (DEBUG_IS_SET(SSSDBG_TRACE_FUNC)) {
+        input = ipa_s2n_reqinp2str(state, req_input);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Sending request_type: [%s] for trust user [%s] to IPA server\n",
+              ipa_s2n_reqtype2str(state->request_type),
+              input);
+        talloc_zfree(input);
+    }
 
     subreq = ipa_s2n_exop_send(state, state->ev, state->sh, is_v1,
                                state->exop_timeout, bv_req);
