@@ -419,6 +419,14 @@ static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
         if (c >= num_subdomains) {
             /* ok this subdomain does not exist anymore, let's clean up */
             sss_domain_set_state(dom, DOM_DISABLED);
+
+            /* Just disable the forest root but do not remove sdap data */
+            if (sss_domain_is_forest_root(dom)) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Skipping removal of forest root sdap data.\n");
+                continue;
+            }
+
             ret = sysdb_subdomain_delete(dom->sysdb, dom->name);
             if (ret != EOK) {
                 goto done;
@@ -619,6 +627,7 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
     const char *path;
     errno_t ret;
     bool canonicalize = false;
+    struct sss_domain_info *dom;
 
     path = dp_opt_get_string(subdoms_ctx->ad_id_ctx->ad_options->basic,
                              AD_KRB5_CONFD_PATH);
@@ -658,6 +667,17 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ads_store_sdap_subdom failed.\n");
         return ret;
+    }
+
+    /* Make sure disabled domains are not re-enabled accidentially */
+    if (subdoms_ctx->ad_enabled_domains != NULL) {
+        for (dom = subdoms_ctx->be_ctx->domain->subdomains; dom;
+                                            dom = get_next_domain(dom, false)) {
+            if (!is_domain_enabled(dom->name,
+                                   subdoms_ctx->ad_enabled_domains)) {
+                sss_domain_set_state(dom, DOM_DISABLED);
+            }
+        }
     }
 
     return EOK;
@@ -883,7 +903,7 @@ static errno_t ad_get_slave_domain_recv(struct tevent_req *req)
 static struct sss_domain_info *
 ads_get_root_domain(struct be_ctx *be_ctx, struct sysdb_attrs *attrs)
 {
-    struct sss_domain_info *root;
+    struct sss_domain_info *dom;
     const char *name;
     errno_t ret;
 
@@ -894,9 +914,22 @@ ads_get_root_domain(struct be_ctx *be_ctx, struct sysdb_attrs *attrs)
     }
 
     /* With a subsequent run, the root should already be known */
-    root = find_domain_by_name(be_ctx->domain, name, false);
+    for (dom = be_ctx->domain; dom != NULL;
+         dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
 
-    return root;
+        if (strcasecmp(dom->name, name) == 0) {
+            /* The forest root is special, although it might be disabled for
+             * general lookups we still want to try to get the domains in the
+             * forest from a DC of the forest root */
+            if (sss_domain_get_state(dom) == DOM_DISABLED
+                    && !sss_domain_is_forest_root(dom)) {
+                return NULL;
+            }
+            return dom;
+        }
+    }
+
+    return NULL;
 }
 
 static struct ad_id_ctx *
