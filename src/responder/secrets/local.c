@@ -206,7 +206,7 @@ static char *local_dn_to_path(TALLOC_CTX *mem_ctx,
 
 struct local_db_req {
     char *path;
-    struct ldb_dn *basedn;
+    struct ldb_dn *req_dn;
 };
 
 #define LOCAL_SIMPLE_FILTER "(type=simple)"
@@ -231,9 +231,9 @@ static int local_db_get_simple(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=base\n",
-          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->basedn));
+          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->req_dn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_BASE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->req_dn, LDB_SCOPE_BASE,
                      attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -297,9 +297,9 @@ static int local_db_list_keys(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=subtree\n",
-          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->basedn));
+          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->req_dn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_SUBTREE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->req_dn, LDB_SCOPE_SUBTREE,
                      attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -321,7 +321,7 @@ static int local_db_list_keys(TALLOC_CTX *mem_ctx,
     }
 
     for (unsigned i = 0; i < res->count; i++) {
-        keys[i] = local_dn_to_path(keys, lc_req->basedn, res->msgs[i]->dn);
+        keys[i] = local_dn_to_path(keys, lc_req->req_dn, res->msgs[i]->dn);
         if (!keys[i]) {
             ret = ENOMEM;
             goto done;
@@ -483,7 +483,7 @@ static int local_db_put_simple(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = lc_req->basedn;
+    msg->dn = lc_req->req_dn;
 
     /* make sure containers exist */
     ret = local_db_check_containers(msg, lctx, msg->dn);
@@ -587,9 +587,9 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=base\n",
-          LOCAL_CONTAINER_FILTER, ldb_dn_get_linearized(lc_req->basedn));
+          LOCAL_CONTAINER_FILTER, ldb_dn_get_linearized(lc_req->req_dn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_BASE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->req_dn, LDB_SCOPE_BASE,
                      attrs, LOCAL_CONTAINER_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -599,8 +599,8 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
 
     if (res->count == 1) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Searching for children of [%s]\n", ldb_dn_get_linearized(lc_req->basedn));
-        ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_ONELEVEL,
+              "Searching for children of [%s]\n", ldb_dn_get_linearized(lc_req->req_dn));
+        ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->req_dn, LDB_SCOPE_ONELEVEL,
                          attrs, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_TRACE_LIBS,
@@ -612,13 +612,13 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
             ret = EEXIST;
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to remove '%s': Container is not empty\n",
-                  ldb_dn_get_linearized(lc_req->basedn));
+                  ldb_dn_get_linearized(lc_req->req_dn));
 
             goto done;
         }
     }
 
-    ret = ldb_delete(lctx->ldb, lc_req->basedn);
+    ret = ldb_delete(lctx->ldb, lc_req->req_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_delete returned %d: %s\n", ret, ldb_strerror(ret));
@@ -645,7 +645,7 @@ static int local_db_create(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = lc_req->basedn;
+    msg->dn = lc_req->req_dn;
 
     /* make sure containers exist */
     ret = local_db_check_containers(msg, lctx, msg->dn);
@@ -760,7 +760,7 @@ static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = local_db_dn(mem_ctx, ldb, basedn, lc_req->path, &lc_req->basedn);
+    ret = local_db_dn(mem_ctx, ldb, basedn, lc_req->path, &lc_req->req_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to map request to local db DN\n");
