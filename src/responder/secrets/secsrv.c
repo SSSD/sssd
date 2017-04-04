@@ -30,8 +30,16 @@
 
 #define DEFAULT_SEC_FD_LIMIT 2048
 #define DEFAULT_SEC_CONTAINERS_NEST_LEVEL 4
+
 #define DEFAULT_SEC_MAX_SECRETS 1024
 #define DEFAULT_SEC_MAX_PAYLOAD_SIZE 16
+
+/* The number of secrets in the /kcm hive should be quite small,
+ * but the secret size must be large because one secret in the /kcm
+ * hive holds the whole ccache which consists of several credentials
+ */
+#define DEFAULT_SEC_KCM_MAX_SECRETS      256
+#define DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE 65536
 
 static int sec_get_quota(struct sec_ctx *sctx,
                          const char *section_config_path,
@@ -165,6 +173,18 @@ static int sec_get_config(struct sec_ctx *sctx)
                               sctx->sec_config.quota.containers_nest_level,
                               sctx->sec_config.quota.max_secrets,
                               sctx->sec_config.quota.max_payload_size);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get configuration of the secrets hive\n");
+        goto fail;
+    }
+
+    ret = sec_get_hive_config(sctx,
+                              "kcm",
+                              &sctx->kcm_config,
+                              DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
+                              DEFAULT_SEC_KCM_MAX_SECRETS,
+                              DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to get configuration of the secrets hive\n");

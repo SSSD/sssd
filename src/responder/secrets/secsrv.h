@@ -47,6 +47,7 @@ struct sec_ctx {
     int fd_limit;
 
     struct sec_hive_config sec_config;
+    struct sec_hive_config kcm_config;
 
     struct provider_handle **providers;
 };
