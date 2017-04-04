@@ -844,6 +844,11 @@ void sss_domain_set_state(struct sss_domain_info *dom,
           "Domain %s is %s\n", dom->name, domain_state_str(dom));
 }
 
+bool sss_domain_is_forest_root(struct sss_domain_info *dom)
+{
+    return (dom->forest_root == dom);
+}
+
 bool is_email_from_domain(const char *email, struct sss_domain_info *dom)
 {
     const char *p;
