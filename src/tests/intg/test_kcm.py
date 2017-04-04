@@ -23,12 +23,16 @@ import pytest
 import socket
 import time
 import signal
+from requests import HTTPError
 
 import kdc
 import krb5utils
 import config
 from util import unindent
 from test_secrets import create_sssd_secrets_fixture
+from secrets import SecretsLocalClient
+
+MAX_SECRETS = 10
 
 
 class KcmTestEnv(object):
@@ -109,7 +113,7 @@ def create_sssd_kcm_fixture(sock_path, request):
     return kcm_pid
 
 
-def create_sssd_conf(kcm_path, ccache_storage):
+def create_sssd_conf(kcm_path, ccache_storage, max_secrets=MAX_SECRETS):
     return unindent("""\
         [sssd]
         domains = local
@@ -121,6 +125,9 @@ def create_sssd_conf(kcm_path, ccache_storage):
         [kcm]
         socket_path = {kcm_path}
         ccache_storage = {ccache_storage}
+
+        [secrets]
+        max_secrets = {max_secrets}
     """).format(**locals())
 
 
@@ -464,3 +471,46 @@ def test_kcm_sec_parallel_klist(setup_for_kcm_sec,
     for p in processes:
         rc = p.wait()
         assert rc == 0
+
+
+def get_secrets_socket():
+    return os.path.join(config.RUNSTATEDIR, "secrets.socket")
+
+
+@pytest.fixture
+def secrets_cli(request):
+    sock_path = get_secrets_socket()
+    cli = SecretsLocalClient(sock_path=sock_path)
+    return cli
+
+
+def test_kcm_secrets_quota(setup_for_kcm_sec,
+                           setup_secrets,
+                           secrets_cli):
+    testenv = setup_for_kcm_sec
+    cli = secrets_cli
+
+    # Make sure the secrets store is depleted first
+    sec_value = "value"
+    for x in range(MAX_SECRETS):
+        cli.set_secret(str(x), sec_value)
+
+    with pytest.raises(HTTPError) as err507:
+        cli.set_secret(str(MAX_SECRETS), sec_value)
+    assert str(err507.value).startswith("507")
+
+    # We should still be able to store KCM ccaches, but no more
+    # than MAX_SECRETS
+    for x in range(MAX_SECRETS):
+        princ = "%s%d" % ("kcmtest", x)
+        testenv.k5kdc.add_principal(princ, princ)
+
+    for x in range(MAX_SECRETS-1):
+        princ = "%s%d" % ("kcmtest", x)
+        out, _, _ = testenv.k5util.kinit(princ, princ)
+        assert out == 0
+
+    # we stored 0 to MAX_SECRETS-1, storing another one must fail
+    princ = "%s%d" % ("kcmtest", MAX_SECRETS)
+    out, _, _ = testenv.k5util.kinit(princ, princ)
+    assert out != 0
