@@ -827,3 +827,8 @@ void sss_domain_set_state(struct sss_domain_info *dom,
 {
     dom->state = state;
 }
+
+bool sss_domain_is_forest_root(struct sss_domain_info *dom)
+{
+    return (dom->forest_root == dom);
+}
