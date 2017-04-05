@@ -562,7 +562,8 @@ static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_TRACE_FUNC, "Enabling subdomain %s\n", sd_name);
         }
 
-        if (strcasecmp(sd_name, domain->name) == 0) {
+        if ((strcasecmp(sd_name, domain->name) == 0) ||
+                (strcasecmp(sd_name, domain->realm) == 0)) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Not including primary domain %s in the subdomain list\n",
                   domain->name);
