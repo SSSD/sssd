@@ -1695,7 +1695,6 @@ done:
     return ret;
 }
 
-#ifdef ADD_FILES_DOMAIN
 static int confdb_has_files_domain(struct confdb_ctx *cdb)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -1830,25 +1829,27 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
-#endif /* ADD_FILES_DOMAIN */
 
 int confdb_ensure_files_domain(struct confdb_ctx *cdb,
                                const char *implicit_files_dom_name)
 {
-#ifndef ADD_FILES_DOMAIN
-    return EOK;
+#ifdef ADD_FILES_DOMAIN
+    const bool default_enable_files = true;
 #else
+    const bool default_enable_files = false;
+#endif
     errno_t ret;
     bool enable_files;
 
     ret = confdb_get_bool(cdb,
                           CONFDB_MONITOR_CONF_ENTRY,
                           CONFDB_MONITOR_ENABLE_FILES_DOM,
-                          true, &enable_files);
+                          default_enable_files, &enable_files);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot get the value of %s assuming true\n",
-              CONFDB_MONITOR_ENABLE_FILES_DOM);
+              "Cannot get the value of %s assuming %s\n",
+              CONFDB_MONITOR_ENABLE_FILES_DOM,
+              default_enable_files ? "true" : "false");
         return ret;
     }
 
@@ -1874,7 +1875,6 @@ int confdb_ensure_files_domain(struct confdb_ctx *cdb,
     }
 
     return activate_files_domain(cdb, implicit_files_dom_name);
-#endif /* ADD_FILES_DOMAIN */
 }
 
 static int confdb_get_parent_domain(TALLOC_CTX *mem_ctx,
