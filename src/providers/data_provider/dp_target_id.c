@@ -210,7 +210,7 @@ static errno_t dp_initgroups(struct sbus_request *sbus_req,
 
     ret = sysdb_initgroups(sbus_req, domain, data->filter_value, &res);
     if (ret == ENOENT || (ret == EOK && res->count == 0)) {
-        /* There is no point in concacting NSS responder. Proceed as usual. */
+        /* There is no point in contacting NSS responder. Proceed as usual. */
         return EAGAIN;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get initgroups [%d]: %s\n",
@@ -274,7 +274,7 @@ errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
     }
 
     if ((data->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_INITGROUPS) {
-        ret =  dp_initgroups(sbus_req, dp_cli, key, dp_flags, data);
+        ret = dp_initgroups(sbus_req, dp_cli, key, dp_flags, data);
         if (ret != EAGAIN) {
             goto done;
         }
