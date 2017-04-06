@@ -42,9 +42,13 @@
 #define AD_DOMAIN "ad_domain.domain.test"
 #define DOMAIN_1 "one.domain.test"
 #define DOMAIN_2 "two.domain.test"
+#define EXAMPLE_ROOT_DOM "EXAMPLE.COM"
+#define EXAMPLE_CHILD_DOM "WINCHILD.EXAMPLE.COM"
+#define EXAMPLE_CHILD_FLATNAME "winchild"
 
 struct test_ad_subdom_ctx {
     struct ad_id_ctx *ad_id_ctx;
+    struct sss_domain_info *dom;
 };
 
 static struct ad_id_ctx *
@@ -79,6 +83,9 @@ static int test_ad_subdom_setup(void **state)
 
     test_ctx = talloc_zero(global_talloc_context, struct test_ad_subdom_ctx);
     assert_non_null(test_ctx);
+
+    test_ctx->dom = talloc_zero(test_ctx, struct sss_domain_info);
+    assert_non_null(test_ctx->dom);
 
     test_ctx->ad_id_ctx = NULL;
 
@@ -273,6 +280,50 @@ static void test_ad_subdom_add_two_with_master(void **state)
     talloc_zfree(ad_enabled_domains);
 }
 
+static void test_ad_subdom_exclude_child_flatname(void **state)
+{
+    struct test_ad_subdom_ctx *test_ctx;
+    const char **enabled_domains_list = NULL;
+    errno_t ret;
+    size_t orig_subdoms = 1;
+    struct sysdb_attrs *sd_attrs;
+    struct sysdb_attrs **sd;
+    struct sysdb_attrs *root;
+    size_t nsubdoms;
+    size_t expected_subdoms = 1;
+    struct sysdb_attrs **subdoms;
+
+    test_ctx = talloc_get_type(*state, struct test_ad_subdom_ctx);
+
+    test_ctx->dom->name = discard_const(EXAMPLE_CHILD_FLATNAME);
+    test_ctx->dom->realm = discard_const(EXAMPLE_CHILD_DOM);
+
+    sd_attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(sd_attrs);
+
+    ret = sysdb_attrs_add_string(sd_attrs, AD_AT_TRUST_PARTNER, EXAMPLE_CHILD_DOM);
+    assert_int_equal(ret, EOK);
+
+    sd = &sd_attrs;
+
+    root = sysdb_new_attrs(test_ctx);
+    assert_non_null(root);
+
+    ret = sysdb_attrs_add_string(root, AD_AT_TRUST_PARTNER, EXAMPLE_ROOT_DOM);
+    assert_int_equal(ret, EOK);
+
+    ret = ad_subdomains_process(test_ctx, test_ctx->dom,
+                                enabled_domains_list, orig_subdoms,
+                                sd, root,
+                                &nsubdoms, &subdoms);
+
+    assert_int_equal(nsubdoms, expected_subdoms);
+
+    talloc_zfree(sd_attrs);
+    talloc_zfree(root);
+    talloc_zfree(subdoms);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -300,6 +351,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_ad_subdom_add_two_with_master,
                                         test_ad_subdom_setup,
                                         test_ad_subdom_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_subdom_exclude_child_flatname,
+                                        test_ad_subdom_setup,
+                                        test_ad_subdom_teardown)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
