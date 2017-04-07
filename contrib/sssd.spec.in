@@ -1378,6 +1378,10 @@ fi
 
 %postun -n libsss_simpleifp -p /sbin/ldconfig
 
+%post -n libsss_certmap -p /sbin/ldconfig
+
+%postun -n libsss_certmap -p /sbin/ldconfig
+
 %changelog
 * Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
 - Automated build of the SSSD
