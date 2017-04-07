@@ -791,7 +791,8 @@ done
 
 touch sssd.lang
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
-                  sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap
+                  sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap \
+                  libsss_certmap
 do
     touch $subpackage.lang
 done
@@ -842,6 +843,9 @@ do
         idmap_sss*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_winbind_idmap.lang
             ;;
+        sss-certmap*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> libsss_certmap.lang
+            ;;
         *)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
             ;;
@@ -861,7 +865,8 @@ cat python3_sssdconfig.lang
 %endif
 
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
-                  sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap
+                  sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap \
+                  libsss_certmap
 do
     echo "$subpackage.lang:"
     cat $subpackage.lang
@@ -970,7 +975,6 @@ done
 %{_datadir}/sssd/sssd.api.d
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
-%{_mandir}/man5/sss-certmap.5*
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
@@ -1232,10 +1236,11 @@ done
 %{_mandir}/man5/sss_rpcidmapd.5*
 %{_libdir}/libnfsidmap/sss.so
 
-%files -n libsss_certmap
+%files -n libsss_certmap -f libsss_certmap.lang
 %defattr(-,root,root,-)
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libsss_certmap.so.*
+%{_mandir}/man5/sss-certmap.5*
 
 %files -n libsss_certmap-devel
 %defattr(-,root,root,-)
