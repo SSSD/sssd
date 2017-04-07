@@ -792,7 +792,7 @@ done
 touch sssd.lang
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
                   sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap \
-                  libsss_certmap
+                  libsss_certmap sssd_kcm
 do
     touch $subpackage.lang
 done
@@ -840,6 +840,9 @@ do
         sssd-ifp*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_dbus.lang
             ;;
+        sssd-kcm*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_kcm.lang
+            ;;
         idmap_sss*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_winbind_idmap.lang
             ;;
@@ -866,7 +869,7 @@ cat python3_sssdconfig.lang
 
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
                   sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap \
-                  libsss_certmap
+                  libsss_certmap sssd_kcm
 do
     echo "$subpackage.lang:"
     cat $subpackage.lang
