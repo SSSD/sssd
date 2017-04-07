@@ -1316,6 +1316,18 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %postun dbus
 %systemd_postun_with_restart sssd-ifp.service
 
+%if (0%{?with_kcm} == 1)
+%post kcm
+%systemd_post sssd-kcm.socket
+
+%preun kcm
+%systemd_preun sssd-kcm.socket
+
+%postun kcm
+%systemd_postun_with_restart sssd-kcm.socket
+%systemd_postun_with_restart sssd-kcm.service
+%endif
+
 %else
 # sysv
 %post common
@@ -1365,18 +1377,6 @@ fi
 %post -n libsss_simpleifp -p /sbin/ldconfig
 
 %postun -n libsss_simpleifp -p /sbin/ldconfig
-
-%if (0%{?with_kcm} == 1)
-%post kcm
-%systemd_post sssd-kcm.socket
-
-%preun kcm
-%systemd_preun sssd-kcm.socket
-
-%postun kcm
-%systemd_postun_with_restart sssd-kcm.socket
-%systemd_postun_with_restart sssd-kcm.service
-%endif
 
 %changelog
 * Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
