@@ -23,4 +23,12 @@ src/tools/sss_cache.c
 src/tools/sss_debuglevel.c
 src/tools/tools_util.c
 src/tools/tools_util.h
+src/tools/sssctl/sssctl.c
+src/tools/sssctl/sssctl_cache.c
+src/tools/sssctl/sssctl_config.c
+src/tools/sssctl/sssctl_data.c
+src/tools/sssctl/sssctl_domains.c
+src/tools/sssctl/sssctl_logs.c
+src/tools/sssctl/sssctl_sifp.c
+src/tools/sssctl/sssctl_user_checks.c
 src/util/util.h
