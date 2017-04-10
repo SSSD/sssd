@@ -3890,6 +3890,8 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_hbac_services.c \
     src/providers/ipa/ipa_hbac_users.c \
     src/providers/ipa/ipa_hbac_common.c \
+    src/providers/ipa/ipa_rules_common.c \
+    src/providers/ipa/ipa_rules_common.h \
     src/providers/ipa/ipa_srv.c \
     src/providers/ipa/ipa_idmap.c \
     src/providers/ipa/ipa_dn.c \

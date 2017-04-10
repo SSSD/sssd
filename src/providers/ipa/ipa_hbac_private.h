@@ -66,13 +66,6 @@
 
 /* From ipa_hbac_common.c */
 errno_t
-ipa_hbac_sysdb_save(struct sss_domain_info *domain,
-                    const char *primary_subdir, const char *attr_name,
-                    size_t primary_count, struct sysdb_attrs **primary,
-                    const char *group_subdir, const char *groupattr_name,
-                    size_t group_count, struct sysdb_attrs **groups);
-
-errno_t
 replace_attribute_name(const char *old_name,
                        const char *new_name, const size_t count,
                        struct sysdb_attrs **list);

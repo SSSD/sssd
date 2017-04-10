@@ -32,6 +32,7 @@
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ipa/ipa_hbac_rules.h"
+#include "providers/ipa/ipa_rules_common.h"
 
 /* External logging function for HBAC. */
 void hbac_debug_messages(const char *file, int line,
@@ -515,10 +516,15 @@ static errno_t ipa_save_hbac(struct sss_domain_info *domain,
     in_transaction = true;
 
     /* Save the hosts */
-    ret = ipa_hbac_sysdb_save(domain, HBAC_HOSTS_SUBDIR, SYSDB_FQDN,
-                              state->host_count, state->hosts,
-                              HBAC_HOSTGROUPS_SUBDIR, SYSDB_NAME,
-                              state->hostgroup_count, state->hostgroups);
+    ret = ipa_common_entries_and_groups_sysdb_save(domain,
+                                                   HBAC_HOSTS_SUBDIR,
+                                                   SYSDB_FQDN,
+                                                   state->host_count,
+                                                   state->hosts,
+                                                   HBAC_HOSTGROUPS_SUBDIR,
+                                                   SYSDB_NAME,
+                                                   state->hostgroup_count,
+                                                   state->hostgroups);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Error saving hosts [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -526,20 +532,27 @@ static errno_t ipa_save_hbac(struct sss_domain_info *domain,
     }
 
     /* Save the services */
-    ret = ipa_hbac_sysdb_save(domain, HBAC_SERVICES_SUBDIR, IPA_CN,
-                              state->service_count, state->services,
-                              HBAC_SERVICEGROUPS_SUBDIR, IPA_CN,
-                              state->servicegroup_count,
-                              state->servicegroups);
+    ret = ipa_common_entries_and_groups_sysdb_save(domain,
+                                                   HBAC_SERVICES_SUBDIR,
+                                                   IPA_CN,
+                                                   state->service_count,
+                                                   state->services,
+                                                   HBAC_SERVICEGROUPS_SUBDIR,
+                                                   IPA_CN,
+                                                   state->servicegroup_count,
+                                                   state->servicegroups);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Error saving services [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
     /* Save the rules */
-    ret = ipa_hbac_sysdb_save(domain, HBAC_RULES_SUBDIR, IPA_UNIQUE_ID,
-                              state->rule_count, state->rules,
-                              NULL, NULL, 0, NULL);
+    ret = ipa_common_entries_and_groups_sysdb_save(domain,
+                                                   HBAC_RULES_SUBDIR,
+                                                   IPA_UNIQUE_ID,
+                                                   state->rule_count,
+                                                   state->rules,
+                                                   NULL, NULL, 0, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Error saving rules [%d]: %s\n",
               ret, sss_strerror(ret));
