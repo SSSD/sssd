@@ -716,3 +716,33 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+const char **
+hbac_get_attrs_to_get_cached_rules(TALLOC_CTX *mem_ctx)
+{
+    const char **attrs = talloc_zero_array(mem_ctx, const char *, 16);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array() failed\n");
+        goto done;
+    }
+
+    attrs[0] = OBJECTCLASS;
+    attrs[1] = IPA_CN;
+    attrs[2] = SYSDB_ORIG_DN;
+    attrs[3] = IPA_UNIQUE_ID;
+    attrs[4] = IPA_ENABLED_FLAG;
+    attrs[5] = IPA_ACCESS_RULE_TYPE;
+    attrs[6] = IPA_MEMBER_USER;
+    attrs[7] = IPA_USER_CATEGORY;
+    attrs[8] = IPA_MEMBER_SERVICE;
+    attrs[9] = IPA_SERVICE_CATEGORY;
+    attrs[10] = IPA_SOURCE_HOST;
+    attrs[11] = IPA_SOURCE_HOST_CATEGORY;
+    attrs[12] = IPA_EXTERNAL_HOST;
+    attrs[13] = IPA_MEMBER_HOST;
+    attrs[14] = IPA_HOST_CATEGORY;
+    attrs[15] = NULL;
+
+done:
+    return attrs;
+}

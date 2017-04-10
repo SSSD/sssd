@@ -89,6 +89,9 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
                       const char *host_dn,
                       char **hostgroupname);
 
+const char **
+hbac_get_attrs_to_get_cached_rules(TALLOC_CTX *mem_ctx);
+
 /* From ipa_hbac_services.c */
 struct tevent_req *
 ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,

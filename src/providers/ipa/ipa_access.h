@@ -63,9 +63,4 @@ ipa_pam_access_handler_recv(TALLOC_CTX *mem_ctx,
                              struct tevent_req *req,
                              struct pam_data **_data);
 
-errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
-                              struct sss_domain_info *domain,
-                              size_t *_rule_count,
-                              struct sysdb_attrs ***_rules);
-
 #endif /* _IPA_ACCESS_H_ */

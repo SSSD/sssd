@@ -1009,6 +1009,7 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
                             SYSDB_SELINUX_SEEALSO,
                             SYSDB_SELINUX_USER,
                             NULL };
+    const char **attrs_get_cached_rules;
     const char *default_user;
     const char *order;
 
@@ -1066,10 +1067,20 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     state->nmaps = nmaps;
 
     /* read all the HBAC rules */
-    ret = hbac_get_cached_rules(state, state->be_ctx->domain,
-                                &state->hbac_rule_count, &state->hbac_rules);
+    attrs_get_cached_rules = hbac_get_attrs_to_get_cached_rules(state);
+    if (attrs_get_cached_rules == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "hbac_get_attrs_to_get_cached_rules() failed\n");
+        return ENOMEM;
+    }
+
+    ret = ipa_common_get_cached_rules(state, state->be_ctx->domain,
+                                      IPA_HBAC_RULE, HBAC_RULES_SUBDIR,
+                                      attrs_get_cached_rules,
+                                      &state->hbac_rule_count,
+                                      &state->hbac_rules);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "hbac_get_cached_rules failed [%d]: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_common_get_cached_rules failed [%d]: %s\n",
                                   ret, strerror(ret));
         return ret;
     }
@@ -1168,7 +1179,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     struct ipa_id_ctx *id_ctx;
     struct dp_module *access_mod;
     struct dp_module *selinux_mod;
-
+    const char **attrs_get_cached_rules;
     const char *tmp_str;
     bool check_hbac;
     errno_t ret;
@@ -1208,9 +1219,17 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
         access_mod = dp_target_module(state->be_ctx->provider, DPT_ACCESS);
         selinux_mod = dp_target_module(state->be_ctx->provider, DPT_SELINUX);
         if (access_mod == selinux_mod) {
-            ret = hbac_get_cached_rules(state, state->be_ctx->domain,
-                                        &state->hbac_rule_count,
-                                        &state->hbac_rules);
+            attrs_get_cached_rules = hbac_get_attrs_to_get_cached_rules(state);
+            if (attrs_get_cached_rules == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = ipa_common_get_cached_rules(state, state->be_ctx->domain,
+                                              IPA_HBAC_RULE, HBAC_RULES_SUBDIR,
+                                              attrs_get_cached_rules,
+                                              &state->hbac_rule_count,
+                                              &state->hbac_rules);
             /* Terminates the request */
             goto done;
         }
