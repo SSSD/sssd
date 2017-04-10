@@ -9,7 +9,6 @@ src/sss_client/common.c
 src/sss_client/nss_group.c
 src/sss_client/nss_passwd.c
 src/sss_client/pam_sss.c
-src/sss_client/pam_test_client.c
 src/sss_client/ssh/sss_ssh_authorizedkeys.c
 src/sss_client/ssh/sss_ssh_knownhostsproxy.c
 src/tools/sss_useradd.c
@@ -24,4 +23,12 @@ src/tools/sss_cache.c
 src/tools/sss_debuglevel.c
 src/tools/tools_util.c
 src/tools/tools_util.h
+src/tools/sssctl/sssctl.c
+src/tools/sssctl/sssctl_cache.c
+src/tools/sssctl/sssctl_config.c
+src/tools/sssctl/sssctl_data.c
+src/tools/sssctl/sssctl_domains.c
+src/tools/sssctl/sssctl_logs.c
+src/tools/sssctl/sssctl_sifp.c
+src/tools/sssctl/sssctl_user_checks.c
 src/util/util.h

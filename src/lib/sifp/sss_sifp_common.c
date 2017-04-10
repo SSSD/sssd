@@ -168,7 +168,7 @@ sss_sifp_fetch_user_by_uid(sss_sifp_ctx *ctx,
     uint64_t _uid = uid;
 
     return sss_sifp_fetch_object_by_attr(ctx, IFP_PATH_USERS, IFACE_IFP_USERS,
-                                         IFACE_IFP_USERS_USER, "UserByID",
+                                         IFACE_IFP_USERS_USER, "ByID",
                                          DBUS_TYPE_UINT64, &_uid, _user);
 }
 
@@ -178,6 +178,6 @@ sss_sifp_fetch_user_by_name(sss_sifp_ctx *ctx,
                             sss_sifp_object **_user)
 {
     return sss_sifp_fetch_object_by_name(ctx, IFP_PATH_USERS, IFACE_IFP_USERS,
-                                         IFACE_IFP_USERS_USER, "UserByName",
+                                         IFACE_IFP_USERS_USER, "ByName",
                                          name, _user);
 }
