@@ -90,7 +90,6 @@ struct ipa_fetch_hbac_state {
     struct ipa_access_ctx *access_ctx;
     struct sdap_id_op *sdap_op;
     struct dp_option *ipa_options;
-    struct time_rules_ctx *tr_ctx;
 
     struct sdap_search_base **search_bases;
 
@@ -146,7 +145,6 @@ ipa_fetch_hbac_send(TALLOC_CTX *mem_ctx,
     state->access_ctx = access_ctx;
     state->sdap_ctx = access_ctx->sdap_ctx;
     state->ipa_options = access_ctx->ipa_options;
-    state->tr_ctx = access_ctx->tr_ctx;
     state->search_bases = access_ctx->hbac_search_bases;
 
     if (state->search_bases == NULL) {

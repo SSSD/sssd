@@ -35,7 +35,6 @@ enum ipa_access_mode {
 struct ipa_access_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct dp_option *ipa_options;
-    struct time_rules_ctx *tr_ctx;
     time_t last_update;
     struct sdap_access_ctx *sdap_access_ctx;
 
