@@ -63,7 +63,16 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
 
     /* Open config file */
     ret = sss_ini_config_file_open(init_data, SSSD_CONFIG_FILE);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+#ifdef ADD_FILES_DOMAIN
+        PRINT("File %1$s does not exist. SSSD will use default "
+              "configuration with files provider.\n", SSSD_CONFIG_FILE);
+        ret = EOK;
+#else
+        ERROR("File %1$s does not exist.\n", SSSD_CONFIG_FILE);
+#endif /* ADD_FILES_DOMAIN */
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "sss_ini_config_file_open failed: %s [%d]\n",
               sss_strerror(ret),
