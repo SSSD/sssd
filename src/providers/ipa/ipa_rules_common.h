@@ -49,4 +49,13 @@ ipa_common_entries_and_groups_sysdb_save(struct sss_domain_info *domain,
                                          size_t group_count,
                                          struct sysdb_attrs **groups);
 
+errno_t
+ipa_common_get_cached_rules(TALLOC_CTX *mem_ctx,
+                            struct sss_domain_info *domain,
+                            const char *rule,
+                            const char *subtree_name,
+                            const char **attrs,
+                            size_t *_rule_count,
+                            struct sysdb_attrs ***_rules);
+
 #endif /* IPA_RULES_COMMON_H_ */

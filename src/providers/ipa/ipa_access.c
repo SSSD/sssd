@@ -591,6 +591,7 @@ errno_t ipa_hbac_evaluate_rules(struct be_ctx *be_ctx,
     struct hbac_eval_req *eval_req;
     enum hbac_eval_result result;
     struct hbac_info *info = NULL;
+    const char **attrs_get_cached_rules;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -603,8 +604,17 @@ errno_t ipa_hbac_evaluate_rules(struct be_ctx *be_ctx,
     hbac_ctx.pd = pd;
 
     /* Get HBAC rules from the sysdb */
-    ret = hbac_get_cached_rules(tmp_ctx, be_ctx->domain,
-                                &hbac_ctx.rule_count, &hbac_ctx.rules);
+    attrs_get_cached_rules = hbac_get_attrs_to_get_cached_rules(tmp_ctx);
+    if (attrs_get_cached_rules == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "hbac_get_attrs_to_get_cached_rules() failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ipa_common_get_cached_rules(tmp_ctx, be_ctx->domain,
+                                      IPA_HBAC_RULE, HBAC_RULES_SUBDIR,
+                                      attrs_get_cached_rules,
+                                      &hbac_ctx.rule_count, &hbac_ctx.rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not retrieve rules from the cache\n");
         goto done;
@@ -645,69 +655,6 @@ errno_t ipa_hbac_evaluate_rules(struct be_ctx *be_ctx,
 
 done:
     hbac_free_info(info);
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
-                              struct sss_domain_info *domain,
-                              size_t *_rule_count,
-                              struct sysdb_attrs ***_rules)
-{
-    errno_t ret;
-    struct ldb_message **msgs;
-    struct sysdb_attrs **rules;
-    size_t rule_count;
-    TALLOC_CTX *tmp_ctx;
-    char *filter;
-    const char *attrs[] = { OBJECTCLASS,
-                            IPA_CN,
-                            SYSDB_ORIG_DN,
-                            IPA_UNIQUE_ID,
-                            IPA_ENABLED_FLAG,
-                            IPA_ACCESS_RULE_TYPE,
-                            IPA_MEMBER_USER,
-                            IPA_USER_CATEGORY,
-                            IPA_MEMBER_SERVICE,
-                            IPA_SERVICE_CATEGORY,
-                            IPA_SOURCE_HOST,
-                            IPA_SOURCE_HOST_CATEGORY,
-                            IPA_EXTERNAL_HOST,
-                            IPA_MEMBER_HOST,
-                            IPA_HOST_CATEGORY,
-                            NULL };
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) return ENOMEM;
-
-    filter = talloc_asprintf(tmp_ctx, "(objectClass=%s)", IPA_HBAC_RULE);
-    if (filter == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_search_custom(tmp_ctx, domain, filter,
-                              HBAC_RULES_SUBDIR, attrs,
-                              &rule_count, &msgs);
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up HBAC rules\n");
-        goto done;
-    } if (ret == ENOENT) {
-       rule_count = 0;
-    }
-
-    ret = sysdb_msg2attrs(tmp_ctx, rule_count, msgs, &rules);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not convert ldb message to sysdb_attrs\n");
-        goto done;
-    }
-
-    if (_rules) *_rules = talloc_steal(mem_ctx, rules);
-    if (_rule_count) *_rule_count = rule_count;
-
-    ret = EOK;
-done:
     talloc_free(tmp_ctx);
     return ret;
 }

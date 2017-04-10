@@ -161,3 +161,64 @@ done:
     }
     return ret;
 }
+
+errno_t
+ipa_common_get_cached_rules(TALLOC_CTX *mem_ctx,
+                            struct sss_domain_info *domain,
+                            const char *rule,
+                            const char *subtree_name,
+                            const char **attrs,
+                            size_t *_rule_count,
+                            struct sysdb_attrs ***_rules)
+{
+    errno_t ret;
+    struct ldb_message **msgs;
+    struct sysdb_attrs **rules;
+    size_t rule_count;
+    TALLOC_CTX *tmp_ctx;
+    char *filter;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(objectClass=%s)", rule);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_custom(tmp_ctx, domain, filter,
+                              subtree_name, attrs,
+                              &rule_count, &msgs);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up HBAC rules\n");
+        goto done;
+    }
+
+    if (ret == ENOENT) {
+       rule_count = 0;
+    }
+
+    ret = sysdb_msg2attrs(tmp_ctx, rule_count, msgs, &rules);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not convert ldb message to sysdb_attrs\n");
+        goto done;
+    }
+
+    if (_rules) {
+        *_rules = talloc_steal(mem_ctx, rules);
+    }
+
+    if (_rule_count) {
+        *_rule_count = rule_count;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
