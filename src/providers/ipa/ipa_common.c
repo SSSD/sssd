@@ -748,7 +748,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    service = talloc_get_type(private_data, struct ipa_service);
+    service = talloc_get_type_abort(private_data, struct ipa_service);
     if (!service) {
         DEBUG(SSSDBG_CRIT_FAILURE, "FATAL: Bad private_data\n");
         talloc_free(tmp_ctx);

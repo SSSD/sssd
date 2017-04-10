@@ -214,7 +214,7 @@ static void sss_krb5_expire_callback_func(krb5_context context, void *data,
     int ret;
     uint32_t *blob;
     long exp_time;
-    struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+    struct krb5_req *kr = talloc_get_type_abort(data, struct krb5_req);
 
     if (password_expiration == 0) {
         return;
@@ -591,7 +591,7 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
                                           void *data,
                                           krb5_responder_context rctx)
 {
-    struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+    struct krb5_req *kr = talloc_get_type_abort(data, struct krb5_req);
     const char * const *question_list;
     size_t c;
     const char *pwd;
@@ -659,7 +659,7 @@ static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
 {
     int ret;
     size_t c;
-    struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+    struct krb5_req *kr = talloc_get_type_abort(data, struct krb5_req);
 
     DEBUG(SSSDBG_TRACE_ALL,
           "sss_krb5_prompter name [%s] banner [%s] num_prompts [%d] EINVAL.\n",
@@ -2735,7 +2735,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     cli_opts.canonicalize = false;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

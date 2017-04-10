@@ -120,7 +120,7 @@ static void test_mark_subdom_offline_check(struct tevent_context *ev,
                                            struct timeval current_time,
                                            void *pvt)
 {
-    struct test_ctx *test_ctx = talloc_get_type(pvt, struct test_ctx);
+    struct test_ctx *test_ctx = talloc_get_type_abort(pvt, struct test_ctx);
 
     assert_domain_state(test_ctx->be_ctx->domain->subdomains,
                         DOM_ACTIVE);
@@ -131,7 +131,7 @@ static void test_mark_subdom_offline_check(struct tevent_context *ev,
 
 static void test_mark_dom_offline(void **state)
 {
-    struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
+    struct test_ctx *test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_domain_state(test_ctx->be_ctx->domain, DOM_ACTIVE);
     assert_false(be_is_offline(test_ctx->be_ctx));
@@ -146,7 +146,7 @@ static void test_mark_subdom_offline(void **state)
 {
     struct timeval tv;
     struct tevent_timer *check_ev = NULL;
-    struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
+    struct test_ctx *test_ctx = talloc_get_type_abort(*state, struct test_ctx);
     errno_t ret;
 
     assert_domain_state(test_ctx->be_ctx->domain->subdomains,
@@ -188,7 +188,7 @@ static void test_mark_subdom_offline(void **state)
 
 static void test_mark_subdom_offline_disabled(void **state)
 {
-    struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
+    struct test_ctx *test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     sss_domain_set_state(test_ctx->be_ctx->domain->subdomains, DOM_DISABLED);
     assert_domain_state(test_ctx->be_ctx->domain->subdomains,
@@ -227,7 +227,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

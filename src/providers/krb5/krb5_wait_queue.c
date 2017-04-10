@@ -50,7 +50,7 @@ static void krb5_auth_queue_finish(struct tevent_req *req, errno_t ret,
 static void wait_queue_auth(struct tevent_context *ev, struct tevent_timer *te,
                             struct timeval current_time, void *private_data)
 {
-    struct queue_entry *qe = talloc_get_type(private_data, struct queue_entry);
+    struct queue_entry *qe = talloc_get_type_abort(private_data, struct queue_entry);
     struct tevent_req *req;
 
     req = krb5_auth_send(qe->parent_req, qe->be_ctx->ev,
@@ -88,7 +88,7 @@ static void wait_queue_del_cb(hash_entry_t *entry, hash_destroy_enum type,
     struct queue_entry *head;
 
     if (entry->value.type == HASH_VALUE_PTR) {
-        head = talloc_get_type(entry->value.ptr, struct queue_entry);
+        head = talloc_get_type_abort(entry->value.ptr, struct queue_entry);
         talloc_zfree(head);
         return;
     }
@@ -129,7 +129,7 @@ static errno_t add_to_wait_queue(struct be_ctx *be_ctx,
                 return EINVAL;
             }
 
-            head = talloc_get_type(value.ptr, struct queue_entry);
+            head = talloc_get_type_abort(value.ptr, struct queue_entry);
 
             queue_entry = talloc_zero(head, struct queue_entry);
             if (queue_entry == NULL) {
@@ -200,7 +200,7 @@ static void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
                 return;
             }
 
-            head = talloc_get_type(value.ptr, struct queue_entry);
+            head = talloc_get_type_abort(value.ptr, struct queue_entry);
 
             if (head->next == NULL) {
                 DEBUG(SSSDBG_TRACE_LIBS,

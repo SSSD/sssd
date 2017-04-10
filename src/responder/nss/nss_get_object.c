@@ -180,7 +180,7 @@ nss_get_object_send(TALLOC_CTX *mem_ctx,
     talloc_steal(state, data);
 
     state->rctx = cli_ctx->rctx;
-    state->nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state->nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
     state->memcache = memcache;
     state->input_id = input_id;
     state->input_name = talloc_strdup(state, input_name);

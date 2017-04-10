@@ -75,7 +75,7 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-
+    talloc_set_abort_fn(sss_talloc_abort);
     /* parse parameters */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");

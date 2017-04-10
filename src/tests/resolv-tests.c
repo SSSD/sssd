@@ -616,7 +616,7 @@ static void resolv_free_context(struct tevent_context *ev,
                                 struct tevent_timer *te,
                                 struct timeval t, void *ptr)
 {
-    struct resolv_ctx *rctx = talloc_get_type(ptr, struct resolv_ctx);
+    struct resolv_ctx *rctx = talloc_get_type_abort(ptr, struct resolv_ctx);
     DEBUG(SSSDBG_TRACE_LIBS, "freeing the context\n");
 
     talloc_free(rctx);
@@ -626,7 +626,7 @@ static void resolv_free_done(struct tevent_context *ev,
                              struct tevent_timer *te,
                              struct timeval t, void *ptr)
 {
-    struct resolv_test_ctx *tctx = talloc_get_type(ptr, struct resolv_test_ctx);
+    struct resolv_test_ctx *tctx = talloc_get_type_abort(ptr, struct resolv_test_ctx);
     DEBUG(SSSDBG_TRACE_LIBS, "marking test as done\n");
 
     tctx->error = EOK;
@@ -687,7 +687,7 @@ static void resolv_free_req(struct tevent_context *ev,
                             struct tevent_timer *te,
                             struct timeval t, void *ptr)
 {
-    struct tevent_req *req = talloc_get_type(ptr, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(ptr, struct tevent_req);
     DEBUG(SSSDBG_TRACE_LIBS, "freeing the request\n");
 
     talloc_free(req);
@@ -1009,7 +1009,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

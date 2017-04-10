@@ -89,7 +89,7 @@ static void fake_sbus_msg_done(struct tevent_context *ev,
                                struct tevent_immediate *imm,
                                void *pvt)
 {
-    struct sbus_get_id_ctx *test_ctx = talloc_get_type(pvt,
+    struct sbus_get_id_ctx *test_ctx = talloc_get_type_abort(pvt,
                                             struct sbus_get_id_ctx);
     talloc_free(imm);
     test_ctx->reply_handler(NULL, test_ctx->reply_pvt);
@@ -156,7 +156,7 @@ void sbus_int_test_get_uid(void **state)
     errno_t ret;
     struct tevent_req *req;
     DBusMessage *reply;
-    struct sbus_get_id_ctx *test_ctx = talloc_get_type(*state,
+    struct sbus_get_id_ctx *test_ctx = talloc_get_type_abort(*state,
                                             struct sbus_get_id_ctx);
 
     uint32_t uid;
@@ -206,7 +206,7 @@ void sbus_int_test_get_uid_no_sender(void **state)
 {
     errno_t ret;
     struct tevent_req *req;
-    struct sbus_get_id_ctx *test_ctx = talloc_get_type(*state,
+    struct sbus_get_id_ctx *test_ctx = talloc_get_type_abort(*state,
                                             struct sbus_get_id_ctx);
 
     test_ctx->expected = -1;
@@ -221,7 +221,7 @@ void sbus_int_test_get_uid_no_sender(void **state)
 
 int sbus_get_id_test_teardown(void **state)
 {
-    struct sbus_get_id_ctx *test_ctx = talloc_get_type(*state,
+    struct sbus_get_id_ctx *test_ctx = talloc_get_type_abort(*state,
                                             struct sbus_get_id_ctx);
     talloc_free(test_ctx);
     return 0;
@@ -248,7 +248,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

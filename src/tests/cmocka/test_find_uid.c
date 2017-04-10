@@ -95,6 +95,7 @@ void test_get_uid_table(void **state)
 
 int main(void)
 {
+    talloc_set_abort_fn(sss_talloc_abort);	
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_check_if_uid_is_active_success),
         cmocka_unit_test(test_check_if_uid_is_active_fail),

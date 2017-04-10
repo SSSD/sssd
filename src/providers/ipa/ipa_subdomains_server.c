@@ -483,7 +483,7 @@ static void ipa_getkeytab_done(int child_status,
                                struct tevent_signal *sige,
                                void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct ipa_getkeytab_state *state =
             tevent_req_data(req, struct ipa_getkeytab_state);
 
@@ -512,7 +512,7 @@ static void ipa_getkeytab_timeout(struct tevent_context *ev,
                                   struct timeval tv, void *pvt)
 {
     struct tevent_req *req =
-            talloc_get_type(pvt, struct tevent_req);
+            talloc_get_type_abort(pvt, struct tevent_req);
     struct ipa_getkeytab_state *state =
             tevent_req_data(req, struct ipa_getkeytab_state);
 
@@ -999,7 +999,7 @@ static void create_trusts_at_startup(struct tevent_context *ev,
     struct tevent_req *req;
     struct ipa_ad_subdom_reinit_state *state;
 
-    state = talloc_get_type(pvt, struct ipa_ad_subdom_reinit_state);
+    state = talloc_get_type_abort(pvt, struct ipa_ad_subdom_reinit_state);
 
     req = ipa_server_create_trusts_send(state, state->ev, state->be_ctx,
                                         state->id_ctx, state->parent);

@@ -514,7 +514,7 @@ struct tevent_req *fo_resolve_srv_dns_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ctx = talloc_get_type(pvt, struct fo_resolve_srv_dns_ctx);
+    ctx = talloc_get_type_abort(pvt, struct fo_resolve_srv_dns_ctx);
     if (ctx == NULL) {
         ret = EINVAL;
         goto immediately;

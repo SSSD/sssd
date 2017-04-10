@@ -141,7 +141,7 @@ static void nested_groups_test_one_group_no_members(void **state)
     TALLOC_CTX *req_mem_ctx = NULL;
     errno_t ret;
 
-    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct nested_groups_test_ctx);
 
     rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
                                             "rootgroup", NULL);
@@ -191,7 +191,7 @@ static void nested_groups_test_one_group_unique_members(void **state)
                                 "user2" };
 
 
-    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct nested_groups_test_ctx);
 
     /* mock return values */
     rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
@@ -251,7 +251,7 @@ static void nested_groups_test_one_group_dup_users(void **state)
     const struct sysdb_attrs *user1_reply[2] = { NULL };
     const struct sysdb_attrs *user2_reply[2] = { NULL };
 
-    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct nested_groups_test_ctx);
 
     /* mock return values */
     rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
@@ -314,7 +314,7 @@ static void nested_groups_test_one_group_unique_group_members(void **state)
                                 "emptygroup1",
                                 "emptygroup2" };
 
-    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct nested_groups_test_ctx);
 
     /* mock return values */
     rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
@@ -377,7 +377,7 @@ static void nested_groups_test_one_group_dup_group_members(void **state)
     const char * expected[] = { "rootgroup",
                                 "emptygroup1" };
 
-    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct nested_groups_test_ctx);
 
     /* mock return values */
     rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
@@ -447,7 +447,7 @@ static void nested_groups_test_nested_chain(void **state)
     const char *expected_groups[] = { "rootgroup", "group1", "group2" };
     const char *expected_users[] = { "user1", "user2", "user3" };
 
-    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct nested_groups_test_ctx);
 
     /* mock return values */
     rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
@@ -537,7 +537,7 @@ static void nested_groups_test_nested_chain_with_error(void **state)
     const struct sysdb_attrs *group1_reply[2] = { NULL };
     const struct sysdb_attrs *group2_reply[2] = { NULL };
 
-    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct nested_groups_test_ctx);
 
     /* mock return values */
     rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
@@ -681,7 +681,7 @@ struct tevent_req *test_resolve_ext_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct test_resolve_ext_state *state;
     errno_t ret;
-    struct test_ext_pvt *test_pvt = talloc_get_type(pvt, struct test_ext_pvt);
+    struct test_ext_pvt *test_pvt = talloc_get_type_abort(pvt, struct test_ext_pvt);
     struct sysdb_attrs *member;
 
     req = tevent_req_create(mem_ctx, &state, struct test_resolve_ext_state);
@@ -840,7 +840,7 @@ static int nested_group_external_member_setup(void **state)
 
 static int nested_group_external_member_teardown(void **state)
 {
-    struct nested_groups_test_ctx *test_ctx = talloc_get_type(*state,
+    struct nested_groups_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                struct nested_groups_test_ctx);
     errno_t ret;
     char *fqdn;
@@ -1055,7 +1055,7 @@ static void assert_member_dn(struct nested_groups_test_ctx *test_ctx,
 
 static void nested_group_external_member_test(void **state)
 {
-    struct nested_groups_test_ctx *test_ctx = talloc_get_type(*state,
+    struct nested_groups_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                struct nested_groups_test_ctx);
     struct tevent_req *req;
     errno_t ret;
@@ -1306,7 +1306,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

@@ -138,13 +138,13 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
     struct sss_ptr_hash_value *value;
     void *ptr;
 
-    data = talloc_get_type(pvt, struct sss_ptr_hash_delete_data);
+    data = talloc_get_type_abort(pvt, struct sss_ptr_hash_delete_data);
     if (data == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid data!\n");
         return;
     }
 
-    value = talloc_get_type(item->value.ptr, struct sss_ptr_hash_value);
+    value = talloc_get_type_abort(item->value.ptr, struct sss_ptr_hash_value);
     if (value == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid value!\n");
         return;

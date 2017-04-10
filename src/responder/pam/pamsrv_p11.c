@@ -474,7 +474,7 @@ static void p11_child_timeout(struct tevent_context *ev,
                               struct tevent_timer *te,
                               struct timeval tv, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct pam_check_cert_state *state =
                               tevent_req_data(req, struct pam_check_cert_state);
 

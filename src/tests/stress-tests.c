@@ -210,7 +210,7 @@ int main(int argc, const char *argv[])
     int status, idx, ret;
     pid_t   pid;
     struct sigaction action, old_action;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "groups", 'g', POPT_ARG_NONE, &pc_groups, 0,

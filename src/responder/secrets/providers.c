@@ -56,7 +56,7 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
     int num_sections;
     int ret;
 
-    sctx = talloc_get_type(secreq->cctx->rctx->pvt_ctx, struct sec_ctx);
+    sctx = talloc_get_type_abort(secreq->cctx->rctx->pvt_ctx, struct sec_ctx);
 
     /* patch must start with /secrets/ for now */
     ret = strncasecmp(secreq->parsed_url.path,

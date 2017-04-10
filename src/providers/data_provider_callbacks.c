@@ -45,7 +45,7 @@ struct be_cb_ctx {
 
 static int cb_destructor(TALLOC_CTX *ptr)
 {
-    struct be_cb *cb = talloc_get_type(ptr, struct be_cb);
+    struct be_cb *cb = talloc_get_type_abort(ptr, struct be_cb);
     DLIST_REMOVE(*(cb->list), cb);
     return 0;
 }
@@ -84,7 +84,7 @@ static int be_add_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
 static void be_run_cb_step(struct tevent_context *ev, struct tevent_timer *te,
                            struct timeval current_time, void *pvt)
 {
-    struct be_cb_ctx *cb_ctx = talloc_get_type(pvt, struct be_cb_ctx);
+    struct be_cb_ctx *cb_ctx = talloc_get_type_abort(pvt, struct be_cb_ctx);
     struct be_cb *next_cb;
     struct tevent_timer *tev;
     struct timeval soon;

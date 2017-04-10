@@ -92,7 +92,7 @@ static void ad_dyndns_timer_connected(struct tevent_req *req);
 
 void ad_dyndns_timer(void *pvt)
 {
-    struct ad_options *ctx = talloc_get_type(pvt, struct ad_options);
+    struct ad_options *ctx = talloc_get_type_abort(pvt, struct ad_options);
     struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
     struct tevent_req *req;
 
@@ -129,7 +129,7 @@ static void ad_dyndns_nsupdate_done(struct tevent_req *req);
 
 void ad_dyndns_update(void *pvt)
 {
-    struct ad_options *ctx = talloc_get_type(pvt, struct ad_options);
+    struct ad_options *ctx = talloc_get_type_abort(pvt, struct ad_options);
     struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
     struct tevent_req *req;
 

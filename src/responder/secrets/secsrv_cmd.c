@@ -150,7 +150,7 @@ static void sec_cmd_execute(struct cli_ctx *cctx)
     struct sec_req_ctx *secreq;
     struct tevent_req *req;
 
-    secreq = talloc_get_type(cctx->state_ctx, struct sec_req_ctx);
+    secreq = talloc_get_type_abort(cctx->state_ctx, struct sec_req_ctx);
 
     req = sec_http_request_send(secreq, cctx->ev, secreq);
     if (!req) {
@@ -197,7 +197,7 @@ static int sec_on_url(http_parser *parser,
                       const char *at, size_t length)
 {
     struct sec_req_ctx *req =
-        talloc_get_type(parser->data, struct sec_req_ctx);
+        talloc_get_type_abort(parser->data, struct sec_req_ctx);
 
     if (sec_too_much_data(req, length)) return -1;
 
@@ -214,7 +214,7 @@ static int sec_on_header_field(http_parser *parser,
                                const char *at, size_t length)
 {
     struct sec_req_ctx *req =
-        talloc_get_type(parser->data, struct sec_req_ctx);
+        talloc_get_type_abort(parser->data, struct sec_req_ctx);
     int n = req->num_headers;
 
     if (sec_too_much_data(req, length)) return -1;
@@ -253,7 +253,7 @@ static int sec_on_header_value(http_parser *parser,
                                const char *at, size_t length)
 {
     struct sec_req_ctx *req =
-        talloc_get_type(parser->data, struct sec_req_ctx);
+        talloc_get_type_abort(parser->data, struct sec_req_ctx);
     int n = req->num_headers;
 
     if (sec_too_much_data(req, length)) return -1;
@@ -289,7 +289,7 @@ static int sec_on_body(http_parser *parser,
                        const char *at, size_t length)
 {
     struct sec_req_ctx *req =
-        talloc_get_type(parser->data, struct sec_req_ctx);
+        talloc_get_type_abort(parser->data, struct sec_req_ctx);
 
     if (sec_too_much_data(req, length)) return -1;
 
@@ -323,7 +323,7 @@ static int sec_get_parsed_field(TALLOC_CTX *mem_ctx, int field,
 static int sec_on_message_complete(http_parser *parser)
 {
     struct sec_req_ctx *req =
-        talloc_get_type(parser->data, struct sec_req_ctx);
+        talloc_get_type_abort(parser->data, struct sec_req_ctx);
     struct http_parser_url parsed;
     int ret;
 
@@ -460,7 +460,7 @@ static void sec_send(struct cli_ctx *cctx)
     struct sec_req_ctx *req;
     int ret;
 
-    req = talloc_get_type(cctx->state_ctx, struct sec_req_ctx);
+    req = talloc_get_type_abort(cctx->state_ctx, struct sec_req_ctx);
 
     ret = sec_send_data(cctx->cfd, &req->reply);
     if (ret == EAGAIN) {
@@ -518,8 +518,8 @@ static void sec_recv(struct cli_ctx *cctx)
     size_t len;
     int ret;
 
-    prctx = talloc_get_type(cctx->protocol_ctx, struct sec_proto_ctx);
-    req = talloc_get_type(cctx->state_ctx, struct sec_req_ctx);
+    prctx = talloc_get_type_abort(cctx->protocol_ctx, struct sec_proto_ctx);
+    req = talloc_get_type_abort(cctx->state_ctx, struct sec_req_ctx);
     if (!req) {
         /* A new request comes in, setup data structures */
         req = talloc_zero(cctx, struct sec_req_ctx);
@@ -581,7 +581,7 @@ static void sec_fd_handler(struct tevent_context *ev,
                            uint16_t flags, void *ptr)
 {
     errno_t ret;
-    struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
+    struct cli_ctx *cctx = talloc_get_type_abort(ptr, struct cli_ctx);
 
     /* Always reset the idle timer on any activity */
     ret = reset_idle_timer(cctx);

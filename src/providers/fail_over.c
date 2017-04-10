@@ -499,7 +499,7 @@ static int server_common_destructor(void *memptr)
 {
     struct server_common *common;
 
-    common = talloc_get_type(memptr, struct server_common);
+    common = talloc_get_type_abort(memptr, struct server_common);
     if (common->request_list) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "BUG: pending requests still associated with this server\n");
@@ -1070,7 +1070,7 @@ fo_resolve_service_timeout(struct tevent_context *ev,
                            struct tevent_timer *te,
                            struct timeval tv, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
 
     DEBUG(SSSDBG_MINOR_FAILURE, "Service resolving timeout reached\n");
     tevent_req_error(req, ETIMEDOUT);

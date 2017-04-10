@@ -569,7 +569,7 @@ static int mbof_add_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    add_ctx = talloc_get_type(req->context, struct mbof_add_ctx);
+    add_ctx = talloc_get_type_abort(req->context, struct mbof_add_ctx);
     ctx = add_ctx->ctx;
 
     if (!ares) {
@@ -676,7 +676,7 @@ static int mbof_next_add_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    addop = talloc_get_type(req->context, struct mbof_add_operation);
+    addop = talloc_get_type_abort(req->context, struct mbof_add_operation);
     add_ctx = addop->add_ctx;
     ctx = add_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
@@ -1058,7 +1058,7 @@ static int mbof_add_cleanup_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    add_ctx = talloc_get_type(req->context, struct mbof_add_ctx);
+    add_ctx = talloc_get_type_abort(req->context, struct mbof_add_ctx);
     ctx = add_ctx->ctx;
 
     if (!ares) {
@@ -1147,7 +1147,7 @@ static int mbof_add_muop_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    add_ctx = talloc_get_type(req->context, struct mbof_add_ctx);
+    add_ctx = talloc_get_type_abort(req->context, struct mbof_add_ctx);
     ctx = add_ctx->ctx;
 
     if (!ares) {
@@ -1402,7 +1402,7 @@ static int mbof_del_search_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    first = talloc_get_type(req->context, struct mbof_del_operation);
+    first = talloc_get_type_abort(req->context, struct mbof_del_operation);
     del_ctx = first->del_ctx;
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
@@ -1505,7 +1505,7 @@ static int mbof_orig_del_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    del_ctx = talloc_get_type(req->context, struct mbof_del_ctx);
+    del_ctx = talloc_get_type_abort(req->context, struct mbof_del_ctx);
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
 
@@ -1636,7 +1636,7 @@ static int mbof_del_clean_par_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    del_ctx = talloc_get_type(req->context, struct mbof_del_ctx);
+    del_ctx = talloc_get_type_abort(req->context, struct mbof_del_ctx);
     first = del_ctx->first;
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
@@ -1817,7 +1817,7 @@ static int mbof_del_exop_search_callback(struct ldb_request *req,
     struct ldb_message *msg;
     int ret;
 
-    delop = talloc_get_type(req->context, struct mbof_del_operation);
+    delop = talloc_get_type_abort(req->context, struct mbof_del_operation);
     del_ctx = delop->del_ctx;
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
@@ -1987,7 +1987,7 @@ static int mbof_del_anc_callback(struct ldb_request *req,
     struct ldb_dn *valdn;
     int i, j, ret;
 
-    delop = talloc_get_type(req->context, struct mbof_del_operation);
+    delop = talloc_get_type_abort(req->context, struct mbof_del_operation);
     del_ctx = delop->del_ctx;
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
@@ -2265,7 +2265,7 @@ static int mbof_del_mod_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    delop = talloc_get_type(req->context, struct mbof_del_operation);
+    delop = talloc_get_type_abort(req->context, struct mbof_del_operation);
     del_ctx = delop->del_ctx;
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
@@ -2615,7 +2615,7 @@ static int mbof_del_muop_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    del_ctx = talloc_get_type(req->context, struct mbof_del_ctx);
+    del_ctx = talloc_get_type_abort(req->context, struct mbof_del_ctx);
     ctx = del_ctx->ctx;
 
     if (!ares) {
@@ -2731,7 +2731,7 @@ static int mbof_del_ghop_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    del_ctx = talloc_get_type(req->context, struct mbof_del_ctx);
+    del_ctx = talloc_get_type_abort(req->context, struct mbof_del_ctx);
     ctx = del_ctx->ctx;
 
     if (!ares) {
@@ -2949,7 +2949,7 @@ static int mbof_mod_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    mod_ctx = talloc_get_type(req->context, struct mbof_mod_ctx);
+    mod_ctx = talloc_get_type_abort(req->context, struct mbof_mod_ctx);
     ctx = mod_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
 
@@ -3097,7 +3097,7 @@ static int mbof_get_ghost_from_parent_cb(struct ldb_request *req,
     hash_key_t key;
     int i;
 
-    igh = talloc_get_type(req->context, struct mbof_mod_del_op);
+    igh = talloc_get_type_abort(req->context, struct mbof_mod_del_op);
     ctx = igh->mod_ctx->ctx;
 
     if (!ares) {
@@ -3196,7 +3196,7 @@ static int mbof_orig_mod_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    mod_ctx = talloc_get_type(req->context, struct mbof_mod_ctx);
+    mod_ctx = talloc_get_type_abort(req->context, struct mbof_mod_ctx);
     ctx = mod_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
 
@@ -3292,7 +3292,7 @@ static int mbof_inherited_mod(struct mbof_mod_ctx *mod_ctx)
     }
 
     for (i = 0, j = 0; i < num_values; i++) {
-        val = talloc_get_type(values[i].ptr, struct ldb_val);
+        val = talloc_get_type_abort(values[i].ptr, struct ldb_val);
 
         dupval = ldb_msg_find_val(mod_ctx->ghel, val);
         if (dupval) {
@@ -3337,7 +3337,7 @@ static int mbof_inherited_mod_callback(struct ldb_request *req,
     struct mbof_ctx *ctx;
     int ret;
 
-    mod_ctx = talloc_get_type(req->context, struct mbof_mod_ctx);
+    mod_ctx = talloc_get_type_abort(req->context, struct mbof_mod_ctx);
     ctx = mod_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
 
@@ -3967,7 +3967,7 @@ static int mbof_rcmp_usr_callback(struct ldb_request *req,
     const char *name;
     int ret;
 
-    ctx = talloc_get_type(req->context, struct mbof_rcmp_context);
+    ctx = talloc_get_type_abort(req->context, struct mbof_rcmp_context);
 
     if (!ares) {
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -4071,7 +4071,7 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
     int i, j;
     int ret;
 
-    ctx = talloc_get_type(req->context, struct mbof_rcmp_context);
+    ctx = talloc_get_type_abort(req->context, struct mbof_rcmp_context);
     ldb = ldb_module_get_ctx(ctx->module);
 
     if (!ares) {
@@ -4322,7 +4322,7 @@ static bool mbof_member_iter(hash_entry_t *item, void *user_data)
     hash_value_t value;
     int ret;
 
-    mem = talloc_get_type(user_data, struct mbof_member);
+    mem = talloc_get_type_abort(user_data, struct mbof_member);
 
     /* exclude self */
     if (strcmp(item->key.str, ldb_dn_get_linearized(mem->dn)) == 0) {
@@ -4512,7 +4512,7 @@ static int mbof_rcmp_mod_callback(struct ldb_request *req,
     struct ldb_context *ldb;
     struct mbof_rcmp_context *ctx;
 
-    ctx = talloc_get_type(req->context, struct mbof_rcmp_context);
+    ctx = talloc_get_type_abort(req->context, struct mbof_rcmp_context);
     ldb = ldb_module_get_ctx(ctx->module);
 
     if (!ares) {

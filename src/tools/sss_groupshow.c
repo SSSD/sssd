@@ -670,7 +670,7 @@ int main(int argc, const char **argv)
             _("Print indirect group members recursively"), NULL },
         POPT_TABLEEND
     };
-
+    talloc_set_abort_fn(sss_talloc_abort);
     debug_prg_name = argv[0];
 
     ret = set_locale();

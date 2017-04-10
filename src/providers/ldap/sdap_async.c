@@ -67,7 +67,7 @@ struct sdap_handle *sdap_handle_create(TALLOC_CTX *memctx)
 
 static int sdap_handle_destructor(void *mem)
 {
-    struct sdap_handle *sh = talloc_get_type(mem, struct sdap_handle);
+    struct sdap_handle *sh = talloc_get_type_abort(mem, struct sdap_handle);
 
     /* if the structure is currently locked, then mark it to be released
      * and prevent talloc from freeing the memory */
@@ -147,7 +147,7 @@ static void sdap_ldap_next_result(struct tevent_context *ev,
 
 static void sdap_process_result(struct tevent_context *ev, void *pvt)
 {
-    struct sdap_handle *sh = talloc_get_type(pvt, struct sdap_handle);
+    struct sdap_handle *sh = talloc_get_type_abort(pvt, struct sdap_handle);
     struct timeval no_timeout = {0, 0};
     struct tevent_timer *te;
     LDAPMessage *msg;
@@ -392,7 +392,7 @@ static void sdap_process_next_reply(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval tv, void *pvt)
 {
-    struct sdap_op *op = talloc_get_type(pvt, struct sdap_op);
+    struct sdap_op *op = talloc_get_type_abort(pvt, struct sdap_op);
 
     op->callback(op, op->list, EOK, op->data);
 }
@@ -587,7 +587,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
                                          struct sdap_msg *reply,
                                          int error, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
                                          struct sdap_exop_modify_passwd_state);
     char *errmsg = NULL;
@@ -791,7 +791,7 @@ static void sdap_modify_shadow_lastchange_done(struct sdap_op *op,
                                                struct sdap_msg *reply,
                                                int error, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct update_last_changed_state *state;
     state = tevent_req_data(req, struct update_last_changed_state);
     char *errmsg;
@@ -1454,7 +1454,7 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
                                          struct sdap_msg *reply,
                                          int error, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct sdap_get_generic_ext_state *state = tevent_req_data(req,
                                             struct sdap_get_generic_ext_state);
     char *errmsg = NULL;
@@ -1762,7 +1762,7 @@ static errno_t sdap_get_and_parse_generic_parse_entry(struct sdap_handle *sh,
     errno_t ret;
     struct sysdb_attrs *attrs;
     struct sdap_get_and_parse_generic_state *state =
-                talloc_get_type(pvt, struct sdap_get_and_parse_generic_state);
+                talloc_get_type_abort(pvt, struct sdap_get_and_parse_generic_state);
 
     bool disable_range_rtrvl = dp_opt_get_bool(state->opts->basic,
                                                SDAP_DISABLE_RANGE_RETRIEVAL);
@@ -2010,7 +2010,7 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
     struct sdap_deref_attrs **res;
     TALLOC_CTX *tmp_ctx;
 
-    struct sdap_x_deref_search_state *state = talloc_get_type(pvt,
+    struct sdap_x_deref_search_state *state = talloc_get_type_abort(pvt,
                                             struct sdap_x_deref_search_state);
 
     tmp_ctx = talloc_new(NULL);
@@ -2097,7 +2097,7 @@ static void sdap_x_deref_search_done(struct tevent_req *subreq)
 
 static int sdap_x_deref_search_ctrls_destructor(void *ptr)
 {
-    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);
+    LDAPControl **ctrls = talloc_get_type_abort(ptr, LDAPControl *);
 
     if (ctrls && ctrls[0]) {
         ldap_control_free(ctrls[0]);
@@ -2238,7 +2238,7 @@ static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
     errno_t ret;
     struct sysdb_attrs *attrs;
     struct sdap_sd_search_state *state =
-                talloc_get_type(pvt, struct sdap_sd_search_state);
+                talloc_get_type_abort(pvt, struct sdap_sd_search_state);
 
     bool disable_range_rtrvl = dp_opt_get_bool(state->opts->basic,
                                                SDAP_DISABLE_RANGE_RETRIEVAL);
@@ -2289,7 +2289,7 @@ static void sdap_sd_search_done(struct tevent_req *subreq)
 
 static int sdap_sd_search_ctrls_destructor(void *ptr)
 {
-    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);
+    LDAPControl **ctrls = talloc_get_type_abort(ptr, LDAPControl *);
     if (ctrls && ctrls[0]) {
         ldap_control_free(ctrls[0]);
     }
@@ -2434,7 +2434,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
 {
     errno_t ret;
     struct sdap_asq_search_state *state =
-                talloc_get_type(pvt, struct sdap_asq_search_state);
+                talloc_get_type_abort(pvt, struct sdap_asq_search_state);
     struct berval **vals;
     int i, mi;
     struct sdap_attr_map *map;
@@ -2548,7 +2548,7 @@ static void sdap_asq_search_done(struct tevent_req *subreq)
 
 static int sdap_asq_search_ctrls_destructor(void *ptr)
 {
-    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);
+    LDAPControl **ctrls = talloc_get_type_abort(ptr, LDAPControl *);
 
     if (ctrls && ctrls[0]) {
         ldap_control_free(ctrls[0]);
@@ -2679,7 +2679,7 @@ static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
 {
     struct berval **vals = NULL;
     struct sdap_posix_check_state *state =
-        talloc_get_type(pvt, struct sdap_posix_check_state);
+        talloc_get_type_abort(pvt, struct sdap_posix_check_state);
     char *dn;
     char *endptr;
 

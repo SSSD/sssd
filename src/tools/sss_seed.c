@@ -787,7 +787,7 @@ int main(int argc, const char **argv)
                                  ret, strerror(ret));
         goto done;
     }
-
+    talloc_set_abort_fn(sss_talloc_abort);
     /* set up confdb,sysdb and domain */
     ret = seed_init_db(sctx, sctx->uctx->domain_name, &sctx->confdb,
                        &sctx->domain, &sctx->sysdb);

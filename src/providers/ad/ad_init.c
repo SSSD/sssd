@@ -499,7 +499,7 @@ errno_t sssm_ad_id_init(TALLOC_CTX *mem_ctx,
     struct ad_init_ctx *init_ctx;
     struct ad_id_ctx *id_ctx;
 
-    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ad_init_ctx);
     id_ctx = init_ctx->id_ctx;
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
@@ -521,7 +521,7 @@ errno_t sssm_ad_auth_init(TALLOC_CTX *mem_ctx,
     struct ad_init_ctx *init_ctx;
     struct krb5_ctx *auth_ctx;
 
-    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ad_init_ctx);
     auth_ctx = init_ctx->auth_ctx;
 
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
@@ -548,7 +548,7 @@ errno_t sssm_ad_access_init(TALLOC_CTX *mem_ctx,
     struct ad_access_ctx *access_ctx;
     errno_t ret;
 
-    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ad_init_ctx);
 
     access_ctx = talloc_zero(mem_ctx, struct ad_access_ctx);
     if (access_ctx == NULL) {
@@ -602,7 +602,7 @@ errno_t sssm_ad_autofs_init(TALLOC_CTX *mem_ctx,
     struct ad_init_ctx *init_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD autofs handler\n");
-    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ad_init_ctx);
 
     return ad_autofs_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 #else
@@ -620,7 +620,7 @@ errno_t sssm_ad_subdomains_init(TALLOC_CTX *mem_ctx,
     struct ad_init_ctx *init_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD subdomains handler\n");
-    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ad_init_ctx);
 
     return ad_subdomains_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 }
@@ -634,7 +634,7 @@ errno_t sssm_ad_sudo_init(TALLOC_CTX *mem_ctx,
     struct ad_init_ctx *init_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD sudo handler\n");
-    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ad_init_ctx);
 
     return ad_sudo_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 #else

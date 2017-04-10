@@ -137,7 +137,7 @@ static int setup_ccache(void **state)
 static int teardown_ccache(void **state)
 {
     int ret;
-    struct ccache_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ccache_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                         struct ccache_test_ctx);
     assert_non_null(test_ctx);
 
@@ -162,7 +162,7 @@ void test_copy_ccache(void **state)
     krb5_creds mcreds;
     krb5_creds creds;
     krb5_principal mem_principal;
-    struct ccache_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ccache_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                         struct ccache_test_ctx);
     assert_non_null(test_ctx);
 
@@ -215,7 +215,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

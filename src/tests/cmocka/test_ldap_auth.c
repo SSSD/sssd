@@ -53,7 +53,7 @@ static void test_pwexpire_krb(void **state)
     enum pwexpire type = PWEXPIRE_KERBEROS;
     errno_t ret;
 
-    tc = talloc_get_type(*state, struct expire_test_ctx);
+    tc = talloc_get_type_abort(*state, struct expire_test_ctx);
     assert_non_null(tc);
 
     ret = check_pwexpire_policy(type,
@@ -92,6 +92,7 @@ static void test_pwexpire_krb(void **state)
 
 int main(void)
 {
+    talloc_set_abort_fn(sss_talloc_abort);	
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_pwexpire_krb,
                                         expire_test_setup,

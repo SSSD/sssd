@@ -30,7 +30,7 @@ int sss_cmd_send_error(struct cli_ctx *cctx, int err)
     struct cli_protocol *pctx;
     int ret;
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
     if (!pctx) return EINVAL;
 
     /* create response packet */
@@ -71,7 +71,7 @@ int sss_cmd_send_empty(struct cli_ctx *cctx)
     struct cli_protocol *pctx;
     int ret;
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
     if (!pctx) return EINVAL;
 
     /* create response packet */
@@ -114,7 +114,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
     int i;
     static struct cli_protocol_version *cli_protocol_version = NULL;
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
     if (!pctx) return EINVAL;
 
     pctx->cli_protocol_version = NULL;
@@ -194,7 +194,7 @@ setent_get_req(struct setent_req_list *sl)
 int setent_remove_ref(TALLOC_CTX *ctx)
 {
     struct setent_req_list *entry =
-            talloc_get_type(ctx, struct setent_req_list);
+            talloc_get_type_abort(ctx, struct setent_req_list);
     DLIST_REMOVE(*(entry->head), entry);
     return 0;
 }

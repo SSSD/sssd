@@ -269,7 +269,7 @@ struct sss_krb5_ccache {
 
 static int sss_free_krb5_ccache(void *mem)
 {
-    struct sss_krb5_ccache *cc = talloc_get_type(mem, struct sss_krb5_ccache);
+    struct sss_krb5_ccache *cc = talloc_get_type_abort(mem, struct sss_krb5_ccache);
 
     if (cc->ccache) {
         krb5_cc_close(cc->context, cc->ccache);

@@ -253,7 +253,7 @@ done:
 
 static int sss_colondb_close(void *pvt)
 {
-    struct sss_colondb *db = talloc_get_type(pvt, struct sss_colondb);
+    struct sss_colondb *db = talloc_get_type_abort(pvt, struct sss_colondb);
 
     if (db->file == NULL || IS_STD_FILE(db)) {
         return 0;

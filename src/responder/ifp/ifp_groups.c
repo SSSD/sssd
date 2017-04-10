@@ -111,7 +111,7 @@ int ifp_groups_find_by_name(struct sbus_request *sbus_req,
     struct ifp_ctx *ctx;
     struct tevent_req *req;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return ERR_INTERNAL;
@@ -180,7 +180,7 @@ int ifp_groups_find_by_id(struct sbus_request *sbus_req,
     struct ifp_ctx *ctx;
     struct tevent_req *req;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return ERR_INTERNAL;
@@ -250,7 +250,7 @@ int ifp_groups_list_by_name(struct sbus_request *sbus_req,
     struct ifp_ctx *ctx;
     struct ifp_list_ctx *list_ctx;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return ERR_INTERNAL;
@@ -343,7 +343,7 @@ int ifp_groups_list_by_domain_and_name(struct sbus_request *sbus_req,
     struct ifp_ctx *ctx;
     struct ifp_list_ctx *list_ctx;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return ERR_INTERNAL;
@@ -420,7 +420,7 @@ ifp_groups_group_get(struct sbus_request *sbus_req,
     uid_t gid;
     errno_t ret;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return ERR_INTERNAL;
@@ -497,7 +497,7 @@ static struct tevent_req *resolv_ghosts_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         ret = ERR_INTERNAL;
@@ -654,7 +654,7 @@ int ifp_groups_group_update_member_list(struct sbus_request *sbus_req,
     struct tevent_req *subreq;
     struct ifp_ctx *ctx;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return ERR_INTERNAL;
@@ -705,7 +705,7 @@ void ifp_groups_group_get_name(struct sbus_request *sbus_req,
 
     *_out = NULL;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return;

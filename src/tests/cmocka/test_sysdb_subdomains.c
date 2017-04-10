@@ -84,7 +84,7 @@ static int test_sysdb_subdom_setup(void **state)
 static int test_sysdb_subdom_teardown(void **state)
 {
     struct subdom_test_ctx *test_ctx =
-        talloc_get_type(*state, struct subdom_test_ctx);
+        talloc_get_type_abort(*state, struct subdom_test_ctx);
 
     test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);
     talloc_free(test_ctx);
@@ -96,7 +96,7 @@ static void test_sysdb_subdomain_create(void **state)
 {
     errno_t ret;
     struct subdom_test_ctx *test_ctx =
-        talloc_get_type(*state, struct subdom_test_ctx);
+        talloc_get_type_abort(*state, struct subdom_test_ctx);
 
     const char *const dom1[4] = { "dom1.sub", "DOM1.SUB", "dom1", "S-1" };
     const char *const dom2[4] = { "dom2.sub", "DOM2.SUB", "dom2", "S-2" };
@@ -162,7 +162,7 @@ static void test_sysdb_master_domain_ops(void **state)
 {
     errno_t ret;
     struct subdom_test_ctx *test_ctx =
-        talloc_get_type(*state, struct subdom_test_ctx);
+        talloc_get_type_abort(*state, struct subdom_test_ctx);
 
     ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
                                        "realm1", "flat1", "id1", "forest1",
@@ -198,7 +198,7 @@ static void test_sysdb_link_forest_root_ipa(void **state)
 {
     errno_t ret;
     struct subdom_test_ctx *test_ctx =
-        talloc_get_type(*state, struct subdom_test_ctx);
+        talloc_get_type_abort(*state, struct subdom_test_ctx);
     struct sss_domain_info *main_dom;
     struct sss_domain_info *sub;
     struct sss_domain_info *child;
@@ -279,7 +279,7 @@ static void test_sysdb_link_forest_root_ad(void **state)
 {
     errno_t ret;
     struct subdom_test_ctx *test_ctx =
-        talloc_get_type(*state, struct subdom_test_ctx);
+        talloc_get_type_abort(*state, struct subdom_test_ctx);
     struct sss_domain_info *main_dom;
     struct sss_domain_info *sub;
     struct sss_domain_info *child;
@@ -350,7 +350,7 @@ static void test_sysdb_link_forest_member_ad(void **state)
 {
     errno_t ret;
     struct subdom_test_ctx *test_ctx =
-        talloc_get_type(*state, struct subdom_test_ctx);
+        talloc_get_type_abort(*state, struct subdom_test_ctx);
     struct sss_domain_info *main_dom;
     struct sss_domain_info *sub;
     struct sss_domain_info *root;
@@ -435,7 +435,7 @@ static void test_sysdb_link_ad_multidom(void **state)
 {
     errno_t ret;
     struct subdom_test_ctx *test_ctx =
-        talloc_get_type(*state, struct subdom_test_ctx);
+        talloc_get_type_abort(*state, struct subdom_test_ctx);
     struct sss_domain_info *main_dom1;
     struct sss_domain_info *main_dom2;
     struct sss_domain_info *root;
@@ -524,7 +524,7 @@ static void test_try_to_find_expected_dn(void **state)
     struct sss_domain_info *dom;
     char *dom_basedn;
     struct subdom_test_ctx *test_ctx =
-        talloc_get_type(*state, struct subdom_test_ctx);
+        talloc_get_type_abort(*state, struct subdom_test_ctx);
 
     dom = find_domain_by_name(test_ctx->tctx->dom,
                               "child2.test_sysdb_subdomains_2", true);
@@ -656,7 +656,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

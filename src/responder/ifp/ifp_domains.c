@@ -56,7 +56,7 @@ int ifp_list_domains(struct sbus_request *dbus_req,
     DBusError *error;
     errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
@@ -162,7 +162,7 @@ int ifp_find_domain_by_name(struct sbus_request *dbus_req,
     DBusError *error;
     errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
@@ -259,7 +259,7 @@ get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
     struct sss_domain_info *iter = NULL;
     char *name = NULL;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return NULL;
@@ -316,7 +316,7 @@ static void get_server_list(struct sbus_request *dbus_req,
         goto done;
     }
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         ret = ENOMEM;
@@ -544,7 +544,7 @@ int ifp_domains_domain_is_online(struct sbus_request *sbus_req,
     struct ifp_ctx *ifp_ctx;
     struct sss_domain_info *dom;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
 
     dom = get_domain_info_from_req(sbus_req, data);
     if (dom == NULL) {
@@ -566,7 +566,7 @@ int ifp_domains_domain_list_services(struct sbus_request *sbus_req,
     struct ifp_ctx *ifp_ctx;
     struct sss_domain_info *dom;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
 
     dom = get_domain_info_from_req(sbus_req, data);
     if (dom == NULL) {
@@ -590,7 +590,7 @@ int ifp_domains_domain_active_server(struct sbus_request *sbus_req,
     struct ifp_ctx *ifp_ctx;
     struct sss_domain_info *dom;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
 
     dom = get_domain_info_from_req(sbus_req, data);
     if (dom == NULL) {
@@ -614,7 +614,7 @@ int ifp_domains_domain_list_servers(struct sbus_request *sbus_req,
     struct ifp_ctx *ifp_ctx;
     struct sss_domain_info *dom;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
 
     dom = get_domain_info_from_req(sbus_req, data);
     if (dom == NULL) {

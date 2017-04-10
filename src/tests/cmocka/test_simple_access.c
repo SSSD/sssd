@@ -157,7 +157,7 @@ static int simple_test_setup(void **state)
 static int simple_test_teardown(void **state)
 {
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
 
     /* make sure there are no leftovers from previous tests */
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
@@ -207,7 +207,7 @@ static void test_both_empty(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
 
     ret = setup_with_params(simple_test_ctx, simple_test_ctx->tctx->dom, NULL);
     assert_int_equal(ret, EOK);
@@ -219,7 +219,7 @@ static void test_allow_empty(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_deny_users", "u1, u2" },
         { NULL, NULL },
@@ -236,7 +236,7 @@ static void test_deny_empty(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_users", "u1, u2" },
         { NULL, NULL },
@@ -252,7 +252,7 @@ static void test_both_set(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_users", "u1, u2" },
         { "simple_deny_users", "u1, u2" },
@@ -272,7 +272,7 @@ static void test_deny_wrong_case(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_users", "u1, u2" },
         { NULL, NULL },
@@ -290,7 +290,7 @@ static void test_allow_case_insensitive(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_users", "u1, u2" },
         { NULL, NULL },
@@ -309,7 +309,7 @@ static void test_unknown_user(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_users", "u1, u2" },
         { NULL, NULL },
@@ -327,7 +327,7 @@ static void test_space(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_users", "space user, another user@simple_test" },
         { NULL, NULL },
@@ -443,7 +443,7 @@ static int simple_group_test_teardown(void **state)
     char *sp2;
     char *pvt;
     struct simple_test_ctx *test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
 
     u1 = sss_create_internal_fqname(test_ctx, "u1",
                                     test_ctx->be_ctx->domain->name);
@@ -495,7 +495,7 @@ static void test_group_allow_empty(void **state)
     errno_t ret;
     struct tevent_req *req;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_deny_groups", "g1, g2" },
         { NULL, NULL },
@@ -534,7 +534,7 @@ static void test_group_deny_empty(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_groups", "g1, g2" },
         { NULL, NULL },
@@ -551,7 +551,7 @@ static void test_group_both_set(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_groups", "g1, g2" },
         { "simple_deny_groups", "g1, g2" },
@@ -569,7 +569,7 @@ static void test_group_deny_wrong_case(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_groups", "G1, G2" },
         { NULL, NULL },
@@ -587,7 +587,7 @@ static void test_group_allow_case_insensitive(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_groups", "G1, G2" },
         { NULL, NULL },
@@ -608,7 +608,7 @@ static void test_unparseable_allow_user(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_users", "u1, user@no.such.domain" },
         { NULL, NULL },
@@ -636,7 +636,7 @@ static void test_unparseable_deny_user(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_deny_users", "u2, user@no.such.domain" },
         { NULL, NULL },
@@ -664,7 +664,7 @@ static void test_unparseable_allow_group(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_groups", "g1, group@no.such.domain" },
         { NULL, NULL },
@@ -692,7 +692,7 @@ static void test_unparseable_deny_group(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_deny_groups", "g2, group@no.such.domain" },
         { NULL, NULL },
@@ -720,7 +720,7 @@ static void test_group_space(void **state)
 {
     errno_t ret;
     struct simple_test_ctx *simple_test_ctx = \
-                            talloc_get_type(*state, struct simple_test_ctx);
+                            talloc_get_type_abort(*state, struct simple_test_ctx);
     struct sss_test_conf_param params[] = {
         { "simple_allow_groups", "space group, another space@simple_test" },
         { NULL, NULL },
@@ -807,7 +807,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

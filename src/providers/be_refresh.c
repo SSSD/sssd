@@ -214,7 +214,7 @@ struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
     state->be_ctx = be_ctx;
     state->domain = be_ctx->domain;
     state->period = be_ptask_get_period(be_ptask);
-    state->ctx = talloc_get_type(pvt, struct be_refresh_ctx);
+    state->ctx = talloc_get_type_abort(pvt, struct be_refresh_ctx);
     if (state->ctx == NULL) {
         ret = EINVAL;
         goto immediately;

@@ -49,7 +49,7 @@ static int be_ptask_destructor(void *pvt)
 {
     struct be_ptask *task;
 
-    task = talloc_get_type(pvt, struct be_ptask);
+    task = talloc_get_type_abort(pvt, struct be_ptask);
     if (task == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "BUG: task is NULL\n");
         return 0;
@@ -64,7 +64,7 @@ static void be_ptask_online_cb(void *pvt)
 {
     struct be_ptask *task = NULL;
 
-    task = talloc_get_type(pvt, struct be_ptask);
+    task = talloc_get_type_abort(pvt, struct be_ptask);
     if (task == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "BUG: task is NULL\n");
         return;
@@ -77,7 +77,7 @@ static void be_ptask_online_cb(void *pvt)
 static void be_ptask_offline_cb(void *pvt)
 {
     struct be_ptask *task = NULL;
-    task = talloc_get_type(pvt, struct be_ptask);
+    task = talloc_get_type_abort(pvt, struct be_ptask);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Back end is offline\n");
     be_ptask_disable(task);
@@ -89,7 +89,7 @@ static void be_ptask_timeout(struct tevent_context *ev,
                              void *pvt)
 {
     struct be_ptask *task = NULL;
-    task = talloc_get_type(pvt, struct be_ptask);
+    task = talloc_get_type_abort(pvt, struct be_ptask);
 
     DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: timed out\n", task->name);
 
@@ -107,7 +107,7 @@ static void be_ptask_execute(struct tevent_context *ev,
     struct be_ptask *task = NULL;
     struct tevent_timer *timeout = NULL;
 
-    task = talloc_get_type(pvt, struct be_ptask);
+    task = talloc_get_type_abort(pvt, struct be_ptask);
     task->timer = NULL; /* timer is freed by tevent */
 
     if (be_is_offline(task->be_ctx)) {
@@ -417,7 +417,7 @@ be_ptask_sync_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ctx = talloc_get_type(pvt, struct be_ptask_sync_ctx);
+    ctx = talloc_get_type_abort(pvt, struct be_ptask_sync_ctx);
     ret = ctx->fn(mem_ctx, ev, be_ctx, be_ptask, ctx->pvt);
 
     if (ret == EOK) {

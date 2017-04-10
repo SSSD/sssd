@@ -130,7 +130,7 @@ void __wrap_sss_cmd_done(struct cli_ctx *cctx, void *freectx)
     if (check_cb == NULL) {
         nss_test_ctx->tctx->error = ENOENT;
     } else {
-        pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+        pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
         packet = pctx->creq->out;
 
         __real_sss_packet_get_body(packet, &body, &blen);
@@ -631,7 +631,7 @@ struct passwd getpwnam_search_usr = {
 
 static int test_nss_getpwnam_search_acct_cb(void *pvt)
 {
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct nss_test_ctx *ctx = talloc_get_type_abort(pvt, struct nss_test_ctx);
 
     return store_user(ctx, ctx->tctx->dom, &getpwnam_search_usr, NULL, 0);
 }
@@ -700,7 +700,7 @@ struct passwd getpwnam_update = {
 
 static int test_nss_getpwnam_update_acct_cb(void *pvt)
 {
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct nss_test_ctx *ctx = talloc_get_type_abort(pvt, struct nss_test_ctx);
 
     getpwnam_update.pw_shell = discard_const("/bin/ksh");
     return store_user(ctx, ctx->tctx->dom, &getpwnam_update, NULL, 0);
@@ -1101,7 +1101,7 @@ struct passwd getpwuid_srch = {
 
 static int test_nss_getpwuid_search_acct_cb(void *pvt)
 {
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct nss_test_ctx *ctx = talloc_get_type_abort(pvt, struct nss_test_ctx);
 
     return store_user(ctx, ctx->tctx->dom, &getpwuid_srch, NULL, 0);
 }
@@ -1169,7 +1169,7 @@ struct passwd getpwuid_update = {
 
 static int test_nss_getpwuid_update_acct_cb(void *pvt)
 {
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct nss_test_ctx *ctx = talloc_get_type_abort(pvt, struct nss_test_ctx);
 
     getpwuid_update.pw_shell = discard_const("/bin/ksh");
     return store_user(ctx, ctx->tctx->dom, &getpwuid_update, NULL, 0);
@@ -3333,7 +3333,7 @@ static int test_nss_getnamebysid_update_check(uint32_t status,
 static int test_nss_getnamebysid_update_acct_cb(void *pvt)
 {
     errno_t ret;
-    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+    struct nss_test_ctx *ctx = talloc_get_type_abort(pvt, struct nss_test_ctx);
 
     testbysid_update.pw_shell = discard_const("/bin/ksh");
     ret = store_user(ctx, nss_test_ctx->tctx->dom,
@@ -3779,7 +3779,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

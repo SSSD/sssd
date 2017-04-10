@@ -788,6 +788,7 @@ static void test_sss_ncache_reset_prepopulate(void **state)
 int main(void)
 {
     int rv;
+    talloc_set_abort_fn(sss_talloc_abort);    
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_sss_ncache_init),
         cmocka_unit_test_setup_teardown(test_sss_ncache_uid, setup, teardown),

@@ -329,7 +329,7 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     DEBUG_CLI_INIT(debug_level);
-
+    talloc_set_abort_fn(sss_talloc_abort);
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
     test_dom_suite_setup(TESTS_PATH);

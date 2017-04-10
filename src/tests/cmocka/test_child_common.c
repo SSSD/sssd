@@ -73,7 +73,7 @@ static int child_test_setup(void **state)
 
 static int child_test_teardown(void **state)
 {
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
 
     talloc_free(child_tctx);
@@ -88,7 +88,7 @@ void test_exec_child(void **state)
     errno_t ret;
     pid_t child_pid;
     int status;
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
 
     child_pid = fork();
@@ -136,7 +136,7 @@ static int only_extra_args_setup(void **state)
 
 static int only_extra_args_teardown(void **state)
 {
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
     errno_t ret;
 
@@ -194,7 +194,7 @@ static void extra_args_test(struct child_test_ctx *child_tctx,
 /* Make sure extra arguments are passed correctly */
 void test_exec_child_extra_args(void **state)
 {
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
     setenv("TEST_CHILD_ACTION", "check_extra_args", 1);
     extra_args_test(child_tctx, false);
@@ -203,7 +203,7 @@ void test_exec_child_extra_args(void **state)
 /* Make sure extra arguments are passed correctly */
 void test_exec_child_only_extra_args(void **state)
 {
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
     setenv("TEST_CHILD_ACTION", "check_only_extra_args", 1);
     extra_args_test(child_tctx, true);
@@ -211,7 +211,7 @@ void test_exec_child_only_extra_args(void **state)
 
 void test_exec_child_only_extra_args_neg(void **state)
 {
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
     setenv("TEST_CHILD_ACTION", "check_only_extra_args_neg", 1);
     extra_args_test(child_tctx, false);
@@ -235,7 +235,7 @@ int __wrap_child_io_destructor(void *ptr)
 /* Test that writing to the pipes works as expected */
 void test_exec_child_io_destruct(void **state)
 {
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
     struct child_io_fds *io_fds;
 
@@ -278,7 +278,7 @@ void test_exec_child_handler(void **state)
 {
     errno_t ret;
     pid_t child_pid;
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
     struct sss_child_ctx_old *child_old_ctx;
 
@@ -307,7 +307,7 @@ void test_child_cb(int child_status,
                    struct tevent_signal *sige,
                    void *pvt)
 {
-    struct child_test_ctx *child_ctx = talloc_get_type(pvt, struct child_test_ctx);
+    struct child_test_ctx *child_ctx = talloc_get_type_abort(pvt, struct child_test_ctx);
 
     child_ctx->test_ctx->error = EIO;
     if (WIFEXITED(child_status) && WEXITSTATUS(child_status) == 0) {
@@ -322,7 +322,7 @@ void test_exec_child_echo(void **state)
 {
     errno_t ret;
     pid_t child_pid;
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
     struct tevent_req *req;
     struct child_io_fds *io_fds;
@@ -457,7 +457,7 @@ void test_sss_child(void **state)
 {
     errno_t ret;
     pid_t child_pid;
-    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+    struct child_test_ctx *child_tctx = talloc_get_type_abort(*state,
                                                         struct child_test_ctx);
     struct sss_sigchild_ctx *sc_ctx;
     struct sss_child_ctx *sss_child;
@@ -490,7 +490,7 @@ void test_sss_child(void **state)
 
 void sss_child_cb(int pid, int wait_status, void *pvt)
 {
-    struct child_test_ctx *child_ctx = talloc_get_type(pvt, struct child_test_ctx);
+    struct child_test_ctx *child_ctx = talloc_get_type_abort(pvt, struct child_test_ctx);
 
     child_ctx->test_ctx->error = EIO;
     if (WIFEXITED(wait_status) && WEXITSTATUS(wait_status) == 0) {
@@ -540,7 +540,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

@@ -46,7 +46,7 @@ static errno_t ldap_cleanup_task(TALLOC_CTX *mem_ctx,
 {
     struct ldap_id_cleanup_ctx *cleanup_ctx = NULL;
 
-    cleanup_ctx = talloc_get_type(pvt, struct ldap_id_cleanup_ctx);
+    cleanup_ctx = talloc_get_type_abort(pvt, struct ldap_id_cleanup_ctx);
     return ldap_id_cleanup(cleanup_ctx->ctx->opts, cleanup_ctx->sdom);
 }
 

@@ -227,6 +227,7 @@ void test_sss_openat_cloexec_fail(void **state)
 
 int main(void)
 {
+    talloc_set_abort_fn(sss_talloc_abort);	
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_sss_open_cloexec_success,
                                         test_file_setup, test_file_teardown),

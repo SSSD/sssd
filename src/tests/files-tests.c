@@ -414,7 +414,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, (const char **) argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         fprintf(stderr, "\nInvalid option %s: %s\n\n",

@@ -44,7 +44,7 @@ static errno_t sudosrv_cmd_send_reply(struct sudo_cmd_ctx *cmd_ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
 
     ret = sss_packet_new(pctx->creq, 0,
                          sss_packet_get_cmd(pctx->creq->in),
@@ -190,13 +190,13 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
 
     cmd_ctx->cli_ctx = cli_ctx;
     cmd_ctx->type = type;
-    cmd_ctx->sudo_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
+    cmd_ctx->sudo_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
     if (cmd_ctx->sudo_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sudo_ctx not set, killing connection!\n");
         return EFAULT;
     }
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
     protocol = pctx->cli_protocol_version->version;
 
     /* if protocol is invalid return */

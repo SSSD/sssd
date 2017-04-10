@@ -141,7 +141,7 @@ ldap_enumeration_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ectx = talloc_get_type(pvt, struct ldap_enum_ctx);
+    ectx = talloc_get_type_abort(pvt, struct ldap_enum_ctx);
     if (ectx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot retrieve ldap_enum_ctx!\n");
         ret = EFAULT;

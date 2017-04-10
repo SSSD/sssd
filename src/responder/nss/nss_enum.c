@@ -63,7 +63,7 @@ nss_setent_internal_send(TALLOC_CTX *mem_ctx,
     talloc_steal(state, data);
 
     state->ev = ev;
-    state->nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state->nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
     state->enum_ctx = enum_ctx;
     state->type = type;
     state->timeout_handler = timeout_handler;
@@ -267,7 +267,7 @@ nss_setnetgrent_timeout(struct tevent_context *ev,
     DEBUG(SSSDBG_TRACE_FUNC, "Enumeration result object has expired.\n");
 
     /* Free enumeration context. This will also remove it from the table. */
-    enum_ctx = talloc_get_type(pvt, struct nss_enum_ctx);
+    enum_ctx = talloc_get_type_abort(pvt, struct nss_enum_ctx);
     talloc_free(enum_ctx);
 }
 

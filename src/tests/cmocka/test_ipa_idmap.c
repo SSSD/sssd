@@ -182,7 +182,7 @@ static int setup_idmap_ctx(void **state)
 
 static int teardown_idmap_ctx(void **state)
 {
-    struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
+    struct test_ctx *test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -196,7 +196,7 @@ static int teardown_idmap_ctx(void **state)
 void test_ipa_idmap_get_ranges_from_sysdb(void **state)
 {
     int ret;
-    struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
+    struct test_ctx *test_ctx = talloc_get_type_abort(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
     will_return(__wrap_sysdb_get_ranges, 1);
@@ -230,7 +230,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

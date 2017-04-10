@@ -116,7 +116,7 @@ struct netlink_ctx {
 static int netlink_ctx_destructor(void *ptr)
 {
     struct netlink_ctx *nlctx;
-    nlctx = talloc_get_type(ptr, struct netlink_ctx);
+    nlctx = talloc_get_type_abort(ptr, struct netlink_ctx);
 
     nlw_destroy_handle(nlctx->nlp);
     return 0;
@@ -764,7 +764,7 @@ static void link_msg_handler(struct nl_object *obj, void *arg)
 static void netlink_fd_handler(struct tevent_context *ev, struct tevent_fd *fde,
                                uint16_t flags, void *data)
 {
-    struct netlink_ctx *nlctx = talloc_get_type(data, struct netlink_ctx);
+    struct netlink_ctx *nlctx = talloc_get_type_abort(data, struct netlink_ctx);
     int ret;
 
     if (!nlctx || !nlctx->nlp) {

@@ -280,7 +280,7 @@ static int opt_test_getset_setup(void **state)
 
 static int opt_test_getset_teardown(void **state)
 {
-    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
+    struct dp_option *opts = talloc_get_type_abort(*state, struct dp_option);
     talloc_free(opts);
     return 0;
 }
@@ -312,7 +312,7 @@ static void check_nondefault_string(struct dp_option *opts)
 
 void opt_test_getset_string(void **state)
 {
-    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
+    struct dp_option *opts = talloc_get_type_abort(*state, struct dp_option);
 
     assert_nondefault_string_empty(opts);
     set_nondefault_string(opts);
@@ -351,7 +351,7 @@ static void check_nondefault_blob(struct dp_option *opts)
 
 void opt_test_getset_blob(void **state)
 {
-    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
+    struct dp_option *opts = talloc_get_type_abort(*state, struct dp_option);
 
     assert_nondefault_blob_empty(opts);
     set_nondefault_blob(opts);
@@ -381,7 +381,7 @@ static void assert_nondefault_int_set(struct dp_option *opts)
 
 void opt_test_getset_int(void **state)
 {
-    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
+    struct dp_option *opts = talloc_get_type_abort(*state, struct dp_option);
 
     assert_nondefault_int_notset(opts);
     set_nondefault_int(opts);
@@ -390,7 +390,7 @@ void opt_test_getset_int(void **state)
 
 void opt_test_getset_bool(void **state)
 {
-    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
+    struct dp_option *opts = talloc_get_type_abort(*state, struct dp_option);
     int ret;
     bool b;
 
@@ -406,7 +406,7 @@ void opt_test_getset_bool(void **state)
 
 void opt_test_inherit(void **state)
 {
-    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
+    struct dp_option *opts = talloc_get_type_abort(*state, struct dp_option);
     int ret;
     struct dp_option *opts_copy;
     const char *s;
@@ -499,7 +499,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

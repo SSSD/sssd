@@ -108,7 +108,7 @@ fail:
 
 static int sec_responder_ctx_destructor(void *ptr)
 {
-    struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type_abort(ptr, struct resp_ctx);
 
     /* mark that we are shutting down the responder, so it is propagated
      * into underlying contexts that are freed right before rctx */
@@ -194,7 +194,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     umask(DFL_RSP_UMASK);
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

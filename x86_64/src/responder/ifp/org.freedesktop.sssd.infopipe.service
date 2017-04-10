@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.freedesktop.sssd.infopipe
+Exec=/usr/libexec/sssd/sss_signal
+User=root

@@ -56,7 +56,7 @@ struct sss_dp_req {
 static int sss_dp_callback_destructor(void *ptr)
 {
     struct sss_dp_callback *cb =
-            talloc_get_type(ptr, struct sss_dp_callback);
+            talloc_get_type_abort(ptr, struct sss_dp_callback);
 
     DLIST_REMOVE(cb->sdp_req->cb_list, cb);
 
@@ -66,7 +66,7 @@ static int sss_dp_callback_destructor(void *ptr)
 static int sss_dp_req_destructor(void *ptr)
 {
     struct sss_dp_callback *cb;
-    struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
+    struct sss_dp_req *sdp_req = talloc_get_type_abort(ptr, struct sss_dp_req);
     struct sss_dp_req_state *state;
     int hret;
 
@@ -157,7 +157,7 @@ void handle_requests_after_reconnect(struct resp_ctx *rctx)
     DEBUG(SSSDBG_TRACE_LIBS,
           "Will handle %lu requests after reconnect\n", count);
     for (i=0; i<count; i++) {
-        sdp_req = talloc_get_type(values[i].ptr, struct sss_dp_req);
+        sdp_req = talloc_get_type_abort(values[i].ptr, struct sss_dp_req);
         talloc_free(sdp_req);
     }
 }
@@ -373,7 +373,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     }
 
     /* Register this request for results */
-    sdp_req = talloc_get_type(value.ptr, struct sss_dp_req);
+    sdp_req = talloc_get_type_abort(value.ptr, struct sss_dp_req);
     if (!sdp_req) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not retrieve DP request context\n");
         ret = EIO;
@@ -553,7 +553,7 @@ sss_dp_get_account_msg(void *pvt)
     uint32_t entry_type;
     char *filter;
 
-    info = talloc_get_type(pvt, struct sss_dp_account_info);
+    info = talloc_get_type_abort(pvt, struct sss_dp_account_info);
 
     switch (info->type) {
         case SSS_DP_USER:
@@ -770,7 +770,7 @@ static void sss_dp_internal_get_done(DBusPendingCall *pending, void *ptr)
     struct dp_internal_get_state *state;
     struct sss_dp_req_state *cb_state;
 
-    req = talloc_get_type(ptr, struct tevent_req);
+    req = talloc_get_type_abort(ptr, struct tevent_req);
     state = tevent_req_data(req, struct dp_internal_get_state);
     sdp_req = state->sdp_req;
 

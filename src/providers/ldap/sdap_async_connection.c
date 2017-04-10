@@ -352,7 +352,7 @@ static void sdap_connect_done(struct sdap_op *op,
                               struct sdap_msg *reply,
                               int error, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct sdap_connect_state *state = tevent_req_data(req,
                                           struct sdap_connect_state);
     char *errmsg = NULL;
@@ -721,7 +721,7 @@ static void simple_bind_done(struct sdap_op *op,
                              struct sdap_msg *reply,
                              int error, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct simple_bind_state *state = tevent_req_data(req,
                                             struct simple_bind_state);
     char *errmsg = NULL;
@@ -998,7 +998,7 @@ fail:
 static int sdap_sasl_interact(LDAP *ld, unsigned flags,
                               void *defaults, void *interact)
 {
-    struct sasl_bind_state *state = talloc_get_type(defaults,
+    struct sasl_bind_state *state = talloc_get_type_abort(defaults,
                                                     struct sasl_bind_state);
     sasl_interact_t *in = (sasl_interact_t *)interact;
 
@@ -2174,7 +2174,7 @@ done:
 static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
                             ber_int_t msgid, void *params)
 {
-    struct sdap_rebind_proc_params *p = talloc_get_type(params,
+    struct sdap_rebind_proc_params *p = talloc_get_type_abort(params,
                                                 struct sdap_rebind_proc_params);
     const char *sasl_mech;
     const char *user_dn;

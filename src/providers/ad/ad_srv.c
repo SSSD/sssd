@@ -578,7 +578,7 @@ struct tevent_req *ad_srv_plugin_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ctx = talloc_get_type(pvt, struct ad_srv_plugin_ctx);
+    ctx = talloc_get_type_abort(pvt, struct ad_srv_plugin_ctx);
     if (ctx == NULL) {
         ret = EINVAL;
         goto immediately;

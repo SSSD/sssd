@@ -252,7 +252,7 @@ static int test_fo_setup(void **state)
 static int test_fo_teardown(void **state)
 {
     struct test_fo_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_ctx);
+        talloc_get_type_abort(*state, struct test_fo_ctx);
 
     talloc_free(test_ctx);
     talloc_free(global_mock_context);
@@ -373,7 +373,7 @@ static void test_fo_srv(void **state)
 {
     errno_t ret;
     struct test_fo_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_ctx);
+        talloc_get_type_abort(*state, struct test_fo_ctx);
 
     test_fo_srv_mock_dns(test_ctx, TEST_SRV_TTL);
 
@@ -526,7 +526,7 @@ static void test_fo_srv_after(struct tevent_req *req);
 void test_fo_srv_ttl_change(void **state)
 {
     struct test_fo_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_ctx);
+        talloc_get_type_abort(*state, struct test_fo_ctx);
 
     test_ctx->ttl = TEST_SRV_SHORT_TTL;
     test_fo_srv_ttl_change_step(test_ctx);
@@ -667,7 +667,7 @@ static void test_fo_srv_after2(struct tevent_req *req)
 void test_fo_srv_ttl_zero(void **state)
 {
     struct test_fo_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_ctx);
+        talloc_get_type_abort(*state, struct test_fo_ctx);
 
     test_ctx->ttl = 0;
     test_fo_srv_ttl_change_step(test_ctx);
@@ -677,7 +677,7 @@ static void test_fo_hostlist(void **state)
 {
     errno_t ret;
     struct test_fo_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_ctx);
+        talloc_get_type_abort(*state, struct test_fo_ctx);
 
     ret = fo_add_server(test_ctx->fo_svc,
                         "ldap1.sssd.com", 389, test_ctx, true);
@@ -703,7 +703,7 @@ void test_fo_srv_duplicates(void **state)
     errno_t ret;
     struct tevent_req *req;
     struct test_fo_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_ctx);
+        talloc_get_type_abort(*state, struct test_fo_ctx);
 
     test_fo_srv_mock_dns(test_ctx, test_ctx->ttl);
     test_fo_srv_mock_dns(test_ctx, test_ctx->ttl);
@@ -785,7 +785,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

@@ -1089,7 +1089,7 @@ struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
     }
     state->ext_member = ext_member;
 
-    ipa_ctx = talloc_get_type(pvt, struct ipa_id_ctx);
+    ipa_ctx = talloc_get_type_abort(pvt, struct ipa_id_ctx);
     if (ipa_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Wrong private context!\n");
         ret = EINVAL;

@@ -76,7 +76,7 @@ mock_sss_dp_done(struct tevent_context *ev,
     struct tevent_req *req;
 
     talloc_free(imm);
-    req = talloc_get_type(pvt, struct tevent_req);
+    req = talloc_get_type_abort(pvt, struct tevent_req);
     tevent_req_done(req);
 }
 
@@ -131,7 +131,7 @@ static int parse_inp_test_setup(void **state)
 
 static int parse_inp_test_teardown(void **state)
 {
-    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
+    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type_abort(*state,
                                                    struct parse_inp_test_ctx);
 
     assert_true(check_leaks_pop(parse_inp_ctx) == true);
@@ -185,7 +185,7 @@ void parse_inp_simple_done(struct tevent_req *req)
 
 void parse_inp_simple(void **state)
 {
-    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
+    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type_abort(*state,
                                                    struct parse_inp_test_ctx);
     struct tevent_req *req;
     errno_t ret;
@@ -202,7 +202,7 @@ void parse_inp_simple(void **state)
 
 void parse_inp_call_dp(void **state)
 {
-    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
+    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type_abort(*state,
                                                    struct parse_inp_test_ctx);
     struct tevent_req *req;
     errno_t ret;
@@ -223,7 +223,7 @@ void parse_inp_call_dp(void **state)
 
 void parse_inp_call_attach(void **state)
 {
-    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
+    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type_abort(*state,
                                                    struct parse_inp_test_ctx);
     struct tevent_req *req;
     errno_t ret;
@@ -262,7 +262,7 @@ void parse_inp_neg_done(struct tevent_req *req)
 
 void parse_inp_call_neg(void **state)
 {
-    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
+    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type_abort(*state,
                                                    struct parse_inp_test_ctx);
     struct tevent_req *req;
     errno_t ret;
@@ -292,7 +292,7 @@ errno_t __wrap_sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
 
 void test_schedule_get_domains_task(void **state)
 {
-    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
+    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type_abort(*state,
                                                    struct parse_inp_test_ctx);
     errno_t ret;
     struct sss_nc_ctx *dummy_ncache_ptr;
@@ -346,7 +346,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

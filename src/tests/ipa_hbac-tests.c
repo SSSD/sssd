@@ -874,7 +874,7 @@ int main(int argc, const char *argv[])
 
     Suite *s = hbac_test_suite();
     SRunner *sr = srunner_create(s);
-
+    talloc_set_abort_fn(sss_talloc_abort);
     /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */
     srunner_run_all(sr, CK_ENV);
     number_failed = srunner_ntests_failed (sr);

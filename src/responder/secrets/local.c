@@ -798,7 +798,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->secreq = secreq;
 
-    lctx = talloc_get_type(provider_ctx, struct local_context);
+    lctx = talloc_get_type_abort(provider_ctx, struct local_context);
     if (!lctx) {
         ret = EIO;
         goto done;

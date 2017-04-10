@@ -321,7 +321,7 @@ static int test_ipa_server_create_trusts_setup(void **state)
 static int test_ipa_server_create_trusts_teardown(void **state)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(*state, struct trust_test_ctx);
+        talloc_get_type_abort(*state, struct trust_test_ctx);
     errno_t ret;
 
     ret = unlink(KEYTAB_PATH);
@@ -345,7 +345,7 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req);
 static void test_ipa_server_create_trusts(void **state)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(*state, struct trust_test_ctx);
+        talloc_get_type_abort(*state, struct trust_test_ctx);
     struct tevent_req *req;
     errno_t ret;
 
@@ -510,7 +510,7 @@ ipa_server_init_done(struct tevent_context *ev,
                      struct timeval tv, void *pvt)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(pvt, struct trust_test_ctx);
+        talloc_get_type_abort(pvt, struct trust_test_ctx);
 
     test_ctx->tctx->done = true;
 }
@@ -518,7 +518,7 @@ ipa_server_init_done(struct tevent_context *ev,
 static void test_ipa_server_trust_init(void **state)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(*state, struct trust_test_ctx);
+        talloc_get_type_abort(*state, struct trust_test_ctx);
     errno_t ret;
     struct tevent_timer *timeout_handler;
     struct timeval tv;
@@ -590,7 +590,7 @@ static int test_get_trust_direction_setup(void **state)
 static int test_get_trust_direction_teardown(void **state)
 {
     struct dir_test_ctx *test_ctx =
-        talloc_get_type(*state, struct dir_test_ctx);
+        talloc_get_type_abort(*state, struct dir_test_ctx);
 
     talloc_free(test_ctx);
     return 0;
@@ -614,7 +614,7 @@ static void test_trust_dir_getset(struct dir_test_ctx *test_ctx,
 static void test_get_trust_direction_inbound(void **state)
 {
     struct dir_test_ctx *test_ctx =
-        talloc_get_type(*state, struct dir_test_ctx);
+        talloc_get_type_abort(*state, struct dir_test_ctx);
 
     test_trust_dir_getset(test_ctx, 0x1);
 }
@@ -622,7 +622,7 @@ static void test_get_trust_direction_inbound(void **state)
 static void test_get_trust_direction_outbound(void **state)
 {
     struct dir_test_ctx *test_ctx =
-        talloc_get_type(*state, struct dir_test_ctx);
+        talloc_get_type_abort(*state, struct dir_test_ctx);
 
     test_trust_dir_getset(test_ctx, 0x2);
 }
@@ -630,7 +630,7 @@ static void test_get_trust_direction_outbound(void **state)
 static void test_get_trust_direction_twoway(void **state)
 {
     struct dir_test_ctx *test_ctx =
-        talloc_get_type(*state, struct dir_test_ctx);
+        talloc_get_type_abort(*state, struct dir_test_ctx);
 
     test_trust_dir_getset(test_ctx, 0x1 | 0x2);
 }
@@ -640,7 +640,7 @@ static void test_get_trust_direction_notset_root(void **state)
     errno_t ret;
     uint32_t dir;
     struct dir_test_ctx *test_ctx =
-        talloc_get_type(*state, struct dir_test_ctx);
+        talloc_get_type_abort(*state, struct dir_test_ctx);
 
     ret = sysdb_attrs_add_string(test_ctx->tdo, SYSDB_ORIG_DN,
                                  "cn=AD.DOM,cn=ad,cn=trusts,dc=example,dc=com");
@@ -658,7 +658,7 @@ static void test_get_trust_direction_notset_member(void **state)
     errno_t ret;
     uint32_t dir;
     struct dir_test_ctx *test_ctx =
-        talloc_get_type(*state, struct dir_test_ctx);
+        talloc_get_type_abort(*state, struct dir_test_ctx);
 
     ret = sysdb_attrs_add_string(test_ctx->tdo, SYSDB_ORIG_DN,
                    "cn=SUB.AD.DOM,cn=AD.DOM,cn=ad,cn=trusts,dc=example,dc=com");
@@ -676,7 +676,7 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req);
 static void test_ipa_server_create_oneway(void **state)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(*state, struct trust_test_ctx);
+        talloc_get_type_abort(*state, struct trust_test_ctx);
     struct tevent_req *req;
     errno_t ret;
 
@@ -747,7 +747,7 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
 static void test_ipa_server_create_oneway_kt_exists(void **state)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(*state, struct trust_test_ctx);
+        talloc_get_type_abort(*state, struct trust_test_ctx);
     struct tevent_req *req;
     errno_t ret;
 
@@ -780,7 +780,7 @@ static void test_ipa_server_create_oneway_kt_exists(void **state)
 static void test_ipa_server_create_oneway_kt_refresh_fallback(void **state)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(*state, struct trust_test_ctx);
+        talloc_get_type_abort(*state, struct trust_test_ctx);
     struct tevent_req *req;
     errno_t ret;
 
@@ -816,7 +816,7 @@ static void test_ipa_server_create_trusts_oneway_fail(struct tevent_req *req);
 static void test_ipa_server_create_oneway_kt_refresh_fail(void **state)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(*state, struct trust_test_ctx);
+        talloc_get_type_abort(*state, struct trust_test_ctx);
     struct tevent_req *req;
     errno_t ret;
 
@@ -859,7 +859,7 @@ static void test_ipa_server_create_trusts_oneway_fail(struct tevent_req *req)
 static void test_ipa_server_trust_oneway_init(void **state)
 {
     struct trust_test_ctx *test_ctx =
-        talloc_get_type(*state, struct trust_test_ctx);
+        talloc_get_type_abort(*state, struct trust_test_ctx);
     errno_t ret;
     struct tevent_timer *timeout_handler;
     struct timeval tv;
@@ -948,7 +948,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

@@ -167,7 +167,7 @@ static int test_sss_idmap_setup_with_domains(void **state)
 
     test_sss_idmap_setup(state);
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
     setup_ranges(test_ctx, false, false, false);
@@ -180,7 +180,7 @@ static int test_sss_idmap_setup_with_domains_2922(void **state)
 
     test_sss_idmap_setup(state);
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
     setup_ranges_2922(test_ctx);
@@ -193,7 +193,7 @@ static int test_sss_idmap_setup_with_domains_sec_slices(void **state)
 
     test_sss_idmap_setup(state);
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
     setup_ranges(test_ctx, false, false, true);
@@ -206,7 +206,7 @@ static int test_sss_idmap_setup_with_external_mappings(void **state)
 
     test_sss_idmap_setup(state);
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
     setup_ranges(test_ctx, true, false, false);
@@ -219,7 +219,7 @@ static int test_sss_idmap_setup_with_both(void **state)
 
     test_sss_idmap_setup(state);
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
     setup_ranges(test_ctx, false, false, false);
@@ -231,7 +231,7 @@ static int test_sss_idmap_teardown(void **state)
 {
     struct test_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -249,7 +249,7 @@ void test_add_domain(void **state)
     enum idmap_error_code err;
     struct sss_idmap_range range;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -314,7 +314,7 @@ void test_map_id(void **state)
     uint32_t id;
     char *sid = NULL;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -362,7 +362,7 @@ void test_map_id_2922(void **state)
     uint32_t id;
     char *sid = NULL;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -407,7 +407,7 @@ void test_map_id_sec_slices(void **state)
     uint32_t id;
     char *sid = NULL;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -449,7 +449,7 @@ void test_map_id_external(void **state)
     uint32_t id;
     char *sid = NULL;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -483,7 +483,7 @@ void test_check_sid_id(void **state)
     struct test_ctx *test_ctx;
     enum idmap_error_code err;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -514,7 +514,7 @@ void test_has_algorithmic(void **state)
     bool use_id_mapping;
     enum idmap_error_code err;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -553,7 +553,7 @@ void test_has_algorithmic_by_name(void **state)
     bool use_id_mapping;
     enum idmap_error_code err;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_non_null(test_ctx);
 
@@ -717,7 +717,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

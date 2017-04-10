@@ -642,7 +642,7 @@ static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
 
     DEBUG(SSSDBG_CONF_SETTINGS, "pam_reply_delay get called.\n");
 
-    preq = talloc_get_type(pvt, struct pam_auth_req);
+    preq = talloc_get_type_abort(pvt, struct pam_auth_req);
 
     pam_reply(preq);
 }
@@ -703,8 +703,8 @@ static void pam_reply(struct pam_auth_req *preq)
 
     pd = preq->pd;
     cctx = preq->cctx;
-    pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
-    prctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+    prctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
 
     ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
@@ -1066,7 +1066,7 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
     errno_t ret;
     uint32_t terminator;
 
-    prctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    prctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(prctx->creq->in, &body, &blen);
     if (blen >= sizeof(uint32_t)) {
@@ -1108,7 +1108,7 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
         /* Only SSS_PAM_PREAUTH request may have a missing name, e.g. if the
          * name is determined with the help of a certificate */
         if (pd->cmd == SSS_PAM_PREAUTH
-                && may_do_cert_auth(talloc_get_type(cctx->rctx->pvt_ctx,
+                && may_do_cert_auth(talloc_get_type_abort(cctx->rctx->pvt_ctx,
                                                     struct pam_ctx), pd)) {
             ret = EOK;
         } else {
@@ -1224,7 +1224,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     int ret;
     errno_t ncret;
     struct pam_ctx *pctx =
-            talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
+            talloc_get_type_abort(cctx->rctx->pvt_ctx, struct pam_ctx);
     struct tevent_req *req;
     char *name = NULL;
 
@@ -1368,7 +1368,7 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
     errno_t ret = EOK;
     char *cert;
     struct pam_ctx *pctx =
-            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+            talloc_get_type_abort(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
     ret = pam_check_cert_recv(req, preq, &cert, &preq->token_name);
     talloc_free(req);
@@ -1492,7 +1492,7 @@ static void pam_forwarder_cb(struct tevent_req *req)
     struct pam_data *pd;
     errno_t ret = EOK;
     struct pam_ctx *pctx =
-            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+            talloc_get_type_abort(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
     ret = sss_dp_get_domains_recv(req);
     talloc_free(req);
@@ -1558,7 +1558,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     struct tevent_req *dpreq;
     struct dp_callback_ctx *cb_ctx;
     struct pam_ctx *pctx =
-            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+            talloc_get_type_abort(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_message *msg;
     struct ldb_result *res;
@@ -1812,10 +1812,10 @@ static int pam_check_user_done(struct pam_auth_req *preq, int ret)
 static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                                        const char *err_msg, void *ptr)
 {
-    struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
+    struct pam_auth_req *preq = talloc_get_type_abort(ptr, struct pam_auth_req);
     int ret;
     struct pam_ctx *pctx =
-            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+            talloc_get_type_abort(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
     if (err_maj) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1941,7 +1941,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
 {
     int ret;
     struct pam_ctx *pctx =
-            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+            talloc_get_type_abort(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
     const char *cert_user;
 
     if (!preq->pd->domain) {

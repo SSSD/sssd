@@ -46,7 +46,7 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
     int ret;
 
     DEBUG(SSSDBG_FUNC_DATA,"Entering.\n");
-    server = talloc_get_type(data, struct sbus_connection);
+    server = talloc_get_type_abort(data, struct sbus_connection);
     if (!server) {
         return;
     }
@@ -365,7 +365,7 @@ static int sbus_server_destructor(void *ctx)
     struct sbus_connection *server;
     errno_t ret;
 
-    server = talloc_get_type(ctx, struct sbus_connection);
+    server = talloc_get_type_abort(ctx, struct sbus_connection);
     dbus_server_disconnect(server->dbus.server);
 
     if (server->symlink) {

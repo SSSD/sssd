@@ -95,7 +95,7 @@ static int be_svc_data_destroy(void *memptr)
 {
     struct be_svc_data *svc;
 
-    svc = talloc_get_type(memptr, struct be_svc_data);
+    svc = talloc_get_type_abort(memptr, struct be_svc_data);
 
     while (svc->callbacks) {
         /* callbacks removes themselves from the list,
@@ -174,7 +174,7 @@ static int be_svc_callback_destroy(void *memptr)
 {
     struct be_svc_callback *callback;
 
-    callback = talloc_get_type(memptr, struct be_svc_callback);
+    callback = talloc_get_type_abort(memptr, struct be_svc_callback);
 
     if (callback->svc) {
         DLIST_REMOVE(callback->svc->callbacks, callback);
@@ -392,7 +392,7 @@ be_primary_server_timeout(struct tevent_context *ev,
                           struct tevent_timer *te,
                           struct timeval tv, void *pvt)
 {
-    struct be_primary_server_ctx *ctx = talloc_get_type(pvt, struct be_primary_server_ctx);
+    struct be_primary_server_ctx *ctx = talloc_get_type_abort(pvt, struct be_primary_server_ctx);
     struct tevent_req *subreq;
 
     ctx->bctx->be_fo->primary_server_handler = NULL;

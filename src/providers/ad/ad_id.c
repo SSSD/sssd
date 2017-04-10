@@ -527,7 +527,7 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state, struct ad_enumeration_state);
     if (req == NULL) return NULL;
 
-    ectx = talloc_get_type(pvt, struct ldap_enum_ctx);
+    ectx = talloc_get_type_abort(pvt, struct ldap_enum_ctx);
     if (ectx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot retrieve ldap_enum_ctx!\n");
         ret = EFAULT;
@@ -538,7 +538,7 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->sdom = ectx->sdom;
     state->sditer = state->sdom;
-    state->id_ctx = talloc_get_type(ectx->pvt, struct ad_id_ctx);
+    state->id_ctx = talloc_get_type_abort(ectx->pvt, struct ad_id_ctx);
 
     state->realm = dp_opt_get_cstring(state->id_ctx->ad_options->basic,
                                       AD_KRB5_REALM);

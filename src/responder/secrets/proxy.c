@@ -597,7 +597,7 @@ int proxy_http_req_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 static int proxy_http_req_state_destroy(void *data)
 {
     struct proxy_http_req_state *state =
-        talloc_get_type(data, struct proxy_http_req_state);
+        talloc_get_type_abort(data, struct proxy_http_req_state);
 
     if (!state) return 0;
 
@@ -635,7 +635,7 @@ static void proxy_fd_send(void *data)
     struct tevent_req * req;
     int ret;
 
-    req = talloc_get_type(data, struct tevent_req);
+    req = talloc_get_type_abort(data, struct tevent_req);
     state = tevent_req_data(req, struct proxy_http_req_state);
 
     ret = proxy_wire_send(state->sd, &state->request);
@@ -685,7 +685,7 @@ static int ph_on_message_begin(http_parser *parser)
 static int ph_on_status(http_parser *parser, const char *at, size_t length)
 {
     struct proxy_http_reply *reply =
-        talloc_get_type(parser->data, struct proxy_http_reply);
+        talloc_get_type_abort(parser->data, struct proxy_http_reply);
 
     if (ph_received_data(reply, length)) return -1;
 
@@ -704,7 +704,7 @@ static int ph_on_header_field(http_parser *parser,
                               const char *at, size_t length)
 {
     struct proxy_http_reply *reply =
-        talloc_get_type(parser->data, struct proxy_http_reply);
+        talloc_get_type_abort(parser->data, struct proxy_http_reply);
     int n = reply->num_headers;
 
     if (ph_received_data(reply, length)) return -1;
@@ -743,7 +743,7 @@ static int ph_on_header_value(http_parser *parser,
                               const char *at, size_t length)
 {
     struct proxy_http_reply *reply =
-        talloc_get_type(parser->data, struct proxy_http_reply);
+        talloc_get_type_abort(parser->data, struct proxy_http_reply);
     int n = reply->num_headers;
 
     if (ph_received_data(reply, length)) return -1;
@@ -778,7 +778,7 @@ static int ph_on_headers_complete(http_parser *parser)
 static int ph_on_body(http_parser *parser, const char *at, size_t length)
 {
     struct proxy_http_reply *reply =
-        talloc_get_type(parser->data, struct proxy_http_reply);
+        talloc_get_type_abort(parser->data, struct proxy_http_reply);
 
     if (ph_received_data(reply, length)) return -1;
 
@@ -797,7 +797,7 @@ static int ph_on_body(http_parser *parser, const char *at, size_t length)
 static int ph_on_message_complete(http_parser *parser)
 {
     struct proxy_http_reply *reply =
-        talloc_get_type(parser->data, struct proxy_http_reply);
+        talloc_get_type_abort(parser->data, struct proxy_http_reply);
 
     reply->status_code = parser->status_code;
     reply->complete = true;
@@ -827,7 +827,7 @@ static void proxy_fd_recv(void *data)
     bool must_complete = false;
     int ret;
 
-    req = talloc_get_type(data, struct tevent_req);
+    req = talloc_get_type_abort(data, struct tevent_req);
     state = tevent_req_data(req, struct proxy_http_req_state);
 
     if (!state->reply) {
@@ -922,7 +922,7 @@ struct tevent_req *proxy_secret_req(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->secreq = secreq;
 
-    pctx = talloc_get_type(provider_ctx, struct proxy_context);
+    pctx = talloc_get_type_abort(provider_ctx, struct proxy_context);
     if (!pctx) {
         ret = EIO;
         goto done;

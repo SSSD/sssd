@@ -49,7 +49,7 @@ static void sbus_msg_data_destructor(void *ctx)
 {
     struct sbus_talloc_msg *talloc_msg;
 
-    talloc_msg = talloc_get_type(ctx, struct sbus_talloc_msg);
+    talloc_msg = talloc_get_type_abort(ctx, struct sbus_talloc_msg);
 
     dbus_message_free_data_slot(&talloc_msg->data_slot);
 

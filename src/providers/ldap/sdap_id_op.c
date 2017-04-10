@@ -143,7 +143,7 @@ fail:
 /* Callback on BE going offline */
 static void sdap_id_conn_cache_be_offline_cb(void *pvt)
 {
-    struct sdap_id_conn_cache *conn_cache = talloc_get_type(pvt, struct sdap_id_conn_cache);
+    struct sdap_id_conn_cache *conn_cache = talloc_get_type_abort(pvt, struct sdap_id_conn_cache);
     struct sdap_id_conn_data *cached_connection = conn_cache->cached_connection;
 
     /* Release any cached connection on going offline */
@@ -156,7 +156,7 @@ static void sdap_id_conn_cache_be_offline_cb(void *pvt)
 /* Callback for attempt to reconnect to primary server */
 static void sdap_id_conn_cache_fo_reconnect_cb(void *pvt)
 {
-    struct sdap_id_conn_cache *conn_cache = talloc_get_type(pvt, struct sdap_id_conn_cache);
+    struct sdap_id_conn_cache *conn_cache = talloc_get_type_abort(pvt, struct sdap_id_conn_cache);
     struct sdap_id_conn_data *cached_connection = conn_cache->cached_connection;
 
     /* Release any cached connection on going offline */
@@ -273,7 +273,7 @@ static void sdap_id_conn_data_expire_handler(struct tevent_context *ev,
                                               struct timeval current_time,
                                               void *pvt)
 {
-    struct sdap_id_conn_data *conn_data = talloc_get_type(pvt,
+    struct sdap_id_conn_data *conn_data = talloc_get_type_abort(pvt,
                                                           struct sdap_id_conn_data);
     struct sdap_id_conn_cache *conn_cache = conn_data->conn_cache;
 
@@ -332,7 +332,7 @@ static void sdap_id_op_hook_conn_data(struct sdap_id_op *op, struct sdap_id_conn
 /* Destructor for sdap_id_op */
 static int sdap_id_op_destroy(void *pvt)
 {
-    struct sdap_id_op *op = talloc_get_type(pvt, struct sdap_id_op);
+    struct sdap_id_op *op = talloc_get_type_abort(pvt, struct sdap_id_op);
 
     if (op->conn_data) {
         DEBUG(SSSDBG_TRACE_ALL, "releasing operation connection\n");
@@ -373,7 +373,7 @@ struct sdap_id_op_connect_state {
 /* Destructor for operation connection request */
 static int sdap_id_op_connect_state_destroy(void *pvt)
 {
-    struct sdap_id_op_connect_state *state = talloc_get_type(pvt,
+    struct sdap_id_op_connect_state *state = talloc_get_type_abort(pvt,
                                              struct sdap_id_op_connect_state);
     if (state->op != NULL) {
         /* clear destroyed connection request */

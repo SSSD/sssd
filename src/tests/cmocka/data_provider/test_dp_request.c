@@ -68,7 +68,7 @@ static int test_teardown(void **state)
 {
     struct test_ctx *test_ctx;
 
-    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct test_ctx);
     assert_true(check_leaks_pop(test_ctx));
     talloc_zfree(test_ctx);
 
@@ -149,7 +149,7 @@ static void get_name_by_uid_done(struct tevent_context *ev,
     struct tevent_req *req;
     struct test_state *state;
 
-    req = talloc_get_type(pvt, struct tevent_req);
+    req = talloc_get_type_abort(pvt, struct tevent_req);
     state = tevent_req_data(req, struct test_state);
 
     /* Result */
@@ -199,7 +199,7 @@ static void test_get_name_by_uid(void **state)
     struct req_data *req_data3;
     struct recv_data *recv_data;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     md = talloc(test_ctx, struct method_data);
 
@@ -280,7 +280,7 @@ static void test_type_mismatch(void **state)
     struct req_data *req_data;
     struct recv_data *recv_data;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     md = talloc(test_ctx, struct method_data);
     assert_non_null(md);
@@ -325,7 +325,7 @@ static void test_nonexist_dom(void **state)
     struct req_data *req_data;
     struct recv_data *recv_data;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     md = talloc(test_ctx, struct method_data);
 
@@ -371,7 +371,7 @@ static void test_fast_reply(void **state)
     struct recv_data *recv_data;
     bool backup;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     md = talloc(test_ctx, struct method_data);
 
@@ -439,7 +439,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

@@ -831,7 +831,7 @@ nsupdate_child_timeout(struct tevent_context *ev,
                        struct timeval tv, void *pvt)
 {
     struct tevent_req *req =
-            talloc_get_type(pvt, struct tevent_req);
+            talloc_get_type_abort(pvt, struct tevent_req);
     struct nsupdate_child_state *state =
             tevent_req_data(req, struct nsupdate_child_state);
 
@@ -877,7 +877,7 @@ nsupdate_child_handler(int child_status,
                        struct tevent_signal *sige,
                        void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct nsupdate_child_state *state =
             tevent_req_data(req, struct nsupdate_child_state);
 
@@ -1131,7 +1131,7 @@ static void be_nsupdate_timer(struct tevent_context *ev,
                               struct timeval current_time,
                               void *pvt)
 {
-    struct be_nsupdate_ctx *ctx = talloc_get_type(pvt, struct be_nsupdate_ctx);
+    struct be_nsupdate_ctx *ctx = talloc_get_type_abort(pvt, struct be_nsupdate_ctx);
 
     talloc_zfree(ctx->refresh_timer);
     ctx->timer_callback(ctx->timer_pvt);

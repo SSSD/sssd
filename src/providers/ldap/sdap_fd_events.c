@@ -67,9 +67,9 @@ int remove_ldap_connection_callbacks(struct sdap_handle *sh)
 static int remove_connection_callback(TALLOC_CTX *mem_ctx)
 {
     int lret;
-    struct ldap_conncb *conncb = talloc_get_type(mem_ctx, struct ldap_conncb);
+    struct ldap_conncb *conncb = talloc_get_type_abort(mem_ctx, struct ldap_conncb);
 
-    struct ldap_cb_data *cb_data = talloc_get_type(conncb->lc_arg,
+    struct ldap_cb_data *cb_data = talloc_get_type_abort(conncb->lc_arg,
                                                    struct ldap_cb_data);
 
     lret = ldap_get_option(cb_data->sh->ldap, LDAP_OPT_CONNECT_CB, conncb);
@@ -89,7 +89,7 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
     int ret;
     ber_socket_t ber_fd;
     struct fd_event_item *fd_event_item;
-    struct ldap_cb_data *cb_data = talloc_get_type(ctx->lc_arg,
+    struct ldap_cb_data *cb_data = talloc_get_type_abort(ctx->lc_arg,
                                                    struct ldap_cb_data);
 
     if (cb_data == NULL) {
@@ -139,7 +139,7 @@ static void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
     int ret;
     ber_socket_t ber_fd;
     struct fd_event_item *fd_event_item;
-    struct ldap_cb_data *cb_data = talloc_get_type(ctx->lc_arg,
+    struct ldap_cb_data *cb_data = talloc_get_type_abort(ctx->lc_arg,
                                                    struct ldap_cb_data);
 
     if (sb == NULL || cb_data == NULL) {

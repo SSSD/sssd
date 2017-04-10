@@ -139,7 +139,7 @@ static int krb5_delete_ccname(TALLOC_CTX *mem_ctx,
 
 static int krb5_cleanup(void *ptr)
 {
-    struct krb5child_req *kr = talloc_get_type(ptr, struct krb5child_req);
+    struct krb5child_req *kr = talloc_get_type_abort(ptr, struct krb5child_req);
 
     if (kr == NULL) return EOK;
 

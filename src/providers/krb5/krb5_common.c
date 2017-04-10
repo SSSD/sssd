@@ -519,7 +519,7 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    krb5_service = talloc_get_type(private_data, struct krb5_service);
+    krb5_service = talloc_get_type_abort(private_data, struct krb5_service);
     if (!krb5_service) {
         DEBUG(SSSDBG_CRIT_FAILURE, "FATAL: Bad private_data\n");
         talloc_free(tmp_ctx);
@@ -839,7 +839,7 @@ void remove_krb5_info_files_callback(void *pvt)
 {
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
-    struct remove_info_files_ctx *ctx = talloc_get_type(pvt,
+    struct remove_info_files_ctx *ctx = talloc_get_type_abort(pvt,
                                                   struct remove_info_files_ctx);
 
     ret = be_fo_run_callbacks_at_next_request(ctx->be_ctx,

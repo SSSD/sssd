@@ -414,7 +414,7 @@ ipa_sudo_ptask_full_refresh_send(TALLOC_CTX *mem_ctx,
                                  void *pvt)
 {
     struct ipa_sudo_ctx *sudo_ctx;
-    sudo_ctx = talloc_get_type(pvt, struct ipa_sudo_ctx);
+    sudo_ctx = talloc_get_type_abort(pvt, struct ipa_sudo_ctx);
 
     return ipa_sudo_full_refresh_send(mem_ctx, be_ctx->ev, sudo_ctx);
 }
@@ -435,7 +435,7 @@ ipa_sudo_ptask_smart_refresh_send(TALLOC_CTX *mem_ctx,
                                   void *pvt)
 {
     struct ipa_sudo_ctx *sudo_ctx;
-    sudo_ctx = talloc_get_type(pvt, struct ipa_sudo_ctx);
+    sudo_ctx = talloc_get_type_abort(pvt, struct ipa_sudo_ctx);
 
     return ipa_sudo_smart_refresh_send(mem_ctx, be_ctx->ev, sudo_ctx);
 }

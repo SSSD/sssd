@@ -47,7 +47,7 @@ static int proxy_client_register(struct sbus_request *sbus_req,
     struct pc_init_ctx *init_ctx;
 
     conn = sbus_req->conn;
-    proxy_cli = talloc_get_type(data, struct proxy_client);
+    proxy_cli = talloc_get_type_abort(data, struct proxy_client);
     if (proxy_cli == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
         return EINVAL;
@@ -81,7 +81,7 @@ static int proxy_client_register(struct sbus_request *sbus_req,
     }
 
     /* Signal that the child is up and ready to receive the request */
-    req = talloc_get_type(value.ptr, struct tevent_req);
+    req = talloc_get_type_abort(value.ptr, struct tevent_req);
     child_ctx = tevent_req_data(req, struct proxy_child_ctx);
 
     if (!child_ctx->running) {
@@ -113,7 +113,7 @@ static void proxy_client_timeout(struct tevent_context *ev,
     DEBUG(SSSDBG_OP_FAILURE,
           "Client timed out before Identification [%p]!\n", te);
 
-    proxy_cli = talloc_get_type(ptr, struct proxy_client);
+    proxy_cli = talloc_get_type_abort(ptr, struct proxy_client);
 
     sbus_disconnect(proxy_cli->conn);
     talloc_zfree(proxy_cli);
@@ -137,7 +137,7 @@ int proxy_client_init(struct sbus_connection *conn, void *data)
         .Register = proxy_client_register,
     };
 
-    auth_ctx = talloc_get_type(data, struct proxy_auth_ctx);
+    auth_ctx = talloc_get_type_abort(data, struct proxy_auth_ctx);
 
     /* When connection is lost we also free the client. */
     proxy_cli = talloc_zero(conn, struct proxy_client);

@@ -1861,7 +1861,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
      * group object might not have full group membership data. To make sure we
      * connect to an LDAP server of the group's domain. */
     if (state->opts->schema_type == SDAP_SCHEMA_AD && sdom->pvt != NULL) {
-        subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+        subdom_id_ctx = talloc_get_type_abort(sdom->pvt, struct ad_id_ctx);
         state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
         if (!state->op) {
             DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");

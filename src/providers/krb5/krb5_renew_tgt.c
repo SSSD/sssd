@@ -62,7 +62,7 @@ static void renew_tgt_done(struct tevent_req *req);
 static void renew_tgt(struct tevent_context *ev, struct tevent_timer *te,
                       struct timeval current_time, void *private_data)
 {
-    struct auth_data *auth_data = talloc_get_type(private_data,
+    struct auth_data *auth_data = talloc_get_type_abort(private_data,
                                                   struct auth_data);
     struct tevent_req *req;
 
@@ -114,7 +114,7 @@ static void renew_tgt_done(struct tevent_req *req)
                 ret = hash_lookup(auth_data->table, &auth_data->key, &value);
                 if (ret == HASH_SUCCESS) {
                     if (value.type == HASH_VALUE_PTR &&
-                        auth_data->renew_data == talloc_get_type(value.ptr,
+                        auth_data->renew_data == talloc_get_type_abort(value.ptr,
                                                            struct renew_data)) {
                         DEBUG(SSSDBG_FUNC_DATA,
                               "New TGT was not added for renewal, "
@@ -173,7 +173,7 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
     now = time(NULL);
 
     for (c = 0; c < count; c++) {
-        renew_data = talloc_get_type(entries[c].value.ptr, struct renew_data);
+        renew_data = talloc_get_type_abort(entries[c].value.ptr, struct renew_data);
         DEBUG(SSSDBG_TRACE_ALL,
               "Checking [%s] for renewal at [%.24s].\n", renew_data->ccfile,
                   ctime(&renew_data->start_renew_at));
@@ -234,7 +234,7 @@ static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx);
 
 static void renew_tgt_offline_callback(void *private_data)
 {
-    struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type(private_data,
+    struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type_abort(private_data,
                                                           struct renew_tgt_ctx);
 
     talloc_zfree(renew_tgt_ctx->te);
@@ -242,7 +242,7 @@ static void renew_tgt_offline_callback(void *private_data)
 
 static void renew_tgt_online_callback(void *private_data)
 {
-    struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type(private_data,
+    struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type_abort(private_data,
                                                           struct renew_tgt_ctx);
 
     renew_handler(renew_tgt_ctx);
@@ -252,7 +252,7 @@ static void renew_tgt_timer_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval current_time, void *data)
 {
-    struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type(data,
+    struct renew_tgt_ctx *renew_tgt_ctx = talloc_get_type_abort(data,
                                                           struct renew_tgt_ctx);
 
     /* forget the timer event, it will be freed by the tevent timer loop */
@@ -307,7 +307,7 @@ static void renew_del_cb(hash_entry_t *entry, hash_destroy_enum type, void *pvt)
     struct renew_data *renew_data;
 
     if (entry->value.type == HASH_VALUE_PTR) {
-        renew_data = talloc_get_type(entry->value.ptr, struct renew_data);
+        renew_data = talloc_get_type_abort(entry->value.ptr, struct renew_data);
         talloc_zfree(renew_data);
         return;
     }

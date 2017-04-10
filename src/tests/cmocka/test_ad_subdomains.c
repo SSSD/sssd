@@ -91,7 +91,7 @@ static int test_ad_subdom_teardown(void **state)
 {
     struct test_ad_subdom_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct test_ad_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ad_subdom_ctx);
     assert_non_null(test_ctx);
 
     assert_true(check_leaks_pop(test_ctx) == true);
@@ -106,7 +106,7 @@ static void test_ad_subdom_default(void **state)
     const char **ad_enabled_domains = NULL;
     errno_t ret;
 
-    test_ctx = talloc_get_type(*state, struct test_ad_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ad_subdom_ctx);
     test_ctx->ad_id_ctx = test_ad_subdom_init_ad_id_ctx(test_ctx);
     assert_non_null(test_ctx->ad_id_ctx);
 
@@ -128,7 +128,7 @@ static void test_ad_subdom_add_one(void **state)
     const char *domains[domain_count];
     errno_t ret;
 
-    test_ctx = talloc_get_type(*state, struct test_ad_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ad_subdom_ctx);
     test_ctx->ad_id_ctx = test_ad_subdom_init_ad_id_ctx(test_ctx);
     assert_non_null(test_ctx->ad_id_ctx);
 
@@ -166,7 +166,7 @@ static void test_ad_subdom_add_two(void **state)
     const char *domains[domain_count];
     errno_t ret;
 
-    test_ctx = talloc_get_type(*state, struct test_ad_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ad_subdom_ctx);
     test_ctx->ad_id_ctx = test_ad_subdom_init_ad_id_ctx(test_ctx);
     assert_non_null(test_ctx->ad_id_ctx);
 
@@ -205,7 +205,7 @@ static void test_ad_subdom_add_master(void **state)
     const char *domains[domain_count];
     errno_t ret;
 
-    test_ctx = talloc_get_type(*state, struct test_ad_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ad_subdom_ctx);
     test_ctx->ad_id_ctx = test_ad_subdom_init_ad_id_ctx(test_ctx);
     assert_non_null(test_ctx->ad_id_ctx);
 
@@ -242,7 +242,7 @@ static void test_ad_subdom_add_two_with_master(void **state)
     const char *domains[domain_count];
     errno_t ret;
 
-    test_ctx = talloc_get_type(*state, struct test_ad_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ad_subdom_ctx);
     test_ctx->ad_id_ctx = test_ad_subdom_init_ad_id_ctx(test_ctx);
     assert_non_null(test_ctx->ad_id_ctx);
 
@@ -304,7 +304,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

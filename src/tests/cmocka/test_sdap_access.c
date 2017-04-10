@@ -44,7 +44,7 @@ void test_nds_check_expire(void **state)
     struct expire_test_ctx *tc;
     bool res;
 
-    tc = talloc_get_type(*state, struct expire_test_ctx);
+    tc = talloc_get_type_abort(*state, struct expire_test_ctx);
     assert_non_null(tc);
 
     assert_false(nds_check_expired(NULL));
@@ -64,6 +64,7 @@ void test_nds_check_expire(void **state)
 
 int main(void)
 {
+    talloc_set_abort_fn(sss_talloc_abort);	
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_nds_check_expire,
                                         expire_test_setup,

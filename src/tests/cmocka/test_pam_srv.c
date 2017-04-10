@@ -448,7 +448,7 @@ void __wrap_sss_cmd_done(struct cli_ctx *cctx, void *freectx)
     size_t blen;
     cmd_cb_fn_t check_cb;
 
-    prctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    prctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
     packet = prctx->creq->out;
     assert_non_null(packet);
 
@@ -2061,7 +2061,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while ((opt = poptGetNextOpt(pc)) != -1) {
         switch (opt) {

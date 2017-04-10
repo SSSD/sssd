@@ -133,7 +133,7 @@ get_autofs_map(struct autofs_ctx *actx,
 
     hret = hash_lookup(actx->maps, &key, &value);
     if (hret == HASH_SUCCESS) {
-        *map = talloc_get_type(value.ptr, struct autofs_map_ctx);
+        *map = talloc_get_type_abort(value.ptr, struct autofs_map_ctx);
         return EOK;
     } else if (hret == HASH_ERROR_KEY_NOT_FOUND) {
         return ENOENT;
@@ -157,7 +157,7 @@ autofs_map_hash_delete_cb(hash_entry_t *item,
         return;
     }
 
-    map = talloc_get_type(item->value.ptr, struct autofs_map_ctx);
+    map = talloc_get_type_abort(item->value.ptr, struct autofs_map_ctx);
     if (!map) {
         DEBUG(SSSDBG_OP_FAILURE, "Invalid autofs map\n");
         return;
@@ -206,7 +206,7 @@ autofs_map_hash_remove(TALLOC_CTX *ctx)
     int hret;
     hash_key_t key;
     struct autofs_map_ctx *map =
-            talloc_get_type(ctx, struct autofs_map_ctx);
+            talloc_get_type_abort(ctx, struct autofs_map_ctx);
 
     if (map->map_table == NULL) {
         DEBUG(SSSDBG_TRACE_LIBS, "autofs map [%s] was already removed\n",
@@ -256,7 +256,7 @@ sss_autofs_cmd_setautomntent(struct cli_ctx *client)
     }
     cmdctx->cctx = client;
 
-    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cmdctx->cctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
@@ -310,7 +310,7 @@ static void sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
         return;
     }
 
-    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cmdctx->cctx->protocol_ctx, struct cli_protocol);
 
     /* Either we succeeded or no domains were eligible */
     ret = sss_packet_new(pctx->creq, 0,
@@ -377,7 +377,7 @@ autofs_map_result_timeout(struct tevent_context *ev,
                           void *pvt)
 {
     struct autofs_map_ctx *map =
-            talloc_get_type(pvt, struct autofs_map_ctx);
+            talloc_get_type_abort(pvt, struct autofs_map_ctx);
 
     /* Free the autofs map result context
      * The destructor for the autofs map will remove itself
@@ -426,8 +426,8 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     struct autofs_state_ctx *state_ctx;
     struct setautomntent_lookup_ctx *lookup_ctx;
 
-    actx = talloc_get_type(client->rctx->pvt_ctx, struct autofs_ctx);
-    state_ctx = talloc_get_type(client->state_ctx, struct autofs_state_ctx);
+    actx = talloc_get_type_abort(client->rctx->pvt_ctx, struct autofs_ctx);
+    state_ctx = talloc_get_type_abort(client->state_ctx, struct autofs_state_ctx);
 
     req = tevent_req_create(mem_ctx, &state, struct setautomntent_state);
     if (!req) {
@@ -841,7 +841,7 @@ static void autofs_dp_send_map_req_done(struct tevent_req *req)
     struct dp_callback_ctx *cb_ctx =
             tevent_req_callback_data(req, struct dp_callback_ctx);
     struct setautomntent_lookup_ctx *lookup_ctx =
-            talloc_get_type(cb_ctx->ptr, struct setautomntent_lookup_ctx);
+            talloc_get_type_abort(cb_ctx->ptr, struct setautomntent_lookup_ctx);
 
     errno_t ret;
     dbus_uint16_t err_maj;
@@ -865,7 +865,7 @@ static void lookup_automntmap_cache_updated(uint16_t err_maj, uint32_t err_min,
                                             const char *err_msg, void *ptr)
 {
     struct setautomntent_lookup_ctx *lookup_ctx =
-            talloc_get_type(ptr, struct setautomntent_lookup_ctx);
+            talloc_get_type_abort(ptr, struct setautomntent_lookup_ctx);
     struct autofs_dom_ctx *dctx = lookup_ctx->dctx;
     errno_t ret;
 
@@ -941,13 +941,13 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
     }
     cmdctx->cctx = client;
 
-    actx = talloc_get_type(client->rctx->pvt_ctx, struct autofs_ctx);
+    actx = talloc_get_type_abort(client->rctx->pvt_ctx, struct autofs_ctx);
     if (!actx) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing autofs context\n");
         return EIO;
     }
 
-    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cmdctx->cctx->protocol_ctx, struct cli_protocol);
 
     /* get autofs map name and index to query */
     sss_packet_get_body(pctx->creq->in, &body, &blen);
@@ -1035,7 +1035,7 @@ getautomntent_implicit_done(struct tevent_req *req)
     struct autofs_cmd_ctx *cmdctx =
         tevent_req_callback_data(req, struct autofs_cmd_ctx);
     struct autofs_ctx *actx =
-        talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct autofs_ctx);
+        talloc_get_type_abort(cmdctx->cctx->rctx->pvt_ctx, struct autofs_ctx);
 
     ret = setautomntent_recv(req);
     talloc_zfree(req);
@@ -1081,7 +1081,7 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
     uint8_t *body;
     size_t blen;
 
-    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cmdctx->cctx->protocol_ctx, struct cli_protocol);
 
     /* create response packet */
     ret = sss_packet_new(pctx->creq, 0,
@@ -1224,13 +1224,13 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
     }
     cmdctx->cctx = client;
 
-    actx = talloc_get_type(client->rctx->pvt_ctx, struct autofs_ctx);
+    actx = talloc_get_type_abort(client->rctx->pvt_ctx, struct autofs_ctx);
     if (!actx) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing autofs context\n");
         return EIO;
     }
 
-    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cmdctx->cctx->protocol_ctx, struct cli_protocol);
 
     /* get autofs map name and index to query */
     sss_packet_get_body(pctx->creq->in, &body, &blen);
@@ -1339,7 +1339,7 @@ getautomntbyname_implicit_done(struct tevent_req *req)
     struct autofs_cmd_ctx *cmdctx =
         tevent_req_callback_data(req, struct autofs_cmd_ctx);
     struct autofs_ctx *actx =
-        talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct autofs_ctx);
+        talloc_get_type_abort(cmdctx->cctx->rctx->pvt_ctx, struct autofs_ctx);
 
     ret = setautomntent_recv(req);
     talloc_zfree(req);
@@ -1386,7 +1386,7 @@ getautomntbyname_process(struct autofs_cmd_ctx *cmdctx,
     uint8_t *body;
     size_t blen, rp;
 
-    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cmdctx->cctx->protocol_ctx, struct cli_protocol);
 
     /* create response packet */
     ret = sss_packet_new(pctx->creq, 0,
@@ -1468,7 +1468,7 @@ sss_autofs_cmd_endautomntent(struct cli_ctx *client)
 
     DEBUG(SSSDBG_TRACE_FUNC, "endautomntent called\n");
 
-    pctx = talloc_get_type(client->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(client->protocol_ctx, struct cli_protocol);
 
     /* create response packet */
     ret = sss_packet_new(pctx->creq, 0,

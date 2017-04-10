@@ -43,7 +43,7 @@ static void sbus_dispatch(struct tevent_context *ev,
 
     if (data == NULL) return;
 
-    conn = talloc_get_type(data, struct sbus_connection);
+    conn = talloc_get_type_abort(data, struct sbus_connection);
 
     dbus_conn = conn->dbus.conn;
     DEBUG(SSSDBG_TRACE_ALL, "dbus conn: %p\n", dbus_conn);
@@ -124,7 +124,7 @@ static void sbus_conn_wakeup_main(void *data)
     struct timeval tv;
     struct tevent_timer *te;
 
-    conn = talloc_get_type(data, struct sbus_connection);
+    conn = talloc_get_type_abort(data, struct sbus_connection);
 
     tv = tevent_timeval_current();
 
@@ -295,7 +295,7 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
 static int connection_destructor(void *ctx)
 {
     struct sbus_connection *conn;
-    conn = talloc_get_type(ctx, struct sbus_connection);
+    conn = talloc_get_type_abort(ctx, struct sbus_connection);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Invoking default destructor on connection %p\n",
               conn->dbus.conn);
@@ -384,7 +384,7 @@ static void sbus_reconnect(struct tevent_context *ev,
     DBusError dbus_error;
     int ret;
 
-    conn = talloc_get_type(data, struct sbus_connection);
+    conn = talloc_get_type_abort(data, struct sbus_connection);
     dbus_error_init(&dbus_error);
 
     DEBUG(SSSDBG_MINOR_FAILURE, "Making reconnection attempt %d to [%s]\n",

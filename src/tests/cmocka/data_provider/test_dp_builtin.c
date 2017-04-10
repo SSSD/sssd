@@ -74,7 +74,7 @@ static int test_teardown(void **state)
 {
     struct test_ctx *test_ctx;
 
-    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort_abort(*state, struct test_ctx);
     assert_true(check_leaks_pop(test_ctx));
     talloc_zfree(test_ctx);
 
@@ -90,7 +90,7 @@ static void test_deny_handler(void **state)
     struct pam_data *pd;
     struct pam_data *out_pd;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     pd = talloc_zero(test_ctx, struct pam_data);
     assert_non_null(pd);
@@ -117,7 +117,7 @@ static void test_permit_handler(void **state)
     struct pam_data *pd;
     struct pam_data *out_pd;
 
-    test_ctx = talloc_get_type(*state, struct test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     pd = talloc_zero(test_ctx, struct pam_data);
     assert_non_null(pd);
@@ -175,7 +175,7 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     DEBUG_CLI_INIT(debug_level);
-
+    talloc_set_abort_fn(sss_talloc_abort);
     /* Even though normally the tests should clean up after themselves
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();

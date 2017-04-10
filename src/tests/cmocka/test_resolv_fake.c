@@ -250,7 +250,7 @@ static int test_resolv_fake_setup(void **state)
 static int test_resolv_fake_teardown(void **state)
 {
     struct resolv_fake_ctx *test_ctx =
-        talloc_get_type(*state, struct resolv_fake_ctx);
+        talloc_get_type_abort(*state, struct resolv_fake_ctx);
 
     talloc_free(test_ctx);
     talloc_free(global_mock_context);
@@ -302,7 +302,7 @@ void test_resolv_fake_srv(void **state)
     int ret;
     struct tevent_req *req;
     struct resolv_fake_ctx *test_ctx =
-        talloc_get_type(*state, struct resolv_fake_ctx);
+        talloc_get_type_abort(*state, struct resolv_fake_ctx);
 
     unsigned char *buf;
     size_t buflen;
@@ -377,7 +377,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

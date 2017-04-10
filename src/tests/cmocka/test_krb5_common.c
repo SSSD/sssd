@@ -71,7 +71,7 @@ static int test_setup(void **state)
 
 static int test_teardown(void **state)
 {
-    struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
+    struct test_ctx *test_ctx = talloc_get_type_abort(*state, struct test_ctx);
 
     assert_true(check_leaks_pop(test_ctx));
     talloc_free(test_ctx);
@@ -178,7 +178,7 @@ void test_sss_krb5_check_options(void **state)
 {
     int ret;
     struct dp_option *opts;
-    struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
+    struct test_ctx *test_ctx = talloc_get_type_abort(*state, struct test_ctx);
     struct krb5_ctx *krb5_ctx;
 
     ret = sss_krb5_check_options(NULL, NULL, NULL);
@@ -283,7 +283,7 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     DEBUG_CLI_INIT(debug_level);
-
+    talloc_set_abort_fn(sss_talloc_abort);
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);

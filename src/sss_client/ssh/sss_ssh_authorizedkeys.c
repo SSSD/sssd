@@ -71,7 +71,7 @@ int main(int argc, const char **argv)
     poptSetOtherOptionHelp(pc, "USER");
     while ((ret = poptGetNextOpt(pc)) > 0)
         ;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     DEBUG_INIT(pc_debug);
 
     if (ret != -1) {

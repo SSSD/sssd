@@ -73,7 +73,7 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     debug_prg_name = argv[0];
 
     /* parse parameters */

@@ -180,7 +180,7 @@ static void sssd_async_connect_done(struct tevent_context *ev,
                                     struct tevent_fd *fde, uint16_t flags,
                                     void *priv)
 {
-    struct tevent_req *req = talloc_get_type(priv, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(priv, struct tevent_req);
     struct sssd_async_connect_state *state =
                 tevent_req_data(req, struct sssd_async_connect_state);
     int ret;
@@ -223,7 +223,7 @@ static void sssd_async_connect_timeout(struct tevent_context *ev,
 
     DEBUG(SSSDBG_CONF_SETTINGS, "The connection timed out\n");
 
-    connection_request = talloc_get_type(pvt, struct tevent_req);
+    connection_request = talloc_get_type_abort(pvt, struct tevent_req);
     tevent_req_error(connection_request, ETIMEDOUT);
 }
 
@@ -353,7 +353,7 @@ int sssd_async_socket_init_recv(struct tevent_req *req, int *sd)
 static int sssd_async_socket_state_destructor(void *data)
 {
     struct sssd_async_socket_state *state =
-        talloc_get_type(data, struct sssd_async_socket_state);
+        talloc_get_type_abort(data, struct sssd_async_socket_state);
 
     if (state->sd != -1) {
         DEBUG(SSSDBG_TRACE_FUNC, "closing socket [%d]\n", state->sd);

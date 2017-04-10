@@ -155,7 +155,7 @@ sbus_incoming_signal_hash_lookup(hash_table_t *table,
         goto done;
     }
 
-    data = talloc_get_type(value.ptr, struct sbus_incoming_signal_data);
+    data = talloc_get_type_abort(value.ptr, struct sbus_incoming_signal_data);
 
 done:
     talloc_free(key.str);
@@ -234,7 +234,7 @@ sbus_signal_handler(DBusConnection *dbus_conn,
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
-    conn = talloc_get_type(handler_data, struct sbus_connection);
+    conn = talloc_get_type_abort(handler_data, struct sbus_connection);
     sender = dbus_message_get_sender(message);
 
     /* we have a valid handler, create D-Bus request */

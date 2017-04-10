@@ -73,7 +73,7 @@ static void ipa_dyndns_timer_connected(struct tevent_req *req);
 
 void ipa_dyndns_timer(void *pvt)
 {
-    struct ipa_options *ctx = talloc_get_type(pvt, struct ipa_options);
+    struct ipa_options *ctx = talloc_get_type_abort(pvt, struct ipa_options);
     struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
     struct tevent_req *req;
 
@@ -113,7 +113,7 @@ static void ipa_dyndns_nsupdate_done(struct tevent_req *subreq);
 
 void ipa_dyndns_update(void *pvt)
 {
-    struct ipa_options *ctx = talloc_get_type(pvt, struct ipa_options);
+    struct ipa_options *ctx = talloc_get_type_abort(pvt, struct ipa_options);
     struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
 
     /* Schedule timer after provider went offline */

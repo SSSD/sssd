@@ -51,7 +51,7 @@ static int watch_destructor(void *mem)
 {
     struct sbus_watch_ctx *watch;
 
-    watch = talloc_get_type(mem, struct sbus_watch_ctx);
+    watch = talloc_get_type_abort(mem, struct sbus_watch_ctx);
     DLIST_REMOVE(watch->conn->watch_list, watch);
 
     return 0;
@@ -65,7 +65,7 @@ static void sbus_watch_handler(struct tevent_context *ev,
                                struct tevent_fd *fde,
                                uint16_t flags, void *data)
 {
-    struct sbus_watch_ctx *watch = talloc_get_type(data,
+    struct sbus_watch_ctx *watch = talloc_get_type_abort(data,
                                                    struct sbus_watch_ctx);
     enum dbus_conn_type type;
     union dbus_conn_pointer dbus_p;
@@ -117,7 +117,7 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
     dbus_bool_t enabled;
     int fd;
 
-    conn = talloc_get_type(data, struct sbus_connection);
+    conn = talloc_get_type_abort(data, struct sbus_connection);
 
 #ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
     fd = dbus_watch_get_unix_fd(dbus_watch);
@@ -204,7 +204,7 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
     flags = dbus_watch_get_flags(dbus_watch);
 
     watch_data = dbus_watch_get_data(dbus_watch);
-    watch = talloc_get_type(watch_data, struct sbus_watch_ctx);
+    watch = talloc_get_type_abort(watch_data, struct sbus_watch_ctx);
     if (!watch) {
         DEBUG(SSSDBG_OP_FAILURE,
               "[%p] does not carry watch context?!\n", dbus_watch);
@@ -254,7 +254,7 @@ void sbus_remove_watch(DBusWatch *dbus_watch, void *data)
     void *watch_data;
 
     watch_data = dbus_watch_get_data(dbus_watch);
-    watch = talloc_get_type(watch_data, struct sbus_watch_ctx);
+    watch = talloc_get_type_abort(watch_data, struct sbus_watch_ctx);
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "%p/%p\n", watch, dbus_watch);
 
@@ -300,7 +300,7 @@ static void sbus_timeout_handler(struct tevent_context *ev,
                                  struct timeval t, void *data)
 {
     struct sbus_timeout_ctx *timeout;
-    timeout = talloc_get_type(data, struct sbus_timeout_ctx);
+    timeout = talloc_get_type_abort(data, struct sbus_timeout_ctx);
 
     dbus_timeout_handle(timeout->dbus_timeout);
 }
@@ -321,7 +321,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
         return TRUE;
     }
 
-    conn = talloc_get_type(data, struct sbus_connection);
+    conn = talloc_get_type_abort(data, struct sbus_connection);
 
     timeout = talloc_zero(conn, struct sbus_timeout_ctx);
     if (!timeout) {

@@ -249,7 +249,7 @@ int ifp_list_components(struct sbus_request *dbus_req, void *data)
     int i;
     errno_t ret;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         ret = EINVAL;
@@ -320,7 +320,7 @@ int ifp_list_backends(struct sbus_request *dbus_req, void *data)
     int num;
     errno_t ret;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         ret = EINVAL;
@@ -373,7 +373,7 @@ int ifp_find_backend_by_name(struct sbus_request *dbus_req,
     DBusError *error = NULL;
     const char *result = NULL;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
@@ -405,7 +405,7 @@ void ifp_component_get_name(struct sbus_request *dbus_req,
 
     *_out = NULL;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         return;
@@ -435,7 +435,7 @@ void ifp_component_get_debug_level(struct sbus_request *dbus_req,
 
     *_out = 0;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         return;
@@ -491,7 +491,7 @@ void ifp_component_get_enabled(struct sbus_request *dbus_req,
 
     *_out = false;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         return;
@@ -543,7 +543,7 @@ void ifp_component_get_type(struct sbus_request *dbus_req,
 
     *_out = NULL;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         return;
@@ -604,7 +604,7 @@ void ifp_backend_get_providers(struct sbus_request *dbus_req,
         return;
     }
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
         return;

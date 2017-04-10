@@ -132,7 +132,7 @@ static void
 fd_input_available(struct tevent_context *ev, struct tevent_fd *fde,
                    uint16_t flags, void *data)
 {
-    struct fd_watch *watch = talloc_get_type(data, struct fd_watch);
+    struct fd_watch *watch = talloc_get_type_abort(data, struct fd_watch);
 
     if (watch->ctx->channel == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -183,7 +183,7 @@ static void
 check_fd_timeouts(struct tevent_context *ev, struct tevent_timer *te,
                   struct timeval current_time, void *private_data)
 {
-    struct resolv_ctx *ctx = talloc_get_type(private_data, struct resolv_ctx);
+    struct resolv_ctx *ctx = talloc_get_type_abort(private_data, struct resolv_ctx);
 
     DEBUG(SSSDBG_TRACE_ALL, "Checking for DNS timeouts\n");
 
@@ -211,7 +211,7 @@ resolv_request_timeout(struct tevent_context *ev,
 
     DEBUG(SSSDBG_MINOR_FAILURE, "The resolve request timed out\n");
 
-    rreq = talloc_get_type(pvt, struct resolv_request);
+    rreq = talloc_get_type_abort(pvt, struct resolv_request);
     if (rreq->rwatch == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "The request already completed\n");
         return;
@@ -319,7 +319,7 @@ static void fd_event_close(struct resolv_ctx *ctx, int s);
 static void
 fd_event(void *data, int s, int fd_read, int fd_write)
 {
-    struct resolv_ctx *ctx = talloc_get_type(data, struct resolv_ctx);
+    struct resolv_ctx *ctx = talloc_get_type_abort(data, struct resolv_ctx);
     struct fd_watch *watch;
     int flags;
 
@@ -877,7 +877,7 @@ resolv_gethostbyname_dns_query_done(void *arg, int status, int timeouts,
 {
     errno_t ret;
     struct gethostbyname_dns_state *state;
-    struct resolv_request *rreq = talloc_get_type(arg, struct resolv_request);
+    struct resolv_request *rreq = talloc_get_type_abort(arg, struct resolv_request);
     struct tevent_req *req;
 
 
@@ -1704,7 +1704,7 @@ resolv_get_ttl(const unsigned char *abuf, const int alen, uint32_t *_ttl)
 static void
 resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
 {
-    struct resolv_request *rreq = talloc_get_type(arg, struct resolv_request);
+    struct resolv_request *rreq = talloc_get_type_abort(arg, struct resolv_request);
     struct tevent_req *req;
     struct getsrv_state *state;
     int ret;
@@ -1956,7 +1956,7 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 static void
 resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
 {
-    struct resolv_request *rreq = talloc_get_type(arg, struct resolv_request);
+    struct resolv_request *rreq = talloc_get_type_abort(arg, struct resolv_request);
     struct tevent_req *req;
     struct gettxt_state *state;
     int ret;

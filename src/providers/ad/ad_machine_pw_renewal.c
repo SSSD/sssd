@@ -135,7 +135,7 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    renewal_data = talloc_get_type(pvt, struct renewal_data);
+    renewal_data = talloc_get_type_abort(pvt, struct renewal_data);
 
     state->ev = ev;
     state->child_status = EFAULT;
@@ -279,7 +279,7 @@ ad_machine_account_password_renewal_timeout(struct tevent_context *ev,
                                             struct tevent_timer *te,
                                             struct timeval tv, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct renewal_state *state = tevent_req_data(req, struct renewal_state);
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for AD renewal child.\n");

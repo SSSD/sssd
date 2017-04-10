@@ -63,7 +63,7 @@ struct krb5_ctx *ipa_init_get_krb5_auth_ctx(void *data)
 {
     struct ipa_init_ctx *ipa_init_ctx;
 
-    ipa_init_ctx = talloc_get_type(data, struct ipa_init_ctx);
+    ipa_init_ctx = talloc_get_type_abort(data, struct ipa_init_ctx);
     if (ipa_init_ctx == NULL || ipa_init_ctx->auth_ctx == NULL) {
         return NULL;
     }
@@ -723,7 +723,7 @@ errno_t sssm_ipa_id_init(TALLOC_CTX *mem_ctx,
     struct ipa_init_ctx *init_ctx;
     struct ipa_id_ctx *id_ctx;
 
-    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ipa_init_ctx);
     id_ctx = init_ctx->id_ctx;
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
@@ -745,7 +745,7 @@ errno_t sssm_ipa_auth_init(TALLOC_CTX *mem_ctx,
     struct ipa_init_ctx *init_ctx;
     struct ipa_auth_ctx *auth_ctx;
 
-    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ipa_init_ctx);
     auth_ctx = init_ctx->auth_ctx;
 
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
@@ -773,7 +773,7 @@ errno_t sssm_ipa_access_init(TALLOC_CTX *mem_ctx,
     struct ipa_id_ctx *id_ctx;
     errno_t ret;
 
-    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ipa_init_ctx);
     id_ctx = init_ctx->id_ctx;
 
     access_ctx = talloc_zero(mem_ctx, struct ipa_access_ctx);
@@ -831,7 +831,7 @@ errno_t sssm_ipa_selinux_init(TALLOC_CTX *mem_ctx,
     struct ipa_init_ctx *init_ctx;
     struct ipa_options *opts;
 
-    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ipa_init_ctx);
     opts = init_ctx->options;
 
     selinux_ctx = talloc_zero(mem_ctx, struct ipa_selinux_ctx);
@@ -866,7 +866,7 @@ errno_t sssm_ipa_hostid_init(TALLOC_CTX *mem_ctx,
     struct ipa_hostid_ctx *hostid_ctx;
     struct ipa_init_ctx *init_ctx;
 
-    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ipa_init_ctx);
 
     hostid_ctx = talloc_zero(mem_ctx, struct ipa_hostid_ctx);
     if (hostid_ctx == NULL) {
@@ -899,7 +899,7 @@ errno_t sssm_ipa_autofs_init(TALLOC_CTX *mem_ctx,
     struct ipa_init_ctx *init_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing IPA autofs handler\n");
-    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ipa_init_ctx);
 
     return ipa_autofs_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 #else
@@ -917,7 +917,7 @@ errno_t sssm_ipa_subdomains_init(TALLOC_CTX *mem_ctx,
     struct ipa_init_ctx *init_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing IPA subdomains handler\n");
-    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ipa_init_ctx);
 
     return ipa_subdomains_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 }
@@ -931,7 +931,7 @@ errno_t sssm_ipa_sudo_init(TALLOC_CTX *mem_ctx,
     struct ipa_init_ctx *init_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing IPA sudo handler\n");
-    init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ipa_init_ctx);
 
     return ipa_sudo_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 #else

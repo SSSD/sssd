@@ -259,6 +259,7 @@ bool sssctl_restart_sssd(bool force)
 
 int main(int argc, const char **argv)
 {
+    talloc_set_abort_fn(sss_talloc_abort);	
     struct sss_route_cmd commands[] = {
         SSS_TOOL_DELIMITER("SSSD Status:"),
         SSS_TOOL_COMMAND("domain-list", "List available domains", 0, sssctl_domain_list),

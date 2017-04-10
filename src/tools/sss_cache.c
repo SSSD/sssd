@@ -149,7 +149,7 @@ int main(int argc, const char *argv[])
               "Error initializing context for the application\n");
         goto done;
     }
-
+    talloc_set_abort_fn(sss_talloc_abort);
     for (dinfo = tctx->domains; dinfo;
             dinfo = get_next_domain(dinfo, SSS_GND_DESCEND)) {
         if (!IS_SUBDOMAIN(dinfo)) {

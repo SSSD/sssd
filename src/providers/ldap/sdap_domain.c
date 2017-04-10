@@ -24,7 +24,7 @@ int
 sdap_domain_destructor(void *mem)
 {
     struct sdap_domain *dom =
-            talloc_get_type(mem, struct sdap_domain);
+            talloc_get_type_abort(mem, struct sdap_domain);
     DLIST_REMOVE(*(dom->head), dom);
     return 0;
 }

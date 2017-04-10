@@ -88,7 +88,7 @@ static int fqdn_test_setup(void **state)
 
 static int fqdn_test_teardown(void **state)
 {
-    struct fqdn_test_ctx *test_ctx = talloc_get_type(*state,
+    struct fqdn_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct fqdn_test_ctx);
 
     if (test_ctx == NULL) {
@@ -104,7 +104,7 @@ static int fqdn_test_teardown(void **state)
 
 void test_default(void **state)
 {
-    struct fqdn_test_ctx *test_ctx = talloc_get_type(*state,
+    struct fqdn_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct fqdn_test_ctx);
     errno_t ret;
 
@@ -136,7 +136,7 @@ void test_default(void **state)
 
 void test_all(void **state)
 {
-    struct fqdn_test_ctx *test_ctx = talloc_get_type(*state,
+    struct fqdn_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct fqdn_test_ctx);
     errno_t ret;
 
@@ -168,7 +168,7 @@ void test_all(void **state)
 
 void test_flat(void **state)
 {
-    struct fqdn_test_ctx *test_ctx = talloc_get_type(*state,
+    struct fqdn_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct fqdn_test_ctx);
     errno_t ret;
 
@@ -200,7 +200,7 @@ void test_flat(void **state)
 
 void test_flat_fallback(void **state)
 {
-    struct fqdn_test_ctx *test_ctx = talloc_get_type(*state,
+    struct fqdn_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct fqdn_test_ctx);
     errno_t ret;
 
@@ -319,7 +319,7 @@ static int parse_name_test_setup(void **state)
 
 static int parse_name_test_teardown(void **state)
 {
-    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+    struct parse_name_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                            struct parse_name_test_ctx);
 
     assert_true(check_leaks_pop(test_ctx) == true);
@@ -361,7 +361,7 @@ void sss_parse_name_check(struct parse_name_test_ctx *test_ctx,
 
 void parse_name_plain(void **state)
 {
-    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+    struct parse_name_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                            struct parse_name_test_ctx);
     int ret;
 
@@ -377,7 +377,7 @@ void parse_name_plain(void **state)
 
 void parse_name_fqdn(void **state)
 {
-    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+    struct parse_name_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                            struct parse_name_test_ctx);
     parse_name_check(test_ctx, NAME"@"DOMNAME, NULL, EOK, NAME, DOMNAME);
     parse_name_check(test_ctx, NAME"@"DOMNAME2, NULL, EOK, NAME, DOMNAME2);
@@ -390,7 +390,7 @@ void parse_name_fqdn(void **state)
 
 void parse_name_sub(void **state)
 {
-    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+    struct parse_name_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                            struct parse_name_test_ctx);
     /* The subdomain name is valid, but not known */
     parse_name_check(test_ctx, NAME"@"SUBDOMNAME, NULL, EAGAIN, NULL, NULL);
@@ -402,7 +402,7 @@ void parse_name_sub(void **state)
 
 void parse_name_flat(void **state)
 {
-    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+    struct parse_name_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                            struct parse_name_test_ctx);
 
     /* Link the subdomain (simulating subdom handler) */
@@ -417,7 +417,7 @@ void parse_name_flat(void **state)
 
 void parse_name_default(void **state)
 {
-    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+    struct parse_name_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                            struct parse_name_test_ctx);
     struct sss_domain_info *dom2;
 
@@ -431,7 +431,7 @@ void parse_name_default(void **state)
 
 void test_init_nouser(void **state)
 {
-    struct fqdn_test_ctx *test_ctx = talloc_get_type(*state,
+    struct fqdn_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct fqdn_test_ctx);
     errno_t ret;
 
@@ -449,7 +449,7 @@ void test_init_nouser(void **state)
 
 void sss_parse_name_fail(void **state)
 {
-    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+    struct parse_name_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                            struct parse_name_test_ctx);
 
     sss_parse_name_check(test_ctx, "", ERR_REGEX_NOMATCH, NULL, NULL);
@@ -505,7 +505,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

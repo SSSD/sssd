@@ -518,7 +518,7 @@ static void sbus_get_sender_id_done(DBusPendingCall *pending, void *ptr)
 
     dbus_error_init(&dbus_error);
 
-    req = talloc_get_type(ptr, struct tevent_req);
+    req = talloc_get_type_abort(ptr, struct tevent_req);
     state = tevent_req_data(req, struct sbus_get_sender_id_state);
 
     reply = dbus_pending_call_steal_reply(pending);

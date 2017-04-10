@@ -64,7 +64,7 @@ static void authenticate_user(struct tevent_context *ev,
                               struct timeval current_time,
                               void *private_data)
 {
-    struct auth_data *auth_data = talloc_get_type(private_data,
+    struct auth_data *auth_data = talloc_get_type_abort(private_data,
                                                   struct auth_data);
     struct pam_data *pd = auth_data->pd;
     struct tevent_req *req;
@@ -168,7 +168,7 @@ static errno_t authenticate_stored_users(
     while ((entry = iter->next(iter)) != NULL) {
         key.type = HASH_KEY_ULONG;
         key.ul = entry->key.ul;
-        pd = talloc_get_type(entry->value.ptr, struct pam_data);
+        pd = talloc_get_type_abort(entry->value.ptr, struct pam_data);
 
         ret = hash_lookup(uid_table, &key, &value);
 
@@ -214,7 +214,7 @@ static errno_t authenticate_stored_users(
 static void delayed_online_authentication_callback(void *private_data)
 {
     struct deferred_auth_ctx *deferred_auth_ctx =
-            talloc_get_type(private_data, struct deferred_auth_ctx);
+            talloc_get_type_abort(private_data, struct deferred_auth_ctx);
     int ret;
 
     if (deferred_auth_ctx->user_table == NULL) {

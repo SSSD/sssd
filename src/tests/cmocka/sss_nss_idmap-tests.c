@@ -148,7 +148,7 @@ void test_getorigbyname(void **state)
 
 int main(int argc, const char *argv[])
 {
-
+    talloc_set_abort_fn(sss_talloc_abort);
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_getsidbyname),
         cmocka_unit_test(test_getorigbyname),

@@ -75,7 +75,7 @@ static NTSTATUS idmap_sss_unixids_to_sids(struct idmap_domain *dom,
         return ERROR_INVALID_PARAMETER;
     }
 
-    ctx = talloc_get_type(dom->private_data, struct idmap_sss_ctx);
+    ctx = talloc_get_type_abort(dom->private_data, struct idmap_sss_ctx);
     if (ctx == NULL) {
         return ERROR_INVALID_PARAMETER;
     }
@@ -138,7 +138,7 @@ static NTSTATUS idmap_sss_sids_to_unixids(struct idmap_domain *dom,
         return ERROR_INVALID_PARAMETER;
     }
 
-    ctx = talloc_get_type(dom->private_data, struct idmap_sss_ctx);
+    ctx = talloc_get_type_abort(dom->private_data, struct idmap_sss_ctx);
     if (ctx == NULL) {
         return ERROR_INVALID_PARAMETER;
     }

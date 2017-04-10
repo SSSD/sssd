@@ -64,7 +64,7 @@ static struct tevent_req *sdap_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->be_ctx = be_ctx;
-    state->id_ctx = talloc_get_type(pvt, struct sdap_id_ctx);
+    state->id_ctx = talloc_get_type_abort(pvt, struct sdap_id_ctx);
     state->names = names;
     state->index = 0;
 

@@ -73,7 +73,7 @@ static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
 {
     errno_t ret;
     int memcache_timeout;
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type_abort(data, struct resp_ctx);
     struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
 
     ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
@@ -140,8 +140,8 @@ static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *da
     struct resp_ctx *rctx;
     struct nss_ctx *nss_ctx;
 
-    rctx = talloc_get_type(data, struct resp_ctx);
-    nss_ctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+    rctx = talloc_get_type_abort(data, struct resp_ctx);
+    nss_ctx = talloc_get_type_abort(rctx->pvt_ctx, struct nss_ctx);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Invalidating netgroup hash table\n");
 
@@ -327,7 +327,7 @@ done:
 static void nss_dp_reconnect_init(struct sbus_connection *conn,
                                   int status, void *pvt)
 {
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
+    struct be_conn *be_conn = talloc_get_type_abort(pvt, struct be_conn);
     int ret;
 
     /* Did we reconnect successfully? */
@@ -518,7 +518,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     umask(DFL_RSP_UMASK);
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

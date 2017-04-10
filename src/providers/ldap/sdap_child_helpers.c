@@ -77,7 +77,7 @@ static void child_callback(int child_status,
         DEBUG(SSSDBG_CRIT_FAILURE,
               "LDAP child was terminated due to timeout\n");
 
-        struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+        struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
         tevent_req_error(req, ETIMEDOUT);
     }
 }
@@ -440,7 +440,7 @@ static void get_tgt_sigkill_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval tv, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct sdap_get_tgt_state *state = tevent_req_data(req,
                                             struct sdap_get_tgt_state);
     int ret;
@@ -462,7 +462,7 @@ static void get_tgt_timeout_handler(struct tevent_context *ev,
                                       struct tevent_timer *te,
                                       struct timeval tv, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct sdap_get_tgt_state *state = tevent_req_data(req,
                                             struct sdap_get_tgt_state);
     int ret;

@@ -54,7 +54,7 @@ nodes_cached_objects(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         goto fail;
@@ -115,7 +115,7 @@ nodes_domains(TALLOC_CTX *mem_ctx, const char *path, void *data)
     const char **nodes;
     size_t count;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
+    ctx = talloc_get_type_abort(data, struct ifp_ctx);
 
     count = 0;
     domain = ctx->rctx->domains;

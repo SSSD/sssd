@@ -166,7 +166,7 @@ void test_create_pipe_fd(void **state)
     int ret;
     struct create_pipe_ctx *ctx;
 
-    ctx = talloc_get_type(*state, struct create_pipe_ctx);
+    ctx = talloc_get_type_abort(*state, struct create_pipe_ctx);
 
     ctx->sock_name = __FUNCTION__;
 
@@ -186,7 +186,7 @@ static int test_create_pipe_fd_teardown(void **state)
 {
     struct create_pipe_ctx *ctx;
 
-    ctx = talloc_get_type(*state, struct create_pipe_ctx);
+    ctx = talloc_get_type_abort(*state, struct create_pipe_ctx);
 
     if (ctx->fd != -1) {
         unlink(ctx->sock_name);
@@ -216,7 +216,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

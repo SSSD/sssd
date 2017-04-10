@@ -137,7 +137,7 @@
     (id == 0 || (min && (id < min)) || (max && (id > max)))
 
 #include "util/dlinklist.h"
-
+void sss_talloc_abort(const char reason);
 /* From debug.c */
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap);

@@ -118,7 +118,7 @@ int main(void)
     int number_failed;
 
     tests_set_cwd();
-
+    talloc_set_abort_fn(sss_talloc_abort);
     Suite *s = find_uid_suite ();
     SRunner *sr = srunner_create (s);
     /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */

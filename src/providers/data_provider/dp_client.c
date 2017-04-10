@@ -97,7 +97,7 @@ dp_client_register(struct sbus_request *sbus_req,
     enum dp_clients client;
     errno_t ret;
 
-    dp_cli = talloc_get_type(data, struct dp_client);
+    dp_cli = talloc_get_type_abort(data, struct dp_client);
     if (dp_cli == NULL) {
         /* Do not send D-Bus error here. */
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: dp_cli is NULL\n");
@@ -157,7 +157,7 @@ dp_client_handshake_timeout(struct tevent_context *ev,
     DEBUG(SSSDBG_OP_FAILURE,
           "Client timed out before identification [%p]!\n", te);
 
-    dp_cli = talloc_get_type(ptr, struct dp_client);
+    dp_cli = talloc_get_type_abort(ptr, struct dp_client);
 
     sbus_disconnect(dp_cli->conn);
     talloc_zfree(dp_cli);
@@ -176,7 +176,7 @@ errno_t dp_client_init(struct sbus_connection *conn, void *data)
         .Register = dp_client_register,
     };
 
-    provider = talloc_get_type(data, struct data_provider);
+    provider = talloc_get_type_abort(data, struct data_provider);
 
     /* When connection is lost we also free the client. */
     dp_cli = talloc_zero(conn, struct dp_client);

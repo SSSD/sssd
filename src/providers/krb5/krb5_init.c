@@ -199,7 +199,7 @@ errno_t sssm_krb5_auth_init(TALLOC_CTX *mem_ctx,
 {
     struct krb5_ctx *ctx;
 
-    ctx = talloc_get_type(module_data, struct krb5_ctx);
+    ctx = talloc_get_type_abort(module_data, struct krb5_ctx);
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
                   krb5_pam_handler_send, krb5_pam_handler_recv, ctx,
                   struct krb5_ctx, struct pam_data, struct pam_data *);
@@ -222,7 +222,7 @@ errno_t sssm_krb5_access_init(TALLOC_CTX *mem_ctx,
 {
     struct krb5_ctx *ctx;
 
-    ctx = talloc_get_type(module_data, struct krb5_ctx);
+    ctx = talloc_get_type_abort(module_data, struct krb5_ctx);
     dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
                   krb5_pam_handler_send, krb5_pam_handler_recv, ctx,
                   struct krb5_ctx, struct pam_data, struct pam_data *);

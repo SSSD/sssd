@@ -58,7 +58,7 @@ int main(int argc, const char **argv)
     bool in_transaction = false;
 
     debug_prg_name = argv[0];
-
+    talloc_set_abort_fn(sss_talloc_abort);
     ret = set_locale();
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,

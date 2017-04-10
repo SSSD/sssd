@@ -151,8 +151,8 @@ int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
                                       uint32_t *groups,
                                       int num_groups)
 {
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+    struct resp_ctx *rctx = talloc_get_type_abort(data, struct resp_ctx);
+    struct nss_ctx *nctx = talloc_get_type_abort(rctx->pvt_ctx, struct nss_ctx);
 
     DEBUG(SSSDBG_TRACE_LIBS, "Updating inigroups memory cache of [%s@%s]\n",
           user, domain);

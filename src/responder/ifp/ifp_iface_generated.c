@@ -263,11 +263,6 @@ const struct sbus_interface_meta iface_ifp_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
-/* methods for org.freedesktop.sssd.infopipe.Components */
-const struct sbus_method_meta iface_ifp_components__methods[] = {
-    { NULL, }
-};
-
 /* property info for org.freedesktop.sssd.infopipe.Components */
 const struct sbus_property_meta iface_ifp_components__properties[] = {
     {
@@ -321,7 +316,7 @@ const struct sbus_property_meta iface_ifp_components__properties[] = {
 /* interface info for org.freedesktop.sssd.infopipe.Components */
 const struct sbus_interface_meta iface_ifp_components_meta = {
     "org.freedesktop.sssd.infopipe.Components", /* name */
-    iface_ifp_components__methods,
+    NULL, /* no methods */
     NULL, /* no signals */
     iface_ifp_components__properties,
     sbus_invoke_get_all, /* GetAll invoker */

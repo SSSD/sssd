@@ -486,7 +486,7 @@ sbus_opath_hash_delete_cb(hash_entry_t *item,
     struct sbus_connection *conn;
     char *path;
 
-    conn = talloc_get_type(pvt, struct sbus_connection);
+    conn = talloc_get_type_abort(pvt, struct sbus_connection);
     path = sbus_opath_get_base_path(NULL, item->key.str);
 
     dbus_connection_unregister_object_path(conn->dbus.conn, path);
@@ -551,7 +551,7 @@ sbus_opath_hash_add_iface(hash_table_t *table,
 
         path_known = true;
 
-        list = talloc_get_type(value.ptr, struct sbus_interface_list);
+        list = talloc_get_type_abort(value.ptr, struct sbus_interface_list);
         if (sbus_iface_list_lookup(list, iface_name) != NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Trying to register the same interface"
                   " twice: iface=%s, opath=%s\n", iface_name, object_path);
@@ -641,7 +641,7 @@ sbus_opath_hash_lookup_iface(hash_table_t *table,
 
         hret = hash_lookup(table, &key, &value);
         if (hret == HASH_SUCCESS) {
-            list = talloc_get_type(value.ptr, struct sbus_interface_list);
+            list = talloc_get_type_abort(value.ptr, struct sbus_interface_list);
             iface = sbus_iface_list_lookup(list, iface_name);
             if (iface != NULL) {
                 goto done;
@@ -827,7 +827,7 @@ sbus_nodes_hash_lookup(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    data = talloc_get_type(value.ptr, struct sbus_nodes_data);
+    data = talloc_get_type_abort(value.ptr, struct sbus_nodes_data);
 
     return data->nodes_fn(mem_ctx, object_path, data->handler_data);
 }
@@ -1050,7 +1050,7 @@ sbus_message_handler(DBusConnection *dbus_conn,
     const char *path;
     const char *sender;
 
-    conn = talloc_get_type(handler_data, struct sbus_connection);
+    conn = talloc_get_type_abort(handler_data, struct sbus_connection);
 
     /* header information */
     iface_name = dbus_message_get_interface(message);

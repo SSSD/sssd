@@ -372,7 +372,7 @@ static void te_server_hup(struct tevent_context *ev,
 {
     errno_t ret;
     struct logrotate_ctx *lctx =
-            talloc_get_type(private_data, struct logrotate_ctx);
+            talloc_get_type_abort(private_data, struct logrotate_ctx);
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Received SIGHUP. Rotating logfiles.\n");
 

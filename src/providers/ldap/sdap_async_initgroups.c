@@ -1914,7 +1914,7 @@ save_rfc2307bis_groups(struct sdap_initgr_rfc2307bis_state *state)
     }
 
     for (i = 0; i < count; i++) {
-        gr = talloc_get_type(values[i].ptr,
+        gr = talloc_get_type_abort(values[i].ptr,
                              struct sdap_nested_group);
         groups[i] = gr->group;
     }
@@ -2043,7 +2043,7 @@ done:
 static bool
 rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
 {
-    struct rfc2307bis_group_memberships_state *mstate = talloc_get_type(
+    struct rfc2307bis_group_memberships_state *mstate = talloc_get_type_abort(
                         user_data, struct rfc2307bis_group_memberships_state);
     struct sdap_nested_group *group;
     char *group_name;
@@ -2358,7 +2358,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
         DEBUG(SSSDBG_TRACE_INTERNAL, "Group [%s] was already processed, "
               "taking a shortcut\n", state->primary_name);
         state->processed_groups[state->group_iter] =
-            talloc_get_type(value.ptr, struct sdap_nested_group);
+            talloc_get_type_abort(value.ptr, struct sdap_nested_group);
         talloc_free(key.str);
         ret = EOK;
         goto done;

@@ -121,7 +121,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
                                struct sdap_msg *reply,
                                int error, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct ipa_s2n_exop_state *state = tevent_req_data(req,
                                                     struct ipa_s2n_exop_state);
     int ret;

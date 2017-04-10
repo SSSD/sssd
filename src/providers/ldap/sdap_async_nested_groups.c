@@ -170,7 +170,7 @@ sdap_nested_group_extract_hash_table(TALLOC_CTX *mem_ctx,
         }
 
         for (i = 0; i < num_entries; i++) {
-            entry = talloc_get_type(values[i].ptr, struct sysdb_attrs);
+            entry = talloc_get_type_abort(values[i].ptr, struct sysdb_attrs);
             entries[i] = talloc_steal(entries, entry);
         }
     }
@@ -358,7 +358,7 @@ static errno_t sdap_nested_group_external_add(hash_table_t *table,
         break;
 
     case HASH_SUCCESS:
-        ext_mem = talloc_get_type(value.ptr,
+        ext_mem = talloc_get_type_abort(value.ptr,
                                   struct sdap_external_missing_member);
         if (ext_mem->parent_dn_idx == \
                 talloc_array_length(ext_mem->parent_group_dns)) {

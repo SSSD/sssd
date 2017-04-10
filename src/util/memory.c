@@ -45,7 +45,7 @@ static int mem_holder_destructor(void *ptr)
 {
     struct mem_holder *h;
 
-    h = talloc_get_type(ptr, struct mem_holder);
+    h = talloc_get_type_abort(ptr, struct mem_holder);
     return h->fn(h->mem);
 }
 

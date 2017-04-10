@@ -29,7 +29,7 @@ nss_protocol_done(struct cli_ctx *cli_ctx, errno_t error)
     struct cli_protocol *pctx;
     errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
 
     switch (error) {
     case EOK:
@@ -79,7 +79,7 @@ void nss_protocol_reply(struct cli_ctx *cli_ctx,
     struct cli_protocol *pctx;
     errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
 
     ret = sss_packet_new(pctx->creq, 0, sss_packet_get_cmd(pctx->creq->in),
                          &pctx->creq->out);
@@ -106,7 +106,7 @@ nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
     uint8_t *body;
     size_t blen;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
@@ -141,7 +141,7 @@ nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id)
     size_t blen;
     uint32_t id;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
@@ -176,7 +176,7 @@ nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
     size_t blen;
     int i;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
@@ -232,7 +232,7 @@ nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
     size_t blen;
     int i;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
@@ -278,7 +278,7 @@ nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
     size_t blen;
     errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
@@ -321,8 +321,8 @@ nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
     size_t blen;
     enum idmap_error_code err;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    pctx = talloc_get_type_abort(cli_ctx->protocol_ctx, struct cli_protocol);
+    nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 

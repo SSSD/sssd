@@ -84,7 +84,7 @@ sss_dp_get_domains_msg(void *pvt)
     DBusMessage *msg = NULL;
     dbus_bool_t dbret;
 
-    info = talloc_get_type(pvt, struct sss_dp_domains_info);
+    info = talloc_get_type_abort(pvt, struct sss_dp_domains_info);
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
@@ -401,7 +401,7 @@ static void get_domains_at_startup(struct tevent_context *ev,
     struct tevent_req *req;
     struct get_domains_state *state;
 
-    state = talloc_get_type(pvt, struct get_domains_state);
+    state = talloc_get_type_abort(pvt, struct get_domains_state);
 
     req = sss_dp_get_domains_send(state, state->rctx, true, NULL);
     if (req == NULL) {

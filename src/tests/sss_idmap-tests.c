@@ -957,7 +957,7 @@ int main(int argc, const char *argv[])
     int number_failed;
 
     tests_set_cwd();
-
+    talloc_set_abort_fn(sss_talloc_abort);
     Suite *s = idmap_test_suite();
     SRunner *sr = srunner_create(s);
 

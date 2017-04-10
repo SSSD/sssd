@@ -69,7 +69,7 @@ int main(int argc, const char **argv)
     struct tools_ctx *tctx = NULL;
     char *badgroup = NULL;
     bool in_transaction = false;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     debug_prg_name = argv[0];
 
     ret = set_locale();

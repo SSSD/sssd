@@ -148,7 +148,7 @@ static void be_subdom_reset_status(struct tevent_context *ev,
                                   struct timeval current_time,
                                   void *pvt)
 {
-    struct sss_domain_info *subdom = talloc_get_type(pvt,
+    struct sss_domain_info *subdom = talloc_get_type_abort(pvt,
                                                      struct sss_domain_info);
 
     DEBUG(SSSDBG_TRACE_LIBS, "Resetting subdomain %s\n", subdom->name);
@@ -349,7 +349,7 @@ static void signal_be_offline(struct tevent_context *ev,
                               void *siginfo,
                               void *private_data)
 {
-    struct be_ctx *ctx = talloc_get_type(private_data, struct be_ctx);
+    struct be_ctx *ctx = talloc_get_type_abort(private_data, struct be_ctx);
     be_mark_offline(ctx);
 }
 
@@ -360,7 +360,7 @@ static void signal_be_reset_offline(struct tevent_context *ev,
                                     void *siginfo,
                                     void *private_data)
 {
-    struct be_ctx *ctx = talloc_get_type(private_data, struct be_ctx);
+    struct be_ctx *ctx = talloc_get_type_abort(private_data, struct be_ctx);
     check_if_online(ctx);
 }
 
@@ -506,7 +506,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {
@@ -591,7 +591,7 @@ int main(int argc, const char *argv[])
 static int data_provider_res_init(struct sbus_request *dbus_req, void *data)
 {
     struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
+    be_ctx = talloc_get_type_abort(data, struct be_ctx);
 
     resolv_reread_configuration(be_ctx->be_res->resolv);
     check_if_online(be_ctx);
@@ -602,7 +602,7 @@ static int data_provider_res_init(struct sbus_request *dbus_req, void *data)
 static int data_provider_go_offline(struct sbus_request *dbus_req, void *data)
 {
     struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
+    be_ctx = talloc_get_type_abort(data, struct be_ctx);
     be_mark_offline(be_ctx);
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
@@ -610,7 +610,7 @@ static int data_provider_go_offline(struct sbus_request *dbus_req, void *data)
 static int data_provider_reset_offline(struct sbus_request *dbus_req, void *data)
 {
     struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
+    be_ctx = talloc_get_type_abort(data, struct be_ctx);
     check_if_online(be_ctx);
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
@@ -618,7 +618,7 @@ static int data_provider_reset_offline(struct sbus_request *dbus_req, void *data
 static int data_provider_logrotate(struct sbus_request *dbus_req, void *data)
 {
     errno_t ret;
-    struct be_ctx *be_ctx = talloc_get_type(data, struct be_ctx);
+    struct be_ctx *be_ctx = talloc_get_type_abort(data, struct be_ctx);
 
     ret = server_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
     if (ret != EOK) return ret;

@@ -241,7 +241,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     dbus_bool_t dbret;
     int ret;
 
-    mini = talloc_get_type(data, struct mon_init_conn);
+    mini = talloc_get_type_abort(data, struct mon_init_conn);
     if (!mini) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
         return EINVAL;
@@ -315,7 +315,7 @@ struct svc_spy {
 
 static int svc_destructor(void *mem)
 {
-    struct mt_svc *svc = talloc_get_type(mem, struct mt_svc);
+    struct mt_svc *svc = talloc_get_type_abort(mem, struct mt_svc);
     if (!svc) {
         /* ?!?!? */
         return 0;
@@ -347,7 +347,7 @@ static int svc_destructor(void *mem)
 
 static int svc_spy_destructor(void *mem)
 {
-    struct svc_spy *spy = talloc_get_type(mem, struct svc_spy);
+    struct svc_spy *spy = talloc_get_type_abort(mem, struct svc_spy);
     if (!spy) {
         /* ?!?!? */
         return 0;
@@ -499,7 +499,7 @@ static void services_startup_timeout(struct tevent_context *ev,
                                      struct tevent_timer *te,
                                      struct timeval t, void *ptr)
 {
-    struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
+    struct mt_ctx *ctx = talloc_get_type_abort(ptr, struct mt_ctx);
     int i;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Handling timeout\n");
@@ -570,7 +570,7 @@ static void monitor_restart_service(struct mt_svc *svc);
 static void reload_reply(DBusPendingCall *pending, void *data)
 {
     DBusMessage *reply;
-    struct mt_svc *svc = talloc_get_type(data, struct mt_svc);
+    struct mt_svc *svc = talloc_get_type_abort(data, struct mt_svc);
 
     reply = dbus_pending_call_steal_reply(pending);
     if (!reply) {
@@ -1273,7 +1273,7 @@ static void monitor_hup(struct tevent_context *ev,
                         void *siginfo,
                         void *private_data)
 {
-    struct mt_ctx *ctx = talloc_get_type(private_data, struct mt_ctx);
+    struct mt_ctx *ctx = talloc_get_type_abort(private_data, struct mt_ctx);
     struct mt_svc *cur_svc;
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Received SIGHUP.\n");
@@ -1412,7 +1412,7 @@ static void monitor_quit_signal(struct tevent_context *ev,
                                 void *siginfo,
                                 void *private_data)
 {
-    struct mt_ctx *mt_ctx = talloc_get_type(private_data, struct mt_ctx);
+    struct mt_ctx *mt_ctx = talloc_get_type_abort(private_data, struct mt_ctx);
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Received shutdown command\n");
 
@@ -1446,7 +1446,7 @@ static void signal_offline(struct tevent_context *ev,
     struct mt_ctx *monitor;
     struct mt_svc *cur_svc;
 
-    monitor = talloc_get_type(private_data, struct mt_ctx);
+    monitor = talloc_get_type_abort(private_data, struct mt_ctx);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
          "Signaling providers to go offline immediately.\n");
@@ -1470,7 +1470,7 @@ static void signal_offline_reset(struct tevent_context *ev,
     struct mt_ctx *monitor;
     struct mt_svc *cur_svc;
 
-    monitor = talloc_get_type(private_data, struct mt_ctx);
+    monitor = talloc_get_type_abort(private_data, struct mt_ctx);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
          "Signaling providers to reset offline immediately.\n");
@@ -1489,7 +1489,7 @@ static void signal_offline_reset(struct tevent_context *ev,
 
 static int monitor_ctx_destructor(void *mem)
 {
-    struct mt_ctx *mon = talloc_get_type(mem, struct mt_ctx);
+    struct mt_ctx *mon = talloc_get_type_abort(mem, struct mt_ctx);
     struct mt_svc *svc;
 
     /* zero out references in svcs so that they don't try
@@ -1589,7 +1589,7 @@ static void config_file_changed(struct tevent_context *ev,
     struct timeval tv;
     struct config_file_ctx *file_ctx;
 
-    file_ctx = talloc_get_type(data, struct config_file_ctx);
+    file_ctx = talloc_get_type_abort(data, struct config_file_ctx);
     if (file_ctx->needs_update) {
         /* Skip updating. It's already queued for update.
          */
@@ -1634,7 +1634,7 @@ static void process_config_file(struct tevent_context *ev,
     struct rewatch_ctx *rw_ctx;
     errno_t ret;
 
-    file_ctx = talloc_get_type(ptr, struct config_file_ctx);
+    file_ctx = talloc_get_type_abort(ptr, struct config_file_ctx);
 
     DEBUG(SSSDBG_CRIT_FAILURE, "Processing config file changes\n");
 
@@ -1742,7 +1742,7 @@ static void rewatch_config_file(struct tevent_context *ev,
     struct rewatch_ctx *rw_ctx;
     struct config_file_ctx *file_ctx;
 
-    rw_ctx = talloc_get_type(ptr, struct rewatch_ctx);
+    rw_ctx = talloc_get_type_abort(ptr, struct rewatch_ctx);
 
     cb = rw_ctx->cb;
     file_ctx = rw_ctx->file_ctx;
@@ -1812,7 +1812,7 @@ static void poll_config_file(struct tevent_context *ev,
     struct config_file_ctx *file_ctx;
     struct config_file_callback *cb;
 
-    file_ctx = talloc_get_type(ptr,struct config_file_ctx);
+    file_ctx = talloc_get_type_abort(ptr,struct config_file_ctx);
 
     for (cb = file_ctx->callbacks; cb; cb = cb->next) {
         ret = stat(cb->filename, &file_stat);
@@ -2050,7 +2050,7 @@ static void missing_resolv_conf(struct tevent_context *ev,
                                 struct timeval tv, void *data)
 {
     int ret;
-    struct mt_ctx *ctx = talloc_get_type(data, struct mt_ctx);
+    struct mt_ctx *ctx = talloc_get_type_abort(data, struct mt_ctx);
 
     ret = monitor_config_file(ctx, ctx, RESOLV_CONF_PATH,
                               monitor_update_resolv, false);
@@ -2268,7 +2268,7 @@ static void init_timeout(struct tevent_context *ev,
 
     DEBUG(SSSDBG_OP_FAILURE, "Client timed out before Identification!\n");
 
-    mini = talloc_get_type(ptr, struct mon_init_conn);
+    mini = talloc_get_type_abort(ptr, struct mon_init_conn);
 
     sbus_disconnect(mini->conn);
     talloc_zfree(mini);
@@ -2288,7 +2288,7 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
 
     DEBUG(SSSDBG_TRACE_FUNC, "Initializing D-BUS Service\n");
 
-    ctx = talloc_get_type(data, struct mt_ctx);
+    ctx = talloc_get_type_abort(data, struct mt_ctx);
 
     mini = talloc(conn, struct mon_init_conn);
     if (!mini) {
@@ -2354,7 +2354,7 @@ static void service_startup_handler(struct tevent_context *ev,
     struct mt_svc *mt_svc;
     char **args;
 
-    mt_svc = talloc_get_type(ptr, struct mt_svc);
+    mt_svc = talloc_get_type_abort(ptr, struct mt_svc);
     if (mt_svc == NULL) {
         return;
     }
@@ -2413,7 +2413,7 @@ static void mt_svc_restart(struct tevent_context *ev,
 {
     struct mt_svc *svc;
 
-    svc = talloc_get_type(ptr, struct mt_svc);
+    svc = talloc_get_type_abort(ptr, struct mt_svc);
     if (svc == NULL) {
         return;
     }
@@ -2439,7 +2439,7 @@ static void mt_svc_restart(struct tevent_context *ev,
 
 static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
 {
-    struct mt_svc *svc = talloc_get_type(pvt, struct mt_svc);
+    struct mt_svc *svc = talloc_get_type_abort(pvt, struct mt_svc);
 
     DEBUG(SSSDBG_TRACE_LIBS,
           "SIGCHLD handler of service %s called\n", svc->name);
@@ -2557,7 +2557,7 @@ int main(int argc, const char *argv[])
     }
 
     DEBUG_INIT(debug_level);
-
+    talloc_set_abort_fn(sss_talloc_abort);
     if (opt_version) {
         puts(VERSION""PRERELEASE_VERSION);
         return EXIT_SUCCESS;

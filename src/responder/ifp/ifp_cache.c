@@ -218,7 +218,7 @@ int ifp_cache_list(struct sbus_request *sbus_req,
     int num_paths;
     errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return ERR_INTERNAL;
@@ -250,7 +250,7 @@ int ifp_cache_list_by_domain(struct sbus_request *sbus_req,
     int num_paths;
     errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return ERR_INTERNAL;

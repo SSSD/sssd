@@ -533,7 +533,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     /*
      * This child can run as root or as sssd user relying on policy kit to
      * grant access to pcscd. This means that no setuid or setgid bit must be

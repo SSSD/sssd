@@ -84,7 +84,7 @@ static void krb5_mocked_auth_done(struct tevent_context *ev,
     struct tevent_req *req;
     struct krb5_mocked_auth_state *state;
 
-    req = talloc_get_type(pvt, struct tevent_req);
+    req = talloc_get_type_abort(pvt, struct tevent_req);
     state = tevent_req_data(req, struct krb5_mocked_auth_state);
 
     DEBUG(SSSDBG_TRACE_LIBS, "Finished auth request of %s\n", state->user);
@@ -153,7 +153,7 @@ static int test_krb5_wait_queue_setup(void **state)
 static int test_krb5_wait_queue_teardown(void **state)
 {
     struct test_krb5_wait_queue *test_ctx =
-        talloc_get_type(*state, struct test_krb5_wait_queue);
+        talloc_get_type_abort(*state, struct test_krb5_wait_queue);
 
     talloc_free(test_ctx);
     return 0;
@@ -188,7 +188,7 @@ static void test_krb5_wait_queue_single(void **state)
     errno_t ret;
     struct tevent_req *req;
     struct test_krb5_wait_queue *test_ctx =
-        talloc_get_type(*state, struct test_krb5_wait_queue);
+        talloc_get_type_abort(*state, struct test_krb5_wait_queue);
 
     test_krb5_wait_mock_success(test_ctx, "krb5_user");
 
@@ -227,7 +227,7 @@ static void test_krb5_wait_queue_multi(void **state)
     errno_t ret;
     struct tevent_req *req;
     struct test_krb5_wait_queue *test_ctx =
-        talloc_get_type(*state, struct test_krb5_wait_queue);
+        talloc_get_type_abort(*state, struct test_krb5_wait_queue);
 
     test_ctx->num_auths = 1000;
 
@@ -274,7 +274,7 @@ static void test_krb5_wait_queue_fail_odd(void **state)
     errno_t ret;
     struct tevent_req *req;
     struct test_krb5_wait_queue *test_ctx =
-        talloc_get_type(*state, struct test_krb5_wait_queue);
+        talloc_get_type_abort(*state, struct test_krb5_wait_queue);
 
     test_ctx->num_auths = 10;
 
@@ -342,7 +342,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

@@ -135,7 +135,7 @@ save_autofs_entries(struct sss_domain_info *domain,
             continue;
         }
 
-        entry = talloc_get_type(value.ptr, struct sysdb_attrs);
+        entry = talloc_get_type_abort(value.ptr, struct sysdb_attrs);
         if (!entry) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Cannot retrieve entry [%s] from ptr\n", add_dn_list[i]);

@@ -126,7 +126,7 @@ sss_dp_get_sudoers_msg(void *pvt)
     const char *rule_name = NULL;
     uint32_t i;
 
-    info = talloc_get_type(pvt, struct sss_dp_get_sudoers_info);
+    info = talloc_get_type_abort(pvt, struct sss_dp_get_sudoers_info);
 
     switch (info->type) {
         case SSS_DP_SUDO_REFRESH_RULES:

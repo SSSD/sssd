@@ -102,7 +102,7 @@ sss_dp_get_autofs_msg(void *pvt)
     struct sss_dp_get_autofs_info *info;
     uint32_t dp_flags = 0;
 
-    info = talloc_get_type(pvt, struct sss_dp_get_autofs_info);
+    info = talloc_get_type_abort(pvt, struct sss_dp_get_autofs_info);
 
     if (info->fast_reply) {
         dp_flags |= DP_FAST_REPLY;

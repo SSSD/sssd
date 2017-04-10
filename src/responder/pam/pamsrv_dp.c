@@ -40,7 +40,7 @@ static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
     struct pam_auth_req *preq = NULL;
     struct pam_auth_dp_req *pdp_req;
 
-    pdp_req = talloc_get_type(ptr, struct pam_auth_dp_req);
+    pdp_req = talloc_get_type_abort(ptr, struct pam_auth_dp_req);
     preq = pdp_req->preq;
     talloc_free(pdp_req);
 

@@ -679,9 +679,9 @@ fail:
 static bool extract_netgroups(hash_entry_t *entry, void *pvt)
 {
     struct ipa_get_netgroups_state *state;
-    state = talloc_get_type(pvt, struct ipa_get_netgroups_state);
+    state = talloc_get_type_abort(pvt, struct ipa_get_netgroups_state);
 
-    state->netgroups[state->netgroups_count] = talloc_get_type(entry->value.ptr,
+    state->netgroups[state->netgroups_count] = talloc_get_type_abort(entry->value.ptr,
                                                                struct sysdb_attrs);
     state->netgroups_count++;
 
@@ -704,8 +704,8 @@ static bool extract_entities(hash_entry_t *entry, void *pvt)
     struct ldb_message_element *el;
     struct ldb_message_element *name_el;
 
-    state = talloc_get_type(pvt, struct extract_state);
-    member = talloc_get_type(entry->value.ptr, struct sysdb_attrs);
+    state = talloc_get_type_abort(pvt, struct extract_state);
+    member = talloc_get_type_abort(entry->value.ptr, struct sysdb_attrs);
 
     ret = sysdb_attrs_get_el(member, state->appropriateMemberOf, &el);
     if (ret != EOK) {
@@ -794,7 +794,7 @@ static int extract_members(TALLOC_CTX *mem_ctx,
                     ret = ENOMEM;
                     goto done;
                 }
-                member = talloc_get_type(value.ptr, struct sysdb_attrs);
+                member = talloc_get_type_abort(value.ptr, struct sysdb_attrs);
                 ret = sysdb_attrs_get_string(member, SYSDB_NAME, &ret_array[ret_count]);
                 if (ret != EOK) {
                     goto done;
@@ -886,7 +886,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
                     goto done;
                 }
 
-                member = talloc_get_type(value.ptr, struct sysdb_attrs);
+                member = talloc_get_type_abort(value.ptr, struct sysdb_attrs);
                 ret = sysdb_attrs_get_string(member, SYSDB_NAME, &member_name);
                 if (ret != EOK) {
                     goto done;

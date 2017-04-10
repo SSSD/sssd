@@ -145,7 +145,7 @@ static void sdap_sudo_online_cb(void *pvt)
 {
     struct sdap_sudo_ctx *sudo_ctx;
 
-    sudo_ctx = talloc_get_type(pvt, struct sdap_sudo_ctx);
+    sudo_ctx = talloc_get_type_abort(pvt, struct sdap_sudo_ctx);
     if (sudo_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "BUG: sudo_ctx is NULL\n");
         return;

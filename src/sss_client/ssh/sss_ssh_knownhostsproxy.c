@@ -229,7 +229,7 @@ int main(int argc, const char **argv)
         ;
 
     DEBUG_INIT(pc_debug);
-
+    talloc_set_abort_fn(sss_talloc_abort);
     if (ret != -1) {
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }

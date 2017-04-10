@@ -70,7 +70,7 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
     size_t pwlen;
     errno_t ret;
 
-    auth_data = talloc_get_type(appdata_ptr, struct authtok_conv);
+    auth_data = talloc_get_type_abort(appdata_ptr, struct authtok_conv);
 
     if (num_msg <= 0) return PAM_CONV_ERR;
 
@@ -121,7 +121,7 @@ static int proxy_chauthtok_conv(int num_msg, const struct pam_message **msgm,
     size_t pwlen;
     errno_t ret;
 
-    auth_data = talloc_get_type(appdata_ptr, struct authtok_conv);
+    auth_data = talloc_get_type_abort(appdata_ptr, struct authtok_conv);
 
     if (num_msg <= 0) return PAM_CONV_ERR;
 
@@ -306,7 +306,7 @@ static int pc_pam_handler(struct sbus_request *dbus_req, void *user_data)
     errno_t ret;
     struct pam_data *pd = NULL;
 
-    pc_ctx = talloc_get_type(user_data, struct pc_ctx);
+    pc_ctx = talloc_get_type_abort(user_data, struct pc_ctx);
     if (!pc_ctx) {
         ret = EINVAL;
         goto done;
@@ -527,7 +527,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

@@ -375,7 +375,7 @@ sbus_introspect(struct sbus_request *sbus_req, void *pvt)
     char *introspect;
     errno_t ret;
 
-    conn = talloc_get_type(pvt, struct sbus_connection);
+    conn = talloc_get_type_abort(pvt, struct sbus_connection);
 
     ret = sbus_opath_hash_lookup_supported(sbus_req, conn->managed_paths,
                                            sbus_req->path, &list);

@@ -518,7 +518,7 @@ errno_t sssm_ldap_id_init(TALLOC_CTX *mem_ctx,
     struct ldap_init_ctx *init_ctx;
     struct sdap_id_ctx *id_ctx;
 
-    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ldap_init_ctx);
     id_ctx = init_ctx->id_ctx;
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
@@ -540,7 +540,7 @@ errno_t sssm_ldap_auth_init(TALLOC_CTX *mem_ctx,
     struct ldap_init_ctx *init_ctx;
     struct sdap_auth_ctx *auth_ctx;
 
-    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ldap_init_ctx);
     auth_ctx = init_ctx->auth_ctx;
 
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
@@ -559,7 +559,7 @@ errno_t sssm_ldap_chpass_init(TALLOC_CTX *mem_ctx,
     struct sdap_auth_ctx *auth_ctx;
     errno_t ret;
 
-    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ldap_init_ctx);
     auth_ctx = init_ctx->auth_ctx;
 
     ret = init_chpass_service(auth_ctx, be_ctx, init_ctx->options,
@@ -586,7 +586,7 @@ errno_t sssm_ldap_access_init(TALLOC_CTX *mem_ctx,
     struct sdap_access_ctx *access_ctx;
     errno_t ret;
 
-    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ldap_init_ctx);
 
     access_ctx = talloc_zero(mem_ctx, struct sdap_access_ctx);
     if(access_ctx == NULL) {
@@ -627,7 +627,7 @@ errno_t sssm_ldap_autofs_init(TALLOC_CTX *mem_ctx,
     struct ldap_init_ctx *init_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing LDAP autofs handler\n");
-    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ldap_init_ctx);
 
     return sdap_autofs_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 #else
@@ -646,7 +646,7 @@ errno_t sssm_ldap_sudo_init(TALLOC_CTX *mem_ctx,
     struct ldap_init_ctx *init_ctx;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing LDAP sudo handler\n");
-    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+    init_ctx = talloc_get_type_abort(module_data, struct ldap_init_ctx);
 
     return sdap_sudo_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 #else

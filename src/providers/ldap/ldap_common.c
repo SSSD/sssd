@@ -88,7 +88,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    service = talloc_get_type(private_data, struct sdap_service);
+    service = talloc_get_type_abort(private_data, struct sdap_service);
     if (!service) {
         talloc_free(tmp_ctx);
         return;
@@ -198,7 +198,7 @@ void sdap_remove_kdcinfo_files_callback(void *pvt)
 {
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
-    struct remove_info_files_ctx *ctx = talloc_get_type(pvt,
+    struct remove_info_files_ctx *ctx = talloc_get_type_abort(pvt,
                                                   struct remove_info_files_ctx);
 
     ret = be_fo_run_callbacks_at_next_request(ctx->be_ctx,

@@ -132,7 +132,7 @@ struct tevent_req * test_be_ptask_send(TALLOC_CTX *mem_ctx,
     assert_non_null(be_ptask);
     assert_non_null(pvt);
 
-    test_ctx = talloc_get_type(pvt, struct test_ctx);
+    test_ctx = talloc_get_type_abort(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
     test_ctx->when = get_current_time();
@@ -159,7 +159,7 @@ struct tevent_req * test_be_ptask_null_send(TALLOC_CTX *mem_ctx,
     assert_non_null(be_ptask);
     assert_non_null(pvt);
 
-    test_ctx = talloc_get_type(pvt, struct test_ctx);
+    test_ctx = talloc_get_type_abort(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
     test_ctx->when = get_current_time();
@@ -183,7 +183,7 @@ struct tevent_req * test_be_ptask_timeout_send(TALLOC_CTX *mem_ctx,
     assert_non_null(be_ptask);
     assert_non_null(pvt);
 
-    test_ctx = talloc_get_type(pvt, struct test_ctx);
+    test_ctx = talloc_get_type_abort(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
     test_ctx->when = get_current_time();
@@ -237,7 +237,7 @@ errno_t test_be_ptask_sync(TALLOC_CTX *mem_ctx,
     assert_non_null(be_ptask);
     assert_non_null(pvt);
 
-    test_ctx = talloc_get_type(pvt, struct test_ctx);
+    test_ctx = talloc_get_type_abort(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
     test_ctx->when = get_current_time();
@@ -259,7 +259,7 @@ errno_t test_be_ptask_sync_error(TALLOC_CTX *mem_ctx,
     assert_non_null(be_ptask);
     assert_non_null(pvt);
 
-    test_ctx = talloc_get_type(pvt, struct test_ctx);
+    test_ctx = talloc_get_type_abort(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
     test_ctx->when = get_current_time();
@@ -1002,7 +1002,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

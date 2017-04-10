@@ -197,7 +197,7 @@ static void rdp_message_done(DBusPendingCall *pending, void *ptr)
     struct tevent_req *req;
     errno_t ret;
 
-    req = talloc_get_type(ptr, struct tevent_req);
+    req = talloc_get_type_abort(ptr, struct tevent_req);
     state = tevent_req_data(req, struct rdp_message_state);
 
     ret = rdp_process_pending_call(state, pending, &state->reply);
@@ -266,7 +266,7 @@ static void rdp_message_send_and_reply_done(DBusPendingCall *pending,
     dbus_bool_t dbret;
     errno_t ret;
 
-    sbus_req = talloc_get_type(ptr, struct sbus_request);
+    sbus_req = talloc_get_type_abort(ptr, struct sbus_request);
 
     ret = rdp_process_pending_call(sbus_req, pending, &reply);
     if (ret != EOK) {

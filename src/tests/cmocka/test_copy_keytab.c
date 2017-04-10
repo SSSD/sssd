@@ -80,7 +80,7 @@ static int setup_keytab(void **state)
 static int teardown_keytab(void **state)
 {
     int ret;
-    struct keytab_test_ctx *test_ctx = talloc_get_type(*state,
+    struct keytab_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                         struct keytab_test_ctx);
     assert_non_null(test_ctx);
 
@@ -107,7 +107,7 @@ void test_copy_keytab(void **state)
     krb5_keytab mem_keytab;
     krb5_keytab keytab;
     krb5_keytab_entry kent;
-    struct keytab_test_ctx *test_ctx = talloc_get_type(*state,
+    struct keytab_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                         struct keytab_test_ctx);
     assert_non_null(test_ctx);
 
@@ -157,7 +157,7 @@ void test_sss_krb5_kt_have_content(void **state)
 {
     krb5_error_code kerr;
     krb5_keytab keytab;
-    struct keytab_test_ctx *test_ctx = talloc_get_type(*state,
+    struct keytab_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                         struct keytab_test_ctx);
     assert_non_null(test_ctx);
 
@@ -208,7 +208,7 @@ void test_copy_keytab_order(void **state)
     krb5_keytab keytab;
     krb5_kt_cursor cursor;
     krb5_keytab_entry kent;
-    struct keytab_test_ctx *test_ctx = talloc_get_type(*state,
+    struct keytab_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                         struct keytab_test_ctx);
     assert_non_null(test_ctx);
 
@@ -285,7 +285,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

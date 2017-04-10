@@ -96,7 +96,7 @@ static int sss_child_destructor(void *ptr)
     hash_key_t key;
     int error;
 
-    child_ctx = talloc_get_type(ptr, struct sss_child_ctx);
+    child_ctx = talloc_get_type_abort(ptr, struct sss_child_ctx);
     key.type = HASH_KEY_ULONG;
     key.ul = child_ctx->pid;
 
@@ -164,7 +164,7 @@ static void sss_child_invoke_cb(struct tevent_context *ev,
     hash_key_t key;
     int error;
 
-    cb_pvt = talloc_get_type(pvt, struct sss_child_cb_pvt);
+    cb_pvt = talloc_get_type_abort(pvt, struct sss_child_cb_pvt);
     child_ctx = cb_pvt->child_ctx;
 
     key.type = HASH_KEY_ULONG;
@@ -201,7 +201,7 @@ static void sss_child_handler(struct tevent_context *ev,
     int wait_status;
     pid_t pid;
 
-    sigchld_ctx = talloc_get_type(private_data, struct sss_sigchild_ctx);
+    sigchld_ctx = talloc_get_type_abort(private_data, struct sss_sigchild_ctx);
     key.type = HASH_KEY_ULONG;
 
     do {
@@ -219,7 +219,7 @@ static void sss_child_handler(struct tevent_context *ev,
         key.ul = pid;
         error = hash_lookup(sigchld_ctx->children, &key, &value);
         if (error == HASH_SUCCESS) {
-            child_ctx = talloc_get_type(value.ptr, struct sss_child_ctx);
+            child_ctx = talloc_get_type_abort(value.ptr, struct sss_child_ctx);
 
             imm = tevent_create_immediate(child_ctx);
             if (imm == NULL) {
@@ -371,7 +371,7 @@ static void write_pipe_handler(struct tevent_context *ev,
                                struct tevent_fd *fde,
                                uint16_t flags, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct write_pipe_state *state = tevent_req_data(req,
                                                      struct write_pipe_state);
     errno_t ret;
@@ -455,7 +455,7 @@ static void read_pipe_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct tevent_req *req = talloc_get_type_abort(pvt, struct tevent_req);
     struct read_pipe_state *state = tevent_req_data(req,
                                                     struct read_pipe_state);
     ssize_t size;
@@ -535,7 +535,7 @@ static void child_sig_handler(struct tevent_context *ev,
         return;
     }
 
-    child_ctx = talloc_get_type(pvt, struct sss_child_ctx_old);
+    child_ctx = talloc_get_type_abort(pvt, struct sss_child_ctx_old);
     DEBUG(SSSDBG_TRACE_LIBS, "Waiting for child [%d].\n", child_ctx->pid);
 
     errno = 0;
@@ -599,7 +599,7 @@ static void child_invoke_callback(struct tevent_context *ev,
                                   void *pvt)
 {
     struct sss_child_ctx_old *child_ctx =
-            talloc_get_type(pvt, struct sss_child_ctx_old);
+            talloc_get_type_abort(pvt, struct sss_child_ctx_old);
     if (child_ctx->cb) {
         child_ctx->cb(child_ctx->child_status, child_ctx->sige, child_ctx->pvt);
     }
@@ -780,7 +780,7 @@ void exec_child(TALLOC_CTX *mem_ctx,
 int child_io_destructor(void *ptr)
 {
     int ret;
-    struct child_io_fds *io = talloc_get_type(ptr, struct child_io_fds);
+    struct child_io_fds *io = talloc_get_type_abort(ptr, struct child_io_fds);
     if (io == NULL) return EOK;
 
     if (io->write_to_child_fd != -1) {

@@ -105,7 +105,7 @@ static void pam_initgr_cache_remove(struct tevent_context *ev,
     hash_key_t key;
 
     struct pam_initgr_table_ctx *table_ctx =
-            talloc_get_type(pvt, struct pam_initgr_table_ctx);
+            talloc_get_type_abort(pvt, struct pam_initgr_table_ctx);
 
     key.type = HASH_KEY_STRING;
     key.str = table_ctx->name;

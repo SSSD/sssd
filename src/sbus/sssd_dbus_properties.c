@@ -156,7 +156,7 @@ static int sbus_properties_get(struct sbus_request *sbus_req, void *pvt)
     const char *property_name;
     bool bret;
 
-    conn = talloc_get_type(pvt, struct sbus_connection);
+    conn = talloc_get_type_abort(pvt, struct sbus_connection);
 
     CHECK_SIGNATURE_OR_FAIL(sbus_req, error, fail, "ss");
 
@@ -231,7 +231,7 @@ static int sbus_properties_set(struct sbus_request *sbus_req, void *pvt)
     const char *variant_sig;
     sbus_msg_handler_fn handler_fn;
 
-    conn = talloc_get_type(pvt, struct sbus_connection);
+    conn = talloc_get_type_abort(pvt, struct sbus_connection);
 
     CHECK_SIGNATURE_OR_FAIL(sbus_req, error, fail, "ssv");
 
@@ -305,7 +305,7 @@ static int sbus_properties_get_all(struct sbus_request *sbus_req, void *pvt)
     const char *interface_name;
     bool bret;
 
-    conn = talloc_get_type(pvt, struct sbus_connection);
+    conn = talloc_get_type_abort(pvt, struct sbus_connection);
 
     CHECK_SIGNATURE_OR_FAIL(sbus_req, error, fail, "s");
 

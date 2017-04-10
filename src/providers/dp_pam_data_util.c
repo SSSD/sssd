@@ -31,7 +31,7 @@
 
 int pam_data_destructor(void *ptr)
 {
-    struct pam_data *pd = talloc_get_type(ptr, struct pam_data);
+    struct pam_data *pd = talloc_get_type_abort(ptr, struct pam_data);
 
     /* make sure to wipe any password from memory before freeing */
     sss_authtok_wipe_password(pd->authtok);

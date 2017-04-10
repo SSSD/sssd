@@ -41,8 +41,8 @@ nss_cmd_ctx_create(TALLOC_CTX *mem_ctx,
     }
 
     cmd_ctx->cli_ctx = cli_ctx;
-    cmd_ctx->nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
-    cmd_ctx->state_ctx = talloc_get_type(cli_ctx->state_ctx,
+    cmd_ctx->nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    cmd_ctx->state_ctx = talloc_get_type_abort(cli_ctx->state_ctx,
                                          struct nss_state_ctx);
     cmd_ctx->type = type;
     cmd_ctx->fill_fn = fill_fn;
@@ -696,7 +696,7 @@ static errno_t nss_cmd_setpwent(struct cli_ctx *cli_ctx)
 {
     struct nss_ctx *nss_ctx;
 
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
     return nss_setent(cli_ctx, CACHE_REQ_ENUM_USERS, &nss_ctx->pwent);
 }
@@ -706,8 +706,8 @@ static errno_t nss_cmd_getpwent(struct cli_ctx *cli_ctx)
     struct nss_ctx *nss_ctx;
     struct nss_state_ctx *state_ctx;
 
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
-    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type_abort(cli_ctx->state_ctx, struct nss_state_ctx);
 
     return nss_getent(cli_ctx, CACHE_REQ_ENUM_USERS,
                       &state_ctx->pwent, nss_protocol_fill_pwent,
@@ -718,7 +718,7 @@ static errno_t nss_cmd_endpwent(struct cli_ctx *cli_ctx)
 {
     struct nss_state_ctx *state_ctx;
 
-    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx = talloc_get_type_abort(cli_ctx->state_ctx, struct nss_state_ctx);
 
     return nss_endent(cli_ctx, &state_ctx->pwent);
 }
@@ -739,7 +739,7 @@ static errno_t nss_cmd_setgrent(struct cli_ctx *cli_ctx)
 {
     struct nss_ctx *nss_ctx;
 
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
     return nss_setent(cli_ctx, CACHE_REQ_ENUM_GROUPS, &nss_ctx->grent);
 }
@@ -749,8 +749,8 @@ static errno_t nss_cmd_getgrent(struct cli_ctx *cli_ctx)
     struct nss_ctx *nss_ctx;
     struct nss_state_ctx *state_ctx;
 
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
-    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type_abort(cli_ctx->state_ctx, struct nss_state_ctx);
 
     return nss_getent(cli_ctx, CACHE_REQ_ENUM_GROUPS,
                       &state_ctx->grent, nss_protocol_fill_grent,
@@ -761,7 +761,7 @@ static errno_t nss_cmd_endgrent(struct cli_ctx *cli_ctx)
 {
     struct nss_state_ctx *state_ctx;
 
-    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx = talloc_get_type_abort(cli_ctx->state_ctx, struct nss_state_ctx);
 
     return nss_endent(cli_ctx, &state_ctx->grent);
 }
@@ -788,7 +788,7 @@ static errno_t nss_cmd_endnetgrent(struct cli_ctx *cli_ctx)
 {
     struct nss_state_ctx *state_ctx;
 
-    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx = talloc_get_type_abort(cli_ctx->state_ctx, struct nss_state_ctx);
     talloc_zfree(state_ctx->netgroup);
 
     return nss_endent(cli_ctx, &state_ctx->netgrent);
@@ -828,7 +828,7 @@ static errno_t nss_cmd_setservent(struct cli_ctx *cli_ctx)
 {
     struct nss_ctx *nss_ctx;
 
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
     return nss_setent(cli_ctx, CACHE_REQ_ENUM_SVC, &nss_ctx->svcent);
 }
@@ -838,8 +838,8 @@ static errno_t nss_cmd_getservent(struct cli_ctx *cli_ctx)
     struct nss_ctx *nss_ctx;
     struct nss_state_ctx *state_ctx;
 
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
-    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type_abort(cli_ctx->state_ctx, struct nss_state_ctx);
 
     return nss_getent(cli_ctx, CACHE_REQ_ENUM_SVC,
                       &state_ctx->svcent, nss_protocol_fill_svcent,
@@ -850,7 +850,7 @@ static errno_t nss_cmd_endservent(struct cli_ctx *cli_ctx)
 {
     struct nss_state_ctx *state_ctx;
 
-    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+    state_ctx = talloc_get_type_abort(cli_ctx->state_ctx, struct nss_state_ctx);
 
     return nss_endent(cli_ctx, &state_ctx->grent);
 }
@@ -907,7 +907,7 @@ static errno_t nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
                                       SYSDB_ORIG_MEMBEROF,
                                       SYSDB_DEFAULT_ATTRS, NULL };
 
-    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    nss_ctx = talloc_get_type_abort(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
     if (nss_ctx->extra_attributes != NULL) {
         ret = add_strings_lists(cli_ctx, defattrs, nss_ctx->extra_attributes,

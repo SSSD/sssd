@@ -75,7 +75,7 @@ static void client_close_fn(struct tevent_context *ev,
                             void *ptr)
 {
     errno_t ret;
-    struct cli_ctx *ctx = talloc_get_type(ptr, struct cli_ctx);
+    struct cli_ctx *ctx = talloc_get_type_abort(ptr, struct cli_ctx);
 
     if ((ctx->cfd > 0) && close(ctx->cfd) < 0) {
         ret = errno;
@@ -253,7 +253,7 @@ static void client_send(struct cli_ctx *cctx)
     struct cli_protocol *pctx;
     int ret;
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
 
     ret = sss_packet_send(pctx->creq->out, cctx->cfd);
     if (ret == EAGAIN) {
@@ -278,7 +278,7 @@ static int client_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cm
     struct cli_protocol *pctx;
     enum sss_cli_command cmd;
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
     cmd = sss_packet_get_cmd(pctx->creq->in);
     return sss_cmd_execute(cctx, cmd, sss_cmds);
 }
@@ -288,7 +288,7 @@ static void client_recv(struct cli_ctx *cctx)
     struct cli_protocol *pctx;
     int ret;
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
 
     if (!pctx->creq) {
         pctx->creq = talloc_zero(cctx, struct cli_request);
@@ -355,7 +355,7 @@ static void client_fd_handler(struct tevent_context *ev,
                               uint16_t flags, void *ptr)
 {
     errno_t ret;
-    struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
+    struct cli_ctx *cctx = talloc_get_type_abort(ptr, struct cli_ctx);
 
     /* Always reset the idle timer on any activity */
     ret = reset_idle_timer(cctx);
@@ -388,7 +388,7 @@ static void accept_fd_handler(struct tevent_context *ev,
 {
     /* accept and attach new event handler */
     struct accept_fd_ctx *accept_ctx =
-            talloc_get_type(ptr, struct accept_fd_ctx);
+            talloc_get_type_abort(ptr, struct accept_fd_ctx);
     struct resp_ctx *rctx = accept_ctx->rctx;
     struct cli_ctx *cctx;
     socklen_t len;
@@ -541,7 +541,7 @@ void idle_handler(struct tevent_context *ev,
 {
     /* This connection is idle. Terminate it */
     struct cli_ctx *cctx =
-            talloc_get_type(data, struct cli_ctx);
+            talloc_get_type_abort(data, struct cli_ctx);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Terminating idle client [%p][%d]\n",
@@ -846,7 +846,7 @@ int sss_connection_setup(struct cli_ctx *cctx)
 
 static int sss_responder_ctx_destructor(void *ptr)
 {
-    struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type_abort(ptr, struct resp_ctx);
 
     /* mark that we are shutting down the responder, so it is propagated
      * into underlying contexts that are freed right before rctx */
@@ -1195,7 +1195,7 @@ done:
 int responder_logrotate(struct sbus_request *dbus_req, void *data)
 {
     errno_t ret;
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type_abort(data, struct resp_ctx);
 
     ret = server_common_rotate_logs(rctx->cdb, rctx->confdb_service_path);
     if (ret != EOK) return ret;

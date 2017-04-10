@@ -26,7 +26,7 @@
 int main(int argc, const char **argv)
 {
     int ret;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     ret = sss_signal(SIGUSR2);
     if (ret != EOK) {
         ERROR("Could not signal SSSD. Is SSSD running?\n");

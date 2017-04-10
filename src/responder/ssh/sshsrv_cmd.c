@@ -296,7 +296,7 @@ ssh_user_pubkeys_search_dp_callback(uint16_t err_maj,
                                     const char *err_msg,
                                     void *ptr)
 {
-    struct ssh_cmd_ctx *cmd_ctx = talloc_get_type(ptr, struct ssh_cmd_ctx);
+    struct ssh_cmd_ctx *cmd_ctx = talloc_get_type_abort(ptr, struct ssh_cmd_ctx);
     errno_t ret;
 
     if (err_maj) {
@@ -409,7 +409,7 @@ ssh_host_pubkeys_search_dp_callback(uint16_t err_maj,
                                     const char *err_msg,
                                     void *ptr)
 {
-    struct ssh_cmd_ctx *cmd_ctx = talloc_get_type(ptr, struct ssh_cmd_ctx);
+    struct ssh_cmd_ctx *cmd_ctx = talloc_get_type_abort(ptr, struct ssh_cmd_ctx);
     errno_t ret;
 
     if (err_maj) {
@@ -699,8 +699,8 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx,
     uint32_t domain_len;
     char *domain = NULL;
 
-    ssh_ctx = talloc_get_type(cmd_ctx->cctx->rctx->pvt_ctx, struct ssh_ctx);
-    pctx = talloc_get_type(cmd_ctx->cctx->protocol_ctx, struct cli_protocol);
+    ssh_ctx = talloc_get_type_abort(cmd_ctx->cctx->rctx->pvt_ctx, struct ssh_ctx);
+    pctx = talloc_get_type_abort(cmd_ctx->cctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(pctx->creq->in, &body, &body_len);
 
@@ -928,7 +928,7 @@ static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
         return ENOMEM;
     }
 
-    pctx = talloc_get_type(cmd_ctx->cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cmd_ctx->cctx->protocol_ctx, struct cli_protocol);
 
     for (d = 0; d < el->num_values; d++) {
         if (skip_base64_decode) {
@@ -988,8 +988,8 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     struct ssh_ctx *ssh_ctx;
     struct cli_protocol *pctx;
 
-    ssh_ctx = talloc_get_type(cmd_ctx->cctx->rctx->pvt_ctx, struct ssh_ctx);
-    pctx = talloc_get_type(cmd_ctx->cctx->protocol_ctx, struct cli_protocol);
+    ssh_ctx = talloc_get_type_abort(cmd_ctx->cctx->rctx->pvt_ctx, struct ssh_ctx);
+    pctx = talloc_get_type_abort(cmd_ctx->cctx->protocol_ctx, struct cli_protocol);
 
     ret = sss_packet_new(pctx->creq, 0,
                          sss_packet_get_cmd(pctx->creq->in),
@@ -1129,7 +1129,7 @@ ssh_cmd_send_reply(struct ssh_cmd_ctx *cmd_ctx)
     struct cli_protocol *pctx;
     errno_t ret;
 
-    pctx = talloc_get_type(cmd_ctx->cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cmd_ctx->cctx->protocol_ctx, struct cli_protocol);
 
     /* create response packet */
     ret = ssh_cmd_build_reply(cmd_ctx);

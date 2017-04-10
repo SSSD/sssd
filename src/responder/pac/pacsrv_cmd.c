@@ -37,7 +37,7 @@ static errno_t pac_cmd_done(struct cli_ctx *cctx, int cmd_ret)
         return EOK;
     }
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
 
     ret = sss_packet_new(pctx->creq, 0, sss_packet_get_cmd(pctx->creq->in),
                          &pctx->creq->out);
@@ -83,7 +83,7 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
     enum idmap_error_code err;
     struct cli_protocol *pctx;
 
-    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type_abort(cctx->protocol_ctx, struct cli_protocol);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
@@ -97,7 +97,7 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
     pr_ctx->blob = body;
     pr_ctx->blen = blen;
 
-    pr_ctx->pac_ctx = talloc_get_type(cctx->rctx->pvt_ctx,  struct pac_ctx);
+    pr_ctx->pac_ctx = talloc_get_type_abort(cctx->rctx->pvt_ctx,  struct pac_ctx);
     if (pr_ctx->pac_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Cannot find pac responder context.\n");
         return EINVAL;

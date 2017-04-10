@@ -626,8 +626,8 @@ static int ad_user_data_cmp(void *ud1, void *ud2)
 {
     struct ad_server_data *sd1, *sd2;
 
-    sd1 = talloc_get_type(ud1, struct ad_server_data);
-    sd2 = talloc_get_type(ud2, struct ad_server_data);
+    sd1 = talloc_get_type_abort(ud1, struct ad_server_data);
+    sd2 = talloc_get_type_abort(ud2, struct ad_server_data);
     if (sd1 == NULL || sd2 == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "No user data\n");
         return sd1 == sd2 ? 0 : 1;
@@ -642,7 +642,7 @@ static int ad_user_data_cmp(void *ud1, void *ud2)
 
 static void ad_online_cb(void *pvt)
 {
-    struct ad_service *service = talloc_get_type(pvt, struct ad_service);
+    struct ad_service *service = talloc_get_type_abort(pvt, struct ad_service);
 
     if (service == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid private pointer\n");
@@ -809,7 +809,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         goto done;
     }
 
-    service = talloc_get_type(private_data, struct ad_service);
+    service = talloc_get_type_abort(private_data, struct ad_service);
     if (!service) {
         ret = EINVAL;
         goto done;
@@ -1273,7 +1273,7 @@ ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
                                     dom->name);
         return NULL;
     }
-    subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+    subdom_id_ctx = talloc_get_type_abort(sdom->pvt, struct ad_id_ctx);
     conn = subdom_id_ctx->ldap_ctx;
 
     if (IS_SUBDOMAIN(sdom->dom) == true && conn != NULL) {

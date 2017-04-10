@@ -423,7 +423,7 @@ sdap_sudo_ptask_full_refresh_send(TALLOC_CTX *mem_ctx,
                                   void *pvt)
 {
     struct sdap_sudo_ctx *sudo_ctx;
-    sudo_ctx = talloc_get_type(pvt, struct sdap_sudo_ctx);
+    sudo_ctx = talloc_get_type_abort(pvt, struct sdap_sudo_ctx);
 
     return sdap_sudo_full_refresh_send(mem_ctx, sudo_ctx);
 }
@@ -444,7 +444,7 @@ sdap_sudo_ptask_smart_refresh_send(TALLOC_CTX *mem_ctx,
                                    void *pvt)
 {
     struct sdap_sudo_ctx *sudo_ctx;
-    sudo_ctx = talloc_get_type(pvt, struct sdap_sudo_ctx);
+    sudo_ctx = talloc_get_type_abort(pvt, struct sdap_sudo_ctx);
 
     return sdap_sudo_smart_refresh_send(mem_ctx, sudo_ctx);
 }

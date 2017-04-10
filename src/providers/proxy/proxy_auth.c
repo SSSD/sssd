@@ -30,7 +30,7 @@ struct pc_init_ctx;
 static int proxy_child_destructor(TALLOC_CTX *ctx)
 {
     struct proxy_child_ctx *child_ctx =
-            talloc_get_type(ctx, struct proxy_child_ctx);
+            talloc_get_type_abort(ctx, struct proxy_child_ctx);
     hash_key_t key;
     int hret;
 
@@ -142,7 +142,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
 static int pc_init_destructor (TALLOC_CTX *ctx)
 {
     struct pc_init_ctx *init_ctx =
-            talloc_get_type(ctx, struct pc_init_ctx);
+            talloc_get_type_abort(ctx, struct pc_init_ctx);
 
     /* If the init request has died, forcibly kill the child */
     kill(init_ctx->pid, SIGKILL);
@@ -264,7 +264,7 @@ static void pc_init_sig_handler(struct tevent_context *ev,
         return;
     }
 
-    req = talloc_get_type(pvt, struct tevent_req);
+    req = talloc_get_type_abort(pvt, struct tevent_req);
     init_ctx = tevent_req_data(req, struct pc_init_ctx);
 
     DEBUG(SSSDBG_TRACE_LIBS, "Waiting for child [%d].\n", init_ctx->pid);
@@ -315,7 +315,7 @@ static void pc_init_timeout(struct tevent_context *ev,
     struct tevent_req *req;
 
     DEBUG(SSSDBG_OP_FAILURE, "Client timed out before Identification!\n");
-    req = talloc_get_type(ptr, struct tevent_req);
+    req = talloc_get_type_abort(ptr, struct tevent_req);
     tevent_req_error(req, ETIMEDOUT);
 }
 
@@ -435,7 +435,7 @@ static void proxy_child_sig_handler(struct tevent_context *ev,
         return;
     }
 
-    sig_ctx = talloc_get_type(pvt, struct proxy_child_sig_ctx);
+    sig_ctx = talloc_get_type_abort(pvt, struct proxy_child_sig_ctx);
     DEBUG(SSSDBG_TRACE_LIBS, "Waiting for child [%d].\n", sig_ctx->pid);
 
     errno = 0;
@@ -575,7 +575,7 @@ static void proxy_pam_conv_reply(DBusPendingCall *pending, void *ptr)
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Handling pam conversation reply\n");
 
-    req = talloc_get_type(ptr, struct tevent_req);
+    req = talloc_get_type_abort(ptr, struct tevent_req);
     state = tevent_req_data(req, struct proxy_conv_ctx);
 
     dbus_error_init(&dbus_error);
@@ -673,12 +673,12 @@ static void run_proxy_child_queue(struct tevent_context *ev,
     struct tevent_req *subreq;
     struct proxy_child_ctx *state;
 
-    auth_ctx = talloc_get_type(pvt, struct proxy_auth_ctx);
+    auth_ctx = talloc_get_type_abort(pvt, struct proxy_auth_ctx);
 
     /* Launch next queued request */
     iter = new_hash_iter_context(auth_ctx->request_table);
     while ((entry = iter->next(iter)) != NULL) {
-        req = talloc_get_type(entry->value.ptr, struct tevent_req);
+        req = talloc_get_type_abort(entry->value.ptr, struct tevent_req);
         state = tevent_req_data(req, struct proxy_child_ctx);
         if (!state->running) {
             break;

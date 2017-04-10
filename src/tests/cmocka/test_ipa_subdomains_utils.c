@@ -59,7 +59,7 @@ static int test_ipa_subdom_teardown(void **state)
 {
     struct test_ipa_subdom_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct test_ipa_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ipa_subdom_ctx);
     assert_non_null(test_ctx);
 
     assert_true(check_leaks_pop(test_ctx) == true);
@@ -88,7 +88,7 @@ static void test_ipa_subdom_ldb_dn(void **state)
     struct sysdb_attrs *attrs;
     struct test_ipa_subdom_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct test_ipa_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ipa_subdom_ctx);
     assert_non_null(test_ctx);
 
     attrs = dn_attrs(test_ctx, "dc=foo,dc=bar");
@@ -108,7 +108,7 @@ static void test_ipa_subdom_ldb_dn_fail(void **state)
     struct sysdb_attrs *attrs;
     struct test_ipa_subdom_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct test_ipa_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ipa_subdom_ctx);
     assert_non_null(test_ctx);
 
     attrs = dn_attrs(test_ctx, "notadn");
@@ -151,7 +151,7 @@ static void test_ipa_subdom_is_member_dom(void **state)
     struct test_ipa_subdom_ctx *test_ctx;
     bool is_member;
 
-    test_ctx = talloc_get_type(*state, struct test_ipa_subdom_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct test_ipa_subdom_ctx);
 
     dn = get_dn(test_ctx, test_ctx->ldb,
                 "cn=SUB.AD.DOM,cn=AD.DOM,cn=ad,cn=trusts,dc=example,dc=com");
@@ -203,7 +203,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

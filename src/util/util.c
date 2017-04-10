@@ -32,6 +32,10 @@
 #include "util/util.h"
 #include "util/sss_utf8.h"
 
+void sss_talloc_abort(const char reason){
+    DEBUG(SSSDBG_FATAL_FAILURE, "Talloc abort: %s\n", reason);
+    abort();
+}
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, bool skip_empty,
                        char ***_list, int *size)
@@ -1008,7 +1012,7 @@ static int unlink_dbg(const char *filename)
 
 static int unique_filename_destructor(void *memptr)
 {
-    struct tmpfile_watch *tw = talloc_get_type(memptr, struct tmpfile_watch);
+    struct tmpfile_watch *tw = talloc_get_type_abort(memptr, struct tmpfile_watch);
 
     if (tw == NULL || tw->filename == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Wrong private pointer\n");

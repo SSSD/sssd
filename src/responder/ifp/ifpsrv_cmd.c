@@ -64,7 +64,7 @@ int ifp_user_get_attr(struct sbus_request *dbus_req, void *data)
     DEBUG(SSSDBG_IMPORTANT_INFO, "GetUserAttr is deprecated, please consider "
           "switching to org.freedesktop.sssd.infopipe.Users.User interface\n");
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
@@ -287,7 +287,7 @@ int ifp_user_get_groups(struct sbus_request *dbus_req,
     struct tevent_req *req;
     errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
@@ -626,7 +626,7 @@ struct cli_protocol_version *register_cli_protocol_version(void)
  * It will be removed later */
 int ifp_ping(struct sbus_request *dbus_req, void *data)
 {
-    struct ifp_ctx *ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    struct ifp_ctx *ifp_ctx = talloc_get_type_abort(data, struct ifp_ctx);
     static const char *pong = "PONG";
     const char *request;
     DBusError dberr;

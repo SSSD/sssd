@@ -1759,7 +1759,7 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
     /* Prefer LDAP over GC for users */
     if (state->id_ctx->opts->schema_type == SDAP_SCHEMA_AD
             && state->sdom->pvt != NULL) {
-        ad_id_ctx = talloc_get_type(state->sdom->pvt, struct ad_id_ctx);
+        ad_id_ctx = talloc_get_type_abort(state->sdom->pvt, struct ad_id_ctx);
         if (ad_id_ctx != NULL &&  ad_id_ctx->ldap_ctx != NULL
                 && state->conn == ad_id_ctx->gc_ctx) {
             DEBUG(SSSDBG_TRACE_ALL,

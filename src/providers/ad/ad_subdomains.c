@@ -1472,7 +1472,7 @@ ad_subdomains_ptask_send(TALLOC_CTX *mem_ctx,
                          void *pvt)
 {
     struct ad_subdomains_ctx *sd_ctx;
-    sd_ctx = talloc_get_type(pvt, struct ad_subdomains_ctx);
+    sd_ctx = talloc_get_type_abort(pvt, struct ad_subdomains_ctx);
 
     return ad_subdomains_refresh_send(mem_ctx, ev, sd_ctx);
 }

@@ -179,6 +179,7 @@ void test_get_by_dn_fail(void **state)
 
 int main(void)
 {
+    talloc_set_abort_fn(sss_talloc_abort);
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_search_bases_fail),
         cmocka_unit_test(test_search_bases_success),

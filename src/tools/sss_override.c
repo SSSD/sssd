@@ -1916,6 +1916,7 @@ static int override_group_export(struct sss_cmdline *cmdline,
 
 int main(int argc, const char **argv)
 {
+    talloc_set_abort_fn(sss_talloc_abort);	
     struct sss_route_cmd commands[] = {
         SSS_TOOL_COMMAND_NOMSG("user-add", 0, override_user_add),
         SSS_TOOL_COMMAND_NOMSG("user-del", 0, override_user_del),

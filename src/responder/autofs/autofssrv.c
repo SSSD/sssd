@@ -58,7 +58,7 @@ static void
 autofs_dp_reconnect_init(struct sbus_connection *conn,
                          int status, void *pvt)
 {
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
+    struct be_conn *be_conn = talloc_get_type_abort(pvt, struct be_conn);
     int ret;
 
     /* Did we reconnect successfully? */
@@ -81,9 +81,9 @@ autofs_dp_reconnect_init(struct sbus_connection *conn,
 
 static int autofs_clean_hash_table(struct sbus_request *dbus_req, void *data)
 {
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type_abort(data, struct resp_ctx);
     struct autofs_ctx *actx =
-            talloc_get_type(rctx->pvt_ctx, struct autofs_ctx);
+            talloc_get_type_abort(rctx->pvt_ctx, struct autofs_ctx);
     errno_t ret;
 
     ret = autofs_orphan_maps(actx);
@@ -199,7 +199,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     umask(DFL_RSP_UMASK);
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

@@ -94,7 +94,7 @@ int expire_test_teardown(void **state)
 {
     struct expire_test_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct expire_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct expire_test_ctx);
     assert_non_null(test_ctx);
 
     talloc_free(test_ctx);

@@ -181,7 +181,7 @@ static int setup_dom_list(void **state)
 
 static int teardown_dom_list(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
@@ -196,7 +196,7 @@ static int teardown_dom_list(void **state)
 
 void test_find_domain_by_name_null(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
 
@@ -212,7 +212,7 @@ void test_find_domain_by_name_null(void **state)
 
 void test_find_domain_by_name(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
     size_t c;
@@ -259,7 +259,7 @@ void test_find_domain_by_name(void **state)
 
 void test_find_domain_by_name_missing_flat_name(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
     size_t c;
@@ -330,7 +330,7 @@ void test_find_domain_by_name_missing_flat_name(void **state)
 
 void test_find_domain_by_name_disabled(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
     size_t c;
@@ -401,7 +401,7 @@ void test_find_domain_by_name_disabled(void **state)
 
 void test_find_domain_by_sid_null(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
 
@@ -417,7 +417,7 @@ void test_find_domain_by_sid_null(void **state)
 
 void test_find_domain_by_sid(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
     size_t c;
@@ -449,7 +449,7 @@ void test_find_domain_by_sid(void **state)
 
 void test_find_domain_by_sid_missing_sid(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
     size_t c;
@@ -497,7 +497,7 @@ void test_find_domain_by_sid_missing_sid(void **state)
 
 void test_find_domain_by_sid_disabled(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
     size_t c;
@@ -590,7 +590,7 @@ static int setup_dom_tree(void **state)
 
 static int teardown_dom_tree(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
@@ -605,7 +605,7 @@ static int teardown_dom_tree(void **state)
 
 static void test_get_next_domain(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom = NULL;
 
@@ -619,7 +619,7 @@ static void test_get_next_domain(void **state)
 
 static void test_get_next_domain_descend(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom = NULL;
 
@@ -645,7 +645,7 @@ static void test_get_next_domain_descend(void **state)
 
 static void test_get_next_domain_disabled(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom = NULL;
 
@@ -660,7 +660,7 @@ static void test_get_next_domain_disabled(void **state)
 
 static void test_get_next_domain_flags(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom = NULL;
     uint32_t gnd_flags;
@@ -870,7 +870,7 @@ static int confdb_test_teardown(void **state)
 {
     struct name_init_test_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct name_init_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct name_init_test_ctx);
 
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
@@ -884,7 +884,7 @@ void test_sss_names_init(void **state)
     struct sss_names_ctx *names_ctx;
     int ret;
 
-    test_ctx = talloc_get_type(*state, struct name_init_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct name_init_test_ctx);
 
     ret = sss_names_init(test_ctx, test_ctx->confdb, NULL, &names_ctx);
     assert_int_equal(ret, EOK);
@@ -1022,7 +1022,7 @@ void test_sss_filter_sanitize_for_dom(void **state)
     char *lc_sanitized;
     struct sss_domain_info *dom;
 
-    test_ctx = talloc_get_type(*state, struct dom_list_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct dom_list_test_ctx);
     dom = test_ctx->dom_list;
 
     dom->case_sensitive = true;
@@ -1092,7 +1092,7 @@ static int setup_homedir_ctx(void **state)
 
 static int teardown_homedir_ctx(void **state)
 {
-    struct sss_nss_homedir_ctx *homedir_ctx = talloc_get_type(*state,
+    struct sss_nss_homedir_ctx *homedir_ctx = talloc_get_type_abort(*state,
                                                  struct sss_nss_homedir_ctx);
     if (homedir_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
@@ -1155,7 +1155,7 @@ void test_expand_homedir_template_NULL(void **state)
 
 void test_expand_homedir_template(void **state)
 {
-    struct sss_nss_homedir_ctx *homedir_ctx = talloc_get_type(*state,
+    struct sss_nss_homedir_ctx *homedir_ctx = talloc_get_type_abort(*state,
                                                  struct sss_nss_homedir_ctx);
     TALLOC_CTX *tmp_ctx;
 
@@ -1414,7 +1414,7 @@ static int unique_file_test_teardown(void **state)
     struct unique_file_test_ctx *test_ctx;
     errno_t ret;
 
-    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct unique_file_test_ctx);
 
     errno = 0;
     ret = unlink(test_ctx->filename);
@@ -1479,14 +1479,14 @@ static void sss_unique_file_test(struct unique_file_test_ctx *test_ctx,
 static void test_sss_unique_file(void **state)
 {
     struct unique_file_test_ctx *test_ctx;
-    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct unique_file_test_ctx);
     sss_unique_file_test(test_ctx, false);
 }
 
 static void test_sss_unique_file_destruct(void **state)
 {
     struct unique_file_test_ctx *test_ctx;
-    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct unique_file_test_ctx);
     sss_unique_file_test(test_ctx, true);
 }
 
@@ -1537,7 +1537,7 @@ static void test_sss_unique_filename(void **state)
 {
     struct unique_file_test_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct unique_file_test_ctx);
     sss_unique_filename_test(test_ctx, false);
 }
 
@@ -1545,7 +1545,7 @@ static void test_sss_unique_filename_destruct(void **state)
 {
     struct unique_file_test_ctx *test_ctx;
 
-    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct unique_file_test_ctx);
     sss_unique_filename_test(test_ctx, true);
 }
 
@@ -1782,7 +1782,7 @@ static void test_sss_get_domain_mappings_content(void **state)
     ret = sss_get_domain_mappings_content(NULL, NULL, NULL);
     assert_int_equal(ret, EINVAL);
 
-    test_ctx = talloc_get_type(*state, struct dom_list_test_ctx);
+    test_ctx = talloc_get_type_abort(*state, struct dom_list_test_ctx);
     assert_non_null(test_ctx);
 
     dom = get_domains_head(test_ctx->dom_list);
@@ -1844,7 +1844,7 @@ static void test_sss_get_domain_mappings_content(void **state)
 
 static void test_is_email_from_domain(void **state)
 {
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+    struct dom_list_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *d;
 
@@ -1961,7 +1961,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

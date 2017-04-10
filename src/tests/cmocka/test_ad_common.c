@@ -102,7 +102,7 @@ static int test_ad_sysdb_setup(void **state)
 static int test_ad_sysdb_teardown(void **state)
 {
     struct ad_sysdb_test_ctx *test_ctx =
-        talloc_get_type(*state, struct ad_sysdb_test_ctx);
+        talloc_get_type_abort(*state, struct ad_sysdb_test_ctx);
 
     test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);
     talloc_free(test_ctx);
@@ -114,7 +114,7 @@ static void test_check_if_pac_is_available(void **state)
 {
     int ret;
     struct ad_sysdb_test_ctx *test_ctx =
-        talloc_get_type(*state, struct ad_sysdb_test_ctx);
+        talloc_get_type_abort(*state, struct ad_sysdb_test_ctx);
     struct dp_id_data *ar;
     struct ldb_message *msg = NULL;
     struct sysdb_attrs *attrs;
@@ -217,7 +217,7 @@ static void test_ad_get_data_from_pac(void **state)
     uint8_t *test_pac_blob;
     size_t test_pac_blob_size;
 
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                   struct ad_common_test_ctx);
 
     test_pac_blob = sss_base64_decode(test_ctx, TEST_PAC_BASE64,
@@ -263,7 +263,7 @@ static void test_ad_get_sids_from_pac(void **state)
                                      "S-1-5-21-3645884713-2026060994-4169618742-1108",
                                      NULL };
 
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                   struct ad_common_test_ctx);
 
     err = sss_idmap_init(sss_idmap_talloc, test_ctx, sss_idmap_talloc_free,
@@ -311,7 +311,7 @@ static void test_ad_get_pac_data_from_user_entry(void **state)
     int ret;
     struct ldb_message *user_msg;
     struct ldb_val val;
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                   struct ad_common_test_ctx);
     struct sss_idmap_ctx *idmap_ctx;
     enum idmap_error_code err;
@@ -441,7 +441,7 @@ static int test_ad_common_setup(void **state)
 static int test_ad_common_teardown(void **state)
 {
     int ret;
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                   struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
@@ -457,7 +457,7 @@ static int test_ad_common_teardown(void **state)
 
 static void test_ad_create_1way_trust_options(void **state)
 {
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                   struct ad_common_test_ctx);
     const char *s;
 
@@ -521,7 +521,7 @@ static void test_ad_create_1way_trust_options(void **state)
 }
 static void test_ad_create_2way_trust_options(void **state)
 {
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                   struct ad_common_test_ctx);
     const char *s;
 
@@ -639,7 +639,7 @@ test_ldap_conn_setup(void **state)
 static int
 test_ldap_conn_teardown(void **state)
 {
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                   struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
@@ -681,7 +681,7 @@ void test_ad_get_dom_ldap_conn(void **state)
 {
     struct sdap_id_conn_ctx *conn;
 
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
@@ -696,7 +696,7 @@ void test_gc_conn_list(void **state)
 {
     struct sdap_id_conn_ctx **conn_list;
 
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
@@ -748,7 +748,7 @@ void test_ldap_conn_list(void **state)
 {
     struct sdap_id_conn_ctx **conn_list;
 
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
@@ -777,7 +777,7 @@ void test_user_conn_list(void **state)
 {
     struct sdap_id_conn_ctx **conn_list;
 
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
@@ -811,7 +811,7 @@ void test_netlogon_get_domain_info(void **state)
     char *site;
     char *forest;
 
-    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+    struct ad_common_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                      struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
@@ -930,7 +930,7 @@ int main(int argc, const char *argv[])
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
-
+    talloc_set_abort_fn(sss_talloc_abort);
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
         switch(opt) {

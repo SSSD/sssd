@@ -771,7 +771,7 @@ sdap_ad_tokengroups_initgr_mapping_send(TALLOC_CTX *mem_ctx,
         }
     }
 
-    subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+    subdom_id_ctx = talloc_get_type_abort(sdom->pvt, struct ad_id_ctx);
     state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
@@ -1103,7 +1103,7 @@ sdap_ad_tokengroups_initgr_posix_send(TALLOC_CTX *mem_ctx,
             goto immediately;
         }
     }
-    subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+    subdom_id_ctx = talloc_get_type_abort(sdom->pvt, struct ad_id_ctx);
     state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
@@ -1455,7 +1455,7 @@ sdap_ad_get_domain_local_groups_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    ad_id_ctx = talloc_get_type(local_sdom->pvt, struct ad_id_ctx);
+    ad_id_ctx = talloc_get_type_abort(local_sdom->pvt, struct ad_id_ctx);
     state->conn = ad_id_ctx->ldap_ctx;
     state->opts = opts;
     state->sysdb = sysdb;
@@ -1759,7 +1759,7 @@ static void sdap_ad_get_domain_local_groups_done(struct tevent_req *subreq)
     }
 
     for (c = 0; c < count; c++) {
-        gr = talloc_get_type(values[c].ptr,
+        gr = talloc_get_type_abort(values[c].ptr,
                              struct sdap_nested_group);
 
         /* The values from the hash are either user or group objects returned
