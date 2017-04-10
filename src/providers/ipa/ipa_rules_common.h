@@ -38,6 +38,17 @@
 #define IPA_TRUE_VALUE "TRUE"
 
 /* From ipa_rules_common.c */
+
+struct ipa_common_entries {
+    const char *entry_subdir;
+    size_t entry_count;
+    struct sysdb_attrs **entries;
+
+    const char *group_subdir;
+    size_t group_count;
+    struct sysdb_attrs **groups;
+};
+
 errno_t
 ipa_common_entries_and_groups_sysdb_save(struct sss_domain_info *domain,
                                          const char *primary_subdir,
@@ -61,5 +72,12 @@ ipa_common_get_cached_rules(TALLOC_CTX *mem_ctx,
 errno_t
 ipa_common_purge_rules(struct sss_domain_info *domain,
                        const char *subtree_name);
+
+errno_t
+ipa_common_save_rules(struct sss_domain_info *domain,
+                      struct ipa_common_entries *hosts,
+                      struct ipa_common_entries *services,
+                      struct ipa_common_entries *rules,
+                      time_t *last_update);
 
 #endif /* IPA_RULES_COMMON_H_ */

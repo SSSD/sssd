@@ -254,3 +254,93 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t ipa_common_save_rules(struct sss_domain_info *domain,
+                              struct ipa_common_entries *hosts,
+                              struct ipa_common_entries *services,
+                              struct ipa_common_entries *rules,
+                              time_t *last_update)
+{
+    bool in_transaction = false;
+    errno_t ret;
+    errno_t sret;
+
+    ret = sysdb_transaction_start(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not start transaction\n");
+        goto done;
+    }
+    in_transaction = true;
+
+    /* Save the hosts */
+    if (hosts != NULL) {
+        ret = ipa_common_entries_and_groups_sysdb_save(domain,
+                                                       hosts->entry_subdir,
+                                                       SYSDB_FQDN,
+                                                       hosts->entry_count,
+                                                       hosts->entries,
+                                                       hosts->group_subdir,
+                                                       SYSDB_NAME,
+                                                       hosts->group_count,
+                                                       hosts->groups);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Error saving hosts [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    /* Save the services */
+    if (services != NULL) {
+        ret = ipa_common_entries_and_groups_sysdb_save(domain,
+                                                       services->entry_subdir,
+                                                       IPA_CN,
+                                                       services->entry_count,
+                                                       services->entries,
+                                                       services->group_subdir,
+                                                       IPA_CN,
+                                                       services->group_count,
+                                                       services->groups);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Error saving services [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    /* Save the rules */
+    if (rules != NULL) {
+        ret = ipa_common_entries_and_groups_sysdb_save(domain,
+                                                       rules->entry_subdir,
+                                                       IPA_UNIQUE_ID,
+                                                       rules->entry_count,
+                                                       rules->entries,
+                                                       NULL, NULL, 0, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Error saving rules [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_commit(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
+        goto done;
+    }
+    in_transaction = false;
+
+    *last_update = time(NULL);
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(domain->sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
+        }
+    }
+
+    return ret;
+}
