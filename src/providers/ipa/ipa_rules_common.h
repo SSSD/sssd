@@ -25,6 +25,18 @@
 
 #include "providers/backend.h"
 
+#define IPA_UNIQUE_ID "ipauniqueid"
+
+#define OBJECTCLASS "objectclass"
+#define IPA_MEMBER_USER "memberUser"
+#define IPA_USER_CATEGORY "userCategory"
+#define IPA_EXTERNAL_HOST "externalHost"
+#define IPA_ENABLED_FLAG "ipaenabledflag"
+#define IPA_MEMBER_HOST "memberHost"
+#define IPA_HOST_CATEGORY "hostCategory"
+#define IPA_CN "cn"
+#define IPA_TRUE_VALUE "TRUE"
+
 /* From ipa_rules_common.c */
 errno_t
 ipa_common_entries_and_groups_sysdb_save(struct sss_domain_info *domain,

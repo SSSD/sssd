@@ -22,6 +22,7 @@
 
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ipa/ipa_common.h"
+#include "providers/ipa/ipa_rules_common.h"
 
 errno_t
 replace_attribute_name(const char *old_name,

@@ -36,6 +36,7 @@
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_selinux_maps.h"
 #include "providers/ipa/ipa_subdomains.h"
+#include "providers/ipa/ipa_rules_common.h"
 
 #ifndef SELINUX_CHILD_DIR
 #ifndef SSSD_LIBEXEC_PATH

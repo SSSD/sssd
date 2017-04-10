@@ -21,6 +21,7 @@
 */
 
 #include "util/util.h"
+#include "providers/ipa/ipa_rules_common.h"
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ldap/sdap_async.h"
 
