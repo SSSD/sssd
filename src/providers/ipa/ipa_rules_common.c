@@ -222,3 +222,35 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t
+ipa_common_purge_rules(struct sss_domain_info *domain,
+                       const char *subtree_name)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *base_dn;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    base_dn = sysdb_custom_subtree_dn(tmp_ctx, domain, subtree_name);
+    if (base_dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_delete_recursive failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

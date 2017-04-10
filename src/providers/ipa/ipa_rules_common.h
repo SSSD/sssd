@@ -58,4 +58,8 @@ ipa_common_get_cached_rules(TALLOC_CTX *mem_ctx,
                             size_t *_rule_count,
                             struct sysdb_attrs ***_rules);
 
+errno_t
+ipa_common_purge_rules(struct sss_domain_info *domain,
+                       const char *subtree_name);
+
 #endif /* IPA_RULES_COMMON_H_ */

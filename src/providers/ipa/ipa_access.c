@@ -118,7 +118,6 @@ static errno_t ipa_fetch_hbac_hostinfo(struct tevent_req *req);
 static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq);
 static void ipa_fetch_hbac_services_done(struct tevent_req *subreq);
 static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq);
-static errno_t ipa_purge_hbac(struct sss_domain_info *domain);
 static errno_t ipa_save_hbac(struct sss_domain_info *domain,
                              struct ipa_fetch_hbac_state *state);
 
@@ -436,7 +435,8 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
 
     if (found == false) {
         /* No rules were found that apply to this host. */
-        ret = ipa_purge_hbac(state->be_ctx->domain);
+        ret = ipa_common_purge_rules(state->be_ctx->domain,
+                                     HBAC_RULES_SUBDIR);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to remove HBAC rules\n");
             goto done;
@@ -468,37 +468,6 @@ static errno_t ipa_fetch_hbac_recv(struct tevent_req *req)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
-}
-
-static errno_t ipa_purge_hbac(struct sss_domain_info *domain)
-{
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_dn *base_dn;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    /* Delete any rules in the sysdb so offline logins are also denied. */
-    base_dn = sysdb_custom_subtree_dn(tmp_ctx, domain, HBAC_RULES_SUBDIR);
-    if (base_dn == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_delete_recursive failed.\n");
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
 }
 
 static errno_t ipa_save_hbac(struct sss_domain_info *domain,
