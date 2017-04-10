@@ -490,7 +490,13 @@ sbus_opath_hash_delete_cb(hash_entry_t *item,
     conn = talloc_get_type(pvt, struct sbus_connection);
     path = sbus_opath_get_base_path(NULL, item->key.str);
 
-    dbus_connection_unregister_object_path(conn->dbus.conn, path);
+    /* There seem to be code paths where the data is added to the hash
+     * before the connection is properly initialized, to avoid core dump
+     * during shut down we only call dbus_connection_unregister_object_path()
+     * if there is a connection. */
+    if (conn->dbus.conn != NULL) {
+        dbus_connection_unregister_object_path(conn->dbus.conn, path);
+    }
 }
 
 hash_table_t *
