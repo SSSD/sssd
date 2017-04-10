@@ -118,7 +118,8 @@ static errno_t ipa_fetch_hbac_hostinfo(struct tevent_req *req);
 static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq);
 static void ipa_fetch_hbac_services_done(struct tevent_req *subreq);
 static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq);
-static errno_t ipa_save_hbac(struct sss_domain_info *domain,
+static errno_t ipa_save_hbac(TALLOC_CTX *mem_ctx,
+                             struct sss_domain_info *domain,
                              struct ipa_fetch_hbac_state *state);
 
 static struct tevent_req *
@@ -446,7 +447,7 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = ipa_save_hbac(state->be_ctx->domain, state);
+    ret = ipa_save_hbac(state, state->be_ctx->domain, state);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to save HBAC rules\n");
         goto done;
@@ -470,83 +471,63 @@ static errno_t ipa_fetch_hbac_recv(struct tevent_req *req)
     return EOK;
 }
 
-static errno_t ipa_save_hbac(struct sss_domain_info *domain,
+static errno_t ipa_save_hbac(TALLOC_CTX *mem_ctx,
+                             struct sss_domain_info *domain,
                              struct ipa_fetch_hbac_state *state)
 {
-    bool in_transaction = false;
+    struct ipa_common_entries *hosts;
+    struct ipa_common_entries *services;
+    struct ipa_common_entries *rules;
     errno_t ret;
-    errno_t sret;
 
-    ret = sysdb_transaction_start(domain->sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not start transaction\n");
+    hosts = talloc_zero(mem_ctx, struct ipa_common_entries);
+    if (hosts == NULL) {
+        ret = ENOMEM;
         goto done;
     }
-    in_transaction = true;
 
-    /* Save the hosts */
-    ret = ipa_common_entries_and_groups_sysdb_save(domain,
-                                                   HBAC_HOSTS_SUBDIR,
-                                                   SYSDB_FQDN,
-                                                   state->host_count,
-                                                   state->hosts,
-                                                   HBAC_HOSTGROUPS_SUBDIR,
-                                                   SYSDB_NAME,
-                                                   state->hostgroup_count,
-                                                   state->hostgroups);
+    hosts->entry_subdir = HBAC_HOSTS_SUBDIR;
+    hosts->entry_count = state->host_count;
+    hosts->entries = state->hosts;
+    hosts->group_subdir = HBAC_HOSTGROUPS_SUBDIR;
+    hosts->group_count = state->hostgroup_count;
+    hosts->groups = state->hostgroups;
+
+    services = talloc_zero(mem_ctx, struct ipa_common_entries);
+    if (services == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    services->entry_subdir = HBAC_SERVICES_SUBDIR;
+    services->entry_count = state->service_count;
+    services->entries = state->services;
+    services->group_subdir = HBAC_SERVICEGROUPS_SUBDIR;
+    services->group_count = state->servicegroup_count;
+    services->groups = state->servicegroups;
+
+    rules = talloc_zero(mem_ctx, struct ipa_common_entries);
+    if (rules == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    rules->entry_subdir = HBAC_RULES_SUBDIR;
+    rules->entry_count = state->rule_count;
+    rules->entries = state->rules;
+
+    ret = ipa_common_save_rules(domain, hosts, services, rules,
+                                &state->access_ctx->last_update);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error saving hosts [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ipa_common_save_rules() failed [%d]: [%s]\n",
               ret, sss_strerror(ret));
         goto done;
     }
-
-    /* Save the services */
-    ret = ipa_common_entries_and_groups_sysdb_save(domain,
-                                                   HBAC_SERVICES_SUBDIR,
-                                                   IPA_CN,
-                                                   state->service_count,
-                                                   state->services,
-                                                   HBAC_SERVICEGROUPS_SUBDIR,
-                                                   IPA_CN,
-                                                   state->servicegroup_count,
-                                                   state->servicegroups);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error saving services [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-    /* Save the rules */
-    ret = ipa_common_entries_and_groups_sysdb_save(domain,
-                                                   HBAC_RULES_SUBDIR,
-                                                   IPA_UNIQUE_ID,
-                                                   state->rule_count,
-                                                   state->rules,
-                                                   NULL, NULL, 0, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error saving rules [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = sysdb_transaction_commit(domain->sysdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
-        goto done;
-    }
-    in_transaction = false;
-
-    state->access_ctx->last_update = time(NULL);
 
     ret = EOK;
 
 done:
-    if (in_transaction) {
-        sret = sysdb_transaction_cancel(domain->sysdb);
-        if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
-        }
-    }
-
     return ret;
 }
 
