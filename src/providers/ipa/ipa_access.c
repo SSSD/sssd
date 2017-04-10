@@ -95,21 +95,14 @@ struct ipa_fetch_hbac_state {
     struct sdap_search_base **search_bases;
 
     /* Hosts */
-    size_t host_count;
-    struct sysdb_attrs **hosts;
-    size_t hostgroup_count;
-    struct sysdb_attrs **hostgroups;
+    struct ipa_common_entries *hosts;
     struct sysdb_attrs *ipa_host;
 
     /* Rules */
-    size_t rule_count;
-    struct sysdb_attrs **rules;
+    struct ipa_common_entries *rules;
 
     /* Services */
-    size_t service_count;
-    struct sysdb_attrs **services;
-    size_t servicegroup_count;
-    struct sysdb_attrs **servicegroups;
+    struct ipa_common_entries *services;
 };
 
 static errno_t ipa_fetch_hbac_retry(struct tevent_req *req);
@@ -118,9 +111,6 @@ static errno_t ipa_fetch_hbac_hostinfo(struct tevent_req *req);
 static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq);
 static void ipa_fetch_hbac_services_done(struct tevent_req *subreq);
 static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq);
-static errno_t ipa_save_hbac(TALLOC_CTX *mem_ctx,
-                             struct sss_domain_info *domain,
-                             struct ipa_fetch_hbac_state *state);
 
 static struct tevent_req *
 ipa_fetch_hbac_send(TALLOC_CTX *mem_ctx,
@@ -147,6 +137,21 @@ ipa_fetch_hbac_send(TALLOC_CTX *mem_ctx,
     state->sdap_ctx = access_ctx->sdap_ctx;
     state->ipa_options = access_ctx->ipa_options;
     state->search_bases = access_ctx->hbac_search_bases;
+    state->hosts = talloc_zero(state, struct ipa_common_entries);
+    if (state->hosts == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    state->services = talloc_zero(state, struct ipa_common_entries);
+    if (state->hosts == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    state->rules = talloc_zero(state, struct ipa_common_entries);
+    if (state->rules == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
 
     if (state->search_bases == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No HBAC search base found.\n");
@@ -296,8 +301,12 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ipa_fetch_hbac_state);
 
     ret = ipa_host_info_recv(subreq, state,
-                             &state->host_count, &state->hosts,
-                             &state->hostgroup_count, &state->hostgroups);
+                             &state->hosts->entry_count,
+                             &state->hosts->entries,
+                             &state->hosts->group_count,
+                             &state->hosts->groups);
+    state->hosts->entry_subdir = HBAC_HOSTS_SUBDIR;
+    state->hosts->group_subdir = HBAC_HOSTGROUPS_SUBDIR;
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
@@ -338,8 +347,12 @@ static void ipa_fetch_hbac_services_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ipa_fetch_hbac_state);
 
     ret = ipa_hbac_service_info_recv(subreq, state,
-                             &state->service_count, &state->services,
-                             &state->servicegroup_count, &state->servicegroups);
+                                     &state->services->entry_count,
+                                     &state->services->entries,
+                                     &state->services->group_count,
+                                     &state->services->groups);
+    state->services->entry_subdir = HBAC_SERVICES_SUBDIR;
+    state->services->group_subdir = HBAC_SERVICEGROUPS_SUBDIR;
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
@@ -355,15 +368,16 @@ static void ipa_fetch_hbac_services_done(struct tevent_req *subreq)
         goto done;
     }
 
-    for (i = 0; i < state->host_count; i++) {
-        ret = sysdb_attrs_get_string(state->hosts[i], SYSDB_FQDN, &hostname);
+    for (i = 0; i < state->hosts->entry_count; i++) {
+        ret = sysdb_attrs_get_string(state->hosts->entries[i], SYSDB_FQDN,
+                                     &hostname);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not locate IPA host\n");
             goto done;
         }
 
         if (strcasecmp(hostname, ipa_hostname) == 0) {
-            state->ipa_host = state->hosts[i];
+            state->ipa_host = state->hosts->entries[i];
             break;
         }
     }
@@ -409,7 +423,9 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ipa_fetch_hbac_state);
 
     ret = ipa_hbac_rule_info_recv(subreq, state,
-                                  &state->rule_count, &state->rules);
+                                  &state->rules->entry_count,
+                                  &state->rules->entries);
+    state->rules->entry_subdir = HBAC_RULES_SUBDIR;
     talloc_zfree(subreq);
     if (ret == ENOENT) {
         /* Set ret to EOK so we can safely call sdap_id_op_done. */
@@ -447,7 +463,10 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = ipa_save_hbac(state, state->be_ctx->domain, state);
+    ret = ipa_common_save_rules(state->be_ctx->domain,
+                                state->hosts, state->services, state->rules,
+                                &state->access_ctx->last_update);
+
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to save HBAC rules\n");
         goto done;
@@ -469,66 +488,6 @@ static errno_t ipa_fetch_hbac_recv(struct tevent_req *req)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
-}
-
-static errno_t ipa_save_hbac(TALLOC_CTX *mem_ctx,
-                             struct sss_domain_info *domain,
-                             struct ipa_fetch_hbac_state *state)
-{
-    struct ipa_common_entries *hosts;
-    struct ipa_common_entries *services;
-    struct ipa_common_entries *rules;
-    errno_t ret;
-
-    hosts = talloc_zero(mem_ctx, struct ipa_common_entries);
-    if (hosts == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    hosts->entry_subdir = HBAC_HOSTS_SUBDIR;
-    hosts->entry_count = state->host_count;
-    hosts->entries = state->hosts;
-    hosts->group_subdir = HBAC_HOSTGROUPS_SUBDIR;
-    hosts->group_count = state->hostgroup_count;
-    hosts->groups = state->hostgroups;
-
-    services = talloc_zero(mem_ctx, struct ipa_common_entries);
-    if (services == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    services->entry_subdir = HBAC_SERVICES_SUBDIR;
-    services->entry_count = state->service_count;
-    services->entries = state->services;
-    services->group_subdir = HBAC_SERVICEGROUPS_SUBDIR;
-    services->group_count = state->servicegroup_count;
-    services->groups = state->servicegroups;
-
-    rules = talloc_zero(mem_ctx, struct ipa_common_entries);
-    if (rules == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    rules->entry_subdir = HBAC_RULES_SUBDIR;
-    rules->entry_count = state->rule_count;
-    rules->entries = state->rules;
-
-    ret = ipa_common_save_rules(domain, hosts, services, rules,
-                                &state->access_ctx->last_update);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ipa_common_save_rules() failed [%d]: [%s]\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    return ret;
 }
 
 errno_t ipa_hbac_evaluate_rules(struct be_ctx *be_ctx,
