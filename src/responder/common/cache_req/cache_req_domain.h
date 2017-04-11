@@ -25,6 +25,7 @@
 
 struct cache_req_domain {
     struct sss_domain_info *domain;
+    bool fqnames;
 
     struct cache_req_domain *prev;
     struct cache_req_domain *next;

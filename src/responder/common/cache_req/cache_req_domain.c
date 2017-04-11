@@ -60,6 +60,48 @@ void cache_req_domain_list_zfree(struct cache_req_domain **cr_domains)
     *cr_domains = NULL;
 }
 
+static bool
+cache_req_domain_use_fqnames(struct sss_domain_info *domain,
+                             bool enforce_non_fqnames)
+{
+    struct sss_domain_info *head;
+
+    head = get_domains_head(domain);
+
+    /*
+     * In order to decide whether fully_qualified_names must be used on the
+     * lookups we have to take into consideration:
+     * - use_fully_qualified_name value of the head of the domains;
+     *   (head->fqnames)
+     * - the presence of a domains' resolution order list;
+     *   (non_fqnames_enforced)
+     *
+     * The relationship between those two can be described by:
+     * - head->fqnames:
+     *   - true: in this case doesn't matter whether it's enforced or not,
+     *           fully-qualified-names will _always_ be used
+     *   - false: in this case (which is also the default case), the usage
+     *            depends on it being enforced;
+     *
+     *     - enforce_non_fqnames:
+     *       - true: in this case, the usage of fully-qualified-names is not
+     *               needed;
+     *       - false: in this case, the usage of fully-qualified-names will be
+     *                done accordingly to what's set for the domain itself.
+     */
+    switch (head->fqnames) {
+    case true:
+        return true;
+    case false:
+        switch (enforce_non_fqnames) {
+        case true:
+            return false;
+        case false:
+            return domain->fqnames;
+        }
+    }
+}
+
 static struct cache_req_domain *
 cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
                                            struct sss_domain_info *domains,
@@ -71,9 +113,11 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
     char *name;
     int flag = SSS_GND_ALL_DOMAINS;
     int i;
+    bool enforce_non_fqnames = false;
     errno_t ret;
 
     if (resolution_order != NULL) {
+        enforce_non_fqnames = true;
         for (i = 0; resolution_order[i] != NULL; i++) {
             name = resolution_order[i];
             for (dom = domains; dom; dom = get_next_domain(dom, flag)) {
@@ -87,6 +131,8 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
                     goto done;
                 }
                 cr_domain->domain = dom;
+                cr_domain->fqnames =
+                    cache_req_domain_use_fqnames(dom, enforce_non_fqnames);
 
                 DLIST_ADD_END(cr_domains, cr_domain,
                               struct cache_req_domain *);
@@ -106,6 +152,8 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
             goto done;
         }
         cr_domain->domain = dom;
+        cr_domain->fqnames =
+            cache_req_domain_use_fqnames(dom, enforce_non_fqnames);
 
         DLIST_ADD_END(cr_domains, cr_domain, struct cache_req_domain *);
     }
