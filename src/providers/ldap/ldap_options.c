@@ -581,8 +581,6 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
     char *unparsed_base;
     const char *old_filter = NULL;
 
-    *_search_bases = NULL;
-
     switch (class) {
     case SDAP_SEARCH_BASE:
         class_name = "DEFAULT";
