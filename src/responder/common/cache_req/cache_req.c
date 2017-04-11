@@ -480,7 +480,7 @@ static errno_t cache_req_search_domains_next(struct tevent_req *req)
          * qualified names on domain less search. We do not descend into
          * subdomains here since those are implicitly qualified.
          */
-        if (state->check_next && !allow_no_fqn && domain->fqnames) {
+        if (state->check_next && !allow_no_fqn && state->cr_domain->fqnames) {
             state->cr_domain = state->cr_domain->next;
             continue;
         }
