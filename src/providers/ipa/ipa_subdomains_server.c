@@ -332,7 +332,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         return EFAULT;
     }
 
-    ret = ad_set_search_bases(ad_options->id);
+    ret = ad_set_search_bases(ad_options->id, sdom);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD search bases\n");
         talloc_free(ad_options);

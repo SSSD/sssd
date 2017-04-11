@@ -29,7 +29,8 @@ struct ad_server_data {
     bool gc;
 };
 
-errno_t ad_set_search_bases(struct sdap_options *id_opts);
+errno_t ad_set_search_bases(struct sdap_options *id_opts,
+                            struct sdap_domain *sdap);
 static errno_t ad_set_sdap_options(struct ad_options *ad_opts,
                                    struct sdap_options *id_opts);
 
@@ -1074,7 +1075,7 @@ ad_get_id_options(struct ad_options *ad_opts,
     }
 
     /* Set up search bases if they were assigned explicitly */
-    ret = ad_set_search_bases(id_opts);
+    ret = ad_set_search_bases(id_opts, NULL);
     if (ret != EOK) {
         talloc_free(id_opts);
         return ret;
@@ -1116,11 +1117,14 @@ ad_get_autofs_options(struct ad_options *ad_opts,
 }
 
 errno_t
-ad_set_search_bases(struct sdap_options *id_opts)
+ad_set_search_bases(struct sdap_options *id_opts,
+                    struct sdap_domain *sdom)
 {
     errno_t ret;
-    char *default_search_base;
+    char *default_search_base = NULL;
     size_t o;
+    struct sdap_domain *sdap_dom;
+    bool has_default;
     const int search_base_options[] = { SDAP_USER_SEARCH_BASE,
                                         SDAP_GROUP_SEARCH_BASE,
                                         SDAP_NETGROUP_SEARCH_BASE,
@@ -1132,10 +1136,21 @@ ad_set_search_bases(struct sdap_options *id_opts)
      * been specifically overridden.
      */
 
-    default_search_base =
-            dp_opt_get_string(id_opts->basic, SDAP_SEARCH_BASE);
+    if (sdom != NULL) {
+        sdap_dom = sdom;
+    } else {
+        /* If no specific sdom was given, use the first in the list. */
+        sdap_dom = id_opts->sdom;
+    }
 
-    if (default_search_base) {
+    has_default = sdap_dom->search_bases != NULL;
+
+    if (has_default == false) {
+        default_search_base =
+                dp_opt_get_string(id_opts->basic, SDAP_SEARCH_BASE);
+    }
+
+    if (default_search_base && has_default == false) {
         /* set search bases if they are not */
         for (o = 0; search_base_options[o] != -1; o++) {
             if (NULL == dp_opt_get_string(id_opts->basic,
@@ -1162,31 +1177,31 @@ ad_set_search_bases(struct sdap_options *id_opts)
     /* Default search */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_SEARCH_BASE,
-                                 &id_opts->sdom->search_bases);
+                                 &sdap_dom->search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* User search */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_USER_SEARCH_BASE,
-                                 &id_opts->sdom->user_search_bases);
+                                 &sdap_dom->user_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Group search base */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_GROUP_SEARCH_BASE,
-                                 &id_opts->sdom->group_search_bases);
+                                 &sdap_dom->group_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Netgroup search */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
-                                 &id_opts->sdom->netgroup_search_bases);
+                                 &sdap_dom->netgroup_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Service search */
     ret = sdap_parse_search_base(id_opts, id_opts->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
-                                 &id_opts->sdom->service_search_bases);
+                                 &sdap_dom->service_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     ret = EOK;
