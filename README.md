@@ -21,8 +21,10 @@ Please see the file called COPYING.
 ## Contacts
 There are several ways to contact us:
 
-* the sssd-devel mailing list: [Development of the System Security Services Daemon](https://fedorahosted.org/mailman/listinfo/sssd-devel)
-* the sssd-users mailing list: [End-user discussions about the System Security Services Daemon](https://fedorahosted.org/mailman/listinfo/sssd-users)
+* the sssd-devel mailing list: [Development of the System Security Services Daemon](
+  https://lists.fedorahosted.org/archives/list/sssd-devel@lists.fedorahosted.org/)
+* the sssd-users mailing list: [End-user discussions about the System Security Services Daemon](
+  https://lists.fedorahosted.org/archives/list/sssd-users@lists.fedorahosted.org/)
 * the #sssd and #freeipa IRC channels on freenode:
   * irc://irc.freenode.net/sssd
   * irc://irc.freenode.net/freeipa
