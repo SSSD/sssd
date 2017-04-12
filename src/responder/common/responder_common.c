@@ -1486,10 +1486,11 @@ fail:
 }
 
 /* ====== Helper functions for the domain resolution order ======= */
-static struct cache_req_domain *
+static errno_t
 sss_resp_new_cr_domains_from_ipa_id_view(TALLOC_CTX *mem_ctx,
                                          struct sss_domain_info *domains,
-                                         struct sysdb_ctx *sysdb)
+                                         struct sysdb_ctx *sysdb,
+                                         struct cache_req_domain **_cr_domains)
 {
     TALLOC_CTX *tmp_ctx;
     struct cache_req_domain *cr_domains = NULL;
@@ -1498,7 +1499,7 @@ sss_resp_new_cr_domains_from_ipa_id_view(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        return NULL;
+        return ENOMEM;
     }
 
     ret = sysdb_get_view_domain_resolution_order(tmp_ctx, sysdb,
@@ -1510,12 +1511,13 @@ sss_resp_new_cr_domains_from_ipa_id_view(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Using mem_ctx (which is rctx) directly here to avoid copying
-     * this memory around. */
-    cr_domains = cache_req_domain_new_list_from_domain_resolution_order(
-                                    mem_ctx, domains, domain_resolution_order);
-    if (cr_domains == NULL) {
-        ret = ENOMEM;
+    if (ret == ENOENT) {
+        goto done;
+    }
+
+    ret = cache_req_domain_new_list_from_domain_resolution_order(
+                        mem_ctx, domains, domain_resolution_order, &cr_domains);
+    if (ret != EOK) {
         DEBUG(SSSDBG_DEFAULT,
               "cache_req_domain_new_list_from_domain_resolution_order() "
               "failed [%d]: [%s].\n",
@@ -1523,25 +1525,31 @@ sss_resp_new_cr_domains_from_ipa_id_view(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    *_cr_domains = cr_domains;
+
+    ret = EOK;
+
 done:
     talloc_free(tmp_ctx);
-    return cr_domains;
+    return ret;
 }
 
-static struct cache_req_domain *
+static errno_t
 sss_resp_new_cr_domains_from_ipa_config(TALLOC_CTX *mem_ctx,
                                         struct sss_domain_info *domains,
                                         struct sysdb_ctx *sysdb,
-                                        const char *domain)
+                                        const char *domain,
+                                        struct cache_req_domain **_cr_domains)
 {
     TALLOC_CTX *tmp_ctx;
-    struct cache_req_domain *cr_domains = NULL;
     const char *domain_resolution_order = NULL;
     errno_t ret;
 
+    *_cr_domains = NULL;
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        return NULL;
+        return ENOMEM;
     }
 
     ret = sysdb_domain_get_domain_resolution_order(tmp_ctx, sysdb, domain,
@@ -1554,11 +1562,13 @@ sss_resp_new_cr_domains_from_ipa_config(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Using mem_ctx (which is rctx) directly here to avoid copying
-     * this memory around. */
-    cr_domains = cache_req_domain_new_list_from_domain_resolution_order(
-                                    mem_ctx, domains, domain_resolution_order);
-    if (cr_domains == NULL) {
+    if (ret == ENOENT) {
+        goto done;
+    }
+
+    ret = cache_req_domain_new_list_from_domain_resolution_order(
+                        mem_ctx, domains, domain_resolution_order, _cr_domains);
+    if (ret != EOK) {
         DEBUG(SSSDBG_DEFAULT,
               "cache_req_domain_new_list_from_domain_resolution_order() "
               "failed [%d]: [%s].\n",
@@ -1566,9 +1576,11 @@ sss_resp_new_cr_domains_from_ipa_config(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = EOK;
+
 done:
     talloc_free(tmp_ctx);
-    return cr_domains;
+    return ret;
 }
 
 errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx)
@@ -1578,16 +1590,16 @@ errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx)
     errno_t ret;
 
     if (rctx->domain_resolution_order != NULL) {
-        cr_domains = cache_req_domain_new_list_from_domain_resolution_order(
-                            rctx, rctx->domains, rctx->domain_resolution_order);
-
-        if (cr_domains == NULL) {
+        ret = cache_req_domain_new_list_from_domain_resolution_order(
+                rctx, rctx->domains,
+                rctx->domain_resolution_order, &cr_domains);
+        if (ret == EOK) {
+            goto done;
+        } else {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Failed to use domain_resolution_order set in the config file.\n"
                   "Trying to fallback to use ipaDomainOrderResolution setup by "
                   "IPA.\n");
-        } else {
-            goto done;
         }
     }
 
@@ -1598,9 +1610,9 @@ errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx)
     }
 
     if (dom == NULL) {
-        cr_domains = cache_req_domain_new_list_from_domain_resolution_order(
-                                                    rctx, rctx->domains, NULL);
-        if (cr_domains == NULL) {
+        ret = cache_req_domain_new_list_from_domain_resolution_order(
+                                        rctx, rctx->domains, NULL, &cr_domains);
+        if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to flatten the list of domains.\n");
         }
@@ -1608,44 +1620,48 @@ errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx)
     }
 
     if (dom->has_views) {
-        cr_domains = sss_resp_new_cr_domains_from_ipa_id_view(rctx,
-                                                              rctx->domains,
-                                                              dom->sysdb);
-        if (cr_domains == NULL) {
+        ret = sss_resp_new_cr_domains_from_ipa_id_view(rctx, rctx->domains,
+                                                       dom->sysdb,
+                                                       &cr_domains);
+        if (ret == EOK) {
+            goto done;
+        }
+
+        if (ret != ENOENT) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Failed to use ipaDomainResolutionOrder set for the "
                   "view \"%s\".\n"
                   "Trying to fallback to use ipaDomainOrderResolution "
                   "set in ipaConfig for the domain: %s.\n",
                   dom->view_name, dom->name);
-        } else {
-            goto done;
         }
     }
 
-    cr_domains = sss_resp_new_cr_domains_from_ipa_config(rctx, rctx->domains,
-                                                         dom->sysdb,
-                                                         dom->name);
-    if (cr_domains == NULL) {
+    ret = sss_resp_new_cr_domains_from_ipa_config(rctx, rctx->domains,
+                                                  dom->sysdb, dom->name,
+                                                  &cr_domains);
+    if (ret == EOK) {
+        goto done;
+    }
+
+    if (ret != ENOENT) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Failed to use ipaDomainResolutionOrder set in ipaConfig "
               "for the domain: \"%s\".\n"
               "No ipaDomainResolutionOrder will be followed.\n",
               dom->name);
-    } else {
-        goto done;
     }
 
-    cr_domains = cache_req_domain_new_list_from_domain_resolution_order(
-                                                    rctx, rctx->domains, NULL);
-    if (cr_domains == NULL) {
+    ret = cache_req_domain_new_list_from_domain_resolution_order(
+                                        rctx, rctx->domains, NULL, &cr_domains);
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to flatten the list of domains.\n");
         goto done;
     }
 
-done:
-    ret = cr_domains != NULL ? EOK : ENOMEM;
+    ret = EOK;
 
+done:
     cache_req_domain_list_zfree(&rctx->cr_domains);
     rctx->cr_domains = cr_domains;
 

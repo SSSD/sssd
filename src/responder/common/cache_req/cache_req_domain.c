@@ -120,20 +120,21 @@ done:
     return cr_domains;
 }
 
-struct cache_req_domain *
+errno_t
 cache_req_domain_new_list_from_domain_resolution_order(
                                         TALLOC_CTX *mem_ctx,
                                         struct sss_domain_info *domains,
-                                        const char *domain_resolution_order)
+                                        const char *domain_resolution_order,
+                                        struct cache_req_domain **_cr_domains)
 {
     TALLOC_CTX *tmp_ctx;
-    struct cache_req_domain *cr_domains = NULL;
+    struct cache_req_domain *cr_domains;
     char **list = NULL;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        return NULL;
+        return ENOMEM;
     }
 
     if (domain_resolution_order != NULL) {
@@ -160,7 +161,10 @@ cache_req_domain_new_list_from_domain_resolution_order(
         goto done;
     }
 
+    *_cr_domains = cr_domains;
+    ret = EOK;
+
 done:
     talloc_free(tmp_ctx);
-    return cr_domains;
+    return ret;
 }
