@@ -1709,8 +1709,6 @@ void test_nss_getgrnam_members_subdom_nonfqnames(void **state)
 {
     errno_t ret;
 
-    nss_test_ctx->subdom->fqnames = false;
-
     mock_input_user_or_group("testsubdomgroup");
     mock_account_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
@@ -1801,8 +1799,6 @@ void test_nss_getgrnam_mix_dom(void **state)
 void test_nss_getgrnam_mix_dom_nonfqnames(void **state)
 {
     errno_t ret;
-
-    nss_test_ctx->subdom->fqnames = false;
 
     ret = store_group_member(nss_test_ctx,
                              testgroup_members.gr_name,
@@ -1917,6 +1913,7 @@ void test_nss_getgrnam_mix_dom_fqdn(void **state)
     assert_int_equal(ret, EOK);
 }
 
+
 void test_nss_getgrnam_mix_dom_fqdn_nonfqnames(void **state)
 {
     errno_t ret;
@@ -1928,10 +1925,6 @@ void test_nss_getgrnam_mix_dom_fqdn_nonfqnames(void **state)
                              nss_test_ctx->subdom,
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
-
-    nss_test_ctx->tctx->dom->fqnames = false;
-    nss_test_ctx->subdom->fqnames = false;
-
 
     mock_input_user_or_group("testgroup_members");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
@@ -2043,8 +2036,6 @@ void test_nss_getgrnam_mix_subdom(void **state)
 void test_nss_getgrnam_mix_subdom_nonfqnames(void **state)
 {
     errno_t ret;
-
-    nss_test_ctx->subdom->fqnames = false;
 
     ret = store_group_member(nss_test_ctx,
                              testsubdomgroup.gr_name,
@@ -3417,9 +3408,11 @@ static int nss_test_setup_extra_attr(void **state)
     return 0;
 }
 
-static int nss_subdom_test_setup(void **state)
+static int nss_subdom_test_setup_common(void **state, bool nonfqnames)
 {
     const char *const testdom[4] = { TEST_SUBDOM_NAME, "TEST.SUB", "test", "S-3" };
+    struct sss_domain_info *dom;
+
     struct sss_domain_info *subdomain;
     errno_t ret;
 
@@ -3439,6 +3432,17 @@ static int nss_subdom_test_setup(void **state)
     ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom,
                                   nss_test_ctx->tctx->confdb);
     assert_int_equal(ret, EOK);
+
+    if (nonfqnames) {
+        for (dom = nss_test_ctx->rctx->domains;
+             dom != NULL;
+             dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
+            if (strcmp(dom->name, subdomain->name) == 0) {
+                dom->fqnames = false;
+                break;
+            }
+        }
+    }
 
     ret = sss_resp_populate_cr_domains(nss_test_ctx->rctx);
     assert_int_equal(ret, EOK);
@@ -3475,6 +3479,17 @@ static int nss_subdom_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     return 0;
+
+}
+
+static int nss_subdom_test_setup(void **state)
+{
+    return nss_subdom_test_setup_common(state, false);
+}
+
+static int nss_subdom_test_setup_nonfqnames(void **state)
+{
+    return nss_subdom_test_setup_common(state, true);
 }
 
 static int nss_fqdn_fancy_test_setup(void **state)
@@ -4192,25 +4207,25 @@ int main(int argc, const char *argv[])
                                         nss_subdom_test_setup,
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_subdom_nonfqnames,
-                                        nss_subdom_test_setup,
+                                        nss_subdom_test_setup_nonfqnames,
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom,
                                         nss_subdom_test_setup,
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_nonfqnames,
-                                        nss_subdom_test_setup,
+                                        nss_subdom_test_setup_nonfqnames,
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn,
                                         nss_subdom_test_setup,
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn_nonfqnames,
-                                        nss_subdom_test_setup,
+                                        nss_subdom_test_setup_nonfqnames,
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_subdom,
                                         nss_subdom_test_setup,
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_subdom_nonfqnames,
-                                        nss_subdom_test_setup,
+                                        nss_subdom_test_setup_nonfqnames,
                                         nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getgrnam_space,
                                         nss_test_setup, nss_test_teardown),
