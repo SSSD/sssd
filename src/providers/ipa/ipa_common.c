@@ -1194,3 +1194,46 @@ errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
 
     return EOK;
 }
+
+errno_t ipa_get_host_attrs(struct dp_option *ipa_options,
+                           size_t host_count,
+                           struct sysdb_attrs **hosts,
+                           struct sysdb_attrs **_ipa_host)
+{
+    const char *ipa_hostname;
+    const char *hostname;
+    errno_t ret;
+
+    *_ipa_host = NULL;
+    ipa_hostname = dp_opt_get_cstring(ipa_options, IPA_HOSTNAME);
+    if (ipa_hostname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Missing ipa_hostname, this should never happen.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    for (size_t i = 0; i < host_count; i++) {
+        ret = sysdb_attrs_get_string(hosts[i], SYSDB_FQDN, &hostname);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not locate IPA host\n");
+            goto done;
+        }
+
+        if (strcasecmp(hostname, ipa_hostname) == 0) {
+            *_ipa_host = hosts[i];
+            break;
+        }
+    }
+
+    if (*_ipa_host == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not locate IPA host\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
