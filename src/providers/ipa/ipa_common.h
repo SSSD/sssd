@@ -292,4 +292,10 @@ errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
 
 
 struct krb5_ctx *ipa_init_get_krb5_auth_ctx(void *data);
+
+errno_t ipa_get_host_attrs(struct dp_option *ipa_options,
+                           size_t host_count,
+                           struct sysdb_attrs **hosts,
+                           struct sysdb_attrs **_ipa_host);
+
 #endif /* _IPA_COMMON_H_ */

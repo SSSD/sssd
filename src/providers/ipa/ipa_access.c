@@ -338,10 +338,7 @@ static void ipa_fetch_hbac_services_done(struct tevent_req *subreq)
 {
     struct ipa_fetch_hbac_state *state;
     struct tevent_req *req;
-    const char *ipa_hostname;
-    const char *hostname;
     errno_t ret;
-    size_t i;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_fetch_hbac_state);
@@ -359,32 +356,12 @@ static void ipa_fetch_hbac_services_done(struct tevent_req *subreq)
     }
 
     /* Get the ipa_host attrs */
-    state->ipa_host = NULL;
-    ipa_hostname = dp_opt_get_cstring(state->ipa_options, IPA_HOSTNAME);
-    if (ipa_hostname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Missing ipa_hostname, this should never happen.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    for (i = 0; i < state->hosts->entry_count; i++) {
-        ret = sysdb_attrs_get_string(state->hosts->entries[i], SYSDB_FQDN,
-                                     &hostname);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Could not locate IPA host\n");
-            goto done;
-        }
-
-        if (strcasecmp(hostname, ipa_hostname) == 0) {
-            state->ipa_host = state->hosts->entries[i];
-            break;
-        }
-    }
-
-    if (state->ipa_host == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not locate IPA host\n");
-        ret = EINVAL;
+    ret = ipa_get_host_attrs(state->ipa_options,
+                             state->hosts->entry_count,
+                             state->hosts->entries,
+                             &state->ipa_host);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not locate IPA host.\n");
         goto done;
     }
 
