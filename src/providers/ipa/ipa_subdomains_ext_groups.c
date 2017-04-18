@@ -27,6 +27,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/sdap_ops.h"
 #include "providers/ipa/ipa_id.h"
 #include "providers/ad/ad_id.h"
 #include "providers/ipa/ipa_subdomains.h"
@@ -529,7 +530,6 @@ static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
     struct get_ad_membership_state *state = tevent_req_data(req,
                                                 struct get_ad_membership_state);
     int ret;
-    char *basedn;
 
     ret = sdap_id_op_connect_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
@@ -546,20 +546,14 @@ static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
         goto fail;
     }
 
-
-    ret = domain_to_basedn(state, state->domain, &basedn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failed.\n");
-        goto fail;
-    }
-
-    subreq = sdap_get_generic_send(state, state->ev, state->sdap_id_ctx->opts,
-                                 sdap_id_op_handle(state->sdap_op), basedn,
-                                 LDAP_SCOPE_SUBTREE,
-                                 IPA_EXT_GROUPS_FILTER, NULL, NULL, 0,
-                                 dp_opt_get_int(state->sdap_id_ctx->opts->basic,
-                                                SDAP_ENUM_SEARCH_TIMEOUT),
-                                 false);
+    subreq = sdap_search_bases_send(state, state->ev, state->sdap_id_ctx->opts,
+                            sdap_id_op_handle(state->sdap_op),
+                            state->sdap_id_ctx->opts->sdom->group_search_bases,
+                            NULL, false,
+                            dp_opt_get_int(state->sdap_id_ctx->opts->basic,
+                                            SDAP_ENUM_SEARCH_TIMEOUT),
+                            IPA_EXT_GROUPS_FILTER,
+                            NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
         ret = ENOMEM;
@@ -583,8 +577,10 @@ static void ipa_get_ext_groups_done(struct tevent_req *subreq)
     int ret;
     hash_table_t *ext_group_hash;
 
-    ret = sdap_get_generic_recv(subreq, state,
-                                &state->reply_count, &state->reply);
+    ret = sdap_search_bases_recv(subreq,
+                                 state,
+                                 &state->reply_count,
+                                 &state->reply);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ext_groups request failed.\n");
