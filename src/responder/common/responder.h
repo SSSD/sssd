@@ -358,4 +358,25 @@ char *sss_resp_create_fqname(TALLOC_CTX *mem_ctx,
                              bool name_is_upn,
                              const char *orig_name);
 
+/**
+ * Helper functions to format output names
+ */
+
+/* Format orig_name into a sized_string in output format as prescribed
+ * by the name_dom domain
+ */
+int sized_output_name(TALLOC_CTX *mem_ctx,
+                      struct resp_ctx *rctx,
+                      const char *orig_name,
+                      struct sss_domain_info *name_dom,
+                      struct sized_string **_name);
+
+/* Format orig_name into a sized_string in output format as prescribed
+ * by the domain read from the fully qualified name.
+ */
+int sized_domain_name(TALLOC_CTX *mem_ctx,
+                      struct resp_ctx *rctx,
+                      const char *member_name,
+                      struct sized_string **_name);
+
 #endif /* __SSS_RESPONDER_H__ */
