@@ -570,11 +570,6 @@ static void proxy_secret_req_done(struct tevent_req *subreq)
     }
 }
 
-struct provider_handle proxy_secrets_handle = {
-    .fn = proxy_secret_req,
-    .context = NULL,
-};
-
 int proxy_secrets_provider_handle(struct sec_ctx *sctx,
                                   struct provider_handle **out_handle)
 {
