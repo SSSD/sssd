@@ -965,7 +965,7 @@
                             domains.
                         </para>
                         <para>
-                            Default: groupType in the AD provider, othewise not
+                            Default: groupType in the AD provider, otherwise not
                             set
                         </para>
                     </listitem>
@@ -1591,7 +1591,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_min_id, ldap_max_id (interger)</term>
+                    <term>ldap_min_id, ldap_max_id (integer)</term>
                     <listitem>
                         <para>
                             In contrast to the SID based ID mapping which is
@@ -1939,7 +1939,7 @@ ldap_access_filter = (employeeType=admin)
                             was granted access permission. If they were
                             granted access during their last login, they will
                             continue to be granted access while offline and
-                            vice-versa.
+                            vice versa.
                         </para>
                         <para>
                             Default: Empty
@@ -2633,7 +2633,7 @@ ldap_access_filter = (employeeType=admin)
                         If the option <quote>ldap_use_tokengroups</quote> is
                         enabled. The searches against Active Directory will
                         not be restricted and return all groups memberships,
-                        even with no gid mapping. It is recommended to disable
+                        even with no GID mapping. It is recommended to disable
                         this feature, if group names are not being displayed
                         correctly.
                     </para>
