@@ -74,7 +74,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         krb5-config
         libc-ares-dev
         libcmocka-dev
-        libcollection-dev
         libdbus-1-dev
         libdhash-dev
         libglib2.0-dev
