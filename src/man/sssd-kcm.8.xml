@@ -48,7 +48,7 @@
             <itemizedlist>
                 <listitem>
                     <para>
-                        since the process runs in userspace, it is subject to UID namespacing, ulike the kernel keyring
+                        since the process runs in userspace, it is subject to UID namespacing, unlike the kernel keyring
                     </para>
                 </listitem>
                 <listitem>

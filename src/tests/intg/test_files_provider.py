@@ -433,7 +433,7 @@ def test_incomplete_user_fail(setup_pw_with_canary, files_domain_only):
     Test resolving an incomplete user where the missing field is required
     to be present in the user record and thus the user shouldn't resolve.
 
-    We cannot test uid and gid missing because nss_wrapper doesn't even
+    We cannot test UID and GID missing because nss_wrapper doesn't even
     load the malformed passwd file, then.
     """
     bad_incomplete_user_setup(setup_pw_with_canary, 'name')

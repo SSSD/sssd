@@ -32,7 +32,7 @@
             <varlistentry>
                 <term>range = low - high</term>
                 <listitem><para>
-                  Defines the available matching uid and gid range for which the
+                  Defines the available matching UID and GID range for which the
                   backend is authoritative.
                 </para></listitem>
             </varlistentry>
