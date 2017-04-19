@@ -140,17 +140,6 @@ const char *
 nss_get_name_from_msg(struct sss_domain_info *domain,
                       struct ldb_message *msg);
 
-int sized_output_name(TALLOC_CTX *mem_ctx,
-                      struct resp_ctx *rctx,
-                      const char *orig_name,
-                      struct sss_domain_info *name_dom,
-                      struct sized_string **_name);
-
-int sized_member_name(TALLOC_CTX *mem_ctx,
-                      struct resp_ctx *rctx,
-                      const char *member_name,
-                      struct sized_string **_name);
-
 const char *
 nss_get_pwfield(struct nss_ctx *nctx,
                 struct sss_domain_info *dom);
