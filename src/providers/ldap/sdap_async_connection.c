@@ -1509,6 +1509,9 @@ static int sdap_cli_resolve_next(struct tevent_req *req)
     subreq = be_resolve_server_send(state, state->ev,
                                     state->be, state->service->name,
                                     state->srv == NULL ? true : false);
+    subreq = be_resolve_server_send(state, state->ev,
+                                    state->be, state->service->name,
+                                    state->srv == NULL ? true : false);
     if (!subreq) {
         return ENOMEM;
     }
