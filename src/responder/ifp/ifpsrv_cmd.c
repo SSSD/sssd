@@ -369,10 +369,11 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
                           struct ifp_req *ireq,
                           struct ldb_result *res)
 {
-    int i, num;
+    int i, gri, num;
     const char *name;
     const char **groupnames;
-    char *out_name;
+    struct sized_string *group_name;
+    errno_t ret;
 
     /* one less, the first one is the user entry */
     num = res->count - 1;
@@ -381,6 +382,7 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
         return sbus_request_finish(ireq->dbus_req, NULL);
     }
 
+    gri = 0;
     for (i = 0; i < num; i++) {
         name = sss_view_ldb_msg_find_attr_as_string(domain,
                                                     res->msgs[i + 1],
@@ -390,22 +392,21 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
             continue;
         }
 
-        out_name = sss_output_name(ireq, name, domain->case_preserve,
-                                   ireq->ifp_ctx->rctx->override_space);
-        if (out_name == NULL) {
+        ret = sized_domain_name(ireq, ireq->ifp_ctx->rctx, name, &group_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Unable to get sized name for %s [%d]: %s\n",
+                  name, ret, sss_strerror(ret));
             continue;
         }
 
-        if (domain->fqnames) {
-            groupnames[i] = sss_tc_fqname(groupnames, domain->names,
-                                          domain, out_name);
-            if (out_name == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "sss_tc_fqname failed\n");
-                continue;
-            }
-        } else {
-            groupnames[i] = talloc_steal(groupnames, out_name);
+        groupnames[gri] = talloc_strndup(groupnames,
+                                         group_name->str, group_name->len);
+        if (groupnames[gri] == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "talloc_strndup failed\n");
+            continue;
         }
+        gri++;
 
         DEBUG(SSSDBG_TRACE_FUNC, "Adding group %s\n", groupnames[i]);
     }
