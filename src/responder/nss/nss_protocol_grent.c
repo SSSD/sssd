@@ -163,7 +163,7 @@ nss_protocol_fill_members(struct sss_packet *packet,
                 }
             }
 
-            ret = sized_member_name(tmp_ctx, rctx, member_name, &name);
+            ret = sized_domain_name(tmp_ctx, rctx, member_name, &name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "Unable to get sized name [%d]: %s\n",
                       ret, sss_strerror(ret));
