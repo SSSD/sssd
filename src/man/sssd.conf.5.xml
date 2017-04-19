@@ -182,7 +182,7 @@
                                 information. SSSD can use more domains
                                 at the same time, but at least one
                                 must be configured or SSSD won't start.
-                                This parameter described the list of domains
+                                This parameter describes the list of domains
                                 in the order you want them to be queried.
                                 A domain name should only consist of alphanumeric
                                 ASCII characters, dashes, dots and underscores.
@@ -200,7 +200,7 @@
                             <para>
                                 Each domain can have an individual regular
                                 expression configured. For some ID providers
-                                there are also default regular expressions.  See
+                                there are also default regular expressions. See
                                 DOMAIN SECTIONS for more info on these regular
                                 expressions.
                             </para>
@@ -413,7 +413,7 @@
                                         <para>The nickname of the cert to trust
                                         (expected) to sign the OCSP responses.
                                         The certificate with the given nickname
-                                        must be availble in the systems NSS
+                                        must be available in the systems NSS
                                         database.</para>
                                         <para>This option must be used together
                                         with ocsp_default_responder.</para>
@@ -1093,7 +1093,7 @@ fallback_homedir = /home/%u
                         </para>
                         <para>
                             Note: Please be aware that message is only
-                            printed for the SSH service unless pam_verbostiy
+                            printed for the SSH service unless pam_verbosity
                             is set to 3 (show all messages and debug
                             information).
                         </para>
@@ -1284,13 +1284,13 @@ pam_account_locked_message = Account locked, please contact help desk.
                 authentication to the PAC responder. The sub-domain provider
                 collects domain SID and ID ranges of the domain the client is
                 joined to and of remote trusted domains from the local domain
-                controller.  If the PAC is decoded and evaluated some of the
+                controller. If the PAC is decoded and evaluated some of the
                 following operations are done:
                 <itemizedlist>
                     <listitem><para>If the remote user does not exist in the
-                    cache, it is created. The uid is determined with the help
-                    of the SID, trusted domains will have UPGs and the gid
-                    will have the same value as the uid. The home directory is
+                    cache, it is created. The UID is determined with the help
+                    of the SID, trusted domains will have UPGs and the GID
+                    will have the same value as the UID. The home directory is
                     set based on the subdomain_homedir parameter. The shell will
                     be empty by default, i.e. the system defaults are used, but
                     can be overwritten with the default_shell parameter.</para>
@@ -1895,7 +1895,7 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                         <para>
                             <quote>ldap</quote> to change a password stored
-                            in a LDAP server.  See
+                            in a LDAP server. See
                             <citerefentry>
                                 <refentrytitle>sssd-ldap</refentrytitle>
                                 <manvolnum>5</manvolnum>
