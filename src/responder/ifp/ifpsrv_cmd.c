@@ -373,6 +373,8 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
     const char *name;
     const char **groupnames;
     char *out_name;
+    struct sss_domain_info *recent_domain;
+    errno_t ret;
 
     /* one less, the first one is the user entry */
     num = res->count - 1;
@@ -396,9 +398,17 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
             continue;
         }
 
-        if (domain->fqnames) {
-            groupnames[i] = sss_tc_fqname(groupnames, domain->names,
-                                          domain, out_name);
+        ret = sss_get_domain_by_name(groupnames, ireq->ifp_ctx->rctx->domains,
+                                     name, &recent_domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "sss_get_domain_by_name() failed "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            continue;
+        }
+
+        if (recent_domain->fqnames) {
+            groupnames[i] = sss_tc_fqname(groupnames, recent_domain->names,
+                                          recent_domain, out_name);
             if (out_name == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "sss_tc_fqname failed\n");
                 continue;

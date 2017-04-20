@@ -239,6 +239,11 @@ int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **_domain, char **_name);
 
+int sss_get_domain_by_name(TALLOC_CTX *memctx,
+                           struct sss_domain_info *domains,
+                           const char *orig_fqname,
+                           struct sss_domain_info **_domain);
+
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                                struct sss_domain_info *domains,
                                const char *default_domain,

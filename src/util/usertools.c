@@ -377,6 +377,48 @@ static struct sss_domain_info * match_any_domain_or_subdomain_name(
     return find_domain_by_name(dom, dmatch, true);
 }
 
+int sss_get_domain_by_name(TALLOC_CTX *memctx,
+                           struct sss_domain_info *domains,
+                           const char *orig_fqname,
+                           struct sss_domain_info **_domain)
+{
+    struct sss_domain_info *dom, *match = NULL;
+    char *dmatch, *nmatch;
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    for (dom = domains; dom != NULL; dom = get_next_domain(dom, 0)) {
+        ret = sss_parse_name(tmp_ctx, dom->names, orig_fqname, &dmatch, &nmatch);
+        if (ret == EOK) {
+            if (dmatch != NULL) {
+                match = match_any_domain_or_subdomain_name (dom, dmatch);
+                if (match != NULL) {
+                    DEBUG(SSSDBG_FUNC_DATA, "name '%s' matched expression for "
+                                            "domain '%s'\n",
+                                            orig_fqname, match->name);
+                    break;
+                }
+            }
+        /* EINVAL is returned when name doesn't match */
+        } else if (ret != EINVAL) {
+            goto done;
+        }
+    }
+
+    *_domain = match;
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                                struct sss_domain_info *domains,
                                const char *default_domain,
