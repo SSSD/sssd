@@ -1532,8 +1532,8 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
 
             if ( ! (state->flags & SDAP_SRCH_FLG_SIZELIMIT_SILENT)) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      "LDAP sizelimit was exceeded, "
-                      "returning incomplete data\n");
+                      "LDAP server limit was exceeded, returning incomplete "
+                      "data: %s(%d)\n", sss_ldap_err2string(result), result);
             }
         } else if (result == LDAP_INAPPROPRIATE_MATCHING) {
             /* This error should only occur when we're testing for
