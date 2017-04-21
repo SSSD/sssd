@@ -2923,7 +2923,12 @@ ldap_user_extra_attrs = phone:telephoneNumber
             <para>ad_server,</para>
             <para>ad_backup_server,</para>
             <para>ad_site,</para>
-            <para>use_fully_qualified_names</para>
+            <para>use_fully_qualified_names,</para>
+            <para>ignore_group_members,</para>
+            <para>ldap_purge_cache_timeout,</para>
+            <para>ldap_use_tokengroups,</para>
+            <para>ldap_user_principal.</para>
+
         <para>
             For more details about these options see their individual description
             in the manual page.
