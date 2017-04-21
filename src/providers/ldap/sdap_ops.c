@@ -101,7 +101,7 @@ sdap_search_bases_ex_send(TALLOC_CTX *mem_ctx,
         state->map_num_attrs = 0;
     }
 
-    if (state->attrs == NULL) {
+    if (state->attrs == NULL && state->map != NULL) {
         ret = build_attrs_from_map(state, state->map, state->map_num_attrs,
                                    NULL, &state->attrs, NULL);
         if (ret != EOK) {
