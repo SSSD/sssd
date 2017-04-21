@@ -218,6 +218,22 @@ check_subdom_config_file(struct confdb_ctx *confdb,
           sd_conf_path, CONFDB_DOMAIN_FQ,
           subdomain->fqnames ? "TRUE" : "FALSE");
 
+
+    /* ignore_group_members */
+    ret = confdb_get_bool(confdb, sd_conf_path,
+                          CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS,
+                          false, &subdomain->ignore_group_members);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get %s option for the subdomain: %s\n",
+              CONFDB_DOMAIN_FQ, subdomain->name);
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "%s/%s has value %s\n",
+          sd_conf_path, CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS,
+          subdomain->ignore_group_members ? "TRUE" : "FALSE");
+
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
