@@ -1308,7 +1308,10 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
     ret = sysdb_attrs_get_string(state->attrs->sysdb_attrs, SYSDB_SID_STR,
                                  &sid_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Object [%s] has no SID, please check the "
+              "ipaNTSecurityIdentifier attribute on the server-side",
+              state->attrs->a.name);
         goto fail;
     }
 
