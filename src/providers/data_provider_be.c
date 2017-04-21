@@ -410,6 +410,12 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sysdb_master_domain_update(be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to update master domain information!\n");
+        goto done;
+    }
+
     ret = sss_monitor_init(be_ctx, be_ctx->ev, &monitor_be_methods,
                            be_ctx->identity, DATA_PROVIDER_VERSION,
                            MT_SVC_PROVIDER, be_ctx, NULL,
