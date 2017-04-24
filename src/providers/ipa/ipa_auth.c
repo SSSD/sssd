@@ -249,7 +249,7 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
     }
 
     if (state->pd->cmd == SSS_PAM_AUTHENTICATE
-            && state->pd->pam_status == PAM_CRED_ERR) {
+            && state->pd->pam_status == PAM_NO_MODULE_DATA) {
         realm = dp_opt_get_string(state->auth_ctx->ipa_options, IPA_KRB5_REALM);
         subreq = get_password_migration_flag_send(state, state->ev,
                                                   state->auth_ctx->sdap_id_ctx,
