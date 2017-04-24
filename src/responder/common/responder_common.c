@@ -1594,6 +1594,8 @@ errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx)
                 rctx, rctx->domains,
                 rctx->domain_resolution_order, &cr_domains);
         if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Using domain_resolution_order from sssd.conf\n");
             goto done;
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1624,6 +1626,8 @@ errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx)
                                                        dom->sysdb,
                                                        &cr_domains);
         if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Using domain_resolution_order from IPA ID View\n");
             goto done;
         }
 
@@ -1641,6 +1645,8 @@ errno_t sss_resp_populate_cr_domains(struct resp_ctx *rctx)
                                                   dom->sysdb, dom->name,
                                                   &cr_domains);
     if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Using domain_resolution_order from IPA Config\n");
         goto done;
     }
 
