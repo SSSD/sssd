@@ -116,6 +116,8 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
     bool enforce_non_fqnames = false;
     errno_t ret;
 
+    /* Firstly, in case a domains' resolution order is passed ... iterate over
+     * the list adding its domains to the flatten cache req domains' list */
     if (resolution_order != NULL) {
         enforce_non_fqnames = true;
         for (i = 0; resolution_order[i] != NULL; i++) {
@@ -141,6 +143,8 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* Then iterate through all the other domains (and subdomains) and add them
+     * to the flatten cache req domains' list */
     for (dom = domains; dom; dom = get_next_domain(dom, flag)) {
         if (string_in_list(dom->name, resolution_order, false)) {
             continue;
