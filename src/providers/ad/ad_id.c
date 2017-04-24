@@ -50,6 +50,77 @@ disable_gc(struct ad_options *ad_options)
     }
 }
 
+static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
+                                    struct sss_domain_info *domain,
+                                    int filter_type,
+                                    const char *filter_value)
+{
+    struct sss_domain_info *dom_head = NULL;
+    struct sss_domain_info *sid_dom = NULL;
+    enum idmap_error_code err;
+    char *sid = NULL;
+    const char *csid = NULL;
+    uint32_t id;
+    bool shortcut = false;
+    errno_t ret;
+
+    if (!sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, domain->name,
+                                                   domain->domain_id)) {
+        goto done;
+    }
+
+    switch (filter_type) {
+    case BE_FILTER_IDNUM:
+        /* convert value to ID */
+        errno = 0;
+        id = strtouint32(filter_value, NULL, 10);
+        if (errno != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert filter value to "
+                  "number [%d]: %s\n", ret, strerror(ret));
+            goto done;
+        }
+
+        /* convert the ID to its SID equivalent */
+        err = sss_idmap_unix_to_sid(idmap_ctx->map, id, &sid);
+        if (err != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Mapping ID [%s] to SID failed: "
+                  "[%s]\n", filter_value, idmap_error_string(err));
+            goto done;
+        }
+        /* fall through */
+        SSS_ATTRIBUTE_FALLTHROUGH;
+    case BE_FILTER_SECID:
+        csid = sid == NULL ? filter_value : sid;
+
+        dom_head = get_domains_head(domain);
+        if (dom_head == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find domain head\n");
+            goto done;
+        }
+
+        sid_dom = find_domain_by_sid(dom_head, csid);
+        if (sid_dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid domain for SID:%s\n", csid);
+            goto done;
+        }
+
+        if (strcasecmp(sid_dom->name, domain->name) != 0) {
+            shortcut = true;
+        }
+        break;
+    default:
+        break;
+    }
+
+done:
+    if (sid != NULL) {
+        sss_idmap_free_sid(idmap_ctx->map, sid);
+    }
+
+    return shortcut;
+}
+
 struct ad_handle_acct_info_state {
     struct dp_id_data *ar;
     struct sdap_id_ctx *ctx;
@@ -78,6 +149,7 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
     struct ad_handle_acct_info_state *state;
     struct be_ctx *be_ctx = ctx->be;
     errno_t ret;
+    bool shortcut;
 
     req = tevent_req_create(mem_ctx, &state, struct ad_handle_acct_info_state);
     if (req == NULL) {
@@ -89,6 +161,18 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
     state->conn = conn;
     state->ad_options = ad_options;
     state->cindex = 0;
+
+    /* Try to shortcut if this is ID or SID search and it belongs to
+     * other domain range than is in ar->domain. */
+    shortcut = ad_account_can_shortcut(ctx->opts->idmap_ctx,
+                                       sdom->dom,
+                                       ar->filter_type,
+                                       ar->filter_value);
+    if (shortcut) {
+        DEBUG(SSSDBG_TRACE_FUNC, "This ID is from different domain\n");
+        ret = EOK;
+        goto immediate;
+    }
 
     if (sss_domain_get_state(sdom->dom) == DOM_INACTIVE) {
         ret = ERR_SUBDOM_INACTIVE;
@@ -297,72 +381,6 @@ get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
     return clist;
 }
 
-static bool ad_account_can_shortcut(struct be_ctx *be_ctx,
-                                    struct sdap_idmap_ctx *idmap_ctx,
-                                    int filter_type,
-                                    const char *filter_value,
-                                    const char *filter_domain)
-{
-    struct sss_domain_info *domain = be_ctx->domain;
-    struct sss_domain_info *req_dom = NULL;
-    enum idmap_error_code err;
-    char *sid = NULL;
-    const char *csid = NULL;
-    uint32_t id;
-    bool shortcut = false;
-    errno_t ret;
-
-    if (!sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, domain->name,
-                                                   domain->domain_id)) {
-        goto done;
-    }
-
-    switch (filter_type) {
-    case BE_FILTER_IDNUM:
-        /* convert value to ID */
-        errno = 0;
-        id = strtouint32(filter_value, NULL, 10);
-        if (errno != 0) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert filter value to "
-                  "number [%d]: %s\n", ret, strerror(ret));
-            goto done;
-        }
-
-        /* convert the ID to its SID equivalent */
-        err = sss_idmap_unix_to_sid(idmap_ctx->map, id, &sid);
-        if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Mapping ID [%s] to SID failed: "
-                  "[%s]\n", filter_value, idmap_error_string(err));
-            goto done;
-        }
-        /* fall through */
-        SSS_ATTRIBUTE_FALLTHROUGH;
-    case BE_FILTER_SECID:
-        csid = sid == NULL ? filter_value : sid;
-
-        req_dom = find_domain_by_sid(domain, csid);
-        if (req_dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Invalid domain for SID:%s\n", csid);
-            goto done;
-        }
-
-        if (strcasecmp(req_dom->name, filter_domain) != 0) {
-            shortcut = true;
-        }
-        break;
-    default:
-        break;
-    }
-
-done:
-    if (sid != NULL) {
-        sss_idmap_free_sid(idmap_ctx->map, sid);
-    }
-
-    return shortcut;
-}
-
 struct ad_account_info_handler_state {
     struct sss_domain_info *domain;
     struct dp_reply_std reply;
@@ -384,7 +402,6 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct tevent_req *req;
     struct be_ctx *be_ctx;
-    bool shortcut;
     errno_t ret;
 
     sdap_id_ctx = id_ctx->sdap_id_ctx;
@@ -399,17 +416,6 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
     if (sdap_is_enum_request(data)) {
         DEBUG(SSSDBG_TRACE_LIBS, "Skipping enumeration on demand\n");
-        ret = EOK;
-        goto immediately;
-    }
-
-    /* Try to shortcut if this is ID or SID search and it belongs to
-     * other domain range than is in ar->domain. */
-    shortcut = ad_account_can_shortcut(be_ctx, sdap_id_ctx->opts->idmap_ctx,
-                                       data->filter_type, data->filter_value,
-                                       data->domain);
-    if (shortcut) {
-        DEBUG(SSSDBG_TRACE_FUNC, "This ID is from different domain\n");
         ret = EOK;
         goto immediately;
     }
