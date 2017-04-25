@@ -191,6 +191,10 @@ cache_req_domain_new_list_from_domain_resolution_order(
 
     if (domain_resolution_order != NULL) {
         if (strcmp(domain_resolution_order, ":") != 0) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Domain resolution order list (split by ':'): \"%s\"\n",
+                  domain_resolution_order);
+
             ret = split_on_separator(tmp_ctx, domain_resolution_order, ':',
                                      true, true, &list, NULL);
             if (ret != EOK) {
@@ -199,7 +203,14 @@ cache_req_domain_new_list_from_domain_resolution_order(
                         ret, sss_strerror(ret));
                 goto done;
             }
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Domain resolution order list: ':' "
+                  "(do not use any specific order)\n");
         }
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Domain resolution order list: not set\n");
     }
 
     cr_domains = cache_req_domain_new_list_from_string_list(mem_ctx, domains,
