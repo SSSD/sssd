@@ -93,6 +93,18 @@ typedef errno_t
                            struct cache_req_data *data);
 
 /**
+ * Filter the result through the negative cache.
+ *
+ * This is useful for plugins which don't use name as an input
+ * token but can be affected by filter_users and filter_groups
+ * options.
+ */
+typedef errno_t
+(*cache_req_ncache_filter_fn)(struct sss_nc_ctx *ncache,
+                              struct sss_domain_info *domain,
+                              const char *name);
+
+/**
  * Add an object into global negative cache.
  *
  * @return EOK If everything went fine.
@@ -207,6 +219,7 @@ struct cache_req_plugin {
     cache_req_global_ncache_add_fn global_ncache_add_fn;
     cache_req_ncache_check_fn ncache_check_fn;
     cache_req_ncache_add_fn ncache_add_fn;
+    cache_req_ncache_filter_fn ncache_filter_fn;
     cache_req_lookup_fn lookup_fn;
     cache_req_dp_send_fn dp_send_fn;
     cache_req_dp_recv_fn dp_recv_fn;
