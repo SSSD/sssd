@@ -277,7 +277,7 @@ struct sdap_attr_map ipa_view_map[] = {
 };
 
 struct sdap_attr_map ipa_override_map[] = {
-    { "ipa_overide_object_class", "ipaOverrideAnchor", SYSDB_OVERRIDE_CLASS, NULL},
+    { "ipa_override_object_class", "ipaOverrideAnchor", SYSDB_OVERRIDE_CLASS, NULL},
     { "ipa_anchor_uuid", "ipaAnchorUUID", SYSDB_OVERRIDE_ANCHOR_UUID, NULL},
     { "ipa_user_override_object_class", "ipaUserOverride", SYSDB_OVERRIDE_USER_CLASS, NULL},
     { "ipa_group_override_object_class", "ipaGroupOverride", SYSDB_OVERRIDE_GROUP_CLASS, NULL},

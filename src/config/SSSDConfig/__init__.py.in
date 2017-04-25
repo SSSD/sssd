@@ -211,7 +211,7 @@ option_strings = {
     'ipa_views_search_base': _("Search base for view containers"),
     'ipa_view_class': _("Objectclass for view containers"),
     'ipa_view_name': _("Attribute with the name of the view"),
-    'ipa_overide_object_class': _("Objectclass for override objects"),
+    'ipa_override_object_class': _("Objectclass for override objects"),
     'ipa_anchor_uuid': _("Attribute with the reference to the original object"),
     'ipa_user_override_object_class': _("Objectclass for user override objects"),
     'ipa_group_override_object_class': _("Objectclass for group override objects"),

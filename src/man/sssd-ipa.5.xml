@@ -546,7 +546,7 @@
                     </varlistentry>
 
                     <varlistentry>
-                        <term>ipa_overide_object_class (string)</term>
+                        <term>ipa_override_object_class (string)</term>
                         <listitem>
                             <para>
                                 Objectclass of the override objects.

@@ -521,7 +521,7 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
                                                   NULL);
     if (obj_override_dn != NULL) {
         /* obj_override_dn can either point to the object itself, i.e there is
-         * no override, or to a overide object. This means it can change from
+         * no override, or to a override object. This means it can change from
          * the object DN to a override DN and back but not from one override
          * DN to a different override DN. If the new and the old DN are the
          * same we do not need to update the original object.  */
@@ -931,7 +931,7 @@ done:
 
 #define SYSDB_USER_NAME_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_USER_UID_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")("SYSDB_UIDNUM"=%lu))"
-#define SYSDB_USER_CERT_OVERIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")%s)"
+#define SYSDB_USER_CERT_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")%s)"
 #define SYSDB_GROUP_NAME_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_GROUP_CLASS")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_GROUP_GID_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_GROUP_CLASS")("SYSDB_GIDNUM"=%lu))"
 
@@ -978,7 +978,7 @@ errno_t sysdb_search_override_by_cert(TALLOC_CTX *mem_ctx,
     }
 
     ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &override_res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, SYSDB_USER_CERT_OVERIDE_FILTER,
+                     LDB_SCOPE_SUBTREE, attrs, SYSDB_USER_CERT_OVERRIDE_FILTER,
                      cert_filter);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
