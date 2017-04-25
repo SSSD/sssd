@@ -268,10 +268,10 @@ int main(int argc, const char **argv)
             DEBUG(SSSDBG_OP_FAILURE,
                   "getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret));
         } else {
-            host = ai[0].ai_canonname;
+            host = ai->ai_canonname;
         }
     } else {
-        ret = getnameinfo(ai[0].ai_addr, ai[0].ai_addrlen,
+        ret = getnameinfo(ai->ai_addr, ai->ai_addrlen,
                           canonhost, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -295,7 +295,7 @@ int main(int argc, const char **argv)
     if (pc_args) {
         ret = connect_proxy_command(discard_const(pc_args));
     } else if (ai) {
-        ret = connect_socket(ai[0].ai_family, ai[0].ai_addr, ai[0].ai_addrlen);
+        ret = connect_socket(ai->ai_family, ai->ai_addr, ai->ai_addrlen);
     } else {
         ret = EFAULT;
     }
