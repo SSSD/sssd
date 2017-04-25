@@ -75,6 +75,7 @@ const struct cache_req_plugin cache_req_enum_groups = {
     .global_ncache_add_fn = NULL,
     .ncache_check_fn = NULL,
     .ncache_add_fn = NULL,
+    .ncache_filter_fn = NULL,
     .lookup_fn = cache_req_enum_groups_lookup,
     .dp_send_fn = cache_req_enum_groups_dp_send,
     .dp_recv_fn = cache_req_common_dp_recv

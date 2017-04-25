@@ -125,6 +125,7 @@ const struct cache_req_plugin cache_req_user_by_upn = {
     .global_ncache_add_fn = NULL,
     .ncache_check_fn = cache_req_user_by_upn_ncache_check,
     .ncache_add_fn = cache_req_user_by_upn_ncache_add,
+    .ncache_filter_fn = NULL,
     .lookup_fn = cache_req_user_by_upn_lookup,
     .dp_send_fn = cache_req_user_by_upn_dp_send,
     .dp_recv_fn = cache_req_common_dp_recv

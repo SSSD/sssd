@@ -94,6 +94,7 @@ const struct cache_req_plugin cache_req_user_by_cert = {
     .global_ncache_add_fn = cache_req_user_by_cert_global_ncache_add,
     .ncache_check_fn = cache_req_user_by_cert_ncache_check,
     .ncache_add_fn = NULL,
+    .ncache_filter_fn = NULL,
     .lookup_fn = cache_req_user_by_cert_lookup,
     .dp_send_fn = cache_req_user_by_cert_dp_send,
     .dp_recv_fn = cache_req_common_dp_recv
