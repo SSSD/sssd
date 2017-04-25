@@ -241,18 +241,6 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
             continue;
         }
 
-        /* Check negative cache during enumeration. */
-        if (cmd_ctx->enumeration) {
-            ret = sss_ncache_check_group(nss_ctx->rctx->ncache,
-                                         result->domain, name->str);
-            if (ret == EEXIST) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "User [%s] filtered out! (negative cache)\n",
-                      name->str);
-                continue;
-            }
-        }
-
         /* Adjust packet size: gid, num_members + string fields. */
 
         ret = sss_packet_grow(packet, 2 * sizeof(uint32_t)
