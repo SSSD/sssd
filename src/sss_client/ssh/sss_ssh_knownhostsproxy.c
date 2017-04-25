@@ -295,7 +295,13 @@ int main(int argc, const char **argv)
     if (pc_args) {
         ret = connect_proxy_command(discard_const(pc_args));
     } else if (ai) {
-        ret = connect_socket(ai->ai_family, ai->ai_addr, ai->ai_addrlen);
+        /* Try all IP addresses before giving up */
+        for (struct addrinfo *ti = ai; ti != NULL; ti = ti->ai_next) {
+            ret = connect_socket(ti->ai_family, ti->ai_addr, ti->ai_addrlen);
+            if (ret == 0) {
+                break;
+            }
+        }
     } else {
         ret = EFAULT;
     }
