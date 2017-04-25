@@ -2580,7 +2580,13 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     ret = sysdb_attrs_get_string(attrs->sysdb_attrs, SYSDB_SID_STR, &sid_str);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot find SID of object with override.\n");
+              "Cannot find SID of object.\n");
+        if (name != NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Object [%s] has no SID, please check the "
+                  "ipaNTSecurityIdentifier attribute on the server-side.\n",
+                  name);
+        }
         goto done;
     }
 
