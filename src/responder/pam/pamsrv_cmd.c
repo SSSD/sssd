@@ -1352,15 +1352,71 @@ done:
     pam_check_user_done(preq, ret);
 }
 
+static errno_t get_results_from_all_domains(TALLOC_CTX *mem_ctx,
+                                            struct cache_req_result **results,
+                                            struct ldb_result **ldb_results)
+{
+    int ret;
+    size_t count = 0;
+    size_t c;
+    size_t d;
+    size_t r = 0;
+    struct ldb_result *res;
+
+    for (d = 0; results != NULL && results[d] != NULL; d++) {
+        count += results[d]->count;
+    }
+
+    res = talloc_zero(mem_ctx, struct ldb_result);
+    if (res == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        return ENOMEM;
+    }
+
+    if (count == 0) {
+        *ldb_results = res;
+        return EOK;
+    }
+
+    res->msgs = talloc_zero_array(res, struct ldb_message *, count);
+    if (res->msgs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+        return ENOMEM;
+    }
+    res->count = count;
+
+    for (d = 0; results != NULL && results[d] != NULL; d++) {
+        for (c = 0; c < results[d]->count; c++) {
+            if (r >= count) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "More results found then counted before.\n");
+                ret = EINVAL;
+                goto done;
+            }
+            res->msgs[r++] = talloc_steal(res->msgs, results[d]->msgs[c]);
+        }
+    }
+
+    *ldb_results = res;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(res);
+    }
+
+    return ret;
+}
+
 static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
 {
     int ret;
-    struct cache_req_result *result;
+    struct cache_req_result **results;
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
     const char *cert_user;
 
-    ret = cache_req_user_by_cert_recv(preq, req, &result);
+    ret = cache_req_recv(preq, req, &results);
     talloc_zfree(req);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert request failed.\n");
@@ -1368,11 +1424,12 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
     }
 
     if (ret == EOK) {
-        if (preq->domain == NULL) {
-            preq->domain = result->domain;
+        ret = get_results_from_all_domains(preq, results,
+                                           &preq->cert_user_objs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_results_from_all_domains failed.\n");
+            goto done;
         }
-
-        preq->cert_user_objs = talloc_steal(preq, result->ldb_result);
 
         if (preq->pd->logon_name == NULL) {
             if (preq->pd->cmd != SSS_PAM_PREAUTH) {
