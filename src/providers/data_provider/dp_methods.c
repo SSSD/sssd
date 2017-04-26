@@ -109,7 +109,7 @@ errno_t dp_find_method(struct data_provider *provider,
     }
 
     if (!dp_target_initialized(provider->targets, target)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Target [%s] is not initialized\n",
+        DEBUG(SSSDBG_CONF_SETTINGS, "Target [%s] is not initialized\n",
               dp_target_to_string(target));
         return ERR_MISSING_DP_TARGET;
     }

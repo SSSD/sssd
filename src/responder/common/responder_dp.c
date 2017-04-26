@@ -218,8 +218,17 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
             err = ETIME;
             goto done;
         }
-        DEBUG(SSSDBG_FATAL_FAILURE,"The Data Provider returned an error [%s]\n",
-                 dbus_message_get_error_name(reply));
+
+        if (strcmp(dbus_message_get_error_name(reply),
+                   SBUS_ERROR_DP_NOTSUP) == 0) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Data Provider does not support this operation.\n");
+        } else {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "The Data Provider returned an error [%s]\n",
+                  dbus_message_get_error_name(reply));
+        }
+
         /* Falling through to default intentionally*/
         SSS_ATTRIBUTE_FALLTHROUGH;
     default:
