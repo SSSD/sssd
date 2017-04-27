@@ -122,6 +122,41 @@ cache_req_create_and_add_result(TALLOC_CTX *mem_ctx,
 }
 
 struct ldb_result *
+cache_req_create_ldb_result_from_msg_list(TALLOC_CTX *mem_ctx,
+                                          struct ldb_message **ldb_msgs,
+                                          size_t ldb_msg_count)
+{
+    struct ldb_result *ldb_result;
+
+    if (ldb_msgs == NULL || ldb_msgs[0] == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No message set!\n");
+        return NULL;
+    }
+
+    ldb_result = talloc_zero(NULL, struct ldb_result);
+    if (ldb_result == NULL) {
+        return NULL;
+    }
+
+    ldb_result->extended = NULL;
+    ldb_result->controls = NULL;
+    ldb_result->refs = NULL;
+    ldb_result->count = ldb_msg_count;
+    ldb_result->msgs = talloc_zero_array(ldb_result, struct ldb_message *,
+                                         ldb_msg_count + 1);
+    if (ldb_result->msgs == NULL) {
+        talloc_free(ldb_result);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < ldb_msg_count; i++) {
+        ldb_result->msgs[i] = talloc_steal(ldb_result->msgs, ldb_msgs[i]);
+    }
+
+    return ldb_result;
+}
+
+struct ldb_result *
 cache_req_create_ldb_result_from_msg(TALLOC_CTX *mem_ctx,
                                      struct ldb_message *ldb_msg)
 {
