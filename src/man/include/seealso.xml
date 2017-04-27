@@ -35,6 +35,10 @@
                 </citerefentry>,
             </phrase>
             <citerefentry>
+                <refentrytitle>sssd-session-recording</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
                 <refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>
