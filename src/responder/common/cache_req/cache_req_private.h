@@ -137,6 +137,11 @@ cache_req_create_and_add_result(TALLOC_CTX *mem_ctx,
                                 size_t *_num_results);
 
 struct ldb_result *
+cache_req_create_ldb_result_from_msg_list(TALLOC_CTX *mem_ctx,
+                                          struct ldb_message **ldb_msgs,
+                                          size_t ldb_msg_count);
+
+struct ldb_result *
 cache_req_create_ldb_result_from_msg(TALLOC_CTX *mem_ctx,
                                      struct ldb_message *ldb_msg);
 
