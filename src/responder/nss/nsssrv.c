@@ -469,7 +469,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                               SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
                               &nctx->initgr_mc_ctx);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "inigroups mmap cache is DISABLED\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "initgroups mmap cache is DISABLED\n");
     }
 
     /* Set up file descriptor limits */
