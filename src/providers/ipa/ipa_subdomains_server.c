@@ -870,6 +870,7 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
 {
     struct tevent_req *subreq = NULL;
     struct ipa_ad_server_ctx *trust_iter;
+    struct ipa_ad_server_ctx *trust_i;
     struct ipa_server_create_trusts_state *state = NULL;
 
     state = tevent_req_data(req, struct ipa_server_create_trusts_state);
@@ -897,6 +898,41 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
             }
             tevent_req_set_callback(subreq, ipa_server_create_trusts_done, req);
             return EAGAIN;
+        }
+    }
+
+    /* Refresh all sdap_dom lists in all ipa_ad_server_ctx contexts */
+    DLIST_FOR_EACH(trust_iter, state->id_ctx->server_mode->trusts) {
+        struct sdap_domain *sdom_a;
+
+        sdom_a = sdap_domain_get(trust_iter->ad_id_ctx->sdap_id_ctx->opts,
+                                 trust_iter->dom);
+        if (sdom_a == NULL) {
+            continue;
+        }
+
+        DLIST_FOR_EACH(trust_i, state->id_ctx->server_mode->trusts) {
+            struct sdap_domain *sdom_b;
+
+            if (strcmp(trust_iter->dom->name, trust_i->dom->name) == 0) {
+                continue;
+            }
+
+            sdom_b = sdap_domain_get(trust_i->ad_id_ctx->sdap_id_ctx->opts,
+                                     sdom_a->dom);
+            if (sdom_b == NULL) {
+                continue;
+            }
+
+            /* Replace basedn and search bases from sdom_b with values
+             * from sdom_a */
+            sdom_b->search_bases = sdom_a->search_bases;
+            sdom_b->user_search_bases = sdom_a->user_search_bases;
+            sdom_b->group_search_bases = sdom_a->group_search_bases;
+            sdom_b->netgroup_search_bases = sdom_a->netgroup_search_bases;
+            sdom_b->sudo_search_bases = sdom_a->sudo_search_bases;
+            sdom_b->service_search_bases = sdom_a->service_search_bases;
+            sdom_b->autofs_search_bases = sdom_a->autofs_search_bases;
         }
     }
 
