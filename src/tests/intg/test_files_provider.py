@@ -130,6 +130,7 @@ def no_sssd_domain(request):
     conf = unindent("""\
         [sssd]
         services            = nss
+        enable_files_domain = true
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -142,6 +143,7 @@ def no_files_domain(request):
         [sssd]
         domains             = local
         services            = nss
+        enable_files_domain = true
 
         [domain/local]
         id_provider = local
