@@ -34,6 +34,7 @@
 "version: 2\n\n" \
 "dn: cn=sssd,cn=config\n" \
 "cn: sssd\n" \
+"enable_files_domain: true\n" \
 "services: nss\n\n"
 #endif /* SSSD_FALLBACK_CONFIG_LDIF */
 
@@ -239,9 +240,6 @@ static int confdb_fallback_ldif(TALLOC_CTX *mem_ctx,
                                 const char **_timestr,
                                 const char **_ldif)
 {
-#ifndef ADD_FILES_DOMAIN
-    return ERR_MISSING_CONF;
-#else
     *_timestr = talloc_strdup(mem_ctx, "1");
     *_ldif = talloc_strdup(mem_ctx, SSSD_FALLBACK_CONFIG_LDIF);
     if (*_timestr == NULL || *_ldif == NULL) {
@@ -249,7 +247,6 @@ static int confdb_fallback_ldif(TALLOC_CTX *mem_ctx,
     }
 
     return EOK;
-#endif
 }
 
 static int confdb_init_db(const char *config_file, const char *config_dir,
