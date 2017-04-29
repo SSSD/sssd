@@ -62,7 +62,6 @@ struct err_string error_to_str[] = {
     { "Cannot parse input" }, /* ERR_INPUT_PARSE */
     { "Entry not found" }, /* ERR_NOT_FOUND */
     { "Domain not found" }, /* ERR_DOMAIN_NOT_FOUND */
-    { "Missing configuration file" }, /* ERR_MISSING_CONF */
     { "Malformed search filter" }, /* ERR_INVALID_FILTER, */
     { "No POSIX attributes detected" }, /* ERR_NO_POSIX */
     { "Extra attribute is a duplicate" }, /* ERR_DUP_EXTRA_ATTR */
