@@ -3513,7 +3513,6 @@ intgcheck-prepare:
 	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
 	    --enable-intgcheck-reqs \
 	    --without-semanage \
-	    --enable-files-domain \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
 	    CFLAGS="$$CFLAGS -DKCM_PEER_UID=$$(id -u)"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
