@@ -3429,7 +3429,6 @@ static void sdap_get_initgr_pgid(struct tevent_req *subreq)
         DEBUG(SSSDBG_TRACE_ALL,
               "No need to check for domain local group memberships.\n");
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_ad_check_domain_local_groups failed.\n");
         DEBUG(SSSDBG_OP_FAILURE,
               "sdap_ad_check_domain_local_groups failed, "
               "meberships to domain local groups might be missing.\n");
