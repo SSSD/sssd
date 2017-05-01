@@ -1746,7 +1746,13 @@ static void sdap_ad_get_domain_local_groups_done(struct tevent_req *subreq)
 
     ret = rfc2307bis_nested_groups_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        /* In case of ENOENT we can just proceed without making
+         * sdap_get_initgr_user() fail because there's no nested
+         * groups for this user/group. */
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
