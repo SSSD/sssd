@@ -104,7 +104,8 @@ warn()
 # and making sure that the NSS and PAM modules have the right SELinux context.
 sssinstall()
 {
-    sudo make -j$PROCESSORS install \
+    # Force single-thread install to workaround concurrency issues
+    sudo make -j1 install \
         && sudo rm -f $SSS_LIBDIR/ldb/modules/ldb/memberof.la \
         && sudo restorecon -v /$SSS_LIB/libnss_sss.so.2 \
                               /$SSS_LIB/security/pam_sss.so
