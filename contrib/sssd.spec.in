@@ -328,7 +328,7 @@ Summary: SSSD and IPA configuration file manipulation classes and functions
 Group: Applications/System
 License: GPLv3+
 BuildArch: noarch
-%{python_provide python2-sssdconfig}
+%{?python_provide:%python_provide python2-sssdconfig}
 
 %description -n python2-sssdconfig
 Provides python2 files for manipulation SSSD and IPA configuration files.
@@ -339,7 +339,7 @@ Summary: SSSD and IPA configuration file manipulation classes and functions
 Group: Applications/System
 License: GPLv3+
 BuildArch: noarch
-%{python_provide python3-sssdconfig}
+%{?python_provide:%python_provide python3-sssdconfig}
 
 %description -n python3-sssdconfig
 Provides python3 files for manipulation SSSD and IPA configuration files.
@@ -350,7 +350,7 @@ Summary: Python2 bindings for sssd
 Group: Development/Libraries
 License: LGPLv3+
 Requires: sssd-common = %{version}-%{release}
-%{python_provide python2-sss}
+%{?python_provide:%python_provide python2-sss}
 
 %description -n python2-sss
 Provides python2 module for manipulating users, groups, and nested groups in
@@ -366,7 +366,7 @@ Summary: Python3 bindings for sssd
 Group: Development/Libraries
 License: LGPLv3+
 Requires: sssd-common = %{version}-%{release}
-%{python_provide python3-sss}
+%{?python_provide:%python_provide python3-sss}
 
 %description -n python3-sss
 Provides python3 module for manipulating users, groups, and nested groups in
@@ -381,7 +381,7 @@ Also provides several other useful python3 bindings:
 Summary: Python2 bindings for murmur hash function
 Group: Development/Libraries
 License: LGPLv3+
-%{python_provide python2-sss-murmur}
+%{?python_provide:%python_provide python2-sss-murmur}
 
 %description -n python2-sss-murmur
 Provides python2 module for calculating the murmur hash version 3
@@ -391,7 +391,7 @@ Provides python2 module for calculating the murmur hash version 3
 Summary: Python3 bindings for murmur hash function
 Group: Development/Libraries
 License: LGPLv3+
-%{python_provide python3-sss-murmur}
+%{?python_provide:%python_provide python3-sss-murmur}
 
 %description -n python3-sss-murmur
 Provides python3 module for calculating the murmur hash version 3
@@ -528,7 +528,7 @@ License: LGPLv3+
 Requires: libipa_hbac = %{version}-%{release}
 Provides: libipa_hbac-python = %{version}-%{release}
 Obsoletes: libipa_hbac-python < 1.12.90
-%{python_provide python2-libipa_hbac}
+%{?python_provide:%python_provide python2-libipa_hbac}
 
 %description -n python2-libipa_hbac
 The python2-libipa_hbac contains the bindings so that libipa_hbac can be
@@ -540,7 +540,7 @@ Summary: Python3 bindings for the FreeIPA HBAC Evaluator library
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libipa_hbac = %{version}-%{release}
-%{python_provide python3-libipa_hbac}
+%{?python_provide:%python_provide python3-libipa_hbac}
 
 %description -n python3-libipa_hbac
 The python3-libipa_hbac contains the bindings so that libipa_hbac can be
@@ -573,7 +573,7 @@ License: LGPLv3+
 Requires: libsss_nss_idmap = %{version}-%{release}
 Provides: libsss_nss_idmap-python = %{version}-%{release}
 Obsoletes: libsss_nss_idmap-python < 1.12.90
-%{python_provide python2-libsss_nss_idmap}
+%{?python_provide:%python_provide python2-libsss_nss_idmap}
 
 %description -n python2-libsss_nss_idmap
 The python2-libsss_nss_idmap contains the bindings so that libsss_nss_idmap can
@@ -585,7 +585,7 @@ Summary: Python3 bindings for libsss_nss_idmap
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libsss_nss_idmap = %{version}-%{release}
-%{python_provide python3-libsss_nss_idmap}
+%{?python_provide:%python_provide python3-libsss_nss_idmap}
 
 %description -n python3-libsss_nss_idmap
 The python3-libsss_nss_idmap contains the bindings so that libsss_nss_idmap can
@@ -790,11 +790,11 @@ done
 %endif
 
 touch sssd.lang
-touch sssd_tools.lang
-touch sssd_client.lang
-for provider in ldap krb5 ipa ad proxy
+for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
+                  sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap \
+                  libsss_certmap sssd_kcm
 do
-    touch sssd_$provider.lang
+    touch $subpackage.lang
 done
 
 for man in `find $RPM_BUILD_ROOT/%{_mandir}/??/man?/ -type f | sed -e "s#$RPM_BUILD_ROOT/%{_mandir}/##"`
@@ -804,7 +804,16 @@ do
         sss_cache*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
             ;;
+        sss_ssh*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
+            ;;
+        sss_rpcidmapd*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_nfs_idmap.lang
+            ;;
         sss_*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_tools.lang
+            ;;
+        sssctl*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_tools.lang
             ;;
         sssd_krb5_*)
@@ -828,26 +837,63 @@ do
         sssd-proxy*)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_proxy.lang
             ;;
+        sssd-ifp*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_dbus.lang
+            ;;
+        sssd-kcm*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_kcm.lang
+            ;;
+        idmap_sss*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_winbind_idmap.lang
+            ;;
+        sss-certmap*)
+            echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> libsss_certmap.lang
+            ;;
         *)
             echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
             ;;
     esac
 done
 
+# Print these to the rpmbuild log
+echo "sssd.lang:"
+cat sssd.lang
+
+echo "python2_sssdconfig.lang:"
+cat python2_sssdconfig.lang
+
+%if (0%{?with_python3} == 1)
+echo "python3_sssdconfig.lang:"
+cat python3_sssdconfig.lang
+%endif
+
+for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
+                  sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap \
+                  libsss_certmap sssd_kcm
+do
+    echo "$subpackage.lang:"
+    cat $subpackage.lang
+done
+
+# must be defined alter last occurence of package otherwise
+# RPM will overwrite %%license as soon as it parses a License: tag
+%if 0%{?rhel} <= 6
+%define license %doc
+%endif
+
 %files
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 
 %files common -f sssd.lang
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %doc src/examples/sssd-example.conf
 %{_sbindir}/sssd
 %if (0%{?use_systemd} == 1)
 %{_unitdir}/sssd.service
 %{_unitdir}/sssd-autofs.socket
 %{_unitdir}/sssd-autofs.service
-%{_unitdir}/sssd-ifp.service
 %{_unitdir}/sssd-nss.socket
 %{_unitdir}/sssd-nss.service
 %{_unitdir}/sssd-pac.socket
@@ -881,6 +927,8 @@ done
 %endif
 
 %dir %{_libdir}/%{name}
+# The files provider is intentionally packaged in -common
+%{_libdir}/%{name}/libsss_files.so
 %{_libdir}/%{name}/libsss_simple.so
 
 #Internal shared libraries
@@ -898,10 +946,6 @@ done
 %{_bindir}/sss_ssh_knownhostsproxy
 %{_sbindir}/sss_cache
 %{_libexecdir}/%{servicename}/sss_signal
-
-# The files provider is intentionally packaged in -common
-%{_libdir}/%{name}/libsss_files.so
-%{_mandir}/man5/sssd-files.5*
 
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
@@ -938,14 +982,13 @@ done
 %{_datadir}/sssd/sssd.api.d
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
-%{_mandir}/man5/sss-certmap.5*
 %{_mandir}/man5/sssd.conf.5*
+%{_mandir}/man5/sssd-files.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
 %if (0%{?with_secrets} == 1)
 %{_mandir}/man5/sssd-secrets.5*
 %endif
-%{_mandir}/man5/sss_rpcidmapd.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*
 %if (0%{?enable_systemtap} == 1)
@@ -965,31 +1008,31 @@ done
 
 %files ldap -f sssd_ldap.lang
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %{_libdir}/%{name}/libsss_ldap.so
 %{_mandir}/man5/sssd-ldap.5*
 
 %files krb5-common
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %attr(755,sssd,sssd) %dir %{pubconfpath}/krb5.include.d
 %attr(4750,root,sssd) %{_libexecdir}/%{servicename}/ldap_child
 %attr(4750,root,sssd) %{_libexecdir}/%{servicename}/krb5_child
 
 %files krb5 -f sssd_krb5.lang
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %{_libdir}/%{name}/libsss_krb5.so
 %{_mandir}/man5/sssd-krb5.5*
 
 %files common-pac
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %{_libexecdir}/%{servicename}/sssd_pac
 
 %files ipa -f sssd_ipa.lang
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %attr(700,sssd,sssd) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
 %attr(4750,root,sssd) %{_libexecdir}/%{servicename}/selinux_child
@@ -997,22 +1040,25 @@ done
 
 %files ad -f sssd_ad.lang
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %{_libdir}/%{name}/libsss_ad.so
 %{_libexecdir}/%{servicename}/gpo_child
 %{_mandir}/man5/sssd-ad.5*
 
 %files proxy
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %attr(4750,root,sssd) %{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
 
-%files dbus
+%files dbus -f sssd_dbus.lang
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %{_libexecdir}/%{servicename}/sssd_ifp
 %{_mandir}/man5/sssd-ifp.5*
+%if (0%{?use_systemd} == 1)
+%{_unitdir}/sssd-ifp.service
+%endif
 # InfoPipe DBus plumbing
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
@@ -1031,7 +1077,7 @@ done
 
 %files client -f sssd_client.lang
 %defattr(-,root,root,-)
-%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
@@ -1050,18 +1096,18 @@ done
 
 %files -n libsss_sudo
 %defattr(-,root,root,-)
-%doc src/sss_client/COPYING
+%license src/sss_client/COPYING
 %{_libdir}/libsss_sudo.so*
 
 %files -n libsss_autofs
 %defattr(-,root,root,-)
-%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %dir %{_libdir}/%{name}/modules
 %{_libdir}/%{name}/modules/libsss_autofs.so
 
 %files tools -f sssd_tools.lang
 %defattr(-,root,root,-)
-%doc COPYING
+%license COPYING
 %{_sbindir}/sss_useradd
 %{_sbindir}/sss_userdel
 %{_sbindir}/sss_usermod
@@ -1123,7 +1169,7 @@ done
 
 %files -n libsss_idmap
 %defattr(-,root,root,-)
-%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libsss_idmap.so.*
 
 %files -n libsss_idmap-devel
@@ -1135,7 +1181,7 @@ done
 
 %files -n libipa_hbac
 %defattr(-,root,root,-)
-%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libipa_hbac.so.*
 
 %files -n libipa_hbac-devel
@@ -1147,7 +1193,7 @@ done
 
 %files -n libsss_nss_idmap
 %defattr(-,root,root,-)
-%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libsss_nss_idmap.so.*
 
 %files -n libsss_nss_idmap-devel
@@ -1189,18 +1235,20 @@ done
 %{_libdir}/%{name}/modules/libwbclient.so
 %{_libdir}/pkgconfig/wbclient_sssd.pc
 
-%files winbind-idmap
+%files winbind-idmap -f sssd_winbind_idmap.lang
 %dir %{_libdir}/samba/idmap
 %{_libdir}/samba/idmap/sss.so
 %{_mandir}/man8/idmap_sss.8*
 
-%files nfs-idmap
+%files nfs-idmap -f sssd_nfs_idmap.lang
+%{_mandir}/man5/sss_rpcidmapd.5*
 %{_libdir}/libnfsidmap/sss.so
 
-%files -n libsss_certmap
+%files -n libsss_certmap -f libsss_certmap.lang
 %defattr(-,root,root,-)
-%doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
+%license src/sss_client/COPYING src/sss_client/COPYING.LESSER
 %{_libdir}/libsss_certmap.so.*
+%{_mandir}/man5/sss-certmap.5*
 
 %files -n libsss_certmap-devel
 %defattr(-,root,root,-)
@@ -1265,6 +1313,27 @@ getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "Us
 %systemd_postun_with_restart sssd-sudo.socket
 %systemd_postun_with_restart sssd-sudo.service
 
+%post dbus
+%systemd_post sssd-ifp.service
+
+%preun dbus
+%systemd_preun sssd-ifp.service
+
+%postun dbus
+%systemd_postun_with_restart sssd-ifp.service
+
+%if (0%{?with_kcm} == 1)
+%post kcm
+%systemd_post sssd-kcm.socket
+
+%preun kcm
+%systemd_preun sssd-kcm.socket
+
+%postun kcm
+%systemd_postun_with_restart sssd-kcm.socket
+%systemd_postun_with_restart sssd-kcm.service
+%endif
+
 %else
 # sysv
 %post common
@@ -1315,17 +1384,9 @@ fi
 
 %postun -n libsss_simpleifp -p /sbin/ldconfig
 
-%if (0%{?with_kcm} == 1)
-%post kcm
-%systemd_post sssd-kcm.socket
+%post -n libsss_certmap -p /sbin/ldconfig
 
-%preun kcm
-%systemd_preun sssd-kcm.socket
-
-%postun kcm
-%systemd_postun_with_restart sssd-kcm.socket
-%systemd_postun_with_restart sssd-kcm.service
-%endif
+%postun -n libsss_certmap -p /sbin/ldconfig
 
 %changelog
 * Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
