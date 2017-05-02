@@ -351,6 +351,9 @@ struct sss_domain_info {
     char *forest;
     struct sss_domain_info *forest_root;
     const char **upn_suffixes;
+
+    struct certmap_info **certmaps;
+    bool user_name_hint;
 };
 
 /**
