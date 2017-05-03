@@ -254,3 +254,21 @@ probe sdap_nested_group_process_recv = process("@libdir@/sssd/libsss_ldap_common
     probestr = sprintf("-> %s(orig_dn=[%s])",
                        $$name, orig_dn);
 }
+
+## Data Provider Request Probes
+probe dp_req_send = process("@libexecdir@/sssd/sssd_be").mark("dp_req_send")
+{
+    dp_req_domain = user_string($arg1, "NULL");
+    dp_req_name = user_string($arg2, "NULL");
+    dp_req_target = $arg3;
+    dp_req_method = $arg4;
+}
+
+probe dp_req_done = process("@libexecdir@/sssd/sssd_be").mark("dp_req_done")
+{
+    dp_req_name = user_string($arg1, "NULL");
+    dp_req_target = $arg2;
+    dp_req_method = $arg3;
+    dp_ret = $arg4;
+    dp_errorstr = user_string($arg5, "NULL");
+}
