@@ -1,3 +1,13 @@
+// constants
+global TARGET_ID=0, TARGET_AUTH=1, TARGET_ACCESS=2, TARGET_CHPASS=3,
+       TARGET_SUDO=4, TARGET_AUTOFS=5, TARGET_SELINUX=6, TARGET_HOSTID=7,
+       TARGET_SUBDOMAINS=8, TARGET_SENTINEL=9
+
+global METHOD_CHECK_ONLINE=0, METHOD_ACCOUNT_HANDLER=1, METHOD_AUTH_HANDLER=2,
+       METHOD_ACCESS_HANDLER=3, METHOD_SELINUX_HANDLER=4, METHOD_SUDO_HANDLER=5,
+       METHOD_AUTOFS_HANDLER=6, METHOD_HOSTID_HANDLER=7, METHOD_DOMAINS_HANDLER=8,
+       METHOD_SENTINEL=9
+
 function acct_req_desc(entry_type)
 {
     if (entry_type == 0x0001) {
@@ -63,4 +73,62 @@ function sssd_acct_req_probestr(fc_name, entry_type, filter_type,
                        fc_name, str_entry_type, str_filter_type,
                        filter_value, extra_value)
     return probestr
+}
+
+function dp_target_str(target)
+{
+    if (target == TARGET_ID) {
+        str_target = "ID"
+    } else if (target == TARGET_AUTH) {
+        str_target = "AUTH"
+    } else if (target == TARGET_ACCESS) {
+        str_target = "ACCESS"
+    } else if (target == TARGET_CHPASS) {
+        str_target = "CHPASS"
+    } else if (target == TARGET_SUDO) {
+        str_target = "SUDO"
+    } else if (target == TARGET_AUTOFS) {
+        str_target = "AUTOFS"
+    } else if (target == TARGET_SELINUX) {
+        str_target = "SELINUX"
+    } else if (target == TARGET_HOSTID) {
+        str_target = "HOSTID"
+    } else if (target == TARGET_SUBDOMAINS) {
+        str_target = "SUBDOMAINS"
+    } else if (target == TARGET_SENTINEL) {
+        str_target = "TARGET_SENTINEL"
+    } else {
+        str_target = "UNKNOWN"
+    }
+
+    return str_target
+}
+
+function dp_method_str(method)
+{
+    if (method == METHOD_CHECK_ONLINE) {
+        str_method = "Check Online"
+    } else if (method == METHOD_ACCOUNT_HANDLER) {
+        str_method = "Account Handler"
+    } else if (method == METHOD_AUTH_HANDLER) {
+        str_method = "Auth Handler"
+    } else if (method == METHOD_ACCESS_HANDLER) {
+        str_method = "Access Handler"
+    } else if (method == METHOD_SELINUX_HANDLER) {
+        str_method = "SELinux Handler"
+    } else if (method == METHOD_SUDO_HANDLER) {
+        str_method = "Sudo Handler"
+    } else if (method == METHOD_AUTOFS_HANDLER) {
+        str_method = "Autofs Handler"
+    } else if (method == METHOD_HOSTID_HANDLER) {
+        str_method = "HostID Handler"
+    } else if (method == METHOD_DOMAINS_HANDLER) {
+        str_method = "Domains Handler"
+    } else if (method == METHOD_SENTINEL) {
+        str_method = "Method Sentinel"
+    } else {
+        str_method = "UNKNOWN"
+    }
+
+    return str_method
 }

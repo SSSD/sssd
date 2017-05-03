@@ -65,4 +65,9 @@ provider sssd {
     probe sdap_nested_group_sysdb_search_groups_post();
     probe sdap_nested_group_populate_search_users_pre();
     probe sdap_nested_group_populate_search_users_post();
+
+    probe dp_req_send(const char *domain, const char *dp_req_name,
+                      int target, int method);
+    probe dp_req_done(const char *dp_req_name, int target, int method,
+                      int ret, const char *errorstr);
 }
