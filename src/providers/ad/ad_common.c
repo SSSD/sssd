@@ -312,6 +312,9 @@ ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
     struct ad_options *ad_options;
     errno_t ret;
 
+    DEBUG(SSSDBG_TRACE_FUNC, "2way trust is defined to domain '%s'\n",
+          subdom->name);
+
     ad_options = ad_create_options(mem_ctx, cdb, conf_path, subdom);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ad_create_options failed\n");
@@ -348,6 +351,9 @@ ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
     struct ad_options *ad_options;
     const char *realm;
     errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "1way trust is defined to domain '%s'\n",
+          subdom->name);
 
     ad_options = ad_create_options(mem_ctx, cdb, subdom_conf_path, subdom);
     if (ad_options == NULL) {
