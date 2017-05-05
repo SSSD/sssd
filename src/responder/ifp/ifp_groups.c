@@ -87,8 +87,12 @@ static int ifp_groups_list_copy(struct ifp_list_ctx *list_ctx,
                                 struct ldb_result *result)
 {
     size_t copy_count, i;
+    errno_t ret;
 
-    copy_count = ifp_list_ctx_remaining_capacity(list_ctx, result->count);
+    ret = ifp_list_ctx_remaining_capacity(list_ctx, result->count, &copy_count);
+    if (ret != EOK) {
+        goto done;
+    }
 
     for (i = 0; i < copy_count; i++) {
         list_ctx->paths[list_ctx->path_count + i] = \
@@ -96,12 +100,16 @@ static int ifp_groups_list_copy(struct ifp_list_ctx *list_ctx,
                                            list_ctx->dom,
                                            result->msgs[i]);
         if (list_ctx->paths[list_ctx->path_count + i] == NULL) {
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
     }
 
     list_ctx->path_count += copy_count;
-    return EOK;
+    ret = EOK;
+
+done:
+    return ret;
 }
 
 static void ifp_groups_find_by_name_done(struct tevent_req *req);
