@@ -436,8 +436,12 @@ static int ifp_users_list_copy(struct ifp_list_ctx *list_ctx,
                                struct ldb_result *result)
 {
     size_t copy_count, i;
+    errno_t ret;
 
-    copy_count = ifp_list_ctx_remaining_capacity(list_ctx, result->count);
+    ret = ifp_list_ctx_remaining_capacity(list_ctx, result->count, &copy_count);
+    if (ret != EOK) {
+        goto done;
+    }
 
     for (i = 0; i < copy_count; i++) {
         list_ctx->paths[list_ctx->path_count + i] = \
@@ -445,12 +449,16 @@ static int ifp_users_list_copy(struct ifp_list_ctx *list_ctx,
                                                            list_ctx->dom,
                                                            result->msgs[i]);
         if (list_ctx->paths[list_ctx->path_count + i] == NULL) {
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
     }
 
     list_ctx->path_count += copy_count;
-    return EOK;
+    ret = EOK;
+
+done:
+    return ret;
 }
 
 struct name_and_cert_ctx {
@@ -906,7 +914,12 @@ static void ifp_users_list_by_domain_and_name_done(struct tevent_req *req)
         goto done;
     }
 
-    copy_count = ifp_list_ctx_remaining_capacity(list_ctx, result->count);
+    ret = ifp_list_ctx_remaining_capacity(list_ctx, result->count, &copy_count);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                               "Failed to get the list remaining capacity\n");
+        goto done;
+    }
 
     for (i = 0; i < copy_count; i++) {
         list_ctx->paths[i] = ifp_users_build_path_from_msg(list_ctx->paths,

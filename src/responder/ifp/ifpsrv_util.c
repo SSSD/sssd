@@ -381,28 +381,38 @@ struct ifp_list_ctx *ifp_list_ctx_new(struct sbus_request *sbus_req,
     return list_ctx;
 }
 
-size_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
-                                       size_t entries)
+errno_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
+                                        size_t entries,
+                                        size_t *_capacity)
 {
     size_t capacity = list_ctx->limit - list_ctx->path_count;
+    errno_t ret;
 
     if (list_ctx->limit == 0) {
         list_ctx->paths = talloc_zero_array(list_ctx, const char *, entries);
         if (list_ctx->paths == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
-            return 0;
+            ret = ENOMEM;
+            goto done;
         }
-        return entries;
+        capacity = entries;
+        goto immediately;
     }
 
     if (capacity < entries) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "IFP list request has limit of %"PRIu32" entries but back end "
               "returned %zu entries\n", list_ctx->limit, entries);
-        return capacity;
     } else {
-        return entries;
+        capacity = entries;
     }
+
+immediately:
+    *_capacity = capacity;
+    ret = EOK;
+
+done:
+    return ret;
 }
 
 errno_t ifp_ldb_el_output_name(struct resp_ctx *rctx,

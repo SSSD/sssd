@@ -103,8 +103,9 @@ struct ifp_list_ctx *ifp_list_ctx_new(struct sbus_request *sbus_req,
                                       const char *filter,
                                       uint32_t limit);
 
-size_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
-                                       size_t entries);
+errno_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
+                                        size_t entries,
+                                        size_t *_capacity);
 
 errno_t ifp_ldb_el_output_name(struct resp_ctx *rctx,
                                struct ldb_message *msg,
