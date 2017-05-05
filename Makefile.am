@@ -801,7 +801,6 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_dyndns.h \
     src/providers/ipa/ipa_subdomains.h \
     src/providers/ipa/ipa_id.h \
-    src/providers/ipa/ipa_hostid.h \
     src/providers/ipa/ipa_opts.h \
     src/providers/ipa/ipa_srv.h \
     src/providers/ipa/ipa_dn.h \
@@ -3709,11 +3708,13 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_async_initgroups_ad.c \
     src/providers/ldap/sdap_async_connection.c \
     src/providers/ldap/sdap_async_netgroups.c \
+    src/providers/ldap/sdap_async_hosts.c \
     src/providers/ldap/sdap_async_services.c \
     src/providers/ldap/sdap_online_check.c \
     src/providers/ldap/sdap_ad_groups.c \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
+    src/providers/ldap/sdap_hostid.h \
     src/providers/ldap/sdap_id_op.c \
     src/providers/ldap/sdap_idmap.c \
     src/providers/ldap/sdap_idmap.h \
@@ -3746,6 +3747,10 @@ libsss_ldap_common_la_LDFLAGS = \
     $(NULL)
 if BUILD_SYSTEMTAP
 libsss_ldap_common_la_LIBADD += stap_generated_probes.lo
+endif
+
+if BUILD_SSH
+libsss_ldap_common_la_SOURCES += src/providers/ldap/sdap_hostid.c
 endif
 
 if BUILD_SUDO

@@ -1571,8 +1571,8 @@ ipa_subdomains_view_name_send(TALLOC_CTX *mem_ctx,
     maps->num_attrs = IPA_OPTS_VIEW;
 
     filter = talloc_asprintf(state, "(&(objectClass=%s)(%s=%s))",
-                        ipa_options->host_map[IPA_OC_HOST].name,
-                        ipa_options->host_map[IPA_AT_HOST_FQDN].name,
+                        ipa_options->id->host_map[SDAP_OC_HOST].name,
+                        ipa_options->id->host_map[SDAP_AT_HOST_FQDN].name,
                         dp_opt_get_string(ipa_options->basic, IPA_HOSTNAME));
     if (filter == NULL) {
         ret = ENOMEM;
@@ -2418,7 +2418,7 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
     sd_ctx->search_bases = ipa_options->subdomains_search_bases;
     sd_ctx->master_search_bases = ipa_options->master_domain_search_bases;
     sd_ctx->ranges_search_bases = ipa_options->ranges_search_bases;
-    sd_ctx->host_search_bases = ipa_options->host_search_bases;
+    sd_ctx->host_search_bases = ipa_options->id->sdom->host_search_bases;
 
     dp_set_method(dp_methods, DPM_DOMAINS_HANDLER,
                   ipa_subdomains_handler_send, ipa_subdomains_handler_recv, sd_ctx,

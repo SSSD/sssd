@@ -123,6 +123,21 @@ int sdap_get_netgroups_recv(struct tevent_req *req,
                             size_t *reply_count,
                             struct sysdb_attrs ***reply);
 
+struct tevent_req *
+sdap_host_info_send(TALLOC_CTX *mem_ctx,
+                    struct tevent_context *ev,
+                    struct sdap_handle *sh,
+                    struct sdap_options *opts,
+                    const char *hostname,
+                    struct sdap_attr_map *host_map,
+                    struct sdap_search_base **search_bases);
+
+errno_t
+sdap_host_info_recv(struct tevent_req *req,
+                    TALLOC_CTX *mem_ctx,
+                    size_t *host_count,
+                    struct sysdb_attrs ***hosts);
+
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
                                   struct sdap_handle *sh,
