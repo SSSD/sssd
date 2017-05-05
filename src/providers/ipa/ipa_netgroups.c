@@ -516,7 +516,7 @@ static int ipa_netgr_fetch_hosts(struct ipa_get_netgroups_state *state,
     int ret;
     struct sdap_search_base **bases;
 
-    bases = state->ipa_opts->host_search_bases;
+    bases = state->ipa_opts->id->sdom->host_search_bases;
     if (bases[state->host_base_iter] == NULL) {
         return ENOENT;
     }
@@ -524,13 +524,13 @@ static int ipa_netgr_fetch_hosts(struct ipa_get_netgroups_state *state,
 
     filter = talloc_asprintf(state, "(&%s%s(objectclass=%s))",
                              state->filter,
-                             base_filter?base_filter:"",
-                             state->ipa_opts->host_map[IPA_OC_HOST].name);
+                             base_filter ? base_filter : "",
+                             state->ipa_opts->id->host_map[SDAP_OC_HOST].name);
     if (filter == NULL)
         return ENOMEM;
 
-    ret = build_attrs_from_map(state, state->ipa_opts->host_map,
-                               IPA_OPTS_HOST, NULL, &attrs, NULL);
+    ret = build_attrs_from_map(state, state->ipa_opts->id->host_map,
+                               SDAP_OPTS_HOST, NULL, &attrs, NULL);
     if (ret != EOK) {
         talloc_free(filter);
         return ret;
@@ -539,8 +539,8 @@ static int ipa_netgr_fetch_hosts(struct ipa_get_netgroups_state *state,
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    bases[state->host_base_iter]->basedn,
                                    bases[state->host_base_iter]->scope,
-                                   filter, attrs, state->ipa_opts->host_map,
-                                   IPA_OPTS_HOST, state->timeout, true);
+                                   filter, attrs, state->ipa_opts->id->host_map,
+                                   SDAP_OPTS_HOST, state->timeout, true);
 
     state->current_entity = ENTITY_HOST;
     if (subreq == NULL) {
@@ -918,7 +918,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         DEBUG(SSSDBG_TRACE_ALL, "Extracting host members of netgroup %d\n", i);
         ret = extract_members(state, state->netgroups[i],
                               SYSDB_ORIG_MEMBER_HOST,
-                              state->ipa_opts->host_map[IPA_AT_HOST_MEMBER_OF].sys_name,
+                              state->ipa_opts->id->host_map[SDAP_AT_HOST_MEMBER_OF].sys_name,
                               state->new_hosts,
                               &hosts, &hosts_count);
         if (ret != EOK) {

@@ -43,7 +43,7 @@
 
 #define MATCHRDN_USER(map)      (map)[SDAP_AT_USER_NAME].name, "cn", "users", "cn", "accounts"
 #define MATCHRDN_GROUP(map)     (map)[SDAP_AT_GROUP_NAME].name, "cn", "groups", "cn", "accounts"
-#define MATCHRDN_HOST(map)      (map)[IPA_AT_HOST_FQDN].name, "cn", "computers", "cn", "accounts"
+#define MATCHRDN_HOST(map)      (map)[SDAP_AT_HOST_FQDN].name, "cn", "computers", "cn", "accounts"
 #define MATCHRDN_HOSTGROUP(map) (map)[IPA_AT_HOSTGROUP_NAME].name, "cn", "hostgroups", "cn", "accounts"
 
 struct ipa_sudo_conv {

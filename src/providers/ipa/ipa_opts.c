@@ -84,6 +84,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_group_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_host_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_service_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_full_refresh_interval", DP_OPT_NUMBER, { .number = 21600 }, NULL_NUMBER },

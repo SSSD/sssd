@@ -1213,6 +1213,115 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_host_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a host entry in LDAP.
+                        </para>
+                        <para>
+                            Default: ipService
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_host_name (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the host's
+                            name.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_host_fqdn (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the host's
+                            fully-qualified domain name.
+                        </para>
+                        <para>
+                            Default: fqdn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_host_serverhostname (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to the host's
+                            name.
+                        </para>
+                        <para>
+                            Default: serverHostname
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_host_member_of (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that lists the host's group
+                            memberships.
+                        </para>
+                        <para>
+                            Default: memberOf
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_host_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            host objects.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry condition="with_ssh">
+                    <term>ldap_host_ssh_public_key (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the host's SSH
+                            public keys.
+                        </para>
+                        <para>
+                            Default: sshPublicKey
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_host_uuid (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the UUID/GUID of
+                            an LDAP host object.
+                        </para>
+                        <para>
+                            Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_service_object_class (string)</term>
                     <listitem>
                         <para>

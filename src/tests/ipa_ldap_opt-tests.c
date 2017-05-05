@@ -230,7 +230,7 @@ START_TEST(test_sdap_opt_sentinel)
     fail_unless_sdap_opt_is_terminator(&ad_netgroup_map[SDAP_OPTS_NETGROUP]);
     fail_unless_sdap_opt_is_terminator(&ipa_netgroup_map[IPA_OPTS_NETGROUP]);
 
-    fail_unless_sdap_opt_is_terminator(&ipa_host_map[IPA_OPTS_HOST]);
+    fail_unless_sdap_opt_is_terminator(&ipa_host_map[SDAP_OPTS_HOST]);
     fail_unless_sdap_opt_is_terminator(&ipa_hostgroup_map[IPA_OPTS_HOSTGROUP]);
     fail_unless_sdap_opt_is_terminator(&ipa_selinux_user_map[IPA_OPTS_SELINUX_USERMAP]);
     fail_unless_sdap_opt_is_terminator(&ipa_view_map[IPA_OPTS_VIEW]);

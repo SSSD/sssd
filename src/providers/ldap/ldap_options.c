@@ -33,6 +33,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_user_map;
     struct sdap_attr_map *default_group_map;
     struct sdap_attr_map *default_netgroup_map;
+    struct sdap_attr_map *default_host_map;
     struct sdap_attr_map *default_service_map;
     struct sdap_options *opts;
     char *schema;
@@ -50,6 +51,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     const int search_base_options[] = { SDAP_USER_SEARCH_BASE,
                                         SDAP_GROUP_SEARCH_BASE,
                                         SDAP_NETGROUP_SEARCH_BASE,
+                                        SDAP_HOST_SEARCH_BASE,
                                         SDAP_SERVICE_SEARCH_BASE,
                                         -1 };
 
@@ -114,6 +116,12 @@ int ldap_get_options(TALLOC_CTX *memctx,
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
                                  &opts->sdom->netgroup_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* Netgroup search */
+    ret = sdap_parse_search_base(opts, opts->basic,
+                                 SDAP_HOST_SEARCH_BASE,
+                                 &opts->sdom->host_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     /* Service search */
@@ -214,6 +222,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_user_map = rfc2307_user_map;
         default_group_map = rfc2307_group_map;
         default_netgroup_map = netgroup_map;
+        default_host_map = host_map;
         default_service_map = service_map;
     } else
     if (strcasecmp(schema, "rfc2307bis") == 0) {
@@ -222,6 +231,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
         default_netgroup_map = netgroup_map;
+        default_host_map = host_map;
         default_service_map = service_map;
     } else
     if (strcasecmp(schema, "IPA") == 0) {
@@ -230,6 +240,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
         default_netgroup_map = netgroup_map;
+        default_host_map = host_map;
         default_service_map = service_map;
     } else
     if (strcasecmp(schema, "AD") == 0) {
@@ -238,6 +249,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_user_map = gen_ad2008r2_user_map;
         default_group_map = gen_ad2008r2_group_map;
         default_netgroup_map = netgroup_map;
+        default_host_map = host_map;
         default_service_map = service_map;
     } else {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized schema type: %s\n", schema);
@@ -280,6 +292,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
                        default_netgroup_map,
                        SDAP_OPTS_NETGROUP,
                        &opts->netgroup_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_host_map,
+                       SDAP_OPTS_HOST,
+                       &opts->host_map);
     if (ret != EOK) {
         goto done;
     }
@@ -595,6 +615,9 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_NETGROUP_SEARCH_BASE:
         class_name = "NETGROUP";
+        break;
+    case SDAP_HOST_SEARCH_BASE:
+        class_name = "HOST";
         break;
     case SDAP_SUDO_SEARCH_BASE:
         class_name = "SUDO";

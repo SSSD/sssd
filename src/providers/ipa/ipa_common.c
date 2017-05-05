@@ -134,9 +134,6 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
     case IPA_HBAC_SEARCH_BASE:
         class_name = "IPA_HBAC";
         break;
-    case IPA_HOST_SEARCH_BASE:
-        class_name = "IPA_HOST";
-        break;
     case IPA_SELINUX_SEARCH_BASE:
         class_name = "IPA_SELINUX";
         break;
@@ -336,23 +333,27 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                                  &ipa_opts->id->sdom->netgroup_search_bases);
     if (ret != EOK) goto done;
 
-    if (NULL == dp_opt_get_string(ipa_opts->basic,
-                                  IPA_HOST_SEARCH_BASE)) {
-        ret = dp_opt_set_string(ipa_opts->basic, IPA_HOST_SEARCH_BASE,
-                                dp_opt_get_string(ipa_opts->id->basic,
-                                                  SDAP_SEARCH_BASE));
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
+                                  SDAP_HOST_SEARCH_BASE)) {
+
+        value = dp_opt_get_string(ipa_opts->basic, IPA_HOST_SEARCH_BASE);
+        if (!value) {
+            value = dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE);
+        }
+
+        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_HOST_SEARCH_BASE,
+                                value);
         if (ret != EOK) {
             goto done;
         }
 
         DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
-                  ipa_opts->basic[IPA_HOST_SEARCH_BASE].opt_name,
-                  dp_opt_get_string(ipa_opts->basic,
-                                    IPA_HOST_SEARCH_BASE));
+              ipa_opts->id->basic[SDAP_HOST_SEARCH_BASE].opt_name,
+              value);
     }
-    ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
-                                IPA_HOST_SEARCH_BASE,
-                                &ipa_opts->host_search_bases);
+    ret = sdap_parse_search_base(ipa_opts->id->basic, ipa_opts->id->basic,
+                                 SDAP_HOST_SEARCH_BASE,
+                                 &ipa_opts->id->sdom->host_search_bases);
     if (ret != EOK) goto done;
 
     if (NULL == dp_opt_get_string(ipa_opts->basic,
@@ -592,8 +593,8 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     ret = sdap_get_map(ipa_opts->id,
                        cdb, conf_path,
                        ipa_host_map,
-                       IPA_OPTS_HOST,
-                       &ipa_opts->host_map);
+                       SDAP_OPTS_HOST,
+                       &ipa_opts->id->host_map);
     if (ret != EOK) {
         goto done;
     }

@@ -26,6 +26,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_access.h"
+#include "providers/ldap/sdap_hostid.h"
 #include "providers/ldap/sdap_sudo.h"
 #include "providers/ldap/sdap_autofs.h"
 #include "providers/ldap/sdap_idmap.h"
@@ -622,6 +623,26 @@ done:
     }
 
     return ret;
+}
+
+errno_t sssm_ldap_hostid_init(TALLOC_CTX *mem_ctx,
+                              struct be_ctx *be_ctx,
+                              void *module_data,
+                              struct dp_method *dp_methods)
+{
+#ifdef BUILD_SSH
+    struct ldap_init_ctx *init_ctx;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing LDAP host handler\n");
+    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+
+    return sdap_hostid_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
+
+#else
+    DEBUG(SSSDBG_MINOR_FAILURE, "HostID init handler called but SSSD is "
+                                "built without SSH support, ignoring\n");
+    return EOK;
+#endif
 }
 
 errno_t sssm_ldap_autofs_init(TALLOC_CTX *mem_ctx,

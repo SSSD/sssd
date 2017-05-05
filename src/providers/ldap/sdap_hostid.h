@@ -18,25 +18,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _IPA_HOSTID_H_
-#define _IPA_HOSTID_H_
+#ifndef _SDAP_HOSTID_H_
+#define _SDAP_HOSTID_H_
 
-struct ipa_hostid_ctx {
-    struct sdap_id_ctx *sdap_id_ctx;
-    struct ipa_options *ipa_opts;
-
-    struct sdap_search_base **host_search_bases;
-};
+errno_t sdap_hostid_init(TALLOC_CTX *mem_ctx,
+                         struct be_ctx *be_ctx,
+                         struct sdap_id_ctx *id_ctx,
+                         struct dp_method *dp_methods);
 
 struct tevent_req *
-ipa_hostid_handler_send(TALLOC_CTX *mem_ctx,
-                       struct ipa_hostid_ctx *hostid_ctx,
-                       struct dp_hostid_data *data,
-                       struct dp_req_params *params);
+sdap_hostid_handler_send(TALLOC_CTX *mem_ctx,
+                         struct sdap_id_ctx *id_ctx,
+                         struct dp_hostid_data *data,
+                         struct dp_req_params *params);
 
 errno_t
-ipa_hostid_handler_recv(TALLOC_CTX *mem_ctx,
-                       struct tevent_req *req,
-                       struct dp_reply_std *data);
+sdap_hostid_handler_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         struct dp_reply_std *data);
 
-#endif /* _IPA_HOSTID_H_ */
+#endif /* _SDAP_HOSTID_H_ */

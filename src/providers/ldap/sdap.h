@@ -162,6 +162,7 @@ enum sdap_basic_opt {
     SDAP_GROUP_SEARCH_BASE,
     SDAP_GROUP_SEARCH_SCOPE,
     SDAP_GROUP_SEARCH_FILTER,
+    SDAP_HOST_SEARCH_BASE,
     SDAP_SERVICE_SEARCH_BASE,
     SDAP_SUDO_SEARCH_BASE,
     SDAP_SUDO_FULL_REFRESH_INTERVAL,
@@ -340,6 +341,18 @@ enum sdap_sudorule_attrs {
     SDAP_OPTS_SUDO  /* attrs counter */
 };
 
+enum sdap_host_attrs {
+    SDAP_OC_HOST = 0,
+    SDAP_AT_HOST_NAME,
+    SDAP_AT_HOST_FQDN,
+    SDAP_AT_HOST_SERVERHOSTNAME,
+    SDAP_AT_HOST_MEMBER_OF,
+    SDAP_AT_HOST_SSH_PUBLIC_KEY,
+    SDAP_AT_HOST_UUID,
+
+    SDAP_OPTS_HOST /* attrs counter */
+};
+
 enum sdap_service_attrs {
     SDAP_OC_SERVICE = 0,
     SDAP_AT_SERVICE_NAME,
@@ -407,6 +420,7 @@ struct sdap_domain {
     struct sdap_search_base **user_search_bases;
     struct sdap_search_base **group_search_bases;
     struct sdap_search_base **netgroup_search_bases;
+    struct sdap_search_base **host_search_bases;
     struct sdap_search_base **sudo_search_bases;
     struct sdap_search_base **service_search_bases;
     struct sdap_search_base **autofs_search_bases;
@@ -456,6 +470,7 @@ struct sdap_options {
     size_t user_map_cnt;
     struct sdap_attr_map *group_map;
     struct sdap_attr_map *netgroup_map;
+    struct sdap_attr_map *host_map;
     struct sdap_attr_map *service_map;
 
     /* ID-mapping support */

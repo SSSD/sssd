@@ -45,6 +45,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_group_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_host_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_service_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_full_refresh_interval", DP_OPT_NUMBER, { .number = 21600 }, NULL_NUMBER }, /* 360 mins */
@@ -325,6 +326,17 @@ struct sdap_attr_map netgroup_map[] = {
     { "ldap_netgroup_member", "memberNisNetgroup", SYSDB_ORIG_NETGROUP_MEMBER, NULL },
     { "ldap_netgroup_triple", "nisNetgroupTriple", SYSDB_NETGROUP_TRIPLE, NULL },
     { "ldap_netgroup_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map host_map[] = {
+    { "ldap_host_object_class", "ipHost", SYSDB_HOST_CLASS, NULL },
+    { "ldap_host_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_host_fqdn", "fqdn", SYSDB_FQDN, NULL },
+    { "ldap_host_serverhostname", "serverHostname", SYSDB_SERVERHOSTNAME, NULL },
+    { "ldap_host_member_of", NULL, SYSDB_ORIG_MEMBEROF, NULL },
+    { "ldap_host_ssh_public_key", "sshPublicKey", SYSDB_SSH_PUBKEY, NULL },
+    { "ldap_host_uuid", NULL, SYSDB_UUID, NULL},
     SDAP_ATTR_MAP_TERMINATOR
 };
 

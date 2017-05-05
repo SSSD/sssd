@@ -979,7 +979,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
                                 sdap_id_op_handle(state->op),
                                 id_ctx->sdap_id_ctx->opts,
                                 hostname,
-                                id_ctx->ipa_options->host_map,
+                                id_ctx->ipa_options->id->host_map,
                                 NULL,
                                 state->selinux_ctx->host_search_bases);
     if (subreq == NULL) {

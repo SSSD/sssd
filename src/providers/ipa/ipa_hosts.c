@@ -21,18 +21,15 @@
 */
 
 #include "util/util.h"
-#include "db/sysdb.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_common.h"
 
 struct ipa_host_state {
     struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
     struct sdap_handle *sh;
     struct sdap_options *opts;
     const char **attrs;
-    struct sdap_attr_map *host_map;
     struct sdap_attr_map *hostgroup_map;
 
     struct sdap_search_base **search_bases;
@@ -49,18 +46,12 @@ struct ipa_host_state {
 
     size_t hostgroup_count;
     struct sysdb_attrs **hostgroups;
-    struct sdap_attr_map_info *ipa_hostgroup_map;
 };
 
 static void
 ipa_host_info_done(struct tevent_req *subreq);
-
 static void
 ipa_hostgroup_info_done(struct tevent_req *subreq);
-
-static errno_t
-ipa_host_info_next(struct tevent_req *req,
-                        struct ipa_host_state *state);
 static errno_t
 ipa_hostgroup_info_next(struct tevent_req *req,
                              struct ipa_host_state *state);
@@ -81,9 +72,8 @@ ipa_host_info_send(TALLOC_CTX *mem_ctx,
                    struct sdap_attr_map *hostgroup_map,
                    struct sdap_search_base **search_bases)
 {
-    errno_t ret;
     struct ipa_host_state *state;
-    struct tevent_req *req;
+    struct tevent_req *req, *subreq;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_host_state);
     if (req == NULL) {
@@ -97,85 +87,17 @@ ipa_host_info_send(TALLOC_CTX *mem_ctx,
     state->search_bases = search_bases;
     state->search_base_iter = 0;
     state->cur_filter = NULL;
-    state->host_map = host_map;
     state->hostgroup_map = hostgroup_map;
 
-    ret = build_attrs_from_map(state, host_map, IPA_OPTS_HOST,
-                               NULL, &state->attrs, NULL);
-    if (ret != EOK) {
-        goto immediate;
-    }
-
-    if (hostname == NULL) {
-        state->host_filter = talloc_asprintf(state, "(objectClass=%s)",
-                                             host_map[IPA_OC_HOST].name);
-    } else {
-        state->host_filter = talloc_asprintf(state, "(&(objectClass=%s)(%s=%s))",
-                                             host_map[IPA_OC_HOST].name,
-                                             host_map[IPA_AT_HOST_FQDN].name,
-                                             hostname);
-    }
-    if (state->host_filter == NULL) {
-        ret = ENOMEM;
-        goto immediate;
-    }
-
-    ret = ipa_host_info_next(req, state);
-    if (ret == EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No host search base configured?\n");
-        ret = EINVAL;
-    }
-
-    if (ret != EAGAIN) {
-        goto immediate;
-    }
-
-    return req;
-
-immediate:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static errno_t ipa_host_info_next(struct tevent_req *req,
-                                       struct ipa_host_state *state)
-{
-    struct sdap_search_base *base;
-    struct tevent_req *subreq;
-
-    base = state->search_bases[state->search_base_iter];
-    if (base == NULL) {
-        return EOK;
-    }
-
-    talloc_zfree(state->cur_filter);
-    state->cur_filter = sdap_combine_filters(state, state->host_filter,
-                                             base->filter);
-    if (state->cur_filter == NULL) {
-        return ENOMEM;
-    }
-
-    subreq = sdap_get_generic_send(state, state->ev, state->opts,
-                                   state->sh, base->basedn,
-                                   base->scope, state->cur_filter,
-                                   state->attrs, state->host_map,
-                                   IPA_OPTS_HOST,
-                                   dp_opt_get_int(state->opts->basic,
-                                                  SDAP_ENUM_SEARCH_TIMEOUT),
-                                   true);
+    subreq = sdap_host_info_send(mem_ctx, ev, sh, opts, hostname, host_map,
+                                 search_bases);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error requesting host info\n");
-        talloc_zfree(state->cur_filter);
-        return EIO;
+        talloc_zfree(req);
+        return NULL;
     }
     tevent_req_set_callback(subreq, ipa_host_info_done, req);
 
-    return EAGAIN;
+    return req;
 }
 
 static void
@@ -187,30 +109,19 @@ ipa_host_info_done(struct tevent_req *subreq)
     struct ipa_host_state *state =
             tevent_req_data(req, struct ipa_host_state);
     const char *host_dn;
+    struct sdap_attr_map_info *maps;
+    const int num_maps = 1;
 
-    ret = sdap_get_generic_recv(subreq, state,
-                                &state->host_count,
-                                &state->hosts);
+    ret = sdap_host_info_recv(subreq, state,
+                              &state->host_count,
+                              &state->hosts);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
 
-    if (state->host_count == 0) {
-        state->search_base_iter++;
-        ret = ipa_host_info_next(req, state);
-        if (ret == EOK) {
-            /* No more search bases to try */
-            tevent_req_error(req, ENOENT);
-        } else if (ret != EAGAIN) {
-            tevent_req_error(req, ret);
-        }
-        return;
-    }
-
     if (state->hostgroup_map) {
-        talloc_free(state->attrs);
         ret = build_attrs_from_map(state, state->hostgroup_map,
                                    IPA_OPTS_HOSTGROUP, NULL,
                                    &state->attrs, NULL);
@@ -240,14 +151,6 @@ ipa_host_info_done(struct tevent_req *subreq)
                 return;
             }
         } else {
-            state->ipa_hostgroup_map = talloc_zero(state, struct sdap_attr_map_info);
-            if (state->ipa_hostgroup_map == NULL) {
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-            state->ipa_hostgroup_map->map = state->hostgroup_map;
-            state->ipa_hostgroup_map->num_attrs = IPA_OPTS_HOSTGROUP;
-
             ret = sysdb_attrs_get_string(state->hosts[0], SYSDB_ORIG_DN, &host_dn);
             if (ret != EOK) {
                 tevent_req_error(req, ret);
@@ -260,14 +163,24 @@ ipa_host_info_done(struct tevent_req *subreq)
                 return;
             }
 
+            maps = talloc_array(state, struct sdap_attr_map_info, num_maps + 1);
+            if (maps == NULL) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            maps[0].map = state->hostgroup_map;
+            maps[0].num_attrs = IPA_OPTS_HOSTGROUP;
+            maps[1].map = NULL;
+
             subreq = sdap_deref_search_send(state, state->ev, state->opts, state->sh,
                                             host_dn,
                                             state->hostgroup_map[IPA_AT_HOSTGROUP_MEMBER_OF].name,
                                             state->attrs,
-                                            1, state->ipa_hostgroup_map,
+                                            num_maps, maps,
                                             dp_opt_get_int(state->opts->basic,
                                                            SDAP_ENUM_SEARCH_TIMEOUT));
             if (subreq == NULL) {
+                talloc_free(maps);
                 DEBUG(SSSDBG_CRIT_FAILURE, "Error requesting host info\n");
                 tevent_req_error(req, EIO);
                 return;
@@ -437,7 +350,6 @@ errno_t ipa_host_info_recv(struct tevent_req *req,
                            size_t *hostgroup_count,
                            struct sysdb_attrs ***hostgroups)
 {
-    size_t c;
     struct ipa_host_state *state =
             tevent_req_data(req, struct ipa_host_state);
 
@@ -445,10 +357,6 @@ errno_t ipa_host_info_recv(struct tevent_req *req,
 
     *host_count = state->host_count;
     *hosts = talloc_steal(mem_ctx, state->hosts);
-    for (c = 0; c < state->host_count; c++) {
-        /* Guarantee the memory heirarchy of the list */
-        talloc_steal(state->hosts, state->hosts[c]);
-    }
 
     if (hostgroup_count) *hostgroup_count = state->hostgroup_count;
     if (hostgroups) *hostgroups = talloc_steal(mem_ctx, state->hostgroups);

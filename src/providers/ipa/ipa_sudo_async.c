@@ -983,9 +983,9 @@ ipa_sudo_refresh_connect_done(struct tevent_req *subreq)
 
     subreq = ipa_host_info_send(state, state->ev,
                                 state->sh, state->sdap_opts, hostname,
-                                state->ipa_opts->host_map,
+                                state->ipa_opts->id->host_map,
                                 state->ipa_opts->hostgroup_map,
-                                state->ipa_opts->host_search_bases);
+                                state->ipa_opts->id->sdom->host_search_bases);
     if (subreq == NULL) {
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);
@@ -1028,7 +1028,7 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
                                  state->sudo_ctx, host,
                                  state->sdap_opts->user_map,
                                  state->sdap_opts->group_map,
-                                 state->ipa_opts->host_map,
+                                 state->ipa_opts->id->host_map,
                                  state->ipa_opts->hostgroup_map, state->sh,
                                  state->cmdgroups_filter, state->search_filter);
     if (subreq == NULL) {

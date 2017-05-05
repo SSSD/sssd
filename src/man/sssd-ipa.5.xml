@@ -343,17 +343,7 @@
                     <term>ipa_host_search_base (string)</term>
                     <listitem>
                         <para>
-                            Optional. Use the given string as search base for
-                            host objects.
-                        </para>
-                        <para>
-                            See <quote>ldap_search_base</quote> for
-                            information about configuring multiple search
-                            bases.
-                        </para>
-                        <para>
-                            Default: the value of
-                            <emphasis>ldap_search_base</emphasis>
+                            Deprecated. Use ldap_host_search_base instead.
                         </para>
                     </listitem>
                 </varlistentry>

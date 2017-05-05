@@ -34,7 +34,6 @@
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_access.h"
-#include "providers/ipa/ipa_hostid.h"
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/ipa/ipa_selinux.h"
 #include "providers/ldap/sdap_access.h"
@@ -807,9 +806,9 @@ errno_t sssm_ipa_access_init(TALLOC_CTX *mem_ctx,
     }
 
     access_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
-    access_ctx->host_map = id_ctx->ipa_options->host_map;
+    access_ctx->host_map = id_ctx->ipa_options->id->host_map;
     access_ctx->hostgroup_map = id_ctx->ipa_options->hostgroup_map;
-    access_ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
+    access_ctx->host_search_bases = id_ctx->ipa_options->id->sdom->host_search_bases;
     access_ctx->hbac_search_bases = id_ctx->ipa_options->hbac_search_bases;
 
     ret = dp_copy_options(access_ctx, id_ctx->ipa_options->basic,
@@ -870,7 +869,7 @@ errno_t sssm_ipa_selinux_init(TALLOC_CTX *mem_ctx,
 
     selinux_ctx->id_ctx = init_ctx->id_ctx;
     selinux_ctx->hbac_search_bases = opts->hbac_search_bases;
-    selinux_ctx->host_search_bases = opts->host_search_bases;
+    selinux_ctx->host_search_bases = opts->id->sdom->host_search_bases;
     selinux_ctx->selinux_search_bases = opts->selinux_search_bases;
 
     dp_set_method(dp_methods, DPM_SELINUX_HANDLER,
@@ -891,26 +890,13 @@ errno_t sssm_ipa_hostid_init(TALLOC_CTX *mem_ctx,
                              struct dp_method *dp_methods)
 {
 #ifdef BUILD_SSH
-    struct ipa_hostid_ctx *hostid_ctx;
     struct ipa_init_ctx *init_ctx;
 
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing IPA host handler\n");
     init_ctx = talloc_get_type(module_data, struct ipa_init_ctx);
 
-    hostid_ctx = talloc_zero(mem_ctx, struct ipa_hostid_ctx);
-    if (hostid_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
-        return ENOMEM;
-    }
+    return ipa_hostid_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
 
-    hostid_ctx->sdap_id_ctx = init_ctx->id_ctx->sdap_id_ctx;
-    hostid_ctx->host_search_bases = init_ctx->options->host_search_bases;
-    hostid_ctx->ipa_opts = init_ctx->options;
-
-    dp_set_method(dp_methods, DPM_HOSTID_HANDLER,
-                  ipa_hostid_handler_send, ipa_hostid_handler_recv, hostid_ctx,
-                  struct ipa_hostid_ctx, struct dp_hostid_data, struct dp_reply_std);
-
-    return EOK;
 #else
     DEBUG(SSSDBG_MINOR_FAILURE, "HostID init handler called but SSSD is "
                                 "built without SSH support, ignoring\n");
@@ -990,9 +976,9 @@ errno_t sssm_ipa_session_init(TALLOC_CTX *mem_ctx,
     }
 
     session_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
-    session_ctx->host_map = id_ctx->ipa_options->host_map;
+    session_ctx->host_map = id_ctx->ipa_options->id->host_map;
     session_ctx->hostgroup_map = id_ctx->ipa_options->hostgroup_map;
-    session_ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
+    session_ctx->host_search_bases = id_ctx->ipa_options->id->sdom->host_search_bases;
     session_ctx->deskprofile_search_bases = id_ctx->ipa_options->deskprofile_search_bases;
 
     ret = dp_copy_options(session_ctx, id_ctx->ipa_options->basic,

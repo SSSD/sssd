@@ -42,7 +42,7 @@ enum ipa_basic_opt {
     IPA_BACKUP_SERVER,
     IPA_HOSTNAME,
     IPA_HBAC_SEARCH_BASE,
-    IPA_HOST_SEARCH_BASE,
+    IPA_HOST_SEARCH_BASE, /* only used if ldap_host_search_base is not set */
     IPA_SELINUX_SEARCH_BASE,
     IPA_SUBDOMAINS_SEARCH_BASE,
     IPA_MASTER_DOMAIN_SEARCH_BASE,
@@ -75,18 +75,6 @@ enum ipa_netgroup_attrs {
     IPA_AT_NETGROUP_UUID,
 
     IPA_OPTS_NETGROUP /* attrs counter */
-};
-
-enum ipa_host_attrs {
-    IPA_OC_HOST = 0,
-    IPA_AT_HOST_NAME,
-    IPA_AT_HOST_FQDN,
-    IPA_AT_HOST_SERVERHOSTNAME,
-    IPA_AT_HOST_MEMBER_OF,
-    IPA_AT_HOST_SSH_PUBLIC_KEY,
-    IPA_AT_HOST_UUID,
-
-    IPA_OPTS_HOST /* attrs counter */
 };
 
 enum ipa_hostgroup_attrs {
@@ -208,13 +196,11 @@ struct ipa_id_ctx {
 struct ipa_options {
     struct dp_option *basic;
 
-    struct sdap_attr_map *host_map;
     struct sdap_attr_map *hostgroup_map;
     struct sdap_attr_map *selinuxuser_map;
     struct sdap_attr_map *view_map;
     struct sdap_attr_map *override_map;
 
-    struct sdap_search_base **host_search_bases;
     struct sdap_search_base **hbac_search_bases;
     struct sdap_search_base **selinux_search_bases;
     struct sdap_search_base **subdomains_search_bases;
@@ -263,6 +249,11 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
 
 errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
                                struct ipa_options *ctx);
+
+errno_t ipa_hostid_init(TALLOC_CTX *mem_ctx,
+                        struct be_ctx *be_ctx,
+                        struct ipa_id_ctx *id_ctx,
+                        struct dp_method *dp_methods);
 
 errno_t ipa_autofs_init(TALLOC_CTX *mem_ctx,
                         struct be_ctx *be_ctx,
