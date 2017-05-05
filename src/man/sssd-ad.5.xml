@@ -35,7 +35,10 @@
         <para>
             The AD provider is a back end used to connect to an Active
             Directory server. This provider requires that the machine be
-            joined to the AD domain and a keytab is available.
+            joined to the AD domain and a keytab is available. Back end
+            communication occurs over a GSSAPI-encrypted channel, SSL/TLS
+            options should not be used with the AD provider and will be
+            superceded by Kerberos usage.
         </para>
         <para>
             The AD provider supports connecting to Active Directory 2008 R2
