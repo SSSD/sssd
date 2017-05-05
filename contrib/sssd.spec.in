@@ -1003,6 +1003,7 @@ done
 %dir %{_datadir}/sssd/systemtap
 %{_datadir}/sssd/systemtap/id_perf.stp
 %{_datadir}/sssd/systemtap/nested_group_perf.stp
+%{_datadir}/sssd/systemtap/dp_request.stp
 %dir %{_datadir}/systemtap
 %dir %{_datadir}/systemtap/tapset
 %{_datadir}/systemtap/tapset/sssd.stp
