@@ -1873,10 +1873,14 @@ void test_pam_preauth_cert_no_logon_name(void **state)
      * Since there is a matching user the upcoming lookup by name will find
      * the user entry. But since we force the lookup by name to go to the
      * backend to make sure the group-membership data is up to date the
-     * backend response has to be mocked twice and the second argument of
-     * mock_input_pam_cert cannot be NULL but must match the user name. */
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+     * backend response has to be mocked twice.
+     * Additionally sss_parse_inp_recv() must be mocked because the cache
+     * request will be done with the username found by the certificate
+     * lookup. */
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
+    mock_account_recv_simple();
+    mock_parse_inp("pamuser", NULL, EOK);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
