@@ -1846,7 +1846,8 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                     ret = add_pam_cert_response(preq->pd, cert_user,
                                                 preq->token_name,
                                                 preq->module_name,
-                                                preq->key_id);
+                                                preq->key_id,
+                                                SSS_PAM_CERT_INFO);
                     if (ret != EOK) {
                         DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
                         preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
