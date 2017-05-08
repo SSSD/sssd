@@ -101,7 +101,7 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 
 errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
                               const char *token_name, const char *module_name,
-                              const char *key_id);
+                              const char *key_id, enum response_type type);
 
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd);
 
