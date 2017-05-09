@@ -3808,7 +3808,8 @@ static int test_nss_getnamebycert_check(uint32_t status, uint8_t *body, size_t b
     return EOK;
 }
 
-static int test_nss_getlistbycert_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_nss_getlistbycert_check_exp(uint32_t status, uint8_t *body,
+                                            size_t blen, size_t exp)
 {
     size_t rp = 0;
     uint32_t id_type;
@@ -3817,13 +3818,13 @@ static int test_nss_getlistbycert_check(uint32_t status, uint8_t *body, size_t b
     const char *name;
     int found = 0;
     const char *fq_name1 = "testcertuser@"TEST_DOM_NAME ;
-    const char *fq_name2 = "testcertuser2@"TEST_DOM_NAME;
+    const char *fq_name2 = "testcertuser2@"TEST_SUBDOM_NAME;
 
     assert_int_equal(status, EOK);
 
     /* num_results and reserved */
     SAFEALIGN_COPY_UINT32(&num, body + rp, &rp);
-    assert_in_range(num, 1, 2);
+    assert_int_equal(num, exp);
     SAFEALIGN_COPY_UINT32(&reserved, body + rp, &rp);
     assert_int_equal(reserved, 0);
 
@@ -3858,6 +3859,17 @@ static int test_nss_getlistbycert_check(uint32_t status, uint8_t *body, size_t b
     return EOK;
 }
 
+static int test_nss_getlistbycert_check_one(uint32_t status, uint8_t *body,
+                                            size_t blen)
+{
+    return test_nss_getlistbycert_check_exp(status, body, blen, 1);
+}
+
+static int test_nss_getlistbycert_check_two(uint32_t status, uint8_t *body,
+                                            size_t blen)
+{
+    return test_nss_getlistbycert_check_exp(status, body, blen, 2);
+}
 
 static void test_nss_getnamebycert(void **state)
 {
@@ -3949,7 +3961,7 @@ static void test_nss_getlistbycert(void **state)
     der = sss_base64_decode(nss_test_ctx, TEST_TOKEN_CERT, &der_size);
     assert_non_null(der);
 
-    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
     talloc_free(der);
     assert_int_equal(ret, EOK);
 
@@ -3967,7 +3979,7 @@ static void test_nss_getlistbycert(void **state)
     /* Should go straight to back end, without contacting DP. */
     /* If there is only a single user mapped the result will look like the */
     /* result of getnamebycert. */
-    set_cmd_cb(test_nss_getlistbycert_check);
+    set_cmd_cb(test_nss_getlistbycert_check_one);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETLISTBYCERT,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -3990,7 +4002,7 @@ static void test_nss_getlistbycert_multi(void **state)
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
 
-    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
     assert_int_equal(ret, EOK);
 
     /* Prime the cache with two valid user */
@@ -4004,11 +4016,11 @@ static void test_nss_getlistbycert_multi(void **state)
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
 
-    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
     talloc_free(der);
     assert_int_equal(ret, EOK);
 
-    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+    ret = store_user(nss_test_ctx, nss_test_ctx->subdom,
                      &testbycert2, attrs, 0);
     assert_int_equal(ret, EOK);
     talloc_free(attrs);
@@ -4019,7 +4031,7 @@ static void test_nss_getlistbycert_multi(void **state)
 
     /* Query for that user, call a callback when command finishes */
     /* Should go straight to back end, without contacting DP */
-    set_cmd_cb(test_nss_getlistbycert_check);
+    set_cmd_cb(test_nss_getlistbycert_check_two);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETLISTBYCERT,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -4290,7 +4302,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_getlistbycert,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getlistbycert_multi,
-                                        nss_test_setup, nss_test_teardown),
+                                        nss_subdom_test_setup,
+                                        nss_subdom_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getsidbyname,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getsidbyupn,
