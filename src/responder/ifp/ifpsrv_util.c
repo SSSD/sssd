@@ -372,7 +372,7 @@ struct ifp_list_ctx *ifp_list_ctx_new(struct sbus_request *sbus_req,
     list_ctx->ctx = ctx;
     list_ctx->dom = ctx->rctx->domains;
     list_ctx->filter = filter;
-    list_ctx->paths = talloc_zero_array(list_ctx, const char *, limit);
+    list_ctx->paths = talloc_zero_array(list_ctx, const char *, 1);
     if (list_ctx->paths == NULL) {
         talloc_free(list_ctx);
         return NULL;
@@ -389,12 +389,6 @@ errno_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
     errno_t ret;
 
     if (list_ctx->limit == 0) {
-        list_ctx->paths = talloc_zero_array(list_ctx, const char *, entries);
-        if (list_ctx->paths == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
-            ret = ENOMEM;
-            goto done;
-        }
         capacity = entries;
         goto immediately;
     }
@@ -408,6 +402,14 @@ errno_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
     }
 
 immediately:
+    talloc_zfree(list_ctx->paths);
+    list_ctx->paths = talloc_zero_array(list_ctx, const char *, capacity);
+    if (list_ctx->paths == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     *_capacity = capacity;
     ret = EOK;
 
