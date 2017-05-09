@@ -221,6 +221,9 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     ad_id_ctx->sdap_id_ctx->opts = ad_options->id;
     ad_options->id_ctx = ad_id_ctx;
 
+    /* We need to pass the sdap list from parent */
+    ad_id_ctx->sdap_id_ctx->opts->sdom = id_ctx->sdap_id_ctx->opts->sdom;
+
     /* use AD plugin */
     srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx->be_res,
                                      default_host_dbs,
@@ -256,6 +259,13 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     /* Set up the ID mapping object */
     ad_id_ctx->sdap_id_ctx->opts->idmap_ctx =
         id_ctx->sdap_id_ctx->opts->idmap_ctx;
+
+    ret = ad_set_search_bases(ad_options->id, sdom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to set LDAP search bases for "
+              "domain '%s'. Will try to use automatically detected search "
+              "bases.", subdom->name);
+    }
 
     *_subdom_id_ctx = ad_id_ctx;
     return EOK;
@@ -619,6 +629,13 @@ ads_store_sdap_subdom(struct ad_subdomains_ctx *ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_domain_subdom_add failed.\n");
         return ret;
+    }
+
+    ret = ad_set_search_bases(ctx->ad_id_ctx->ad_options->id, ctx->sdom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "failed to set ldap search bases for "
+              "domain '%s'. will try to use automatically detected search "
+              "bases.", ctx->sdom->dom->name);
     }
 
     DLIST_FOR_EACH(sditer, ctx->sdom) {
