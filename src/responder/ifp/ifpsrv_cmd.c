@@ -181,26 +181,6 @@ static void ifp_user_get_attr_process(struct tevent_req *req)
 }
 
 static errno_t
-ifp_user_get_attr_replace_space(TALLOC_CTX *mem_ctx,
-                                struct ldb_message_element *el,
-                                const char sub)
-{
-    int i;
-
-    for (i = 0; i < el->num_values; i++) {
-        el->values[i].data = (uint8_t *) sss_replace_space(mem_ctx,
-                                             (const char *) el->values[i].data,
-                                             sub);
-        if (el->values[i].data == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed, skipping\n");
-            return ENOMEM;
-        }
-    }
-
-    return EOK;
-}
-
-static errno_t
 ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
                                struct ifp_req *ireq,
                                const char **attrs,
@@ -234,6 +214,24 @@ ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
     }
 
     if (res->count > 0) {
+        ret = ifp_ldb_el_output_name(ireq->ifp_ctx->rctx, res->msgs[0],
+                                     SYSDB_NAME, domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot convert SYSDB_NAME to output format [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            return sbus_request_finish(ireq->dbus_req, NULL);
+        }
+
+        ret = ifp_ldb_el_output_name(ireq->ifp_ctx->rctx, res->msgs[0],
+                                     SYSDB_NAME_ALIAS, domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot convert SYSDB_NAME_ALIAS to output format [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            return sbus_request_finish(ireq->dbus_req, NULL);
+        }
+
         for (ai = 0; attrs[ai]; ai++) {
             el = sss_view_ldb_msg_find_element(domain, res->msgs[0], attrs[ai]);
             if (el == NULL || el->num_values == 0) {
@@ -241,18 +239,6 @@ ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
                       "Attribute %s not present or has no values\n",
                       attrs[ai]);
                 continue;
-            }
-
-            /* Normalize white space in user names */
-            if (ireq->ifp_ctx->rctx->override_space != '\0' &&
-                    strcmp(attrs[ai], SYSDB_NAME) == 0) {
-                ret = ifp_user_get_attr_replace_space(ireq, el,
-                                        ireq->ifp_ctx->rctx->override_space);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE, "Cannot normalize %s\n",
-                          attrs[ai]);
-                    continue;
-                }
             }
 
             ret = ifp_add_ldb_el_to_dict(&iter_dict, el);
@@ -565,20 +551,6 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
             tevent_req_error(req, ENOENT);
             return;
         }
-    }
-
-    ret = ifp_ldb_el_output_name(state->rctx, state->res->msgs[0],
-                                 SYSDB_NAME, state->dom);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = ifp_ldb_el_output_name(state->rctx, state->res->msgs[0],
-                                 SYSDB_NAME_ALIAS, state->dom);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
     }
 
     tevent_req_done(req);
