@@ -127,6 +127,20 @@ struct so {
     { "libsss_ad_tests.so", { LIBPFX"libdlopen_test_providers.so",
                               LIBPFX"libsss_ad_tests.so", NULL } },
 #endif
+#ifdef BUILD_NFS_IDMAP
+    { "sss.so", { LIBPFX"sss.so", NULL } },
+#endif
+    /* for testing purposes */
+    { "libdlopen_test_providers.so", { LIBPFX"libdlopen_test_providers.so",
+                                       NULL } },
+    { "libsss_nss_idmap_tests.so", { LIBPFX"libsss_nss_idmap_tests.so",
+                                     NULL } },
+#ifdef BUILD_SAMBA
+    { "libdlopen_test_winbind_idmap.so",
+      { LIBPFX"libdlopen_test_winbind_idmap.so", NULL } },
+    { "libsss_ad_tests.so", { LIBPFX"libdlopen_test_providers.so",
+                              LIBPFX"libsss_ad_tests.so", NULL } },
+#endif
     { NULL }
 };
 
