@@ -173,6 +173,7 @@
 
 #define SYSDB_AD_ACCOUNT_EXPIRES "adAccountExpires"
 #define SYSDB_AD_USER_ACCOUNT_CONTROL "adUserAccountControl"
+#define SYSDB_AD_LOGON_HOURS "adLogonHours"
 
 #define SYSDB_DEFAULT_VIEW_NAME "default"
 #define SYSDB_LOCAL_VIEW_NAME "LOCAL" /* reserved for client-side overrides */

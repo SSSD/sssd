@@ -196,6 +196,7 @@ struct sdap_attr_map ipa_user_map[] = {
     { "ldap_user_authorized_service", "authorizedService", SYSDB_AUTHORIZED_SERVICE, NULL },
     { "ldap_user_ad_account_expires", "accountExpires", SYSDB_AD_ACCOUNT_EXPIRES, NULL},
     { "ldap_user_ad_user_account_control", "userAccountControl", SYSDB_AD_USER_ACCOUNT_CONTROL, NULL},
+    { "ldap_user_ad_logon_hours", "logonHours", SYSDB_AD_LOGON_HOURS, NULL},
     { "ldap_ns_account_lock", "nsAccountLock", SYSDB_NS_ACCOUNT_LOCK, NULL},
     { "ldap_user_authorized_host", "host", SYSDB_AUTHORIZED_HOST, NULL },
     { "ldap_user_nds_login_disabled", "loginDisabled", SYSDB_NDS_LOGIN_DISABLED, NULL },

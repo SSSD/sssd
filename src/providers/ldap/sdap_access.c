@@ -426,6 +426,8 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
 #define AD_TO_UNIX_TIME_CONST 11644473600LL
 #define AD_DISABLE_MESSAGE "The user account is disabled on the AD server"
 #define AD_EXPIRED_MESSAGE "The user account is expired on the AD server"
+#define AD_OUTSIDE_LOGONHOURS_MESSAGE \
+    "Outside of the user's login hours on the AD server"
 
 static bool ad_account_expired(uint64_t expiration_time)
 {
@@ -455,11 +457,41 @@ static bool ad_account_expired(uint64_t expiration_time)
     return false;
 }
 
+static bool ad_account_outside_logonhours(const uint8_t *data)
+{
+    time_t now;
+    struct tm tm;
+    int hour_of_week, err;
+
+    if (data == NULL) {
+        return false;
+    }
+
+    now = time(NULL);
+    if (now == ((time_t) -1)) {
+        err = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "time failed [%d][%s].\n", err, strerror(err));
+        return true;
+    }
+
+    if (gmtime_r(&now, &tm) == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "gmtime_r failed.\n");
+        return true;
+    }
+
+    hour_of_week = tm.tm_wday * 24 + tm.tm_hour;
+    hour_of_week = MAX(0, MIN(hour_of_week, 167));
+
+    return !(data[hour_of_week / 8] & (1 << (hour_of_week % 8)));
+}
+
 static errno_t sdap_account_expired_ad(struct pam_data *pd,
                                        struct ldb_message *user_entry)
 {
     uint32_t uac;
     uint64_t expiration_time;
+    const struct ldb_val *logon_hours;
     int ret;
 
     DEBUG(SSSDBG_TRACE_FUNC,
@@ -475,6 +507,13 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
     DEBUG(SSSDBG_TRACE_ALL,
           "Expiration time for user [%s] is [%"PRIu64"].\n",
            pd->user, expiration_time);
+
+    logon_hours = ldb_msg_find_ldb_val(user_entry, SYSDB_AD_LOGON_HOURS);
+    if (logon_hours != NULL && logon_hours->length != 21) {
+        logon_hours = NULL;
+    }
+    DEBUG(SSSDBG_TRACE_ALL, "Logon hours for user [%s] are %s.\n",
+          pd->user, logon_hours ? "set" : "unset");
 
     if (uac & UAC_ACCOUNTDISABLE) {
 
@@ -497,6 +536,17 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
         }
 
         return ERR_ACCOUNT_EXPIRED;
+
+    } else if (ad_account_outside_logonhours(logon_hours->data)) {
+
+        ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
+                               sizeof(AD_OUTSIDE_LOGONHOURS_MESSAGE),
+                               (const uint8_t *) AD_OUTSIDE_LOGONHOURS_MESSAGE);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+        }
+
+        return ERR_ACCESS_DENIED;
     }
 
     return EOK;

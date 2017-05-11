@@ -347,6 +347,7 @@ option_strings = {
     'ldap_pwd_attribute' : _('Attribute indicating that server side password policies are active'),
     'ldap_user_ad_account_expires' : _('accountExpires attribute of AD'),
     'ldap_user_ad_user_account_control' : _('userAccountControl attribute of AD'),
+    'ldap_user_ad_logon_hours' : _('logonHours attribute of AD'),
     'ldap_ns_account_lock' : _('nsAccountLock attribute'),
     'ldap_user_nds_login_disabled' : _('loginDisabled attribute of NDS'),
     'ldap_user_nds_login_expiration_time' : _('loginExpirationTime attribute of NDS'),

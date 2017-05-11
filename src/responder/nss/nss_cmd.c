@@ -984,6 +984,7 @@ static errno_t nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
                                       SYSDB_DEFAULT_OVERRIDE_NAME,
                                       SYSDB_AD_ACCOUNT_EXPIRES,
                                       SYSDB_AD_USER_ACCOUNT_CONTROL,
+                                      SYSDB_AD_LOGON_HOURS,
                                       SYSDB_SSH_PUBKEY,
                                       SYSDB_USER_CERT,
                                       SYSDB_USER_EMAIL,

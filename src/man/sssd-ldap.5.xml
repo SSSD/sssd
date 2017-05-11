@@ -566,6 +566,20 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_ad_logon_hours (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_account_expire_policy=ad, this
+                            parameter contains the name of an LDAP attribute
+                            storing the user's permitted logon hours.
+                        </para>
+                        <para>
+                            Default: logonHours
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_ns_account_lock (string)</term>
                     <listitem>
                         <para>
