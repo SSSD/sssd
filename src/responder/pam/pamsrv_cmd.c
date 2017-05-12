@@ -1560,7 +1560,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
     data = cache_req_data_name(preq,
                                CACHE_REQ_INITGROUPS,
-                               preq->pd->user);
+                               preq->pd->logon_name);
     if (data == NULL) {
         return ENOMEM;
     }
@@ -1589,7 +1589,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
                            preq->cctx->rctx->ncache,
                            0,
                            preq->req_dom_type,
-                           preq->pd->domain,
+                           NULL,
                            data);
     if (!dpreq) {
         DEBUG(SSSDBG_CRIT_FAILURE,
