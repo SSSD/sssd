@@ -518,6 +518,8 @@ static void mock_input_pam_ex(TALLOC_CTX *mem_ctx,
     int ret;
     size_t needed_size;
     uint8_t *authtok;
+    char *s_name;
+    char *dom;
 
     if (name != NULL) {
         pi.pam_user = name;
@@ -574,7 +576,13 @@ static void mock_input_pam_ex(TALLOC_CTX *mem_ctx,
     will_return(__wrap_sss_packet_get_body, buf);
     will_return(__wrap_sss_packet_get_body, buf_size);
 
-    mock_parse_inp(name, NULL, EOK);
+    if (strrchr(name, '@') == NULL) {
+        mock_parse_inp(name, NULL, EOK);
+    } else {
+        ret = sss_parse_internal_fqname(mem_ctx, name, &s_name, &dom);
+        mock_parse_inp(s_name, dom, EOK);
+    }
+
     if (contact_dp) {
         mock_account_recv_simple();
     }
@@ -1582,6 +1590,71 @@ void test_pam_preauth_no_logon_name(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_auth_no_upn_logon_name(void **state)
+{
+    int ret;
+
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam_ex(pam_test_ctx, "upn@"TEST_DOM_NAME, "12345", NULL, NULL,
+                      true);
+    mock_account_recv_simple();
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    pam_test_ctx->exp_pam_status = PAM_USER_UNKNOWN;
+    set_cmd_cb(test_pam_simple_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_auth_upn_logon_name(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom,
+                               pam_test_ctx->pam_user_fqdn,
+                               "12345");
+    assert_int_equal(ret, EOK);
+    attrs = sysdb_new_attrs(pam_test_ctx);
+    assert_non_null(attrs);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upn@"TEST_DOM_NAME);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                              pam_test_ctx->pam_user_fqdn,
+                              attrs,
+                              LDB_FLAG_MOD_ADD);
+    assert_int_equal(ret, EOK);
+
+    mock_input_pam_ex(pam_test_ctx, "upn@"TEST_DOM_NAME, "12345", NULL, NULL,
+                      true);
+    mock_account_recv_simple();
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_successful_offline_auth_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+
 static void set_cert_auth_param(struct pam_ctx *pctx, const char *dbpath)
 {
     pam_test_ctx->pctx->cert_auth = true;
@@ -2311,6 +2384,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_offline_chauthtok,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_no_logon_name,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_auth_no_upn_logon_name,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_auth_upn_logon_name,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cached_auth_success,
                                         pam_cached_test_setup,
