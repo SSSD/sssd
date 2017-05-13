@@ -30,13 +30,6 @@
 #include "db/sysdb.h"
 #include "tools/common/sss_tools.h"
 
-struct sss_cmdline {
-    const char *exec; /* argv[0] */
-    const char *command; /* command name */
-    int argc; /* rest of arguments */
-    const char **argv;
-};
-
 static void sss_tool_print_common_opts(int min_len)
 {
     fprintf(stderr, _("Common options:\n"));
