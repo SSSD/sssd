@@ -38,7 +38,12 @@ errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
                       int *argc, const char **argv,
                       struct sss_tool_ctx **_tool_ctx);
 
-struct sss_cmdline;
+struct sss_cmdline {
+    const char *exec; /* argv[0] */
+    const char *command; /* command name */
+    int argc; /* rest of arguments */
+    const char **argv;
+};
 
 typedef errno_t
 (*sss_route_fn)(struct sss_cmdline *cmdline,

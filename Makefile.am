@@ -143,7 +143,6 @@ sbin_PROGRAMS = \
     sss_groupmod \
     sss_groupshow \
     sss_cache \
-    sss_debuglevel \
     sss_override \
     sss_seed \
     sssctl \
@@ -1692,13 +1691,6 @@ sss_cache_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(CLIENT_LIBS)
 sss_cache_CFLAGS = $(AM_CFLAGS)
-
-sss_debuglevel_SOURCES = \
-    src/tools/sss_debuglevel.c \
-    $(SSSD_TOOLS_OBJ)
-sss_debuglevel_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
 
 sss_seed_SOURCES = \
     src/tools/sss_seed.c \
