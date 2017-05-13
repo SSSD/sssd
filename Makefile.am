@@ -432,6 +432,10 @@ py3exec_LTLIBRARIES = \
     $(NULL)
 endif
 
+sbin_SCRIPTS = \
+	src/tools/wrappers/sss_debuglevel \
+	$(NULL)
+
 dist_noinst_SCRIPTS = \
     $(EXTRA_SCRIPTS) \
     src/config/setup.py \
@@ -4668,6 +4672,14 @@ src/sysv/systemd/sssd-kcm.service: src/sysv/systemd/sssd-kcm.service.in Makefile
 	$(replace_script)
 endif
 
+EXTRA_DIST += \
+    src/tools/wrappers/sss_debuglevel.in \
+    $(NULL)
+
+src/tools/wrappers/sss_debuglevel: src/tools/wrappers/sss_debuglevel.in Makefile
+	@$(MKDIR_P) src/tools/wrappers/
+	$(replace_script)
+
 SSSD_USER_DIRS = \
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(keytabdir) \
@@ -4912,6 +4924,7 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
+	rm -f $(builddir)/src/tools/wrappers/sss_debuglevel
 
 CLEANFILES += *.X */*.X */*/*.X
 
