@@ -143,7 +143,6 @@ sbin_PROGRAMS = \
     sss_groupmod \
     sss_groupshow \
     sss_cache \
-    sss_debuglevel \
     sss_override \
     sss_seed \
     sssctl \
@@ -432,6 +431,10 @@ py3exec_LTLIBRARIES = \
     _py3sss_nss_idmap.la \
     $(NULL)
 endif
+
+sbin_SCRIPTS = \
+	src/tools/wrappers/sss_debuglevel \
+	$(NULL)
 
 dist_noinst_SCRIPTS = \
     $(EXTRA_SCRIPTS) \
@@ -1692,13 +1695,6 @@ sss_cache_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(CLIENT_LIBS)
 sss_cache_CFLAGS = $(AM_CFLAGS)
-
-sss_debuglevel_SOURCES = \
-    src/tools/sss_debuglevel.c \
-    $(SSSD_TOOLS_OBJ)
-sss_debuglevel_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
 
 sss_seed_SOURCES = \
     src/tools/sss_seed.c \
@@ -4660,6 +4656,14 @@ src/sysv/systemd/sssd-kcm.service: src/sysv/systemd/sssd-kcm.service.in Makefile
 	$(replace_script)
 endif
 
+EXTRA_DIST += \
+    src/tools/wrappers/sss_debuglevel.in \
+    $(NULL)
+
+src/tools/wrappers/sss_debuglevel: src/tools/wrappers/sss_debuglevel.in Makefile
+	@$(MKDIR_P) src/tools/wrappers/
+	$(replace_script)
+
 SSSD_USER_DIRS = \
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(keytabdir) \
@@ -4904,6 +4908,7 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.service
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
+	rm -f $(builddir)/src/tools/wrappers/sss_debuglevel
 
 CLEANFILES += *.X */*.X */*/*.X
 
