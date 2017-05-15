@@ -425,17 +425,17 @@ static void cache_req_search_done(struct tevent_req *subreq)
     struct ldb_result *result = NULL;
     errno_t ret;
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_search_state);
 
     state->dp_success = state->cr->plugin->dp_recv_fn(subreq, state->cr);
     talloc_zfree(subreq);
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* Get result from cache again. */
     ret = cache_req_search_cache(tmp_ctx, state->cr, &result);
