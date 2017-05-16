@@ -425,6 +425,12 @@ static void cache_req_search_done(struct tevent_req *subreq)
     struct ldb_result *result = NULL;
     errno_t ret;
 
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_search_state);
 
