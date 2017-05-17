@@ -258,6 +258,27 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sss_cert_derb64_to_ldap_filter failed.\n");
+
+            /* Typically sss_cert_derb64_to_ldap_filter() will fail if there
+             * is no mapping rule matching the current certificate. But this
+             * just means that no matching user can be found so we can finish
+             * the request with this result. Even if
+             * sss_cert_derb64_to_ldap_filter() would fail for other reason
+             * there is no need to return an error which might cause the
+             * domain go offline. */
+
+            if (noexist_delete) {
+                ret = sysdb_remove_cert(state->domain, filter_value);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Ignoring error while removing user certificate "
+                          "[%d]: %s\n", ret, sss_strerror(ret));
+                }
+            }
+
+            ret = EOK;
+            state->sdap_ret = ENOENT;
+            state->dp_error = DP_ERR_OK;
             goto done;
         }
 
