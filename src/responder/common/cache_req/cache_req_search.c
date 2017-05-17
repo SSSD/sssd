@@ -334,6 +334,10 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret == EOK) {
+        ret = cache_req_search_ncache_filter(state, cr, &state->result);
+    }
+
+    if (ret == EOK) {
         tevent_req_done(req);
     } else {
         tevent_req_error(req, ret);
