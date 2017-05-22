@@ -557,6 +557,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'realmd_tags',
             'subdomain_refresh_interval',
             'subdomain_inherit',
+            'subdomain_homedir',
             'full_name_format',
             're_expression',
             'cached_auth_timeout']
@@ -925,6 +926,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'realmd_tags',
             'subdomain_refresh_interval',
             'subdomain_inherit',
+            'subdomain_homedir',
             'full_name_format',
             're_expression',
             'cached_auth_timeout']
