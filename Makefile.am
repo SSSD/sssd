@@ -2357,6 +2357,9 @@ nss_srv_tests_LDADD = \
 EXTRA_pam_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
     $(NULL)
+if HAVE_NSS
+EXTRA_pam_srv_tests_DEPENDENCIES += p11_child
+endif
 pam_srv_tests_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_pam_srv.c \
