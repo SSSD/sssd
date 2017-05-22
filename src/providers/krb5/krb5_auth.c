@@ -890,6 +890,9 @@ static void krb5_auth_done(struct tevent_req *subreq)
                         state->be_ctx->domain->pwd_expiration_warning,
                         &res);
     if (ret) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "The krb5_child process returned an error. Please inspect the "
+              "krb5_child.log file or the journal for more information\n");
         DEBUG(SSSDBG_OP_FAILURE, "Could not parse child response [%d]: %s\n",
               ret, strerror(ret));
         goto done;
