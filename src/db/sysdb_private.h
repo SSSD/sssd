@@ -260,6 +260,13 @@ int sysdb_search_ts_groups(TALLOC_CTX *mem_ctx,
                            const char **attrs,
                            struct ldb_result *res);
 
+errno_t sysdb_search_ts_matches(TALLOC_CTX *mem_ctx,
+                                struct sysdb_ctx *sysdb,
+                                const char *attrs[],
+                                struct ldb_result *ts_res,
+                                const char *filter,
+                                struct ldb_result **_res);
+
 /* Compares the modifyTimestamp attribute between old_entry and
  * new_entry. Returns true if they differ (or either entry is missing
  * the attribute) and false if the attribute is the same
