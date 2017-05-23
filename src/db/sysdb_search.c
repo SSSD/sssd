@@ -481,12 +481,12 @@ done:
     return ret;
 }
 
-static errno_t search_ts_matches(TALLOC_CTX *mem_ctx,
-                                 struct sysdb_ctx *sysdb,
-                                 const char *attrs[],
-                                 struct ldb_result *ts_res,
-                                 const char *filter,
-                                 struct ldb_result **_res)
+errno_t sysdb_search_ts_matches(TALLOC_CTX *mem_ctx,
+                                struct sysdb_ctx *sysdb,
+                                const char *attrs[],
+                                struct ldb_result *ts_res,
+                                const char *filter,
+                                struct ldb_result **_res)
 {
     char *dn_filter;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -594,8 +594,8 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
-                            name_filter, &ts_cache_res);
+    ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
+                                  name_filter, &ts_cache_res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
@@ -1099,8 +1099,8 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
-                            name_filter, &ts_cache_res);
+    ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
+                                  name_filter, &ts_cache_res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
