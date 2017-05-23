@@ -445,3 +445,25 @@ def test_kcm_sec_kdestroy_nocache(setup_for_kcm_sec,
                                   setup_secrets):
     testenv = setup_for_kcm_sec
     exercise_subsidiaries(testenv)
+
+def test_kcm_sec_parallel_klist(setup_for_kcm_sec,
+                                setup_secrets):
+    """
+    Test that parallel operations from a single UID are handled well.
+    Regression test for https://pagure.io/SSSD/sssd/issue/3372
+    """
+    testenv = setup_for_kcm_sec
+
+    testenv.k5kdc.add_principal("alice", "alicepw")
+    out, _, _ = testenv.k5util.kinit("alice", "alicepw")
+    assert out == 0
+
+
+    processes = []
+    for i in range(0,10):
+        p = testenv.k5util.spawn_in_env(['klist', '-A'])
+        processes.append(p)
+
+    for p in processes:
+        rc = p.wait()
+        assert rc == 0
