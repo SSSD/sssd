@@ -1109,6 +1109,7 @@ libwbclient_la_SOURCES = \
     src/sss_client/libwbclient/wbc_ctx_sssd.c \
     $(NULL)
 libwbclient_la_LIBADD = \
+    $(LIBADD_DL) \
     libsss_nss_idmap.la \
     $(CLIENT_LIBS) \
     $(NULL)
