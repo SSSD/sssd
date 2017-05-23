@@ -3520,7 +3520,7 @@ int sysdb_search_ts_users(TALLOC_CTX *mem_ctx,
     ZERO_STRUCT(*res);
 
     if (domain->sysdb->ldb_ts == NULL) {
-        return ENOENT;
+        return ERR_NO_TS;
     }
 
     ret = sysdb_cache_search_users(mem_ctx, domain, domain->sysdb->ldb_ts,
@@ -3737,7 +3737,7 @@ int sysdb_search_ts_groups(TALLOC_CTX *mem_ctx,
     ZERO_STRUCT(*res);
 
     if (domain->sysdb->ldb_ts == NULL) {
-        return ENOENT;
+        return ERR_NO_TS;
     }
 
     ret = sysdb_cache_search_groups(mem_ctx, domain, domain->sysdb->ldb_ts,

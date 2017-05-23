@@ -587,6 +587,10 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
     ret = sysdb_search_ts_users(tmp_ctx, domain, ts_filter,
                                 sysdb_ts_cache_attrs,
                                 &ts_res);
+    if (ret == ERR_NO_TS) {
+        ret = ENOENT;
+    }
+
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
@@ -1088,6 +1092,10 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     ret = sysdb_search_ts_groups(tmp_ctx, domain, ts_filter,
                                  sysdb_ts_cache_attrs,
                                  &ts_res);
+    if (ret == ERR_NO_TS) {
+        ret = ENOENT;
+    }
+
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
