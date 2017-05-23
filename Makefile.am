@@ -2140,9 +2140,11 @@ test_ipa_idmap_LDADD = \
 
 test_utils_SOURCES = \
     src/tests/cmocka/test_utils.c \
-    src/tests/cmocka/test_sss_ssh.c \
     src/tests/cmocka/test_string_utils.c \
     $(NULL)
+if BUILD_SSH
+test_utils_SOURCES += src/tests/cmocka/test_sss_ssh.c
+endif
 test_utils_CFLAGS = \
     $(AM_CFLAGS)
 test_utils_LDADD = \
