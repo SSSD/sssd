@@ -41,6 +41,7 @@ cache_req_host_by_name_lookup(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *domain,
                               struct ldb_result **_result)
 {
+#ifdef BUILD_SSH
     struct ldb_result *result;
     struct ldb_message *msg;
     errno_t ret;
@@ -59,6 +60,9 @@ cache_req_host_by_name_lookup(TALLOC_CTX *mem_ctx,
     *_result = result;
 
     return EOK;
+#else
+    return ERR_INTERNAL;
+#endif /* BUILD_SSH */
 }
 
 struct tevent_req *

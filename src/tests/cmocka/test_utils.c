@@ -1923,7 +1923,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_expand_homedir_template,
                                         setup_homedir_ctx,
                                         teardown_homedir_ctx),
+#ifdef BUILD_SSH
         cmocka_unit_test(test_textual_public_key),
+#endif
         cmocka_unit_test(test_replace_whitespaces),
         cmocka_unit_test(test_reverse_replace_whitespaces),
         cmocka_unit_test(test_guid_blob_to_string_buf),
