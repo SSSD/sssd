@@ -27,20 +27,52 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/ifp/ifp_iface.h"
 
+#define SSS_SIFP_ATTR_SUBDOMAIN "subdomain"
+
+errno_t domain_is_subdomain_check(sss_sifp_ctx *sifp_ctx,
+                                  char *domain,
+                                  bool *_is_subdom)
+{
+    bool is_subdom;
+    sss_sifp_error error;
+    sss_sifp_object *domain_obj;
+
+    error = sss_sifp_fetch_domain_by_name(sifp_ctx, domain, &domain_obj);
+    if (error != SSS_SIFP_OK) {
+        sssctl_sifp_error(sifp_ctx, error, "Unable to fetch domain by name");
+        return EIO;
+    }
+
+    error = sss_sifp_find_attr_as_bool(domain_obj->attrs,
+                                       SSS_SIFP_ATTR_SUBDOMAIN,
+                                       &is_subdom);
+    if (error != SSS_SIFP_OK) {
+        sssctl_sifp_error(sifp_ctx, error, "Unable to find subdomain attr");
+        return EIO;
+    }
+
+    *_is_subdom = is_subdom;
+
+    return EOK;
+}
+
 errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt)
 {
     sss_sifp_ctx *sifp;
     sss_sifp_error error;
+    bool is_subdom;
     char **domains;
     int start = 0;
+    int verbose = 0;
     errno_t ret;
     int i;
 
     /* Parse command line. */
     struct poptOption options[] = {
         {"start", 's', POPT_ARG_NONE, &start, 0, _("Start SSSD if it is not running"), NULL },
+        {"verbose", 'v', POPT_ARG_NONE, &verbose, 0, _("Show domain list including primary or trusted domain type"), NULL },
         POPT_TABLEEND
     };
 
@@ -64,6 +96,24 @@ errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
     if (error != SSS_SIFP_OK) {
         sssctl_sifp_error(sifp, error, "Unable to get domains list");
         return EIO;
+    }
+
+    if (verbose) {
+        for (i = 0; domains[i] != NULL; i++) {
+            ret = domain_is_subdomain_check(sifp, domains[i], &is_subdom);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Subdomain check failed\n");
+                return ret;
+            }
+
+            if (is_subdom) {
+                printf("Trusted domain: %s\n", domains[i]);
+            } else {
+                printf("Primary domain: %s\n", domains[i]);
+            }
+        }
+
+        return EOK;
     }
 
     for (i = 0; domains[i] != NULL; i++) {
