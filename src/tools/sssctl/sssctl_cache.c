@@ -46,6 +46,7 @@ enum cache_object {
 typedef errno_t (*sssctl_attr_fn)(TALLOC_CTX *mem_ctx,
                                   struct sysdb_attrs *entry,
                                   struct sss_domain_info *dom,
+                                  enum cache_object obj_type,
                                   const char *attr,
                                   const char **_value);
 
@@ -90,6 +91,7 @@ static errno_t time_to_string(TALLOC_CTX *mem_ctx,
 static errno_t attr_name(TALLOC_CTX *mem_ctx,
                            struct sysdb_attrs *entry,
                            struct sss_domain_info *dom,
+                           enum cache_object obj_type,
                            const char *attr,
                            const char **_value)
 {
@@ -103,7 +105,12 @@ static errno_t attr_name(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    tmp_name = sss_output_name(mem_ctx, orig_name, dom->case_preserve, 0);
+    if (obj_type == CACHED_USER || obj_type == CACHED_GROUP) {
+        tmp_name = sss_output_name(mem_ctx, orig_name, dom->case_preserve, 0);
+    } else {
+        tmp_name = talloc_strdup(mem_ctx, orig_name);
+    }
+
     if (tmp_name == NULL) {
         return ENOMEM;
     }
@@ -126,6 +133,7 @@ static errno_t attr_name(TALLOC_CTX *mem_ctx,
 static errno_t attr_time(TALLOC_CTX *mem_ctx,
                          struct sysdb_attrs *entry,
                          struct sss_domain_info *dom,
+                         enum cache_object obj_type,
                          const char *attr,
                          const char **_value)
 {
@@ -143,6 +151,7 @@ static errno_t attr_time(TALLOC_CTX *mem_ctx,
 static errno_t attr_expire(TALLOC_CTX *mem_ctx,
                            struct sysdb_attrs *entry,
                            struct sss_domain_info *dom,
+                           enum cache_object obj_type,
                            const char *attr,
                            const char **_value)
 {
@@ -165,6 +174,7 @@ static errno_t attr_expire(TALLOC_CTX *mem_ctx,
 static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
                            struct sysdb_attrs *entry,
                            struct sss_domain_info *dom,
+                           enum cache_object obj_type,
                            const char *attr,
                            const char **_value)
 {
@@ -190,6 +200,7 @@ static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
 static errno_t attr_yesno(TALLOC_CTX *mem_ctx,
                           struct sysdb_attrs *entry,
                           struct sss_domain_info *dom,
+                          enum cache_object obj_type,
                           const char *attr,
                           const char **_value)
 {
@@ -520,7 +531,8 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
     }
 
     for (i = 0; info[i].attr != NULL; i++) {
-        ret = info[i].attr_fn(tmp_ctx, entry, dom, info[i].attr, &value);
+        ret = info[i].attr_fn(tmp_ctx, entry, dom, obj_type, info[i].attr,
+                              &value);
         if (ret == ENOENT) {
             continue;
         } else if (ret != EOK) {
