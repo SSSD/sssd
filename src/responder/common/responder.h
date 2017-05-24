@@ -379,4 +379,18 @@ int sized_domain_name(TALLOC_CTX *mem_ctx,
                       const char *member_name,
                       struct sized_string **_name);
 
+/* Given a ldb_result structure that contains a result of sysdb_initgroups
+ * where some groups might be just 'stubs' that don't have a name, but only
+ * a SID and a GID, resolve those incomplete groups into full group objects
+ */
+struct tevent_req *resp_resolve_group_names_send(TALLOC_CTX *mem_ctx,
+                                                 struct tevent_context *ev,
+                                                 struct resp_ctx *rctx,
+                                                 struct sss_domain_info *dom,
+                                                 struct ldb_result *initgr_res);
+
+int resp_resolve_group_names_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  struct ldb_result **_initgr_named_res);
+
 #endif /* __SSS_RESPONDER_H__ */
