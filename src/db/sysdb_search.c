@@ -489,7 +489,6 @@ errno_t sysdb_search_ts_matches(TALLOC_CTX *mem_ctx,
                                 const char *filter,
                                 struct ldb_result **_res)
 {
-    char *dn_filter;
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_result *res;
     errno_t ret;
@@ -501,7 +500,7 @@ errno_t sysdb_search_ts_matches(TALLOC_CTX *mem_ctx,
     }
 
     tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
+    if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
@@ -511,7 +510,43 @@ errno_t sysdb_search_ts_matches(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    dn_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|", SYSDB_NAME, filter);
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, NULL,
+                     LDB_SCOPE_SUBTREE, attrs, "%s", filter);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static errno_t sysdb_enum_dn_filter(TALLOC_CTX *mem_ctx,
+                                    struct ldb_result *ts_res,
+                                    const char *name_filter,
+                                    char **_dn_filter)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *dn_filter;
+    errno_t ret;
+
+    if (ts_res->count == 0) {
+        *_dn_filter = NULL;
+        ret = EOK;
+        goto done;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|", SYSDB_NAME,
+                                name_filter);
     if (dn_filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -535,15 +570,9 @@ errno_t sysdb_search_ts_matches(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, NULL,
-                     LDB_SCOPE_SUBTREE, attrs, "%s", dn_filter);
-    if (ret) {
-        ret = sysdb_error_to_errno(ret);
-        goto done;
-    }
-
+    *_dn_filter = talloc_steal(mem_ctx, dn_filter);
     ret = EOK;
-    *_res = talloc_steal(mem_ctx, res);
+
 done:
     talloc_zfree(tmp_ctx);
     return ret;
@@ -558,6 +587,7 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_PW_ATTRS;
     char *filter = NULL;
+    char *dn_filter = NULL;
     const char *ts_filter = NULL;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
@@ -595,8 +625,13 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, name_filter, &dn_filter);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
-                                  name_filter, &ts_cache_res);
+                                  dn_filter, &ts_cache_res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
@@ -1052,6 +1087,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     const char *filter = NULL;
     const char *ts_filter = NULL;
     const char *base_filter;
+    char *dn_filter = NULL;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     struct ldb_result ts_res;
@@ -1100,8 +1136,13 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sysdb_enum_dn_filter(tmp_ctx, &ts_res, name_filter, &dn_filter);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = sysdb_search_ts_matches(tmp_ctx, domain->sysdb, attrs, &ts_res,
-                                  name_filter, &ts_cache_res);
+                                  dn_filter, &ts_cache_res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
