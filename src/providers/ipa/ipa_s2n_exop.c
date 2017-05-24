@@ -991,6 +991,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                 } else {
                     DEBUG(SSSDBG_TRACE_ALL,
                           "[%s] from root domain, skipping.\n", fq_name);
+                    ret = EOK; /* Free resources and continue in the loop */
                 }
                 ber_memfree(domain_name);
                 ber_memfree(name);
