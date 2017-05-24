@@ -2664,6 +2664,7 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
         } else {
             tevent_req_error(req, EINVAL);
         }
+        return;
     }
 
     ret = sysdb_attrs_get_string(state->attrs->sysdb_attrs, SYSDB_SID_STR,
