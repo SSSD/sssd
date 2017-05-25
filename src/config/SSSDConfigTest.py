@@ -118,6 +118,17 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertTrue('debug_level' in domain_opts.keys())
         self.assertTrue('id_provider' in domain_opts.keys())
         self.assertTrue('auth_provider' in domain_opts.keys())
+        self.assertEqual(ipa_domain.get_option('debug_level'), 0xff0)
+
+        proxy_domain = sssdconfig.get_domain('PROXY')
+        self.assertEqual(proxy_domain.get_option('debug_level'), 1)
+
+        # Verify attributes in responders
+        pam_responder = sssdconfig.get_service('pam')
+        self.assertEqual(pam_responder.get_option('debug_level'), 2)
+
+        sudo_responder = sssdconfig.get_service('sudo')
+        self.assertEqual(sudo_responder.get_option('debug_level'), 0xfc10)
 
         del sssdconfig
 
