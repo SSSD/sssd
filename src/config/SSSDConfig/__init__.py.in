@@ -1793,6 +1793,8 @@ class SSSDConfig(SSSDChangeConf):
         for option,value in service.get_all_options().items():
             if (type(value) == list):
                 value = ', '.join(value)
+            if option == "debug_level":
+                value = self._get_debug_level_val(value)
             addkw.append( { 'type'  : 'option',
                             'name'  : option,
                             'value' : str(value) } )
@@ -2137,6 +2139,8 @@ class SSSDConfig(SSSDChangeConf):
         for option,value in domain.get_all_options().items():
             if (type(value) == list):
                 value = ', '.join(value)
+            if option == "debug_level":
+                value = self._get_debug_level_val(value)
             self.set(sectionname, option, str(value))
 
         if domain.active:
