@@ -228,6 +228,18 @@ class SSSDConfigTestValid(unittest.TestCase):
         ldap_domain.set_active(True)
         sssdconfig.save_domain(ldap_domain)
 
+        proxy_domain = sssdconfig.get_domain('PROXY')
+        proxy_domain.set_option('debug_level', 0x1f10)
+        sssdconfig.save_domain(proxy_domain)
+
+        sudo_responder = sssdconfig.get_service('sudo')
+        sudo_responder.set_option('debug_level', 0x2210)
+        sssdconfig.save_service(sudo_responder)
+
+        pam_responder = sssdconfig.get_service('pam')
+        pam_responder.set_option('debug_level', 9)
+        sssdconfig.save_service(pam_responder)
+
         of = self.tmp_dir + '/testModifyExistingConfig.conf'
 
         #Ensure the output file doesn't exist
@@ -245,6 +257,35 @@ class SSSDConfigTestValid(unittest.TestCase):
         #Output files should not be readable or writable by
         #non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
+
+        # try to import saved configuration file
+        config = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                       srcdir + "/etc/sssd.api.d")
+        config.import_config(configfile=of)
+
+        # test set_option 'debug_level' value
+
+        # check internal state before parsing strings which is done in
+        # get_domain or get_service
+        debug_option = [ x for x in config.options('domain/LDAP')
+                           if x['name'] == 'debug_level']
+        self.assertEqual(len(debug_option), 1)
+        self.assertEqual(debug_option[0]['value'], '3')
+
+        debug_option = [ x for x in config.options('domain/PROXY')
+                           if x['name'] == 'debug_level']
+        self.assertEqual(len(debug_option), 1)
+        self.assertEqual(debug_option[0]['value'], '0x1f10')
+
+        debug_option = [ x for x in config.options('sudo')
+                           if x['name'] == 'debug_level']
+        self.assertEqual(len(debug_option), 1)
+        self.assertEqual(debug_option[0]['value'], '0x2210')
+
+        debug_option = [ x for x in config.options('pam')
+                           if x['name'] == 'debug_level']
+        self.assertEqual(len(debug_option), 1)
+        self.assertEqual(debug_option[0]['value'], '9')
 
         #Remove the output file
         os.unlink(of)
