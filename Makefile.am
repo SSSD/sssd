@@ -252,6 +252,7 @@ if HAVE_CMOCKA
         dp_opt_tests \
         responder-get-domains-tests \
         sbus-internal-tests \
+        config_check-tests \
         sss_sifp-tests \
         test_search_bases \
         test_ldap_auth \
@@ -2430,6 +2431,21 @@ sbus_internal_tests_LDADD = \
     libsss_crypt.la \
     libsss_debug.la \
     libsss_test_common.la
+
+config_check_tests_SOURCES = \
+    src/tests/cmocka/test_config_check.c \
+    $(NULL)
+config_check_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+config_check_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(INI_CONFIG_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
 
 test_find_uid_SOURCES = \
     src/tests/cmocka/test_find_uid.c \
