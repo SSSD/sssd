@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <dlfcn.h>
 #include <popt.h>
+#include <signal.h>
 #include <dbus/dbus.h>
 
 #include <security/pam_appl.h>

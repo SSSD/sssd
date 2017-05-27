@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include <popt.h>
 
 #include "util/util.h"

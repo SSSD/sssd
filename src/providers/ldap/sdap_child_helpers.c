@@ -27,6 +27,7 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include "util/util.h"
 #include "util/sss_krb5.h"

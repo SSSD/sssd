@@ -24,6 +24,7 @@
 
 #include <sys/types.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <tevent.h>
 #include <sys/wait.h>
 #include <errno.h>

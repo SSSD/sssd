@@ -27,6 +27,7 @@
 #include <sys/param.h>
 #include <time.h>
 #include <string.h>
+#include <signal.h>
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
 #endif
