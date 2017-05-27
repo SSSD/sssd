@@ -29,6 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <popt.h>
 #include <dbus/dbus.h>
 

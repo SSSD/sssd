@@ -19,6 +19,9 @@
 */
 
 #include "config.h"
+
+#include <fcntl.h>
+
 #include "util/util.h"
 #include "util/sss_sockets.h"
 #include "util/sss_ldap.h"
