@@ -1,6 +1,9 @@
 /* The following definitions are auto-generated from sbus_codegen_tests.xml */
 
-#include "util/util.h"
+#include <stddef.h>
+
+#include "dbus/dbus-protocol.h"
+#include "util/util_errors.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sssd_dbus_meta.h"
 #include "sbus/sssd_dbus_invokers.h"

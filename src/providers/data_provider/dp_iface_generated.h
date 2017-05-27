@@ -4,6 +4,7 @@
 #define __DP_IFACE_XML__
 
 #include "sbus/sssd_dbus.h"
+#include "sbus/sssd_dbus_meta.h"
 
 /* ------------------------------------------------------------------------
  * DBus Constants

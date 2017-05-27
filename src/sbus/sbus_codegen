@@ -497,7 +497,10 @@ def generate_source(ifaces, filename, include_header=None):
     out("/* The following definitions are auto-generated from %s */", basename)
     out("")
 
-    out("#include \"util/util.h\"")
+    out("#include <stddef.h>")
+    out("")
+    out("#include \"dbus/dbus-protocol.h\"")
+    out("#include \"util/util_errors.h\"")
     out("#include \"sbus/sssd_dbus.h\"")
     out("#include \"sbus/sssd_dbus_meta.h\"")
     out("#include \"sbus/sssd_dbus_invokers.h\"")
@@ -568,6 +571,7 @@ def generate_header(ifaces, filename):
     out("#define %s", guard)
     out("")
     out("#include \"sbus/sssd_dbus.h\"")
+    out("#include \"sbus/sssd_dbus_meta.h\"")
 
     out("")
     out("/* ------------------------------------------------------------------------")
