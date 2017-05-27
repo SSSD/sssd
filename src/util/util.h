@@ -25,8 +25,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <string.h>
-#include <strings.h>
 #include <ctype.h>
 #include <libintl.h>
 #include <limits.h>
