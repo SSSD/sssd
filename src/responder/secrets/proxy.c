@@ -140,13 +140,13 @@ static int proxy_sec_get_cfg(struct proxy_context *pctx,
                           true, &cfg->verify_peer);
     if (ret) goto done;
     DEBUG(SSSDBG_CONF_SETTINGS, "verify_peer: %s\n",
-          (&cfg->verify_peer ? "true" : "false"));
+          cfg->verify_peer ? "true" : "false");
 
     ret = confdb_get_bool(pctx->cdb, secreq->cfg_section, "verify_host",
                           true, &cfg->verify_host);
     if (ret) goto done;
     DEBUG(SSSDBG_CONF_SETTINGS, "verify_host: %s\n",
-          (&cfg->verify_host ? "true" : "false"));
+          cfg->verify_host ? "true" : "false");
 
     ret = proxy_get_config_string(pctx, cfg, false, secreq,
                                   "capath", &cfg->capath);
