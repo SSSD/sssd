@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <signal.h>
+
 #include "util/util.h"
 #include "util/child_common.h"
 #include "providers/krb5/krb5_common.h"

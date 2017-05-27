@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <arpa/inet.h>
 
 #include "util/util.h"
 #include "util/sss_utf8.h"

@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
 #include <ldb.h>
 #include "util/util.h"
 #include "confdb/confdb.h"

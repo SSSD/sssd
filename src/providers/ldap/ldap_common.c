@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <signal.h>
+
 #include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
 #include "providers/ldap/sdap_async_private.h"
