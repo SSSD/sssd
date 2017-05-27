@@ -25,7 +25,8 @@
 #include <errno.h>
 #include <popt.h>
 #include <stdlib.h>
-
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
