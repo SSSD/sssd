@@ -19,6 +19,7 @@
 */
 
 #include <stdlib.h>
+#include <signal.h>
 
 #include "config.h"
 #include "tools/common/sss_process.h"

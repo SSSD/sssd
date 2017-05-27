@@ -190,7 +190,6 @@ void server_loop(struct main_context *main_ctx);
 void orderly_shutdown(int status);
 
 /* from signal.c */
-#include <signal.h>
 void BlockSignals(bool block, int signum);
 void (*CatchSignal(int signum,void (*handler)(int )))(int);
 
