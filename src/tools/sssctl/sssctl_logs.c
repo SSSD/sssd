@@ -20,6 +20,7 @@
 
 #include <popt.h>
 #include <stdio.h>
+#include <signal.h>
 
 #include "util/util.h"
 #include "tools/common/sss_tools.h"

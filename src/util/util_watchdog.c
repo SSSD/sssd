@@ -19,6 +19,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <signal.h>
+
 #include "util/util.h"
 
 #define WATCHDOG_DEF_INTERVAL 10
