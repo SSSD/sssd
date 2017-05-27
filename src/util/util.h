@@ -25,12 +25,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
-#include <errno.h>
 #include <libintl.h>
 #include <limits.h>
 #include <locale.h>
