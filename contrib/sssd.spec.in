@@ -884,6 +884,7 @@ done
 %dir %{_datadir}/systemtap/tapset
 %{_datadir}/systemtap/tapset/sssd.stp
 %{_datadir}/systemtap/tapset/sssd_functions.stp
+%{_mandir}/man5/sssd-systemtap.5*
 %endif
 
 %if (0%{?install_pcscd_polkit_rule} == 1)
