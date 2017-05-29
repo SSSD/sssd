@@ -293,12 +293,6 @@ def collection_init_list_destroy(testenv):
     assert cc_coll['bob@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
     assert 'carol@KCMTEST' not in cc_coll
 
-    # FIXME - a bug in libkrb5?
-    #out = testenv.k5util.kdestroy(all_ccaches=True)
-    #assert out == 0
-    #cc_coll = testenv.k5util.list_all_princs()
-    #assert len(cc_coll) == 0
-
 
 def test_kcm_mem_collection_init_list_destroy(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
