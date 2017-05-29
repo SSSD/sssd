@@ -5065,6 +5065,15 @@ errno_t sysdb_mark_entry_as_expired_ldb_dn(struct sss_domain_info *dom,
         goto done;
     }
 
+    if (dom->sysdb->ldb_ts != NULL) {
+        ret = ldb_modify(dom->sysdb->ldb_ts, msg);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not mark an entry as expired in the timestamp cache\n");
+            /* non-fatal */
+        }
+    }
+
     ret = EOK;
 
 done:
