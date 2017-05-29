@@ -22,6 +22,7 @@
 #include <talloc.h>
 #include <tevent.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "util/util.h"
 #include "resolv/async_resolv.h"

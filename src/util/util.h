@@ -26,7 +26,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <libintl.h>
-#include <limits.h>
 #include <locale.h>
 #include <time.h>
 #include <pcre.h>
