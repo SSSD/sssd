@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <talloc.h>
 #include <stdlib.h>

@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <ctype.h>
 #include <libintl.h>
 #include <limits.h>
 #include <locale.h>

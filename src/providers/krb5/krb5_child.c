@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include <popt.h>
 
 #include <security/pam_modules.h>
