@@ -22,7 +22,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sys/param.h>
 #include <security/pam_modules.h>
 
 #include "util/util.h"
