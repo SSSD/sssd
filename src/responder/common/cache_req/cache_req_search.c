@@ -86,7 +86,6 @@ static void cache_req_search_ncache_add(struct cache_req *cr)
 
 static errno_t cache_req_search_ncache_filter(TALLOC_CTX *mem_ctx,
                                               struct cache_req *cr,
-                                              struct ldb_result *result,
                                               struct ldb_result **_result)
 {
     TALLOC_CTX *tmp_ctx;
@@ -106,8 +105,6 @@ static errno_t cache_req_search_ncache_filter(TALLOC_CTX *mem_ctx,
                         "This request type does not support filtering "
                         "result by negative cache\n");
 
-        *_result = talloc_steal(mem_ctx, result);
-
         ret = EOK;
         goto done;
     }
@@ -115,11 +112,11 @@ static errno_t cache_req_search_ncache_filter(TALLOC_CTX *mem_ctx,
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                     "Filtering out results by negative cache\n");
 
-    msgs = talloc_zero_array(tmp_ctx, struct ldb_message *, result->count);
+    msgs = talloc_zero_array(tmp_ctx, struct ldb_message *, (*_result)->count);
     msg_count = 0;
 
-    for (size_t i = 0; i < result->count; i++) {
-        name = sss_get_name_from_msg(cr->domain, result->msgs[i]);
+    for (size_t i = 0; i < (*_result)->count; i++) {
+        name = sss_get_name_from_msg(cr->domain, (*_result)->msgs[i]);
         if (name == NULL) {
             CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                   "sss_get_name_from_msg() returned NULL, which should never "
@@ -141,7 +138,7 @@ static errno_t cache_req_search_ncache_filter(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        msgs[msg_count] = talloc_steal(msgs, result->msgs[i]);
+        msgs[msg_count] = talloc_steal(msgs, (*_result)->msgs[i]);
         msg_count++;
     }
 
@@ -157,6 +154,7 @@ static errno_t cache_req_search_ncache_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    talloc_zfree(*_result);
     *_result = talloc_steal(mem_ctx, filtered_result);
     ret = EOK;
 
@@ -419,10 +417,8 @@ static void cache_req_search_oob_done(struct tevent_req *subreq)
 
 static void cache_req_search_done(struct tevent_req *subreq)
 {
-    TALLOC_CTX *tmp_ctx;
     struct cache_req_search_state *state;
     struct tevent_req *req;
-    struct ldb_result *result = NULL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -431,14 +427,8 @@ static void cache_req_search_done(struct tevent_req *subreq)
     state->dp_success = state->cr->plugin->dp_recv_fn(subreq, state->cr);
     talloc_zfree(subreq);
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     /* Get result from cache again. */
-    ret = cache_req_search_cache(tmp_ctx, state->cr, &result);
+    ret = cache_req_search_cache(state, state->cr, &state->result);
     if (ret != EOK) {
         if (ret == ENOENT) {
             /* Only store entry in negative cache if DP request succeeded
@@ -451,8 +441,7 @@ static void cache_req_search_done(struct tevent_req *subreq)
     }
 
     /* ret == EOK */
-    ret = cache_req_search_ncache_filter(state, state->cr, result,
-                                         &state->result);
+    ret = cache_req_search_ncache_filter(state, state->cr, &state->result);
     if (ret != EOK) {
         goto done;
     }
@@ -461,8 +450,6 @@ static void cache_req_search_done(struct tevent_req *subreq)
                     "Returning updated object [%s]\n", state->cr->debugobj);
 
 done:
-    talloc_free(tmp_ctx);
-
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
