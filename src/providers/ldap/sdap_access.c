@@ -25,7 +25,6 @@
 #include "config.h"
 
 #include <time.h>
-#include <sys/param.h>
 #include <security/pam_modules.h>
 #include <talloc.h>
 #include <tevent.h>
