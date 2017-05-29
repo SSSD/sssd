@@ -303,7 +303,6 @@ def test_curlwrap_crd_ops(setup_for_secrets,
     assert "foo_under_cont" in output
 
 
-
 def test_curlwrap_parallel(setup_for_secrets,
                            curlwrap_tool):
     """
