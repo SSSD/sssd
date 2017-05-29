@@ -5160,6 +5160,17 @@ int sysdb_invalidate_cache_entry(struct sss_domain_info *domain,
         goto done;
     }
 
+    if (sysdb->ldb_ts != NULL) {
+        ret = sysdb_set_cache_entry_attr(sysdb->ldb_ts, entry_dn,
+                                         attrs, SYSDB_MOD_REP);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot set attrs in the timestamp cache for %s, %d [%s]\n",
+                  ldb_dn_get_linearized(entry_dn), ret, sss_strerror(ret));
+            /* non-fatal */
+        }
+    }
+
     DEBUG(SSSDBG_FUNC_DATA,
           "Cache entry [%s] has been invalidated.\n",
           ldb_dn_get_linearized(entry_dn));
