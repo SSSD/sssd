@@ -97,5 +97,11 @@
                 <refentrytitle>sss_rpcidmapd</refentrytitle>
                 <manvolnum>5</manvolnum>
             </citerefentry>
+            <phrase condition="with_stap">
+                <citerefentry>
+                    <refentrytitle>sssd-systemtap</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry>
+            </phrase>
         </para>
     </refsect1>
