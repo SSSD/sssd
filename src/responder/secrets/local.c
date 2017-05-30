@@ -34,9 +34,8 @@
 struct local_context {
     struct ldb_context *ldb;
     struct sec_data master_key;
-    int containers_nest_level;
-    int max_secrets;
-    int max_payload_size;
+
+    struct sec_quota *quota_secrets;
 };
 
 static int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
@@ -398,11 +397,11 @@ static int local_db_check_containers_nest_level(struct local_context *lctx,
     /* We need do not care for the synthetic containers that constitute the
      * base path (cn=<uidnumber>,cn=user,cn=secrets). */
     nest_level = ldb_dn_get_comp_num(leaf_dn) - 3;
-    if (nest_level > lctx->containers_nest_level) {
+    if (nest_level > lctx->quota_secrets->containers_nest_level) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot create a nested container of depth %d as the maximum"
               "allowed number of nested containers is %d.\n",
-              nest_level, lctx->containers_nest_level);
+              nest_level, lctx->quota_secrets->containers_nest_level);
 
         return ERR_SEC_INVALID_CONTAINERS_NEST_LEVEL;
     }
@@ -430,10 +429,10 @@ static int local_db_check_number_of_secrets(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
                      attrs, LOCAL_SIMPLE_FILTER);
-    if (res->count >= lctx->max_secrets) {
+    if (res->count >= lctx->quota_secrets->max_secrets) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot store any more secrets as the maximum allowed limit (%d) "
-              "has been reached\n", lctx->max_secrets);
+              "has been reached\n", lctx->quota_secrets->max_secrets);
 
         ret = ERR_SEC_INVALID_TOO_MANY_SECRETS;
         goto done;
@@ -451,14 +450,14 @@ static int local_check_max_payload_size(struct local_context *lctx,
 {
     int max_payload_size;
 
-    max_payload_size = lctx->max_payload_size * 1024; /* kb */
+    max_payload_size = lctx->quota_secrets->max_payload_size * 1024; /* kb */
     if (payload_size > max_payload_size) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Secrets' payload size [%d kb (%d)] exceeds the maximum allowed "
               "payload size [%d kb (%d)]\n",
               payload_size * 1024, /* kb */
               payload_size,
-              lctx->max_payload_size, /* kb */
+              lctx->quota_secrets->max_payload_size, /* kb */
               max_payload_size);
 
         return ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE;
@@ -1019,9 +1018,7 @@ int local_secrets_provider_handle(struct sec_ctx *sctx,
         return EIO;
     }
 
-    lctx->containers_nest_level = sctx->containers_nest_level;
-    lctx->max_secrets = sctx->max_secrets;
-    lctx->max_payload_size = sctx->max_payload_size;
+    lctx->quota_secrets = &sctx->sec_config.quota;
 
     lctx->master_key.data = talloc_size(lctx, MKEY_SIZE);
     if (!lctx->master_key.data) return ENOMEM;
