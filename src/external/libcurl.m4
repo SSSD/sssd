@@ -1,5 +1,9 @@
 PKG_CHECK_MODULES([CURL], [libcurl], [found_libcurl=yes],
-              [AC_MSG_ERROR([The libcurl development library was not found.])])
+              [AC_MSG_ERROR([The libcurl development library was not found.
+You must have the header file curl/curl.h installed to build sssd
+with secrets and KCM responder. If you want to build sssd without these
+responders then specify --without-secrets --without-kcm when running configure.
+])])
 
 AS_IF([test x"$found_libcurl" = xyes],
     CFLAGS="$CFLAGS $CURL_CFLAGS"
