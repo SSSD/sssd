@@ -52,7 +52,7 @@ static int sec_get_config(struct sec_ctx *sctx)
                          sctx->rctx->confdb_service_path,
                          CONFDB_SEC_CONTAINERS_NEST_LEVEL,
                          DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
-                         &sctx->containers_nest_level);
+                         &sctx->sec_config.quota.containers_nest_level);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -64,7 +64,7 @@ static int sec_get_config(struct sec_ctx *sctx)
                          sctx->rctx->confdb_service_path,
                          CONFDB_SEC_MAX_SECRETS,
                          DEFAULT_SEC_MAX_SECRETS,
-                         &sctx->max_secrets);
+                         &sctx->sec_config.quota.max_secrets);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -76,7 +76,7 @@ static int sec_get_config(struct sec_ctx *sctx)
                          sctx->rctx->confdb_service_path,
                          CONFDB_SEC_MAX_PAYLOAD_SIZE,
                          DEFAULT_SEC_MAX_PAYLOAD_SIZE,
-                         &sctx->max_payload_size);
+                         &sctx->sec_config.quota.max_payload_size);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
