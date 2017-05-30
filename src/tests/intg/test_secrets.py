@@ -169,36 +169,6 @@ def test_crd_ops(setup_for_secrets, secrets_cli):
         cli.del_secret("foo")
     assert str(err404.value).startswith("404")
 
-    # Don't allow storing more secrets after reaching the max
-    # number of entries.
-    MAX_SECRETS = 10
-
-    sec_value = "value"
-    for x in range(MAX_SECRETS):
-        cli.set_secret(str(x), sec_value)
-
-    with pytest.raises(HTTPError) as err507:
-        cli.set_secret(str(MAX_SECRETS), sec_value)
-    assert str(err507.value).startswith("507")
-
-    # Delete all stored secrets used for max secrets tests
-    for x in range(MAX_SECRETS):
-        cli.del_secret(str(x))
-
-    # Don't allow storing a secrets which has a payload larger
-    # than max_payload_size
-    KILOBYTE = 1024
-    MAX_PAYLOAD_SIZE = 2 * KILOBYTE
-
-    sec_value = "x" * MAX_PAYLOAD_SIZE
-
-    cli.set_secret("foo", sec_value)
-
-    sec_value += "x"
-    with pytest.raises(HTTPError) as err413:
-        cli.set_secret("bar", sec_value)
-    assert str(err413.value).startswith("413")
-
 
 def run_curlwrap_tool(args, exp_http_code):
     cmd = subprocess.Popen(args,
@@ -434,3 +404,97 @@ def test_idle_timeout(setup_for_cli_timeout_test):
 
     nfds_post = get_num_fds(secpid)
     assert nfds_pre == nfds_post
+
+def run_quota_test(cli, max_secrets, max_payload_size):
+    sec_value = "value"
+    for x in range(max_secrets):
+        cli.set_secret(str(x), sec_value)
+
+    with pytest.raises(HTTPError) as err507:
+        cli.set_secret(str(max_secrets), sec_value)
+    assert str(err507.value).startswith("507")
+
+    # Delete all stored secrets used for max secrets tests
+    for x in range(max_secrets):
+        cli.del_secret(str(x))
+
+    # Don't allow storing a secrets which has a payload larger
+    # than max_payload_size
+    KILOBYTE = 1024
+    kb_payload_size = max_payload_size * KILOBYTE
+
+    sec_value = "x" * kb_payload_size
+
+    cli.set_secret("foo", sec_value)
+
+    sec_value += "x"
+    with pytest.raises(HTTPError) as err413:
+        cli.set_secret("bar", sec_value)
+    assert str(err413.value).startswith("413")
+
+
+@pytest.fixture
+def setup_for_global_quota(request):
+    conf = unindent("""\
+        [sssd]
+        domains = local
+        services = nss
+
+        [domain/local]
+        id_provider = local
+
+        [secrets]
+        max_secrets = 10
+        max_payload_size = 2
+    """).format(**locals())
+
+    create_conf_fixture(request, conf)
+    create_sssd_secrets_fixture(request)
+    return None
+
+
+def test_global_quota(setup_for_global_quota, secrets_cli):
+    """
+    Test that the deprecated configuration of quotas in the global
+    secrets section is still supported
+    """
+    cli = secrets_cli
+
+    # Don't allow storing more secrets after reaching the max
+    # number of entries.
+    run_quota_test(cli, 10, 2)
+
+
+@pytest.fixture
+def setup_for_secrets_quota(request):
+    conf = unindent("""\
+        [sssd]
+        domains = local
+        services = nss
+
+        [domain/local]
+        id_provider = local
+
+        [secrets]
+        max_secrets = 5
+        max_payload_size = 1
+
+        [secrets/secrets]
+        max_secrets = 10
+        max_payload_size = 2
+    """).format(**locals())
+
+    create_conf_fixture(request, conf)
+    create_sssd_secrets_fixture(request)
+    return None
+
+
+def test_sec_quota(setup_for_secrets_quota, secrets_cli):
+    """
+    Test that the new secrets/secrets section takes precedence.
+    """
+    cli = secrets_cli
+
+    # Don't allow storing more secrets after reaching the max
+    # number of entries.
+    run_quota_test(cli, 10, 2)
