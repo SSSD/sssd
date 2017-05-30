@@ -2912,7 +2912,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
         <para>
             Some options used in the domain section can also be used in the
             trusted domain section, that is, in a section called
-            <quote>[domain/<replaceable>DOMAIN_NAME</replaceable>]/<replaceable>TRUSTED_DOMAIN_NAME</replaceable>]</quote>.
+            <quote>[domain/<replaceable>DOMAIN_NAME</replaceable>/<replaceable>TRUSTED_DOMAIN_NAME</replaceable>]</quote>.
             Currently supported options in the trusted domain section are:
         </para>
             <para>ldap_search_base,</para>
