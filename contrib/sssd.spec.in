@@ -224,10 +224,14 @@ BuildRequires: systemtap-sdt-devel
 %endif
 %if (0%{?with_secrets} == 1)
 BuildRequires: http-parser-devel
-BuildRequires: jansson-devel
 %endif
+%if (0%{?with_kcm} == 1)
 BuildRequires: libuuid-devel
+%endif
+%if (0%{?with_secrets} == 1 || 0%{?with_kcm} == 1)
+BuildRequires: jansson-devel
 BuildRequires: libcurl-devel
+%endif
 
 %description
 Provides a set of daemons to manage access to remote directories and
