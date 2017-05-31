@@ -204,6 +204,26 @@ void config_check_test_good_sections(void **state)
     config_check_test_common(cfg_str, 0, expected_errors);
 }
 
+void config_check_test_inherit_from_in_normal_dom(void **state)
+{
+    char cfg_str[] = "[domain/A.test]\n"
+                     "inherit_from = domain\n";
+    const char *expected_errors[] = {
+        "[rule/sssd_checks]: Attribute 'inherit_from' is not allowed in section 'domain/A.test'. Check for typos.",
+    };
+
+    config_check_test_common(cfg_str, 1, expected_errors);
+}
+
+void config_check_test_inherit_from_in_app_dom(void **state)
+{
+    char cfg_str[] = "[application/A.test]\n"
+                     "inherit_from = domain\n";
+    const char *expected_errors[] = {NULL};
+
+    config_check_test_common(cfg_str, 0, expected_errors);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -222,6 +242,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(config_check_test_bad_pac_option_name),
         cmocka_unit_test(config_check_test_bad_ifp_option_name),
         cmocka_unit_test(config_check_test_good_sections),
+        cmocka_unit_test(config_check_test_inherit_from_in_normal_dom),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
