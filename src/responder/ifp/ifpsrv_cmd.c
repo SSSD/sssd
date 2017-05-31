@@ -259,18 +259,7 @@ ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
     return sbus_request_finish(ireq->dbus_req, reply);
 }
 
-struct ifp_user_get_groups_state {
-    struct resp_ctx *rctx;
-
-    struct ifp_attr_req *group_attr_req;
-
-    struct ldb_result *res;
-    struct ldb_result *res_names;
-    struct sss_domain_info *dom;
-};
-
 static void ifp_user_get_groups_process(struct tevent_req *req);
-static void ifp_user_get_groups_names_resolved(struct tevent_req *req);
 static errno_t ifp_user_get_groups_reply(struct sss_domain_info *domain,
                                          struct ifp_req *ireq,
                                          struct ldb_result *res);
@@ -280,7 +269,7 @@ int ifp_user_get_groups(struct sbus_request *dbus_req,
 {
     struct ifp_req *ireq;
     struct ifp_ctx *ifp_ctx;
-    struct ifp_user_get_groups_state *state;
+    struct ifp_attr_req *group_req;
     struct tevent_req *req;
     errno_t ret;
 
@@ -295,120 +284,68 @@ int ifp_user_get_groups(struct sbus_request *dbus_req,
         return ifp_req_create_handle_failure(dbus_req, ret);
     }
 
-    state = talloc_zero(ireq, struct ifp_user_get_groups_state);
-    if (state == NULL) {
+    group_req = talloc_zero(ireq, struct ifp_attr_req);
+    if (group_req == NULL) {
         return sbus_request_finish(dbus_req, NULL);
     }
-    state->rctx = ifp_ctx->rctx;
+    group_req->ireq = ireq;
+    group_req->name = arg_user;
 
-    state->group_attr_req = talloc_zero(state, struct ifp_attr_req);
-    if (state->group_attr_req == NULL) {
-        return sbus_request_finish(dbus_req, NULL);
-    }
-    state->group_attr_req->ireq = ireq;
-    state->group_attr_req->name = arg_user;
-
-    state->group_attr_req->attrs = talloc_zero_array(state->group_attr_req,
-                                                     const char *, 2);
-    if (state->group_attr_req->attrs == NULL) {
+    group_req->attrs = talloc_zero_array(group_req, const char *, 2);
+    if (group_req->attrs == NULL) {
         return sbus_request_finish(dbus_req, NULL);
     }
 
-    state->group_attr_req->attrs[0] = talloc_strdup(state->group_attr_req->attrs,
-                                                    SYSDB_MEMBEROF);
-    if (state->group_attr_req->attrs[0] == NULL) {
+    group_req->attrs[0] = talloc_strdup(group_req->attrs, SYSDB_MEMBEROF);
+    if (group_req->attrs[0] == NULL) {
         return sbus_request_finish(dbus_req, NULL);
     }
 
     DEBUG(SSSDBG_FUNC_DATA,
           "Looking up groups of user [%s] on behalf of %"PRIi64"\n",
-          state->group_attr_req->name,
-          state->group_attr_req->ireq->dbus_req->client);
+          group_req->name, group_req->ireq->dbus_req->client);
 
     req = ifp_user_get_attr_send(ireq, ifp_ctx->rctx,
                                  ifp_ctx->rctx->ncache, SSS_DP_INITGROUPS,
-                                 state->group_attr_req->name,
-                                 state->group_attr_req->attrs);
+                                 group_req->name, group_req->attrs);
     if (req == NULL) {
         return sbus_request_finish(dbus_req, NULL);
     }
-    tevent_req_set_callback(req,
-                            ifp_user_get_groups_process,
-                            state);
+    tevent_req_set_callback(req, ifp_user_get_groups_process, group_req);
     return EOK;
 }
 
 static void ifp_user_get_groups_process(struct tevent_req *req)
 {
-    struct ifp_user_get_groups_state *state;
-    struct ifp_attr_req *group_attr_req;
+    struct ifp_attr_req *group_req;
     errno_t ret;
+    struct ldb_result *res;
+    struct sss_domain_info *dom;
 
-    state = tevent_req_callback_data(req, struct ifp_user_get_groups_state);
-    group_attr_req = state->group_attr_req;
+    group_req = tevent_req_callback_data(req, struct ifp_attr_req);
 
-    ret = ifp_user_get_attr_recv(group_attr_req, req, &state->res, &state->dom);
+    ret = ifp_user_get_attr_recv(group_req, req, &res, &dom);
     talloc_zfree(req);
     if (ret == ENOENT) {
-        sbus_request_fail_and_finish(group_attr_req->ireq->dbus_req,
-                               sbus_error_new(group_attr_req->ireq->dbus_req,
+        sbus_request_fail_and_finish(group_req->ireq->dbus_req,
+                               sbus_error_new(group_req->ireq->dbus_req,
                                               DBUS_ERROR_FAILED,
                                               "No such user\n"));
         return;
     } else if (ret != EOK) {
-        sbus_request_fail_and_finish(group_attr_req->ireq->dbus_req,
-                               sbus_error_new(group_attr_req->ireq->dbus_req,
+        sbus_request_fail_and_finish(group_req->ireq->dbus_req,
+                               sbus_error_new(group_req->ireq->dbus_req,
                                               DBUS_ERROR_FAILED,
                                               "Failed to read attribute\n"));
         return;
     }
 
-    req = resp_resolve_group_names_send(state,
-                                        state->rctx->ev,
-                                        state->rctx,
-                                        state->dom,
-                                        state->res);
-    if (req == NULL) {
-        sbus_request_finish(group_attr_req->ireq->dbus_req, NULL);
-        return;
-    }
-    tevent_req_set_callback(req,
-                            ifp_user_get_groups_names_resolved,
-                            state);
-}
-
-static void ifp_user_get_groups_names_resolved(struct tevent_req *req)
-{
-    struct ifp_user_get_groups_state *state;
-    struct ifp_attr_req *group_attr_req;
-    errno_t ret;
-
-    state = tevent_req_callback_data(req, struct ifp_user_get_groups_state);
-    group_attr_req = state->group_attr_req;
-
-    ret = resp_resolve_group_names_recv(state, req, &state->res_names);
-    talloc_zfree(req);
+    ret = ifp_user_get_groups_reply(dom, group_req->ireq, res);
     if (ret != EOK) {
-        sbus_request_fail_and_finish(group_attr_req->ireq->dbus_req,
-                            sbus_error_new(group_attr_req->ireq->dbus_req,
-                                           DBUS_ERROR_FAILED,
-                                           "Failed to resolve groupnames\n"));
-        return;
-    }
-
-    if (state->res_names == NULL) {
-        state->res_names = state->res;
-    }
-
-    ret = ifp_user_get_groups_reply(state->dom,
-                                    group_attr_req->ireq,
-                                    state->res_names);
-    if (ret != EOK) {
-        sbus_request_fail_and_finish(group_attr_req->ireq->dbus_req,
-                                     sbus_error_new(
-                                            group_attr_req->ireq->dbus_req,
-                                            DBUS_ERROR_FAILED,
-                                            "Failed to build a reply\n"));
+        sbus_request_fail_and_finish(group_req->ireq->dbus_req,
+                               sbus_error_new(group_req->ireq->dbus_req,
+                                              DBUS_ERROR_FAILED,
+                                              "Failed to build a reply\n"));
         return;
     }
 }
