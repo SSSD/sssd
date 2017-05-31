@@ -81,6 +81,7 @@ void config_check_test_common(const char *cfg_string,
         /* Keep this printf loop for faster debugging */
         printf("%s\n", strs[i]);
     }
+    assert_int_equal(num_errors, num_errors_expected);
 
     for (int i = 0; i < num_errors && i <= num_errors_expected; i++) {
         assert_string_equal(strs[i], errors_expected[i]);
@@ -167,7 +168,7 @@ void config_check_test_bad_ifp_option_name(void **state)
 
 void config_check_test_bad_domain_option_name(void **state)
 {
-    char cfg_str[] = "[domain/A.test\n"
+    char cfg_str[] = "[domain/A.test]\n"
                      "debug_leTYPOvel = 10\n";
     const char *expected_errors[] = {
         "[rule/allowed_subdomain_options]: Attribute 'debug_leTYPOvel' is not "
@@ -179,10 +180,10 @@ void config_check_test_bad_domain_option_name(void **state)
 
 void config_check_test_bad_appdomain_option_name(void **state)
 {
-    char cfg_str[] = "[application/myapp\n"
+    char cfg_str[] = "[application/myapp]\n"
                      "debug_leTYPOvel = 10\n";
     const char *expected_errors[] = {
-        "[rule/allowed_subdomain_options]: Attribute 'debug_leTYPOvel' is not "
+        "[rule/allowed_domain_options]: Attribute 'debug_leTYPOvel' is not "
         "allowed in section 'application/myapp'. Check for typos.",
     };
 
@@ -194,7 +195,7 @@ void config_check_test_bad_subdom_option_name(void **state)
     char cfg_str[] = "[domain/A.test/B.A.test]\n"
                      "debug_leTYPOvel = 10\n";
     const char *expected_errors[] = {
-        "[rule/allowed_sssd_options]: Attribute 'debug_leTYPOvel' is not "
+        "[rule/allowed_subdomain_options]: Attribute 'debug_leTYPOvel' is not "
         "allowed in section 'domain/A.test/B.A.test'. Check for typos.",
     };
 
@@ -210,6 +211,8 @@ void config_check_test_good_sections(void **state)
                      "[domain/testdom.test/testsubdom.testdom.test]\n"
                      "[application/myapp]\n"
                      "[secrets]\n"
+                     "[secrets/users/1000]\n"
+                     "[ssh]\n"
                      "[ifp]\n"
                      "[pac]\n";
     const char *expected_errors[] = { NULL };
@@ -255,8 +258,11 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(config_check_test_bad_nss_option_name),
         cmocka_unit_test(config_check_test_bad_pac_option_name),
         cmocka_unit_test(config_check_test_bad_ifp_option_name),
+        cmocka_unit_test(config_check_test_bad_appdomain_option_name),
+        cmocka_unit_test(config_check_test_bad_subdom_option_name),
         cmocka_unit_test(config_check_test_good_sections),
         cmocka_unit_test(config_check_test_inherit_from_in_normal_dom),
+        cmocka_unit_test(config_check_test_inherit_from_in_app_dom),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
