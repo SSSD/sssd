@@ -1414,7 +1414,7 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
     struct cache_req_result **results;
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
-    const char *cert_user;
+    const char *cert_user = NULL;
 
     ret = cache_req_recv(preq, req, &results);
     talloc_zfree(req);
@@ -1439,35 +1439,55 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 goto done;
             }
 
-            if (preq->cert_user_objs->count != 1) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "More than one user mapped to certificate.\n");
-                /* TODO: send pam response to ask for a user name */
-                ret = ERR_NO_CREDS;
-                goto done;
-            }
-            cert_user = ldb_msg_find_attr_as_string(
+            if (preq->cert_user_objs->count == 1) {
+                cert_user = ldb_msg_find_attr_as_string(
                                                   preq->cert_user_objs->msgs[0],
                                                   SYSDB_NAME, NULL);
-            if (cert_user == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Certificate user object has not name.\n");
-                ret = ENOENT;
+                if (cert_user == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Certificate user object has not name.\n");
+                    ret = ENOENT;
+                    goto done;
+                }
+
+                DEBUG(SSSDBG_FUNC_DATA,
+                      "Found certificate user [%s].\n", cert_user);
+
+                ret = sss_parse_name_for_domains(preq->pd,
+                                               preq->cctx->rctx->domains,
+                                               preq->cctx->rctx->default_domain,
+                                               cert_user,
+                                               &preq->pd->domain,
+                                               &preq->pd->user);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_parse_name_for_domains failed.\n");
+                    goto done;
+                }
+            }
+
+            if (preq->cctx->rctx->domains->user_name_hint) {
+                ret = add_pam_cert_response(preq->pd, cert_user,
+                                            preq->token_name,
+                                            preq->module_name,
+                                            preq->key_id,
+                                            SSS_PAM_CERT_INFO_WITH_HINT);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
+                    preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+                }
+                ret = EOK;
+                preq->pd->pam_status = PAM_SUCCESS;
+                pam_reply(preq);
                 goto done;
             }
 
-            DEBUG(SSSDBG_FUNC_DATA, "Found certificate user [%s].\n",
-                                    cert_user);
-
-            ret = sss_parse_name_for_domains(preq->pd,
-                                             preq->cctx->rctx->domains,
-                                             preq->cctx->rctx->default_domain,
-                                             cert_user,
-                                             &preq->pd->domain,
-                                             &preq->pd->user);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "sss_parse_name_for_domains failed.\n");
+            /* Without user name hints the certificate must map to single user
+             * if no login name was given */
+            if (cert_user == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "More than one user mapped to certificate.\n");
+                ret = ERR_NO_CREDS;
                 goto done;
             }
 
@@ -1846,7 +1866,8 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                     ret = add_pam_cert_response(preq->pd, cert_user,
                                                 preq->token_name,
                                                 preq->module_name,
-                                                preq->key_id);
+                                                preq->key_id,
+                                                SSS_PAM_CERT_INFO);
                     if (ret != EOK) {
                         DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
                         preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;

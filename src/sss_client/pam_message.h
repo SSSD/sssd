@@ -63,6 +63,7 @@ struct pam_items {
     char *token_name;
     char *module_name;
     char *key_id;
+    bool user_name_hint;
 };
 
 int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer);

@@ -224,6 +224,26 @@ immediately:
     return req;
 }
 
+static void sss_resp_update_certmaps(struct resp_ctx *rctx)
+{
+    int ret;
+    struct certmap_info **certmaps;
+    bool user_name_hint;
+    struct sss_domain_info *dom;
+
+    for (dom = rctx->domains; dom != NULL; dom = dom->next) {
+        ret = sysdb_get_certmap(dom, dom->sysdb, &certmaps, &user_name_hint);
+        if (ret == EOK) {
+            dom->user_name_hint = user_name_hint;
+            talloc_free(dom->certmaps);
+            dom->certmaps = certmaps;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_get_certmap failed for domain [%s].\n", dom->name);
+        }
+    }
+}
+
 static void
 sss_dp_get_domains_process(struct tevent_req *subreq)
 {
@@ -267,6 +287,9 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
                   ret, sss_strerror(ret));
             goto fail;
         }
+
+        sss_resp_update_certmaps(state->rctx);
+
         tevent_req_done(req);
         return;
     }

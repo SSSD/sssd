@@ -580,7 +580,7 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 
 errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
                               const char *token_name, const char *module_name,
-                              const char *key_id)
+                              const char *key_id, enum response_type type)
 {
     uint8_t *msg = NULL;
     char *env = NULL;
@@ -590,14 +590,23 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
     size_t module_len;
     size_t key_id_len;
     int ret;
+    const char *username = "";
 
-    if (sysdb_username == NULL || token_name == NULL || module_name == NULL
-            || key_id == NULL) {
+    if (type != SSS_PAM_CERT_INFO && type != SSS_PAM_CERT_INFO_WITH_HINT) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid response type [%d].\n", type);
+        return EINVAL;
+    }
+
+    if ((type == SSS_PAM_CERT_INFO && sysdb_username == NULL)
+            || token_name == NULL || module_name == NULL || key_id == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing mandatory user or slot name.\n");
         return EINVAL;
     }
 
-    user_len = strlen(sysdb_username) + 1;
+    if (sysdb_username != NULL) {
+        username = sysdb_username;
+    }
+    user_len = strlen(username) + 1;
     slot_len = strlen(token_name) + 1;
     module_len = strlen(module_name) + 1;
     key_id_len = strlen(key_id) + 1;
@@ -616,12 +625,12 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
      * re_expression config option was set in a way that user@domain cannot be
      * handled anymore some more logic has to be added here. But for the time
      * being I think using sysdb_username is fine. */
-    memcpy(msg, sysdb_username, user_len);
+    memcpy(msg, username, user_len);
     memcpy(msg + user_len, token_name, slot_len);
     memcpy(msg + user_len + slot_len, module_name, module_len);
     memcpy(msg + user_len + slot_len + module_len, key_id, key_id_len);
 
-    ret = pam_add_response(pd, SSS_PAM_CERT_INFO, msg_len, msg);
+    ret = pam_add_response(pd, type, msg_len, msg);
     talloc_free(msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,

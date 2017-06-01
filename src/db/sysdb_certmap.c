@@ -269,7 +269,7 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     size_t d;
     struct ldb_dn *container_dn = NULL;
     int ret;
-    struct certmap_info **maps;
+    struct certmap_info **maps = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_result *res;
     const char *tmp_str;
@@ -320,7 +320,7 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
     if (res->count == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "No certificate maps found.\n");
-        ret = ENOENT;
+        ret = EOK;
         goto done;
     }
 
@@ -377,7 +377,7 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                                                SYSDB_CERTMAP_PRIORITY,
                                                (uint64_t) -1);
         if (tmp_uint != (uint64_t) -1) {
-            if (tmp_uint >= UINT32_MAX) {
+            if (tmp_uint > UINT32_MAX) {
                 DEBUG(SSSDBG_OP_FAILURE, "Priority value [%lu] too large.\n",
                                          (unsigned long) tmp_uint);
                 ret = EINVAL;
@@ -414,11 +414,14 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         }
     }
 
-    *certmaps = talloc_steal(mem_ctx, maps);
-    *user_name_hint = hint;
     ret = EOK;
 
 done:
+    if (ret == EOK) {
+        *certmaps = talloc_steal(mem_ctx, maps);
+        *user_name_hint = hint;
+    }
+
     talloc_free(tmp_ctx);
 
     return ret;

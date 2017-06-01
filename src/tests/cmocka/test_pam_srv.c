@@ -747,7 +747,8 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     return EOK;
 }
 
-static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
+static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
+                                  enum response_type type, const char *name)
 {
     size_t rp = 0;
     uint32_t val;
@@ -758,30 +759,34 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
     assert_int_equal(val, pam_test_ctx->exp_pam_status);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, 2);
+    if (name == NULL || *name == '\0') {
+        assert_int_equal(val, 1);
+    } else {
+        assert_int_equal(val, 2);
+
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
+
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, 9);
+
+        assert_int_equal(*(body + rp + val - 1), 0);
+        assert_string_equal(body + rp, TEST_DOM_NAME);
+        rp += val;
+    }
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
+    assert_int_equal(val, type);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, 9);
-
-    assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal(body + rp, TEST_DOM_NAME);
-    rp += val;
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, SSS_PAM_CERT_INFO);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, (sizeof("pamuser@"TEST_DOM_NAME)
+    assert_int_equal(val, (strlen(name) + 1
                                 + sizeof(TEST_TOKEN_NAME)
                                 + sizeof(TEST_MODULE_NAME)
                                 + sizeof(TEST_KEY_ID)));
 
-    assert_int_equal(*(body + rp + sizeof("pamuser@"TEST_DOM_NAME) - 1), 0);
-    assert_string_equal(body + rp, "pamuser@"TEST_DOM_NAME);
-    rp += sizeof("pamuser@"TEST_DOM_NAME);
+    assert_int_equal(*(body + rp + strlen(name)), 0);
+    assert_string_equal(body + rp, name);
+    rp += strlen(name) + 1;
 
     assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
     assert_string_equal(body + rp, TEST_TOKEN_NAME);
@@ -798,6 +803,27 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
     assert_int_equal(rp, blen);
 
     return EOK;
+}
+
+static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    return test_pam_cert_check_ex(status, body, blen,
+                                  SSS_PAM_CERT_INFO, "pamuser@"TEST_DOM_NAME);
+}
+
+static int test_pam_cert_check_with_hint(uint32_t status, uint8_t *body,
+                                         size_t blen)
+{
+    return test_pam_cert_check_ex(status, body, blen,
+                                  SSS_PAM_CERT_INFO_WITH_HINT,
+                                  "pamuser@"TEST_DOM_NAME);
+}
+
+static int test_pam_cert_check_with_hint_no_user(uint32_t status, uint8_t *body,
+                                                 size_t blen)
+{
+    return test_pam_cert_check_ex(status, body, blen,
+                                  SSS_PAM_CERT_INFO_WITH_HINT, "");
 }
 
 static int test_pam_offline_chauthtok_check(uint32_t status,
@@ -1873,15 +1899,46 @@ void test_pam_preauth_cert_no_logon_name(void **state)
      * Since there is a matching user the upcoming lookup by name will find
      * the user entry. But since we force the lookup by name to go to the
      * backend to make sure the group-membership data is up to date the
-     * backend response has to be mocked twice and the second argument of
-     * mock_input_pam_cert cannot be NULL but must match the user name. */
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+     * backend response has to be mocked twice.
+     * Additionally sss_parse_inp_recv() must be mocked because the cache
+     * request will be done with the username found by the certificate
+     * lookup. */
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
+    mock_account_recv_simple();
+    mock_parse_inp("pamuser", NULL, EOK);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     set_cmd_cb(test_pam_cert_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_preauth_cert_no_logon_name_with_hint(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    pam_test_ctx->rctx->domains->user_name_hint = true;
+
+    /* If no logon name is given the user is looked by certificate first.
+     * Since user name hint is enabled we do not have to search the user
+     * during pre-auth and there is no need for an extra mocked response as in
+     * test_pam_preauth_cert_no_logon_name. */
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+                        test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_cert_check_with_hint);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
@@ -1904,6 +1961,29 @@ void test_pam_preauth_cert_no_logon_name_double_cert(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     set_cmd_cb(test_pam_creds_insufficient_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_preauth_cert_no_logon_name_double_cert_with_hint(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    pam_test_ctx->rctx->domains->user_name_hint = true;
+
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+                        test_lookup_by_cert_double_cb, TEST_TOKEN_CERT, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_cert_check_with_hint_no_user);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
@@ -2422,8 +2502,14 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_no_logon_name,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(
+                                  test_pam_preauth_cert_no_logon_name_with_hint,
+                                  pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(
                                 test_pam_preauth_cert_no_logon_name_double_cert,
                                 pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(
+                      test_pam_preauth_cert_no_logon_name_double_cert_with_hint,
+                      pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_no_cert_no_logon_name,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(
