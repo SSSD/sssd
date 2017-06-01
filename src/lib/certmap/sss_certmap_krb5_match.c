@@ -25,7 +25,6 @@
 #include <ctype.h>
 
 #include "util/util.h"
-#include "util/cert.h"
 #include "util/crypto/sss_crypto.h"
 #include "lib/certmap/sss_certmap.h"
 #include "lib/certmap/sss_certmap_int.h"
