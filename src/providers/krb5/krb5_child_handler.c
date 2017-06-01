@@ -156,14 +156,14 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
         return ENOMEM;
     }
 
-    buf->size = 8*sizeof(uint32_t) + strlen(kr->upn);
+    buf->size = 9*sizeof(uint32_t) + strlen(kr->upn);
 
     if (kr->pd->cmd == SSS_PAM_AUTHENTICATE ||
         kr->pd->cmd == SSS_PAM_PREAUTH ||
         kr->pd->cmd == SSS_CMD_RENEW ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
-        buf->size += 5*sizeof(uint32_t) + strlen(kr->ccname) + strlen(keytab) +
+        buf->size += 4*sizeof(uint32_t) + strlen(kr->ccname) + strlen(keytab) +
                      sss_authtok_get_size(kr->pd->authtok);
 
         buf->size += sizeof(uint32_t);
