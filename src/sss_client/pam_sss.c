@@ -995,7 +995,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
 
-                if (type == SSS_PAM_CERT_INFO && pi->cert_user == '\0') {
+                if (type == SSS_PAM_CERT_INFO && *pi->cert_user == '\0') {
                     D(("Invalid CERT message"));
                     break;
                 }
@@ -1007,7 +1007,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 }
 
                 if ((pi->pam_user == NULL || *(pi->pam_user) == '\0')
-                        && pi->cert_user != '\0') {
+                        && *pi->cert_user != '\0') {
                     ret = pam_set_item(pamh, PAM_USER, pi->cert_user);
                     if (ret != PAM_SUCCESS) {
                         D(("Failed to set PAM_USER during "
