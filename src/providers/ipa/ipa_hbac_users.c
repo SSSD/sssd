@@ -171,9 +171,7 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
     struct hbac_rule_element *new_users = NULL;
     struct ldb_message_element *el = NULL;
     struct ldb_message **msgs = NULL;
-    char *filter;
-    char *member_dn;
-    const char *member_user;
+    const char *member_dn;
     const char *attrs[] = { SYSDB_NAME, NULL };
     size_t num_users = 0;
     size_t num_groups = 0;
@@ -234,20 +232,11 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; i < el->num_values; i++) {
-        member_user = (const char *)el->values[i].data;
-        ret = sss_filter_sanitize(tmp_ctx, member_user, &member_dn);
-        if (ret != EOK) goto done;
-
-        filter = talloc_asprintf(member_dn, "(%s=%s)",
-                                 SYSDB_ORIG_DN, member_dn);
-        if (filter == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
+        member_dn = (const char *)el->values[i].data;
 
         /* First check if this is a user */
-        ret = sysdb_search_users(tmp_ctx, domain,
-                                 filter, attrs, &count, &msgs);
+        ret = sysdb_search_users_by_orig_dn(tmp_ctx, domain, member_dn, attrs,
+                                            &count, &msgs);
         if (ret != EOK && ret != ENOENT) goto done;
         if (ret == EOK && count == 0) {
             ret = ENOENT;
@@ -257,7 +246,6 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
             if (count > 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Original DN matched multiple users. Skipping \n");
-                talloc_zfree(member_dn);
                 continue;
             }
 
@@ -288,8 +276,8 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
             num_users++;
         } else {
             /* Check if it is a group instead */
-            ret = sysdb_search_groups(tmp_ctx, domain, filter, attrs,
-                                      &count, &msgs);
+            ret = sysdb_search_groups_by_orig_dn(tmp_ctx, domain, member_dn,
+                                                 attrs, &count, &msgs);
             if (ret != EOK && ret != ENOENT) goto done;
             if (ret == EOK && count == 0) {
                 ret = ENOENT;
@@ -300,7 +288,6 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Original DN matched multiple groups. "
                               "Skipping\n");
-                    talloc_zfree(member_dn);
                     continue;
                 }
 
@@ -336,7 +323,7 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                  * we can assume it is a non-POSIX group.
                  */
                 ret = get_ipa_groupname(new_users->groups, domain->sysdb,
-                                        member_user,
+                                        member_dn,
                                         &new_users->groups[num_groups]);
                 if (ret == EOK) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
@@ -351,7 +338,6 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 }
             }
         }
-        talloc_zfree(member_dn);
     }
     new_users->names[num_users] = NULL;
     new_users->groups[num_groups] = NULL;
