@@ -1540,6 +1540,17 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         if (kerr != 0) {
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
 
+            /* Special case for IPA password migration */
+            if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
+                    && kerr == KRB5_PREAUTH_FAILED
+                    && kr->pkinit_prompting == false
+                    && kr->password_prompting == false
+                    && kr->otp == false
+                    && sss_authtok_get_type(kr->pd->authtok)
+                            == SSS_AUTHTOK_TYPE_PASSWORD) {
+                return ERR_CREDS_INVALID;
+            }
+
             /* If during authentication either the MIT Kerberos pkinit
              * pre-auth module is missing or no Smartcard is inserted and only
              * pkinit is available KRB5_PREAUTH_FAILED is returned.
