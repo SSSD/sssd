@@ -3236,6 +3236,72 @@ done:
     return ret;
 }
 
+static int sysdb_cache_search_users(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    struct ldb_context *ldb,
+                                    const char *sub_filter,
+                                    const char **attrs,
+                                    size_t *msgs_count,
+                                    struct ldb_message ***msgs);
+
+static int sysdb_cache_search_groups(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *domain,
+                                     struct ldb_context *ldb,
+                                     const char *sub_filter,
+                                     const char **attrs,
+                                     size_t *msgs_count,
+                                     struct ldb_message ***msgs);
+
+errno_t sysdb_search_by_orig_dn(TALLOC_CTX *mem_ctx,
+                                struct sss_domain_info *domain,
+                                enum sysdb_member_type type,
+                                const char *member_dn,
+                                const char **attrs,
+                                size_t *msgs_count,
+                                struct ldb_message ***msgs)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *filter;
+    char *sanitized_dn = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, member_dn, &sanitized_dn);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_ORIG_DN, sanitized_dn);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    switch (type) {
+    case SYSDB_MEMBER_USER:
+        ret = sysdb_cache_search_users(mem_ctx, domain, domain->sysdb->ldb,
+                                       filter, attrs, msgs_count, msgs);
+        break;
+    case SYSDB_MEMBER_GROUP:
+        ret = sysdb_cache_search_groups(mem_ctx, domain, domain->sysdb->ldb,
+                                        filter, attrs, msgs_count, msgs);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Trying to perform a search by orig_dn using a "
+              "non-supported type\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 
 /* =Custom Store (replaces-existing-data)================== */
 
