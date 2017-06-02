@@ -315,7 +315,6 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
     struct sysdb_attrs *user_attrs;
     size_t msgs_count;
     struct ldb_message **msgs;
-    char *subfilter;
     TALLOC_CTX *tmp_ctx;
     int ret;
 
@@ -332,15 +331,8 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
             continue;
         }
 
-        subfilter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_ORIG_DN, groups[c]);
-        if (subfilter == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = sysdb_search_groups(tmp_ctx, group_dom, subfilter, NULL,
-                                  &msgs_count, &msgs);
+        ret = sysdb_search_groups_by_orig_dn(tmp_ctx, group_dom, groups[c],
+                                             NULL, &msgs_count, &msgs);
         if (ret != EOK) {
             if (ret == ENOENT) {
                 DEBUG(SSSDBG_TRACE_ALL, "Group [%s] not in the cache.\n",
