@@ -38,11 +38,11 @@
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_dn.h"
 
-#define sdap_nested_group_sysdb_search_users(domain, filter) \
-    sdap_nested_group_sysdb_search((domain), (filter), true)
+#define sdap_nested_group_sysdb_search_users(domain, dn) \
+    sdap_nested_group_sysdb_search((domain), (dn), true)
 
-#define sdap_nested_group_sysdb_search_groups(domain, filter) \
-    sdap_nested_group_sysdb_search((domain), (filter), false)
+#define sdap_nested_group_sysdb_search_groups(domain, dn) \
+    sdap_nested_group_sysdb_search((domain), (dn), false)
 
 enum sdap_nested_group_dn_type {
     SDAP_NESTED_GROUP_DN_USER,
@@ -389,7 +389,7 @@ static errno_t sdap_nested_group_external_add(hash_table_t *table,
 }
 
 static errno_t sdap_nested_group_sysdb_search(struct sss_domain_info *domain,
-                                              const char *filter,
+                                              const char *dn,
                                               bool user)
 {
     static const char *attrs[] = {SYSDB_CACHE_EXPIRE,
@@ -403,11 +403,11 @@ static errno_t sdap_nested_group_sysdb_search(struct sss_domain_info *domain,
     errno_t ret;
 
     if (user) {
-        ret = sysdb_search_users(NULL, domain, filter, attrs,
-                                 &count, &msgs);
+        ret = sysdb_search_users_by_orig_dn(NULL, domain, dn, attrs,
+                                            &count, &msgs);
     } else {
-        ret = sysdb_search_groups(NULL, domain, filter, attrs,
-                                  &count, &msgs);
+        ret = sysdb_search_groups_by_orig_dn(NULL, domain, dn, attrs,
+                                             &count, &msgs);
     }
     if (ret != EOK) {
         goto done;
@@ -451,29 +451,9 @@ sdap_nested_group_check_cache(struct sdap_options *opts,
                               const char *member_dn,
                               enum sdap_nested_group_dn_type *_type)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
     struct sdap_domain *sdap_domain = NULL;
     struct sss_domain_info *member_domain = NULL;
-    char *sanitized_dn = NULL;
-    char *filter = NULL;
     errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
-        return ENOMEM;
-    }
-
-    ret = sss_filter_sanitize(tmp_ctx, member_dn, &sanitized_dn);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_ORIG_DN, sanitized_dn);
-    if (filter == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
 
     /* determine correct domain of this member */
     sdap_domain = sdap_domain_get_by_dn(opts, member_dn);
@@ -481,7 +461,7 @@ sdap_nested_group_check_cache(struct sdap_options *opts,
 
     /* search in users */
     PROBE(SDAP_NESTED_GROUP_SYSDB_SEARCH_USERS_PRE);
-    ret = sdap_nested_group_sysdb_search_users(member_domain, filter);
+    ret = sdap_nested_group_sysdb_search_users(member_domain, member_dn);
     PROBE(SDAP_NESTED_GROUP_SYSDB_SEARCH_USERS_POST);
     if (ret == EOK || ret == EAGAIN) {
         /* user found */
@@ -494,7 +474,7 @@ sdap_nested_group_check_cache(struct sdap_options *opts,
 
     /* search in groups */
     PROBE(SDAP_NESTED_GROUP_SYSDB_SEARCH_GROUPS_PRE);
-    ret = sdap_nested_group_sysdb_search_groups(member_domain, filter);
+    ret = sdap_nested_group_sysdb_search_groups(member_domain, member_dn);
     PROBE(SDAP_NESTED_GROUP_SYSDB_SEARCH_GROUPS_POST);
     if (ret == EOK || ret == EAGAIN) {
         /* group found */
@@ -509,7 +489,6 @@ sdap_nested_group_check_cache(struct sdap_options *opts,
     ret = ENOENT;
 
 done:
-    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -2840,8 +2819,6 @@ sdap_nested_group_memberof_dn_by_original_dn(
                             const char ***_parents)
 {
     errno_t ret;
-    char *sanitized_dn;
-    char *filter;
     const char *attrs[] = { SYSDB_NAME,
                             SYSDB_MEMBEROF,
                             NULL };
@@ -2856,20 +2833,8 @@ sdap_nested_group_memberof_dn_by_original_dn(
         return ENOMEM;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, original_dn, &sanitized_dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-                "Cannot sanitize originalDN [%s]\n", original_dn);
-        goto done;
-    }
-
-    filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_ORIG_DN, sanitized_dn);
-    if (filter == NULL) {
-        goto done;
-    }
-
-    ret = sysdb_search_groups(tmp_ctx, group_dom, filter, attrs,
-                              &count, &msgs);
+    ret = sysdb_search_groups_by_orig_dn(tmp_ctx, group_dom, original_dn,
+                                         attrs, &count, &msgs);
     if (ret != EOK) {
         goto done;
     }
