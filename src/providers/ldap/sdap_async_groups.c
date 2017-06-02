@@ -2498,14 +2498,12 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
     errno_t ret, sret;
     struct ldb_message_element *el;
     const char *username;
-    char *clean_orig_dn;
     const char *original_dn;
     struct sss_domain_info *user_dom;
     struct sdap_domain *sdap_dom;
 
     TALLOC_CTX *tmp_ctx;
     struct ldb_message **msgs;
-    char *filter;
     const char *sysdb_name;
     struct sysdb_attrs *attrs;
     static const char *search_attrs[] = { SYSDB_NAME, NULL };
@@ -2553,14 +2551,6 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
         }
         original_dn = (const char *) el->values[0].data;
 
-        ret = sss_filter_sanitize(tmp_ctx, original_dn,
-                                  &clean_orig_dn);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot sanitize originalDN [%s]\n", original_dn);
-            goto done;
-        }
-
         sdap_dom = sdap_domain_get_by_dn(opts, original_dn);
         user_dom = sdap_dom == NULL ? domain : sdap_dom->dom;
 
@@ -2573,19 +2563,10 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
         }
 
         /* Check for the specified origDN in the sysdb */
-        filter = talloc_asprintf(tmp_ctx, "(%s=%s)",
-                                 SYSDB_ORIG_DN,
-                                 clean_orig_dn);
-        if (!filter) {
-            ret = ENOMEM;
-            goto done;
-        }
         PROBE(SDAP_NESTED_GROUP_POPULATE_SEARCH_USERS_PRE);
-        ret = sysdb_search_users(tmp_ctx, user_dom, filter,
-                                 search_attrs, &count, &msgs);
+        ret = sysdb_search_users_by_orig_dn(tmp_ctx, user_dom, original_dn,
+                                            search_attrs, &count, &msgs);
         PROBE(SDAP_NESTED_GROUP_POPULATE_SEARCH_USERS_POST);
-        talloc_zfree(filter);
-        talloc_zfree(clean_orig_dn);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Error checking cache for user entry\n");
             goto done;
