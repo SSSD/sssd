@@ -1517,10 +1517,12 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     if (pi->user_name_hint) {
         ret = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
         if (ret != PAM_SUCCESS) {
+            free(prompt);
             return ret;
         }
         if (conv == NULL || conv->conv == NULL) {
             logger(pamh, LOG_ERR, "No conversation function");
+            free(prompt);
             return PAM_SYSTEM_ERR;
         }
 
@@ -1540,6 +1542,7 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         mesg[1] = &((*mesg)[1]);
 
         ret = conv->conv(2, mesg, &resp, conv->appdata_ptr);
+        free(prompt);
         if (ret != PAM_SUCCESS) {
             D(("Conversation failure: %s.", pam_strerror(pamh, ret)));
             return ret;
