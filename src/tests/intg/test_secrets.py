@@ -499,3 +499,49 @@ def test_sec_quota(setup_for_secrets_quota, secrets_cli):
     # Don't allow storing more secrets after reaching the max
     # number of entries.
     run_quota_test(cli, 10, 2)
+
+
+@pytest.fixture
+def setup_for_uid_limit(request):
+    conf = unindent("""\
+        [sssd]
+        domains = local
+        services = nss
+
+        [domain/local]
+        id_provider = local
+
+        [secrets]
+
+        [secrets/secrets]
+        max_secrets = 10
+        max_uid_secrets = 5
+    """).format(**locals())
+
+    create_conf_fixture(request, conf)
+    create_sssd_secrets_fixture(request)
+    return None
+
+
+def test_per_uid_limit(setup_for_uid_limit, secrets_cli):
+    """
+    Test that per-UID limits are enforced even if the global limit would still
+    allow to store more secrets
+    """
+    cli = secrets_cli
+
+    # Don't allow storing more secrets after reaching the max
+    # number of entries.
+    MAX_UID_SECRETS = 5
+
+    sec_value = "value"
+    for i in range(MAX_UID_SECRETS):
+        cli.set_secret(str(i), sec_value)
+
+    with pytest.raises(HTTPError) as err507:
+        cli.set_secret(str(MAX_UID_SECRETS), sec_value)
+    assert str(err507.value).startswith("507")
+
+    # FIXME - at this point, it would be nice to test that another UID can
+    # still store secrets, but sadly socket_wrapper doesn't allow us to fake
+    # UIDs yet
