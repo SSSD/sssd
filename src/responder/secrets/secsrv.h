@@ -30,10 +30,7 @@
 #include <tevent.h>
 #include <ldb.h>
 
-#define SEC_NET_TIMEOUT 5
-
 struct sec_ctx {
-    struct resolv_ctx *resctx;
     struct resp_ctx *rctx;
     int fd_limit;
     int containers_nest_level;
