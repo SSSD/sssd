@@ -421,7 +421,7 @@ static void cache_req_search_done(struct tevent_req *subreq)
 {
     TALLOC_CTX *tmp_ctx;
     struct cache_req_search_state *state;
-    struct tevent_req *req;
+    struct tevent_req *req = NULL;
     struct ldb_result *result = NULL;
     errno_t ret;
 
