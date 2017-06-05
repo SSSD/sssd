@@ -32,6 +32,7 @@
 
 struct sec_quota {
     int max_secrets;
+    int max_uid_secrets;
     int max_payload_size;
     int containers_nest_level;
 };

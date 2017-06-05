@@ -31,7 +31,8 @@
 #define DEFAULT_SEC_FD_LIMIT 2048
 #define DEFAULT_SEC_CONTAINERS_NEST_LEVEL 4
 
-#define DEFAULT_SEC_MAX_SECRETS 1024
+#define DEFAULT_SEC_MAX_SECRETS      1024
+#define DEFAULT_SEC_MAX_UID_SECRETS  256
 #define DEFAULT_SEC_MAX_PAYLOAD_SIZE 16
 
 /* The number of secrets in the /kcm hive should be quite small,
@@ -39,12 +40,14 @@
  * hive holds the whole ccache which consists of several credentials
  */
 #define DEFAULT_SEC_KCM_MAX_SECRETS      256
+#define DEFAULT_SEC_KCM_MAX_UID_SECRETS  64
 #define DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE 65536
 
 static int sec_get_quota(struct sec_ctx *sctx,
                          const char *section_config_path,
                          int default_max_containers_nest_level,
                          int default_max_num_secrets,
+                         int default_max_num_uid_secrets,
                          int default_max_payload,
                          struct sec_quota *quota)
 {
@@ -78,6 +81,19 @@ static int sec_get_quota(struct sec_ctx *sctx,
 
     ret = confdb_get_int(sctx->rctx->cdb,
                          section_config_path,
+                         CONFDB_SEC_MAX_UID_SECRETS,
+                         default_max_num_uid_secrets,
+                         &quota->max_uid_secrets);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get maximum number of per-UID entries for %s\n",
+              section_config_path);
+        return ret;
+    }
+
+    ret = confdb_get_int(sctx->rctx->cdb,
+                         section_config_path,
                          CONFDB_SEC_MAX_PAYLOAD_SIZE,
                          default_max_payload,
                          &quota->max_payload_size);
@@ -97,6 +113,7 @@ static int sec_get_hive_config(struct sec_ctx *sctx,
                                struct sec_hive_config *hive_config,
                                int default_max_containers_nest_level,
                                int default_max_num_secrets,
+                               int default_max_num_uid_secrets,
                                int default_max_payload)
 {
     int ret;
@@ -119,6 +136,7 @@ static int sec_get_hive_config(struct sec_ctx *sctx,
                         hive_config->confdb_section,
                         default_max_containers_nest_level,
                         default_max_num_secrets,
+                        default_max_num_uid_secrets,
                         default_max_payload,
                         &hive_config->quota);
     if (ret != EOK) {
@@ -158,6 +176,7 @@ static int sec_get_config(struct sec_ctx *sctx)
                         sctx->rctx->confdb_service_path,
                         DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
                         DEFAULT_SEC_MAX_SECRETS,
+                        DEFAULT_SEC_MAX_UID_SECRETS,
                         DEFAULT_SEC_MAX_PAYLOAD_SIZE,
                         &sctx->sec_config.quota);
     if (ret != EOK) {
@@ -172,6 +191,7 @@ static int sec_get_config(struct sec_ctx *sctx)
                               &sctx->sec_config,
                               sctx->sec_config.quota.containers_nest_level,
                               sctx->sec_config.quota.max_secrets,
+                              sctx->sec_config.quota.max_uid_secrets,
                               sctx->sec_config.quota.max_payload_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -184,6 +204,7 @@ static int sec_get_config(struct sec_ctx *sctx)
                               &sctx->kcm_config,
                               DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
                               DEFAULT_SEC_KCM_MAX_SECRETS,
+                              DEFAULT_SEC_KCM_MAX_UID_SECRETS,
                               DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
