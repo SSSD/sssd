@@ -162,12 +162,6 @@ static int sec_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = resolv_init(sctx, ev, SEC_NET_TIMEOUT, &sctx->resctx);
-    if (ret != EOK) {
-        /* not fatal for now */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize resolver library\n");
-    }
-
     /* Set up file descriptor limits */
     responder_set_fd_limit(sctx->fd_limit);
 

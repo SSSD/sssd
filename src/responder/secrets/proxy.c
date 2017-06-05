@@ -29,7 +29,6 @@
 #define SEC_PROXY_TIMEOUT 5
 
 struct proxy_context {
-    struct resolv_ctx *resctx;
     struct confdb_ctx *cdb;
     struct tcurl_ctx *tcurl;
 };
@@ -585,7 +584,6 @@ int proxy_secrets_provider_handle(struct sec_ctx *sctx,
     pctx = talloc(handle, struct proxy_context);
     if (!pctx) return ENOMEM;
 
-    pctx->resctx = sctx->resctx;
     pctx->cdb = sctx->rctx->cdb;
     pctx->tcurl = tcurl_init(pctx, sctx->rctx->ev);
     if (pctx->tcurl == NULL) {
