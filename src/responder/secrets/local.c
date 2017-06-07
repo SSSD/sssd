@@ -397,6 +397,10 @@ static int local_db_check_containers_nest_level(struct local_db_req *lc_req,
 {
     int nest_level;
 
+    if (lc_req->quota->containers_nest_level == 0) {
+        return EOK;
+    }
+
     /* We need do not care for the synthetic containers that constitute the
      * base path (cn=<uidnumber>,cn=user,cn=secrets). */
     nest_level = ldb_dn_get_comp_num(leaf_dn) - 3;
@@ -456,6 +460,10 @@ static int local_db_check_peruid_number_of_secrets(TALLOC_CTX *mem_ctx,
     struct ldb_dn *cli_basedn = NULL;
     int ret;
 
+    if (lc_req->quota->max_uid_secrets == 0) {
+        return EOK;
+    }
+
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) {
         return ENOMEM;
@@ -501,6 +509,10 @@ static int local_db_check_number_of_secrets(TALLOC_CTX *mem_ctx,
     struct ldb_dn *dn;
     int ret;
 
+    if (lc_req->quota->max_secrets == 0) {
+        return EOK;
+    }
+
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
@@ -537,6 +549,10 @@ static int local_check_max_payload_size(struct local_db_req *lc_req,
                                         int payload_size)
 {
     int max_payload_size;
+
+    if (lc_req->quota->max_payload_size == 0) {
+        return EOK;
+    }
 
     max_payload_size = lc_req->quota->max_payload_size * 1024; /* kb */
     if (payload_size > max_payload_size) {

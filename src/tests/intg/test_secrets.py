@@ -545,3 +545,58 @@ def test_per_uid_limit(setup_for_uid_limit, secrets_cli):
     # FIXME - at this point, it would be nice to test that another UID can
     # still store secrets, but sadly socket_wrapper doesn't allow us to fake
     # UIDs yet
+
+
+@pytest.fixture
+def setup_for_unlimited_quotas(request):
+    conf = unindent("""\
+        [sssd]
+        domains = local
+        services = nss
+
+        [domain/local]
+        id_provider = local
+
+        [secrets]
+        debug_level = 10
+
+        [secrets/secrets]
+        max_secrets = 0
+        max_uid_secrets = 0
+        max_payload_size = 0
+        containers_nest_level = 0
+    """).format(**locals())
+
+    create_conf_fixture(request, conf)
+    create_sssd_secrets_fixture(request)
+    return None
+
+
+def test_unlimited_quotas(setup_for_unlimited_quotas, secrets_cli):
+    """
+    Test that setting quotas to zero disabled any checks and lets
+    store whatever.
+    """
+    cli = secrets_cli
+
+    # test much larger amount of secrets that we allow by default
+    sec_value = "value"
+    for i in range(2048):
+        cli.set_secret(str(i), sec_value)
+
+    # test a much larger secret size than the default one
+    KILOBYTE = 1024
+    payload_size = 32 * KILOBYTE
+
+    sec_value = "x" * payload_size
+    cli.set_secret("foo", sec_value)
+
+    fooval = cli.get_secret("foo")
+    assert fooval == sec_value
+
+    # test a deep secret nesting structure
+    DEFAULT_CONTAINERS_NEST_LEVEL = 128
+    container = "mycontainer"
+    for i in range(DEFAULT_CONTAINERS_NEST_LEVEL):
+        container += "%s/" % str(i)
+        cli.create_container(container)

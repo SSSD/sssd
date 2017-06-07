@@ -49,6 +49,7 @@ struct sec_ctx {
 
     struct sec_hive_config sec_config;
     struct sec_hive_config kcm_config;
+    int max_payload_size;
 
     struct provider_handle **providers;
 };

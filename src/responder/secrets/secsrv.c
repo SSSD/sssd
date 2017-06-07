@@ -146,6 +146,16 @@ static int sec_get_hive_config(struct sec_ctx *sctx,
         goto done;
     }
 
+    if (hive_config->quota.max_payload_size == 0
+             || (sctx->max_payload_size != 0
+                 && hive_config->quota.max_payload_size > sctx->max_payload_size)) {
+        /* If the quota is unlimited or it's larger than what
+         * we already have, save the total limit so we know how much to
+         * accept from clients
+         */
+        sctx->max_payload_size = hive_config->quota.max_payload_size;
+    }
+
     ret = EOK;
 
 done:
@@ -167,6 +177,11 @@ static int sec_get_config(struct sec_ctx *sctx)
               "Failed to get file descriptors limit\n");
         goto fail;
     }
+
+    /* Set the global max_payload to ridiculously small value so that either 0 (unlimited)
+     * or any sensible value overwrite it
+     */
+    sctx->max_payload_size = 1;
 
     /* Read the global quota first -- this should be removed in a future release */
     /* Note that this sets the defaults for the sec_config quota to be used
