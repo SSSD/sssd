@@ -1085,6 +1085,13 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
                        size_t *msgs_count,
                        struct ldb_message ***msgs);
 
+int sysdb_search_users_by_timestamp(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *sub_filter,
+                                    const char **attrs,
+                                    size_t *_msgs_count,
+                                    struct ldb_message ***_msgs);
+
 int sysdb_delete_user(struct sss_domain_info *domain,
                       const char *name, uid_t uid);
 
@@ -1094,6 +1101,13 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
                         const char **attrs,
                         size_t *msgs_count,
                         struct ldb_message ***msgs);
+
+int sysdb_search_groups_by_timestamp(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *domain,
+                                     const char *sub_filter,
+                                     const char **attrs,
+                                     size_t *_msgs_count,
+                                     struct ldb_message ***_msgs);
 
 int sysdb_delete_group(struct sss_domain_info *domain,
                        const char *name, gid_t gid);
