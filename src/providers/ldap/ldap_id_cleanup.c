@@ -219,7 +219,8 @@ static int cleanup_users(struct sdap_options *opts,
         goto done;
     }
 
-    ret = sysdb_search_users(tmpctx, dom, subfilter, attrs, &count, &msgs);
+    ret = sysdb_search_users_by_timestamp(tmpctx, dom, subfilter, attrs,
+                                          &count, &msgs);
     if (ret == ENOENT) {
         count = 0;
     } else if (ret != EOK) {
@@ -394,7 +395,8 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sysdb_search_groups(tmpctx, domain, subfilter, attrs, &count, &msgs);
+    ret = sysdb_search_groups_by_timestamp(tmpctx, domain, subfilter, attrs,
+                                           &count, &msgs);
     if (ret == ENOENT) {
         count = 0;
     } else if (ret != EOK) {
