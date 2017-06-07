@@ -75,6 +75,7 @@ struct sec_req_ctx {
     bool complete;
 
     size_t total_size;
+    size_t max_payload_size;
 
     char *request_url;
     char *mapped_path;
@@ -151,7 +152,6 @@ bool sec_req_has_header(struct sec_req_ctx *req,
                         const char *name, const char *value);
 
 /* secsrv_cmd.c */
-#define SEC_REQUEST_MAX_SIZE 65536
 #define SEC_PACKET_MAX_RECV_SIZE 8192
 
 int sec_send_data(int fd, struct sec_data *data);
