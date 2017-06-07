@@ -167,7 +167,6 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 
 done:
     talloc_free(tmp_ctx);
-    nspr_nss_cleanup();
     return ret;
 }
 
@@ -300,6 +299,5 @@ int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 
 done:
     talloc_free(tmp_ctx);
-    nspr_nss_cleanup();
     return ret;
 }
