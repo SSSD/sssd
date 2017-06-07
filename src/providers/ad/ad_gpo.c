@@ -2110,7 +2110,7 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
                                      &state->num_dacl_filtered_gpos);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Unable to filter GPO list by DACKL: [%d](%s)\n",
+              "Unable to filter GPO list by DACL: [%d](%s)\n",
               ret, sss_strerror(ret));
         goto done;
     }
