@@ -143,7 +143,8 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
         return EINVAL;
     }
 
-    if (kr->pd->cmd == SSS_CMD_RENEW || kr->is_offline) {
+    if (kr->pd->cmd == SSS_CMD_RENEW || kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
+            || kr->pd->cmd == SSS_PAM_CHAUTHTOK || kr->is_offline) {
         use_enterprise_principal = false;
     } else {
         use_enterprise_principal = dp_opt_get_bool(kr->krb5_ctx->opts,
