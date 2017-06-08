@@ -233,6 +233,14 @@ ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
         }
 
         for (ai = 0; attrs[ai]; ai++) {
+            if (strcmp(attrs[ai], "domainname") == 0) {
+                ret = ifp_add_value_to_dict(&iter_dict, "domainname",
+                                            domain->name);
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Cannot add attribute %s to message\n", attrs[ai]);
+                continue;
+            }
+
             el = sss_view_ldb_msg_find_element(domain, res->msgs[0], attrs[ai]);
             if (el == NULL || el->num_values == 0) {
                 DEBUG(SSSDBG_MINOR_FAILURE,

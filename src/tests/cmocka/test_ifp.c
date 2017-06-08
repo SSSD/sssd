@@ -269,7 +269,7 @@ void test_attr_acl(void **state)
     const char *exp_defaults[] = { SYSDB_NAME, SYSDB_UIDNUM,
                                    SYSDB_GIDNUM, SYSDB_GECOS,
                                    SYSDB_HOMEDIR, SYSDB_SHELL,
-                                   "groups", NULL };
+                                   "groups", "domain", "domainname", NULL };
     attr_parse_test(exp_defaults, NULL);
 
     /* Test adding some attributes to the defaults */
@@ -277,13 +277,14 @@ void test_attr_acl(void **state)
                               SYSDB_NAME, SYSDB_UIDNUM,
                               SYSDB_GIDNUM, SYSDB_GECOS,
                               SYSDB_HOMEDIR, SYSDB_SHELL,
-                              "groups", NULL };
+                              "groups", "domain", "domainname", NULL };
     attr_parse_test(exp_add, "+telephoneNumber, +streetAddress");
 
     /* Test removing some attributes to the defaults */
     const char *exp_rm[] = { SYSDB_NAME,
                              SYSDB_GIDNUM, SYSDB_GECOS,
                              SYSDB_HOMEDIR, "groups",
+                             "domain", "domainname",
                              NULL };
     attr_parse_test(exp_rm, "-"SYSDB_SHELL ",-"SYSDB_UIDNUM);
 
@@ -292,6 +293,7 @@ void test_attr_acl(void **state)
                                  SYSDB_NAME, SYSDB_UIDNUM,
                                  SYSDB_GIDNUM, SYSDB_GECOS,
                                  SYSDB_HOMEDIR, "groups",
+                                 "domain", "domainname",
                                  NULL };
     attr_parse_test(exp_add_rm, "+telephoneNumber, -"SYSDB_SHELL);
 
@@ -299,7 +301,8 @@ void test_attr_acl(void **state)
     const char *exp_add_rm_override[] = { SYSDB_NAME, SYSDB_UIDNUM,
                                           SYSDB_GIDNUM, SYSDB_GECOS,
                                           SYSDB_HOMEDIR, SYSDB_SHELL,
-                                          "groups", NULL };
+                                          "groups", "domain",
+                                          "domainname", NULL };
     attr_parse_test(exp_add_rm_override,
                     "+telephoneNumber, -telephoneNumber, +telephoneNumber");
 
@@ -307,7 +310,8 @@ void test_attr_acl(void **state)
     const char *rm_all[] = { NULL };
     attr_parse_test(rm_all,  "-"SYSDB_NAME ", -"SYSDB_UIDNUM
                              ", -"SYSDB_GIDNUM ", -"SYSDB_GECOS
-                             ", -"SYSDB_HOMEDIR ", -"SYSDB_SHELL", -groups");
+                             ", -"SYSDB_HOMEDIR ", -"SYSDB_SHELL", -groups, "
+                             "-domain, -domainname");
 
     /* Malformed list */
     attr_parse_test(NULL,  "missing_plus_or_minus");
