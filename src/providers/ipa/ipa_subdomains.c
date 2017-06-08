@@ -1455,6 +1455,13 @@ static void ipa_subdomains_slave_search_done(struct tevent_req *subreq)
         goto done;
     }
 
+    ret = ipa_enable_enterprise_principals(state->sd_ctx->be_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_enable_enterprise_principals failed. "
+                                 "Enterprise principals might not work as "
+                                 "expected.\n");
+    }
+
     if (!has_changes) {
         ret = EOK;
         goto done;
@@ -1464,13 +1471,6 @@ static void ipa_subdomains_slave_search_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
         goto done;
-    }
-
-    ret = ipa_enable_enterprise_principals(state->sd_ctx->be_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_enable_enterprise_principals failed. "
-                                 "Enterprise principals might not work as "
-                                 "expected.\n");
     }
 
     if (state->sd_ctx->ipa_id_ctx->server_mode == NULL) {
