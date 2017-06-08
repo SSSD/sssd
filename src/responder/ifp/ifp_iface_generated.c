@@ -982,6 +982,24 @@ const struct sbus_property_meta iface_ifp_users_user__properties[] = {
         NULL, /* no invoker */
     },
     {
+        "domain", /* name */
+        "o", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_domain),
+        sbus_invoke_get_o,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "domainname", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_domainname),
+        sbus_invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
         "extraAttributes", /* name */
         "a{sas}", /* type */
         SBUS_PROPERTY_READABLE,

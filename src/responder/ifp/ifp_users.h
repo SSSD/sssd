@@ -103,6 +103,14 @@ void ifp_users_user_get_groups(struct sbus_request *sbus_req,
                                const char ***_out,
                                int *_size);
 
+void ifp_users_user_get_domain(struct sbus_request *sbus_req,
+                               void *data,
+                               const char **_out);
+
+void ifp_users_user_get_domainname(struct sbus_request *sbus_req,
+                                   void *data,
+                                   const char **_out);
+
 void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
                                          void *data,
                                          hash_table_t **_out);

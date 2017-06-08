@@ -188,6 +188,8 @@
         <property name="loginShell" type="s" access="read" />
         <property name="uniqueID" type="s" access="read" />
         <property name="groups" type="ao" access="read" />
+        <property name="domain" type="o" access="read" />
+        <property name="domainname" type="s" access="read" />
         <property name="extraAttributes" type="a{sas}" access="read" />
     </interface>
 

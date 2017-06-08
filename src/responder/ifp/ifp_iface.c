@@ -104,6 +104,8 @@ struct iface_ifp_users_user iface_ifp_users_user = {
     .get_loginShell = ifp_users_user_get_login_shell,
     .get_uniqueID = ifp_users_user_get_unique_id,
     .get_groups = ifp_users_user_get_groups,
+    .get_domain = ifp_users_user_get_domain,
+    .get_domainname = ifp_users_user_get_domainname,
     .get_extraAttributes = ifp_users_user_get_extra_attributes
 };
 
