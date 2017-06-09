@@ -967,7 +967,9 @@ def zero_nesting_sssd_conf(ldap_conn, schema):
 def rfc2307bis_no_nesting(request, ldap_conn):
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001)
-    ent_list.add_group_bis("group1", 20001, member_uids=["user1"])
+    ent_list.add_group_bis("primarygroup", 2001)
+    ent_list.add_group_bis("parentgroup", 2010, member_uids=["user1"])
+    ent_list.add_group_bis("nestedgroup", 2011, member_gids=["parentgroup"])
     create_ldap_fixture(request, ldap_conn, ent_list)
     create_conf_fixture(request,
                         zero_nesting_sssd_conf(
@@ -978,8 +980,24 @@ def rfc2307bis_no_nesting(request, ldap_conn):
 
 
 def test_zero_nesting_level(ldap_conn, rfc2307bis_no_nesting):
-    ent.assert_group_by_name("group1",
+    """
+    Test initgroups operation with rfc2307bis schema asserting
+    only primary group and parent groups are included in group
+    list. No parent groups of groups should be returned with zero
+    group nesting level.
+    """
+    ent.assert_group_by_name("parentgroup",
                              dict(mem=ent.contains_only("user1")))
+    ent.assert_group_by_name("nestedgroup",
+                             dict(mem=ent.contains_only()))
+
+    (res, errno, grp_list) = sssd_id.get_user_groups("user1")
+    assert res == sssd_id.NssReturnCode.SUCCESS, \
+        "Could not find groups for user1, %d" % errno
+
+    ## test nestedgroup is not returned in group list
+    assert sorted(grp_list) == sorted(["primarygroup", "parentgroup"])
+
 
 
 @pytest.fixture
