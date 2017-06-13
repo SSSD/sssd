@@ -172,6 +172,7 @@ struct ipa_pam_auth_handler_state {
     struct ipa_auth_ctx *auth_ctx;
     struct be_ctx *be_ctx;
     struct pam_data *pd;
+    struct sss_domain_info *dom;
 };
 
 static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq);
@@ -201,6 +202,14 @@ ipa_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
     state->ev = params->ev;
     state->auth_ctx = auth_ctx;
     state->be_ctx = params->be_ctx;
+    state->dom = find_domain_by_name(state->be_ctx->domain,
+                                     state->pd->domain,
+                                     true);
+    if (state->dom == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Uknown domain %s\n", state->pd->domain);
+        pd->pam_status = PAM_SYSTEM_ERR;
+        goto immediately;
+    }
 
     pd->pam_status = PAM_SYSTEM_ERR;
 
@@ -248,7 +257,8 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
     }
 
     if (state->pd->cmd == SSS_PAM_AUTHENTICATE
-            && state->pd->pam_status == PAM_CRED_ERR) {
+            && state->pd->pam_status == PAM_CRED_ERR
+            && !IS_SUBDOMAIN(state->dom)) {
         realm = dp_opt_get_string(state->auth_ctx->ipa_options, IPA_KRB5_REALM);
         subreq = get_password_migration_flag_send(state, state->ev,
                                                   state->auth_ctx->sdap_id_ctx,
