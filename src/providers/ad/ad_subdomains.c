@@ -141,6 +141,35 @@ static bool is_domain_enabled(const char *domain,
 }
 
 static errno_t
+update_parent_sdap_list(struct sdap_domain *parent_list,
+                        struct sdap_domain *child_sdap)
+{
+    struct sdap_domain *sditer;
+
+    DLIST_FOR_EACH(sditer, parent_list) {
+        if (sditer->dom == child_sdap->dom) {
+            break;
+        }
+    }
+
+    if (sditer == NULL) {
+        /* Nothing to do */
+        return EOK;
+    }
+
+    /* Update the search bases */
+    sditer->search_bases = child_sdap->search_bases;
+    sditer->user_search_bases = child_sdap->user_search_bases;
+    sditer->group_search_bases = child_sdap->group_search_bases;
+    sditer->netgroup_search_bases = child_sdap->netgroup_search_bases;
+    sditer->sudo_search_bases = child_sdap->sudo_search_bases;
+    sditer->service_search_bases = child_sdap->service_search_bases;
+    sditer->autofs_search_bases = child_sdap->autofs_search_bases;
+
+    return EOK;
+}
+
+static errno_t
 ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
                      struct ad_id_ctx *id_ctx,
                      struct sss_domain_info *subdom,
@@ -221,9 +250,6 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     ad_id_ctx->sdap_id_ctx->opts = ad_options->id;
     ad_options->id_ctx = ad_id_ctx;
 
-    /* We need to pass the sdap list from parent */
-    ad_id_ctx->sdap_id_ctx->opts->sdom = id_ctx->sdap_id_ctx->opts->sdom;
-
     /* use AD plugin */
     srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx->be_res,
                                      default_host_dbs,
@@ -265,6 +291,12 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_MINOR_FAILURE, "Failed to set LDAP search bases for "
               "domain '%s'. Will try to use automatically detected search "
               "bases.", subdom->name);
+    }
+
+    ret = update_parent_sdap_list(id_ctx->sdap_id_ctx->opts->sdom,
+                                  sdom);
+    if (ret != EOK) {
+        return ret;
     }
 
     *_subdom_id_ctx = ad_id_ctx;
