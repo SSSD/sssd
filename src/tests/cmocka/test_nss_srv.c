@@ -1648,29 +1648,23 @@ static int test_nss_getgrnam_members_check_subdom(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    if (nss_test_ctx->subdom->fqnames) {
-        exp_members[0] = sss_tc_fqname(tmp_ctx,
-                                       nss_test_ctx->subdom->names,
-                                       nss_test_ctx->subdom,
-                                       submember1.pw_name);
-        assert_non_null(exp_members[0]);
+    exp_members[0] = sss_tc_fqname(tmp_ctx,
+                                   nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom,
+                                   submember1.pw_name);
+    assert_non_null(exp_members[0]);
 
-        exp_members[1] = sss_tc_fqname(tmp_ctx,
-                                       nss_test_ctx->subdom->names,
-                                       nss_test_ctx->subdom,
-                                       submember2.pw_name);
-        assert_non_null(exp_members[1]);
+    exp_members[1] = sss_tc_fqname(tmp_ctx,
+                                   nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom,
+                                   submember2.pw_name);
+    assert_non_null(exp_members[1]);
 
-        expected.gr_name = sss_tc_fqname(tmp_ctx,
-                                         nss_test_ctx->subdom->names,
-                                         nss_test_ctx->subdom,
-                                         testsubdomgroup.gr_name);
-        assert_non_null(expected.gr_name);
-    } else {
-        exp_members[0] = submember1.pw_name;
-        exp_members[1] = submember2.pw_name;
-        expected.gr_name = testsubdomgroup.gr_name;
-    }
+    expected.gr_name = sss_tc_fqname(tmp_ctx,
+                                     nss_test_ctx->subdom->names,
+                                     nss_test_ctx->subdom,
+                                     testsubdomgroup.gr_name);
+    assert_non_null(expected.gr_name);
 
     assert_int_equal(status, EOK);
 
@@ -1744,15 +1738,11 @@ static int test_nss_getgrnam_check_mix_dom(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    if (nss_test_ctx->subdom->fqnames) {
-        exp_members[0] = sss_tc_fqname(tmp_ctx,
-                                       nss_test_ctx->subdom->names,
-                                       nss_test_ctx->subdom,
-                                       submember1.pw_name);
-        assert_non_null(exp_members[0]);
-    } else {
-        exp_members[0] = submember1.pw_name;
-    }
+    exp_members[0] = sss_tc_fqname(tmp_ctx,
+                                   nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom,
+                                   submember1.pw_name);
+    assert_non_null(exp_members[0]);
     exp_members[1] = testmember1.pw_name;
     exp_members[2] = testmember2.pw_name;
 
@@ -1840,15 +1830,12 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    if (nss_test_ctx->subdom->fqnames) {
-        exp_members[0] = sss_tc_fqname(tmp_ctx,
-                                       nss_test_ctx->subdom->names,
-                                       nss_test_ctx->subdom,
-                                       submember1.pw_name);
-        assert_non_null(exp_members[0]);
-    } else {
-        exp_members[0] = submember1.pw_name;
-    }
+    exp_members[0] = sss_tc_fqname(tmp_ctx,
+                                   nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom,
+                                   submember1.pw_name);
+    assert_non_null(exp_members[0]);
+
     if (nss_test_ctx->tctx->dom->fqnames) {
         exp_members[1] = sss_tc_fqname(tmp_ctx, nss_test_ctx->tctx->dom->names,
                                        nss_test_ctx->tctx->dom, testmember1.pw_name);
@@ -1961,37 +1948,28 @@ static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
 
-    if (nss_test_ctx->subdom->fqnames) {
-        exp_members[0] = sss_tc_fqname(tmp_ctx,
-                                       nss_test_ctx->subdom->names,
-                                       nss_test_ctx->subdom,
-                                       submember1.pw_name);
-        assert_non_null(exp_members[0]);
+    exp_members[0] = sss_tc_fqname(tmp_ctx,
+                                   nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom,
+                                   submember1.pw_name);
+    assert_non_null(exp_members[0]);
 
-        exp_members[1] = sss_tc_fqname(tmp_ctx,
-                                       nss_test_ctx->subdom->names,
-                                       nss_test_ctx->subdom,
-                                       submember2.pw_name);
-        assert_non_null(exp_members[1]);
-    } else {
-        exp_members[0] = submember1.pw_name;
-        exp_members[1] = submember2.pw_name;
-    }
+    exp_members[1] = sss_tc_fqname(tmp_ctx,
+                                   nss_test_ctx->subdom->names,
+                                   nss_test_ctx->subdom,
+                                   submember2.pw_name);
+    assert_non_null(exp_members[1]);
 
     /* Important: this member is from a non-qualified domain, so his name will
      * not be qualified either
      */
     exp_members[2] = testmember1.pw_name;
 
-    if (nss_test_ctx->subdom->fqnames) {
-        expected.gr_name = sss_tc_fqname(tmp_ctx,
-                                         nss_test_ctx->subdom->names,
-                                         nss_test_ctx->subdom,
-                                         testsubdomgroup.gr_name);
-        assert_non_null(expected.gr_name);
-    } else {
-        expected.gr_name = testsubdomgroup.gr_name;
-    }
+    expected.gr_name = sss_tc_fqname(tmp_ctx,
+                                     nss_test_ctx->subdom->names,
+                                     nss_test_ctx->subdom,
+                                     testsubdomgroup.gr_name);
+    assert_non_null(expected.gr_name);
 
     assert_int_equal(status, EOK);
 

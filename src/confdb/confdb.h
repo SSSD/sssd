@@ -291,6 +291,7 @@ struct sss_domain_info {
     bool enumerate;
     char **sd_enumerate;
     bool fqnames;
+    bool output_fqnames;
     bool mpg;
     bool ignore_group_members;
     uint32_t id_min;
