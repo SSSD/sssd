@@ -905,3 +905,14 @@ const char *sss_domain_type_str(struct sss_domain_info *dom)
     }
     return "Unknown";
 }
+
+void sss_domain_info_set_output_fqnames(struct sss_domain_info *domain,
+                                        bool output_fqnames)
+{
+    domain->output_fqnames = output_fqnames;
+}
+
+bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain)
+{
+    return domain->output_fqnames;
+}

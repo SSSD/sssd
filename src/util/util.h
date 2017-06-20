@@ -562,6 +562,11 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
                          const char *db_path,
                          struct sss_domain_info **_domain);
 
+void sss_domain_info_set_output_fqnames(struct sss_domain_info *domain,
+                                        bool output_fqname);
+
+bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain);
+
 #define IS_SUBDOMAIN(dom) ((dom)->parent != NULL)
 
 #define DOM_HAS_VIEWS(dom) ((dom)->has_views)
