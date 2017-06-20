@@ -136,7 +136,7 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
                  * input is allowed by default. However, we really want to use
                  * the fully qualified name as output in order to avoid
                  * conflicts whith users who have the very same name. */
-                cr_domain->domain->output_fqnames = true;
+                sss_domain_info_set_output_fqnames(cr_domain->domain, true);
 
                 DLIST_ADD_END(cr_domains, cr_domain,
                               struct cache_req_domain *);
@@ -166,7 +166,7 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
          * qualified name as output in order to avoid conflicts whith users
          * who have the very same name. */
         if (resolution_order != NULL) {
-            cr_domain->domain->output_fqnames = true;
+            sss_domain_info_set_output_fqnames(cr_domain->domain, true);
         }
 
         DLIST_ADD_END(cr_domains, cr_domain, struct cache_req_domain *);

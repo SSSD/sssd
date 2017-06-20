@@ -291,7 +291,6 @@ struct sss_domain_info {
     bool enumerate;
     char **sd_enumerate;
     bool fqnames;
-    bool output_fqnames;
     bool mpg;
     bool ignore_group_members;
     uint32_t id_min;
@@ -355,6 +354,10 @@ struct sss_domain_info {
 
     struct certmap_info **certmaps;
     bool user_name_hint;
+
+    /* Do not use the _output_fqnames property directly in new code, but rather
+     * use sss_domain_info_{get,set}_output_fqnames(). */
+    bool output_fqnames;
 };
 
 /**

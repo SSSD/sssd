@@ -867,7 +867,7 @@ int sss_output_fqname(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (domain->output_fqnames || domain->fqnames) {
+    if (sss_domain_info_get_output_fqnames(domain) || domain->fqnames) {
         output_name = sss_tc_fqname(tmp_ctx, domain->names,
                                     domain, output_name);
         if (output_name == NULL) {
