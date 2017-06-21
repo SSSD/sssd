@@ -1732,3 +1732,15 @@ size_t sdap_steal_objects_in_dom(struct sdap_options *opts,
 
     return copied;
 }
+
+void sdap_domain_copy_search_bases(struct sdap_domain *to,
+                                   struct sdap_domain *from)
+{
+    to->search_bases = from->search_bases;
+    to->user_search_bases = from->user_search_bases;
+    to->group_search_bases = from->group_search_bases;
+    to->netgroup_search_bases = from->netgroup_search_bases;
+    to->sudo_search_bases = from->sudo_search_bases;
+    to->service_search_bases = from->service_search_bases;
+    to->autofs_search_bases = from->autofs_search_bases;
+}

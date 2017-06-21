@@ -926,13 +926,7 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
 
             /* Replace basedn and search bases from sdom_b with values
              * from sdom_a */
-            sdom_b->search_bases = sdom_a->search_bases;
-            sdom_b->user_search_bases = sdom_a->user_search_bases;
-            sdom_b->group_search_bases = sdom_a->group_search_bases;
-            sdom_b->netgroup_search_bases = sdom_a->netgroup_search_bases;
-            sdom_b->sudo_search_bases = sdom_a->sudo_search_bases;
-            sdom_b->service_search_bases = sdom_a->service_search_bases;
-            sdom_b->autofs_search_bases = sdom_a->autofs_search_bases;
+            sdap_domain_copy_search_bases(sdom_b, sdom_a);
         }
     }
 
