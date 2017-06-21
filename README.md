@@ -22,6 +22,10 @@ Make sure to follow the [guide on reporting SSSD bugs](https://docs.pagure.org/S
 ## Licensing
 Please see the file called COPYING.
 
+## Social networks
+We maintain our presence on [Twitter](https://twitter.com/SysSecSvcDaemon)
+and [Google plus](https://plus.google.com/114204339376082660377)
+
 ## Contacts
 There are several ways to contact us:
 
