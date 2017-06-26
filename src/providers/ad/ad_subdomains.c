@@ -158,13 +158,7 @@ update_parent_sdap_list(struct sdap_domain *parent_list,
     }
 
     /* Update the search bases */
-    sditer->search_bases = child_sdap->search_bases;
-    sditer->user_search_bases = child_sdap->user_search_bases;
-    sditer->group_search_bases = child_sdap->group_search_bases;
-    sditer->netgroup_search_bases = child_sdap->netgroup_search_bases;
-    sditer->sudo_search_bases = child_sdap->sudo_search_bases;
-    sditer->service_search_bases = child_sdap->service_search_bases;
-    sditer->autofs_search_bases = child_sdap->autofs_search_bases;
+    sdap_domain_copy_search_bases(sditer, child_sdap);
 
     return EOK;
 }

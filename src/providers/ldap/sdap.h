@@ -645,4 +645,7 @@ bool sdap_object_in_domain(struct sdap_options *opts,
                            struct sysdb_attrs *obj,
                            struct sss_domain_info *dom);
 
+void sdap_domain_copy_search_bases(struct sdap_domain *to,
+                                   struct sdap_domain *from);
+
 #endif /* _SDAP_H_ */
