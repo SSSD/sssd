@@ -2607,10 +2607,16 @@ pam_account_locked_message = Account locked, please contact help desk.
                     <term>dns_resolver_timeout (integer)</term>
                     <listitem>
                         <para>
-                            Defines the amount of time (in seconds) to wait for a reply from
-                            the DNS resolver before assuming that it is unreachable. If this
-                            timeout is reached, the domain will continue to operate in
-                            offline mode.
+                            Defines the amount of time (in seconds) to
+                            wait for a reply from the internal fail over
+                            service before assuming that the service is
+                            unreachable. If this timeout is reached, the
+                            domain will continue to operate in offline mode.
+                        </para>
+                        <para>
+                            Please see the section <quote>FAILOVER</quote>
+                            for more information about the service
+                            resolution.
                         </para>
                         <para>
                             Default: 6
