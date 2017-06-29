@@ -49,4 +49,60 @@
             every 30 seconds.
         </para>
     </refsect2>
+    <refsect2 id='failover_tuning'>
+        <title>Failover time outs and tuning</title>
+        <para>
+            Resolving a server to connect to can be as simple as running
+            a single DNS query or can involve several steps, such as finding
+            the correct site or trying out multiple host names in case some
+            of the configured servers are not reachable. The more complex
+            scenarios can take some time and SSSD needs to balance between
+            providing enough time to finish the resolution process but on
+            the other hand, not trying for too long before falling back
+            to offline mode. If the SSSD debug logs show that the server
+            resolution is timing out before a live server is contacted,
+            you can consider changing the time outs.
+        </para>
+        <para>
+            This section lists the available tunables. Please refer to their
+            description in the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            manual page.
+            <variablelist>
+                <varlistentry>
+                    <term>
+                        dns_resolver_op_timeout
+                    </term>
+                    <listitem>
+                        <para>
+                            How long would SSSD talk to a single DNS server.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>
+                        dns_resolver_timeout
+                    </term>
+                    <listitem>
+                        <para>
+                            How long would SSSD try to resolve a failover
+                            service. This service resolution internally might
+                            include several steps, such as resolving DNS SRV
+                            queries or locating the site.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+        <para>
+            For LDAP-based providers, the resolve operation is performed
+            as part of an LDAP connection operation. Thefore, also the
+            <quote>ldap_opt_timeout></quote> timeout should be set to
+            a larger value than <quote>dns_resolver_timeout</quote>
+            which in turn should be set to a larger value than
+            <quote>dns_resolver_op_timeout</quote>.
+        </para>
+    </refsect2>
 </refsect1>
