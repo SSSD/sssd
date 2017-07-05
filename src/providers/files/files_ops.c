@@ -345,6 +345,107 @@ done:
     return ret;
 }
 
+static errno_t refresh_override_attrs(struct files_id_ctx *id_ctx,
+                                      enum sysdb_member_type type)
+{
+    const char *override_attrs[] = { SYSDB_OVERRIDE_OBJECT_DN,
+                                     NULL};
+    struct ldb_dn *base_dn;
+    size_t count;
+    struct ldb_message **msgs;
+    struct ldb_message *msg = NULL;
+    struct ldb_context *ldb_ctx;
+    size_t c;
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    const char *filter;
+
+    ldb_ctx = sysdb_ctx_get_ldb(id_ctx->domain->sysdb);
+    if (ldb_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing ldb_context.\n");
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    filter =  talloc_asprintf(tmp_ctx, "%s=%s", SYSDB_OBJECTCLASS,
+                                                type == SYSDB_MEMBER_USER ?
+                                                   SYSDB_OVERRIDE_USER_CLASS :
+                                                   SYSDB_OVERRIDE_GROUP_CLASS );
+    if (filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    base_dn = ldb_dn_new(tmp_ctx, ldb_ctx, SYSDB_TMPL_VIEW_BASE);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, id_ctx->domain->sysdb, base_dn,
+                             LDB_SCOPE_SUBTREE, filter,
+                             override_attrs, &count, &msgs);
+    if (ret != EOK) {
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "No overrides, nothing to do.\n");
+            ret = EOK;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
+        }
+        goto done;
+    }
+
+    for (c = 0; c < count; c++) {
+        talloc_free(msg);
+        msg = ldb_msg_new(tmp_ctx);
+        if (msg == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        msg->dn = ldb_msg_find_attr_as_dn(ldb_ctx, tmp_ctx, msgs[c],
+                                          SYSDB_OVERRIDE_OBJECT_DN);
+        if (msg->dn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get object DN, skipping.\n");
+            continue;
+        }
+
+        ret = ldb_msg_add_empty(msg, SYSDB_OVERRIDE_DN, LDB_FLAG_MOD_ADD, NULL);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_empty failed.\n");
+            continue;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_OVERRIDE_DN,
+                                 ldb_dn_get_linearized(msgs[c]->dn));
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_string failed.\n");
+            continue;
+        }
+
+        ret = ldb_modify(ldb_ctx, msg);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to store override DN: %s(%d)[%s], skipping.\n",
+                  ldb_strerror(ret), ret, ldb_errstring(ldb_ctx));
+            continue;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static errno_t sf_enum_groups(struct files_id_ctx *id_ctx);
 
 errno_t sf_enum_users(struct files_id_ctx *id_ctx)
@@ -386,6 +487,13 @@ errno_t sf_enum_users(struct files_id_ctx *id_ctx)
                   users[i]->pw_name, ret, sss_strerror(ret));
             continue;
         }
+    }
+
+    ret = refresh_override_attrs(id_ctx, SYSDB_MEMBER_USER);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to refresh override attributes, "
+              "override values might not be available.\n");
     }
 
     ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
@@ -633,6 +741,13 @@ static errno_t sf_enum_groups(struct files_id_ctx *id_ctx)
                   "Cannot save group %s\n", groups[i]->gr_name);
             continue;
         }
+    }
+
+    ret = refresh_override_attrs(id_ctx, SYSDB_MEMBER_GROUP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to refresh override attributes, "
+              "override values might not be available.\n");
     }
 
     ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
