@@ -428,6 +428,14 @@ static void get_domains_at_startup_done(struct tevent_req *req)
         }
     }
 
+    if (!NEED_CHECK_PROVIDER(state->rctx->domains->provider)) {
+        ret = sysdb_master_domain_update(state->rctx->domains);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_master_domain_update failed, "
+                                     "ignored.\n");
+        }
+    }
+
     talloc_free(state);
     return;
 }
