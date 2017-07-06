@@ -1898,7 +1898,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         }
     }
 
-    if (!NEED_CHECK_PROVIDER(preq->domain->provider) ) {
+    if (!NEED_CHECK_AUTH_PROVIDER(preq->domain->provider) ) {
         preq->callback = pam_reply;
         ret = LOCAL_pam_handler(preq);
     } else {
