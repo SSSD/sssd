@@ -74,9 +74,11 @@ const char *wbcErrorString(wbcErr error);
  *  0.11: Extended wbcAuthenticateUserEx to provide PAC parsing
  *  0.12: Added wbcCtxCreate and friends
  *  0.13: Added wbcCtxUnixIdsToSids and wbcUnixIdsToSids
+ *  0.14: Added "authoritative" to wbcAuthErrorInfo
+ *        Added WBC_SID_NAME_LABEL
  **/
 #define WBCLIENT_MAJOR_VERSION 0
-#define WBCLIENT_MINOR_VERSION 13
+#define WBCLIENT_MINOR_VERSION 14
 #define WBCLIENT_VENDOR_VERSION "Samba libwbclient"
 struct wbcLibraryDetails {
     uint16_t major_version;
@@ -138,7 +140,8 @@ enum wbcSidType {
     WBC_SID_NAME_DELETED=6,
     WBC_SID_NAME_INVALID=7,
     WBC_SID_NAME_UNKNOWN=8,
-    WBC_SID_NAME_COMPUTER=9
+    WBC_SID_NAME_COMPUTER=9,
+    WBC_SID_NAME_LABEL=10
 };
 
 /**
@@ -316,6 +319,7 @@ struct wbcChangePasswordParams {
 #define WBC_MSV1_0_ALLOW_SERVER_TRUST_ACCOUNT         0x00000020
 #define WBC_MSV1_0_RETURN_PROFILE_PATH                0x00000200
 #define WBC_MSV1_0_ALLOW_WORKSTATION_TRUST_ACCOUNT    0x00000800
+#define WBC_MSV1_0_ALLOW_MSVCHAPV2                    0x00010000
 
 /* wbcAuthUserParams->flags */
 
@@ -418,6 +422,7 @@ struct wbcAuthErrorInfo {
     char *nt_string;
     int32_t pam_error;
     char *display_string;
+    uint8_t authoritative;
 };
 
 /**

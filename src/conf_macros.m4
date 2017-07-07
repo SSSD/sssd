@@ -743,10 +743,10 @@ AC_DEFUN([WITH_LIBWBCLIENT],
     if test x"$with_libwbclient" = xyes; then
         AC_DEFINE(BUILD_LIBWBCLIENT, 1, [whether to build SSSD implementation of libwbclient])
 
-        libwbclient_version="0.13"
+        libwbclient_version="0.14"
         AC_SUBST(libwbclient_version)
 
-        libwbclient_version_info="13:0:13"
+        libwbclient_version_info="14:0:14"
         AC_SUBST(libwbclient_version_info)
     fi
     AM_CONDITIONAL([BUILD_LIBWBCLIENT], [test x"$with_libwbclient" = xyes])
