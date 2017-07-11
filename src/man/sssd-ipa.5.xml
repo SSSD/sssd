@@ -482,14 +482,15 @@
                 <varlistentry>
                     <term>ipa_server_mode (boolean)</term>
                     <listitem>
-                        <para>
-                            This option should only be set by the IPA
-                            installer.
+			<para>
+                            This option will be set by the IPA installer
+                            (ipa-server-install) automatically and denotes
+                            if SSSD is running on an IPA server or not.
                         </para>
-                        <para>
-                            The option denotes that the SSSD is running on
-                            IPA server and should perform lookups of users
-                            and groups from trusted domains differently.
+			<para>
+                            On an IPA server SSSD will lookup users and groups
+                            from trusted domains directly while on a client
+                            it will ask an IPA server.
                         </para>
                         <para>
                             Default: false
