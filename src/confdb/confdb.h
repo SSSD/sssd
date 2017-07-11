@@ -139,6 +139,8 @@
 #define CONFDB_DEFAULT_SUDO_TIMED false
 #define CONFDB_SUDO_INVERSE_ORDER "sudo_inverse_order"
 #define CONFDB_DEFAULT_SUDO_INVERSE_ORDER false
+#define CONFDB_SUDO_THRESHOLD "sudo_threshold"
+#define CONFDB_DEFAULT_SUDO_THRESHOLD 50
 
 /* autofs */
 #define CONFDB_AUTOFS_CONF_ENTRY "config/autofs"

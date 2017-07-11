@@ -1374,6 +1374,25 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
             </variablelist>
+            <variablelist>
+                <varlistentry>
+                    <term>sudo_threshold (integer)</term>
+                    <listitem>
+                        <para>
+                            Maximum number of expired rules that can be
+                            refreshed at once. If number of expired rules
+                            is below threshold, those rules are refreshed
+                            with <quote>rules refresh</quote> mechanism. If
+                            the threshold is exceeded a
+                            <quote>full refresh</quote> of sudo rules is
+                            triggered instead.
+                        </para>
+                        <para>
+                            Default: 50
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
         </refsect2>
 
         <refsect2 id='AUTOFS' condition="with_autofs">
