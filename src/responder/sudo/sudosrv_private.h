@@ -48,6 +48,7 @@ struct sudo_ctx {
      */
     bool timed;
     bool inverse_order;
+    int threshold;
 };
 
 struct sudo_cmd_ctx {

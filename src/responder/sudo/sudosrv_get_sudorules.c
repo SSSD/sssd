@@ -479,6 +479,7 @@ sudosrv_refresh_rules_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct resp_ctx *rctx,
                            struct sss_domain_info *domain,
+                           int threshold,
                            uid_t uid,
                            const char *username,
                            char **groups)
@@ -520,9 +521,20 @@ sudosrv_refresh_rules_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL, "Refreshing %d expired rules of [%s@%s]\n",
           num_rules, username, domain->name);
 
-    subreq = sss_dp_get_sudoers_send(state, rctx, domain, false,
-                                     SSS_DP_SUDO_REFRESH_RULES,
-                                     username, num_rules, rules);
+    if (num_rules > threshold) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Rules threshold [%d] is reached, performing full refresh "
+              "instead.\n", threshold);
+
+        subreq = sss_dp_get_sudoers_send(state, rctx, domain, false,
+                                         SSS_DP_SUDO_FULL_REFRESH,
+                                         username, 0, NULL);
+    } else {
+        subreq = sss_dp_get_sudoers_send(state, rctx, domain, false,
+                                         SSS_DP_SUDO_REFRESH_RULES,
+                                         username, num_rules, rules);
+    }
+
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -609,6 +621,7 @@ struct sudosrv_get_rules_state {
     struct sss_domain_info *domain;
     char **groups;
     bool inverse_order;
+    int threshold;
 
     struct sysdb_attrs **rules;
     uint32_t num_rules;
@@ -640,6 +653,7 @@ struct tevent_req *sudosrv_get_rules_send(TALLOC_CTX *mem_ctx,
     state->type = type;
     state->uid = uid;
     state->inverse_order = sudo_ctx->inverse_order;
+    state->threshold = sudo_ctx->threshold;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Running initgroups for [%s]\n", username);
 
@@ -696,8 +710,9 @@ static void sudosrv_get_rules_initgr_done(struct tevent_req *subreq)
     }
 
     subreq = sudosrv_refresh_rules_send(state, state->ev, state->rctx,
-                                        state->domain, state->uid,
-                                        state->username, state->groups);
+                                        state->domain, state->threshold,
+                                        state->uid, state->username,
+                                        state->groups);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
