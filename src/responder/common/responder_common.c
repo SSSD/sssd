@@ -608,7 +608,15 @@ static void accept_fd_handler(struct tevent_context *ev,
     cctx->ev = ev;
     cctx->rctx = rctx;
 
-    /* Set up the idle timer */
+    /* Record the new time and set up the idle timer */
+    ret = reset_client_idle_timer(cctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not create idle timer for client. "
+              "This connection may not auto-terminate\n");
+        /* Non-fatal, continue */
+    }
+
     ret = setup_client_idle_timer(cctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -635,7 +643,7 @@ static void client_idle_handler(struct tevent_context *ev,
     if (cctx->last_request_time > now) {
         DEBUG(SSSDBG_IMPORTANT_INFO,
               "Time shift detected, re-scheduling the client timeout\n");
-        goto end;
+        goto done;
     }
 
     if ((now - cctx->last_request_time) > cctx->rctx->client_idle_timeout) {
@@ -649,7 +657,7 @@ static void client_idle_handler(struct tevent_context *ev,
         return;
     }
 
-end:
+done:
     setup_client_idle_timer(cctx);
 }
 
@@ -662,11 +670,9 @@ errno_t reset_client_idle_timer(struct cli_ctx *cctx)
 
 static errno_t setup_client_idle_timer(struct cli_ctx *cctx)
 {
-    time_t now = time(NULL);
     struct timeval tv =
             tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout/2, 0);
 
-    cctx->last_request_time = now;
     talloc_zfree(cctx->idle);
 
     cctx->idle = tevent_add_timer(cctx->ev, cctx, tv, client_idle_handler, cctx);
