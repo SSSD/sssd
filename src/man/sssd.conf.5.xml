@@ -161,7 +161,9 @@
                         <para>
                             Timeout in seconds between heartbeats for this
                             service. This is used to ensure that the process
-                            is alive and capable of answering requests.
+                            is alive and capable of answering requests. Note
+                            after three missed heartbeats process will self
+                            terminate.
                         </para>
                         <para>
                             Default: 10
