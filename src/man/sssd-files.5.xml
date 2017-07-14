@@ -56,14 +56,46 @@
     <refsect1 id='configuration-options'>
         <title>CONFIGURATION OPTIONS</title>
         <para>
-            The files provider has no specific options of its own, however,
-            generic SSSD domain options can be set where applicable.
+            In addition to the options listed below, generic SSSD domain options
+            can be set where applicable.
             Refer to the section <quote>DOMAIN SECTIONS</quote> of the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
             </citerefentry> manual page for details on the configuration
             of an SSSD domain.
+            <variablelist>
+                <varlistentry>
+                    <term>passwd_files (string)</term>
+                    <listitem>
+                        <para>
+                            Comma-separated list of one or multiple password
+                            filenames to be read and enumerated by the files
+                            provider, inotify monitor watches will be set on
+                            each file to detect changes dynamically.
+                        </para>
+                        <para>
+                            Default: /etc/passwd
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>group_files (string)</term>
+                    <listitem>
+                        <para>
+                            Comma-separated list of one or multiple group
+                            filenames to be read and enumerated by the files
+                            provider, inotify monitor watches will be set on
+                            each file to detect changes dynamically.
+                        </para>
+                        <para>
+                            Default: /etc/group
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+            </variablelist>
         </para>
     </refsect1>
 

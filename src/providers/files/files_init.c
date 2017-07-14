@@ -21,6 +21,7 @@
 
 #include "providers/data_provider/dp.h"
 #include "providers/files/files_private.h"
+#include "util/util.h"
 
 int sssm_files_init(TALLOC_CTX *mem_ctx,
                     struct be_ctx *be_ctx,
