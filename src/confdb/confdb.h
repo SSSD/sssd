@@ -242,6 +242,10 @@
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
 #define CONFDB_PROXY_MAX_CHILDREN "proxy_max_children"
 
+/* Files Provider */
+#define CONFDB_FILES_PASSWD "passwd_files"
+#define CONFDB_FILES_GROUP "group_files"
+
 /* Secrets Service */
 #define CONFDB_SEC_CONF_ENTRY "config/secrets"
 #define CONFDB_SEC_CONTAINERS_NEST_LEVEL "containers_nest_level"

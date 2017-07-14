@@ -4575,7 +4575,8 @@ dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-ldap.conf \
     src/config/etc/sssd.api.d/sssd-local.conf \
     src/config/etc/sssd.api.d/sssd-proxy.conf \
-    src/config/etc/sssd.api.d/sssd-simple.conf
+    src/config/etc/sssd.api.d/sssd-simple.conf \
+    src/config/etc/sssd.api.d/sssd-files.conf
 
 edit_cmd = $(SED) \
         -e 's|@sbindir[@]|$(sbindir)|g' \

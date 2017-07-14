@@ -473,7 +473,11 @@ option_strings = {
     'proxy_fast_alias' : _('Whether to look up canonical group name from cache if possible'),
 
     # [provider/proxy/auth]
-    'proxy_pam_target' : _('PAM stack to use')
+    'proxy_pam_target' : _('PAM stack to use'),
+
+    # [provider/files]
+    'passwd_files' : _('Path of passwd file sources.'),
+    'group_files' : _('Path of group file sources.')
 }
 
 def striplist(l):
