@@ -44,6 +44,7 @@ struct files_ctx {
 
 static errno_t enum_files_users(TALLOC_CTX *mem_ctx,
                                 struct files_id_ctx *id_ctx,
+                                const char *passwd_file,
                                 struct passwd ***_users)
 {
     errno_t ret, close_ret;
@@ -53,12 +54,12 @@ static errno_t enum_files_users(TALLOC_CTX *mem_ctx,
     FILE *pwd_handle = NULL;
     size_t n_users = 0;
 
-    pwd_handle = fopen(id_ctx->passwd_file, "r");
+    pwd_handle = fopen(passwd_file, "r");
     if (pwd_handle == NULL) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot open passwd file %s [%d]\n",
-              id_ctx->passwd_file, ret);
+              passwd_file, ret);
         goto done;
     }
 
@@ -133,7 +134,7 @@ done:
             close_ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot close passwd file %s [%d]\n",
-                  id_ctx->passwd_file, close_ret);
+                  passwd_file, close_ret);
         }
     }
     return ret;
@@ -141,6 +142,7 @@ done:
 
 static errno_t enum_files_groups(TALLOC_CTX *mem_ctx,
                                  struct files_id_ctx *id_ctx,
+                                 const char *group_file,
                                  struct group ***_groups)
 {
     errno_t ret, close_ret;
@@ -150,12 +152,12 @@ static errno_t enum_files_groups(TALLOC_CTX *mem_ctx,
     size_t n_groups = 0;
     FILE *grp_handle = NULL;
 
-    grp_handle = fopen(id_ctx->group_file, "r");
+    grp_handle = fopen(group_file, "r");
     if (grp_handle == NULL) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot open group file %s [%d]\n",
-              id_ctx->group_file, ret);
+              group_file, ret);
         goto done;
     }
 
@@ -237,7 +239,7 @@ done:
             close_ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot close group file %s [%d]\n",
-                  id_ctx->group_file, close_ret);
+                  group_file, close_ret);
         }
     }
     return ret;
@@ -446,35 +448,23 @@ done:
     return ret;
 }
 
-static errno_t sf_enum_groups(struct files_id_ctx *id_ctx);
+static errno_t sf_enum_groups(struct files_id_ctx *id_ctx,
+                              const char *group_file);
 
-errno_t sf_enum_users(struct files_id_ctx *id_ctx)
+errno_t sf_enum_users(struct files_id_ctx *id_ctx,
+                      const char *passwd_file)
 {
     errno_t ret;
-    errno_t tret;
     TALLOC_CTX *tmp_ctx = NULL;
     struct passwd **users = NULL;
-    bool in_transaction = false;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
-    ret = enum_files_users(tmp_ctx, id_ctx, &users);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = true;
-
-    /* remove previous cache contents */
-    /* FIXME - this is terribly inefficient */
-    ret = delete_all_users(id_ctx->domain);
+    ret = enum_files_users(tmp_ctx, id_ctx, passwd_file,
+                           &users);
     if (ret != EOK) {
         goto done;
     }
@@ -496,31 +486,8 @@ errno_t sf_enum_users(struct files_id_ctx *id_ctx)
               "override values might not be available.\n");
     }
 
-    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = false;
-
-    /* Covers the case when someone edits /etc/group, adds a group member and
-     * only then edits passwd and adds the user. The reverse is not needed,
-     * because member/memberof links are established when groups are saved.
-     */
-    ret = sf_enum_groups(id_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot refresh groups\n");
-        goto done;
-    }
-
     ret = EOK;
 done:
-    if (in_transaction) {
-        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
-        if (tret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot cancel transaction: %d\n", ret);
-        }
-    }
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -698,13 +665,12 @@ done:
     return ret;
 }
 
-static errno_t sf_enum_groups(struct files_id_ctx *id_ctx)
+static errno_t sf_enum_groups(struct files_id_ctx *id_ctx,
+                              const char *group_file)
 {
     errno_t ret;
-    errno_t tret;
     TALLOC_CTX *tmp_ctx = NULL;
     struct group **groups = NULL;
-    bool in_transaction = false;
     const char **cached_users = NULL;
 
     tmp_ctx = talloc_new(NULL);
@@ -712,25 +678,14 @@ static errno_t sf_enum_groups(struct files_id_ctx *id_ctx)
         return ENOMEM;
     }
 
-    ret = enum_files_groups(tmp_ctx, id_ctx, &groups);
+    ret = enum_files_groups(tmp_ctx, id_ctx, group_file,
+                            &groups);
     if (ret != EOK) {
         goto done;
     }
 
     cached_users = get_cached_user_names(tmp_ctx, id_ctx->domain);
     if (cached_users == NULL) {
-        goto done;
-    }
-
-    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = true;
-
-    /* remove previous cache contents */
-    ret = delete_all_groups(id_ctx->domain);
-    if (ret != EOK) {
         goto done;
     }
 
@@ -750,21 +705,8 @@ static errno_t sf_enum_groups(struct files_id_ctx *id_ctx)
               "override values might not be available.\n");
     }
 
-    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = false;
-
     ret = EOK;
 done:
-    if (in_transaction) {
-        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
-        if (tret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot cancel transaction: %d\n", ret);
-        }
-    }
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -783,20 +725,16 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
 {
     struct files_id_ctx *id_ctx;
     errno_t ret;
+    errno_t tret;
+    bool in_transaction = false;
 
     id_ctx = talloc_get_type(pvt, struct files_id_ctx);
     if (id_ctx == NULL) {
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "passwd notification\n");
-
-    if (strcmp(filename, id_ctx->passwd_file) != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Wrong file, expected %s, got %s\n",
-              id_ctx->passwd_file, filename);
-        return EINVAL;
-    }
 
     id_ctx->updating_passwd = true;
     dp_sbus_domain_inconsistent(id_ctx->be->provider, id_ctx->domain);
@@ -805,11 +743,64 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
     dp_sbus_reset_users_memcache(id_ctx->be->provider);
     dp_sbus_reset_initgr_memcache(id_ctx->be->provider);
 
-    ret = sf_enum_users(id_ctx);
+    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = true;
+
+    ret = delete_all_users(id_ctx->domain);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* All users were deleted, therefore we need to enumerate each file again */
+    for (size_t i = 0; id_ctx->passwd_files[i] != NULL; i++) {
+        ret = sf_enum_users(id_ctx, id_ctx->passwd_files[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate users\n");
+            goto done;
+        }
+    }
+
+    /* Covers the case when someone edits /etc/group, adds a group member and
+     * only then edits passwd and adds the user. The reverse is not needed,
+     * because member/memberof links are established when groups are saved.
+     */
+    ret = delete_all_groups(id_ctx->domain);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* All groups were deleted, therefore we need to enumerate each file again */
+    for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
+        ret = sf_enum_groups(id_ctx, id_ctx->group_files[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate groups\n");
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = false;
 
     id_ctx->updating_passwd = false;
     sf_cb_done(id_ctx);
     files_account_info_finished(id_ctx, BE_REQ_USER, ret);
+
+    ret = EOK;
+done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
+        if (tret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot cancel transaction: %d\n", ret);
+        }
+    }
+
     return ret;
 }
 
@@ -817,20 +808,16 @@ static int sf_group_cb(const char *filename, uint32_t flags, void *pvt)
 {
     struct files_id_ctx *id_ctx;
     errno_t ret;
+    errno_t tret;
+    bool in_transaction = false;
 
     id_ctx = talloc_get_type(pvt, struct files_id_ctx);
     if (id_ctx == NULL) {
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "group notification\n");
-
-    if (strcmp(filename, id_ctx->group_file) != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Wrong file, expected %s, got %s\n",
-              id_ctx->group_file, filename);
-        return EINVAL;
-    }
 
     id_ctx->updating_groups = true;
     dp_sbus_domain_inconsistent(id_ctx->be->provider, id_ctx->domain);
@@ -839,11 +826,47 @@ static int sf_group_cb(const char *filename, uint32_t flags, void *pvt)
     dp_sbus_reset_groups_memcache(id_ctx->be->provider);
     dp_sbus_reset_initgr_memcache(id_ctx->be->provider);
 
-    ret = sf_enum_groups(id_ctx);
+    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = true;
+
+    ret = delete_all_groups(id_ctx->domain);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* All groups were deleted, therefore we need to enumerate each file again */
+    for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
+        ret = sf_enum_groups(id_ctx, id_ctx->group_files[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate groups\n");
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = false;
 
     id_ctx->updating_groups = false;
     sf_cb_done(id_ctx);
     files_account_info_finished(id_ctx, BE_REQ_GROUP, ret);
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
+        if (tret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot cancel transaction: %d\n", ret);
+        }
+    }
+
     return ret;
 }
 
@@ -853,19 +876,62 @@ static void startup_enum_files(struct tevent_context *ev,
 {
     struct files_id_ctx *id_ctx = talloc_get_type(pvt, struct files_id_ctx);
     errno_t ret;
+    errno_t tret;
+    bool in_transaction = false;
 
     talloc_zfree(imm);
 
-    ret = sf_enum_users(id_ctx);
+    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Enumerating users failed, data might be inconsistent!\n");
+        goto done;
+    }
+    in_transaction = true;
+
+    ret = delete_all_users(id_ctx->domain);
+    if (ret != EOK) {
+        goto done;
     }
 
-    ret = sf_enum_groups(id_ctx);
+    ret = delete_all_groups(id_ctx->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Enumerating groups failed, data might be inconsistent!\n");
+        goto done;
+    }
+
+    for (size_t i = 0; id_ctx->passwd_files[i] != NULL; i++) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Startup user enumeration of [%s]\n", id_ctx->passwd_files[i]);
+        ret = sf_enum_users(id_ctx, id_ctx->passwd_files[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Enumerating users failed, data might be inconsistent!\n");
+            goto done;
+        }
+    }
+
+    for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Startup group enumeration of [%s]\n", id_ctx->group_files[i]);
+        ret = sf_enum_groups(id_ctx, id_ctx->group_files[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Enumerating groups failed, data might be inconsistent!\n");
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = false;
+
+done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
+        if (tret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot cancel transaction: %d\n", ret);
+        }
     }
 }
 
@@ -884,22 +950,29 @@ static struct snotify_ctx *sf_setup_watch(TALLOC_CTX *mem_ctx,
 
 struct files_ctx *sf_init(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
-                          const char *passwd_file,
-                          const char *group_file,
+                          const char **passwd_files,
+                          const char **group_files,
                           struct files_id_ctx *id_ctx)
 {
     struct files_ctx *fctx;
     struct tevent_immediate *imm;
+    int i;
 
     fctx = talloc(mem_ctx, struct files_ctx);
     if (fctx == NULL) {
         return NULL;
     }
 
-    fctx->pwd_watch = sf_setup_watch(fctx, ev, passwd_file,
-                                     sf_passwd_cb, id_ctx);
-    fctx->grp_watch = sf_setup_watch(fctx, ev, group_file,
-                                     sf_group_cb, id_ctx);
+    for (i = 0; passwd_files[i]; i++) {
+        fctx->pwd_watch = sf_setup_watch(fctx, ev, passwd_files[i],
+                                         sf_passwd_cb, id_ctx);
+        }
+
+    for (i = 0; group_files[i]; i++) {
+        fctx->grp_watch = sf_setup_watch(fctx, ev, group_files[i],
+                                         sf_group_cb, id_ctx);
+    }
+
     if (fctx->pwd_watch == NULL || fctx->grp_watch == NULL) {
         talloc_free(fctx);
         return NULL;
