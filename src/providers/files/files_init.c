@@ -23,6 +23,138 @@
 #include "providers/files/files_private.h"
 #include "util/util.h"
 
+#define DEFAULT_PASSWD_FILE "/etc/passwd"
+#define DEFAULT_GROUP_FILE "/etc/group"
+
+static errno_t files_init_file_sources(TALLOC_CTX *mem_ctx,
+                                       struct be_ctx *be_ctx,
+                                       const char ***_passwd_files,
+                                       const char ***_group_files)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *conf_passwd_files;
+    char *conf_group_files;
+    char **passwd_list = NULL;
+    char **group_list = NULL;
+    int num_passwd_files = 0;
+    int num_group_files = 0;
+    const char **passwd_files = NULL;
+    const char **group_files = NULL;
+    const char *dfl_passwd_files = NULL;
+    const char *env_group_files = NULL;
+    int i;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dfl_passwd_files = getenv("SSS_FILES_PASSWD");
+    if (dfl_passwd_files) {
+        sss_log(SSS_LOG_ALERT,
+                "Defaulting to %s for the passwd file, "
+                "this should only be used for testing!\n",
+                dfl_passwd_files);
+    } else {
+        dfl_passwd_files = DEFAULT_PASSWD_FILE;
+    }
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Using default passwd file: [%s].\n", dfl_passwd_files);
+
+    env_group_files = getenv("SSS_FILES_GROUP");
+    if (env_group_files) {
+        sss_log(SSS_LOG_ALERT,
+                "Defaulting to %s for the group file, "
+                "this should only be used for testing!\n",
+                env_group_files);
+    } else {
+        env_group_files = DEFAULT_GROUP_FILE;
+    }
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Using default group file: [%s].\n", DEFAULT_GROUP_FILE);
+
+    ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
+                            CONFDB_FILES_PASSWD, dfl_passwd_files,
+                            &conf_passwd_files);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to retrieve confdb passwd files!\n");
+        goto done;
+    }
+
+    ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
+                            CONFDB_FILES_GROUP, env_group_files,
+                            &conf_group_files);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to retrieve confdb group files!\n");
+        goto done;
+    }
+
+    ret = split_on_separator(tmp_ctx, conf_passwd_files, ',', true, true,
+                             &passwd_list, &num_passwd_files);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "Failed to parse passwd list!\n");
+        goto done;
+    }
+
+    passwd_files = talloc_zero_array(tmp_ctx, const char *,
+                                     num_passwd_files + 1);
+    if (passwd_files == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < num_passwd_files; i++) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Using passwd file: [%s].\n", passwd_list[i]);
+
+        passwd_files[i] = talloc_strdup(passwd_files, passwd_list[i]);
+        if (passwd_files[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    /* Retrieve list of group files */
+    ret = split_on_separator(tmp_ctx, conf_group_files, ',', true, true,
+                             &group_list, &num_group_files);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "Failed to parse group files!\n");
+        goto done;
+    }
+
+    group_files = talloc_zero_array(tmp_ctx, const char *,
+                                    num_group_files + 1);
+    if (group_files == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < num_group_files; i++) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Using group file: [%s].\n", group_list[i]);
+        group_files[i] = talloc_strdup(group_files, group_list[i]);
+        if (group_files[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    *_passwd_files = talloc_steal(mem_ctx, passwd_files);
+    *_group_files = talloc_steal(mem_ctx, group_files);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int sssm_files_init(TALLOC_CTX *mem_ctx,
                     struct be_ctx *be_ctx,
                     struct data_provider *provider,
@@ -30,32 +162,27 @@ int sssm_files_init(TALLOC_CTX *mem_ctx,
                     void **_module_data)
 {
     struct files_id_ctx *ctx;
-    int ret;
-    const char *passwd_file = NULL;
-    const char *group_file = NULL;
-
-    /* So far this is mostly useful for tests */
-    passwd_file = getenv("SSS_FILES_PASSWD");
-    if (passwd_file == NULL) {
-        passwd_file = "/etc/passwd";
-    }
-
-    group_file = getenv("SSS_FILES_GROUP");
-    if (group_file == NULL) {
-        group_file = "/etc/group";
-    }
+    errno_t ret;
 
     ctx = talloc_zero(mem_ctx, struct files_id_ctx);
     if (ctx == NULL) {
         return ENOMEM;
     }
+
     ctx->be = be_ctx;
     ctx->domain = be_ctx->domain;
-    ctx->passwd_file = passwd_file;
-    ctx->group_file = group_file;
+
+    ret = files_init_file_sources(ctx, be_ctx,
+                                  &ctx->passwd_files,
+                                  &ctx->group_files);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot initialize the passwd/group source files\n");
+        goto done;
+    }
 
     ctx->fctx = sf_init(ctx, be_ctx->ev,
-                        ctx->passwd_file, ctx->group_file,
+                        ctx->passwd_files,
+                        ctx->group_files,
                         ctx);
     if (ctx->fctx == NULL) {
         ret = ENOMEM;
