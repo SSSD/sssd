@@ -52,6 +52,11 @@ USER2 = dict(name='user2', passwd='x', uid=10002, gid=20001,
              dir='/home/user2',
              shell='/bin/bash')
 
+OV_USER1 = dict(name='ov_user1', passwd='x', uid=10010, gid=20010,
+                gecos='Overriden User 1',
+                dir='/home/ov/user1',
+                shell='/bin/ov_user1_shell')
+
 CANARY_GR = dict(name='canary',
                  gid=300001,
                  mem=[])
@@ -60,6 +65,10 @@ GROUP1 = dict(name='group1',
               gid=30001,
               mem=['user1'])
 
+OV_GROUP1 = dict(name='ov_group1',
+                 gid=30002,
+                 mem=['user1'])
+
 GROUP12 = dict(name='group12',
                gid=30012,
                mem=['user1', 'user2'])
@@ -67,6 +76,14 @@ GROUP12 = dict(name='group12',
 GROUP_NOMEM = dict(name='group_nomem',
                    gid=40000,
                    mem=[])
+
+
+def start_sssd():
+    """Start sssd and add teardown for stopping it and removing state"""
+    os.environ["SSS_FILES_PASSWD"] = os.environ["NSS_WRAPPER_PASSWD"]
+    os.environ["SSS_FILES_GROUP"] = os.environ["NSS_WRAPPER_GROUP"]
+    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+        raise Exception("sssd start failed")
 
 
 def stop_sssd():
@@ -81,6 +98,11 @@ def stop_sssd():
         time.sleep(1)
 
 
+def restart_sssd():
+    stop_sssd()
+    start_sssd()
+
+
 def create_conf_fixture(request, contents):
     """Generate sssd.conf and add teardown for removing it"""
     conf = open(config.CONF_PATH, "w")
@@ -91,11 +113,7 @@ def create_conf_fixture(request, contents):
 
 
 def create_sssd_fixture(request):
-    """Start sssd and add teardown for stopping it and removing state"""
-    os.environ["SSS_FILES_PASSWD"] = os.environ["NSS_WRAPPER_PASSWD"]
-    os.environ["SSS_FILES_GROUP"] = os.environ["NSS_WRAPPER_GROUP"]
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
-        raise Exception("sssd start failed")
+    start_sssd()
 
     def teardown():
         try:
@@ -294,6 +312,32 @@ def check_group_list(exp_groups_list):
         check_group(exp_group)
 
 
+def assert_user_overriden():
+    # There is an issue in nss_wrapper [0] and nss_wrapper always looks into
+    # the files first before using the NSS module. This lets this check fail
+    # because the user is found in the file and hence will be returned
+    # without overridden values.
+    # In order to work this around while there's no fix for nss_wrapper, let's
+    # use the fully-qualified name when looking up the USER1
+    #
+    # https://bugzilla.samba.org/show_bug.cgi?id=12883)
+    ent.assert_passwd_by_name(USER1["name"]+"@files", OV_USER1)
+    ent.assert_passwd_by_name(OV_USER1["name"], OV_USER1)
+
+
+def assert_group_overriden():
+    # There is an issue in nss_wrapper [0] and nss_wrapper always looks into
+    # the files first before using the NSS module. This lets this check fail
+    # because the user is found in the file and hence will be returned
+    # without overridden values.
+    # In order to work this around while there's no fix for nss_wrapper, let's
+    # use the fully-qualified name when looking up the GROUP1
+    #
+    # https://bugzilla.samba.org/show_bug.cgi?id=12883)
+    ent.assert_group_by_name(GROUP1["name"]+"@files", OV_GROUP1)
+    ent.assert_group_by_name(OV_GROUP1["name"], OV_GROUP1)
+
+
 # User tests
 def test_getpwnam_after_start(add_user_with_canary, files_domain_only):
     """
@@ -303,6 +347,38 @@ def test_getpwnam_after_start(add_user_with_canary, files_domain_only):
     res, user = sssd_getpwnam_sync(USER1["name"])
     assert res == NssReturnCode.SUCCESS
     assert user == USER1
+
+
+def test_user_overriden(add_user_with_canary, files_domain_only):
+    """
+    Test that user override works with files domain only
+    """
+    # Override
+    subprocess.check_call(["sss_override", "user-add", USER1["name"],
+                           "-u", str(OV_USER1["uid"]),
+                           "-g", str(OV_USER1["gid"]),
+                           "-n", OV_USER1["name"],
+                           "-c", OV_USER1["gecos"],
+                           "-h", OV_USER1["dir"],
+                           "-s", OV_USER1["shell"]])
+
+    restart_sssd()
+
+    assert_user_overriden()
+
+
+def test_group_overriden(add_group_with_canary, files_domain_only):
+    """
+    Test that user override works with files domain only
+    """
+    # Override
+    subprocess.check_call(["sss_override", "group-add", GROUP1["name"],
+                          "-n", OV_GROUP1["name"],
+                          "-g", str(OV_GROUP1["gid"])])
+
+    restart_sssd()
+
+    assert_group_overriden()
 
 
 def test_getpwnam_neg(files_domain_only):
