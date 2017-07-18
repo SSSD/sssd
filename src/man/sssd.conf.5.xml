@@ -3059,6 +3059,8 @@ ldap_user_extra_attrs = phone:telephoneNumber
             Some options used in the domain section can also be used in the
             trusted domain section, that is, in a section called
             <quote>[domain/<replaceable>DOMAIN_NAME</replaceable>/<replaceable>TRUSTED_DOMAIN_NAME</replaceable>]</quote>.
+            Where DOMAIN_NAME is the actual joined-to base domain. Please refer
+            to examples below for explanation.
             Currently supported options in the trusted domain section are:
         </para>
             <para>ldap_search_base,</para>
@@ -3077,9 +3079,9 @@ ldap_user_extra_attrs = phone:telephoneNumber
     </refsect1>
 
     <refsect1 id='example'>
-        <title>EXAMPLE</title>
+        <title>EXAMPLES</title>
         <para>
-            The following example shows a typical SSSD config. It does
+            1. The following example shows a typical SSSD config. It does
             not describe configuration of the domains themselves - refer to
             documentation on configuring domains for more details.
 <programlisting>
@@ -3107,6 +3109,17 @@ cache_credentials = true
 min_id = 10000
 max_id = 20000
 enumerate = False
+</programlisting>
+        </para>
+        <para>
+            2. The following example shows configuration of IPA AD trust where
+            the AD forest consists of two domains in a parent-child structure.
+            Suppose IPA domain (ipa.com) has trust with AD domain(ad.com).
+            ad.com has child domain (child.ad.com). To enable shortnames in
+            the child domain the following configuration should be used.
+<programlisting>
+[domain/ipa.com/child.ad.com]
+use_fully_qualified_names = false
 </programlisting>
         </para>
     </refsect1>
