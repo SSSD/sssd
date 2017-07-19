@@ -1799,6 +1799,14 @@ done:
         krb5_cc_close(kr->ctx, ccache);
     }
 
+    if (kerr == KRB5KRB_AP_ERR_TKT_EXPIRED) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Attempted to renew an expired TGT, changing the error code "
+              "to expired creds internally\n");
+        /* map_krb5_error() won't touch the sssd-internal code */
+        kerr = ERR_CREDS_EXPIRED;
+    }
+
     return map_krb5_error(kerr);
 }
 
