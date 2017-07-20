@@ -623,7 +623,9 @@
                             a client of an SSSD process can hold onto a file
                             descriptor without communicating on it. This value
                             is limited in order to avoid resource exhaustion
-                            on the system.
+                            on the system. The timeout can't be shorter than
+                            10 seconds. If a lower value is configured, it
+                            will be adjusted to 10 seconds.
                         </para>
                         <para>
                             Default: 60
