@@ -84,7 +84,11 @@ enum idmap_error_code {
     IDMAP_EXTERNAL,
 
     /** The provided  name was not found */
-    IDMAP_NAME_UNKNOWN
+    IDMAP_NAME_UNKNOWN,
+
+    /** Sentinel to indicate the end of the error code list, not returned by
+     * any call */
+    IDMAP_ERR_LAST
 };
 
 /**
