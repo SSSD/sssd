@@ -674,6 +674,16 @@ void test_sss_idmap_check_collision_ex(void **state)
     assert_int_equal(err, IDMAP_SUCCESS);
 }
 
+void test_sss_idmap_error_string(void **state)
+{
+    size_t c;
+
+    for (c = IDMAP_SUCCESS; c < IDMAP_ERR_LAST; c++) {
+        assert_string_not_equal(idmap_error_string(c),
+                                idmap_error_string(IDMAP_ERR_LAST));
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -713,6 +723,7 @@ int main(int argc, const char *argv[])
                                         test_sss_idmap_setup_with_both,
                                         test_sss_idmap_teardown),
         cmocka_unit_test(test_sss_idmap_check_collision_ex),
+        cmocka_unit_test(test_sss_idmap_error_string),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
