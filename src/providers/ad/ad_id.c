@@ -86,6 +86,8 @@ static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
         if (err != IDMAP_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Mapping ID [%s] to SID failed: "
                   "[%s]\n", filter_value, idmap_error_string(err));
+            /* assume id is from a different domain */
+            shortcut = true;
             goto done;
         }
         /* fall through */
