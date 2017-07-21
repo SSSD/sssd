@@ -35,7 +35,7 @@
 #include "util/tev_curl.h"
 
 #define TCURL_IOBUF_CHUNK   1024
-#define TCURL_IOBUF_MAX     4096
+#define TCURL_IOBUF_MAX    16384
 
 static bool global_is_curl_initialized;
 

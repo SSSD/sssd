@@ -31,7 +31,7 @@
 #include "responder/kcm/kcmsrv_ops.h"
 #include "responder/kcm/kcmsrv_ccache.h"
 
-#define KCM_REPLY_MAX   2048
+#define KCM_REPLY_MAX 16384
 
 struct kcm_op_ctx {
     struct kcm_resp_ctx *kcm_data;
