@@ -23,7 +23,7 @@
 #include <Python.h>
 
 #include "util/sss_python.h"
-#include "util/murmurhash3.h"
+#include "shared/murmurhash3.h"
 
 PyDoc_STRVAR(murmurhash3_doc,
 "murmurhash3(key, key_len, seed) -> 32bit integer hash\n\

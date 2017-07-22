@@ -32,7 +32,7 @@
 #include <stdint.h>
 #include <limits.h>
 
-#include "util/util_safealign.h"
+#include "shared/safealign.h"
 
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T

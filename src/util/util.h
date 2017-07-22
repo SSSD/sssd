@@ -39,9 +39,10 @@
 #include <dhash.h>
 
 #include "confdb/confdb.h"
+#include "shared/io.h"
+#include "shared/safealign.h"
 #include "util/atomic_io.h"
 #include "util/util_errors.h"
-#include "util/util_safealign.h"
 #include "util/sss_format.h"
 #include "util/debug.h"
 
@@ -591,7 +592,6 @@ errno_t get_dom_names(TALLOC_CTX *mem_ctx,
 /* from util_lock.c */
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait);
-#include "io.h"
 
 #ifdef HAVE_PAC_RESPONDER
 #define BUILD_WITH_PAC_RESPONDER true

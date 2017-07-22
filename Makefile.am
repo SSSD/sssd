@@ -652,7 +652,6 @@ dist_noinst_HEADERS = \
     src/util/dlinklist.h \
     src/util/debug.h \
     src/util/util.h \
-    src/util/io.h \
     src/util/util_errors.h \
     src/util/safe-format-string.h \
     src/util/session_recording.h \
@@ -673,13 +672,11 @@ dist_noinst_HEADERS = \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
-    src/util/murmurhash3.h \
     src/util/mmap_cache.h \
     src/util/atomic_io.h \
     src/util/auth_utils.h \
     src/util/authtok.h \
     src/util/authtok-utils.h \
-    src/util/util_safealign.h \
     src/util/util_sss_idmap.h \
     src/util/util_creds.h \
     src/util/inotify.h \
@@ -849,6 +846,9 @@ dist_noinst_HEADERS = \
     src/tools/common/sss_colondb.h \
     src/tools/sssctl/sssctl.h \
     src/util/probes.h \
+    src/shared/io.h \
+    src/shared/murmurhash3.h \
+    src/shared/safealign.h \
     $(NULL)
 
 

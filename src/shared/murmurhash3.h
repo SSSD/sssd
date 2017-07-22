@@ -11,10 +11,6 @@
 
 #include <stdint.h>
 
-/* CAUTION:
- * This file is also used in sss_client (pam, nss). Therefore it have to be
- * minimalist and cannot include DEBUG macros or header file util.h.
- */
 uint32_t murmurhash3(const char *key, int len, uint32_t seed);
 
 #endif /* _UTIL_MURMURHASH3_H_ */
