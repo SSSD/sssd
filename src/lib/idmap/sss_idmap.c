@@ -29,7 +29,7 @@
 
 #include "lib/idmap/sss_idmap.h"
 #include "lib/idmap/sss_idmap_private.h"
-#include "util/murmurhash3.h"
+#include "shared/murmurhash3.h"
 
 #define SID_FMT "%s-%d"
 #define SID_STR_MAX_LEN 1024

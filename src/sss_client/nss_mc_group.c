@@ -27,7 +27,7 @@
 #include <sys/mman.h>
 #include <time.h>
 #include "nss_mc.h"
-#include "util/util_safealign.h"
+#include "shared/safealign.h"
 
 struct sss_cli_mc_ctx gr_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
                                     NULL, 0, 0 };

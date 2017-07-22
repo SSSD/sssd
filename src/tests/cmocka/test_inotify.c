@@ -26,7 +26,7 @@
 #include <popt.h>
 
 #include "limits.h"
-#include "util/io.h"
+#include "shared/io.h"
 #include "util/inotify.h"
 #include "util/util.h"
 #include "tests/common.h"

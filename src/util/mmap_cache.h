@@ -22,7 +22,7 @@
 #ifndef _MMAP_CACHE_H_
 #define _MMAP_CACHE_H_
 
-#include "util/murmurhash3.h"
+#include "shared/murmurhash3.h"
 
 
 /* NOTE: all the code here assumes that writing a uint32_t nto mmapped

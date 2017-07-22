@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include "nss_mc.h"
 #include "sss_cli.h"
-#include "util/io.h"
+#include "shared/io.h"
 
 /* FIXME: hook up to library destructor to avoid leaks */
 /* FIXME: temporarily open passwd file on our own, later we will probably

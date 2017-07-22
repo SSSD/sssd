@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include "config.h"
-#include "util/murmurhash3.h"
+#include "shared/murmurhash3.h"
 #include "util/sss_endian.h"
 
 static uint32_t rotl(uint32_t x, int8_t r)
