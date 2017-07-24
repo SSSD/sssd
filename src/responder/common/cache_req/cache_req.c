@@ -176,6 +176,12 @@ cache_req_validate_domain_enumeration(struct cache_req *cr,
     if (domain->enumerate == false) {
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Domain %s does not support "
                         "enumeration, skipping...\n", domain->name);
+        if (cr->rctx->enumeration_warn_logged == false) {
+            sss_log(SSS_LOG_NOTICE, "Enumeration requested but not enabled\n");
+            CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                            "Enumeration requested but not enabled\n");
+            cr->rctx->enumeration_warn_logged = true;
+        }
         return false;
     }
 

@@ -1010,6 +1010,10 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
 
     if (!domain->enumerate) {
         DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]!\n", domain->name);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Please note that when enumeration is disabled `getent "
+              "passwd` does not return all users by design. See "
+              "sssd.conf man page for more detailed information\n");
     }
 
     ret = confdb_get_string(cdb, tmp_ctx, CONFDB_MONITOR_CONF_ENTRY,
