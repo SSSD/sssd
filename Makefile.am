@@ -87,7 +87,7 @@ sudolibdir = @sudolibpath@
 polkitdir = @polkitdir@
 pamconfdir = $(sysconfdir)/pam.d
 systemtap_tapdir = @tapset_dir@
-krb5sysincludedir = $(sysconfdir)/krb5.conf.d
+sssdkcmdatadir = $(datadir)/sssd-kcm
 
 if HAVE_SYSTEMD_UNIT
 ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --debug-to-files --dbus-activated
@@ -189,7 +189,7 @@ sssdlibexec_PROGRAMS += sssd_secrets
 endif
 if BUILD_KCM
 sssdlibexec_PROGRAMS += sssd_kcm
-dist_krb5sysinclude_DATA = contrib/kcm_default_ccache
+dist_sssdkcmdata_DATA = contrib/kcm_default_ccache
 endif
 
 
@@ -4760,7 +4760,7 @@ if BUILD_SAMBA
 	mv $(DESTDIR)/$(winbindplugindir)/winbind_idmap_sss.so $(DESTDIR)/$(winbindplugindir)/sss.so
 endif
 if BUILD_KCM
-	$(MKDIR_P) $(DESTDIR)/$(krb5sysincludedir)
+	$(MKDIR_P) $(DESTDIR)/$(sssdkcmdatadir)
 endif
 
 uninstall-hook:
