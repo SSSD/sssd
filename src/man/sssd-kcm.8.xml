@@ -112,7 +112,6 @@
             <programlisting>
 systemctl start sssd-kcm.socket
 systemctl enable sssd-kcm.socket
-systemctl enable sssd-kcm.service
             </programlisting>
             Please note your distribution may already configure the units
             for you.
@@ -131,7 +130,6 @@ systemctl enable sssd-kcm.service
             <programlisting>
 systemctl start sssd-secrets.socket
 systemctl enable sssd-secrets.socket
-systemctl enable sssd-secrets.service
             </programlisting>
             Your distribution should already set the dependencies between the services.
         </para>
