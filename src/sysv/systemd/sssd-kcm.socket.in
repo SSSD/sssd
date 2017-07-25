@@ -1,5 +1,5 @@
 [Unit]
-Description=SSSD Secrets Service responder socket
+Description=SSSD Kerberos Cache Manager responder socket
 Documentation=man:sssd-kcm(8)
 Requires=sssd-secrets.socket
 
