@@ -25,20 +25,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <strings.h>
-#include <ctype.h>
-#include <errno.h>
 #include <libintl.h>
-#include <limits.h>
 #include <locale.h>
 #include <time.h>
 #include <pcre.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <arpa/inet.h>
 #include <netinet/in.h>
 
 #include <talloc.h>
@@ -192,7 +184,6 @@ void server_loop(struct main_context *main_ctx);
 void orderly_shutdown(int status);
 
 /* from signal.c */
-#include <signal.h>
 void BlockSignals(bool block, int signum);
 void (*CatchSignal(int signum,void (*handler)(int )))(int);
 
@@ -303,6 +294,15 @@ char *sss_output_name(TALLOC_CTX *mem_ctx,
                       const char *fqname,
                       bool case_sensitive,
                       const char replace_space);
+
+int sss_output_fqname(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *domain,
+                      const char *name,
+                      char override_space,
+                      char **_output_name);
+
+const char *sss_get_name_from_msg(struct sss_domain_info *domain,
+                                  struct ldb_message *msg);
 
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
@@ -561,6 +561,11 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
                          const char *domain_name,
                          const char *db_path,
                          struct sss_domain_info **_domain);
+
+void sss_domain_info_set_output_fqnames(struct sss_domain_info *domain,
+                                        bool output_fqname);
+
+bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain);
 
 #define IS_SUBDOMAIN(dom) ((dom)->parent != NULL)
 

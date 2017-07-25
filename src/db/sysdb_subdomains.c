@@ -129,6 +129,13 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->mpg = mpg;
     dom->state = DOM_ACTIVE;
 
+    /* use fully qualified names as output in order to avoid causing
+     * conflicts with users who have the same name and either the
+     * shortname user resolution is enabled or the trusted domain has
+     * been explicitly set to use non-fully qualified names as input.
+     */
+    dom->output_fqnames = true;
+
     /* If the parent domain filters out group members, the subdomain should
      * as well if configured */
     inherit_option = string_in_list(CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS,

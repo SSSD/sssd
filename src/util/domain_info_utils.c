@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <ctype.h>
 #include <utime.h>
 
 #include "confdb/confdb.h"
@@ -903,4 +904,15 @@ const char *sss_domain_type_str(struct sss_domain_info *dom)
         return "Application";
     }
     return "Unknown";
+}
+
+void sss_domain_info_set_output_fqnames(struct sss_domain_info *domain,
+                                        bool output_fqnames)
+{
+    domain->output_fqnames = output_fqnames;
+}
+
+bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain)
+{
+    return domain->output_fqnames;
 }

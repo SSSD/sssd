@@ -199,8 +199,7 @@ function build_debug()
     test_dir=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
     stage configure         "$BASE_DIR/configure" \
                                 "${CONFIGURE_ARG_LIST[@]}" \
-                                --with-test-dir="$test_dir" \
-                                SHELL=/bin/sh
+                                --with-test-dir="$test_dir"
 
     # Not building "tests" due to https://fedorahosted.org/sssd/ticket/2350
     stage make-tests        make -j $CPU_NUM check LOG_COMPILER=true
@@ -214,7 +213,7 @@ function build_debug()
                                 valgrind-condense 99 \
                                 \"$valgrind_test_pattern\" -- \
                                 --trace-children=yes \
-                                --trace-children-skip='*/bin/*,*/sbin/*' \
+                                --trace-children-skip='*/bin/*,*/sbin/*,./dummy-child' \
                                 --leak-check=full \
                                 --gen-suppressions=all \
                                 --suppressions=\"$CI_DIR/sssd.supp\" \

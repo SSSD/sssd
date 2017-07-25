@@ -151,6 +151,13 @@ class IPAChangeConf:
             return section
         return self.sectnamdel[0]+section+self.sectnamdel[1]+self.deol
 
+    @staticmethod
+    def _get_debug_level_val(value):
+        if value > 16:
+            value = hex(value)
+
+        return value
+
     def dump(self, options, level=0):
         output = ""
         if level >= len(self.indent):

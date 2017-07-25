@@ -22,6 +22,8 @@
 #include "responder/secrets/secsrv_private.h"
 #include "util/crypto/sss_crypto.h"
 #include <time.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <ldb.h>
 
 #define MKEY_SIZE (256 / 8)

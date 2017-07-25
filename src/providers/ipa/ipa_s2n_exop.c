@@ -792,6 +792,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     char **name_list = NULL;
     ber_len_t ber_len;
     char *fq_name = NULL;
+    struct sss_domain_info *root_domain = NULL;
 
     if (retoid == NULL || retdata == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing OID or data.\n");
@@ -965,6 +966,8 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
+            root_domain = get_domains_head(dom);
+
             while (ber_peek_tag(ber, &ber_len) ==  LBER_SEQUENCE) {
                 tag = ber_scanf(ber, "{aa}", &domain_name, &name);
                 if (tag == LBER_ERROR) {
@@ -983,7 +986,13 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                 DEBUG(SSSDBG_TRACE_ALL, "[%s][%s][%s].\n", domain_name, name,
                                                            fq_name);
 
-                ret = add_string_to_list(attrs, fq_name, &name_list);
+                if (strcasecmp(root_domain->name, domain_name) != 0) {
+                    ret = add_string_to_list(attrs, fq_name, &name_list);
+                } else {
+                    DEBUG(SSSDBG_TRACE_ALL,
+                          "[%s] from root domain, skipping.\n", fq_name);
+                    ret = EOK; /* Free resources and continue in the loop */
+                }
                 ber_memfree(domain_name);
                 ber_memfree(name);
                 talloc_free(fq_name);
@@ -1228,7 +1237,7 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
 
         break;
     default:
-        DEBUG(SSSDBG_OP_FAILURE, "Unexpected inoput type [%d].\n",
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
                                  state->req_input.type);
         return EINVAL;
     }
@@ -1247,9 +1256,10 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
 
     if (state->req_input.type == REQ_INP_NAME
             && state->req_input.inp.name != NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Sending request_type: [%s] for group [%s].\n",
-                                 ipa_s2n_reqtype2str(state->request_type),
-                                 state->list[state->list_idx]);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Sending request_type: [%s] for object [%s].\n",
+              ipa_s2n_reqtype2str(state->request_type),
+              state->list[state->list_idx]);
     }
 
     subreq = ipa_s2n_exop_send(state, state->ev, state->sh, need_v1,
@@ -1886,6 +1896,13 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         if (state->simple_attrs->response_type == RESP_NAME_LIST
                 && state->req_input->type == REQ_INP_CERT) {
+
+            if (state->simple_attrs->name_list == NULL) {
+                /* No results from sub-domains, nothing to do */
+                ret = EOK;
+                goto done;
+            }
+
             state->mapped_attrs = sysdb_new_attrs(state);
             if (state->mapped_attrs == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
@@ -2637,6 +2654,16 @@ static void ipa_s2n_get_list_done(struct tevent_req  *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n get_fqlist request failed.\n");
         tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->attrs == NULL) {
+        /* If this is a request by certificate we are done */
+        if (state->req_input->type == REQ_INP_CERT) {
+            tevent_req_done(req);
+        } else {
+            tevent_req_error(req, EINVAL);
+        }
         return;
     }
 

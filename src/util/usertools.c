@@ -816,3 +816,70 @@ done:
     talloc_free(tmp_ctx);
     return outname;
 }
+
+const char *
+sss_get_name_from_msg(struct sss_domain_info *domain,
+                      struct ldb_message *msg)
+{
+    const char *name;
+
+    /* If domain has a view associated we return overridden name
+     * if possible. */
+    if (DOM_HAS_VIEWS(domain)) {
+        name = ldb_msg_find_attr_as_string(msg, OVERRIDE_PREFIX SYSDB_NAME,
+                                           NULL);
+        if (name != NULL) {
+            return name;
+        }
+    }
+
+    /* Otherwise we try to return name override from
+     * Default Truest View for trusted users. */
+    name = ldb_msg_find_attr_as_string(msg, SYSDB_DEFAULT_OVERRIDE_NAME, NULL);
+    if (name != NULL) {
+        return name;
+    }
+
+    /* If no override is found we return the original name. */
+    return ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+}
+
+int sss_output_fqname(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *domain,
+                      const char *name,
+                      char override_space,
+                      char **_output_name)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
+    char *output_name;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    output_name = sss_output_name(tmp_ctx, name, domain->case_preserve,
+                                  override_space);
+    if (output_name == NULL) {
+        ret = EIO;
+        goto done;
+    }
+
+    if (sss_domain_info_get_output_fqnames(domain) || domain->fqnames) {
+        output_name = sss_tc_fqname(tmp_ctx, domain->names,
+                                    domain, output_name);
+        if (output_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_tc_fqname failed\n");
+            ret = EIO;
+            goto done;
+        }
+    }
+
+    *_output_name = talloc_steal(mem_ctx, output_name);
+    ret = EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}

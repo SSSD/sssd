@@ -36,6 +36,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "config.h"
 #include "resolv/async_resolv.h"

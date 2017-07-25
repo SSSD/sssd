@@ -200,6 +200,8 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
     const char *action = DEFAULT_ACTION;
     const char *service = DEFAULT_SERVICE;
     int ret;
+    int pret;
+    const char *pam_user = NULL;
     size_t c;
     char **pam_env;
 
@@ -246,7 +248,14 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
     if ( strncmp(action, "auth", 4)== 0 ) {
         fprintf(stdout, _("testing pam_authenticate\n\n"));
         ret = pam_authenticate(pamh, 0);
-        fprintf(stderr, _("pam_authenticate: %s\n\n"), pam_strerror(pamh, ret));
+        pret = pam_get_item(pamh, PAM_USER, (const void **) &pam_user);
+        if (pret != PAM_SUCCESS) {
+            fprintf(stderr, _("pam_get_item failed: %s\n"), pam_strerror(pamh,
+                                                                         pret));
+            pam_user = "- not available -";
+        }
+        fprintf(stderr, _("pam_authenticate for user [%s]: %s\n\n"), pam_user,
+                                                       pam_strerror(pamh, ret));
     } else if ( strncmp(action, "chau", 4)== 0 ) {
         fprintf(stdout, _("testing pam_chauthtok\n\n"));
         ret = pam_chauthtok(pamh, 0);

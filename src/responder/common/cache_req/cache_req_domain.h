@@ -35,6 +35,14 @@ struct cache_req_domain *
 cache_req_domain_get_domain_by_name(struct cache_req_domain *domains,
                                     const char *name);
 
+/*
+ * This function may have a side effect of setting the output_fqnames' domain
+ * property when it's called.
+ *
+ * It happens as the output_fqnames' domain property must only be set depending
+ * on whether a domain resolution order is set or not, and the saner place to
+ * set it to all domains is when flattening those (thus, in this function).
+ */
 errno_t
 cache_req_domain_new_list_from_domain_resolution_order(
                                         TALLOC_CTX *mem_ctx,

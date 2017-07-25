@@ -19,6 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/uio.h>
 #include <krb5/krb5.h>
 
 #include "config.h"

@@ -18,6 +18,7 @@
 #include <talloc.h>
 #include <errno.h>
 #include <libgen.h>
+#include <limits.h>
 #include <sys/inotify.h>
 #include <sys/time.h>
 

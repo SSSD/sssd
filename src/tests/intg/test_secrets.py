@@ -55,9 +55,9 @@ def create_sssd_secrets_fixture(request):
     assert secpid >= 0
 
     if secpid == 0:
-        if subprocess.call([resp_path, "--uid=0", "--gid=0"]) != 0:
-            print("sssd_secrets failed to start")
-            sys.exit(99)
+        os.execv(resp_path, ("--uid=0", "--gid=0"))
+        print("sssd_secrets failed to start")
+        sys.exit(99)
     else:
         sock_path = os.path.join(config.RUNSTATEDIR, "secrets.socket")
         sck = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -83,13 +83,8 @@ def create_sssd_secrets_fixture(request):
     return secpid
 
 
-@pytest.fixture
-def setup_for_secrets(request):
-    """
-    Just set up the local provider for tests and enable the secrets
-    responder
-    """
-    conf = unindent("""\
+def generate_sec_config():
+    return unindent("""\
         [sssd]
         domains = local
         services = nss
@@ -100,11 +95,19 @@ def setup_for_secrets(request):
         [secrets]
         max_secrets = 10
         max_payload_size = 2
-    """).format(**locals())
+    """)
+
+
+@pytest.fixture
+def setup_for_secrets(request):
+    """
+    Just set up the local provider for tests and enable the secrets
+    responder
+    """
+    conf = generate_sec_config()
 
     create_conf_fixture(request, conf)
-    create_sssd_secrets_fixture(request)
-    return None
+    return create_sssd_secrets_fixture(request)
 
 
 def get_secrets_socket():
@@ -303,7 +306,6 @@ def test_curlwrap_crd_ops(setup_for_secrets,
     assert "foo_under_cont" in output
 
 
-
 def test_curlwrap_parallel(setup_for_secrets,
                            curlwrap_tool):
     """
@@ -386,3 +388,49 @@ def test_containers(setup_for_secrets, secrets_cli):
     with pytest.raises(HTTPError) as err406:
         cli.create_container(container)
     assert str(err406.value).startswith("406")
+
+
+def get_num_fds(pid):
+    procpath = os.path.join("/proc/", str(pid), "fd")
+    return len([fdname for fdname in os.listdir(procpath)])
+
+
+@pytest.fixture
+def setup_for_cli_timeout_test(request):
+    """
+    Same as the generic setup, except a short client_idle_timeout so that
+    the test_idle_timeout() test closes the fd towards the client.
+    """
+    conf = generate_sec_config() + \
+        unindent("""
+        client_idle_timeout = 10
+        """).format()
+
+    create_conf_fixture(request, conf)
+    return create_sssd_secrets_fixture(request)
+
+
+def test_idle_timeout(setup_for_cli_timeout_test):
+    """
+    Test that idle file descriptors are reaped after the idle timeout
+    passes
+    """
+    secpid = setup_for_cli_timeout_test
+    sock_path = get_secrets_socket()
+
+    nfds_pre = get_num_fds(secpid)
+
+    sock = socket.socket(family=socket.AF_UNIX)
+    sock.connect(sock_path)
+    time.sleep(1)
+    nfds_conn = get_num_fds(secpid)
+    assert nfds_pre + 1 == nfds_conn
+    # With the idle timeout set to 10 seconds, we need to sleep at least 15,
+    # because the internal timer ticks every timeout/2 seconds, so it would
+    # tick at 5, 10 and 15 seconds and the client timeout check uses a
+    # greater-than comparison, so the 10-seconds tick wouldn't yet trigger
+    # disconnect
+    time.sleep(15)
+
+    nfds_post = get_num_fds(secpid)
+    assert nfds_pre == nfds_post

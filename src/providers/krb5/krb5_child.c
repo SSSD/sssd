@@ -25,6 +25,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <ctype.h>
 #include <popt.h>
 
 #include <security/pam_modules.h>
@@ -64,6 +66,7 @@ struct cli_opts {
 struct krb5_req {
     krb5_context ctx;
     krb5_principal princ;
+    krb5_principal princ_orig;
     char* name;
     krb5_creds *creds;
     bool otp;
@@ -1540,6 +1543,17 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         if (kerr != 0) {
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
 
+            /* Special case for IPA password migration */
+            if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
+                    && kerr == KRB5_PREAUTH_FAILED
+                    && kr->pkinit_prompting == false
+                    && kr->password_prompting == false
+                    && kr->otp == false
+                    && sss_authtok_get_type(kr->pd->authtok)
+                            == SSS_AUTHTOK_TYPE_PASSWORD) {
+                return ERR_CREDS_INVALID;
+            }
+
             /* If during authentication either the MIT Kerberos pkinit
              * pre-auth module is missing or no Smartcard is inserted and only
              * pkinit is available KRB5_PREAUTH_FAILED is returned.
@@ -1964,7 +1978,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
     }
 
     set_changepw_options(kr->options);
-    kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
+    kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ_orig,
                                         password_or_responder(password),
                                         sss_krb5_prompter, kr, 0,
                                         SSSD_KRB5_CHANGEPW_PRINCIPAL,
@@ -2092,6 +2106,14 @@ done:
 
     if (ccache != NULL) {
         krb5_cc_close(kr->ctx, ccache);
+    }
+
+    if (kerr == KRB5KRB_AP_ERR_TKT_EXPIRED) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Attempted to renew an expired TGT, changing the error code "
+              "to expired creds internally\n");
+        /* map_krb5_error() won't touch the sssd-internal code */
+        kerr = ERR_CREDS_EXPIRED;
     }
 
     return map_krb5_error(kerr);
@@ -2292,6 +2314,8 @@ static int krb5_cleanup(struct krb5_req *kr)
         sss_krb5_free_unparsed_name(kr->ctx, kr->name);
     if (kr->princ != NULL)
         krb5_free_principal(kr->ctx, kr->princ);
+    if (kr->princ_orig != NULL)
+        krb5_free_principal(kr->ctx, kr->princ_orig);
     if (kr->ctx != NULL)
         krb5_free_context(kr->ctx);
 
@@ -2831,6 +2855,12 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
     parse_flags = kr->use_enterprise_princ ? KRB5_PRINCIPAL_PARSE_ENTERPRISE : 0;
     kerr = sss_krb5_parse_name_flags(kr->ctx, kr->upn, parse_flags, &kr->princ);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        return kerr;
+    }
+
+    kerr = krb5_parse_name(kr->ctx, kr->upn, &kr->princ_orig);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;

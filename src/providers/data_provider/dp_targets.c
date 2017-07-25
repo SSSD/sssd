@@ -284,7 +284,7 @@ static errno_t dp_target_init(struct be_ctx *be_ctx,
     if (!target->explicitly_configured && (ret == ELIBBAD || ret == ENOTSUP)) {
         /* Target not found but it wasn't explicitly
          * configured so we shall just continue. */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Target [%s] is not supported by "
+        DEBUG(SSSDBG_CONF_SETTINGS, "Target [%s] is not supported by "
               "module [%s].\n", target->name, target->module_name);
         ret = EOK;
         goto done;

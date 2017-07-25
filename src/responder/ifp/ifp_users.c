@@ -1328,6 +1328,52 @@ void ifp_users_user_get_groups(struct sbus_request *sbus_req,
     *_size = num_groups;
 }
 
+void ifp_users_user_get_domain(struct sbus_request *sbus_req,
+                               void *data,
+                               const char **_out)
+{
+    const char *domainname;
+
+    *_out = NULL;
+    ifp_users_user_get_domainname(sbus_req, data, &domainname);
+
+    if (domainname == NULL) {
+        return;
+    }
+
+    *_out = sbus_opath_compose(sbus_req, IFP_PATH_DOMAINS,
+                               domainname);
+}
+
+void ifp_users_user_get_domainname(struct sbus_request *sbus_req,
+                                   void *data,
+                                   const char **_out)
+{
+    struct ifp_ctx *ifp_ctx;
+    struct sss_domain_info *domain;
+    errno_t ret;
+
+    *_out = NULL;
+
+    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ifp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return;
+    }
+
+    if (!ifp_is_user_attr_allowed(ifp_ctx, "domainname")) {
+        DEBUG(SSSDBG_TRACE_ALL, "Attribute domainname is not allowed\n");
+        return;
+    }
+
+    ret = ifp_users_user_get(sbus_req, ifp_ctx, &domain, NULL);
+    if (ret != EOK) {
+        return;
+    }
+
+    *_out = domain->name;
+}
+
 void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
                                          void *data,
                                          hash_table_t **_out)

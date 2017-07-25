@@ -829,6 +829,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
     char *renew_interval_str;
     time_t renew_interval_time = 0;
     bool use_enterprise_principal;
+    bool canonicalize;
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
@@ -890,6 +891,9 @@ static void krb5_auth_done(struct tevent_req *subreq)
                         state->be_ctx->domain->pwd_expiration_warning,
                         &res);
     if (ret) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "The krb5_child process returned an error. Please inspect the "
+              "krb5_child.log file or the journal for more information\n");
         DEBUG(SSSDBG_OP_FAILURE, "Could not parse child response [%d]: %s\n",
               ret, strerror(ret));
         goto done;
@@ -905,6 +909,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
 
     use_enterprise_principal = dp_opt_get_bool(kr->krb5_ctx->opts,
                                                KRB5_USE_ENTERPRISE_PRINCIPAL);
+    canonicalize = dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_CANONICALIZE);
 
     /* Check if the cases of our upn are correct and update it if needed.
      * Fail if the upn differs by more than just the case for non-enterprise
@@ -912,6 +917,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
     if (res->correct_upn != NULL &&
         strcmp(kr->upn, res->correct_upn) != 0) {
         if (strcasecmp(kr->upn, res->correct_upn) == 0 ||
+            canonicalize == true ||
             use_enterprise_principal == true) {
             talloc_free(kr->upn);
             kr->upn = talloc_strdup(kr, res->correct_upn);

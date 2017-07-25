@@ -88,8 +88,8 @@ static void test_sysdb_get_certmap_not_exists(void **state)
 
     ret = sysdb_get_certmap(ctctx, ctctx->tctx->sysdb, &certmap,
                             &user_name_hint);
-    assert_int_equal(ret, ENOENT);
-
+    assert_int_equal(ret, EOK);
+    assert_null(certmap);
 }
 
 static void check_certmap(struct certmap_info *m, struct certmap_info *r,
@@ -134,7 +134,7 @@ static void test_sysdb_update_certmap(void **state)
     int ret;
     const char *domains[] = { "dom1.test", "dom2.test", "dom3.test", NULL };
     struct certmap_info map_a = { discard_const("map_a"), 11, discard_const("abc"), discard_const("def"), NULL };
-    struct certmap_info map_b = { discard_const("map_b"), 22, discard_const("abc"), NULL, domains };
+    struct certmap_info map_b = { discard_const("map_b"), UINT_MAX, discard_const("abc"), NULL, domains };
     struct certmap_info *certmap_empty[] = { NULL };
     struct certmap_info *certmap_a[] = { &map_a, NULL };
     struct certmap_info *certmap_b[] = { &map_b, NULL };
@@ -152,7 +152,8 @@ static void test_sysdb_update_certmap(void **state)
 
     ret = sysdb_get_certmap(ctctx, ctctx->tctx->sysdb, &certmap,
                             &user_name_hint);
-    assert_int_equal(ret, ENOENT);
+    assert_int_equal(ret, EOK);
+    assert_null(certmap);
 
     ret = sysdb_update_certmap(ctctx->tctx->sysdb, certmap_a, false);
     assert_int_equal(ret, EOK);

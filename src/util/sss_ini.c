@@ -561,12 +561,63 @@ error:
 }
 
 #ifdef HAVE_LIBINI_CONFIG_V1_3
+/* Here we can put custom SSSD specific checks that can not be implemented
+ * using libini validators */
+static int custom_sssd_checks(const char *rule_name,
+                              struct ini_cfgobj *rules_obj,
+                              struct ini_cfgobj *config_obj,
+                              struct ini_errobj *errobj,
+                              void **data)
+{
+    char **cfg_sections = NULL;
+    int num_cfg_sections;
+    struct value_obj *vo = NULL;
+    char dom_prefix[] = "domain/";
+    int ret;
+
+    /* Get all sections in configuration */
+    cfg_sections = ini_get_section_list(config_obj, &num_cfg_sections, &ret);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Check if a normal domain section (not application domains) has option
+     * inherit_from and report error if it does */
+    for (int i = 0; i < num_cfg_sections; i++) {
+        if (strncmp(dom_prefix, cfg_sections[i], strlen(dom_prefix)) == 0) {
+            ret = ini_get_config_valueobj(cfg_sections[i],
+                                          "inherit_from",
+                                          config_obj,
+                                          INI_GET_NEXT_VALUE,
+                                          &vo);
+            if (vo != NULL) {
+                ret = ini_errobj_add_msg(errobj,
+                                         "Attribute 'inherit_from' is not "
+                                         "allowed in section '%s'. Check for "
+                                         "typos.",
+                                         cfg_sections[i]);
+                if (ret != EOK) {
+                    goto done;
+                }
+            }
+        }
+    }
+
+    ret = EOK;
+done:
+    ini_free_section_list(cfg_sections);
+    return EOK;
+}
+
 static int sss_ini_call_validators_errobj(struct sss_ini_initdata *data,
                                           const char *rules_path,
                                           struct ini_errobj *errobj)
 {
     int ret;
     struct ini_cfgobj *rules_cfgobj = NULL;
+    struct ini_validator custom_sssd = { "sssd_checks", custom_sssd_checks,
+                                         NULL };
+    struct ini_validator *sss_validators[] = { &custom_sssd, NULL };
 
     ret = ini_rules_read_from_file(rules_path, &rules_cfgobj);
     if (ret != EOK) {
@@ -575,7 +626,7 @@ static int sss_ini_call_validators_errobj(struct sss_ini_initdata *data,
         goto done;
     }
 
-    ret = ini_rules_check(rules_cfgobj, data->sssd_config, NULL, errobj);
+    ret = ini_rules_check(rules_cfgobj, data->sssd_config, sss_validators, errobj);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "ini_rules_check failed %d [%s]\n", ret, strerror(ret));

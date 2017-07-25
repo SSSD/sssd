@@ -27,6 +27,7 @@
 #include <sys/param.h>
 #include <time.h>
 #include <string.h>
+#include <signal.h>
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
 #endif
@@ -2650,12 +2651,6 @@ int main(int argc, const char *argv[])
                              &monitor);
     if (ret != EOK) {
         switch (ret) {
-        case ERR_MISSING_CONF:
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Configuration file: %s does not exist.\n", config_file);
-            sss_log(SSS_LOG_ALERT,
-                    "Configuration file: %s does not exist.\n", config_file);
-            break;
         case EPERM:
         case EACCES:
             DEBUG(SSSDBG_CRIT_FAILURE,

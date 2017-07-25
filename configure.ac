@@ -197,7 +197,6 @@ m4_include([src/external/service.m4])
 
 if test x$with_secrets = xyes; then
     m4_include([src/external/libhttp_parser.m4])
-    m4_include([src/external/libjansson.m4])
 fi
 
 if test x$with_kcm = xyes; then
@@ -206,6 +205,7 @@ fi
 
 if test x$with_kcm = xyes -o x$with_secrets = xyes; then
     m4_include([src/external/libcurl.m4])
+    m4_include([src/external/libjansson.m4])
 fi
 
 # This variable is defined by external/libcurl.m4, but conditionals

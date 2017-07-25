@@ -1,8 +1,6 @@
 The instructions on how to build the SSSD and contribute to the
 project can be found here:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-https://fedorahosted.org/sssd/wiki/Contribute
-https://fedorahosted.org/sssd/wiki/DevelTips
+https://docs.pagure.org/SSSD.sssd/developers/index.html
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

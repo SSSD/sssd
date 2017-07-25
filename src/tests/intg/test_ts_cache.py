@@ -202,8 +202,10 @@ def ldb_examine(request):
 def invalidate_group(ldb_conn, name):
     ldb_conn.invalidate_entry(name, sssd_ldb.TsCacheEntry.group, SSSD_DOMAIN)
 
+
 def invalidate_user(ldb_conn, name):
     ldb_conn.invalidate_entry(name, sssd_ldb.TsCacheEntry.user, SSSD_DOMAIN)
+
 
 def get_attrs(ldb_conn, type, name, domain, attr_list):
     sysdb_attrs = dict()
@@ -617,7 +619,7 @@ def test_user_2307bis_delete_user(ldap_conn,
 
 def test_sss_cache_invalidate_user(ldap_conn,
                                    ldb_examine,
-                                   setup_rfc2307bis ):
+                                   setup_rfc2307bis):
     """
     Test that sss_cache invalidate user in both caches
     """
@@ -644,7 +646,7 @@ def test_sss_cache_invalidate_user(ldap_conn,
 
 def test_sss_cache_invalidate_group(ldap_conn,
                                     ldb_examine,
-                                    setup_rfc2307bis ):
+                                    setup_rfc2307bis):
     """
     Test that sss_cache invalidate group in both caches
     """

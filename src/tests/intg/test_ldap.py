@@ -967,7 +967,9 @@ def zero_nesting_sssd_conf(ldap_conn, schema):
 def rfc2307bis_no_nesting(request, ldap_conn):
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001)
-    ent_list.add_group_bis("group1", 20001, member_uids=["user1"])
+    ent_list.add_group_bis("primarygroup", 2001)
+    ent_list.add_group_bis("parentgroup", 2010, member_uids=["user1"])
+    ent_list.add_group_bis("nestedgroup", 2011, member_gids=["parentgroup"])
     create_ldap_fixture(request, ldap_conn, ent_list)
     create_conf_fixture(request,
                         zero_nesting_sssd_conf(
@@ -978,5 +980,171 @@ def rfc2307bis_no_nesting(request, ldap_conn):
 
 
 def test_zero_nesting_level(ldap_conn, rfc2307bis_no_nesting):
-    ent.assert_group_by_name("group1",
+    """
+    Test initgroups operation with rfc2307bis schema asserting
+    only primary group and parent groups are included in group
+    list. No parent groups of groups should be returned with zero
+    group nesting level.
+    """
+    ent.assert_group_by_name("parentgroup",
                              dict(mem=ent.contains_only("user1")))
+    ent.assert_group_by_name("nestedgroup",
+                             dict(mem=ent.contains_only()))
+
+    (res, errno, grp_list) = sssd_id.get_user_groups("user1")
+    assert res == sssd_id.NssReturnCode.SUCCESS, \
+        "Could not find groups for user1, %d" % errno
+
+    ## test nestedgroup is not returned in group list
+    assert sorted(grp_list) == sorted(["primarygroup", "parentgroup"])
+
+
+
+@pytest.fixture
+def sanity_nss_filter(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2002)
+    ent_list.add_user("user3", 1003, 2003)
+
+    ent_list.add_group_bis("group1", 2001)
+    ent_list.add_group_bis("group2", 2002)
+    ent_list.add_group_bis("group3", 2003)
+
+    ent_list.add_group_bis("empty_group1", 2010)
+    ent_list.add_group_bis("empty_group2", 2011)
+
+    ent_list.add_group_bis("two_user_group", 2012, ["user1", "user2"])
+    ent_list.add_group_bis("group_empty_group", 2013, [], ["empty_group1"])
+    ent_list.add_group_bis("group_two_empty_groups", 2014,
+                           [], ["empty_group1", "empty_group2"])
+    ent_list.add_group_bis("one_user_group1", 2015, ["user1"])
+    ent_list.add_group_bis("one_user_group2", 2016, ["user2"])
+    ent_list.add_group_bis("group_one_user_group", 2017,
+                           [], ["one_user_group1"])
+    ent_list.add_group_bis("group_two_user_group", 2018,
+                           [], ["two_user_group"])
+    ent_list.add_group_bis("group_two_one_user_groups", 2019,
+                           [], ["one_user_group1", "one_user_group2"])
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
+        unindent("""
+            [nss]
+            filter_users = user2
+            filter_groups = group_two_one_user_groups
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_nss_filters(ldap_conn, sanity_nss_filter):
+    passwd_pattern = expected_list_to_name_dict([
+        dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001',
+             dir='/home/user1', shell='/bin/bash'),
+        dict(name='user3', passwd='*', uid=1003, gid=2003, gecos='1003',
+             dir='/home/user3', shell='/bin/bash')
+    ])
+
+    # test filtered user
+    ent.assert_each_passwd_by_name(passwd_pattern)
+    with pytest.raises(KeyError):
+        pwd.getpwnam("user2")
+    with pytest.raises(KeyError):
+        pwd.getpwuid(1002)
+
+    group_pattern = expected_list_to_name_dict([
+        dict(name='group1', passwd='*', gid=2001, mem=ent.contains_only()),
+        dict(name='group2', passwd='*', gid=2002, mem=ent.contains_only()),
+        dict(name='group3', passwd='*', gid=2003, mem=ent.contains_only()),
+        dict(name='empty_group1', passwd='*', gid=2010,
+             mem=ent.contains_only()),
+        dict(name='empty_group2', passwd='*', gid=2011,
+             mem=ent.contains_only()),
+        dict(name='two_user_group', passwd='*', gid=2012,
+             mem=ent.contains_only("user1")),
+        dict(name='group_empty_group', passwd='*', gid=2013,
+             mem=ent.contains_only()),
+        dict(name='group_two_empty_groups', passwd='*', gid=2014,
+             mem=ent.contains_only()),
+        dict(name='one_user_group1', passwd='*', gid=2015,
+             mem=ent.contains_only("user1")),
+        dict(name='one_user_group2', passwd='*', gid=2016,
+             mem=ent.contains_only()),
+        dict(name='group_one_user_group', passwd='*', gid=2017,
+             mem=ent.contains_only("user1")),
+        dict(name='group_two_user_group', passwd='*', gid=2018,
+             mem=ent.contains_only("user1")),
+    ])
+
+    # test filtered group
+    ent.assert_each_group_by_name(group_pattern)
+    with pytest.raises(KeyError):
+        grp.getgrnam("group_two_one_user_groups")
+    with pytest.raises(KeyError):
+        grp.getgrgid(2019)
+
+    # test non-existing user/group
+    with pytest.raises(KeyError):
+        pwd.getpwnam("non_existent_user")
+    with pytest.raises(KeyError):
+        pwd.getpwuid(9)
+    with pytest.raises(KeyError):
+        grp.getgrnam("non_existent_group")
+    with pytest.raises(KeyError):
+        grp.getgrgid(14)
+
+
+@pytest.fixture
+def sanity_nss_filter_cached(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2002)
+    ent_list.add_user("user3", 1003, 2003)
+
+    ent_list.add_group_bis("group1", 2001)
+    ent_list.add_group_bis("group2", 2002)
+    ent_list.add_group_bis("group3", 2003)
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
+        unindent("""
+            [nss]
+            filter_users = user2
+            filter_groups = group2
+            entry_negative_timeout = 1
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_nss_filters_cached(ldap_conn, sanity_nss_filter_cached):
+    passwd_pattern = expected_list_to_name_dict([
+        dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001',
+             dir='/home/user1', shell='/bin/bash'),
+        dict(name='user3', passwd='*', uid=1003, gid=2003, gecos='1003',
+             dir='/home/user3', shell='/bin/bash')
+    ])
+    ent.assert_each_passwd_by_name(passwd_pattern)
+
+    # test filtered user
+    with pytest.raises(KeyError):
+        pwd.getpwuid(1002)
+    time.sleep(2)
+    with pytest.raises(KeyError):
+        pwd.getpwuid(1002)
+
+    group_pattern = expected_list_to_name_dict([
+        dict(name='group1', passwd='*', gid=2001, mem=ent.contains_only()),
+        dict(name='group3', passwd='*', gid=2003, mem=ent.contains_only()),
+    ])
+    ent.assert_each_group_by_name(group_pattern)
+
+    # test filtered group
+    with pytest.raises(KeyError):
+        grp.getgrgid(2002)
+    time.sleep(2)
+    with pytest.raises(KeyError):
+        grp.getgrgid(2002)

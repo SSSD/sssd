@@ -4,6 +4,7 @@
 #define __IFP_IFACE_XML__
 
 #include "sbus/sssd_dbus.h"
+#include "sbus/sssd_dbus_meta.h"
 
 /* ------------------------------------------------------------------------
  * DBus Constants
@@ -88,6 +89,8 @@
 #define IFACE_IFP_USERS_USER_LOGINSHELL "loginShell"
 #define IFACE_IFP_USERS_USER_UNIQUEID "uniqueID"
 #define IFACE_IFP_USERS_USER_GROUPS "groups"
+#define IFACE_IFP_USERS_USER_DOMAIN "domain"
+#define IFACE_IFP_USERS_USER_DOMAINNAME "domainname"
 #define IFACE_IFP_USERS_USER_EXTRAATTRIBUTES "extraAttributes"
 
 /* constants for org.freedesktop.sssd.infopipe.Groups */
@@ -288,6 +291,8 @@ struct iface_ifp_users_user {
     void (*get_loginShell)(struct sbus_request *, void *data, const char **);
     void (*get_uniqueID)(struct sbus_request *, void *data, const char **);
     void (*get_groups)(struct sbus_request *, void *data, const char ***, int *);
+    void (*get_domain)(struct sbus_request *, void *data, const char **);
+    void (*get_domainname)(struct sbus_request *, void *data, const char **);
     void (*get_extraAttributes)(struct sbus_request *, void *data, hash_table_t **);
 };
 

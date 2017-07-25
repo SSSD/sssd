@@ -19,6 +19,10 @@
 */
 
 #include "config.h"
+
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 

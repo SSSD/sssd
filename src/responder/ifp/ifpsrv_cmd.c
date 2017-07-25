@@ -181,26 +181,6 @@ static void ifp_user_get_attr_process(struct tevent_req *req)
 }
 
 static errno_t
-ifp_user_get_attr_replace_space(TALLOC_CTX *mem_ctx,
-                                struct ldb_message_element *el,
-                                const char sub)
-{
-    int i;
-
-    for (i = 0; i < el->num_values; i++) {
-        el->values[i].data = (uint8_t *) sss_replace_space(mem_ctx,
-                                             (const char *) el->values[i].data,
-                                             sub);
-        if (el->values[i].data == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed, skipping\n");
-            return ENOMEM;
-        }
-    }
-
-    return EOK;
-}
-
-static errno_t
 ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
                                struct ifp_req *ireq,
                                const char **attrs,
@@ -234,25 +214,41 @@ ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
     }
 
     if (res->count > 0) {
+        ret = ifp_ldb_el_output_name(ireq->ifp_ctx->rctx, res->msgs[0],
+                                     SYSDB_NAME, domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot convert SYSDB_NAME to output format [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            return sbus_request_finish(ireq->dbus_req, NULL);
+        }
+
+        ret = ifp_ldb_el_output_name(ireq->ifp_ctx->rctx, res->msgs[0],
+                                     SYSDB_NAME_ALIAS, domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot convert SYSDB_NAME_ALIAS to output format [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            return sbus_request_finish(ireq->dbus_req, NULL);
+        }
+
         for (ai = 0; attrs[ai]; ai++) {
+            if (strcmp(attrs[ai], "domainname") == 0) {
+                ret = ifp_add_value_to_dict(&iter_dict, "domainname",
+                                            domain->name);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "Cannot add attribute domainname to message\n");
+                    continue;
+                }
+            }
+
             el = sss_view_ldb_msg_find_element(domain, res->msgs[0], attrs[ai]);
             if (el == NULL || el->num_values == 0) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Attribute %s not present or has no values\n",
                       attrs[ai]);
                 continue;
-            }
-
-            /* Normalize white space in user names */
-            if (ireq->ifp_ctx->rctx->override_space != '\0' &&
-                    strcmp(attrs[ai], SYSDB_NAME) == 0) {
-                ret = ifp_user_get_attr_replace_space(ireq, el,
-                                        ireq->ifp_ctx->rctx->override_space);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_MINOR_FAILURE, "Cannot normalize %s\n",
-                          attrs[ai]);
-                    continue;
-                }
             }
 
             ret = ifp_add_ldb_el_to_dict(&iter_dict, el);
@@ -273,7 +269,18 @@ ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
     return sbus_request_finish(ireq->dbus_req, reply);
 }
 
+struct ifp_user_get_groups_state {
+    struct resp_ctx *rctx;
+
+    struct ifp_attr_req *group_attr_req;
+
+    struct ldb_result *res;
+    struct ldb_result *res_names;
+    struct sss_domain_info *dom;
+};
+
 static void ifp_user_get_groups_process(struct tevent_req *req);
+static void ifp_user_get_groups_names_resolved(struct tevent_req *req);
 static errno_t ifp_user_get_groups_reply(struct sss_domain_info *domain,
                                          struct ifp_req *ireq,
                                          struct ldb_result *res);
@@ -283,7 +290,7 @@ int ifp_user_get_groups(struct sbus_request *dbus_req,
 {
     struct ifp_req *ireq;
     struct ifp_ctx *ifp_ctx;
-    struct ifp_attr_req *group_req;
+    struct ifp_user_get_groups_state *state;
     struct tevent_req *req;
     errno_t ret;
 
@@ -298,68 +305,120 @@ int ifp_user_get_groups(struct sbus_request *dbus_req,
         return ifp_req_create_handle_failure(dbus_req, ret);
     }
 
-    group_req = talloc_zero(ireq, struct ifp_attr_req);
-    if (group_req == NULL) {
+    state = talloc_zero(ireq, struct ifp_user_get_groups_state);
+    if (state == NULL) {
         return sbus_request_finish(dbus_req, NULL);
     }
-    group_req->ireq = ireq;
-    group_req->name = arg_user;
+    state->rctx = ifp_ctx->rctx;
 
-    group_req->attrs = talloc_zero_array(group_req, const char *, 2);
-    if (group_req->attrs == NULL) {
+    state->group_attr_req = talloc_zero(state, struct ifp_attr_req);
+    if (state->group_attr_req == NULL) {
+        return sbus_request_finish(dbus_req, NULL);
+    }
+    state->group_attr_req->ireq = ireq;
+    state->group_attr_req->name = arg_user;
+
+    state->group_attr_req->attrs = talloc_zero_array(state->group_attr_req,
+                                                     const char *, 2);
+    if (state->group_attr_req->attrs == NULL) {
         return sbus_request_finish(dbus_req, NULL);
     }
 
-    group_req->attrs[0] = talloc_strdup(group_req->attrs, SYSDB_MEMBEROF);
-    if (group_req->attrs[0] == NULL) {
+    state->group_attr_req->attrs[0] = talloc_strdup(state->group_attr_req->attrs,
+                                                    SYSDB_MEMBEROF);
+    if (state->group_attr_req->attrs[0] == NULL) {
         return sbus_request_finish(dbus_req, NULL);
     }
 
     DEBUG(SSSDBG_FUNC_DATA,
           "Looking up groups of user [%s] on behalf of %"PRIi64"\n",
-          group_req->name, group_req->ireq->dbus_req->client);
+          state->group_attr_req->name,
+          state->group_attr_req->ireq->dbus_req->client);
 
     req = ifp_user_get_attr_send(ireq, ifp_ctx->rctx,
                                  ifp_ctx->rctx->ncache, SSS_DP_INITGROUPS,
-                                 group_req->name, group_req->attrs);
+                                 state->group_attr_req->name,
+                                 state->group_attr_req->attrs);
     if (req == NULL) {
         return sbus_request_finish(dbus_req, NULL);
     }
-    tevent_req_set_callback(req, ifp_user_get_groups_process, group_req);
+    tevent_req_set_callback(req,
+                            ifp_user_get_groups_process,
+                            state);
     return EOK;
 }
 
 static void ifp_user_get_groups_process(struct tevent_req *req)
 {
-    struct ifp_attr_req *group_req;
+    struct ifp_user_get_groups_state *state;
+    struct ifp_attr_req *group_attr_req;
     errno_t ret;
-    struct ldb_result *res;
-    struct sss_domain_info *dom;
 
-    group_req = tevent_req_callback_data(req, struct ifp_attr_req);
+    state = tevent_req_callback_data(req, struct ifp_user_get_groups_state);
+    group_attr_req = state->group_attr_req;
 
-    ret = ifp_user_get_attr_recv(group_req, req, &res, &dom);
+    ret = ifp_user_get_attr_recv(group_attr_req, req, &state->res, &state->dom);
     talloc_zfree(req);
     if (ret == ENOENT) {
-        sbus_request_fail_and_finish(group_req->ireq->dbus_req,
-                               sbus_error_new(group_req->ireq->dbus_req,
+        sbus_request_fail_and_finish(group_attr_req->ireq->dbus_req,
+                               sbus_error_new(group_attr_req->ireq->dbus_req,
                                               DBUS_ERROR_FAILED,
                                               "No such user\n"));
         return;
     } else if (ret != EOK) {
-        sbus_request_fail_and_finish(group_req->ireq->dbus_req,
-                               sbus_error_new(group_req->ireq->dbus_req,
+        sbus_request_fail_and_finish(group_attr_req->ireq->dbus_req,
+                               sbus_error_new(group_attr_req->ireq->dbus_req,
                                               DBUS_ERROR_FAILED,
                                               "Failed to read attribute\n"));
         return;
     }
 
-    ret = ifp_user_get_groups_reply(dom, group_req->ireq, res);
+    req = resp_resolve_group_names_send(state,
+                                        state->rctx->ev,
+                                        state->rctx,
+                                        state->dom,
+                                        state->res);
+    if (req == NULL) {
+        sbus_request_finish(group_attr_req->ireq->dbus_req, NULL);
+        return;
+    }
+    tevent_req_set_callback(req,
+                            ifp_user_get_groups_names_resolved,
+                            state);
+}
+
+static void ifp_user_get_groups_names_resolved(struct tevent_req *req)
+{
+    struct ifp_user_get_groups_state *state;
+    struct ifp_attr_req *group_attr_req;
+    errno_t ret;
+
+    state = tevent_req_callback_data(req, struct ifp_user_get_groups_state);
+    group_attr_req = state->group_attr_req;
+
+    ret = resp_resolve_group_names_recv(state, req, &state->res_names);
+    talloc_zfree(req);
     if (ret != EOK) {
-        sbus_request_fail_and_finish(group_req->ireq->dbus_req,
-                               sbus_error_new(group_req->ireq->dbus_req,
-                                              DBUS_ERROR_FAILED,
-                                              "Failed to build a reply\n"));
+        sbus_request_fail_and_finish(group_attr_req->ireq->dbus_req,
+                            sbus_error_new(group_attr_req->ireq->dbus_req,
+                                           DBUS_ERROR_FAILED,
+                                           "Failed to resolve groupnames\n"));
+        return;
+    }
+
+    if (state->res_names == NULL) {
+        state->res_names = state->res;
+    }
+
+    ret = ifp_user_get_groups_reply(state->dom,
+                                    group_attr_req->ireq,
+                                    state->res_names);
+    if (ret != EOK) {
+        sbus_request_fail_and_finish(group_attr_req->ireq->dbus_req,
+                                     sbus_error_new(
+                                            group_attr_req->ireq->dbus_req,
+                                            DBUS_ERROR_FAILED,
+                                            "Failed to build a reply\n"));
         return;
     }
 }
@@ -573,20 +632,6 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
             tevent_req_error(req, ENOENT);
             return;
         }
-    }
-
-    ret = ifp_ldb_el_output_name(state->rctx, state->res->msgs[0],
-                                 SYSDB_NAME, state->dom);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = ifp_ldb_el_output_name(state->rctx, state->res->msgs[0],
-                                 SYSDB_NAME_ALIAS, state->dom);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
     }
 
     tevent_req_done(req);

@@ -161,7 +161,9 @@
                         <para>
                             Timeout in seconds between heartbeats for this
                             service. This is used to ensure that the process
-                            is alive and capable of answering requests.
+                            is alive and capable of answering requests. Note
+                            that after three missed heartbeats the process
+                            will terminate itself.
                         </para>
                         <para>
                             Default: 10
@@ -621,7 +623,9 @@
                             a client of an SSSD process can hold onto a file
                             descriptor without communicating on it. This value
                             is limited in order to avoid resource exhaustion
-                            on the system.
+                            on the system. The timeout can't be shorter than
+                            10 seconds. If a lower value is configured, it
+                            will be adjusted to 10 seconds.
                         </para>
                         <para>
                             Default: 60
@@ -2912,7 +2916,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
         <para>
             Some options used in the domain section can also be used in the
             trusted domain section, that is, in a section called
-            <quote>[domain/<replaceable>DOMAIN_NAME</replaceable>]/<replaceable>TRUSTED_DOMAIN_NAME</replaceable>]</quote>.
+            <quote>[domain/<replaceable>DOMAIN_NAME</replaceable>/<replaceable>TRUSTED_DOMAIN_NAME</replaceable>]</quote>.
             Currently supported options in the trusted domain section are:
         </para>
             <para>ldap_search_base,</para>

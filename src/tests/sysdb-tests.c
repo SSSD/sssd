@@ -23,6 +23,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <tevent.h>
+#include <ctype.h>
 #include <popt.h>
 #include <sys/stat.h>
 #include <sys/types.h>

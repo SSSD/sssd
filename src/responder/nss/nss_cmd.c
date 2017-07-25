@@ -51,6 +51,7 @@ nss_cmd_ctx_create(TALLOC_CTX *mem_ctx,
 }
 
 static void nss_getby_done(struct tevent_req *subreq);
+static void nss_getlistby_done(struct tevent_req *subreq);
 
 static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
                               enum cache_req_type type,
@@ -210,6 +211,89 @@ done:
     }
 
     return EOK;
+}
+
+static errno_t nss_getlistby_cert(struct cli_ctx *cli_ctx,
+                                  enum cache_req_type type)
+{
+    struct nss_cmd_ctx *cmd_ctx;
+    struct tevent_req *subreq;
+    const char *cert;
+    errno_t ret;
+
+    cmd_ctx = nss_cmd_ctx_create(cli_ctx, cli_ctx, type, NULL);
+    if (cmd_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    cmd_ctx->sid_id_type = SSS_ID_TYPE_UID;
+
+    ret = nss_protocol_parse_cert(cli_ctx, &cert);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request message!\n");
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Input cert: %s\n", get_last_x_chars(cert, 10));
+
+    subreq = cache_req_user_by_cert_send(cmd_ctx, cli_ctx->ev, cli_ctx->rctx,
+                                         cli_ctx->rctx->ncache, 0,
+                                         CACHE_REQ_ANY_DOM, NULL,
+                                         cert);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert_send failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, nss_getlistby_done, cmd_ctx);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(cmd_ctx);
+        return nss_protocol_done(cli_ctx, ret);
+    }
+
+    return EOK;
+}
+
+static void nss_getlistby_done(struct tevent_req *subreq)
+{
+    struct cache_req_result **results;
+    struct nss_cmd_ctx *cmd_ctx;
+    errno_t ret;
+    struct cli_protocol *pctx;
+
+    cmd_ctx = tevent_req_callback_data(subreq, struct nss_cmd_ctx);
+
+    ret = cache_req_recv(cmd_ctx, subreq, &results);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert request failed.\n");
+        goto done;
+    }
+
+    pctx = talloc_get_type(cmd_ctx->cli_ctx->protocol_ctx, struct cli_protocol);
+
+    ret = sss_packet_new(pctx->creq, 0, sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = nss_protocol_fill_name_list_all_domains(cmd_ctx->nss_ctx, cmd_ctx,
+                                                  pctx->creq->out, results);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    sss_packet_set_error(pctx->creq->out, EOK);
+
+done:
+    nss_protocol_done(cmd_ctx->cli_ctx, ret);
+    talloc_free(cmd_ctx);
 }
 
 static errno_t nss_getby_cert(struct cli_ctx *cli_ctx,
@@ -934,8 +1018,7 @@ static errno_t nss_cmd_getnamebycert(struct cli_ctx *cli_ctx)
 
 static errno_t nss_cmd_getlistbycert(struct cli_ctx *cli_ctx)
 {
-    return nss_getby_cert(cli_ctx, CACHE_REQ_USER_BY_CERT,
-                          nss_protocol_fill_name_list);
+    return nss_getlistby_cert(cli_ctx, CACHE_REQ_USER_BY_CERT);
 }
 
 struct sss_cmd_table *get_nss_cmds(void)

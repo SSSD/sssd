@@ -188,6 +188,7 @@ option_strings = {
     'subdomain_enumerate' : _('Control enumeration of trusted domains'),
     'subdomain_refresh_interval' : _('How often should subdomains list be refreshed'),
     'subdomain_inherit' : _('List of options that should be inherited into a subdomain'),
+    'subdomain_homedir' : _('Default subdomain homedir value'),
     'cached_auth_timeout' : _('How long can cached credentials be used for cached authentication'),
     'full_name_format' : _('Printf-compatible format for displaying fully-qualified names'),
     're_expression' : _('Regex to parse username and domain'),
@@ -917,9 +918,11 @@ class SSSDService(SSSDConfigObject):
         if type(value) != option_schema[0]:
             # If it's possible to convert it, do so
             try:
-                if option_schema[0] == bool and \
-                type(value) == str:
+                if option_schema[0] == bool and type(value) == str:
                     value = self.schema.bool_lookup[value.lower()]
+                elif option_schema[0] == int and type(value) == str:
+                    # Make sure we handle any reasonable base
+                    value = int(value, 0)
                 else:
                     value = option_schema[0](value)
             except ValueError:
@@ -1791,6 +1794,8 @@ class SSSDConfig(SSSDChangeConf):
         for option,value in service.get_all_options().items():
             if (type(value) == list):
                 value = ', '.join(value)
+            if option == "debug_level":
+                value = self._get_debug_level_val(value)
             addkw.append( { 'type'  : 'option',
                             'name'  : option,
                             'value' : str(value) } )
@@ -2135,6 +2140,8 @@ class SSSDConfig(SSSDChangeConf):
         for option,value in domain.get_all_options().items():
             if (type(value) == list):
                 value = ', '.join(value)
+            if option == "debug_level":
+                value = self._get_debug_level_val(value)
             self.set(sectionname, option, str(value))
 
         if domain.active:

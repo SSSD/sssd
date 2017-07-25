@@ -22,11 +22,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "util/util.h"
-#include "util/cert.h"
-#include "util/crypto/sss_crypto.h"
+#include <errno.h>
+#include <stdbool.h>
+#include <string.h>
+#include <talloc.h>
+
+#include "util/dlinklist.h"
 #include "lib/certmap/sss_certmap.h"
 #include "lib/certmap/sss_certmap_int.h"
+
 struct template_table {
     const char *name;
     const char **attr_name;

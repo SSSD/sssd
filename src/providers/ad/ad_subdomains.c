@@ -141,6 +141,29 @@ static bool is_domain_enabled(const char *domain,
 }
 
 static errno_t
+update_parent_sdap_list(struct sdap_domain *parent_list,
+                        struct sdap_domain *child_sdap)
+{
+    struct sdap_domain *sditer;
+
+    DLIST_FOR_EACH(sditer, parent_list) {
+        if (sditer->dom == child_sdap->dom) {
+            break;
+        }
+    }
+
+    if (sditer == NULL) {
+        /* Nothing to do */
+        return EOK;
+    }
+
+    /* Update the search bases */
+    sdap_domain_copy_search_bases(sditer, child_sdap);
+
+    return EOK;
+}
+
+static errno_t
 ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
                      struct ad_id_ctx *id_ctx,
                      struct sss_domain_info *subdom,
@@ -256,6 +279,19 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     /* Set up the ID mapping object */
     ad_id_ctx->sdap_id_ctx->opts->idmap_ctx =
         id_ctx->sdap_id_ctx->opts->idmap_ctx;
+
+    ret = ad_set_search_bases(ad_options->id, sdom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to set LDAP search bases for "
+              "domain '%s'. Will try to use automatically detected search "
+              "bases.", subdom->name);
+    }
+
+    ret = update_parent_sdap_list(id_ctx->sdap_id_ctx->opts->sdom,
+                                  sdom);
+    if (ret != EOK) {
+        return ret;
+    }
 
     *_subdom_id_ctx = ad_id_ctx;
     return EOK;
@@ -619,6 +655,13 @@ ads_store_sdap_subdom(struct ad_subdomains_ctx *ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_domain_subdom_add failed.\n");
         return ret;
+    }
+
+    ret = ad_set_search_bases(ctx->ad_id_ctx->ad_options->id, ctx->sdom);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "failed to set ldap search bases for "
+              "domain '%s'. will try to use automatically detected search "
+              "bases.", ctx->sdom->dom->name);
     }
 
     DLIST_FOR_EACH(sditer, ctx->sdom) {

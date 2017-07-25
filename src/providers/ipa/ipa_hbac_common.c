@@ -507,15 +507,15 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
                        struct hbac_request_element **user_element)
 {
     errno_t ret;
-    unsigned int i;
     unsigned int num_groups = 0;
     TALLOC_CTX *tmp_ctx;
-    const char *member_dn;
     struct hbac_request_element *users;
-    struct ldb_message *msg;
-    struct ldb_message_element *el;
-    const char *attrs[] = { SYSDB_ORIG_MEMBEROF, NULL };
     char *shortname;
+    const char *fqgroupname = NULL;
+    struct sss_domain_info *ipa_domain;
+    struct ldb_dn *ipa_groups_basedn;
+    struct ldb_result *res;
+    int exp_comp;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -533,56 +533,93 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
     }
     users->name = talloc_steal(users, shortname);
 
-    /* Read the originalMemberOf attribute
-     * This will give us the list of both POSIX and
-     * non-POSIX groups that this user belongs to.
-     */
-    ret = sysdb_search_user_by_name(tmp_ctx, domain, username,
-                                    attrs, &msg);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not determine user memberships for [%s]\n",
-                  users->name);
+    ipa_domain = get_domains_head(domain);
+    if (ipa_domain == NULL) {
+        ret = EINVAL;
         goto done;
     }
 
-    el = ldb_msg_find_element(msg, SYSDB_ORIG_MEMBEROF);
-    if (el == NULL || el->num_values == 0) {
+    ipa_groups_basedn = ldb_dn_new_fmt(tmp_ctx, sysdb_ctx_get_ldb(domain->sysdb),
+                                       SYSDB_TMPL_GROUP_BASE, ipa_domain->name);
+    if (ipa_groups_basedn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* +1 because there will be a RDN preceding the base DN */
+    exp_comp = ldb_dn_get_comp_num(ipa_groups_basedn) + 1;
+
+    /*
+     * Get all the groups the user is a member of.
+     * This includes both POSIX and non-POSIX groups.
+     */
+    ret = sysdb_initgroups(tmp_ctx, domain, username, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb_asq_search failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (res->count == 0) {
+        /* This should not happen at this point */
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "User [%s] not found in cache.\n", username);
+        ret = ENOENT;
+        goto done;
+    } else if (res->count == 1) {
+        /* The first item is the user entry */
         DEBUG(SSSDBG_TRACE_LIBS, "No groups for [%s]\n", users->name);
         ret = create_empty_grouplist(users);
         goto done;
     }
     DEBUG(SSSDBG_TRACE_LIBS,
-          "[%d] groups for [%s]\n", el->num_values, users->name);
+          "[%u] groups for [%s]\n", res->count - 1, username);
 
-    users->groups = talloc_array(users, const char *, el->num_values + 1);
+    /* This also includes the sentinel, b/c we'll skip the user entry below */
+    users->groups = talloc_array(users, const char *, res->count);
     if (users->groups == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    for (i = 0; i < el->num_values; i++) {
-        member_dn = (const char *)el->values[i].data;
-
-        ret = get_ipa_groupname(users->groups, domain->sysdb, member_dn,
-                                &users->groups[num_groups]);
-        if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                    "Skipping malformed entry [%s]\n", member_dn);
-            continue;
-        } else if (ret == EOK) {
-            DEBUG(SSSDBG_TRACE_LIBS, "Added group [%s] for user [%s]\n",
-                      users->groups[num_groups], users->name);
-            num_groups++;
+    /* Start counting from 1 to exclude the user entry */
+    for (size_t i = 1; i < res->count; i++) {
+        /* Only groups from the IPA domain can be referenced from HBAC rules. To
+         * avoid evaluating groups which might even have the same name, but come
+         * from a trusted domain, we first copy the DN to a temporary one..
+         */
+        if (ldb_dn_get_comp_num(res->msgs[i]->dn) != exp_comp
+                || ldb_dn_compare_base(ipa_groups_basedn,
+                                       res->msgs[i]->dn) != 0) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "Skipping non-IPA group %s\n",
+                  ldb_dn_get_linearized(res->msgs[i]->dn));
             continue;
         }
-        /* Skip entries that are not groups */
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Skipping non-group memberOf [%s]\n", member_dn);
+
+        fqgroupname = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_NAME, NULL);
+        if (fqgroupname == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Skipping malformed entry [%s]\n",
+                  ldb_dn_get_linearized(res->msgs[i]->dn));
+            continue;
+        }
+
+        ret = sss_parse_internal_fqname(tmp_ctx, fqgroupname,
+                                        &shortname, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Malformed name %s, skipping!\n", fqgroupname);
+            continue;
+        }
+
+        users->groups[num_groups] = talloc_steal(users->groups, shortname);
+        DEBUG(SSSDBG_TRACE_LIBS, "Added group [%s] for user [%s]\n",
+              users->groups[num_groups], users->name);
+        num_groups++;
     }
     users->groups[num_groups] = NULL;
 
-    if (num_groups < el->num_values) {
+    if (num_groups < (res->count - 1)) {
         /* Shrink the array memory */
         users->groups = talloc_realloc(users, users->groups, const char *,
                                        num_groups+1);

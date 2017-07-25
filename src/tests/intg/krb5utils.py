@@ -36,7 +36,7 @@ class Krb5Utils(object):
     def __init__(self, krb5_conf_path):
         self.krb5_conf_path = krb5_conf_path
 
-    def _run_in_env(self, args, stdin=None, extra_env=None):
+    def spawn_in_env(self, args, stdin=None, extra_env=None):
         my_env = os.environ
         my_env['KRB5_CONFIG'] = self.krb5_conf_path
 
@@ -50,6 +50,10 @@ class Krb5Utils(object):
                                stdin=subprocess.PIPE,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
+        return cmd
+
+    def _run_in_env(self, args, stdin=None, extra_env=None):
+        cmd = self.spawn_in_env(args, stdin, extra_env)
         out, err = cmd.communicate(stdin)
         return cmd.returncode, out.decode('utf-8'), err.decode('utf-8')
 

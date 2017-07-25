@@ -87,7 +87,7 @@ sudolibdir = @sudolibpath@
 polkitdir = @polkitdir@
 pamconfdir = $(sysconfdir)/pam.d
 systemtap_tapdir = @tapset_dir@
-krb5sysincludedir = $(sysconfdir)/krb5.conf.d
+sssdkcmdatadir = $(datadir)/sssd-kcm
 
 if HAVE_SYSTEMD_UNIT
 ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --debug-to-files --dbus-activated
@@ -189,7 +189,7 @@ sssdlibexec_PROGRAMS += sssd_secrets
 endif
 if BUILD_KCM
 sssdlibexec_PROGRAMS += sssd_kcm
-dist_krb5sysinclude_DATA = contrib/kcm_default_ccache
+dist_sssdkcmdata_DATA = contrib/kcm_default_ccache
 endif
 
 
@@ -252,6 +252,7 @@ if HAVE_CMOCKA
         dp_opt_tests \
         responder-get-domains-tests \
         sbus-internal-tests \
+        config_check-tests \
         sss_sifp-tests \
         test_search_bases \
         test_ldap_auth \
@@ -1138,7 +1139,7 @@ libsss_idmap_la_SOURCES = \
     src/util/murmurhash3.c
 libsss_idmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/idmap/sss_idmap.exports \
-    -version-info 5:0:5
+    -version-info 5:1:5
 
 dist_noinst_DATA += src/lib/idmap/sss_idmap.exports
 
@@ -1187,6 +1188,7 @@ libwbclient_la_SOURCES = \
     src/sss_client/libwbclient/wbc_ctx_sssd.c \
     $(NULL)
 libwbclient_la_LIBADD = \
+    $(LIBADD_DL) \
     libsss_nss_idmap.la \
     $(CLIENT_LIBS) \
     $(NULL)
@@ -2357,6 +2359,9 @@ nss_srv_tests_LDADD = \
 EXTRA_pam_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
     $(NULL)
+if HAVE_NSS
+EXTRA_pam_srv_tests_DEPENDENCIES += p11_child
+endif
 pam_srv_tests_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_pam_srv.c \
@@ -2426,6 +2431,21 @@ sbus_internal_tests_LDADD = \
     libsss_crypt.la \
     libsss_debug.la \
     libsss_test_common.la
+
+config_check_tests_SOURCES = \
+    src/tests/cmocka/test_config_check.c \
+    $(NULL)
+config_check_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+config_check_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(INI_CONFIG_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
 
 test_find_uid_SOURCES = \
     src/tests/cmocka/test_find_uid.c \
@@ -2584,9 +2604,11 @@ test_ipa_idmap_LDADD = \
 
 test_utils_SOURCES = \
     src/tests/cmocka/test_utils.c \
-    src/tests/cmocka/test_sss_ssh.c \
     src/tests/cmocka/test_string_utils.c \
     $(NULL)
+if BUILD_SSH
+test_utils_SOURCES += src/tests/cmocka/test_sss_ssh.c
+endif
 test_utils_CFLAGS = \
     $(AM_CFLAGS)
 test_utils_LDADD = \
@@ -3510,7 +3532,6 @@ intgcheck-prepare:
 	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
 	    --enable-intgcheck-reqs \
 	    --without-semanage \
-	    --enable-files-domain \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
 	    CFLAGS="$$CFLAGS -DKCM_PEER_UID=$$(id -u)"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
@@ -4739,7 +4760,7 @@ if BUILD_SAMBA
 	mv $(DESTDIR)/$(winbindplugindir)/winbind_idmap_sss.so $(DESTDIR)/$(winbindplugindir)/sss.so
 endif
 if BUILD_KCM
-	$(MKDIR_P) $(DESTDIR)/$(krb5sysincludedir)
+	$(MKDIR_P) $(DESTDIR)/$(sssdkcmdatadir)
 endif
 
 uninstall-hook:

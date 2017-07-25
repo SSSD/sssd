@@ -982,6 +982,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
 
                 break;
             case SSS_PAM_CERT_INFO:
+            case SSS_PAM_CERT_INFO_WITH_HINT:
                 if (buf[p + (len - 1)] != '\0') {
                     D(("cert info does not end with \\0."));
                     break;
@@ -994,7 +995,19 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
 
-                if (pi->pam_user == NULL || *(pi->pam_user) == '\0') {
+                if (type == SSS_PAM_CERT_INFO && *pi->cert_user == '\0') {
+                    D(("Invalid CERT message"));
+                    break;
+                }
+
+                if (type == SSS_PAM_CERT_INFO_WITH_HINT) {
+                    pi->user_name_hint = true;
+                } else {
+                    pi->user_name_hint = false;
+                }
+
+                if ((pi->pam_user == NULL || *(pi->pam_user) == '\0')
+                        && *pi->cert_user != '\0') {
                     ret = pam_set_item(pamh, PAM_USER, pi->cert_user);
                     if (ret != PAM_SUCCESS) {
                         D(("Failed to set PAM_USER during "
@@ -1469,7 +1482,7 @@ done:
     return ret;
 }
 
-#define SC_PROMPT_FMT "PIN for %s for user %s"
+#define SC_PROMPT_FMT "PIN for %s"
 
 static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
 {
@@ -1478,32 +1491,111 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     char *prompt;
     size_t size;
     size_t needed_size;
+    const struct pam_conv *conv;
+    const struct pam_message *mesg[2] = { NULL, NULL };
+    struct pam_message m[2] = { { 0 }, { 0 } };
+    struct pam_response *resp = NULL;
 
-    if (pi->token_name == NULL || *pi->token_name == '\0'
-            || pi->cert_user == NULL || *pi->cert_user == '\0') {
+    if (pi->token_name == NULL || *pi->token_name == '\0') {
         return EINVAL;
     }
 
-    size = sizeof(SC_PROMPT_FMT) + strlen(pi->token_name) +
-           strlen(pi->cert_user);
+    size = sizeof(SC_PROMPT_FMT) + strlen(pi->token_name);
     prompt = malloc(size);
     if (prompt == NULL) {
         D(("malloc failed."));
         return ENOMEM;
     }
 
-    ret = snprintf(prompt, size, SC_PROMPT_FMT, pi->token_name, pi->cert_user);
+    ret = snprintf(prompt, size, SC_PROMPT_FMT, pi->token_name);
     if (ret < 0 || ret >= size) {
         D(("snprintf failed."));
         free(prompt);
         return EFAULT;
     }
 
-    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt, NULL, &answer);
-    free(prompt);
-    if (ret != PAM_SUCCESS) {
-        D(("do_pam_conversation failed."));
-        return ret;
+    if (pi->user_name_hint) {
+        ret = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
+        if (ret != PAM_SUCCESS) {
+            free(prompt);
+            return ret;
+        }
+        if (conv == NULL || conv->conv == NULL) {
+            logger(pamh, LOG_ERR, "No conversation function");
+            free(prompt);
+            return PAM_SYSTEM_ERR;
+        }
+
+        m[0].msg_style = PAM_PROMPT_ECHO_OFF;
+        m[0].msg = prompt;
+        m[1].msg_style = PAM_PROMPT_ECHO_ON;
+        m[1].msg = "User name hint: ";
+
+        mesg[0] = (const struct pam_message *)m;
+        /* The following assignment might look a bit odd but is recommended in the
+         * pam_conv man page to make sure that the second argument of the PAM
+         * conversation function can be interpreted in two different ways.
+         * Basically it is important that both the actual struct pam_message and
+         * the pointers to the struct pam_message are arrays. Since the assignment
+         * makes clear that mesg[] and (*mesg)[] are arrays it should be kept this
+         * way and not be replaced by other equivalent assignments. */
+        mesg[1] = &((*mesg)[1]);
+
+        ret = conv->conv(2, mesg, &resp, conv->appdata_ptr);
+        free(prompt);
+        if (ret != PAM_SUCCESS) {
+            D(("Conversation failure: %s.", pam_strerror(pamh, ret)));
+            return ret;
+        }
+
+        if (resp == NULL) {
+            D(("response expected, but resp==NULL"));
+            return PAM_SYSTEM_ERR;
+        }
+
+        if (resp[0].resp == NULL || *(resp[0].resp) == '\0') {
+            D(("Missing PIN."));
+            ret = PAM_CRED_INSUFFICIENT;
+            goto done;
+        }
+
+        answer = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
+        _pam_overwrite((void *)resp[0].resp);
+        free(resp[0].resp);
+        resp[0].resp = NULL;
+        if (answer == NULL) {
+            D(("strndup failed"));
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+
+        if (resp[1].resp != NULL && *(resp[1].resp) != '\0') {
+            ret = pam_set_item(pamh, PAM_USER, resp[1].resp);
+            free(resp[1].resp);
+            resp[1].resp = NULL;
+            if (ret != PAM_SUCCESS) {
+                D(("Failed to set PAM_USER with user name hint [%s]",
+                   pam_strerror(pamh, ret)));
+                goto done;
+            }
+
+            ret = pam_get_item(pamh, PAM_USER, (const void **)&(pi->pam_user));
+            if (ret != PAM_SUCCESS) {
+                D(("Failed to get PAM_USER with user name hint [%s]",
+                   pam_strerror(pamh, ret)));
+                goto done;
+            }
+
+            pi->pam_user_size = strlen(pi->pam_user) + 1;
+        }
+    } else {
+        ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt, NULL,
+                                  &answer);
+        free(prompt);
+        if (ret != PAM_SUCCESS) {
+            D(("do_pam_conversation failed."));
+            return ret;
+        }
     }
 
     if (answer == NULL) {
@@ -1551,6 +1643,20 @@ done:
     _pam_overwrite((void *)answer);
     free(answer);
     answer=NULL;
+
+    if (resp != NULL) {
+        if (resp[0].resp != NULL) {
+            _pam_overwrite((void *)resp[0].resp);
+            free(resp[0].resp);
+        }
+        if (resp[1].resp != NULL) {
+            _pam_overwrite((void *)resp[1].resp);
+            free(resp[1].resp);
+        }
+
+        free(resp);
+        resp = NULL;
+    }
 
     return ret;
 }
@@ -1680,7 +1786,7 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                 ret = prompt_2fa(pamh, pi, _("First Factor: "),
                                  _("Second Factor: "));
             }
-        } else if (pi->cert_user != NULL) {
+        } else if (pi->token_name != NULL && *(pi->token_name) != '\0') {
             ret = prompt_sc_pin(pamh, pi);
         } else {
             ret = prompt_password(pamh, pi, _("Password: "));

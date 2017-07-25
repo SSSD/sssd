@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <tevent.h>
 #include <dbus/dbus.h>
+#include <limits.h>
 
 #include "util/util.h"
 #include "sbus/sssd_dbus.h"

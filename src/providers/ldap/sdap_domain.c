@@ -154,6 +154,11 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
                     parent->name, ret, strerror(ret));
                 return ret;
             }
+        } else if (sditer->search_bases != NULL) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "subdomain %s has already initialized search bases\n",
+                  dom->name);
+            continue;
         } else {
             sdom = sditer;
         }

@@ -189,7 +189,6 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
-    nspr_nss_cleanup();
     return ret;
 }
 
@@ -325,6 +324,5 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
-    nspr_nss_cleanup();
     return ret;
 }

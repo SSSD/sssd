@@ -1352,15 +1352,71 @@ done:
     pam_check_user_done(preq, ret);
 }
 
+static errno_t get_results_from_all_domains(TALLOC_CTX *mem_ctx,
+                                            struct cache_req_result **results,
+                                            struct ldb_result **ldb_results)
+{
+    int ret;
+    size_t count = 0;
+    size_t c;
+    size_t d;
+    size_t r = 0;
+    struct ldb_result *res;
+
+    for (d = 0; results != NULL && results[d] != NULL; d++) {
+        count += results[d]->count;
+    }
+
+    res = talloc_zero(mem_ctx, struct ldb_result);
+    if (res == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        return ENOMEM;
+    }
+
+    if (count == 0) {
+        *ldb_results = res;
+        return EOK;
+    }
+
+    res->msgs = talloc_zero_array(res, struct ldb_message *, count);
+    if (res->msgs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+        return ENOMEM;
+    }
+    res->count = count;
+
+    for (d = 0; results != NULL && results[d] != NULL; d++) {
+        for (c = 0; c < results[d]->count; c++) {
+            if (r >= count) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "More results found then counted before.\n");
+                ret = EINVAL;
+                goto done;
+            }
+            res->msgs[r++] = talloc_steal(res->msgs, results[d]->msgs[c]);
+        }
+    }
+
+    *ldb_results = res;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(res);
+    }
+
+    return ret;
+}
+
 static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
 {
     int ret;
-    struct cache_req_result *result;
+    struct cache_req_result **results;
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
-    const char *cert_user;
+    const char *cert_user = NULL;
 
-    ret = cache_req_user_by_cert_recv(preq, req, &result);
+    ret = cache_req_recv(preq, req, &results);
     talloc_zfree(req);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert request failed.\n");
@@ -1368,11 +1424,12 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
     }
 
     if (ret == EOK) {
-        if (preq->domain == NULL) {
-            preq->domain = result->domain;
+        ret = get_results_from_all_domains(preq, results,
+                                           &preq->cert_user_objs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_results_from_all_domains failed.\n");
+            goto done;
         }
-
-        preq->cert_user_objs = talloc_steal(preq, result->ldb_result);
 
         if (preq->pd->logon_name == NULL) {
             if (preq->pd->cmd != SSS_PAM_PREAUTH) {
@@ -1382,35 +1439,55 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 goto done;
             }
 
-            if (preq->cert_user_objs->count != 1) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "More than one user mapped to certificate.\n");
-                /* TODO: send pam response to ask for a user name */
-                ret = ERR_NO_CREDS;
-                goto done;
-            }
-            cert_user = ldb_msg_find_attr_as_string(
+            if (preq->cert_user_objs->count == 1) {
+                cert_user = ldb_msg_find_attr_as_string(
                                                   preq->cert_user_objs->msgs[0],
                                                   SYSDB_NAME, NULL);
-            if (cert_user == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Certificate user object has not name.\n");
-                ret = ENOENT;
+                if (cert_user == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Certificate user object has not name.\n");
+                    ret = ENOENT;
+                    goto done;
+                }
+
+                DEBUG(SSSDBG_FUNC_DATA,
+                      "Found certificate user [%s].\n", cert_user);
+
+                ret = sss_parse_name_for_domains(preq->pd,
+                                               preq->cctx->rctx->domains,
+                                               preq->cctx->rctx->default_domain,
+                                               cert_user,
+                                               &preq->pd->domain,
+                                               &preq->pd->user);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_parse_name_for_domains failed.\n");
+                    goto done;
+                }
+            }
+
+            if (preq->cctx->rctx->domains->user_name_hint) {
+                ret = add_pam_cert_response(preq->pd, cert_user,
+                                            preq->token_name,
+                                            preq->module_name,
+                                            preq->key_id,
+                                            SSS_PAM_CERT_INFO_WITH_HINT);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
+                    preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+                }
+                ret = EOK;
+                preq->pd->pam_status = PAM_SUCCESS;
+                pam_reply(preq);
                 goto done;
             }
 
-            DEBUG(SSSDBG_FUNC_DATA, "Found certificate user [%s].\n",
-                                    cert_user);
-
-            ret = sss_parse_name_for_domains(preq->pd,
-                                             preq->cctx->rctx->domains,
-                                             preq->cctx->rctx->default_domain,
-                                             cert_user,
-                                             &preq->pd->domain,
-                                             &preq->pd->user);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "sss_parse_name_for_domains failed.\n");
+            /* Without user name hints the certificate must map to single user
+             * if no login name was given */
+            if (cert_user == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "More than one user mapped to certificate.\n");
+                ret = ERR_NO_CREDS;
                 goto done;
             }
 
@@ -1503,7 +1580,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
     data = cache_req_data_name(preq,
                                CACHE_REQ_INITGROUPS,
-                               preq->pd->user);
+                               preq->pd->logon_name);
     if (data == NULL) {
         return ENOMEM;
     }
@@ -1532,7 +1609,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
                            preq->cctx->rctx->ncache,
                            0,
                            preq->req_dom_type,
-                           preq->pd->domain,
+                           NULL,
                            data);
     if (!dpreq) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1789,7 +1866,8 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                     ret = add_pam_cert_response(preq->pd, cert_user,
                                                 preq->token_name,
                                                 preq->module_name,
-                                                preq->key_id);
+                                                preq->key_id,
+                                                SSS_PAM_CERT_INFO);
                     if (ret != EOK) {
                         DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
                         preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
@@ -1820,7 +1898,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         }
     }
 
-    if (!NEED_CHECK_PROVIDER(preq->domain->provider) ) {
+    if (!NEED_CHECK_AUTH_PROVIDER(preq->domain->provider) ) {
         preq->callback = pam_reply;
         ret = LOCAL_pam_handler(preq);
     } else {

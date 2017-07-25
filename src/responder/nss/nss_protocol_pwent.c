@@ -225,7 +225,7 @@ nss_get_pwent(TALLOC_CTX *mem_ctx,
 
     /* Get fields. */
     upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
-    name = nss_get_name_from_msg(domain, msg);
+    name = sss_get_name_from_msg(domain, msg);
     gid = nss_get_gid(domain, msg);
     uid = sss_view_ldb_msg_find_attr_as_uint64(domain, msg, SYSDB_UIDNUM, 0);
 
@@ -307,17 +307,6 @@ nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
                             &name, &gecos, &homedir, &shell);
         if (ret != EOK) {
             continue;
-        }
-
-        /* Check negative cache during enumeration. */
-        if (cmd_ctx->enumeration) {
-            ret = sss_ncache_check_user(nss_ctx->rctx->ncache,
-                                        result->domain, name->str);
-            if (ret == EEXIST) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "User [%s] filtered out! (negative cache)\n", name->str);
-                continue;
-            }
         }
 
         /* Adjust packet size: uid, gid + string fields. */

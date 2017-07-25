@@ -84,6 +84,85 @@ static void cache_req_search_ncache_add(struct cache_req *cr)
     return;
 }
 
+static errno_t cache_req_search_ncache_filter(TALLOC_CTX *mem_ctx,
+                                              struct cache_req *cr,
+                                              struct ldb_result **_result)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *filtered_result;
+    struct ldb_message **msgs;
+    size_t msg_count;
+    const char *name;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    if (cr->plugin->ncache_filter_fn == NULL) {
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                        "This request type does not support filtering "
+                        "result by negative cache\n");
+
+        ret = EOK;
+        goto done;
+    }
+
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                    "Filtering out results by negative cache\n");
+
+    msgs = talloc_zero_array(tmp_ctx, struct ldb_message *, (*_result)->count);
+    msg_count = 0;
+
+    for (size_t i = 0; i < (*_result)->count; i++) {
+        name = sss_get_name_from_msg(cr->domain, (*_result)->msgs[i]);
+        if (name == NULL) {
+            CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
+                  "sss_get_name_from_msg() returned NULL, which should never "
+                  "happen in this scenario!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        ret = cr->plugin->ncache_filter_fn(cr->ncache, cr->domain, name);
+        if (ret == EEXIST) {
+            CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                            "[%s] filtered out! (negative cache)\n",
+                            name);
+            continue;
+        } else if (ret != EOK && ret != ENOENT) {
+            CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
+                            "Unable to check negative cache [%d]: %s\n",
+                            ret, sss_strerror(ret));
+            goto done;
+        }
+
+        msgs[msg_count] = talloc_steal(msgs, (*_result)->msgs[i]);
+        msg_count++;
+    }
+
+    if (msg_count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    filtered_result = cache_req_create_ldb_result_from_msg_list(tmp_ctx, msgs,
+                                                                msg_count);
+    if (filtered_result == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    talloc_zfree(*_result);
+    *_result = talloc_steal(mem_ctx, filtered_result);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
                                       struct cache_req *cr,
                                       struct ldb_result **_result)
@@ -255,6 +334,10 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret == EOK) {
+        ret = cache_req_search_ncache_filter(state, cr, &state->result);
+    }
+
+    if (ret == EOK) {
         tevent_req_done(req);
     } else {
         tevent_req_error(req, ret);
@@ -350,21 +433,31 @@ static void cache_req_search_done(struct tevent_req *subreq)
 
     /* Get result from cache again. */
     ret = cache_req_search_cache(state, state->cr, &state->result);
-    if (ret == ENOENT) {
-        /* Only store entry in negative cache if DP request succeeded
-         * because only then we know that the entry does not exist. */
-        if (state->dp_success) {
-            cache_req_search_ncache_add(state->cr);
+    if (ret != EOK) {
+        if (ret == ENOENT) {
+            /* Only store entry in negative cache if DP request succeeded
+             * because only then we know that the entry does not exist. */
+            if (state->dp_success) {
+                cache_req_search_ncache_add(state->cr);
+            }
         }
-        tevent_req_error(req, ENOENT);
-        return;
-    } else if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        goto done;
+    }
+
+    /* ret == EOK */
+    ret = cache_req_search_ncache_filter(state, state->cr, &state->result);
+    if (ret != EOK) {
+        goto done;
     }
 
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                     "Returning updated object [%s]\n", state->cr->debugobj);
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
 
     tevent_req_done(req);
     return;

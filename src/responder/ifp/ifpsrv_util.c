@@ -29,7 +29,7 @@
 #define IFP_USER_DEFAULT_ATTRS {SYSDB_NAME, SYSDB_UIDNUM,   \
                                 SYSDB_GIDNUM, SYSDB_GECOS,  \
                                 SYSDB_HOMEDIR, SYSDB_SHELL, \
-                                "groups", \
+                                "groups", "domain", "domainname", \
                                 NULL}
 
 errno_t ifp_req_create(struct sbus_request *dbus_req,
@@ -98,6 +98,78 @@ int ifp_req_create_handle_failure(struct sbus_request *dbus_req, errno_t err)
                                         sbus_error_new(dbus_req,
                                             DBUS_ERROR_FAILED,
                                             "Cannot create IFP request\n"));
+}
+
+errno_t ifp_add_value_to_dict(DBusMessageIter *iter_dict,
+                              const char *key,
+                              const char *value)
+{
+    DBusMessageIter iter_dict_entry;
+    DBusMessageIter iter_dict_val;
+    DBusMessageIter iter_array;
+    dbus_bool_t dbret;
+
+    if (value == NULL || key == NULL) {
+        return EINVAL;
+    }
+
+    dbret = dbus_message_iter_open_container(iter_dict,
+                                             DBUS_TYPE_DICT_ENTRY, NULL,
+                                             &iter_dict_entry);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    /* Start by appending the key */
+    dbret = dbus_message_iter_append_basic(&iter_dict_entry,
+                                           DBUS_TYPE_STRING, &key);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_open_container(&iter_dict_entry,
+                                             DBUS_TYPE_VARIANT,
+                                             DBUS_TYPE_ARRAY_AS_STRING
+                                             DBUS_TYPE_STRING_AS_STRING,
+                                             &iter_dict_val);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    /* Open container for values */
+    dbret = dbus_message_iter_open_container(&iter_dict_val,
+                                 DBUS_TYPE_ARRAY, DBUS_TYPE_STRING_AS_STRING,
+                                 &iter_array);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_append_basic(&iter_array,
+                                           DBUS_TYPE_STRING,
+                                           &value);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_close_container(&iter_dict_val,
+                                              &iter_array);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_close_container(&iter_dict_entry,
+                                              &iter_dict_val);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_close_container(iter_dict,
+                                              &iter_dict_entry);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    return EOK;
 }
 
 errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,

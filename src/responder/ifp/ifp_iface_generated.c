@@ -1,6 +1,9 @@
 /* The following definitions are auto-generated from ifp_iface.xml */
 
-#include "util/util.h"
+#include <stddef.h>
+
+#include "dbus/dbus-protocol.h"
+#include "util/util_errors.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sssd_dbus_meta.h"
 #include "sbus/sssd_dbus_invokers.h"
@@ -978,6 +981,24 @@ const struct sbus_property_meta iface_ifp_users_user__properties[] = {
         SBUS_PROPERTY_READABLE,
         offsetof(struct iface_ifp_users_user, get_groups),
         sbus_invoke_get_ao,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "domain", /* name */
+        "o", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_domain),
+        sbus_invoke_get_o,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "domainname", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_domainname),
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },

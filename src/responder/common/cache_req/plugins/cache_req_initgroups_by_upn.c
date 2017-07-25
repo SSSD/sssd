@@ -66,7 +66,7 @@ cache_req_initgroups_by_upn_ncache_check(struct sss_nc_ctx *ncache,
                                          struct sss_domain_info *domain,
                                          struct cache_req_data *data)
 {
-    return sss_ncache_check_user(ncache, domain, data->name.lookup);
+    return sss_ncache_check_upn(ncache, domain, data->name.lookup);
 }
 
 static errno_t
@@ -74,7 +74,7 @@ cache_req_initgroups_by_upn_ncache_add(struct sss_nc_ctx *ncache,
                                        struct sss_domain_info *domain,
                                        struct cache_req_data *data)
 {
-    return sss_ncache_set_user(ncache, false, domain, data->name.lookup);
+    return sss_ncache_set_upn(ncache, false, domain, data->name.lookup);
 }
 
 static errno_t
@@ -120,6 +120,7 @@ const struct cache_req_plugin cache_req_initgroups_by_upn = {
     .global_ncache_add_fn = NULL,
     .ncache_check_fn = cache_req_initgroups_by_upn_ncache_check,
     .ncache_add_fn = cache_req_initgroups_by_upn_ncache_add,
+    .ncache_filter_fn = NULL,
     .lookup_fn = cache_req_initgroups_by_upn_lookup,
     .dp_send_fn = cache_req_initgroups_by_upn_dp_send,
     .dp_recv_fn = cache_req_common_dp_recv

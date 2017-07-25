@@ -30,6 +30,7 @@ import config
 from util import unindent
 from test_secrets import create_sssd_secrets_fixture
 
+
 class KcmTestEnv(object):
     def __init__(self, k5kdc, k5util):
         self.k5kdc = k5kdc
@@ -149,9 +150,11 @@ def setup_for_kcm_mem(request, kdc_instance):
     sssd_conf = create_sssd_conf(kcm_path, "memory")
     return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
 
+
 @pytest.fixture
 def setup_secrets(request):
     create_sssd_secrets_fixture(request)
+
 
 @pytest.fixture
 def setup_for_kcm_sec(request, kdc_instance):
@@ -286,18 +289,12 @@ def collection_init_list_destroy(testenv):
     # in the collection as the default. And sine the KCM back ends don't
     # guarantee if they are FIFO or LIFO, just check for either alice or bob
     assert testenv.k5util.default_principal() in \
-            ['alice@KCMTEST', 'bob@KCMTEST']
+        ['alice@KCMTEST', 'bob@KCMTEST']
     cc_coll = testenv.k5util.list_all_princs()
     assert len(cc_coll) == 2
     assert cc_coll['alice@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
     assert cc_coll['bob@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
     assert 'carol@KCMTEST' not in cc_coll
-
-    # FIXME - a bug in libkrb5?
-    #out = testenv.k5util.kdestroy(all_ccaches=True)
-    #assert out == 0
-    #cc_coll = testenv.k5util.list_all_princs()
-    #assert len(cc_coll) == 0
 
 
 def test_kcm_mem_collection_init_list_destroy(setup_for_kcm_mem):
@@ -445,3 +442,25 @@ def test_kcm_sec_kdestroy_nocache(setup_for_kcm_sec,
                                   setup_secrets):
     testenv = setup_for_kcm_sec
     exercise_subsidiaries(testenv)
+
+
+def test_kcm_sec_parallel_klist(setup_for_kcm_sec,
+                                setup_secrets):
+    """
+    Test that parallel operations from a single UID are handled well.
+    Regression test for https://pagure.io/SSSD/sssd/issue/3372
+    """
+    testenv = setup_for_kcm_sec
+
+    testenv.k5kdc.add_principal("alice", "alicepw")
+    out, _, _ = testenv.k5util.kinit("alice", "alicepw")
+    assert out == 0
+
+    processes = []
+    for i in range(0, 10):
+        p = testenv.k5util.spawn_in_env(['klist', '-A'])
+        processes.append(p)
+
+    for p in processes:
+        rc = p.wait()
+        assert rc == 0

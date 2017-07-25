@@ -2,11 +2,11 @@
 # directory that is included from the Kerberos configuration file (/etc/krb5.conf)
 # On Fedora/RHEL/CentOS, this is /etc/krb5.conf.d/
 #
-# To enable the KCM credential cache, uncomment the following lines and
-# enable the KCM socket and the service:
-#   systemctl enable sssd-kcm.socket
+# To enable the KCM credential cache enable the KCM socket and the service:
+#   systemctl enable sssd-secrets.socket sssd-kcm.socket
 #   systemctl start sssd-kcm.socket
-#   systemctl enable sssd-kcm.service
+#
+# To disable the KCM credential cache, comment out the following lines.
 
-#[libdefaults]
-#    default_ccache_name = KCM:
+[libdefaults]
+    default_ccache_name = KCM:

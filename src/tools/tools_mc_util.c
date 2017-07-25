@@ -22,6 +22,7 @@
 #include <talloc.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"

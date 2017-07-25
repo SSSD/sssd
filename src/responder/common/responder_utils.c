@@ -23,6 +23,7 @@
 #include <talloc.h>
 
 #include "responder/common/responder.h"
+#include "responder/common/cache_req/cache_req.h"
 #include "util/util.h"
 
 static inline bool
@@ -192,4 +193,209 @@ char *sss_resp_create_fqname(TALLOC_CTX *mem_ctx,
     name = talloc_steal(mem_ctx, name);
     talloc_free(tmp_ctx);
     return name;
+}
+
+struct resp_resolve_group_names_state {
+    struct tevent_context *ev;
+    struct resp_ctx *rctx;
+    struct sss_domain_info *dom;
+    struct ldb_result *initgr_res;
+
+    bool needs_refresh;
+    unsigned int group_iter;
+
+    struct ldb_result *initgr_named_res;
+};
+
+static void resp_resolve_group_done(struct tevent_req *subreq);
+static errno_t resp_resolve_group_next(struct tevent_req *req);
+static errno_t resp_resolve_group_reread_names(struct resp_resolve_group_names_state *state);
+
+struct tevent_req *resp_resolve_group_names_send(TALLOC_CTX *mem_ctx,
+                                                 struct tevent_context *ev,
+                                                 struct resp_ctx *rctx,
+                                                 struct sss_domain_info *dom,
+                                                 struct ldb_result *initgr_res)
+{
+    struct resp_resolve_group_names_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct resp_resolve_group_names_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+    state->ev = ev;
+    state->rctx = rctx;
+    state->dom = dom;
+    state->initgr_res = initgr_res;
+
+    ret = resp_resolve_group_next(req);
+    if (ret == EOK) {
+        goto immediate;
+    } else if (ret != EAGAIN) {
+        goto immediate;
+    }
+
+    return req;
+
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static bool
+resp_resolve_group_needs_refresh(struct resp_resolve_group_names_state *state)
+{
+    /* Refresh groups that have a non-zero GID,
+     * but are marked as non-POSIX
+     */
+    bool is_posix;
+    uint64_t gid;
+    struct ldb_message *group_msg;
+
+    group_msg = state->initgr_res->msgs[state->group_iter];
+
+    is_posix = ldb_msg_find_attr_as_bool(group_msg, SYSDB_POSIX, false);
+    gid = ldb_msg_find_attr_as_uint64(group_msg, SYSDB_GIDNUM, 0);
+
+    if (is_posix == false && gid != 0) {
+        return true;
+    }
+
+    return false;
+}
+
+static errno_t resp_resolve_group_next(struct tevent_req *req)
+{
+    struct cache_req_data *data;
+    uint64_t gid;
+    struct tevent_req *subreq;
+    struct resp_resolve_group_names_state *state;
+
+    state = tevent_req_data(req, struct resp_resolve_group_names_state);
+
+    while (state->group_iter < state->initgr_res->count
+           && !resp_resolve_group_needs_refresh(state)) {
+        state->group_iter++;
+    }
+
+    if (state->group_iter >= state->initgr_res->count) {
+        /* All groups were refreshed */
+        return EOK;
+    }
+
+    /* Fire a request */
+    gid = ldb_msg_find_attr_as_uint64(state->initgr_res->msgs[state->group_iter],
+                                      SYSDB_GIDNUM, 0);
+    if (gid == 0) {
+        return EINVAL;
+    }
+
+    data = cache_req_data_id_attrs(state, CACHE_REQ_GROUP_BY_ID, gid, NULL);
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set cache request data!\n");
+        return ENOMEM;
+    }
+
+    subreq = cache_req_send(state,
+                            state->ev,
+                            state->rctx,
+                            state->rctx->ncache,
+                            0,
+                            CACHE_REQ_ANY_DOM,
+                            NULL,
+                            data);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send cache request!\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, resp_resolve_group_done, req);
+    return EAGAIN;
+}
+
+static void resp_resolve_group_done(struct tevent_req *subreq)
+{
+    struct resp_resolve_group_names_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct resp_resolve_group_names_state);
+
+    ret = cache_req_single_domain_recv(state, subreq, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to refresh group\n");
+        /* Try to refresh the others on error */
+    }
+
+    state->group_iter++;
+    state->needs_refresh = true;
+
+    ret = resp_resolve_group_next(req);
+    if (ret == EOK) {
+        ret = resp_resolve_group_reread_names(state);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+        DEBUG(SSSDBG_TRACE_FUNC, "All groups are refreshed, done\n");
+        tevent_req_done(req);
+        return;
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Continue refreshing.. */
+}
+
+static errno_t
+resp_resolve_group_reread_names(struct resp_resolve_group_names_state *state)
+{
+    errno_t ret;
+    const char *username;
+
+    /* re-read reply in case any groups were renamed */
+    /* msgs[0] is the user entry */
+    username = sss_view_ldb_msg_find_attr_as_string(state->dom,
+                                                    state->initgr_res->msgs[0],
+                                                    SYSDB_NAME,
+                                                    NULL);
+    if (username == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "A user with no name?\n");
+        return EINVAL;
+    }
+
+    ret = sysdb_initgroups_with_views(state,
+                                      state->dom,
+                                      username,
+                                      &state->initgr_named_res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot re-read the group names\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+int resp_resolve_group_names_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  struct ldb_result **_initgr_named_res)
+{
+    struct resp_resolve_group_names_state *state = NULL;
+    state = tevent_req_data(req, struct resp_resolve_group_names_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_initgr_named_res = talloc_steal(mem_ctx, state->initgr_named_res);
+    return EOK;
 }

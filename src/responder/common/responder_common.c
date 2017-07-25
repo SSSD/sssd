@@ -29,6 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <popt.h>
 #include <dbus/dbus.h>
 
@@ -607,7 +608,15 @@ static void accept_fd_handler(struct tevent_context *ev,
     cctx->ev = ev;
     cctx->rctx = rctx;
 
-    /* Set up the idle timer */
+    /* Record the new time and set up the idle timer */
+    ret = reset_client_idle_timer(cctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not create idle timer for client. "
+              "This connection may not auto-terminate\n");
+        /* Non-fatal, continue */
+    }
+
     ret = setup_client_idle_timer(cctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -634,7 +643,7 @@ static void client_idle_handler(struct tevent_context *ev,
     if (cctx->last_request_time > now) {
         DEBUG(SSSDBG_IMPORTANT_INFO,
               "Time shift detected, re-scheduling the client timeout\n");
-        goto end;
+        goto done;
     }
 
     if ((now - cctx->last_request_time) > cctx->rctx->client_idle_timeout) {
@@ -648,7 +657,7 @@ static void client_idle_handler(struct tevent_context *ev,
         return;
     }
 
-end:
+done:
     setup_client_idle_timer(cctx);
 }
 
@@ -661,11 +670,9 @@ errno_t reset_client_idle_timer(struct cli_ctx *cctx)
 
 static errno_t setup_client_idle_timer(struct cli_ctx *cctx)
 {
-    time_t now = time(NULL);
     struct timeval tv =
             tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout/2, 0);
 
-    cctx->last_request_time = now;
     talloc_zfree(cctx->idle);
 
     cctx->idle = tevent_add_timer(cctx->ev, cctx, tv, client_idle_handler, cctx);
@@ -1685,28 +1692,12 @@ int sized_output_name(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
-    char *username;
+    char *name_str;
     struct sized_string *name;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
-    }
-
-    username = sss_output_name(tmp_ctx, orig_name, name_dom->case_preserve,
-                               rctx->override_space);
-    if (username == NULL) {
-        ret = EIO;
-        goto done;
-    }
-
-    if (name_dom->fqnames) {
-        username = sss_tc_fqname(tmp_ctx, name_dom->names, name_dom, username);
-        if (username == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_replace_space failed\n");
-            ret = EIO;
-            goto done;
-        }
     }
 
     name = talloc_zero(tmp_ctx, struct sized_string);
@@ -1715,8 +1706,13 @@ int sized_output_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    to_sized_string(name, username);
-    name->str = talloc_steal(name, username);
+    ret = sss_output_fqname(mem_ctx, name_dom, orig_name,
+                            rctx->override_space, &name_str);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    to_sized_string(name, name_str);
     *_name = talloc_steal(mem_ctx, name);
     ret = EOK;
 done:
