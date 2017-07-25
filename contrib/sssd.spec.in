@@ -1263,7 +1263,7 @@ done
 %{_libdir}/pkgconfig/sss_certmap.pc
 
 %if (0%{?with_kcm} == 1)
-%files kcm
+%files kcm -f sssd_kcm.lang
 %{_libexecdir}/%{servicename}/sssd_kcm
 %dir %{_datadir}/sssd-kcm
 %{_datadir}/sssd-kcm/kcm_default_ccache
