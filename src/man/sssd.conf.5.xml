@@ -1098,7 +1098,7 @@ fallback_homedir = /home/%u
                     <listitem>
                         <para>
                             A comma separated list of strings which allows to
-                            remove (filter) data send by the PAM responder to
+                            remove (filter) data sent by the PAM responder to
                             pam_sss PAM module. There are different kind of
                             responses send to pam_sss e.g. messages displayed to
                             the user or environment variables which should be

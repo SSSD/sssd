@@ -92,7 +92,7 @@ option_strings = {
     'offline_failed_login_attempts' : _('How many failed logins attempts are allowed when offline'),
     'offline_failed_login_delay' : _('How long (minutes) to deny login after offline_failed_login_attempts has been reached'),
     'pam_verbosity' : _('What kind of messages are displayed to the user during authentication'),
-    'pam_response_filter' : _('Filter PAM responses send the pam_sss'),
+    'pam_response_filter' : _('Filter PAM responses sent by the pam_sss'),
     'pam_id_timeout' : _('How many seconds to keep identity information cached for PAM requests'),
     'pam_pwd_expiration_warning' : _('How many days before password expiration a warning should be displayed'),
     'pam_trusted_users' : _('List of trusted uids or user\'s name'),
@@ -100,7 +100,7 @@ option_strings = {
     'pam_account_expired_message' : _('Message printed when user account is expired.'),
     'pam_account_locked_message' : _('Message printed when user account is locked.'),
     'pam_cert_auth' : _('Allow certificate based/Smartcard authentication.'),
-    'pam_cert_db_path' : _('Path to certificate databse with PKCS#11 modules.'),
+    'pam_cert_db_path' : _('Path to certificate database with PKCS#11 modules.'),
     'p11_child_timeout' : _('How many seconds will pam_sss wait for p11_child to finish'),
     'pam_app_services' : _('Which PAM services are permitted to contact application domains'),
 
@@ -238,7 +238,7 @@ option_strings = {
     'ad_gpo_default_right' : _('Default logon right (or permit/deny) to use for unmapped PAM service names'),
     'ad_site' : _('a particular site to be used by the client'),
     'ad_maximum_machine_account_password_age' : _('Maximum age in days before the machine account password should be renewed'),
-    'ad_machine_account_password_renewal_opts' : _('Option for tuing the machine account renewal task'),
+    'ad_machine_account_password_renewal_opts' : _('Option for tuning the machine account renewal task'),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),

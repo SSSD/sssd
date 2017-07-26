@@ -359,7 +359,7 @@
             This should be preferred to read user specific data from the
             certificate like e.g. an email address and search for it in the LDAP
             server. The reason is that the user specific data in LDAP might
-            change for various reasons would would break the mapping. On the
+            change for various reasons would break the mapping. On the
             other hand it would be hard to break the mapping on purpose for a
             specific user.
         </para>

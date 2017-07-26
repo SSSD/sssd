@@ -88,7 +88,7 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
             talloc_free(args);
             return ENOMEM;
         }
-    } while (c != 1); /* is is expected that the first element is NULL */
+    } while (c != 1); /* it is expected that the first element is NULL */
 
     renewal_data->extra_args = args;
 

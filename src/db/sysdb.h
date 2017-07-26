@@ -819,7 +819,7 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
                             const char **attributes,
                             struct ldb_result **res);
 
-/* functions that modify the databse
+/* functions that modify the database
  * they have to be called within a transaction
  * See sysdb_transaction_send()/_recv() */
 
