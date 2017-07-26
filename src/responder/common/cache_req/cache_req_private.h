@@ -152,6 +152,16 @@ cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
                                  const char *lookup_name,
                                  const char *well_known_domain);
 
+struct tevent_req *
+cache_req_sr_overlay_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct cache_req *cr,
+                          struct cache_req_result **results,
+                          size_t num_results);
+
+errno_t
+cache_req_sr_overlay_recv(struct tevent_req *req);
+
 /* Plug-in common. */
 
 struct cache_req_result *

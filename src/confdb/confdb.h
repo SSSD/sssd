@@ -162,6 +162,12 @@
 #define CONFDB_IFP_USER_ATTR_LIST "user_attributes"
 #define CONFDB_IFP_WILDCARD_LIMIT "wildcard_limit"
 
+/* Session Recording */
+#define CONFDB_SESSION_RECORDING_CONF_ENTRY "config/session_recording"
+#define CONFDB_SESSION_RECORDING_SCOPE "scope"
+#define CONFDB_SESSION_RECORDING_USERS "users"
+#define CONFDB_SESSION_RECORDING_GROUPS "groups"
+
 /* Domains */
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"
 #define CONFDB_DOMAIN_BASEDN "cn=domain,cn=config"

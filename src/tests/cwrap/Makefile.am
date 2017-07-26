@@ -42,6 +42,7 @@ SSSD_CACHE_REQ_OBJ = \
     ../../../src/responder/common/cache_req/cache_req_search.c \
     ../../../src/responder/common/cache_req/cache_req_data.c \
     ../../../src/responder/common/cache_req/cache_req_domain.c \
+    ../../../src/responder/common/cache_req/cache_req_sr_overlay.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_common.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_enum_users.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_enum_groups.c \
@@ -86,6 +87,7 @@ SSSD_RESPONDER_OBJ = \
     ../../../src/responder/common/data_provider/rdp_client.c \
     ../../../src/monitor/monitor_iface_generated.c \
     ../../../src/providers/data_provider_req.c \
+    ../../../src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
@@ -180,6 +182,7 @@ responder_common_tests_SOURCES =\
     ../../../src/responder/common/responder_packet.c \
     ../../../src/responder/common/responder_cmd.c \
     ../../../src/tests/cmocka/common_mock_resp_dp.c \
+    ../../../src/util/session_recording.c \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
 responder_common_tests_CFLAGS = \

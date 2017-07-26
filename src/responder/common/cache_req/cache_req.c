@@ -26,6 +26,7 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req_private.h"
+#include "responder/common/cache_req/cache_req_private.h"
 #include "responder/common/cache_req/cache_req_plugin.h"
 
 static const struct cache_req_plugin *
@@ -614,7 +615,8 @@ done:
 static errno_t
 cache_req_search_domains_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
-                              struct cache_req_result ***_results)
+                              struct cache_req_result ***_results,
+                              size_t *_num_results)
 {
     struct cache_req_search_domains_state *state;
 
@@ -624,6 +626,9 @@ cache_req_search_domains_recv(TALLOC_CTX *mem_ctx,
 
     if (_results != NULL) {
         *_results = talloc_steal(mem_ctx, state->results);
+    }
+    if (_num_results != NULL) {
+        *_num_results = state->num_results;
     }
 
     return EOK;
@@ -716,6 +721,8 @@ cache_req_search_domains(struct tevent_req *req,
                          bool check_next,
                          bool bypass_cache,
                          bool bypass_dp);
+
+static void cache_req_process_result(struct tevent_req *subreq);
 
 static void cache_req_done(struct tevent_req *subreq);
 
@@ -997,11 +1004,11 @@ cache_req_search_domains(struct tevent_req *req,
         return ENOMEM;
     }
 
-    tevent_req_set_callback(subreq, cache_req_done, req);
+    tevent_req_set_callback(subreq, cache_req_process_result, req);
     return EAGAIN;
 }
 
-static void cache_req_done(struct tevent_req *subreq)
+static void cache_req_process_result(struct tevent_req *subreq)
 {
     struct cache_req_state *state;
     struct tevent_req *req;
@@ -1010,7 +1017,8 @@ static void cache_req_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_state);
 
-    ret = cache_req_search_domains_recv(state, subreq, &state->results);
+    ret = cache_req_search_domains_recv(state, subreq,
+                                        &state->results, &state->num_results);
     talloc_zfree(subreq);
 
     if (ret == ENOENT && state->first_iteration) {
@@ -1035,11 +1043,23 @@ static void cache_req_done(struct tevent_req *subreq)
         }
     }
 
+    /* Overlay each result with session recording flag */
+    if (ret == EOK) {
+        subreq = cache_req_sr_overlay_send(state, state->ev, state->cr,
+                                           state->results,
+                                           state->num_results);
+        if (subreq == NULL) {
+            CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->cr,
+                            "Failed creating a session recording "
+                            "overlay request\n");
+            ret = ENOMEM;
+        } else {
+            tevent_req_set_callback(subreq, cache_req_done, req);
+            ret = EAGAIN;
+        }
+    }
+
     switch (ret) {
-    case EOK:
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Success\n");
-        tevent_req_done(req);
-        break;
     case EAGAIN:
         break;
     case ENOENT:
@@ -1054,6 +1074,30 @@ static void cache_req_done(struct tevent_req *subreq)
     }
 
     return;
+}
+
+static void cache_req_done(struct tevent_req *subreq)
+{
+    struct cache_req_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct cache_req_state);
+    ret = cache_req_sr_overlay_recv(subreq);
+    talloc_zfree(subreq);
+
+    switch (ret) {
+    case EOK:
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Success\n");
+        tevent_req_done(req);
+        break;
+    default:
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
+                        "Finished: Error %d: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        break;
+    }
 }
 
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,

@@ -18,6 +18,7 @@ dist_noinst_DATA = \
     test_enumeration.py \
     test_ldap.py \
     test_memory_cache.py \
+    test_session_recording.py \
     test_ts_cache.py \
     test_netgroup.py \
     secrets.py \
@@ -42,6 +43,7 @@ config.py: config.py.m4
 	   -D "libexecpath=\`$(libexecdir)'" \
 	   -D "runstatedir=\`$(runstatedir)'" \
 	   -D "abs_builddir=\`$(abs_builddir)'" \
+	   -D "session_recording_shell=\`$(session_recording_shell)'" \
 	   $< > $@
 
 root:

@@ -530,6 +530,7 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/cache_req_search.c \
 	src/responder/common/cache_req/cache_req_data.c \
 	src/responder/common/cache_req/cache_req_domain.c \
+	src/responder/common/cache_req/cache_req_sr_overlay.c \
 	src/responder/common/cache_req/plugins/cache_req_common.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_users.c \
 	src/responder/common/cache_req/plugins/cache_req_enum_groups.c \
@@ -574,6 +575,7 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/data_provider/rdp_client.c \
     src/monitor/monitor_iface_generated.c \
     src/providers/data_provider_req.c \
+    src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
@@ -653,6 +655,7 @@ dist_noinst_HEADERS = \
     src/util/io.h \
     src/util/util_errors.h \
     src/util/safe-format-string.h \
+    src/util/session_recording.h \
     src/util/strtonum.h \
     src/util/sss_cli_cmd.h \
     src/util/sss_ptr_hash.h \
@@ -1570,6 +1573,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider/dp_target_subdomains.c \
     src/providers/data_provider/dp_target_id.c \
     src/providers/data_provider/dp_target_auth.c \
+    src/util/session_recording.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     $(LIBADD_DL) \
@@ -2214,6 +2218,7 @@ responder_socket_access_tests_SOURCES = \
     src/responder/common/cache_req/cache_req_domain.c \
     src/responder/common/data_provider/rdp_message.c \
     src/responder/common/data_provider/rdp_client.c \
+    src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(NULL)
 responder_socket_access_tests_CFLAGS = \
@@ -2302,6 +2307,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/data_provider/rdp_message.c \
      src/responder/common/data_provider/rdp_client.c \
      src/responder/common/responder_utils.c \
+     src/util/session_recording.c \
      $(SSSD_CACHE_REQ_OBJ) \
      $(SSSD_RESPONDER_IFACE_OBJ) \
      $(NULL)

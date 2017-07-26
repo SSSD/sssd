@@ -119,87 +119,44 @@ nss_get_homedir(TALLOC_CTX *mem_ctx,
     return homedir;
 }
 
-static const char *
-nss_get_shell_override(struct ldb_message *msg,
-                       struct nss_ctx *nss_ctx,
-                       struct sss_domain_info *domain)
+static errno_t
+nss_get_shell(struct nss_ctx *nss_ctx,
+              struct sss_domain_info *domain,
+              struct ldb_message *msg,
+              const char *name,
+              uint32_t uid,
+              const char **_shell)
 {
-    const char *shell;
-    int i;
+    const char *shell = NULL;
 
-    /* Check whether we are unconditionally overriding
-     * the server for the login shell. */
-    if (domain->override_shell) {
-        return domain->override_shell;
-    } else if (nss_ctx->override_shell) {
-        return nss_ctx->override_shell;
+    if (nss_ctx->rctx->sr_conf.scope == SESSION_RECORDING_SCOPE_ALL) {
+        shell = SESSION_RECORDING_SHELL;
+    } else if (nss_ctx->rctx->sr_conf.scope ==
+               SESSION_RECORDING_SCOPE_SOME) {
+        const char *sr_enabled;
+        sr_enabled = ldb_msg_find_attr_as_string(
+                                    msg, SYSDB_SESSION_RECORDING, NULL);
+        if (sr_enabled == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "%s attribute not found for %s[%u]! Skipping\n",
+                  SYSDB_SESSION_RECORDING, name, uid);
+            return EINVAL;
+        } else if (strcmp(sr_enabled, "TRUE") == 0) {
+            shell = SESSION_RECORDING_SHELL;
+        } else if (strcmp(sr_enabled, "FALSE") != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Skipping %s[%u] "
+                  "because its %s attribute value is invalid: %s\n",
+                  name, uid, SYSDB_SESSION_RECORDING, sr_enabled);
+            return EINVAL;
+        }
     }
-
-    shell = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_SHELL,
-                                                 NULL);
     if (shell == NULL) {
-        /* Check whether there is a default shell specified */
-        if (domain->default_shell) {
-            return domain->default_shell;
-        } else if (nss_ctx->default_shell) {
-            return nss_ctx->default_shell;
-        }
-
-        return "";
+        shell = sss_resp_get_shell_override(msg, nss_ctx->rctx, domain);
     }
 
-    if (nss_ctx->allowed_shells == NULL && nss_ctx->vetoed_shells == NULL) {
-        return shell;
-    }
-
-    if (nss_ctx->vetoed_shells) {
-        for (i = 0; nss_ctx->vetoed_shells[i]; i++) {
-            if (strcmp(nss_ctx->vetoed_shells[i], shell) == 0) {
-                DEBUG(SSSDBG_FUNC_DATA,
-                      "The shell '%s' is vetoed. Using fallback.\n",
-                      shell);
-                return nss_ctx->shell_fallback;
-            }
-        }
-    }
-
-    if (nss_ctx->etc_shells) {
-        for (i = 0; nss_ctx->etc_shells[i]; i++) {
-            if (strcmp(shell, nss_ctx->etc_shells[i]) == 0) {
-                DEBUG(SSSDBG_TRACE_ALL,
-                      "Shell %s found in /etc/shells\n", shell);
-                break;
-            }
-        }
-
-        if (nss_ctx->etc_shells[i]) {
-            DEBUG(SSSDBG_TRACE_ALL, "Using original shell '%s'\n", shell);
-            return shell;
-        }
-    }
-
-    if (nss_ctx->allowed_shells) {
-        if (strcmp(nss_ctx->allowed_shells[0], "*") == 0) {
-            DEBUG(SSSDBG_FUNC_DATA,
-                  "The shell '%s' is allowed but does not exist. "
-                  "Using fallback\n", shell);
-            return nss_ctx->shell_fallback;
-        } else {
-            for (i = 0; nss_ctx->allowed_shells[i]; i++) {
-                if (strcmp(nss_ctx->allowed_shells[i], shell) == 0) {
-                    DEBUG(SSSDBG_FUNC_DATA,
-                          "The shell '%s' is allowed but does not exist. "
-                          "Using fallback\n", shell);
-                    return nss_ctx->shell_fallback;
-                }
-            }
-        }
-    }
-
-    DEBUG(SSSDBG_FUNC_DATA,
-          "The shell '%s' is not allowed and does not exist.\n", shell);
-
-    return NOLOGIN_SHELL;
+    *_shell = shell;
+    return EOK;
 }
 
 static errno_t
@@ -239,7 +196,13 @@ nss_get_pwent(TALLOC_CTX *mem_ctx,
     gecos = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_GECOS,
                                                  NULL);
     homedir = nss_get_homedir(mem_ctx, nss_ctx, domain, msg, name, upn, uid);
-    shell = nss_get_shell_override(msg, nss_ctx, domain);
+    ret = nss_get_shell(nss_ctx, domain, msg, name, uid, &shell);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "failed retrieving shell for %s[%u], skipping [%d]: %s\n",
+              name, uid, ret, sss_strerror(ret));
+        return ret;
+    }
 
     /* Convert to sized strings. */
     ret = sized_output_name(mem_ctx, nss_ctx->rctx, name, domain, _name);

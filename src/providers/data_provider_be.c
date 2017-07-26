@@ -377,6 +377,7 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
     uint32_t refresh_interval;
     struct tevent_signal *tes;
     struct be_ctx *be_ctx;
+    char *str = NULL;
     errno_t ret;
 
     be_ctx = talloc_zero(mem_ctx, struct be_ctx);
@@ -409,6 +410,12 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sysdb_master_domain_update(be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to update master domain information!\n");
+        goto done;
+    }
+
     ret = sss_monitor_init(be_ctx, be_ctx->ev, &monitor_be_methods,
                            be_ctx->identity, DATA_PROVIDER_VERSION,
                            MT_SVC_PROVIDER, be_ctx, NULL,
@@ -425,6 +432,36 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup fully qualified name "
               "format for %s\n", be_ctx->domain->name);
+        goto done;
+    }
+
+    /* Read the global override_space option, for output name formatting */
+    ret = confdb_get_string(cdb, be_ctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_OVERRIDE_SPACE, NULL,
+                            &str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannnot get the space substitution character [%d]: %s\n",
+               ret, strerror(ret));
+        goto done;
+    }
+
+    if (str != NULL) {
+        if (strlen(str) > 1) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Option %s is longer than 1 character "
+                  "only the first character %c will be used\n",
+                  CONFDB_MONITOR_OVERRIDE_SPACE, str[0]);
+        }
+
+        be_ctx->override_space = str[0];
+    }
+
+    /* Read session_recording section */
+    ret = session_recording_conf_load(be_ctx, cdb, &be_ctx->sr_conf);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed loading session recording configuration: %s\n",
+              strerror(ret));
         goto done;
     }
 

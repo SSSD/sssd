@@ -1417,7 +1417,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'ssh',
             'pac',
             'ifp',
-            'secrets']
+            'secrets',
+            'session_recording']
         for section in control_list:
             self.assertTrue(sssdconfig.has_section(section),
                             "Section [%s] missing" %
@@ -1511,7 +1512,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'ssh',
             'pac',
             'ifp',
-            'secrets']
+            'secrets',
+            'session_recording']
         service_list = sssdconfig.list_services()
         for service in control_list:
             self.assertTrue(service in service_list,
