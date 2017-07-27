@@ -351,6 +351,9 @@ errno_t check_and_open_readonly(const char *filename, int *fd,
 #define SSS_NO_SPECIAL \
         (SSS_NO_LINKLOCAL|SSS_NO_LOOPBACK|SSS_NO_MULTICAST|SSS_NO_BROADCAST)
 
+/*This sets custom abort function using talloc_set_abort_fn*/
+void sss_talloc_abort(const char* reason);
+
 /* These two functions accept addr in network order */
 bool check_ipv4_addr(struct in_addr *addr, uint8_t check);
 bool check_ipv6_addr(struct in6_addr *addr, uint8_t check);
