@@ -42,7 +42,7 @@
     <refsect2 id='priority'>
         <title>PRIORITY</title>
         <para>
-            The rules are process by priority while the number '0' (zero)
+            The rules are processed by priority while the number '0' (zero)
             indicates the highest priority. The higher the number the lower is
             the priority. A missing value indicates the lowest priority.
         </para>
@@ -110,8 +110,8 @@
                     <listitem>
                     <para>
                         This option can be used to specify which key usage
-                        values the certificate should have. The following value
-                        can be used in a comma separate list:
+                        values the certificate should have. The following values
+                        can be used in a comma separated list:
                         <itemizedlist>
                             <listitem><para>digitalSignature</para></listitem>
                             <listitem><para>nonRepudiation</para></listitem>
@@ -345,7 +345,7 @@
             relevance here). Because of this the mapping rule is based on LDAP
             search filter syntax with templates to add certificate content to
             the filter. It is expected that the filter will only contain the
-            specific data needed for the mapping an that the caller will embed
+            specific data needed for the mapping and that the caller will embed
             it in another filter to do the actual search. Because of this the
             filter string should start and stop with '(' and ')' respectively.
         </para>
@@ -365,7 +365,7 @@
         </para>
         <para>
             The templates to add certificate data to the search filter are based
-            on Python-style formatting strings. They consists of a keyword in
+            on Python-style formatting strings. They consist of a keyword in
             curly braces with an optional sub-component specifier separated by a
             '.' or an optional conversion/formatting option separated by a '!'.
             Allowed values are:
@@ -444,7 +444,7 @@
                     <para>
                         This template will add the Kerberos principal which is
                         taken either from the SAN used by pkinit or the one used
-                        by AD. The 'short_name' component represent the first
+                        by AD. The 'short_name' component represents the first
                         part of the principal before the '@' sign.
                     </para>
                     <para>
@@ -457,8 +457,8 @@
                     <listitem>
                     <para>
                         This template will add the Kerberos principal which is
-                        given by then SAN used by pkinit. The 'short_name'
-                        component represent the first part of the principal
+                        given by the SAN used by pkinit. The 'short_name'
+                        component represents the first part of the principal
                         before the '@' sign.
                     </para>
                     <para>
@@ -471,7 +471,7 @@
                     <listitem>
                     <para>
                         This template will add the Kerberos principal which is
-                        given by then SAN used by AD. The 'short_name' component
+                        given by the SAN used by AD. The 'short_name' component
                         represent the first part of the principal before the '@'
                         sign.
                     </para>
@@ -486,7 +486,7 @@
                     <para>
                         This template will add the string which is stored in the
                         rfc822Name component of the SAN, typically an email
-                        address. The 'short_name' component represent the first
+                        address. The 'short_name' component represents the first
                         part of the address before the '@' sign.
                     </para>
                     <para>
@@ -500,7 +500,7 @@
                     <para>
                         This template will add the string which is stored in the
                         dNSName component of the SAN, typically a fully-qualified host name.
-                        The 'short_name' component represent the first
+                        The 'short_name' component represents the first
                         part of the name before the first '.' sign.
                     </para>
                     <para>

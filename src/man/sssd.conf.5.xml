@@ -1100,7 +1100,7 @@ fallback_homedir = /home/%u
                             A comma separated list of strings which allows to
                             remove (filter) data sent by the PAM responder to
                             pam_sss PAM module. There are different kind of
-                            responses send to pam_sss e.g. messages displayed to
+                            responses sent to pam_sss e.g. messages displayed to
                             the user or environment variables which should be
                             set by pam_sss.
                         </para>
@@ -1113,16 +1113,16 @@ fallback_homedir = /home/%u
                             Currently the following filters are supported:
                             <variablelist>
                                 <varlistentry><term>ENV</term>
-                                    <listitem><para>Do not sent any environment
+                                    <listitem><para>Do not send any environment
                                     variables to any service.</para></listitem>
                                 </varlistentry>
                                 <varlistentry><term>ENV:var_name</term>
-                                    <listitem><para>Do not sent environment
+                                    <listitem><para>Do not send environment
                                     variable var_name to any
                                     service.</para></listitem>
                                 </varlistentry>
                                 <varlistentry><term>ENV:var_name:service</term>
-                                    <listitem><para>Do not sent environment
+                                    <listitem><para>Do not send environment
                                     variable var_name to
                                     service.</para></listitem>
                                 </varlistentry>
@@ -2862,7 +2862,7 @@ subdomain_inherit = ldap_purge_cache_timeout
                 The following example illustrates the use of an application
                 domain. In this setup, the POSIX domain is connected to an LDAP
                 server and is used by the OS through the NSS responder. In addition,
-                the application domains also requests the telephoneNumber attribute,
+                the application domain also requests the telephoneNumber attribute,
                 stores it as the phone attribute in the cache and makes the phone
                 attribute reachable through the D-Bus interface.
             </para>

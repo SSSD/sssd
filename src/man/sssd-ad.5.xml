@@ -826,7 +826,7 @@ ad_gpo_map_deny = +my_pam_service
                     <listitem>
                         <para>
                             This option should only be used to test the machine
-                            account renewal task. The option expect 2 integers
+                            account renewal task. The option expects 2 integers
                             separated by a colon (':'). The first integer
                             defines the interval in seconds how often the task
                             is run. The second specifies the initial timeout in

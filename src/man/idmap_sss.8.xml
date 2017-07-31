@@ -13,7 +13,7 @@
 
     <refnamediv id='name'>
         <refname>idmap_sss</refname>
-        <refpurpose>SSSSD's idmap_sss Backend for Winbind</refpurpose>
+        <refpurpose>SSSD's idmap_sss Backend for Winbind</refpurpose>
     </refnamediv>
 
     <refsect1 id='description'>

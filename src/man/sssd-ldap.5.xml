@@ -2631,7 +2631,7 @@ ldap_access_filter = (employeeType=admin)
                 <note>
                     <para>
                         If the option <quote>ldap_use_tokengroups</quote> is
-                        enabled. The searches against Active Directory will
+                        enabled, the searches against Active Directory will
                         not be restricted and return all groups memberships,
                         even with no GID mapping. It is recommended to disable
                         this feature, if group names are not being displayed
