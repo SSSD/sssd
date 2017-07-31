@@ -234,7 +234,7 @@ errno_t sssctl_user_checks(struct sss_cmdline *cmdline,
 
         ret = get_ifp_user(user);
         if (ret != 0) {
-            fprintf(stderr, _("InforPipe User lookup with [%s] failed.\n"),
+            fprintf(stderr, _("InfoPipe User lookup with [%s] failed.\n"),
                             user);
         }
     }
