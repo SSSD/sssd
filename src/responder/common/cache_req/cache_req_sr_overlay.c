@@ -204,6 +204,8 @@ static errno_t cache_req_sr_overlay_match_users(
         }
     }
 
+    ret = EOK;
+
 done:
     talloc_zfree(tmp_ctx);
     return ret;
