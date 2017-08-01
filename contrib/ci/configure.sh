@@ -29,7 +29,6 @@ declare -a CONFIGURE_ARG_LIST=(
     "--enable-ldb-version-check"
     "--with-syslog=journald"
     "--enable-systemtap"
-    "--with-session-recording-shell=/bin/false"
 )
 
 
