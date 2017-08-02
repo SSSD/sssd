@@ -35,7 +35,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
 errno_t
 ipa_hbac_rule_info_recv(struct tevent_req *req,
                         TALLOC_CTX *mem_ctx,
-                        size_t *rule_count,
-                        struct sysdb_attrs ***rules);
+                        size_t *_rule_count,
+                        struct sysdb_attrs ***_rules);
 
 #endif /* IPA_HBAC_RULES_H_ */

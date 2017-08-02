@@ -297,16 +297,16 @@ fail:
 errno_t
 ipa_hbac_rule_info_recv(struct tevent_req *req,
                         TALLOC_CTX *mem_ctx,
-                        size_t *rule_count,
-                        struct sysdb_attrs ***rules)
+                        size_t *_rule_count,
+                        struct sysdb_attrs ***_rules)
 {
     struct ipa_hbac_rule_state *state =
             tevent_req_data(req, struct ipa_hbac_rule_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *rule_count = state->rule_count;
-    *rules = talloc_steal(mem_ctx, state->rules);
+    *_rule_count = state->rule_count;
+    *_rules = talloc_steal(mem_ctx, state->rules);
 
     return EOK;
 }
