@@ -23,7 +23,6 @@
 #include <signal.h>
 
 #include "util/util.h"
-#include "tools/common/sss_tools.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
 #include "tools/tools_util.h"
@@ -57,7 +56,7 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
 
     if (opts.delete) {
         printf(_("Deleting log files...\n"));
-        ret = remove_subtree(LOG_PATH);
+        ret = sss_remove_subtree(LOG_PATH);
         if (ret != EOK) {
             fprintf(stderr, _("Unable to remove log files\n"));
             return ret;

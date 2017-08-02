@@ -681,4 +681,23 @@ int sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl);
 int setup_watchdog(struct tevent_context *ev, int interval);
 void teardown_watchdog(void);
 
+/* from files.c */
+int sss_remove_tree(const char *root);
+int sss_remove_subtree(const char *root);
+
+int sss_copy_tree(const char *src_root,
+                  const char *dst_root,
+                  mode_t mode_root,
+                  uid_t uid, gid_t gid);
+
+int sss_copy_file_secure(const char *src,
+                         const char *dest,
+                         mode_t mode,
+                         uid_t uid, gid_t gid,
+                         bool force);
+
+/* from selinux.c */
+int selinux_file_context(const char *dst_name);
+int reset_selinux_file_context(void);
+
 #endif /* __SSSD_UTIL_H__ */

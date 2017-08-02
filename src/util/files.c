@@ -65,7 +65,6 @@
 #include <talloc.h>
 
 #include "util/util.h"
-#include "tools/tools_util.h"
 
 struct copy_ctx {
     const char *src_orig;
@@ -140,7 +139,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
                                 dev_t parent_dev,
                                 bool keep_root_dir);
 
-int remove_tree(const char *root)
+int sss_remove_tree(const char *root)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     int ret;
@@ -155,7 +154,7 @@ int remove_tree(const char *root)
     return ret;
 }
 
-int remove_subtree(const char *root)
+int sss_remove_subtree(const char *root)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     int ret;
@@ -489,11 +488,11 @@ done:
 }
 
 int
-copy_file_secure(const char *src,
-                 const char *dest,
-                 mode_t mode,
-                 uid_t uid, gid_t gid,
-                 bool force)
+sss_copy_file_secure(const char *src,
+                     const char *dest,
+                     mode_t mode,
+                     uid_t uid, gid_t gid,
+                     bool force)
 {
     int ifd = -1;
     int ofd = -1;
@@ -761,8 +760,10 @@ done:
  * For several reasons, including the fact that we copy even special files
  * (pipes, etc) from the skeleton directory, the skeldir needs to be trusted
  */
-int copy_tree(const char *src_root, const char *dst_root,
-              mode_t mode_root, uid_t uid, gid_t gid)
+int sss_copy_tree(const char *src_root,
+                  const char *dst_root,
+                  mode_t mode_root,
+                  uid_t uid, gid_t gid)
 {
     int ret = EOK;
     struct copy_ctx *cctx = NULL;
@@ -806,4 +807,3 @@ fail:
     talloc_free(cctx);
     return ret;
 }
-

@@ -583,8 +583,6 @@ SSSD_RESPONDER_OBJ = \
 SSSD_TOOLS_OBJ = \
     src/tools/sss_sync_ops.c \
     src/tools/tools_util.c \
-    src/tools/files.c \
-    src/tools/selinux.c \
     src/tools/common/sss_tools.c \
     src/tools/common/sss_process.c \
     src/confdb/confdb_setup.c \
@@ -1052,6 +1050,8 @@ libsss_util_la_SOURCES = \
     src/util/become_user.c \
     src/util/util_watchdog.c \
     src/util/sss_ptr_hash.c \
+    src/util/files.c \
+    src/util/selinux.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2016,8 +2016,8 @@ files_tests_SOURCES = \
     src/tests/files-tests.c \
     src/util/check_and_open.c \
     src/util/atomic_io.c \
-    src/tools/selinux.c \
-    src/tools/files.c
+    src/util/selinux.c \
+    src/util/files.c
 files_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)

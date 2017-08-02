@@ -32,7 +32,6 @@
 #include <popt.h>
 
 #include "config.h"
-#include "tools/tools_util.h"
 #include "util/util.h"
 #include "tests/common.h"
 
@@ -144,7 +143,7 @@ START_TEST(test_remove_tree)
     fail_if(ret == -1, "Cannot chdir\n");
 
     /* and finally wipe it out.. */
-    ret = remove_tree(dir_path);
+    ret = sss_remove_tree(dir_path);
     fail_unless(ret == EOK, "remove_tree failed\n");
 
     /* check if really gone */
@@ -193,7 +192,7 @@ START_TEST(test_remove_subtree)
     fail_if(ret == -1, "Cannot chdir\n");
 
     /* and finally wipe it out.. */
-    ret = remove_subtree(dir_path);
+    ret = sss_remove_subtree(dir_path);
     fail_unless(ret == EOK, "remove_subtree failed\n");
 
     /* check if really gone */
@@ -240,7 +239,7 @@ START_TEST(test_simple_copy)
     /* and finally copy.. */
     DEBUG(SSSDBG_FUNC_DATA,
           "Will copy from '%s' to '%s'\n", dir_path, dst_path);
-    ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
+    ret = sss_copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied */
@@ -284,7 +283,7 @@ START_TEST(test_copy_file)
     /* Copy this file to a new file */
     DEBUG(SSSDBG_FUNC_DATA,
           "Will copy from 'foo' to 'bar'\n");
-    ret = copy_file_secure(foo_path, bar_path, 0700, uid, gid, 0);
+    ret = sss_copy_file_secure(foo_path, bar_path, 0700, uid, gid, 0);
     fail_unless(ret == EOK, "copy_file_secure failed\n");
 
     /* check if really copied */
@@ -326,7 +325,7 @@ START_TEST(test_copy_symlink)
     /* and finally copy.. */
     DEBUG(SSSDBG_FUNC_DATA,
           "Will copy from '%s' to '%s'\n", dir_path, dst_path);
-    ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
+    ret = sss_copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied */
@@ -365,7 +364,7 @@ START_TEST(test_copy_node)
     /* and finally copy.. */
     DEBUG(SSSDBG_FUNC_DATA,
           "Will copy from '%s' to '%s'\n", dir_path, dst_path);
-    ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
+    ret = sss_copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
     /* check if really copied and without special files */
