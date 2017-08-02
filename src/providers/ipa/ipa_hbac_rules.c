@@ -60,35 +60,32 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     size_t i;
     struct tevent_req *req = NULL;
     struct ipa_hbac_rule_state *state;
-    TALLOC_CTX *tmp_ctx;
     const char *host_dn;
     char *host_dn_clean;
     char *host_group_clean;
     char *rule_filter;
     const char **memberof_list;
 
-    if (ipa_host == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Missing host\n");
+    req = tevent_req_create(mem_ctx, &state, struct ipa_hbac_rule_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
-    tmp_ctx = talloc_new(mem_ctx);
-    if (tmp_ctx == NULL) return NULL;
+    if (ipa_host == NULL) {
+        ret = EINVAL;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing host\n");
+        goto immediate;
+    }
 
     ret = sysdb_attrs_get_string(ipa_host, SYSDB_ORIG_DN, &host_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not identify IPA hostname\n");
-        goto error;
+        goto immediate;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, host_dn, &host_dn_clean);
-    if (ret != EOK) goto error;
-
-    req = tevent_req_create(mem_ctx, &state, struct ipa_hbac_rule_state);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
-        goto error;
-    }
+    ret = sss_filter_sanitize(state, host_dn, &host_dn_clean);
+    if (ret != EOK) goto immediate;
 
     state->ev = ev;
     state->sh = sh;
@@ -116,7 +113,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     state->attrs[13] = IPA_HOST_CATEGORY;
     state->attrs[14] = NULL;
 
-    rule_filter = talloc_asprintf(tmp_ctx,
+    rule_filter = talloc_asprintf(state,
                                   "(&(objectclass=%s)"
                                   "(%s=%s)(%s=%s)"
                                   "(|(%s=%s)(%s=%s)",
@@ -132,12 +129,12 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
 
     /* Add all parent groups of ipa_hostname to the filter */
     ret = sysdb_attrs_get_string_array(ipa_host, SYSDB_ORIG_MEMBEROF,
-                                       tmp_ctx, &memberof_list);
+                                       state, &memberof_list);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not identify.\n");
     } if (ret == ENOENT) {
         /* This host is not a member of any hostgroups */
-        memberof_list = talloc_array(tmp_ctx, const char *, 1);
+        memberof_list = talloc_array(state, const char *, 1);
         if (memberof_list == NULL) {
             ret = ENOMEM;
             goto immediate;
@@ -146,7 +143,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; memberof_list[i]; i++) {
-        ret = sss_filter_sanitize(tmp_ctx,
+        ret = sss_filter_sanitize(state,
                                   memberof_list[i],
                                   &host_group_clean);
         if (ret != EOK) goto immediate;
@@ -176,7 +173,6 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    talloc_free(tmp_ctx);
     return req;
 
 immediate:
@@ -186,12 +182,7 @@ immediate:
         tevent_req_error(req, ret);
     }
     tevent_req_post(req, ev);
-    talloc_free(tmp_ctx);
     return req;
-
-error:
-    talloc_free(tmp_ctx);
-    return NULL;
 }
 
 static errno_t
