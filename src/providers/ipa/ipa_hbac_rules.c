@@ -132,7 +132,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
                                        state, &memberof_list);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not identify.\n");
-    } if (ret == ENOENT) {
+    } else if (ret == ENOENT) {
         /* This host is not a member of any hostgroups */
         memberof_list = talloc_array(state, const char *, 1);
         if (memberof_list == NULL) {
