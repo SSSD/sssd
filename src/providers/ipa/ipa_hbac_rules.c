@@ -201,7 +201,7 @@ ipa_hbac_rule_info_next(struct tevent_req *req,
     struct sdap_search_base *base;
 
     base = state->search_bases[state->search_base_iter];
-    if (base  == NULL) {
+    if (base == NULL) {
         return EOK;
     }
 
