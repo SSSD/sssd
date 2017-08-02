@@ -807,3 +807,80 @@ fail:
     talloc_free(cctx);
     return ret;
 }
+
+int sss_create_dir(const char *parent_dir_path,
+                   const char *dir_name,
+                   mode_t mode,
+                   uid_t uid, gid_t gid)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *dir_path;
+    int ret = EOK;
+    int parent_dir_fd = -1;
+    int dir_fd = -1;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    parent_dir_fd = sss_open_cloexec(parent_dir_path, O_RDONLY | O_DIRECTORY,
+                                     &ret);
+    if (parent_dir_fd == -1) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Cannot open() directory '%s' [%d]: %s\n",
+              parent_dir_path, ret, sss_strerror(ret));
+        goto fail;
+    }
+
+    dir_path = talloc_asprintf(tmp_ctx, "%s/%s", parent_dir_path, dir_name);
+    if (dir_path == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    errno = 0;
+    ret = mkdirat(parent_dir_fd, dir_name, mode);
+    if (ret == -1) {
+        if (errno == EEXIST) {
+            ret = EOK;
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Directory '%s' already created!\n", dir_path);
+        } else {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Error reading '%s': %s\n", parent_dir_path, strerror(ret));
+            goto fail;
+        }
+    }
+
+    dir_fd = sss_open_cloexec(dir_path, O_RDONLY | O_DIRECTORY, &ret);
+    if (dir_fd == -1) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Cannot open() directory '%s' [%d]: %s\n",
+              dir_path, ret, sss_strerror(ret));
+        goto fail;
+    }
+
+    errno = 0;
+    ret = fchown(dir_fd, uid, gid);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to own the newly created directory '%s' [%d]: %s\n",
+              dir_path, ret, sss_strerror(ret));
+        goto fail;
+    }
+
+    ret = EOK;
+
+fail:
+    if (parent_dir_fd != -1) {
+        close(parent_dir_fd);
+    }
+    if (dir_fd != -1) {
+        close(dir_fd);
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}

@@ -378,6 +378,42 @@ START_TEST(test_copy_node)
 }
 END_TEST
 
+START_TEST(test_create_dir)
+{
+    int ret;
+    char origpath[PATH_MAX+1];
+    char *new_dir;
+    struct stat info;
+
+    errno = 0;
+
+    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
+    fail_unless(errno == 0, "Cannot getcwd\n");
+
+    /* create a dir */
+    ret = sss_create_dir(dir_path, "testdir", S_IRUSR | S_IXUSR, uid, gid);
+    fail_unless(ret == EOK, "cannot create dir: %s", strerror(ret));
+
+    new_dir = talloc_asprintf(NULL, "%s/testdir", dir_path);
+    ret = stat(new_dir, &info);
+    fail_unless(ret == EOK, "failed to stat '%s'\n", new_dir);
+
+    /* check the dir has been created */
+    fail_unless(S_ISDIR(info.st_mode) != 0, "'%s' is not a dir.\n", new_dir);
+
+    /* check the permissions are okay */
+    fail_unless((info.st_mode & S_IRUSR) != 0, "Read permission is not set\n");
+    fail_unless((info.st_mode & S_IWUSR) == 0, "Write permission is set\n");
+    fail_unless((info.st_mode & S_IXUSR) != 0, "Exec permission is not set\n");
+
+    /* check the owner is okay */
+    fail_unless(info.st_uid == uid, "Dir created with the wrong uid\n");
+    fail_unless(info.st_gid == gid, "Dir created with the wrong gid\n");
+
+    talloc_free(new_dir);
+}
+END_TEST
+
 static Suite *files_suite(void)
 {
     Suite *s = suite_create("files_suite");
@@ -393,6 +429,7 @@ static Suite *files_suite(void)
     tcase_add_test(tc_files, test_copy_file);
     tcase_add_test(tc_files, test_copy_symlink);
     tcase_add_test(tc_files, test_copy_node);
+    tcase_add_test(tc_files, test_create_dir);
     suite_add_tcase(s, tc_files);
 
     return s;
