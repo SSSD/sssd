@@ -33,7 +33,6 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
-#include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
 
 static int setup_db(struct tools_ctx *ctx)
@@ -414,7 +413,7 @@ int remove_homedir(TALLOC_CTX *mem_ctx,
     }
 
     /* Remove the tree */
-    ret = remove_tree(homedir);
+    ret = sss_remove_tree(homedir);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot remove homedir %s: %d\n",
                   homedir, ret);
@@ -502,7 +501,7 @@ int create_homedir(const char *skeldir,
 
     selinux_file_context(homedir);
 
-    ret = copy_tree(skeldir, homedir, 0777 & ~default_umask, uid, gid);
+    ret = sss_copy_tree(skeldir, homedir, 0777 & ~default_umask, uid, gid);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot populate user's home directory: [%d][%s].\n",

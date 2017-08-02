@@ -23,7 +23,6 @@
 
 #include "util/util.h"
 #include "db/sysdb.h"
-#include "tools/common/sss_tools.h"
 #include "tools/common/sss_process.h"
 #include "tools/sssctl/sssctl.h"
 #include "tools/tools_util.h"
@@ -241,7 +240,7 @@ errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
     }
 
     printf(_("Removing cache files...\n"));
-    ret = remove_subtree(DB_PATH);
+    ret = sss_remove_subtree(DB_PATH);
     if (ret != EOK) {
         fprintf(stderr, _("Unable to remove cache files\n"));
         return ret;
