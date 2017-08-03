@@ -6,11 +6,16 @@
  * clients can be both 64 or 32 bit at the same time.
  */
 
-#ifndef _UTIL_MURMURHASH3_H_
-#define _UTIL_MURMURHASH3_H_
+#ifndef _SHARED_MURMURHASH3_H_
+#define _SHARED_MURMURHASH3_H_
+
+/* CAUTION:
+ * This file is also used in sss_client (pam, nss). Therefore it have to be
+ * minimalist and cannot include DEBUG macros or header file util.h.
+ */
 
 #include <stdint.h>
 
 uint32_t murmurhash3(const char *key, int len, uint32_t seed);
 
-#endif /* _UTIL_MURMURHASH3_H_ */
+#endif /* _SHARED_MURMURHASH3_H_ */

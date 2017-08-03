@@ -19,10 +19,15 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _UTIL_IO_H_
-#define _UTIL_IO_H_
+#ifndef _SHARED_IO_H_
+#define _SHARED_IO_H_
+
+/* CAUTION:
+ * This file is also used in sss_client (pam, nss). Therefore it have to be
+ * minimalist and cannot include DEBUG macros or header file util.h.
+ */
 
 int sss_open_cloexec(const char *pathname, int flags, int *ret);
 int sss_openat_cloexec(int dir_fd, const char *pathname, int flags, int *ret);
 
-#endif /* _UTIL_IO_H_ */
+#endif /* _SHARED_IO_H_ */
