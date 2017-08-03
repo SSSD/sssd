@@ -607,12 +607,7 @@ static void resolv_ghosts_group_done(struct tevent_req *subreq)
     }
 
     el = ldb_msg_find_element(group, SYSDB_GHOST);
-    if (el == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (el->num_values == 0) {
+    if (el == NULL || el->num_values == 0) {
         ret = EOK;
         goto done;
     }
