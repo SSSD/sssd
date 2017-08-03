@@ -20,8 +20,13 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _SAFEALIGN_H
-#define _SAFEALIGN_H
+#ifndef _SHARED_SAFEALIGN_H
+#define _SHARED_SAFEALIGN_H
+
+/* CAUTION:
+ * This file is also used in sss_client (pam, nss). Therefore it have to be
+ * minimalist and cannot include DEBUG macros or header file util.h.
+ */
 
 #include <string.h>
 #include <stdint.h>
@@ -138,4 +143,4 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
 #define SAFEALIGN_SET_UINT16 SAFEALIGN_SETMEM_UINT16
 #define SAFEALIGN_SET_STRING SAFEALIGN_SETMEM_STRING
 
-#endif /* _SAFEALIGN_H */
+#endif /* _SHARED_SAFEALIGN_H */
