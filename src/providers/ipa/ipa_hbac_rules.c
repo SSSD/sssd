@@ -165,19 +165,18 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     state->rules_filter = talloc_steal(state, rule_filter);
 
     ret = ipa_hbac_rule_info_next(req, state);
-    if (ret == EOK) {
-        /* ipa_hbac_rule_info_next should always have a search base when called
-         * for the first time.
-         *
-         * For the subsequent iterations, not finding any more search bases is
-         * fine though (thus the function returns EOK).
-         *
-         * As, here, it's the first case happening, let's return EINVAL.
-         */
-        ret = EINVAL;
-    }
-
     if (ret != EAGAIN) {
+        if (ret == EOK) {
+            /* ipa_hbac_rule_info_next should always have a search base when
+             * called for the first time.
+             *
+             * For the subsequent iterations, not finding any more search bases
+             * is fine though (thus the function returns EOK).
+             *
+             * As, here, it's the first case happening, let's return EINVAL.
+             */
+            ret = EINVAL;
+        }
         goto immediate;
     }
 
