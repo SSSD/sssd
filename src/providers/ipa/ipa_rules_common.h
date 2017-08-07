@@ -80,4 +80,10 @@ ipa_common_save_rules(struct sss_domain_info *domain,
                       struct ipa_common_entries *rules,
                       time_t *last_update);
 
+errno_t
+ipa_common_get_hostgroupname(TALLOC_CTX *mem_ctx,
+                             struct sysdb_ctx *sysdb,
+                             const char *host_dn,
+                             char **_hostgroupname);
+
 #endif /* IPA_RULES_COMMON_H_ */

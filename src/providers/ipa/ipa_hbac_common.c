@@ -686,9 +686,9 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
     }
 
     for (i = j = 0; i < el->num_values; i++) {
-        ret = get_ipa_hostgroupname(tmp_ctx, domain->sysdb,
-                                    (const char *)el->values[i].data,
-                                    &name);
+        ret = ipa_common_get_hostgroupname(tmp_ctx, domain->sysdb,
+                                           (const char *)el->values[i].data,
+                                           &name);
         if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Skipping malformed entry [%s]\n",
                                         (const char *)el->values[i].data);
