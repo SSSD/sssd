@@ -33,6 +33,15 @@ import ldap_ent
 from util import *
 
 LDAP_BASE_DN = "dc=example,dc=com"
+
+# There is no explation neither in the code nor in the commit message that
+# introduced this timeout why 4 was chosen as value. The very same happens
+# with respect to why the time we should wait in order to have the changes
+# reflected on SSSD is INTERACTIVE_TIMEOUT/2.
+# Having INTERACTIVE_TIMEOUT/2 has been causing a lot of failures in some of
+# our CI tests, so it's been changed to INTERACTIVE_TIMEOUT and the way it's
+# been tested was just empirically by running or CI several times and checking
+# whether a failure happened or not.
 INTERACTIVE_TIMEOUT = 4
 
 
@@ -412,7 +421,7 @@ def user_and_groups_rfc2307_bis(request, ldap_conn):
 def test_add_remove_user(ldap_conn, blank_rfc2307):
     """Test user addition and removal are reflected by SSSD"""
     e = ldap_ent.user(ldap_conn.ds_inst.base_dn, "user", 2001, 2000)
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add the user
     ent.assert_passwd(ent.contains_only())
     ldap_conn.add_s(*e)
@@ -427,7 +436,7 @@ def test_add_remove_user(ldap_conn, blank_rfc2307):
 def test_add_remove_group_rfc2307(ldap_conn, blank_rfc2307):
     """Test RFC2307 group addition and removal are reflected by SSSD"""
     e = ldap_ent.group(ldap_conn.ds_inst.base_dn, "group", 2001)
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add the group
     ent.assert_group(ent.contains_only())
     ldap_conn.add_s(*e)
@@ -442,7 +451,7 @@ def test_add_remove_group_rfc2307(ldap_conn, blank_rfc2307):
 def test_add_remove_group_rfc2307_bis(ldap_conn, blank_rfc2307_bis):
     """Test RFC2307bis group addition and removal are reflected by SSSD"""
     e = ldap_ent.group_bis(ldap_conn.ds_inst.base_dn, "group", 2001)
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add the group
     ent.assert_group(ent.contains_only())
     ldap_conn.add_s(*e)
@@ -456,7 +465,7 @@ def test_add_remove_group_rfc2307_bis(ldap_conn, blank_rfc2307_bis):
 
 def test_add_remove_membership_rfc2307(ldap_conn, user_and_group_rfc2307):
     """Test user membership addition and removal are reflected by SSSD"""
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add user to group
     ent.assert_group_by_name("group", dict(mem=ent.contains_only()))
     ldap_conn.modify_s("cn=group,ou=Groups," + ldap_conn.ds_inst.base_dn,
@@ -478,7 +487,7 @@ def test_add_remove_membership_rfc2307_bis(ldap_conn,
     """
     base_dn_bytes = ldap_conn.ds_inst.base_dn.encode('utf-8')
 
-    time.sleep(INTERACTIVE_TIMEOUT/2)
+    time.sleep(INTERACTIVE_TIMEOUT)
     # Add user to group1
     ent.assert_group_by_name("group1", dict(mem=ent.contains_only()))
     ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
