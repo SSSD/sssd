@@ -429,8 +429,10 @@ def test_idle_timeout(setup_for_cli_timeout_test):
     # because the internal timer ticks every timeout/2 seconds, so it would
     # tick at 5, 10 and 15 seconds and the client timeout check uses a
     # greater-than comparison, so the 10-seconds tick wouldn't yet trigger
-    # disconnect
-    time.sleep(15)
+    # disconnect. However, using a sleep for 15 seconds may still be error
+    # prone as the timeout is not as precise as it could be, thus let's
+    # sleep for 20 seconds.
+    time.sleep(20)
 
     nfds_post = get_num_fds(secpid)
     assert nfds_pre == nfds_post
