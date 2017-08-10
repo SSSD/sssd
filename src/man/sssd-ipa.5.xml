@@ -113,6 +113,7 @@
                             Optional. May be set on machines where the
                             hostname(5) does not reflect the fully qualified
                             name used in the IPA domain to identify this host.
+                            The hostname must be fully qualified.
                         </para>
                     </listitem>
                 </varlistentry>
