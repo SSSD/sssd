@@ -577,12 +577,23 @@ done:
     return ret;
 }
 
+static bool ipa_check_fqdn(const char *str)
+{
+    return strchr(str, '.');
+}
+
 static errno_t ipa_init_misc(struct be_ctx *be_ctx,
                              struct ipa_options *ipa_options,
                              struct ipa_id_ctx *ipa_id_ctx,
                              struct sdap_id_ctx *sdap_id_ctx)
 {
     errno_t ret;
+
+    if (!ipa_check_fqdn(dp_opt_get_string(ipa_options->basic,
+                        IPA_HOSTNAME))) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "ipa_hostname is not Fully Qualified Domain Name.\n");
+    }
 
     ret = ipa_init_dyndns(be_ctx, ipa_options);
     if (ret != EOK) {
