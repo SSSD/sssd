@@ -125,6 +125,12 @@ memcache_delete_entry(struct nss_ctx *nss_ctx,
                       name, dom->name);
                 continue;
             }
+        } else if (id == 0) {
+            /*
+             * As "root" is not handled by SSSD, let's just return EOK here
+             * instead of erroring out.
+             */
+            return EOK;
         } else if (id != 0) {
             ret = memcache_delete_entry_by_id(nss_ctx, id, type);
             if (ret != EOK) {
