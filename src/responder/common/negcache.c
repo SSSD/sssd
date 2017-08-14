@@ -694,7 +694,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         return ENOMEM;
     }
 
-    /* Populate domain-specific negative cache entries */
+    /* Populate domain-specific negative cache user entries */
     for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
         conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL,
                                     dom->name);
@@ -752,6 +752,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         }
     }
 
+    /* Populate non domain-specific negative cache user entries */
     ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,
                                     CONFDB_NSS_FILTER_USERS, &filter_list);
     if (ret == ENOENT) {
@@ -828,6 +829,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         }
     }
 
+    /* Populate domain-specific negative cache group entries */
     filter_set = false;
     for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
         conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, dom->name);
@@ -878,6 +880,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         }
     }
 
+    /* Populate non domain-specific negative cache group entries */
     ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,
                                     CONFDB_NSS_FILTER_GROUPS, &filter_list);
     if (ret == ENOENT) {
