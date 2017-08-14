@@ -752,7 +752,9 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
         } else {
-            for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
+            for (dom = domain_list;
+                 dom != NULL;
+                 dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
                 ret = sss_ncache_set_user(ncache, true, dom, name);
                 if (ret != EOK) {
                    DEBUG(SSSDBG_CRIT_FAILURE,
@@ -847,7 +849,9 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
         } else {
-            for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
+            for (dom = domain_list;
+                 dom != NULL;
+                 dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
                 ret = sss_ncache_set_group(ncache, true, dom, name);
                 if (ret != EOK) {
                    DEBUG(SSSDBG_CRIT_FAILURE,
