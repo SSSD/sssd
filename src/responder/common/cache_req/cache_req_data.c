@@ -119,12 +119,6 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_USER_BY_ID:
     case CACHE_REQ_GROUP_BY_ID:
     case CACHE_REQ_OBJECT_BY_ID:
-        if (input->id == 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: id cannot be 0!\n");
-            ret = ERR_INTERNAL;
-            goto done;
-        }
-
         data->id = input->id;
         break;
     case CACHE_REQ_OBJECT_BY_SID:
