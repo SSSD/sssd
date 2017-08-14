@@ -1073,6 +1073,23 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         }
     }
 
+    /* Also add "root" uid and gid to the negative cache */
+    ret = sss_ncache_set_uid(ncache, true, NULL, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to store permanent uid filter for root (0) "
+              "(%d [%s])\n",
+              ret, strerror(ret));
+    }
+
+    ret = sss_ncache_set_gid(ncache, true, NULL, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to store permanent gid filter for root (0) "
+              "(%d [%s])\n",
+              ret, strerror(ret));
+    }
+
     ret = EOK;
 
 done:
