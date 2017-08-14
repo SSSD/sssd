@@ -117,7 +117,7 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
     ret = sss_write_krb5_conf_snippet(
                           dp_opt_get_string(ctx->ipa_id_ctx->ipa_options->basic,
                                             IPA_KRB5_CONFD_PATH),
-                          canonicalize);
+                          canonicalize, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
         /* Just continue */
