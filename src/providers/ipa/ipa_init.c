@@ -260,9 +260,10 @@ static errno_t ipa_init_server_mode(struct be_ctx *be_ctx,
     dnsdomain = dp_opt_get_string(be_ctx->be_res->opts, DP_RES_OPT_DNS_DOMAIN);
 
     if (srv_in_server_list(ipa_servers) || sites_enabled) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "SRV resolution or IPA sites enabled "
-              "on the IPA server. Site discovery of trusted AD servers "
-              "might not work.\n");
+        DEBUG(SSSDBG_IMPORTANT_INFO, "SSSD configuration uses either DNS "
+              "SRV resolution or IPA site discovery to locate IPA servers. "
+              "On IPA server itself, it is recommended that SSSD is "
+              "configured to only connect to the IPA server it's running at. ");
 
         /* If SRV discovery is enabled on the server and
          * dns_discovery_domain is set explicitly, then
