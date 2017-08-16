@@ -564,6 +564,24 @@ static int check_group_in_ncache(struct sss_nc_ctx *ctx,
     return ret;
 }
 
+static int check_uid_in_ncache(struct sss_nc_ctx *ctx,
+                               uid_t uid)
+{
+    int ret;
+
+    ret = sss_ncache_check_uid(ctx, NULL, uid);
+    return ret;
+}
+
+static int check_gid_in_ncache(struct sss_nc_ctx *ctx,
+                               gid_t gid)
+{
+    int ret;
+
+    ret = sss_ncache_check_gid(ctx, NULL, gid);
+    return ret;
+}
+
 static void test_sss_ncache_prepopulate(void **state)
 {
     int ret;
@@ -635,6 +653,12 @@ static void test_sss_ncache_prepopulate(void **state)
     assert_int_equal(ret, EEXIST);
 
     ret = check_group_in_ncache(ncache, dom, "root");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_uid_in_ncache(ncache, 0);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_gid_in_ncache(ncache, 0);
     assert_int_equal(ret, EEXIST);
 }
 
