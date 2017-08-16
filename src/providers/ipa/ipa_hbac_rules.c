@@ -175,6 +175,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
              *
              * As, here, it's the first case happening, let's return EINVAL.
              */
+            DEBUG(SSSDBG_CRIT_FAILURE, "No search base found\n");
             ret = EINVAL;
         }
         goto immediate;
