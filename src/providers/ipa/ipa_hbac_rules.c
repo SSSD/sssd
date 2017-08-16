@@ -281,7 +281,7 @@ ipa_hbac_rule_info_done(struct tevent_req *subreq)
     } else if (ret != EOK) {
         goto fail;
     } else if (ret == EOK && state->rule_count == 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "No rules apply to this host\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "No rules apply to this host\n");
         tevent_req_error(req, ENOENT);
         return;
     }
