@@ -687,6 +687,12 @@ static void test_sss_ncache_prepopulate(void **state)
 
     ret = sss_ncache_check_group(ncache, 1, dom, "testgroup3@somedomain");
     assert_int_equal(ret, ENOENT);
+
+    ret = sss_ncache_check_user(ncache, 1, dom, "root");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_group(ncache, 1, dom, "root");
+    assert_int_equal(ret, EEXIST);
 }
 
 static void test_sss_ncache_default_domain_suffix(void **state)
