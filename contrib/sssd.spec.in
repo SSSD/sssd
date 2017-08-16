@@ -108,7 +108,7 @@
     %global enable_systemtap_opt --enable-systemtap
 %endif
 
-%if (0%{?fedora} || 0%{?epel} >= 7)
+%if (0%{?fedora} || (0%{?rhel} >= 7 && 0%{rhel7_minor} >= 4))
     %global with_secrets 1
 %else
     %global with_secret_responder --without-secrets
