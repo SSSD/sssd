@@ -90,7 +90,7 @@ def create_sssd_kcm_fixture(sock_path, request):
     else:
         abs_sock_path = os.path.join(config.RUNSTATEDIR, sock_path)
         sck = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        for _ in range(1, 10):
+        for _ in range(1, 100):
             try:
                 sck.connect(abs_sock_path)
             except:
