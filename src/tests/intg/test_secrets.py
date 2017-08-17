@@ -61,7 +61,7 @@ def create_sssd_secrets_fixture(request):
     else:
         sock_path = os.path.join(config.RUNSTATEDIR, "secrets.socket")
         sck = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        for _ in range(1, 10):
+        for _ in range(1, 100):
             try:
                 sck.connect(sock_path)
             except:
