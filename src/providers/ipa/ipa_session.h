@@ -31,6 +31,8 @@ struct ipa_session_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct dp_option *ipa_options;
     time_t last_update;
+    time_t last_request;
+    bool no_rules_found;
 
     struct sdap_attr_map *host_map;
     struct sdap_attr_map *hostgroup_map;

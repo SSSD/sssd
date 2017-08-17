@@ -42,6 +42,8 @@
 #define SSS_FLEETCOMMANDERCLIENT_PATH "/org/freedesktop/FleetCommanderClient"
 #define SSS_FLEETCOMMANDERCLIENT_IFACE "org.freedesktop.FleetCommanderClient"
 
+#define MINUTE_IN_SECONDS 60
+
 struct ipa_fetch_deskprofile_state {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
@@ -80,6 +82,8 @@ ipa_fetch_deskprofile_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     time_t now;
     time_t refresh_interval;
+    time_t request_interval;
+    time_t next_request;
     bool offline;
     errno_t ret;
 
@@ -122,13 +126,34 @@ ipa_fetch_deskprofile_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
+    now = time(NULL);
+
+    request_interval = dp_opt_get_int(state->ipa_options,
+                                      IPA_DESKPROFILE_REQUEST_INTERVAL);
+    /* This value is in minutes ... */
+    request_interval *= MINUTE_IN_SECONDS;
+
+    if (state->session_ctx->no_rules_found &&
+        now < session_ctx->last_request + request_interval) {
+        next_request = (session_ctx->last_request + request_interval - now);
+        /* This value is in seconds ... */
+        next_request /= 60;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "No rules were found in the last request.\n"
+              "Next request will happen in any login after %"PRIu64" minutes\n",
+              next_request);
+        ret = ENOENT;
+        goto immediately;
+    }
+
+    state->session_ctx->no_rules_found = false;
+
     offline = be_is_offline(be_ctx);
     DEBUG(SSSDBG_TRACE_ALL, "Connection status is [%s].\n",
           offline ? "offline" : "online");
 
     refresh_interval = dp_opt_get_int(state->ipa_options,
                                       IPA_DESKPROFILE_REFRESH);
-    now = time(NULL);
 
     if (offline || now < session_ctx->last_update + refresh_interval) {
         DEBUG(SSSDBG_TRACE_FUNC,
@@ -540,6 +565,10 @@ ipa_pam_session_handler_done(struct tevent_req *subreq)
 
     if (ret == ENOENT) {
         DEBUG(SSSDBG_IMPORTANT_INFO, "No Desktop Profile rules found\n");
+        if (!state->session_ctx->no_rules_found) {
+            state->session_ctx->no_rules_found = true;
+            state->session_ctx->last_request = time(NULL);
+        }
         state->pd->pam_status = PAM_SUCCESS;
         goto done;
     } else if (ret != EOK) {
@@ -549,6 +578,8 @@ ipa_pam_session_handler_done(struct tevent_req *subreq)
         state->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
+
+    state->session_ctx->last_request = time(NULL);
 
     hostname = dp_opt_get_string(state->session_ctx->ipa_options, IPA_HOSTNAME);
     ret = ipa_pam_session_handler_save_deskprofile_rules(state->be_ctx,

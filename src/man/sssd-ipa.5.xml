@@ -477,6 +477,20 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ipa_deskprofile_request_interval (integer)</term>
+                    <listitem>
+                        <para>
+                            The amount of time between lookups of the Desktop
+                            Profile rules against the IPA server in case the
+                            last request did not return any rule.
+                        </para>
+                        <para>
+                            Default: 60 (minutes)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ipa_hbac_refresh (integer)</term>
                     <listitem>
                         <para>

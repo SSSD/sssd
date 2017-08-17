@@ -220,6 +220,7 @@ option_strings = {
     'ipa_group_override_object_class': _("Objectclass for group override objects"),
     'ipa_deskprofile_search_base': _("Search base for Desktop Profile related objects"),
     'ipa_deskprofile_refresh': _("The amount of time in seconds between lookups of the Desktop Profile rules against the IPA server"),
+    'ipa_deskprofile_request_interval': _("The amount of time in minutes between lookups of Desktop Profiles rules against the IPA server when the last request did not find any rule"),
 
     # [provider/ad]
     'ad_domain' : _('Active Directory domain'),
