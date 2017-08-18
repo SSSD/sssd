@@ -148,6 +148,17 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    /* Get sudo_inverse_order option */
+    ret = confdb_get_int(sudo_ctx->rctx->cdb,
+                         CONFDB_SUDO_CONF_ENTRY, CONFDB_SUDO_THRESHOLD,
+                         CONFDB_DEFAULT_SUDO_THRESHOLD,
+                         &sudo_ctx->threshold);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
+              ret, strerror(ret));
+        goto fail;
+    }
+
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
