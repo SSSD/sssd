@@ -61,13 +61,6 @@ static void sig_term_handler(int sig)
 static krb5_context krb5_error_ctx;
 #define LDAP_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
-static const char *__ldap_child_krb5_error_msg;
-#define KRB5_SYSLOG(krb5_error) do { \
-    __ldap_child_krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
-    sss_log(SSS_LOG_ERR, "%s", __ldap_child_krb5_error_msg); \
-    sss_krb5_free_error_message(krb5_error_ctx, __ldap_child_krb5_error_msg); \
-} while(0)
-
 struct input_buffer {
     const char *realm_str;
     const char *princ_str;
@@ -450,11 +443,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to init credentials: %s\n",
                sss_krb5_get_error_message(context, krberr));
-        sss_log(SSS_LOG_ERR,
-                "Failed to initialize credentials using keytab [%s]: %s. "
-                "Unable to create GSSAPI-encrypted LDAP connection.",
-                KEYTAB_CLEAN_NAME,
-                sss_krb5_get_error_message(context, krberr));
         goto done;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "credentials initialized\n");
@@ -527,7 +515,11 @@ done:
     if (krberr != 0) {
         const char *krb5_msg;
 
-        KRB5_SYSLOG(krberr);
+        sss_log(SSS_LOG_ERR,
+                "Failed to initialize credentials using keytab [%s]: %s. "
+                "Unable to create GSSAPI-encrypted LDAP connection.",
+                KEYTAB_CLEAN_NAME,
+                sss_krb5_get_error_message(context, krberr));
         krb5_msg = sss_krb5_get_error_message(context, krberr);
         *_krb5_msg = talloc_strdup(memctx, krb5_msg);
         sss_krb5_free_error_message(context, krb5_msg);
