@@ -26,7 +26,9 @@ static const char **
 cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
                             const char **requested)
 {
-    static const char *defattrs[] = { SYSDB_DEFAULT_ATTRS };
+    static const char *defattrs[] = { SYSDB_DEFAULT_ATTRS, SYSDB_NAME,
+                                      OVERRIDE_PREFIX SYSDB_NAME,
+                                      SYSDB_DEFAULT_OVERRIDE_NAME };
     static size_t defnum = sizeof(defattrs) / sizeof(defattrs[0]);
     const char **attrs;
     size_t reqnum;
