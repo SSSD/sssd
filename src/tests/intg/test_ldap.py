@@ -34,6 +34,9 @@ import ldap_ent
 import sssd_id
 import sssd_ldb
 from util import unindent
+from sssd_nss import NssReturnCode
+from sssd_passwd import call_sssd_getpwnam, call_sssd_getpwuid
+from sssd_group import call_sssd_getgrnam, call_sssd_getgrgid
 
 LDAP_BASE_DN = "dc=example,dc=com"
 INTERACTIVE_TIMEOUT = 4
@@ -1102,10 +1105,14 @@ def sanity_nss_filter_cached(request, ldap_conn):
     ent_list.add_user("user1", 1001, 2001)
     ent_list.add_user("user2", 1002, 2002)
     ent_list.add_user("user3", 1003, 2003)
+    ent_list.add_user("root", 1004, 2004)
+    ent_list.add_user("zerouid", 0, 0)
 
     ent_list.add_group_bis("group1", 2001)
     ent_list.add_group_bis("group2", 2002)
     ent_list.add_group_bis("group3", 2003)
+    ent_list.add_group_bis("root", 2004)
+    ent_list.add_group_bis("zerogid", 0)
 
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
@@ -1148,3 +1155,17 @@ def test_nss_filters_cached(ldap_conn, sanity_nss_filter_cached):
     time.sleep(2)
     with pytest.raises(KeyError):
         grp.getgrgid(2002)
+
+    # test that root is always filtered even if filter_users contains other
+    # entries. This is a regression test for upstream ticket #3460
+    res, _ = call_sssd_getpwnam("root")
+    assert res == NssReturnCode.NOTFOUND
+
+    res, _ = call_sssd_getgrnam("root")
+    assert res == NssReturnCode.NOTFOUND
+
+    res, _ = call_sssd_getpwuid(0)
+    assert res == NssReturnCode.NOTFOUND
+
+    res, _ = call_sssd_getgrgid(0)
+    assert res == NssReturnCode.NOTFOUND
