@@ -40,6 +40,10 @@
 #define TEST_GROUP_NAME "test_sudo_group"
 #define TEST_GID 10001
 
+#define OVERRIDE_USER_NAME "user_test"
+#define OVERRIDE_GROUP_NAME "group_sudo_test"
+#define OVERRIDE_UID 2112
+
 struct test_user {
     const char *name;
     uid_t uid;
@@ -171,6 +175,52 @@ static int test_sysdb_setup(void **state)
 }
 
 static int test_sysdb_teardown(void **state)
+{
+    struct sysdb_test_ctx *test_ctx;
+
+    test_ctx = talloc_get_type_abort(*state, struct sysdb_test_ctx);
+
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
+
+    reset_ldb_errstrings(test_ctx->tctx->dom);
+    assert_true(check_leaks_pop(test_ctx));
+    talloc_zfree(test_ctx);
+    assert_true(leak_check_teardown());
+
+    return 0;
+}
+
+static int test_sysdb_views_setup(void **state)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct sysdb_test_ctx);
+    assert_non_null(test_ctx);
+
+    test_dom_suite_setup(TESTS_PATH);
+
+    test_ctx->tctx = create_dom_test_ctx(test_ctx, TESTS_PATH, TEST_CONF_DB,
+                                         TEST_DOM_NAME, "ipa", NULL);
+    assert_non_null(test_ctx->tctx);
+
+    create_groups(test_ctx->tctx->dom);
+    create_users(test_ctx->tctx->dom);
+
+    ret = sysdb_update_view_name(test_ctx->tctx->dom->sysdb, SYSDB_LOCAL_VIEW_NAME);
+    assert_int_equal(ret, EOK);
+    sysdb_master_domain_update(test_ctx->tctx->dom);
+
+    reset_ldb_errstrings(test_ctx->tctx->dom);
+    check_leaks_push(test_ctx);
+
+    *state = (void *)test_ctx;
+    return 0;
+}
+
+static int test_sysdb_views_teardown(void **state)
 {
     struct sysdb_test_ctx *test_ctx;
 
@@ -452,44 +502,146 @@ void test_get_sudo_user_info(void **state)
 {
     errno_t ret;
     char **groupnames = NULL;
+    const char *orig_username;
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
     /* User 1 has group. */
-    ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom,
-                                   users[1].name, NULL, &groupnames);
+    ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom, users[1].name,
+                                   &orig_username, NULL, &groupnames);
     assert_int_equal(ret, EOK);
     assert_string_equal(groupnames[0], TEST_GROUP_NAME);
+    assert_string_equal(orig_username, users[1].name);
 
     talloc_zfree(groupnames);
+    talloc_zfree(orig_username);
+}
+
+void test_get_overriden_sudo_user_info(void **state)
+{
+    errno_t ret;
+    char **groupnames = NULL;
+    const char *orig_username;
+    uid_t orig_uid;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+
+    char *strdn;
+    char *safe_dn;
+    char *anchor;
+    char *group_fqname;
+    char *user_fqname;
+    struct sysdb_attrs *attrs;
+    struct ldb_dn *ldb_dn;
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    /* Override user's name and primary UID */
+    user_fqname = sss_create_internal_fqname(test_ctx,
+                                             OVERRIDE_USER_NAME,
+                                             test_ctx->tctx->dom->name);
+    assert_non_null(user_fqname);
+
+    ldb_dn = sysdb_user_dn(attrs, test_ctx->tctx->dom, users[1].name);
+    assert_non_null(ldb_dn);
+    strdn = sysdb_user_strdn(attrs, test_ctx->tctx->dom->name, users[1].name);
+    assert_non_null(strdn);
+    ret = sysdb_dn_sanitize(attrs, strdn, &safe_dn);
+    assert_int_equal(ret, EOK);
+    anchor = talloc_asprintf(attrs, ":%s:%s", SYSDB_LOCAL_VIEW_NAME, safe_dn);
+    assert_non_null(anchor);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OVERRIDE_ANCHOR_UUID, anchor);
+    assert_int_equal(ret, EOK);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, user_fqname);
+    assert_int_equal(ret, EOK);
+    ret = sysdb_attrs_add_uint32(attrs, SYSDB_UIDNUM, OVERRIDE_UID);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_override(test_ctx->tctx->dom, SYSDB_LOCAL_VIEW_NAME,
+                               SYSDB_MEMBER_USER, attrs, ldb_dn);
+    assert_int_equal(ret, EOK);
+    talloc_zfree(attrs);
+
+    /* Override user's secondary group name */
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    group_fqname = sss_create_internal_fqname(test_ctx,
+                                              OVERRIDE_GROUP_NAME,
+                                              test_ctx->tctx->dom->name);
+    assert_non_null(group_fqname);
+
+    ldb_dn = sysdb_group_dn(attrs, test_ctx->tctx->dom, TEST_GROUP_NAME);
+    assert_non_null(ldb_dn);
+    strdn = sysdb_group_strdn(attrs, test_ctx->tctx->dom->name, TEST_GROUP_NAME);
+    assert_non_null(strdn);
+    ret = sysdb_dn_sanitize(attrs, strdn, &safe_dn);
+    assert_int_equal(ret, EOK);
+    anchor = talloc_asprintf(attrs, ":%s:%s", SYSDB_LOCAL_VIEW_NAME, safe_dn);
+    assert_non_null(anchor);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OVERRIDE_ANCHOR_UUID, anchor);
+    assert_int_equal(ret, EOK);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, group_fqname);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_override(test_ctx->tctx->dom, SYSDB_LOCAL_VIEW_NAME,
+                               SYSDB_MEMBER_GROUP, attrs, ldb_dn);
+    assert_int_equal(ret, EOK);
+
+    /* User must be searchable by their overriden name */
+    ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom, user_fqname,
+                                   &orig_username, &orig_uid, &groupnames);
+    assert_int_equal(ret, EOK);
+
+    /* sysdb_get_sudo_user_info must return the original values, not the
+     * overriden one */
+    assert_string_equal(groupnames[0], TEST_GROUP_NAME);
+    assert_string_equal(orig_username, users[1].name);
+    assert_int_equal(orig_uid, users[1].uid);
+
+    talloc_zfree(groupnames);
+    talloc_zfree(orig_username);
+    talloc_zfree(attrs);
+    talloc_zfree(user_fqname);
+    talloc_zfree(group_fqname);
 }
 
 void test_get_sudo_user_info_nogroup(void **state)
 {
     errno_t ret;
     char **groupnames = NULL;
+    const char *orig_username;
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
     /* User 0 hasn't group. */
-    ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom,
-                                   users[0].name, NULL, &groupnames);
+    ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom, users[0].name,
+                                   &orig_username, NULL, &groupnames);
     assert_int_equal(ret, EOK);
     assert_null(groupnames);
+    assert_string_equal(orig_username, users[0].name);
 
     talloc_zfree(groupnames);
+    talloc_zfree(orig_username);
 }
 
 void test_get_sudo_nouser(void **state)
 {
     errno_t ret;
     char **groupnames = NULL;
+    const char *orig_username = NULL;
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
     ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom,
-                                   TEST_USER_NON_EXIST, NULL, &groupnames);
+                                   TEST_USER_NON_EXIST,
+                                   &orig_username, NULL, &groupnames);
     assert_int_equal(ret, ENOENT);
+    assert_null(orig_username);
+    assert_null(groupnames);
 }
 
 void test_set_sudo_rule_attr_add(void **state)
@@ -848,6 +1000,14 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_get_sudo_nouser,
                                         test_sysdb_setup,
                                         test_sysdb_teardown),
+
+        /* The override tests use a different setup/teardown because loading
+         * the view allocates some data on the confdb and domain pointers,
+         * which would confuse the leak check
+         */
+        cmocka_unit_test_setup_teardown(test_get_overriden_sudo_user_info,
+                                        test_sysdb_views_setup,
+                                        test_sysdb_views_teardown),
 
         /* sysdb_set_sudo_rule_attr() */
         cmocka_unit_test_setup_teardown(test_set_sudo_rule_attr_add,
