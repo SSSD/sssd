@@ -52,6 +52,27 @@ def getgrnam_r(name, result_p, buffer_p, buflen):
     return (int(res), int(errno[0]), result_p)
 
 
+def getgrgid_r(gid, result_p, buffer_p, buflen):
+    """
+    ctypes wrapper for:
+        enum nss_status _nss_sss_getgrgid_r(gid_t gid,
+                                            struct passwd *result,
+                                            char *buffer,
+                                            size_t buflen,
+                                            int *errnop)
+    """
+    func = nss_sss_ctypes_loader("_nss_sss_getgrgid_r")
+    func.restype = c_int
+    func.argtypes = [c_ulong, POINTER(Group),
+                     c_char_p, c_ulong, POINTER(c_int)]
+
+    errno = POINTER(c_int)(c_int(0))
+
+    res = func(gid, result_p, buffer_p, buflen, errno)
+
+    return (int(res), int(errno[0]), result_p)
+
+
 def set_group_dict(res, result_p):
     if res != NssReturnCode.SUCCESS:
         return dict()
@@ -72,7 +93,7 @@ def set_group_dict(res, result_p):
 
 def call_sssd_getgrnam(name):
     """
-    A Python wrapper to retrieve a group. Returns:
+    A Python wrapper to retrieve a group by name. Returns:
         (res, group_dict)
     if res is NssReturnCode.SUCCESS, then group_dict contains the keys
     corresponding to the C passwd structure fields. Otherwise, the dictionary
@@ -85,6 +106,26 @@ def call_sssd_getgrnam(name):
     res, errno, result_p = getgrnam_r(name, result_p, buff, GROUP_BUFLEN)
     if errno != 0:
         raise SssdNssError(errno, "getgrnam_r")
+
+    group_dict = set_group_dict(res, result_p)
+    return res, group_dict
+
+
+def call_sssd_getgrgid(gid):
+    """
+    A Python wrapper to retrieve a group by GID. Returns:
+        (res, group_dict)
+    if res is NssReturnCode.SUCCESS, then group_dict contains the keys
+    corresponding to the C passwd structure fields. Otherwise, the dictionary
+    is empty and errno indicates the error code
+    """
+    result = Group()
+    result_p = POINTER(Group)(result)
+    buff = create_string_buffer(GROUP_BUFLEN)
+
+    res, errno, result_p = getgrgid_r(gid, result_p, buff, GROUP_BUFLEN)
+    if errno != 0:
+        raise SssdNssError(errno, "getgrgid_r")
 
     group_dict = set_group_dict(res, result_p)
     return res, group_dict

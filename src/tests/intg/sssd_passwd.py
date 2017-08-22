@@ -70,6 +70,27 @@ def getpwnam_r(name, result_p, buffer_p, buflen):
     return (int(res), int(errno[0]), result_p)
 
 
+def getpwuid_r(uid, result_p, buffer_p, buflen):
+    """
+    ctypes wrapper for:
+        enum nss_status _nss_sss_getpwuid_r(uid_t uid,
+                                            struct passwd *result,
+                                            char *buffer,
+                                            size_t buflen,
+                                            int *errnop)
+    """
+    func = nss_sss_ctypes_loader("_nss_sss_getpwuid_r")
+    func.restype = c_int
+    func.argtypes = [c_ulong, POINTER(Passwd),
+                     c_char_p, c_ulong, POINTER(c_int)]
+
+    errno = POINTER(c_int)(c_int(0))
+
+    res = func(uid, result_p, buffer_p, buflen, errno)
+
+    return (int(res), int(errno[0]), result_p)
+
+
 def setpwent():
     """
     ctypes wrapper for:
@@ -134,7 +155,7 @@ def getpwent():
 
 def call_sssd_getpwnam(name):
     """
-    A Python wrapper to retrieve a user. Returns:
+    A Python wrapper to retrieve a user by name. Returns:
         (res, user_dict)
     if res is NssReturnCode.SUCCESS, then user_dict contains the keys
     corresponding to the C passwd structure fields. Otherwise, the dictionary
@@ -147,6 +168,26 @@ def call_sssd_getpwnam(name):
     res, errno, result_p = getpwnam_r(name, result_p, buff, PASSWD_BUFLEN)
     if errno != 0:
         raise SssdNssError(errno, "getpwnam_r")
+
+    user_dict = set_user_dict(res, result_p)
+    return res, user_dict
+
+
+def call_sssd_getpwuid(uid):
+    """
+    A Python wrapper to retrieve a user by UID. Returns:
+        (res, user_dict)
+    if res is NssReturnCode.SUCCESS, then user_dict contains the keys
+    corresponding to the C passwd structure fields. Otherwise, the dictionary
+    is empty and errno indicates the error code
+    """
+    result = Passwd()
+    result_p = POINTER(Passwd)(result)
+    buff = create_string_buffer(PASSWD_BUFLEN)
+
+    res, errno, result_p = getpwuid_r(uid, result_p, buff, PASSWD_BUFLEN)
+    if errno != 0:
+        raise SssdNssError(errno, "getpwuid_r")
 
     user_dict = set_user_dict(res, result_p)
     return res, user_dict
