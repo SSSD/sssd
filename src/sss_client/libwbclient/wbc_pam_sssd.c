@@ -49,7 +49,7 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
         *error = NULL;
     }
 
-    WBC_SSSD_NOT_IMPLEMENTED;
+    WBC_ERR_WINBIND_NOT_AVAILABLE;
 }
 
 /* Trigger a verification of the trust credentials of a specific domain */
