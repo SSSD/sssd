@@ -193,7 +193,8 @@ static errno_t sudosrv_expired_rules(TALLOC_CTX *mem_ctx,
 
 static errno_t sudosrv_cached_rules_by_user(TALLOC_CTX *mem_ctx,
                                             struct sss_domain_info *domain,
-                                            uid_t uid,
+                                            uid_t cli_uid,
+                                            uid_t orig_uid,
                                             const char *username,
                                             char **groupnames,
                                             struct sysdb_attrs ***_rules,
@@ -224,7 +225,7 @@ static errno_t sudosrv_cached_rules_by_user(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    filter = sysdb_sudo_filter_user(tmp_ctx, username, groupnames, uid);
+    filter = sysdb_sudo_filter_user(tmp_ctx, username, groupnames, orig_uid);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -236,7 +237,7 @@ static errno_t sudosrv_cached_rules_by_user(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    val = talloc_asprintf(tmp_ctx, "#%"SPRIuid, uid);
+    val = talloc_asprintf(tmp_ctx, "#%"SPRIuid, cli_uid);
     if (val == NULL) {
         ret = ENOMEM;
         goto done;
@@ -301,7 +302,8 @@ static errno_t sudosrv_cached_rules_by_ng(TALLOC_CTX *mem_ctx,
 
 static errno_t sudosrv_cached_rules(TALLOC_CTX *mem_ctx,
                                     struct sss_domain_info *domain,
-                                    uid_t uid,
+                                    uid_t cli_uid,
+                                    uid_t orig_uid,
                                     const char *username,
                                     char **groups,
                                     bool inverse_order,
@@ -323,13 +325,15 @@ static errno_t sudosrv_cached_rules(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sudosrv_cached_rules_by_user(tmp_ctx, domain, uid, username, groups,
+    ret = sudosrv_cached_rules_by_user(tmp_ctx, domain,
+                                       cli_uid, orig_uid, username, groups,
                                        &user_rules, &num_user_rules);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = sudosrv_cached_rules_by_ng(tmp_ctx, domain, uid, username, groups,
+    ret = sudosrv_cached_rules_by_ng(tmp_ctx, domain,
+                                     orig_uid, username, groups,
                                      &ng_rules, &num_ng_rules);
     if (ret != EOK) {
         goto done;
@@ -410,7 +414,8 @@ static errno_t sudosrv_cached_defaults(TALLOC_CTX *mem_ctx,
 static errno_t sudosrv_fetch_rules(TALLOC_CTX *mem_ctx,
                                    enum sss_sudo_type type,
                                    struct sss_domain_info *domain,
-                                   uid_t uid,
+                                   uid_t cli_uid,
+                                   uid_t orig_uid,
                                    const char *username,
                                    char **groups,
                                    bool inverse_order,
@@ -428,7 +433,8 @@ static errno_t sudosrv_fetch_rules(TALLOC_CTX *mem_ctx,
               username, domain->name);
         debug_name = "rules";
 
-        ret = sudosrv_cached_rules(mem_ctx, domain, uid, username, groups,
+        ret = sudosrv_cached_rules(mem_ctx, domain,
+                                   cli_uid, orig_uid, username, groups,
                                    inverse_order, &rules, &num_rules);
 
         break;
@@ -616,12 +622,15 @@ struct sudosrv_get_rules_state {
     struct tevent_context *ev;
     struct resp_ctx *rctx;
     enum sss_sudo_type type;
-    uid_t uid;
+    uid_t cli_uid;
     const char *username;
     struct sss_domain_info *domain;
     char **groups;
     bool inverse_order;
     int threshold;
+
+    uid_t orig_uid;
+    const char *orig_username;
 
     struct sysdb_attrs **rules;
     uint32_t num_rules;
@@ -634,7 +643,7 @@ struct tevent_req *sudosrv_get_rules_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,
                                           struct sudo_ctx *sudo_ctx,
                                           enum sss_sudo_type type,
-                                          uid_t uid,
+                                          uid_t cli_uid,
                                           const char *username)
 {
     struct sudosrv_get_rules_state *state;
@@ -651,7 +660,7 @@ struct tevent_req *sudosrv_get_rules_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->rctx = sudo_ctx->rctx;
     state->type = type;
-    state->uid = uid;
+    state->cli_uid = cli_uid;
     state->inverse_order = sudo_ctx->inverse_order;
     state->threshold = sudo_ctx->threshold;
 
@@ -702,7 +711,9 @@ static void sudosrv_get_rules_initgr_done(struct tevent_req *subreq)
     talloc_zfree(result);
 
     ret = sysdb_get_sudo_user_info(state, state->domain, state->username,
-                                   NULL, &state->groups);
+                                   &state->orig_username,
+                                   &state->orig_uid,
+                                   &state->groups);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain user groups [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -711,7 +722,8 @@ static void sudosrv_get_rules_initgr_done(struct tevent_req *subreq)
 
     subreq = sudosrv_refresh_rules_send(state, state->ev, state->rctx,
                                         state->domain, state->threshold,
-                                        state->uid, state->username,
+                                        state->orig_uid,
+                                        state->orig_username,
                                         state->groups);
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -748,8 +760,11 @@ static void sudosrv_get_rules_done(struct tevent_req *subreq)
               "in cache.\n");
     }
 
-    ret = sudosrv_fetch_rules(state, state->type, state->domain, state->uid,
-                              state->username, state->groups,
+    ret = sudosrv_fetch_rules(state, state->type, state->domain,
+                              state->cli_uid,
+                              state->orig_uid,
+                              state->orig_username,
+                              state->groups,
                               state->inverse_order,
                               &state->rules, &state->num_rules);
 

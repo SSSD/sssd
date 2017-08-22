@@ -370,38 +370,58 @@ sysdb_sudo_filter_netgroups(TALLOC_CTX *mem_ctx,
 errno_t
 sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
-                         const char *username, uid_t *_uid,
-                         char ***groupnames)
+                         const char *username,
+                         const char **_orig_name,
+                         uid_t *_uid,
+                         char ***_groupnames)
 {
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
-    struct ldb_message *msg;
     struct ldb_message *group_msg = NULL;
+    struct ldb_result *res;
     char **sysdb_groupnames = NULL;
     const char *primary_group = NULL;
-    struct ldb_message_element *groups;
     uid_t uid = 0;
     gid_t gid = 0;
     size_t num_groups = 0;
-    int i;
-    const char *attrs[] = { SYSDB_MEMBEROF,
-                            SYSDB_GIDNUM,
-                            SYSDB_UIDNUM,
-                            NULL };
+    const char *groupname;
     const char *group_attrs[] = { SYSDB_NAME,
                                   NULL };
+    const char *orig_name;
 
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
-    ret = sysdb_search_user_by_name(tmp_ctx, domain, username, attrs, &msg);
+    /*
+     * Even though we lookup initgroups with views, we don't want to use
+     * overridden group names/gids since the rules contains the original
+     * values.
+     */
+    ret = sysdb_initgroups_with_views(tmp_ctx, domain, username, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up user %s\n", username);
         goto done;
     }
 
+    if (res->count == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No such user %s\n", username);
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* Even though the database might be queried with the overriden name,
+     * the original name must be used in the filter later on
+     */
+    orig_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    if (orig_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No original name?\n");
+        ret = EINVAL;
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_FUNC, "original name: %s\n", orig_name);
+
     if (_uid != NULL) {
-        uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+        uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
         if (!uid) {
             DEBUG(SSSDBG_CRIT_FAILURE, "A user with no UID?\n");
             ret = EIO;
@@ -409,35 +429,40 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* resolve secondary groups */
-    if (groupnames != NULL) {
-        groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
-        if (!groups || groups->num_values == 0) {
+    /* get secondary group names */
+    if (_groupnames != NULL) {
+        if (res->count < 2) {
             /* No groups for this user in sysdb currently */
             sysdb_groupnames = NULL;
             num_groups = 0;
         } else {
-            num_groups = groups->num_values;
-            sysdb_groupnames = talloc_array(tmp_ctx, char *, num_groups + 1);
+            sysdb_groupnames = talloc_zero_array(tmp_ctx, char *, res->count);
             NULL_CHECK(sysdb_groupnames, ret, done);
 
-            /* Get a list of the groups by groupname only */
-            for (i = 0; i < groups->num_values; i++) {
-                ret = sysdb_group_dn_name(domain->sysdb,
-                                          sysdb_groupnames,
-                                          (const char *)groups->values[i].data,
-                                          &sysdb_groupnames[i]);
-                if (ret != EOK) {
-                    ret = ENOMEM;
-                    goto done;
+            /* Start counting from 1 to exclude the user entry */
+            num_groups = 0;
+            for (size_t i = 1; i < res->count; i++) {
+                groupname = ldb_msg_find_attr_as_string(res->msgs[i],
+                                                        SYSDB_NAME,
+                                                        NULL);
+                if (groupname == NULL) {
+                    DEBUG(SSSDBG_MINOR_FAILURE, "A group with no name?");
+                    continue;
                 }
+
+                sysdb_groupnames[num_groups] = talloc_strdup(sysdb_groupnames,
+                                                             groupname);
+                if (sysdb_groupnames[num_groups] == NULL) {
+                    DEBUG(SSSDBG_MINOR_FAILURE, "Cannot strdup %s\n", groupname);
+                    continue;
+                }
+                num_groups++;
             }
-            sysdb_groupnames[groups->num_values] = NULL;
         }
     }
 
     /* resolve primary group */
-    gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+    gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
     if (gid != 0) {
         ret = sysdb_search_group_by_gid(tmp_ctx, domain, gid, group_attrs,
                                         &group_msg);
@@ -468,12 +493,16 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
 
     ret = EOK;
 
+    if (orig_name != NULL) {
+        *_orig_name = talloc_steal(mem_ctx, orig_name);
+    }
+
     if (_uid != NULL) {
         *_uid = uid;
     }
 
-    if (groupnames != NULL) {
-        *groupnames = talloc_steal(mem_ctx, sysdb_groupnames);
+    if (_groupnames != NULL) {
+        *_groupnames = talloc_steal(mem_ctx, sysdb_groupnames);
     }
 done:
     talloc_free(tmp_ctx);

@@ -120,8 +120,10 @@ sysdb_sudo_filter_netgroups(TALLOC_CTX *mem_ctx,
 errno_t
 sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
-                         const char *username, uid_t *_uid,
-                         char ***groupnames);
+                         const char *username,
+                         const char **_orig_name,
+                         uid_t *_uid,
+                         char ***_groupnames);
 
 errno_t sysdb_sudo_set_last_full_refresh(struct sss_domain_info *domain,
                                          time_t value);
