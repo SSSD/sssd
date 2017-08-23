@@ -324,6 +324,10 @@ non_interactive_cmocka_based_tests += \
     $(NULL)
 endif
 
+if BUILD_KRB5_LOCALAUTH_PLUGIN
+non_interactive_cmocka_based_tests += test_sssd_krb5_localauth_plugin
+endif # BUILD_KRB5_LOCALAUTH_PLUGIN
+
 endif   # HAVE_CMOCKA
 
 check_PROGRAMS = \
@@ -3518,6 +3522,20 @@ tcurl_test_tool_LDADD = \
     $(CURL_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+endif
+
+if BUILD_KRB5_LOCALAUTH_PLUGIN
+test_sssd_krb5_localauth_plugin_SOURCES = \
+    src/tests/cmocka/test_sssd_krb5_localauth_plugin.c \
+    src/krb5_plugin/sssd_krb5_localauth_plugin.c \
+    $(NULL)
+test_sssd_krb5_localauth_plugin_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_sssd_krb5_localauth_plugin_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(KRB5_LIBS) \
     $(NULL)
 endif
 
