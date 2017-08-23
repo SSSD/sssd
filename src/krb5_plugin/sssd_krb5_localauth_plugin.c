@@ -137,7 +137,7 @@ static krb5_error_code sss_an2ln(krb5_context context,
                                      &nss_errno);
     if (nss_status != NSS_STATUS_SUCCESS) {
         if (nss_status == NSS_STATUS_NOTFOUND) {
-            ret = KRB5_PLUGIN_NO_HANDLE;
+            ret = KRB5_LNAME_NOTRANS;
         } else {
             ret = EIO;
         }
