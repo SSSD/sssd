@@ -1389,21 +1389,17 @@ done:
     return pam_check_user_done(preq, ret);
 }
 
+static errno_t pam_user_by_cert_step(struct pam_auth_req *preq);
 static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req);
 static void pam_forwarder_cert_cb(struct tevent_req *req)
 {
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
-    struct cli_ctx *cctx = preq->cctx;
     struct pam_data *pd;
     errno_t ret = EOK;
-    char *cert;
-    struct pam_ctx *pctx =
-            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+    const char *cert;
 
-    ret = pam_check_cert_recv(req, preq, &cert, &preq->token_name,
-                                                &preq->module_name,
-                                                &preq->key_id);
+    ret = pam_check_cert_recv(req, preq, &preq->cert_list);
     talloc_free(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "get_cert request failed.\n");
@@ -1411,6 +1407,8 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
     }
 
     pd = preq->pd;
+
+    cert = sss_cai_get_cert(preq->cert_list);
 
     if (cert == NULL) {
         if (pd->logon_name == NULL) {
@@ -1431,21 +1429,42 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
         goto done;
     }
 
-
-    req = cache_req_user_by_cert_send(preq, cctx->ev, cctx->rctx,
-                                      pctx->rctx->ncache, 0,
-                                      preq->req_dom_type, NULL,
-                                      cert);
-    if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert_send failed.\n");
-        ret = ENOMEM;
+    preq->current_cert = preq->cert_list;
+    ret = pam_user_by_cert_step(preq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "pam_user_by_cert_step failed.\n");
         goto done;
     }
-    tevent_req_set_callback(req, pam_forwarder_lookup_by_cert_done, preq);
+
     return;
 
 done:
     pam_check_user_done(preq, ret);
+}
+
+static errno_t pam_user_by_cert_step(struct pam_auth_req *preq)
+{
+    struct cli_ctx *cctx = preq->cctx;
+    struct tevent_req *req;
+    struct pam_ctx *pctx =
+            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+
+    if (preq->current_cert == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing certificate data.\n");
+        return EINVAL;
+    }
+
+    req = cache_req_user_by_cert_send(preq, cctx->ev, cctx->rctx,
+                                      pctx->rctx->ncache, 0,
+                                      preq->req_dom_type, NULL,
+                                      sss_cai_get_cert(preq->current_cert));
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert_send failed.\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, pam_forwarder_lookup_by_cert_done, preq);
+    return EOK;
 }
 
 static errno_t get_results_from_all_domains(TALLOC_CTX *mem_ctx,
@@ -1511,6 +1530,9 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
     const char *cert_user = NULL;
+    size_t cert_count = 0;
+    size_t cert_user_count = 0;
+    struct ldb_result *cert_user_objs;
 
     ret = cache_req_recv(preq, req, &results);
     talloc_zfree(req);
@@ -1521,11 +1543,38 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
 
     if (ret == EOK) {
         ret = get_results_from_all_domains(preq, results,
-                                           &preq->cert_user_objs);
+                                           &cert_user_objs);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "get_results_from_all_domains failed.\n");
             goto done;
         }
+
+        sss_cai_set_cert_user_objs(preq->current_cert, cert_user_objs);
+    }
+
+    preq->current_cert = sss_cai_get_next(preq->current_cert);
+    if (preq->current_cert != NULL) {
+        ret = pam_user_by_cert_step(preq);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "pam_user_by_cert_step failed.\n");
+            goto done;
+        }
+        return;
+    }
+
+    sss_cai_check_users(&preq->cert_list, &cert_count, &cert_user_count);
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Found [%zu] certificates and [%zu] related users.\n",
+          cert_count, cert_user_count);
+
+    if (cert_user_count == 0) {
+        if (preq->pd->logon_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Missing logon name and no certificate user found.\n");
+            ret = ENOENT;
+            goto done;
+        }
+    } else {
 
         if (preq->pd->logon_name == NULL) {
             if (preq->pd->cmd != SSS_PAM_PREAUTH) {
@@ -1535,9 +1584,39 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 goto done;
             }
 
-            if (preq->cert_user_objs->count == 1) {
+            if (cert_count > 1) {
+                for (preq->current_cert = preq->cert_list;
+                     preq->current_cert != NULL;
+                     preq->current_cert = sss_cai_get_next(preq->current_cert)) {
+
+                    ret = add_pam_cert_response(preq->pd, "",
+                                       preq->current_cert,
+                                       preq->cctx->rctx->domains->user_name_hint
+                                            ? SSS_PAM_CERT_INFO_WITH_HINT
+                                            : SSS_PAM_CERT_INFO);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "add_pam_cert_response failed.\n");
+                        preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+                    }
+                }
+
+                ret = EOK;
+                preq->pd->pam_status = PAM_SUCCESS;
+                pam_reply(preq);
+                goto done;
+            }
+
+            if (cert_user_count == 1) {
+                cert_user_objs = sss_cai_get_cert_user_objs(preq->cert_list);
+                if (cert_user_objs == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Missing certificate user.\n");
+                    ret = ENOENT;
+                    goto done;
+                }
+
                 cert_user = ldb_msg_find_attr_as_string(
-                                                  preq->cert_user_objs->msgs[0],
+                                                  cert_user_objs->msgs[0],
                                                   SYSDB_NAME, NULL);
                 if (cert_user == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1564,9 +1643,7 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
 
             if (preq->cctx->rctx->domains->user_name_hint) {
                 ret = add_pam_cert_response(preq->pd, cert_user,
-                                            preq->token_name,
-                                            preq->module_name,
-                                            preq->key_id,
+                                            preq->cert_list,
                                             SSS_PAM_CERT_INFO_WITH_HINT);
                 preq->pd->pam_status = PAM_SUCCESS;
                 if (ret != EOK) {
@@ -1595,13 +1672,6 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 ret = ENOMEM;
                 goto done;
             }
-        }
-    } else {
-        if (preq->pd->logon_name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Missing logon name and no certificate user found.\n");
-            ret = ENOENT;
-            goto done;
         }
     }
 
@@ -1884,7 +1954,9 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
     const char *cert_user;
+    struct ldb_result *cert_user_objs;
     size_t c;
+    bool found = false;
 
     if (!preq->pd->domain) {
         preq->pd->domain = preq->domain->name;
@@ -1921,76 +1993,87 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         return;
     }
 
-    if (may_do_cert_auth(pctx, preq->pd) && preq->cert_user_objs != NULL) {
+    if (may_do_cert_auth(pctx, preq->pd) && preq->cert_list != NULL) {
         /* Check if user matches certificate user */
-        for (c = 0; c < preq->cert_user_objs->count; c++) {
-            cert_user = ldb_msg_find_attr_as_string(
-                                                  preq->cert_user_objs->msgs[c],
-                                                  SYSDB_NAME,
-                                                  NULL);
-            if (cert_user == NULL) {
-                /* Even if there might be other users mapped to the
-                 * certificate a missing SYSDB_NAME indicates some critical
-                 * condition which justifies that the whole request is aborted
-                 * */
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Certificate user object has no name.\n");
-                preq->pd->pam_status = PAM_USER_UNKNOWN;
-                pam_reply(preq);
-                return;
+        found = false;
+        for (preq->current_cert = preq->cert_list;
+             preq->current_cert != NULL;
+             preq->current_cert = sss_cai_get_next(preq->current_cert)) {
+
+            cert_user_objs = sss_cai_get_cert_user_objs(preq->current_cert);
+            if (cert_user_objs == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Unexpteced missing certificate user, "
+                      "trying next certificate.\n");
+                continue;
             }
 
-            /* pam_check_user_search() calls pd_set_primary_name() is the search
-             * was successful, so pd->user contains the canonical sysdb name
-             * as well */
-            if (ldb_dn_compare(preq->cert_user_objs->msgs[c]->dn,
-                               preq->user_obj->dn) == 0) {
-
-                if (preq->pd->cmd == SSS_PAM_PREAUTH) {
-                    ret = sss_authtok_set_sc(preq->pd->authtok,
-                                             SSS_AUTHTOK_TYPE_SC_PIN, NULL, 0,
-                                             preq->token_name, 0,
-                                             preq->module_name, 0,
-                                             preq->key_id, 0);
-                    if (ret != EOK) {
-                        DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_set_sc failed, "
-                                                 "Smartcard authentication "
-                                                 "detection might fail in the "
-                                                 "backend.\n");
-                    }
-
-                    ret = add_pam_cert_response(preq->pd, cert_user,
-                                                preq->token_name,
-                                                preq->module_name,
-                                                preq->key_id,
-                                                SSS_PAM_CERT_INFO);
-                    if (ret != EOK) {
-                        DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
-                        preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
-                    }
-                }
-
-                /* We are done if we do not have to call the backend */
-                if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
-                        && preq->cert_auth_local) {
-                    preq->pd->pam_status = PAM_SUCCESS;
-                    preq->callback = pam_reply;
+            for (c = 0; c < cert_user_objs->count; c++) {
+                cert_user = ldb_msg_find_attr_as_string(cert_user_objs->msgs[c],
+                                                        SYSDB_NAME, NULL);
+                if (cert_user == NULL) {
+                    /* Even if there might be other users mapped to the
+                     * certificate a missing SYSDB_NAME indicates some critical
+                     * condition which justifies that the whole request is aborted
+                     * */
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Certificate user object has no name.\n");
+                    preq->pd->pam_status = PAM_USER_UNKNOWN;
                     pam_reply(preq);
                     return;
+                }
+
+                if (ldb_dn_compare(cert_user_objs->msgs[c]->dn,
+                                   preq->user_obj->dn) == 0) {
+                    found = true;
+                    if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+                        ret = sss_authtok_set_sc(preq->pd->authtok,
+                                 SSS_AUTHTOK_TYPE_SC_PIN, NULL, 0,
+                                 sss_cai_get_token_name(preq->current_cert), 0,
+                                 sss_cai_get_module_name(preq->current_cert), 0,
+                                 sss_cai_get_key_id(preq->current_cert), 0);
+                        if (ret != EOK) {
+                            DEBUG(SSSDBG_OP_FAILURE,
+                                  "sss_authtok_set_sc failed, Smartcard "
+                                  "authentication detection might fail in "
+                                  "the backend.\n");
+                        }
+
+                        /* FIXME: use the right cert info */
+                        ret = add_pam_cert_response(preq->pd, cert_user,
+                                                    preq->current_cert,
+                                                    SSS_PAM_CERT_INFO);
+                        if (ret != EOK) {
+                            DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
+                            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+                        }
+                    }
+
                 }
             }
         }
 
-        if (preq->pd->cmd == SSS_PAM_PREAUTH) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "User and certificate user do not match, "
-                  "continue with other authentication methods.\n");
+        if (found) {
+            /* We are done if we do not have to call the backend */
+            if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
+                    && preq->cert_auth_local) {
+                preq->pd->pam_status = PAM_SUCCESS;
+                preq->callback = pam_reply;
+                pam_reply(preq);
+                return;
+            }
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "User and certificate user do not match.\n");
-            preq->pd->pam_status = PAM_AUTH_ERR;
-            pam_reply(preq);
-            return;
+            if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "User and certificate user do not match, "
+                      "continue with other authentication methods.\n");
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "User and certificate user do not match.\n");
+                preq->pd->pam_status = PAM_AUTH_ERR;
+                pam_reply(preq);
+                return;
+            }
         }
     }
 

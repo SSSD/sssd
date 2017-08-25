@@ -40,9 +40,79 @@ struct cert_auth_info {
     char *token_name;
     char *module_name;
     char *key_id;
+    struct ldb_result *cert_user_objs;
     struct cert_auth_info *prev;
     struct cert_auth_info *next;
 };
+
+const char *sss_cai_get_cert(struct cert_auth_info *i)
+{
+    return i != NULL ? i->cert : NULL;
+}
+
+const char *sss_cai_get_token_name(struct cert_auth_info *i)
+{
+    return i != NULL ? i->token_name : NULL;
+}
+
+const char *sss_cai_get_module_name(struct cert_auth_info *i)
+{
+    return i != NULL ? i->module_name : NULL;
+}
+
+const char *sss_cai_get_key_id(struct cert_auth_info *i)
+{
+    return i != NULL ? i->key_id : NULL;
+}
+
+struct cert_auth_info *sss_cai_get_next(struct cert_auth_info *i)
+{
+    return i != NULL ? i->next : NULL;
+}
+
+struct ldb_result *sss_cai_get_cert_user_objs(struct cert_auth_info *i)
+{
+    return i != NULL ? i->cert_user_objs : NULL;
+}
+
+void sss_cai_set_cert_user_objs(struct cert_auth_info *i,
+                                struct ldb_result *cert_user_objs)
+{
+    if (i->cert_user_objs != NULL) {
+        talloc_free(i->cert_user_objs);
+    }
+    i->cert_user_objs = talloc_steal(i, cert_user_objs);
+}
+
+void sss_cai_check_users(struct cert_auth_info **list, size_t *_cert_count,
+                         size_t *_cert_user_count)
+{
+    struct cert_auth_info *c;
+    struct cert_auth_info *tmp;
+    size_t cert_count = 0;
+    size_t cert_user_count = 0;
+    struct ldb_result *user_objs;
+
+    DLIST_FOR_EACH_SAFE(c, tmp, *list) {
+        user_objs = sss_cai_get_cert_user_objs(c);
+        if (user_objs != NULL) {
+            cert_count++;
+            cert_user_count += user_objs->count;
+        } else {
+            DLIST_REMOVE(*list, c);
+        }
+    }
+
+    if (_cert_count != NULL) {
+        *_cert_count = cert_count;
+    }
+
+    if (_cert_user_count != NULL) {
+        *_cert_user_count = cert_user_count;
+    }
+
+    return;
+}
 
 errno_t p11_child_init(struct pam_ctx *pctx)
 {
@@ -566,39 +636,71 @@ static void p11_child_timeout(struct tevent_context *ev,
 }
 
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                            char **cert, char **token_name, char **module_name,
-                            char **key_id)
+                            struct cert_auth_info **cert_list)
 {
+    struct cert_auth_info *tmp_cert_auth_info;
     struct pam_check_cert_state *state =
                               tevent_req_data(req, struct pam_check_cert_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (state->cert_list == NULL) {
-        *token_name = NULL;
-        *cert = NULL;
-        *module_name = NULL;
-        *key_id = NULL;
+    if (cert_list != NULL) {
+        DLIST_FOR_EACH(tmp_cert_auth_info, state->cert_list) {
+            talloc_steal(mem_ctx, tmp_cert_auth_info);
+        }
+
+        *cert_list = state->cert_list;
     }
 
-    if (cert != NULL) {
-        *cert = (state->cert_list == NULL) ? NULL
-                                : talloc_steal(mem_ctx, state->cert_list->cert);
+    return EOK;
+}
+
+static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
+                              struct cert_auth_info *cert_info,
+                              uint8_t **_msg, size_t *_msg_len)
+{
+    uint8_t *msg = NULL;
+    size_t msg_len;
+    const char *token_name;
+    const char *module_name;
+    const char *key_id;
+    size_t user_len;
+    size_t token_len;
+    size_t module_len;
+    size_t key_id_len;
+    const char *username = "";
+
+    if (sysdb_username != NULL) {
+        username = sysdb_username;
     }
 
-    if (token_name != NULL) {
-        *token_name = (state->cert_list == NULL) ? NULL
-                          : talloc_steal(mem_ctx, state->cert_list->token_name);
+    token_name = sss_cai_get_token_name(cert_info);
+    module_name = sss_cai_get_module_name(cert_info);
+    key_id = sss_cai_get_key_id(cert_info);
+
+    user_len = strlen(username) + 1;
+    token_len = strlen(token_name) + 1;
+    module_len = strlen(module_name) + 1;
+    key_id_len = strlen(key_id) + 1;
+    msg_len = user_len + token_len + module_len + key_id_len;
+
+    msg = talloc_zero_size(mem_ctx, msg_len);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
+        return ENOMEM;
     }
 
-    if (module_name != NULL) {
-        *module_name = (state->cert_list == NULL) ? NULL
-                         : talloc_steal(mem_ctx, state->cert_list->module_name);
+    memcpy(msg, username, user_len);
+    memcpy(msg + user_len, token_name, token_len);
+    memcpy(msg + user_len + token_len, module_name, module_len);
+    memcpy(msg + user_len + token_len + module_len, key_id, key_id_len);
+
+    if (_msg != NULL) {
+        *_msg = msg;
     }
 
-    if (key_id != NULL) {
-        *key_id = (state->cert_list == NULL) ? NULL
-                              : talloc_steal(mem_ctx, state->cert_list->key_id);
+    if (_msg_len != NULL) {
+        *_msg_len = msg_len;
     }
 
     return EOK;
@@ -613,18 +715,13 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 #define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
 
 errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
-                              const char *token_name, const char *module_name,
-                              const char *key_id, enum response_type type)
+                              struct cert_auth_info *cert_info,
+                              enum response_type type)
 {
     uint8_t *msg = NULL;
     char *env = NULL;
-    size_t user_len;
     size_t msg_len;
-    size_t slot_len;
-    size_t module_len;
-    size_t key_id_len;
     int ret;
-    const char *username = "";
 
     if (type != SSS_PAM_CERT_INFO && type != SSS_PAM_CERT_INFO_WITH_HINT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid response type [%d].\n", type);
@@ -632,24 +729,12 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
     }
 
     if ((type == SSS_PAM_CERT_INFO && sysdb_username == NULL)
-            || token_name == NULL || module_name == NULL || key_id == NULL) {
+            || cert_info == NULL
+            || sss_cai_get_token_name(cert_info) == NULL
+            || sss_cai_get_module_name(cert_info) == NULL
+            || sss_cai_get_key_id(cert_info) == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing mandatory user or slot name.\n");
         return EINVAL;
-    }
-
-    if (sysdb_username != NULL) {
-        username = sysdb_username;
-    }
-    user_len = strlen(username) + 1;
-    slot_len = strlen(token_name) + 1;
-    module_len = strlen(module_name) + 1;
-    key_id_len = strlen(key_id) + 1;
-    msg_len = user_len + slot_len + module_len + key_id_len;
-
-    msg = talloc_zero_size(pd, msg_len);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
-        return ENOMEM;
     }
 
     /* sysdb_username is a fully-qualified name which is used by pam_sss when
@@ -659,10 +744,12 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
      * re_expression config option was set in a way that user@domain cannot be
      * handled anymore some more logic has to be added here. But for the time
      * being I think using sysdb_username is fine. */
-    memcpy(msg, username, user_len);
-    memcpy(msg + user_len, token_name, slot_len);
-    memcpy(msg + user_len + slot_len, module_name, module_len);
-    memcpy(msg + user_len + slot_len + module_len, key_id, key_id_len);
+
+    ret = pack_cert_data(pd, sysdb_username, cert_info, &msg, &msg_len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "pack_cert_data failed.\n");
+        return ret;
+    }
 
     ret = pam_add_response(pd, type, msg_len, msg);
     talloc_free(msg);
@@ -674,7 +761,7 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
 
     if (strcmp(pd->service, "gdm-smartcard") == 0) {
         env = talloc_asprintf(pd, "%s=%s", PKCS11_LOGIN_TOKEN_ENV_NAME,
-                              token_name);
+                              sss_cai_get_token_name(cert_info));
         if (env == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
             return ENOMEM;

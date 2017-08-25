@@ -47,6 +47,9 @@
 #define NSS_DB_PATH TESTS_PATH
 #define NSS_DB "sql:"NSS_DB_PATH
 
+#define NSS_DB_PATH_2CERTS TESTS_PATH "_2certs"
+#define NSS_DB_2CERTS "sql:"NSS_DB_PATH_2CERTS
+
 #define TEST_TOKEN_NAME "SSSD Test Token"
 #define TEST_MODULE_NAME "NSS-Internal"
 #define TEST_KEY_ID "A5EF7DEE625CA5996C8D1BA7D036708161FD49E7"
@@ -73,6 +76,28 @@
 "jCfI/UZv3tDMHbh6D4811A0HO8daW7ufMGb/M+kDxYigJiL2gllMZ+6xba1RRgzF" \
 "8Z+9gqZhCa7FEKJOPNR9RVtJs0qUUutMZrp1zpyx0GTmXQBA7LbgPxy8L68uymEQ" \
 "XyQBwOYRORlnfGyu+Yc9c3E0Wx8Tlznz0lqPR9g="
+
+#define TEST2_KEY_ID "C8D60E009EB195D01A7083EE1D5419251AA87C2C"
+#define TEST_TOKEN_2ND_CERT \
+"MIIDazCCAlOgAwIBAgIBBzANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
+"REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNjA1MjMx" \
+"NDEzMDFaFw0xODA1MTMxNDEzMDFaMCUxEjAQBgNVBAoMCUlQQS5ERVZFTDEPMA0G" \
+"A1UEAwwGSVBBIFJBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3abE" \
+"8LmIc6QN16VVxsMlN/rrCOoZKyyJolSzpP4+K66t+KZUiW/1j1MZogjyYyD39U1F" \
+"zpa2H+pID74XYrdiqP7sp+uE9/k2XOv/nN3FobXDt+fSINLDriCmxNhUZqpgo2uq" \
+"Mmka+yx2iJZwkntEoJTcd3aynoa2Sa2ZZbkMBy5p6/pUQKwnD6scOwe6mUDppIBK" \
+"+ZZRm+u/NDdIRFI5wfKLRR1r/ONaJA9nz1TxSEsgLsjG/1m+Zbb6lGG4pePIFkQ9" \
+"Iotpi64obBh93oIxzQR29lBG/FMjQVHlPIbx+xuGx11Vtp5pAomgFz0HRrj0leI7" \
+"bROE+jnC/VGPLQD2aQIDAQABo4GWMIGTMB8GA1UdIwQYMBaAFPci/0Km5D/L5z7Y" \
+"qwEc7E1/GwgcMEEGCCsGAQUFBwEBBDUwMzAxBggrBgEFBQcwAYYlaHR0cDovL2lw" \
+"YS1kZXZlbC5pcGEuZGV2ZWw6ODAvY2Evb2NzcDAOBgNVHQ8BAf8EBAMCBPAwHQYD" \
+"VR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMA0GCSqGSIb3DQEBCwUAA4IBAQBg" \
+"4Sppx2C3eXPJ4Pd9XElkQPOaBReXf1vV0uk/GlK+rG+aAqAkA2Lryx5PK/iAuzAU" \
+"M6JUpELuQYgqugoCgBXMgsMlpAO/0C3CFq4ZH3KgIsRlRngKPrt6RG0UPMRD1CE2" \
+"tSVkwUWvyK83lDiu2BbWDXyMyz5eZOlp7uHusf5BKvob8jEndHj1YzaNTmVSsDM5" \
+"kiIwf8qgFhsO1HCq08PtAnbVHhqkcvnmIJN98eNWNfTKodDmFVbN8gB0wK+WB5ii" \
+"WVOw7+3/zF1QgqnYX3t+kPLRryip/wvTZkzXWwMNj/W6UHgjNF/4gWGoBgCHu+u3" \
+"EvjMmbVSrEkesibpGQS5"
 
 
 static char CACHED_AUTH_TIMEOUT_STR[] = "4";
@@ -111,10 +136,33 @@ static errno_t setup_nss_db(void)
         return ret;
     }
 
+    ret = mkdir(NSS_DB_PATH_2CERTS, 0775);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to create " NSS_DB_PATH_2CERTS ".\n");
+        return ret;
+    }
+
     child_pid = fork();
     if (child_pid == 0) { /* child */
         ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
                      NSS_DB, NULL);
+        if (ret == -1) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
+            exit(-1);
+        }
+    } else if (child_pid > 0) {
+        wait(&status);
+    } else {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed\n");
+        return ret;
+    }
+
+    child_pid = fork();
+    if (child_pid == 0) { /* child */
+        ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
+                     NSS_DB_2CERTS, NULL);
         if (ret == -1) {
             DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
             exit(-1);
@@ -148,6 +196,27 @@ static errno_t setup_nss_db(void)
         return ret;
     }
 
+    fp = fopen(NSS_DB_PATH_2CERTS"/pkcs11.txt", "w");
+    if (fp == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fopen() failed.\n");
+        return ret;
+    }
+    ret = fprintf(fp, "library=libsoftokn3.so\nname=soft\n");
+    if (ret < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
+        return ret;
+    }
+    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/cmocka/p11_nssdb_2certs' dbSlotDescription='SSSD Test Slot' dbTokenDescription='SSSD Test Token' secmod='secmod.db' flags=readOnly \n\n", ABS_SRC_DIR);
+    if (ret < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
+        return ret;
+    }
+    ret = fclose(fp);
+    if (ret != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fclose() failed.\n");
+        return ret;
+    }
+
     return EOK;
 }
 
@@ -171,6 +240,26 @@ static void cleanup_nss_db(void)
     }
 
     ret = rmdir(NSS_DB_PATH);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_2CERTS"/cert9.db");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove cert9.db.\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_2CERTS"/key4.db");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove key4.db.\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_2CERTS"/pkcs11.txt");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove pkcs11.db.\n");
+    }
+
+    ret = rmdir(NSS_DB_PATH_2CERTS);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
     }
@@ -749,7 +838,8 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
 }
 
 static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
-                                  enum response_type type, const char *name)
+                                  enum response_type type, const char *name,
+                                  const char *name2)
 {
     size_t rp = 0;
     uint32_t val;
@@ -763,7 +853,11 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
     if (name == NULL || *name == '\0') {
         assert_int_equal(val, 1);
     } else {
-        assert_int_equal(val, 2);
+        if (name2 == NULL || *name2 == '\0') {
+            assert_int_equal(val, 2);
+        } else {
+            assert_int_equal(val, 3);
+        }
 
         SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
         assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
@@ -801,6 +895,33 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
     assert_string_equal(body + rp, TEST_KEY_ID);
     rp += sizeof(TEST_KEY_ID);
 
+    if (name2 != NULL && *name2 != '\0') {
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, type);
+
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, (strlen(name) + 1
+                                    + sizeof(TEST_TOKEN_NAME)
+                                    + sizeof(TEST_MODULE_NAME)
+                                    + sizeof(TEST2_KEY_ID)));
+
+        assert_int_equal(*(body + rp + strlen(name)), 0);
+        assert_string_equal(body + rp, name);
+        rp += strlen(name) + 1;
+
+        assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
+        assert_string_equal(body + rp, TEST_TOKEN_NAME);
+        rp += sizeof(TEST_TOKEN_NAME);
+
+        assert_int_equal(*(body + rp + sizeof(TEST_MODULE_NAME) - 1), 0);
+        assert_string_equal(body + rp, TEST_MODULE_NAME);
+        rp += sizeof(TEST_MODULE_NAME);
+
+        assert_int_equal(*(body + rp + sizeof(TEST2_KEY_ID) - 1), 0);
+        assert_string_equal(body + rp, TEST2_KEY_ID);
+        rp += sizeof(TEST2_KEY_ID);
+    }
+
     assert_int_equal(rp, blen);
 
     return EOK;
@@ -809,7 +930,8 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
 static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
 {
     return test_pam_cert_check_ex(status, body, blen,
-                                  SSS_PAM_CERT_INFO, "pamuser@"TEST_DOM_NAME);
+                                  SSS_PAM_CERT_INFO, "pamuser@"TEST_DOM_NAME,
+                                  NULL);
 }
 
 static int test_pam_cert_check_with_hint(uint32_t status, uint8_t *body,
@@ -817,14 +939,22 @@ static int test_pam_cert_check_with_hint(uint32_t status, uint8_t *body,
 {
     return test_pam_cert_check_ex(status, body, blen,
                                   SSS_PAM_CERT_INFO_WITH_HINT,
-                                  "pamuser@"TEST_DOM_NAME);
+                                  "pamuser@"TEST_DOM_NAME, NULL);
 }
 
 static int test_pam_cert_check_with_hint_no_user(uint32_t status, uint8_t *body,
                                                  size_t blen)
 {
     return test_pam_cert_check_ex(status, body, blen,
-                                  SSS_PAM_CERT_INFO_WITH_HINT, "");
+                                  SSS_PAM_CERT_INFO_WITH_HINT, "", NULL);
+}
+
+static int test_pam_cert_check_2certs(uint32_t status, uint8_t *body,
+                                      size_t blen)
+{
+    return test_pam_cert_check_ex(status, body, blen,
+                                  SSS_PAM_CERT_INFO, "pamuser@"TEST_DOM_NAME,
+                                  "pamuser@"TEST_DOM_NAME);
 }
 
 static int test_pam_offline_chauthtok_check(uint32_t status,
@@ -1737,6 +1867,33 @@ static int test_lookup_by_cert_cb(void *pvt)
 
     return EOK;
 }
+static int test_lookup_by_cert_cb_2nd_cert_same_user(void *pvt)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    unsigned char *der = NULL;
+    size_t der_size;
+
+    test_lookup_by_cert_cb(pvt);
+
+    attrs = sysdb_new_attrs(pam_test_ctx);
+    assert_non_null(attrs);
+
+    der = sss_base64_decode(pam_test_ctx, TEST_TOKEN_2ND_CERT, &der_size);
+    assert_non_null(der);
+
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
+    talloc_free(der);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(pam_test_ctx->tctx->dom,
+                              pam_test_ctx->pam_user_fqdn,
+                              attrs,
+                              LDB_FLAG_MOD_ADD);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
 
 static int test_lookup_by_cert_double_cb(void *pvt)
 {
@@ -2086,6 +2243,51 @@ void test_pam_cert_auth_double_cert(void **state)
 
     set_cmd_cb(test_pam_simple_check_success);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_cert_preauth_2certs_one_mapping(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+                        test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_cert_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_cert_preauth_2certs_two_mappings(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+                        test_lookup_by_cert_cb_2nd_cert_same_user,
+                        TEST_TOKEN_CERT, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_cert_check_2certs);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
 
@@ -2522,6 +2724,10 @@ int main(int argc, const char *argv[])
                                         pam_test_setup_no_verification,
                                         pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth_double_cert,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_one_mapping,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_two_mappings,
                                         pam_test_setup, pam_test_teardown),
 #endif /* HAVE_NSS */
 
