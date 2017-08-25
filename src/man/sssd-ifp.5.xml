@@ -133,7 +133,7 @@ user_attributes = +telephoneNumber, -loginShell
                 </varlistentry>
 
                 <varlistentry>
-                    <term>wildcart_limit (integer)</term>
+                    <term>wildcard_limit (integer)</term>
                     <listitem>
                         <para>
                             Specifies an upper limit on the number of entries
