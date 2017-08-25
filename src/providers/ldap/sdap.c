@@ -1136,6 +1136,9 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
     case SDAP_NETGROUP_SEARCH_BASE:
         bases = &sdom->netgroup_search_bases;
         break;
+    case SDAP_HOST_SEARCH_BASE:
+        bases = &sdom->host_search_bases;
+        break;
     case SDAP_SUDO_SEARCH_BASE:
         bases = &sdom->sudo_search_bases;
         break;
@@ -1178,6 +1181,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
             || !sdom->user_search_bases
             || !sdom->group_search_bases
             || !sdom->netgroup_search_bases
+            || !sdom->host_search_bases
             || !sdom->sudo_search_bases
             || !sdom->autofs_search_bases) {
         naming_context = get_naming_context(opts->basic, rootdse);
@@ -1221,6 +1225,14 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->netgroup_search_bases) {
         ret = sdap_set_search_base(opts, sdom,
                                    SDAP_NETGROUP_SEARCH_BASE,
+                                   naming_context);
+        if (ret != EOK) goto done;
+    }
+
+    /* Hosts */
+    if (!sdom->host_search_bases) {
+        ret = sdap_set_search_base(opts, sdom,
+                                   SDAP_HOST_SEARCH_BASE,
                                    naming_context);
         if (ret != EOK) goto done;
     }
