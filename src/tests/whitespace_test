@@ -39,7 +39,7 @@ fi
 declare found_file=false
 while read file; do
     [[ $file == "src/config/testconfigs/noparse.api.conf" ]] && continue
-    [[ $file =~ ^src/tests/cmocka/p11_nssdb/.*db ]] && continue
+    [[ $file =~ ^src/tests/cmocka/p11_nssdb.*/.*db ]] && continue
     test `tail -c 1 $ABS_TOP_SRCDIR/$file` && \
         echo "Missing new line at the eof: $file" && \
         found_file=true

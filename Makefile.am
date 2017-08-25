@@ -481,6 +481,8 @@ dist_noinst_DATA = \
     contrib/ci/sssd.supp \
     src/tests/cmocka/p11_nssdb/cert9.db \
     src/tests/cmocka/p11_nssdb/key4.db \
+    src/tests/cmocka/p11_nssdb_2certs/cert9.db \
+    src/tests/cmocka/p11_nssdb_2certs/key4.db \
     $(SYSTEMTAP_PROBES) \
     $(NULL)
 
