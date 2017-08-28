@@ -592,6 +592,14 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
             }
         }
         ret = sdap_id_conn_data_set_expire_timer(conn_data);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sdap_id_conn_data_set_expire_timer() failed [%d]: %s",
+                  ret, sss_strerror(ret));
+            /* Avoid causing the whole backend to be marked as offline because
+             * this operation failed. */
+            ret = EOK;
+        }
         sdap_steal_server_opts(conn_cache->id_conn->id_ctx, &srv_opts);
     }
 
