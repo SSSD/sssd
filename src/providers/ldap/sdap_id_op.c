@@ -608,6 +608,10 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
 
             default:
                 /* do not attempt to retry on errors like ENOMEM */
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "Marking the backend \"%s\" offline [%d]: %s\n",
+                      conn_cache->id_conn->id_ctx->be->domain->name,
+                      ret, sss_strerror(ret));
                 can_retry = false;
                 is_offline = true;
                 be_mark_offline(conn_cache->id_conn->id_ctx->be);
