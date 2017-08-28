@@ -465,7 +465,7 @@ def _test_add_remove_membership_rfc2307(ldap_conn, user_and_group_rfc2307):
 
 
 def _test_add_remove_membership_rfc2307_bis(ldap_conn,
-                                           user_and_groups_rfc2307_bis):
+                                            user_and_groups_rfc2307_bis):
     """
     Test user and group membership addition and removal are reflected by SSSD,
     with RFC2307bis schema
