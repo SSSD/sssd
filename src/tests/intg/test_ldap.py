@@ -995,9 +995,8 @@ def test_zero_nesting_level(ldap_conn, rfc2307bis_no_nesting):
     assert res == sssd_id.NssReturnCode.SUCCESS, \
         "Could not find groups for user1, %d" % errno
 
-    ## test nestedgroup is not returned in group list
+    # test nestedgroup is not returned in group list
     assert sorted(grp_list) == sorted(["primarygroup", "parentgroup"])
-
 
 
 @pytest.fixture

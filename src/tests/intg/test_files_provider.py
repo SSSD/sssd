@@ -373,8 +373,8 @@ def test_group_overriden(add_group_with_canary, files_domain_only):
     """
     # Override
     subprocess.check_call(["sss_override", "group-add", GROUP1["name"],
-                          "-n", OV_GROUP1["name"],
-                          "-g", str(OV_GROUP1["gid"])])
+                           "-n", OV_GROUP1["name"],
+                           "-g", str(OV_GROUP1["gid"])])
 
     restart_sssd()
 

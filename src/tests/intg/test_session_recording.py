@@ -287,20 +287,36 @@ def all(request, ldap_conn, users_and_groups):
 def test_all_nam(all):
     """Test "all" scope with getpwnam"""
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-        user3=dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-        user4=dict(name="user4", uid=1004, shell=config.SESSION_RECORDING_SHELL),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
     ))
 
 
 def test_all_uid(all):
     """Test "all" scope with getpwuid"""
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-        1003:dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-        1004:dict(name="user4", uid=1004, shell=config.SESSION_RECORDING_SHELL),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
     })
 
 
@@ -308,10 +324,17 @@ def test_all_ent(all):
     """Test "all" scope with getpwent"""
     ent.assert_passwd_list(
         ent.contains_only(
-            dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-            dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-            dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-            dict(name="user4", uid=1004, shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user1",
+                 uid=1001,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user2",
+                 uid=1002,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user3",
+                 uid=1003,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user4",
+                 uid=1004, shell=config.SESSION_RECORDING_SHELL),
         )
     )
 
@@ -362,20 +385,36 @@ def some_users(request, ldap_conn, users_and_groups):
 def test_some_users_nam(some_users):
     """Test "some" scope with user list and getpwnam"""
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
 def test_some_users_uid(some_users):
     """Test "some" scope with user list and getpwuid"""
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-        1003:dict(name="user3", uid=1003, shell="/bin/sh3"),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
@@ -434,12 +473,12 @@ def test_some_users_overridden_uid(some_users_overridden):
     overridden users, requested with getpwuid.
     """
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="overridden_user1", uid=1001,
-                  shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="overridden_user2", uid=1002,
-                  shell="/bin/sh2"),
-        1003:dict(name="user3", uid=1003, shell="/bin/sh3"),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="overridden_user1", uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="overridden_user2", uid=1002,
+                   shell="/bin/sh2"),
+        1003: dict(name="user3", uid=1003, shell="/bin/sh3"),
+        1004: dict(name="user4", uid=1004, shell="/bin/sh4"),
     })
 
 
@@ -529,20 +568,36 @@ def some_groups4(request, ldap_conn, users_and_groups):
 def test_some_groups1_nam(some_groups1):
     """Test "some" scope with group list and getpwnam"""
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
 def test_some_groups1_uid(some_groups1):
     """Test "some" scope with group list and getpwuid"""
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-        1003:dict(name="user3", uid=1003, shell="/bin/sh3"),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
@@ -561,20 +616,36 @@ def test_some_groups1_ent(some_groups1):
 def test_some_groups2_nam(some_groups2):
     """Test "some" scope with group list and getpwnam"""
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-        user3=dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
 def test_some_groups2_uid(some_groups2):
     """Test "some" scope with group list and getpwuid"""
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell=config.SESSION_RECORDING_SHELL),
-        1003:dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
@@ -593,20 +664,36 @@ def test_some_groups2_ent(some_groups2):
 def test_some_groups3_nam(some_groups3):
     """Test "some" scope with group list and getpwnam"""
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell="/bin/sh1"),
-        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
-        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
-        user4=dict(name="user4", uid=1004, shell=config.SESSION_RECORDING_SHELL),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell="/bin/sh1"),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
     ))
 
 
 def test_some_groups3_uid(some_groups3):
     """Test "some" scope with group list and getpwuid"""
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell="/bin/sh1"),
-        1002:dict(name="user2", uid=1002, shell="/bin/sh2"),
-        1003:dict(name="user3", uid=1003, shell="/bin/sh3"),
-        1004:dict(name="user4", uid=1004, shell=config.SESSION_RECORDING_SHELL),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell="/bin/sh1"),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell=config.SESSION_RECORDING_SHELL),
     })
 
 
@@ -625,20 +712,36 @@ def test_some_groups3_ent(some_groups3):
 def test_some_groups4_nam(some_groups4):
     """Test "some" scope with group list and getpwnam"""
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
-        user3=dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
 def test_some_groups4_uid(some_groups4):
     """Test "some" scope with group list and getpwuid"""
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell="/bin/sh2"),
-        1003:dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
@@ -682,10 +785,18 @@ def test_some_groups_overridden1_nam(some_groups_overridden1):
     overridden groups, and users requested with getpwnam.
     """
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
-        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
@@ -695,10 +806,18 @@ def test_some_groups_overridden1_uid(some_groups_overridden1):
     overridden groups, and users requested with getpwuid.
     """
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell="/bin/sh2"),
-        1003:dict(name="user3", uid=1003, shell="/bin/sh3"),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
@@ -709,10 +828,18 @@ def test_some_groups_overridden1_ent(some_groups_overridden1):
     """
     ent.assert_passwd_list(
         ent.contains_only(
-            dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-            dict(name="user2", uid=1002, shell="/bin/sh2"),
-            dict(name="user3", uid=1003, shell="/bin/sh3"),
-            dict(name="user4", uid=1004, shell="/bin/sh4"),
+            dict(name="user1",
+                 uid=1001,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user2",
+                 uid=1002,
+                 shell="/bin/sh2"),
+            dict(name="user3",
+                 uid=1003,
+                 shell="/bin/sh3"),
+            dict(name="user4",
+                 uid=1004,
+                 shell="/bin/sh4"),
         )
     )
 
@@ -745,10 +872,18 @@ def test_some_groups_overridden2_nam(some_groups_overridden2):
     overridden groups, and users requested with getpwnam.
     """
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
-        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
@@ -758,10 +893,18 @@ def test_some_groups_overridden2_uid(some_groups_overridden2):
     overridden groups, and users requested with getpwuid.
     """
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell="/bin/sh2"),
-        1003:dict(name="user3", uid=1003, shell="/bin/sh3"),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
@@ -772,10 +915,18 @@ def test_some_groups_overridden2_ent(some_groups_overridden2):
     """
     ent.assert_passwd_list(
         ent.contains_only(
-            dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-            dict(name="user2", uid=1002, shell="/bin/sh2"),
-            dict(name="user3", uid=1003, shell="/bin/sh3"),
-            dict(name="user4", uid=1004, shell="/bin/sh4"),
+            dict(name="user1",
+                 uid=1001,
+                 shell=config.SESSION_RECORDING_SHELL),
+            dict(name="user2",
+                 uid=1002,
+                 shell="/bin/sh2"),
+            dict(name="user3",
+                 uid=1003,
+                 shell="/bin/sh3"),
+            dict(name="user4",
+                 uid=1004,
+                 shell="/bin/sh4"),
         )
     )
 
@@ -808,10 +959,18 @@ def test_some_groups_overridden3_nam(some_groups_overridden3):
     overridden group, and users requested with getpwnam.
     """
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
-        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
@@ -821,10 +980,18 @@ def test_some_groups_overridden3_uid(some_groups_overridden3):
     overridden group, and users requested with getpwuid.
     """
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell="/bin/sh2"),
-        1003:dict(name="user3", uid=1003, shell="/bin/sh3"),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
@@ -871,10 +1038,18 @@ def test_some_groups_overridden4_nam(some_groups_overridden3):
     overridden group, and users requested with getpwnam.
     """
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
-        user3=dict(name="user3", uid=1003, shell="/bin/sh3"),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
@@ -884,10 +1059,18 @@ def test_some_groups_overridden4_uid(some_groups_overridden3):
     overridden group, and users requested with getpwuid.
     """
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell="/bin/sh2"),
-        1003:dict(name="user3", uid=1003, shell="/bin/sh3"),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell="/bin/sh3"),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
@@ -928,10 +1111,18 @@ def test_some_users_and_groups_nam(some_users_and_groups):
     Test "some" scope with user and group lists and getpwnam.
     """
     ent.assert_each_passwd_by_name(dict(
-        user1=dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        user2=dict(name="user2", uid=1002, shell="/bin/sh2"),
-        user3=dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-        user4=dict(name="user4", uid=1004, shell="/bin/sh4"),
+        user1=dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user2=dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        user3=dict(name="user3",
+                   uid=1003,
+                   shell=config.SESSION_RECORDING_SHELL),
+        user4=dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     ))
 
 
@@ -940,10 +1131,18 @@ def test_some_users_and_groups_uid(some_users_and_groups):
     Test "some" scope with user and group lists and getpwuid.
     """
     ent.assert_each_passwd_by_uid({
-        1001:dict(name="user1", uid=1001, shell=config.SESSION_RECORDING_SHELL),
-        1002:dict(name="user2", uid=1002, shell="/bin/sh2"),
-        1003:dict(name="user3", uid=1003, shell=config.SESSION_RECORDING_SHELL),
-        1004:dict(name="user4", uid=1004, shell="/bin/sh4"),
+        1001: dict(name="user1",
+                   uid=1001,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1002: dict(name="user2",
+                   uid=1002,
+                   shell="/bin/sh2"),
+        1003: dict(name="user3",
+                   uid=1003,
+                   shell=config.SESSION_RECORDING_SHELL),
+        1004: dict(name="user4",
+                   uid=1004,
+                   shell="/bin/sh4"),
     })
 
 
