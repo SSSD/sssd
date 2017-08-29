@@ -1419,11 +1419,20 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->subdomain_refresh_interval,
-                              CONFDB_DOMAIN_SUBDOMAIN_REFRESH, 14400);
-    if (ret != EOK || domain->subdomain_refresh_interval == 0) {
+                              CONFDB_DOMAIN_SUBDOMAIN_REFRESH,
+                              CONFDB_DOMAIN_SUBDOMAIN_REFRESH_DEFAULT_VALUE);
+    if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n", CONFDB_DOMAIN_SUBDOMAIN_REFRESH);
         goto done;
+    } else if (domain->subdomain_refresh_interval == 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Invalid value for [%s]. Setting up the default value: %d\n",
+              CONFDB_DOMAIN_SUBDOMAIN_REFRESH,
+              CONFDB_DOMAIN_SUBDOMAIN_REFRESH_DEFAULT_VALUE);
+
+        domain->subdomain_refresh_interval =
+            CONFDB_DOMAIN_SUBDOMAIN_REFRESH_DEFAULT_VALUE;
     }
 
     ret = init_cached_auth_timeout(cdb, res->msgs[0],
