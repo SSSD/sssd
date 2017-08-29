@@ -1345,6 +1345,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         } else {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Invalid value for %s\n", CONFDB_DOMAIN_CASE_SENSITIVE);
+            ret = EINVAL;
             goto done;
         }
     } else {
@@ -1414,6 +1415,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         } else {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Invalid value %s for [%s]\n", tmp, CONFDB_DOMAIN_TYPE);
+            ret = EINVAL;
             goto done;
         }
     }
