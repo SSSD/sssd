@@ -891,7 +891,7 @@ deskprofile_get_cached_priority(struct sss_domain_info *domain,
     if (resp_count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "sysdb_search_custom_by_name() got more attributes than "
-              "expected. Expected (%d), got (%"PRIu64")\n", 1, resp_count);
+              "expected. Expected (1), got (%zu)\n", resp_count);
         ret = EINVAL;
         goto done;
     }
