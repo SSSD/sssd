@@ -780,6 +780,18 @@ done:
     return ret;
 }
 
+static void clean_view_name(struct sss_domain_info *domain)
+{
+    struct sss_domain_info *dom = domain;
+
+    while (dom) {
+        dom->has_views = false;
+        talloc_free(discard_const(dom->view_name));
+        dom->view_name = NULL;
+        dom = get_next_domain(dom, SSS_GND_DESCEND);
+    }
+}
+
 static errno_t ipa_apply_view(struct sss_domain_info *domain,
                               struct ipa_id_ctx *ipa_id_ctx,
                               const char *view_name,
@@ -872,7 +884,12 @@ static errno_t ipa_apply_view(struct sss_domain_info *domain,
     }
 
     if (!read_at_init) {
-        /* refresh view data of all domains at startup */
+        /* refresh view data of all domains at startup, since
+         * sysdb_master_domain_update and sysdb_update_subdomains might have
+         * been called earlier without the proper view name the name is
+         * cleaned here before the calls. This is acceptable because this is
+         * the initial setup (!read_at_init).  */
+        clean_view_name(domain);
         ret = sysdb_master_domain_update(domain);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_master_domain_update failed "
