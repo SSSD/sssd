@@ -5408,6 +5408,74 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
 }
 END_TEST
 
+START_TEST(test_sysdb_search_groups_by_orig_dn)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    const char *no_attrs[] = { NULL };
+    struct ldb_message **msgs;
+    size_t num_msgs;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    data = test_data_new_group(test_ctx, 456789);
+    fail_if(data == NULL);
+
+    data->orig_dn = talloc_asprintf(data, "cn=%s,cn=example,cn=com", data->groupname);
+    fail_if(data->orig_dn == NULL);
+
+    ret = test_add_incomplete_group(data);
+    fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
+                            ret, strerror(ret));
+
+    ret = sysdb_search_groups_by_orig_dn(test_ctx, data->ctx->domain, data->orig_dn,
+                                         no_attrs, &num_msgs, &msgs);
+    fail_unless(ret == EOK, "cache search error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(num_msgs == 1, "Did not find the expected number of entries using "
+                               "sysdb_search_groups_by_orign_dn search");
+}
+END_TEST
+
+START_TEST(test_sysdb_search_users_by_orig_dn)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    const char *no_attrs[] = { NULL };
+    struct ldb_message **msgs;
+    size_t num_msgs;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    data = test_data_new_user(test_ctx, 456789);
+    fail_if(data == NULL);
+
+    data->orig_dn = talloc_asprintf(data, "cn=%s,cn=example,cn=com", data->username);
+    fail_if(data->orig_dn == NULL);
+
+    ret = sysdb_attrs_add_string(data->attrs, SYSDB_ORIG_DN, data->orig_dn);
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = test_add_user(data);
+    fail_unless(ret == EOK, "sysdb_add_user error [%d][%s]",
+                            ret, strerror(ret));
+
+    ret = sysdb_search_users_by_orig_dn(test_ctx, data->ctx->domain, data->orig_dn,
+                                        no_attrs, &num_msgs, &msgs);
+    fail_unless(ret == EOK, "cache search error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(num_msgs == 1, "Did not find the expected number of entries using "
+                               "sysdb_search_users_by_orign_dn search");
+}
+END_TEST
+
 START_TEST(test_sysdb_search_sid_str)
 {
     errno_t ret;
@@ -7072,6 +7140,12 @@ Suite *create_sysdb_suite(void)
 
     /* Test originalDN searches */
     tcase_add_test(tc_sysdb, test_sysdb_original_dn_case_insensitive);
+
+    /* Test sysdb_search_groups_by_orig_dn */
+    tcase_add_test(tc_sysdb, test_sysdb_search_groups_by_orig_dn);
+
+    /* Test sysdb_search_users_by_orig_dn */
+    tcase_add_test(tc_sysdb, test_sysdb_search_users_by_orig_dn);
 
     /* Test SID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_sid_str);
