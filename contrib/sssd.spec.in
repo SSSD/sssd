@@ -979,6 +979,7 @@ done
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %dir %{_datadir}/sssd
 %{_sysconfdir}/pam.d/sssd-shadowutils
+%dir %{_libdir}/%{name}/conf
 %{_libdir}/%{name}/conf/sssd.conf
 
 %{_datadir}/sssd/cfg_rules.ini
