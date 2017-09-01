@@ -390,9 +390,9 @@ def test_containers(setup_for_secrets, secrets_cli):
     assert str(err406.value).startswith("406")
 
 
-def get_num_fds(pid):
+def get_fds(pid):
     procpath = os.path.join("/proc/", str(pid), "fd")
-    return len([fdname for fdname in os.listdir(procpath)])
+    return os.listdir(procpath)
 
 
 @pytest.fixture
@@ -418,13 +418,14 @@ def test_idle_timeout(setup_for_cli_timeout_test):
     secpid = setup_for_cli_timeout_test
     sock_path = get_secrets_socket()
 
-    nfds_pre = get_num_fds(secpid)
+    nfds_pre = get_fds(secpid)
 
     sock = socket.socket(family=socket.AF_UNIX)
     sock.connect(sock_path)
     time.sleep(1)
-    nfds_conn = get_num_fds(secpid)
-    assert nfds_pre + 1 == nfds_conn
+    nfds_conn = get_fds(secpid)
+    if len(nfds_pre) + 1 < len(nfds_conn):
+        raise Exception("FD difference %s\n", set(nfds_pre) - set(nfds_conn))
     # With the idle timeout set to 10 seconds, we need to sleep at least 15,
     # because the internal timer ticks every timeout/2 seconds, so it would
     # tick at 5, 10 and 15 seconds and the client timeout check uses a
@@ -432,5 +433,6 @@ def test_idle_timeout(setup_for_cli_timeout_test):
     # disconnect
     time.sleep(15)
 
-    nfds_post = get_num_fds(secpid)
-    assert nfds_pre == nfds_post
+    nfds_post = get_fds(secpid)
+    if len(nfds_pre) != len(nfds_post):
+        raise Exception("FD difference %s\n", set(nfds_pre) - set(nfds_post))
