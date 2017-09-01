@@ -30,16 +30,25 @@
 #include <tevent.h>
 #include <ldb.h>
 
-#define SEC_NET_TIMEOUT 5
+struct sec_quota {
+    int max_secrets;
+    int max_uid_secrets;
+    int max_payload_size;
+    int containers_nest_level;
+};
 
-struct resctx;
+struct sec_hive_config {
+    const char *confdb_section;
+
+    struct sec_quota quota;
+};
 
 struct sec_ctx {
-    struct resolv_ctx *resctx;
     struct resp_ctx *rctx;
     int fd_limit;
-    int containers_nest_level;
-    int max_secrets;
+
+    struct sec_hive_config sec_config;
+    struct sec_hive_config kcm_config;
     int max_payload_size;
 
     struct provider_handle **providers;

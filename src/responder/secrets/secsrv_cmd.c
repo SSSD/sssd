@@ -178,7 +178,8 @@ static void sec_append_string(TALLOC_CTX *memctx, char **dest,
 static bool sec_too_much_data(struct sec_req_ctx *req, size_t length)
 {
     req->total_size += length;
-    if (req->total_size > SEC_REQUEST_MAX_SIZE) {
+    if (req->max_payload_size > 0
+            && req->total_size > req->max_payload_size) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Request too big, aborting client!\n");
         return true;
@@ -513,6 +514,8 @@ static void sec_recv(struct cli_ctx *cctx)
 {
     struct sec_proto_ctx *prctx;
     struct sec_req_ctx *req;
+    struct sec_ctx *sec_ctx = talloc_get_type(cctx->rctx->pvt_ctx,
+                                              struct sec_ctx);
     char buffer[SEC_PACKET_MAX_RECV_SIZE];
     struct sec_data data = { buffer,
                              SEC_PACKET_MAX_RECV_SIZE };
@@ -531,6 +534,7 @@ static void sec_recv(struct cli_ctx *cctx)
             return;
         }
         req->cctx = cctx;
+        req->max_payload_size = sec_ctx->max_payload_size;
         cctx->state_ctx = req;
         http_parser_init(&prctx->parser, HTTP_REQUEST);
         prctx->parser.data = req;

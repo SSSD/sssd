@@ -1500,7 +1500,6 @@ sssd_secrets_SOURCES = \
     src/util/sss_iobuf.c \
     src/util/tev_curl.c \
     $(SSSD_RESPONDER_OBJ) \
-    $(SSSD_RESOLV_OBJ) \
     $(NULL)
 sssd_secrets_LDADD = \
     $(HTTP_PARSER_LIBS) \

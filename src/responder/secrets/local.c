@@ -34,9 +34,9 @@
 struct local_context {
     struct ldb_context *ldb;
     struct sec_data master_key;
-    int containers_nest_level;
-    int max_secrets;
-    int max_payload_size;
+
+    struct sec_quota *quota_secrets;
+    struct sec_quota *quota_kcm;
 };
 
 static int local_decrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
@@ -207,7 +207,9 @@ static char *local_dn_to_path(TALLOC_CTX *mem_ctx,
 
 struct local_db_req {
     char *path;
-    struct ldb_dn *basedn;
+    const char *basedn;
+    struct ldb_dn *req_dn;
+    struct sec_quota *quota;
 };
 
 #define LOCAL_SIMPLE_FILTER "(type=simple)"
@@ -232,9 +234,9 @@ static int local_db_get_simple(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=base\n",
-          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->basedn));
+          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->req_dn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_BASE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->req_dn, LDB_SCOPE_BASE,
                      attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -298,9 +300,9 @@ static int local_db_list_keys(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=subtree\n",
-          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->basedn));
+          LOCAL_SIMPLE_FILTER, ldb_dn_get_linearized(lc_req->req_dn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_SUBTREE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->req_dn, LDB_SCOPE_SUBTREE,
                      attrs, "%s", LOCAL_SIMPLE_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -322,7 +324,7 @@ static int local_db_list_keys(TALLOC_CTX *mem_ctx,
     }
 
     for (unsigned i = 0; i < res->count; i++) {
-        keys[i] = local_dn_to_path(keys, lc_req->basedn, res->msgs[i]->dn);
+        keys[i] = local_dn_to_path(keys, lc_req->req_dn, res->msgs[i]->dn);
         if (!keys[i]) {
             ret = ENOMEM;
             goto done;
@@ -390,19 +392,23 @@ done:
     return ret;
 }
 
-static int local_db_check_containers_nest_level(struct local_context *lctx,
+static int local_db_check_containers_nest_level(struct local_db_req *lc_req,
                                                 struct ldb_dn *leaf_dn)
 {
     int nest_level;
 
+    if (lc_req->quota->containers_nest_level == 0) {
+        return EOK;
+    }
+
     /* We need do not care for the synthetic containers that constitute the
      * base path (cn=<uidnumber>,cn=user,cn=secrets). */
     nest_level = ldb_dn_get_comp_num(leaf_dn) - 3;
-    if (nest_level > lctx->containers_nest_level) {
+    if (nest_level > lc_req->quota->containers_nest_level) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot create a nested container of depth %d as the maximum"
               "allowed number of nested containers is %d.\n",
-              nest_level, lctx->containers_nest_level);
+              nest_level, lc_req->quota->containers_nest_level);
 
         return ERR_SEC_INVALID_CONTAINERS_NEST_LEVEL;
     }
@@ -410,8 +416,92 @@ static int local_db_check_containers_nest_level(struct local_context *lctx,
     return EOK;
 }
 
+static struct ldb_dn *per_uid_container(TALLOC_CTX *mem_ctx,
+                                        struct ldb_dn *req_dn)
+{
+    int user_comp;
+    int num_comp;
+    struct ldb_dn *uid_base_dn;
+
+    uid_base_dn = ldb_dn_copy(mem_ctx, req_dn);
+    if (uid_base_dn == NULL) {
+        return NULL;
+    }
+
+    /* Remove all the components up to the per-user base path which consists
+     * of three components:
+     *  cn=<uidnumber>,cn=users,cn=secrets
+     */
+    user_comp = ldb_dn_get_comp_num(uid_base_dn) - 3;
+
+    if (!ldb_dn_remove_child_components(uid_base_dn, user_comp)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot remove child components\n");
+        talloc_free(uid_base_dn);
+        return NULL;
+    }
+
+    num_comp = ldb_dn_get_comp_num(uid_base_dn);
+    if (num_comp != 3) {
+        DEBUG(SSSDBG_OP_FAILURE, "Expected 3 components got %d\n", num_comp);
+        talloc_free(uid_base_dn);
+        return NULL;
+    }
+
+    return uid_base_dn;
+}
+
+static int local_db_check_peruid_number_of_secrets(TALLOC_CTX *mem_ctx,
+                                                   struct local_context *lctx,
+                                                   struct local_db_req *lc_req)
+{
+    TALLOC_CTX *tmp_ctx;
+    static const char *attrs[] = { NULL };
+    struct ldb_result *res = NULL;
+    struct ldb_dn *cli_basedn = NULL;
+    int ret;
+
+    if (lc_req->quota->max_uid_secrets == 0) {
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    cli_basedn = per_uid_container(tmp_ctx, lc_req->req_dn);
+    if (cli_basedn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, cli_basedn, LDB_SCOPE_SUBTREE,
+                     attrs, LOCAL_SIMPLE_FILTER);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "ldb_search returned %d: %s\n", ret, ldb_strerror(ret));
+        goto done;
+    }
+
+    if (res->count >= lc_req->quota->max_uid_secrets) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot store any more secrets for this client (basedn %s) "
+              "as the maximum allowed limit (%d) has been reached\n",
+              ldb_dn_get_linearized(cli_basedn),
+              lc_req->quota->max_uid_secrets);
+        ret = ERR_SEC_INVALID_TOO_MANY_SECRETS;
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static int local_db_check_number_of_secrets(TALLOC_CTX *mem_ctx,
-                                            struct local_context *lctx)
+                                            struct local_context *lctx,
+                                            struct local_db_req *lc_req)
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = { NULL };
@@ -419,10 +509,14 @@ static int local_db_check_number_of_secrets(TALLOC_CTX *mem_ctx,
     struct ldb_dn *dn;
     int ret;
 
+    if (lc_req->quota->max_secrets == 0) {
+        return EOK;
+    }
+
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
-    dn = ldb_dn_new(tmp_ctx, lctx->ldb, "cn=secrets");
+    dn = ldb_dn_new(tmp_ctx, lctx->ldb, lc_req->basedn);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -430,11 +524,16 @@ static int local_db_check_number_of_secrets(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(lctx->ldb, tmp_ctx, &res, dn, LDB_SCOPE_SUBTREE,
                      attrs, LOCAL_SIMPLE_FILTER);
-    if (res->count >= lctx->max_secrets) {
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "ldb_search returned %d: %s\n", ret, ldb_strerror(ret));
+        goto done;
+    }
+
+    if (res->count >= lc_req->quota->max_secrets) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot store any more secrets as the maximum allowed limit (%d) "
-              "has been reached\n", lctx->max_secrets);
-
+              "has been reached\n", lc_req->quota->max_secrets);
         ret = ERR_SEC_INVALID_TOO_MANY_SECRETS;
         goto done;
     }
@@ -446,19 +545,23 @@ done:
     return ret;
 }
 
-static int local_check_max_payload_size(struct local_context *lctx,
+static int local_check_max_payload_size(struct local_db_req *lc_req,
                                         int payload_size)
 {
     int max_payload_size;
 
-    max_payload_size = lctx->max_payload_size * 1024; /* kb */
+    if (lc_req->quota->max_payload_size == 0) {
+        return EOK;
+    }
+
+    max_payload_size = lc_req->quota->max_payload_size * 1024; /* kb */
     if (payload_size > max_payload_size) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Secrets' payload size [%d kb (%d)] exceeds the maximum allowed "
               "payload size [%d kb (%d)]\n",
               payload_size * 1024, /* kb */
               payload_size,
-              lctx->max_payload_size, /* kb */
+              lc_req->quota->max_payload_size, /* kb */
               max_payload_size);
 
         return ERR_SEC_PAYLOAD_SIZE_IS_TOO_LARGE;
@@ -484,7 +587,7 @@ static int local_db_put_simple(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = lc_req->basedn;
+    msg->dn = lc_req->req_dn;
 
     /* make sure containers exist */
     ret = local_db_check_containers(msg, lctx, msg->dn);
@@ -495,7 +598,7 @@ static int local_db_put_simple(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = local_db_check_number_of_secrets(msg, lctx);
+    ret = local_db_check_number_of_secrets(msg, lctx, lc_req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "local_db_check_number_of_secrets failed [%d]: %s\n",
@@ -503,7 +606,15 @@ static int local_db_put_simple(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = local_check_max_payload_size(lctx, strlen(secret));
+    ret = local_db_check_peruid_number_of_secrets(msg, lctx, lc_req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_check_number_of_secrets failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = local_check_max_payload_size(lc_req, strlen(secret));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "local_check_max_payload_size failed [%d]: %s\n",
@@ -588,9 +699,9 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Searching for [%s] at [%s] with scope=base\n",
-          LOCAL_CONTAINER_FILTER, ldb_dn_get_linearized(lc_req->basedn));
+          LOCAL_CONTAINER_FILTER, ldb_dn_get_linearized(lc_req->req_dn));
 
-    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_BASE,
+    ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->req_dn, LDB_SCOPE_BASE,
                      attrs, LOCAL_CONTAINER_FILTER);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
@@ -600,8 +711,8 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
 
     if (res->count == 1) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Searching for children of [%s]\n", ldb_dn_get_linearized(lc_req->basedn));
-        ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->basedn, LDB_SCOPE_ONELEVEL,
+              "Searching for children of [%s]\n", ldb_dn_get_linearized(lc_req->req_dn));
+        ret = ldb_search(lctx->ldb, tmp_ctx, &res, lc_req->req_dn, LDB_SCOPE_ONELEVEL,
                          attrs, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_TRACE_LIBS,
@@ -613,13 +724,13 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
             ret = EEXIST;
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to remove '%s': Container is not empty\n",
-                  ldb_dn_get_linearized(lc_req->basedn));
+                  ldb_dn_get_linearized(lc_req->req_dn));
 
             goto done;
         }
     }
 
-    ret = ldb_delete(lctx->ldb, lc_req->basedn);
+    ret = ldb_delete(lctx->ldb, lc_req->req_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_delete returned %d: %s\n", ret, ldb_strerror(ret));
@@ -646,7 +757,7 @@ static int local_db_create(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    msg->dn = lc_req->basedn;
+    msg->dn = lc_req->req_dn;
 
     /* make sure containers exist */
     ret = local_db_check_containers(msg, lctx, msg->dn);
@@ -657,7 +768,7 @@ static int local_db_create(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = local_db_check_containers_nest_level(lctx, msg->dn);
+    ret = local_db_check_containers_nest_level(lc_req, msg->dn);
     if (ret != EOK) goto done;
 
     ret = ldb_msg_add_string(msg, "type", "container");
@@ -699,13 +810,13 @@ done:
 }
 
 static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
-                                  struct ldb_context *ldb,
+                                  struct local_context *lctx,
                                   struct sec_req_ctx *secreq,
                                   struct local_db_req **_lc_req)
 {
     int ret;
     struct local_db_req *lc_req;
-    const char *basedn;
+    struct ldb_context *ldb = lctx->ldb;
 
     /* be strict for now */
     if (secreq->parsed_url.fragment != NULL) {
@@ -743,12 +854,14 @@ static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
                 SEC_BASEPATH, sizeof(SEC_BASEPATH) - 1) == 0) {
         lc_req->path = talloc_strdup(lc_req,
                                      secreq->mapped_path + (sizeof(SEC_BASEPATH) - 1));
-        basedn = SECRETS_BASEDN;
+        lc_req->basedn = SECRETS_BASEDN;
+        lc_req->quota = lctx->quota_secrets;
     } else if (strncmp(secreq->mapped_path,
                SEC_KCM_BASEPATH, sizeof(SEC_KCM_BASEPATH) - 1) == 0) {
         lc_req->path = talloc_strdup(lc_req,
                                      secreq->mapped_path + (sizeof(SEC_KCM_BASEPATH) - 1));
-        basedn = KCM_BASEDN;
+        lc_req->basedn = KCM_BASEDN;
+        lc_req->quota = lctx->quota_kcm;
     } else {
         ret = EINVAL;
         goto done;
@@ -761,7 +874,7 @@ static int local_secrets_map_path(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = local_db_dn(mem_ctx, ldb, basedn, lc_req->path, &lc_req->basedn);
+    ret = local_db_dn(mem_ctx, ldb, lc_req->basedn, lc_req->path, &lc_req->req_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to map request to local db DN\n");
@@ -830,7 +943,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
     }
     DEBUG(SSSDBG_TRACE_LIBS, "Content-Type: %s\n", content_type);
 
-    ret = local_secrets_map_path(state, lctx->ldb, secreq, &lc_req);
+    ret = local_secrets_map_path(state, lctx, secreq, &lc_req);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot map request path to local path\n");
         goto done;
@@ -1019,9 +1132,8 @@ int local_secrets_provider_handle(struct sec_ctx *sctx,
         return EIO;
     }
 
-    lctx->containers_nest_level = sctx->containers_nest_level;
-    lctx->max_secrets = sctx->max_secrets;
-    lctx->max_payload_size = sctx->max_payload_size;
+    lctx->quota_secrets = &sctx->sec_config.quota;
+    lctx->quota_kcm = &sctx->kcm_config.quota;
 
     lctx->master_key.data = talloc_size(lctx, MKEY_SIZE);
     if (!lctx->master_key.data) return ENOMEM;

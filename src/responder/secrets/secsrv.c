@@ -30,8 +30,138 @@
 
 #define DEFAULT_SEC_FD_LIMIT 2048
 #define DEFAULT_SEC_CONTAINERS_NEST_LEVEL 4
-#define DEFAULT_SEC_MAX_SECRETS 1024
+
+#define DEFAULT_SEC_MAX_SECRETS      1024
+#define DEFAULT_SEC_MAX_UID_SECRETS  256
 #define DEFAULT_SEC_MAX_PAYLOAD_SIZE 16
+
+/* The number of secrets in the /kcm hive should be quite small,
+ * but the secret size must be large because one secret in the /kcm
+ * hive holds the whole ccache which consists of several credentials
+ */
+#define DEFAULT_SEC_KCM_MAX_SECRETS      256
+#define DEFAULT_SEC_KCM_MAX_UID_SECRETS  64
+#define DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE 65536
+
+static int sec_get_quota(struct sec_ctx *sctx,
+                         const char *section_config_path,
+                         int default_max_containers_nest_level,
+                         int default_max_num_secrets,
+                         int default_max_num_uid_secrets,
+                         int default_max_payload,
+                         struct sec_quota *quota)
+{
+    int ret;
+
+    ret = confdb_get_int(sctx->rctx->cdb,
+                         section_config_path,
+                         CONFDB_SEC_CONTAINERS_NEST_LEVEL,
+                         default_max_containers_nest_level,
+                         &quota->containers_nest_level);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get container nesting level for %s\n",
+              section_config_path);
+        return ret;
+    }
+
+    ret = confdb_get_int(sctx->rctx->cdb,
+                         section_config_path,
+                         CONFDB_SEC_MAX_SECRETS,
+                         default_max_num_secrets,
+                         &quota->max_secrets);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get maximum number of entries for %s\n",
+              section_config_path);
+        return ret;
+    }
+
+    ret = confdb_get_int(sctx->rctx->cdb,
+                         section_config_path,
+                         CONFDB_SEC_MAX_UID_SECRETS,
+                         default_max_num_uid_secrets,
+                         &quota->max_uid_secrets);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get maximum number of per-UID entries for %s\n",
+              section_config_path);
+        return ret;
+    }
+
+    ret = confdb_get_int(sctx->rctx->cdb,
+                         section_config_path,
+                         CONFDB_SEC_MAX_PAYLOAD_SIZE,
+                         default_max_payload,
+                         &quota->max_payload_size);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get payload's maximum size for an entry in %s\n",
+              section_config_path);
+        return ret;
+    }
+
+    return EOK;
+}
+
+static int sec_get_hive_config(struct sec_ctx *sctx,
+                               const char *hive_name,
+                               struct sec_hive_config *hive_config,
+                               int default_max_containers_nest_level,
+                               int default_max_num_secrets,
+                               int default_max_num_uid_secrets,
+                               int default_max_payload)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(sctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    hive_config->confdb_section = talloc_asprintf(sctx,
+                                                  "config/secrets/%s",
+                                                  hive_name);
+    if (hive_config->confdb_section == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sec_get_quota(sctx,
+                        hive_config->confdb_section,
+                        default_max_containers_nest_level,
+                        default_max_num_secrets,
+                        default_max_num_uid_secrets,
+                        default_max_payload,
+                        &hive_config->quota);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot read quota settings for %s [%d]: %s\n",
+              hive_name, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (hive_config->quota.max_payload_size == 0
+             || (sctx->max_payload_size != 0
+                 && hive_config->quota.max_payload_size > sctx->max_payload_size)) {
+        /* If the quota is unlimited or it's larger than what
+         * we already have, save the total limit so we know how much to
+         * accept from clients
+         */
+        sctx->max_payload_size = hive_config->quota.max_payload_size;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 
 static int sec_get_config(struct sec_ctx *sctx)
 {
@@ -48,39 +178,52 @@ static int sec_get_config(struct sec_ctx *sctx)
         goto fail;
     }
 
-    ret = confdb_get_int(sctx->rctx->cdb,
-                         sctx->rctx->confdb_service_path,
-                         CONFDB_SEC_CONTAINERS_NEST_LEVEL,
-                         DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
-                         &sctx->containers_nest_level);
+    /* Set the global max_payload to ridiculously small value so that either 0 (unlimited)
+     * or any sensible value overwrite it
+     */
+    sctx->max_payload_size = 1;
 
+    /* Read the global quota first -- this should be removed in a future release */
+    /* Note that this sets the defaults for the sec_config quota to be used
+     * in sec_get_hive_config()
+     */
+    ret = sec_get_quota(sctx,
+                        sctx->rctx->confdb_service_path,
+                        DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
+                        DEFAULT_SEC_MAX_SECRETS,
+                        DEFAULT_SEC_MAX_UID_SECRETS,
+                        DEFAULT_SEC_MAX_PAYLOAD_SIZE,
+                        &sctx->sec_config.quota);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get containers' maximum depth\n");
+              "Failed to get legacy global quotas\n");
         goto fail;
     }
 
-    ret = confdb_get_int(sctx->rctx->cdb,
-                         sctx->rctx->confdb_service_path,
-                         CONFDB_SEC_MAX_SECRETS,
-                         DEFAULT_SEC_MAX_SECRETS,
-                         &sctx->max_secrets);
-
+    /* Read the per-hive configuration */
+    ret = sec_get_hive_config(sctx,
+                              "secrets",
+                              &sctx->sec_config,
+                              sctx->sec_config.quota.containers_nest_level,
+                              sctx->sec_config.quota.max_secrets,
+                              sctx->sec_config.quota.max_uid_secrets,
+                              sctx->sec_config.quota.max_payload_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get maximum number of entries\n");
+              "Failed to get configuration of the secrets hive\n");
         goto fail;
     }
 
-    ret = confdb_get_int(sctx->rctx->cdb,
-                         sctx->rctx->confdb_service_path,
-                         CONFDB_SEC_MAX_PAYLOAD_SIZE,
-                         DEFAULT_SEC_MAX_PAYLOAD_SIZE,
-                         &sctx->max_payload_size);
-
+    ret = sec_get_hive_config(sctx,
+                              "kcm",
+                              &sctx->kcm_config,
+                              DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
+                              DEFAULT_SEC_KCM_MAX_SECRETS,
+                              DEFAULT_SEC_KCM_MAX_UID_SECRETS,
+                              DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get payload's maximum size for an entry\n");
+              "Failed to get configuration of the secrets hive\n");
         goto fail;
     }
 
@@ -160,12 +303,6 @@ static int sec_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error getting secrets config\n");
         goto fail;
-    }
-
-    ret = resolv_init(sctx, ev, SEC_NET_TIMEOUT, &sctx->resctx);
-    if (ret != EOK) {
-        /* not fatal for now */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize resolver library\n");
     }
 
     /* Set up file descriptor limits */
