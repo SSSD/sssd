@@ -97,7 +97,7 @@
     %global with_cifs_utils_plugin_option --disable-cifs-idmap-plugin
 %endif
 
-%if (0%{?fedora})
+%if (0%{?fedora} || 0%{?rhel} > 7)
     %global with_python3 1
 %else
     %global with_python3_option --without-python3-bindings
