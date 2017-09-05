@@ -23,6 +23,7 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
+#define SYSDB_VERSION_0_19 "0.19"
 #define SYSDB_VERSION_0_18 "0.18"
 #define SYSDB_VERSION_0_17 "0.17"
 #define SYSDB_VERSION_0_16 "0.16"
@@ -42,7 +43,7 @@
 #define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
 
-#define SYSDB_VERSION SYSDB_VERSION_0_18
+#define SYSDB_VERSION SYSDB_VERSION_0_19
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -72,6 +73,11 @@
      "@IDXATTR: sshKnownHostsExpire\n" \
      "@IDXATTR: objectSIDString\n" \
      "@IDXONE: 1\n" \
+     "@IDXATTR: ghost\n" \
+     "@IDXATTR: userPrincipalName\n" \
+     "@IDXATTR: canonicalUserPrincipalName\n" \
+     "@IDXATTR: uniqueID\n" \
+     "@IDXATTR: mail\n" \
      "\n" \
      "dn: @MODULES\n" \
      "@LIST: asq,memberof\n" \
@@ -162,6 +168,7 @@ int sysdb_upgrade_16(struct sysdb_ctx *sysdb, const char **ver);
 int sysdb_upgrade_17(struct sysdb_ctx *sysdb,
                      struct sysdb_dom_upgrade_ctx *upgrade_ctx,
                      const char **ver);
+int sysdb_upgrade_18(struct sysdb_ctx *sysdb, const char **ver);
 
 int sysdb_add_string(struct ldb_message *msg,
                      const char *attr, const char *value);
