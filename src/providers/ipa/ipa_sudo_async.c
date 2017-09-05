@@ -379,6 +379,7 @@ struct ipa_sudo_fetch_state {
     struct ipa_sudo_conv *conv;
     struct sysdb_attrs **rules;
     size_t num_rules;
+    int cmd_threshold;
     char *usn;
 };
 
@@ -430,6 +431,7 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
     state->map_rule = sudo_ctx->sudorule_map;
     state->map_cmd = sudo_ctx->sudocmd_map;
     state->sudo_sb = sudo_ctx->sudo_sb;
+    state->cmd_threshold = sudo_ctx->sudocmd_threshold;
 
     state->conv = ipa_sudo_conv_init(state, domain, state->map_rule,
                                      state->map_cmdgroup, state->map_cmd,
@@ -648,7 +650,9 @@ ipa_sudo_fetch_cmdgroups(struct tevent_req *req)
         return ipa_sudo_fetch_cmds(req);
     }
 
-    filter = ipa_sudo_conv_cmdgroup_filter(state, state->conv);
+    filter = ipa_sudo_conv_cmdgroup_filter(state, state->conv,
+                                           state->cmd_threshold);
+
     if (filter == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build filter\n");
         return ENOMEM;
@@ -727,7 +731,8 @@ ipa_sudo_fetch_cmds(struct tevent_req *req)
         return EOK;
     }
 
-    filter = ipa_sudo_conv_cmd_filter(state, state->conv);
+    filter = ipa_sudo_conv_cmd_filter(state, state->conv, state->cmd_threshold);
+
     if (filter == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build filter\n");
         return ENOMEM;
