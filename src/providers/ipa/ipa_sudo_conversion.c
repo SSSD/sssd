@@ -576,6 +576,17 @@ ipa_sudo_conv_has_cmds(struct ipa_sudo_conv *conv)
     return hash_count(conv->cmds) == 0;
 }
 
+bool
+ipa_sudo_cmdgroups_exceed_threshold(struct ipa_sudo_conv *conv, int threshold)
+{
+    return (hash_count(conv->cmdgroups)) > threshold;
+}
+bool
+ipa_sudo_cmds_exceed_threshold(struct ipa_sudo_conv *conv, int threshold)
+{
+    return (hash_count(conv->cmds)) > threshold;
+}
+
 typedef errno_t (*ipa_sudo_conv_rdn_fn)(TALLOC_CTX *mem_ctx,
                                       struct sdap_attr_map *map,
                                       struct sysdb_ctx *sysdb,
@@ -722,18 +733,36 @@ done:
 
 char *
 ipa_sudo_conv_cmdgroup_filter(TALLOC_CTX *mem_ctx,
-                              struct ipa_sudo_conv *conv)
+                              struct ipa_sudo_conv *conv,
+                              int cmd_threshold)
 {
-    return build_filter(mem_ctx, conv->dom->sysdb, conv->cmdgroups,
-                        conv->map_cmdgroup, get_sudo_cmdgroup_rdn);
+    if (ipa_sudo_cmdgroups_exceed_threshold(conv, cmd_threshold)) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Command threshold [%d] exceeded, retrieving all sudo command "
+              "groups\n", cmd_threshold);
+        return talloc_asprintf(mem_ctx, "(objectClass=%s)",
+                               conv->map_cmdgroup->name);
+    } else {
+        return build_filter(mem_ctx, conv->dom->sysdb, conv->cmdgroups,
+                            conv->map_cmdgroup, get_sudo_cmdgroup_rdn);
+    }
 }
 
 char *
 ipa_sudo_conv_cmd_filter(TALLOC_CTX *mem_ctx,
-                         struct ipa_sudo_conv *conv)
+                         struct ipa_sudo_conv *conv,
+                         int cmd_threshold)
 {
-    return build_filter(mem_ctx, conv->dom->sysdb, conv->cmds,
+    if (ipa_sudo_cmdgroups_exceed_threshold(conv, cmd_threshold)) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Command threshold [%d] exceeded, retrieving all sudo commands\n",
+              cmd_threshold);
+        return talloc_asprintf(mem_ctx, "(objectClass=%s)",
+                               conv->map_cmd->name);
+    } else {
+        return build_filter(mem_ctx, conv->dom->sysdb, conv->cmds,
                             conv->map_cmd, get_sudo_cmd_rdn);
+    }
 }
 
 struct ipa_sudo_conv_result_ctx {

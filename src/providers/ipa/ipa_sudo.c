@@ -245,6 +245,14 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = confdb_get_int(be_ctx->cdb, CONFDB_SUDO_CONF_ENTRY,
+                         CONFDB_SUDO_THRESHOLD, CONFDB_DEFAULT_SUDO_THRESHOLD,
+                         &sudo_ctx->sudocmd_threshold);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not parse sudo search base\n");
+        return ret;
+    }
+
     ret = sdap_parse_search_base(sudo_ctx, sudo_ctx->sdap_opts->basic,
                                  SDAP_SUDO_SEARCH_BASE,
                                  &sudo_ctx->sudo_sb);
