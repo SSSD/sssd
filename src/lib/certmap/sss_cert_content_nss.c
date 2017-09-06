@@ -472,9 +472,15 @@ static int add_pkinit_princ_to_san_list(TALLOC_CTX *mem_ctx,
 {
     struct san_list *i = NULL;
     SECStatus rv;
-    struct kerberos_principal_name kname = { 0 };
+    /* To avoid 'Wmissing-braces' warnings with older versions of
+     * gcc kerberos_principal_name cannot be initialized with { 0 }
+     * but must be initialized with memset().
+     */
+    struct kerberos_principal_name kname;
     int ret;
     size_t c;
+
+    memset(&kname, 0, sizeof(kname));
 
     rv = SEC_ASN1DecodeItem(pool, &kname,
                             kerberos_principal_name_template,
