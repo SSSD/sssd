@@ -468,7 +468,7 @@ static void nss_getent_done(struct tevent_req *subreq);
 
 static errno_t nss_getent(struct cli_ctx *cli_ctx,
                           enum cache_req_type type,
-                          struct nss_enum_index *index,
+                          struct nss_enum_index *idx,
                           nss_protocol_fill_packet_fn fill_fn,
                           struct nss_enum_ctx *enum_ctx)
 {
@@ -490,7 +490,7 @@ static errno_t nss_getent(struct cli_ctx *cli_ctx,
 
     cmd_ctx->enumeration = true;
     cmd_ctx->enum_ctx = enum_ctx;
-    cmd_ctx->enum_index = index;
+    cmd_ctx->enum_index = idx;
 
     subreq = nss_setent_send(cli_ctx, cli_ctx->ev, cli_ctx, type, enum_ctx);
     if (subreq == NULL) {
@@ -514,7 +514,7 @@ done:
 
 static struct cache_req_result *
 nss_getent_get_result(struct nss_enum_ctx *enum_ctx,
-                      struct nss_enum_index *index)
+                      struct nss_enum_index *idx)
 {
     struct cache_req_result *result;
 
@@ -523,14 +523,14 @@ nss_getent_get_result(struct nss_enum_ctx *enum_ctx,
         return NULL;
     }
 
-    result = enum_ctx->result[index->domain];
+    result = enum_ctx->result[idx->domain];
 
-    if (result != NULL && index->result >= result->count) {
+    if (result != NULL && idx->result >= result->count) {
         /* Switch to next domain. */
-        index->result = 0;
-        index->domain++;
+        idx->result = 0;
+        idx->domain++;
 
-        result = enum_ctx->result[index->domain];
+        result = enum_ctx->result[idx->domain];
     }
 
     return result;
@@ -752,12 +752,12 @@ done:
 }
 
 static errno_t nss_endent(struct cli_ctx *cli_ctx,
-                          struct nss_enum_index *index)
+                          struct nss_enum_index *idx)
 {
     DEBUG(SSSDBG_CONF_SETTINGS, "Resetting enumeration state\n");
 
-    index->domain = 0;
-    index->result = 0;
+    idx->domain = 0;
+    idx->result = 0;
 
     nss_protocol_done(cli_ctx, EOK);
 

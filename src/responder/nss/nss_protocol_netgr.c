@@ -110,7 +110,7 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
     TALLOC_CTX *tmp_ctx;
     struct sysdb_netgroup_ctx **entries;
     struct sysdb_netgroup_ctx *entry;
-    struct nss_enum_index *index;
+    struct nss_enum_index *idx;
     uint32_t num_results;
     size_t rp;
     size_t body_len;
@@ -123,7 +123,7 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
         return ENOMEM;
     }
 
-    index = cmd_ctx->enum_index;
+    idx = cmd_ctx->enum_index;
     entries = cmd_ctx->enum_ctx->netgroup;
 
     /* First two fields (length and reserved), filled up later. */
@@ -141,15 +141,15 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
     }
 
     num_results = 0;
-    start = index->result;
-    for (; entries[index->result] != NULL; index->result++) {
-        if ((index->result - start) >= cmd_ctx->enum_limit) {
+    start = idx->result;
+    for (; entries[idx->result] != NULL; idx->result++) {
+        if ((idx->result - start) >= cmd_ctx->enum_limit) {
             /* We have reached result limit. */
             break;
         }
 
         talloc_free_children(tmp_ctx);
-        entry = entries[index->result];
+        entry = entries[idx->result];
 
         switch (entry->type) {
         case SYSDB_NETGROUP_TRIPLE_VAL:
