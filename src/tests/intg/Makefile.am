@@ -18,6 +18,7 @@ dist_noinst_DATA = \
     test_netgroup.py \
     data/ad_data.ldif \
     data/ad_schema.ldif \
+    test_pysss_nss_idmap.py \
     $(NULL)
 
 config.py: config.py.m4
