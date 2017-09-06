@@ -1,4 +1,5 @@
 dist_noinst_DATA = \
+    __init__.py \
     config.py.m4 \
     sssd_id.py \
     ds.py \
