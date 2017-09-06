@@ -16,6 +16,8 @@ dist_noinst_DATA = \
     test_ldap.py \
     test_memory_cache.py \
     test_netgroup.py \
+    data/ad_data.ldif \
+    data/ad_schema.ldif \
     $(NULL)
 
 config.py: config.py.m4
