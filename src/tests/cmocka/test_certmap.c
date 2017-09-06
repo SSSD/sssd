@@ -449,6 +449,23 @@ static void test_sss_certmap_add_matching_rule(void **state)
     assert_null(
             ctx->prio_list->rule_list->parsed_match_rule->eku->eku_oid_list[3]);
 
+    ret = sss_certmap_add_rule(ctx, 96,
+                               "KRB5:<EKU>1.2.3",
+                               NULL, NULL);
+    assert_int_equal(ret, 0);
+    assert_non_null(ctx->prio_list);
+    assert_non_null(ctx->prio_list->rule_list);
+    assert_non_null(ctx->prio_list->rule_list->parsed_match_rule);
+    assert_int_equal(ctx->prio_list->rule_list->parsed_match_rule->r,
+                     relation_and);
+    assert_non_null(ctx->prio_list->rule_list->parsed_match_rule->eku);
+    assert_true(string_in_list("1.2.3",
+              discard_const(
+               ctx->prio_list->rule_list->parsed_match_rule->eku->eku_oid_list),
+              true));
+    assert_null(
+            ctx->prio_list->rule_list->parsed_match_rule->eku->eku_oid_list[1]);
+
     /* SAN tests */
     ret = sss_certmap_add_rule(ctx, 89, "KRB5:<SAN>abc", NULL, NULL);
     assert_int_equal(ret, 0);
