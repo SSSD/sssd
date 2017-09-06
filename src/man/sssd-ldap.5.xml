@@ -837,8 +837,7 @@
                             certificate of the user.
                         </para>
                         <para>
-                            Default: no set in the general case, userCertificate;binary
-                            for IPA
+                            Default: userCertificate;binary
                         </para>
                     </listitem>
                 </varlistentry>
