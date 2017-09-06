@@ -258,6 +258,7 @@ if HAVE_CMOCKA
         test_search_bases \
         test_ldap_auth \
         test_sdap_access \
+        test_sdap_certmap \
         sdap-tests \
         test_sysdb_ts_cache \
         test_sysdb_views \
@@ -2683,6 +2684,24 @@ test_sdap_access_LDADD = \
     libdlopen_test_providers.la \
     $(NULL)
 
+test_sdap_certmap_SOURCES = \
+    src/tests/cmocka/test_sdap_certmap.c \
+    src/providers/ldap/sdap_certmap.c \
+    $(NULL)
+test_sdap_certmap_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(NULL)
+test_sdap_certmap_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    libsss_certmap.la \
+    $(NULL)
+
 ad_access_filter_tests_SOURCES = \
     src/tests/cmocka/test_ad_access_filter.c
 ad_access_filter_tests_LDADD = \
@@ -3742,6 +3761,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_id_op.c \
+    src/providers/ldap/sdap_certmap.c \
     src/providers/ldap/sdap_idmap.c \
     src/providers/ldap/sdap_idmap.h \
     src/providers/ldap/sdap_range.c \
