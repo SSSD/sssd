@@ -362,4 +362,9 @@ sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
 errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
                           struct sdap_id_ctx *id_ctx);
 
+errno_t sdap_init_certmap(TALLOC_CTX *mem_ctx, struct sdap_id_ctx *id_ctx);
+
+errno_t sdap_setup_certmap(struct sdap_certmap_ctx *sdap_certmap_ctx,
+                           struct certmap_info **certmap_list);
+struct sss_certmap_ctx *sdap_get_sss_certmap(struct sdap_certmap_ctx *ctx);
 #endif /* _LDAP_COMMON_H_ */

@@ -680,6 +680,13 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
+    ret = sdap_init_certmap(sdap_id_ctx, sdap_id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialized certificate mapping.\n");
+        return ret;
+    }
+
     return EOK;
 }
 
