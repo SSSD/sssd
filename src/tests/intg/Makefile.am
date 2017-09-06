@@ -20,6 +20,8 @@ dist_noinst_DATA = \
     secrets.py \
     test_secrets.py \
     test_sssctl.py \
+    data/ad_data.ldif \
+    data/ad_schema.ldif \
     $(NULL)
 
 config.py: config.py.m4

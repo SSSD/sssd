@@ -3,6 +3,7 @@
 #
 # Copyright (c) 2015 Red Hat, Inc.
 # Author: Nikolai Kondrashov <Nikolai.Kondrashov@redhat.com>
+# Author: Lukas Slebodnik <lslebodn@redhat.com>
 #
 # This is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -292,3 +293,79 @@ class DSOpenLDAP(DS):
 
         for path in (self.conf_slapd_d_dir, self.run_dir, self.data_dir):
             shutil.rmtree(path, True)
+
+
+class FakeAD(DSOpenLDAP):
+    """Fake Active Directory based on OpenLDAP directory server."""
+
+    def _setup_config(self):
+        """Setup the instance initial configuration."""
+
+        # Import ad schema
+        subprocess.check_call(
+            ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config",
+             "-l", "data/ad_schema.ldif"],
+        )
+
+    def setup(self):
+        """Setup the instance."""
+        ldapi_socket = self.run_dir + "/ldapi"
+        self.ldapi_url = "ldapi://" + url_quote(ldapi_socket, "")
+        self.url_list = self.ldapi_url + " " + self.ldap_url
+
+        os.makedirs(self.conf_slapd_d_dir)
+        os.makedirs(self.run_dir)
+        os.makedirs(self.data_dir)
+
+        super(FakeAD, self)._setup_config()
+        self._setup_config()
+
+        # Start the daemon
+        super(FakeAD, self)._start_daemon()
+
+        # Relax requirement of surname attribute presence in person
+        modlist = [
+            (ldap.MOD_DELETE, "olcObjectClasses",
+             b"{4}( 2.5.6.6 NAME 'person' DESC 'RFC2256: a person' SUP top "
+             b"STRUCTURAL MUST ( sn $ cn ) MAY ( userPassword $ "
+             b"telephoneNumber $ seeAlso $ description ) )"),
+            (ldap.MOD_ADD, "olcObjectClasses",
+             b"{4}( 2.5.6.6 NAME 'person' DESC 'RFC2256: a person' SUP top "
+             b"STRUCTURAL MUST ( cn ) MAY ( sn $ userPassword $ "
+             b"telephoneNumber $ seeAlso $ description ) )"),
+        ]
+        ldap_conn = ldap.initialize(self.ldapi_url)
+        ldap_conn.simple_bind_s(self.admin_rdn + ",cn=config", self.admin_pw)
+        ldap_conn.modify_s("cn={0}core,cn=schema,cn=config", modlist)
+        ldap_conn.unbind_s()
+
+        # restart daemon for reloading schema
+        super(FakeAD, self)._stop_daemon()
+        super(FakeAD, self)._start_daemon()
+
+        # Add data
+        ldap_conn = ldap.initialize(self.ldap_url)
+        ldap_conn.simple_bind_s(self.admin_dn, self.admin_pw)
+        ldap_conn.add_s(self.base_dn, [
+            ("objectClass", [b"dcObject", b"organization"]),
+            ("o", b"Example Company"),
+        ])
+        ldap_conn.add_s("cn=Manager," + self.base_dn, [
+            ("objectClass", b"organizationalRole"),
+        ])
+        for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
+            ldap_conn.add_s("ou=" + ou + "," + self.base_dn, [
+                ("objectClass", [b"top", b"organizationalUnit"]),
+            ])
+        ldap_conn.unbind_s()
+
+        # import data from real AD
+        subprocess.check_call(
+            ["ldapadd", "-x", "-w", self.admin_pw, "-D",
+             self.admin_dn, "-H", self.ldap_url,
+             "-f", "data/ad_data.ldif"],
+        )
+
+    def teardown(self):
+        """Teardown the instance."""
+        super(FakeAD, self).teardown()
