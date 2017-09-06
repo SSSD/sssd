@@ -1003,10 +1003,12 @@ done
 %dir %{_datadir}/sssd/systemtap
 %{_datadir}/sssd/systemtap/id_perf.stp
 %{_datadir}/sssd/systemtap/nested_group_perf.stp
+%{_datadir}/sssd/systemtap/dp_request.stp
 %dir %{_datadir}/systemtap
 %dir %{_datadir}/systemtap/tapset
 %{_datadir}/systemtap/tapset/sssd.stp
 %{_datadir}/systemtap/tapset/sssd_functions.stp
+%{_mandir}/man5/sssd-systemtap.5*
 %endif
 
 %if (0%{?install_pcscd_polkit_rule} == 1)

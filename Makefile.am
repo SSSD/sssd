@@ -1257,6 +1257,7 @@ dist_systemtap_tap_DATA = \
 dist_sssdtapscript_DATA = \
     contrib/systemtap/id_perf.stp \
     contrib/systemtap/nested_group_perf.stp \
+    contrib/systemtap/dp_request.stp \
     $(NULL)
 
 stap_generated_probes.h: $(srcdir)/src/systemtap/sssd_probes.d
@@ -1587,6 +1588,9 @@ sssd_be_LDADD = \
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -export-dynamic
+if BUILD_SYSTEMTAP
+sssd_be_LDADD += stap_generated_probes.lo
+endif
 
 if BUILD_PYTHON_BINDINGS
 sss_obfuscate_pythondir = $(sbindir)
@@ -1893,6 +1897,9 @@ libdlopen_test_providers_la_LIBADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
+if BUILD_SYSTEMTAP
+libdlopen_test_providers_la_LIBADD += stap_generated_probes.lo
+endif
 libdlopen_test_providers_la_LDFLAGS = \
     -shared \
     -avoid-version \
@@ -3317,6 +3324,9 @@ test_dp_request_LDADD = \
     $(LIBADD_DL) \
     libsss_test_common.la \
     $(NULL)
+if BUILD_SYSTEMTAP
+test_dp_request_LDADD += stap_generated_probes.lo
+endif
 
 test_dp_builtin_SOURCES = \
     src/providers/data_provider/dp_modules.c \
