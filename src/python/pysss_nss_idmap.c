@@ -305,8 +305,8 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
 PyDoc_STRVAR(getsidbyname_doc,
 "getsidbyname(name or list/tuple of names) -> dict(name => dict(results))\n\
 \n\
-Returns a dictionary with a dictonary of results for each given name.\n\
-The result dictonary contain the SID and the type of the object which can be\n\
+Returns a dictionary with a dictionary of results for each given name.\n\
+The result dictionary contain the SID and the type of the object which can be\n\
 accessed with the key constants SID_KEY and TYPE_KEY, respectively.\n\
 \n\
 The return type can be one of the following constants:\n\
@@ -324,8 +324,8 @@ static PyObject * py_getsidbyname(PyObject *module, PyObject *args)
 PyDoc_STRVAR(getsidbyid_doc,
 "getsidbyid(id or list/tuple of id) -> dict(id => dict(results))\n\
 \n\
-Returns a dictionary with a dictonary of results for each given POSIX ID.\n\
-The result dictonary contain the SID and the type of the object which can be\n\
+Returns a dictionary with a dictionary of results for each given POSIX ID.\n\
+The result dictionary contain the SID and the type of the object which can be\n\
 accessed with the key constants SID_KEY and TYPE_KEY, respectively."
 );
 
@@ -337,8 +337,8 @@ static PyObject * py_getsidbyid(PyObject *module, PyObject *args)
 PyDoc_STRVAR(getnamebysid_doc,
 "getnamebysid(sid or list/tuple of sid) -> dict(sid => dict(results))\n\
 \n\
-Returns a dictionary with a dictonary of results for each given SID.\n\
-The result dictonary contain the name and the type of the object which can be\n\
+Returns a dictionary with a dictionary of results for each given SID.\n\
+The result dictionary contain the name and the type of the object which can be\n\
 accessed with the key constants NAME_KEY and TYPE_KEY, respectively.\n\
 \n\
 NOTE: getnamebysid currently works only with id_provider set as \"ad\" or \"ipa\""
@@ -355,8 +355,8 @@ PyDoc_STRVAR(getidbysid_doc,
 Returns the POSIX ID of the object with the given SID."
 "getidbysid(sid or list/tuple of sid) -> dict(sid => dict(results))\n\
 \n\
-Returns a dictionary with a dictonary of results for each given SID.\n\
-The result dictonary contain the POSIX ID and the type of the object which\n\
+Returns a dictionary with a dictionary of results for each given SID.\n\
+The result dictionary contain the POSIX ID and the type of the object which\n\
 can be accessed with the key constants ID_KEY and TYPE_KEY, respectively."
 );
 
@@ -368,8 +368,8 @@ static PyObject * py_getidbysid(PyObject *module, PyObject *args)
 PyDoc_STRVAR(getnamebycert_doc,
 "getnamebycert(sid or list/tuple of certificates) -> dict(sid => dict(results))\n\
 \n\
-Returns a dictionary with a dictonary of results for each given certificates.\n\
-The result dictonary contain the name and the type of the object which can be\n\
+Returns a dictionary with a dictionary of results for each given certificates.\n\
+The result dictionary contain the name and the type of the object which can be\n\
 accessed with the key constants NAME_KEY and TYPE_KEY, respectively.\n\
 \n\
 NOTE: getnamebycert currently works only with id_provider set as \"ad\" or \"ipa\""
