@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <popt.h>
+#include <selinux/selinux.h>
 
 #include "util/util.h"
 #include "util/child_common.h"
@@ -172,11 +173,10 @@ static bool seuser_needs_update(struct input_buffer *ibuf)
     char *db_mls_range = NULL;
     errno_t ret;
 
-    ret = get_seuser(ibuf, ibuf->username, &db_seuser, &db_mls_range);
+    ret = getseuserbyname(ibuf->username, &db_seuser, &db_mls_range);
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "get_seuser: ret: %d msg: [%s] seuser: %s mls: %s\n",
-          ret, sss_strerror(ret),
-          db_seuser ? db_seuser : "unknown",
+          "getseuserbyname: ret: %d seuser: %s mls: %s\n",
+          ret, db_seuser ? db_seuser : "unknown",
           db_mls_range ? db_mls_range : "unknown");
     if (ret == EOK && db_seuser && db_mls_range &&
             strcmp(db_seuser, ibuf->seuser) == 0 &&
@@ -188,8 +188,8 @@ static bool seuser_needs_update(struct input_buffer *ibuf)
         needs_update = false;
     }
 
-    talloc_free(db_seuser);
-    talloc_free(db_mls_range);
+    free(db_seuser);
+    free(db_mls_range);
     return needs_update;
 }
 
