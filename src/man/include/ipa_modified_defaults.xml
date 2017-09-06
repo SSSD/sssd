@@ -83,11 +83,6 @@
                     ldap_user_auth_type = ipaUserAuthType
                 </para>
             </listitem>
-            <listitem>
-                <para>
-                    ldap_user_certificate = userCertificate;binary
-                </para>
-            </listitem>
         </itemizedlist>
     </refsect2>
     <refsect2 id='ldap_group_modifications'>
