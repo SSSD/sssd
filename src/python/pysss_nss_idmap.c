@@ -533,17 +533,10 @@ initpysss_nss_idmap(void)
     PyModule_AddIntConstant(module, "ID_GROUP", SSS_ID_TYPE_GID);
     PyModule_AddIntConstant(module, "ID_BOTH", SSS_ID_TYPE_BOTH);
 
-#ifdef IS_PY3K
-    PyModule_AddObject(module, "SID_KEY", PyBytes_FromString(SSS_SID_KEY));
-    PyModule_AddObject(module, "NAME_KEY", PyBytes_FromString(SSS_NAME_KEY));
-    PyModule_AddObject(module, "ID_KEY", PyBytes_FromString(SSS_ID_KEY));
-    PyModule_AddObject(module, "TYPE_KEY", PyBytes_FromString(SSS_TYPE_KEY));
-#else
     PyModule_AddStringConstant(module, "SID_KEY", SSS_SID_KEY);
     PyModule_AddStringConstant(module, "NAME_KEY", SSS_NAME_KEY);
     PyModule_AddStringConstant(module, "ID_KEY", SSS_ID_KEY);
     PyModule_AddStringConstant(module, "TYPE_KEY", SSS_TYPE_KEY);
-#endif
 
 #ifdef IS_PY3K
     return module;
