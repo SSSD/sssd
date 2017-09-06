@@ -53,7 +53,7 @@ static int add_dict(PyObject *py_result, PyObject *key, PyObject *res_type,
         return ret;
     }
 
-    ret = PyDict_SetItem(py_dict, PyBytes_FromString(SSS_TYPE_KEY), id_type);
+    ret = PyDict_SetItem(py_dict, PyUnicode_FromString(SSS_TYPE_KEY), id_type);
     if (ret != 0) {
         Py_XDECREF(py_dict);
         return ret;
@@ -94,7 +94,7 @@ static int do_getsidbyname(PyObject *py_result, PyObject *py_name)
 
     ret = sss_nss_getsidbyname(name, &sid, &id_type);
     if (ret == 0) {
-        ret = add_dict(py_result, py_name, PyBytes_FromString(SSS_SID_KEY),
+        ret = add_dict(py_result, py_name, PyUnicode_FromString(SSS_SID_KEY),
                        PyUnicode_FromString(sid), PYNUMBER_FROMLONG(id_type));
     }
     free(sid);
@@ -116,7 +116,7 @@ static int do_getnamebysid(PyObject *py_result, PyObject *py_sid)
 
     ret = sss_nss_getnamebysid(sid, &name, &id_type);
     if (ret == 0) {
-        ret = add_dict(py_result, py_sid, PyBytes_FromString(SSS_NAME_KEY),
+        ret = add_dict(py_result, py_sid, PyUnicode_FromString(SSS_NAME_KEY),
                        PyUnicode_FromString(name), PYNUMBER_FROMLONG(id_type));
     }
     free(name);
@@ -158,7 +158,7 @@ static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
 
     ret = sss_nss_getsidbyid((uint32_t) id, &sid, &id_type);
     if (ret == 0) {
-        ret = add_dict(py_result, py_id, PyBytes_FromString(SSS_SID_KEY),
+        ret = add_dict(py_result, py_id, PyUnicode_FromString(SSS_SID_KEY),
                        PyUnicode_FromString(sid), PYNUMBER_FROMLONG(id_type));
     }
     free(sid);
@@ -180,7 +180,7 @@ static int do_getidbysid(PyObject *py_result, PyObject *py_sid)
 
     ret = sss_nss_getidbysid(sid, &id, &id_type);
     if (ret == 0) {
-        ret = add_dict(py_result, py_sid, PyBytes_FromString(SSS_ID_KEY),
+        ret = add_dict(py_result, py_sid, PyUnicode_FromString(SSS_ID_KEY),
                        PYNUMBER_FROMLONG(id), PYNUMBER_FROMLONG(id_type));
     }
 
