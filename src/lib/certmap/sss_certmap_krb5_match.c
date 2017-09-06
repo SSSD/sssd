@@ -180,19 +180,17 @@ static int parse_krb5_get_eku_value(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    comp->eku_oid_list = talloc_zero_array(comp, const char *,
+                                           eku_list_size + 1);
+    if (comp->eku_oid_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     for (c = 0; eku_list[c] != NULL; c++) {
         for (k = 0; ext_key_usage[k].name != NULL; k++) {
 CM_DEBUG(ctx, "[%s][%s].", eku_list[c], ext_key_usage[k].name);
             if (strcasecmp(eku_list[c], ext_key_usage[k].name) == 0) {
-                if (comp->eku_oid_list == NULL) {
-                    comp->eku_oid_list = talloc_zero_array(comp, const char *,
-                                                           eku_list_size + 1);
-                    if (comp->eku_oid_list == NULL) {
-                        ret = ENOMEM;
-                        goto done;
-                    }
-                }
-
                 comp->eku_oid_list[e] = talloc_strdup(comp->eku_oid_list,
                                                       ext_key_usage[k].oid);
                 if (comp->eku_oid_list[e] == NULL) {
@@ -224,6 +222,11 @@ CM_DEBUG(ctx, "[%s][%s].", eku_list[c], ext_key_usage[k].name);
             ret = EINVAL;
             goto done;
         }
+    }
+
+    if (e == 0) {
+        talloc_free(comp->eku_oid_list);
+        comp->eku_oid_list = NULL;
     }
 
     ret = 0;
