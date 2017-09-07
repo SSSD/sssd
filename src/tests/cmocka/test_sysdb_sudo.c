@@ -457,7 +457,7 @@ void test_get_sudo_user_info(void **state)
 
     /* User 1 has group. */
     ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom,
-                                   users[1].name, 0, &groupnames);
+                                   users[1].name, NULL, &groupnames);
     assert_int_equal(ret, EOK);
     assert_string_equal(groupnames[0], TEST_GROUP_NAME);
 
@@ -473,7 +473,7 @@ void test_get_sudo_user_info_nogroup(void **state)
 
     /* User 0 hasn't group. */
     ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom,
-                                   users[0].name, 0, &groupnames);
+                                   users[0].name, NULL, &groupnames);
     assert_int_equal(ret, EOK);
     assert_null(groupnames);
 
@@ -488,7 +488,7 @@ void test_get_sudo_nouser(void **state)
                                                          struct sysdb_test_ctx);
 
     ret = sysdb_get_sudo_user_info(test_ctx, test_ctx->tctx->dom,
-                                   TEST_USER_NON_EXIST, 0, &groupnames);
+                                   TEST_USER_NON_EXIST, NULL, &groupnames);
     assert_int_equal(ret, ENOENT);
 }
 
