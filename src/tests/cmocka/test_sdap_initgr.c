@@ -195,7 +195,15 @@ struct sdap_get_initgr_state *prepare_state(struct test_sdap_initgr_ctx *ctx,
     }
     assert_non_null(state->dom);
     assert_non_null(recent_dom_info);
-    recent_dom_info->next = NULL;
+    /* GCC complains about a potential dereference of null pointer here.
+     *
+     * It's a false-positive as the explicit check is done in the line before
+     * this comment section, but in order to have GNULIB manywarnings enabled,
+     * let's just add the check here.
+     */
+    if (recent_dom_info != NULL) {
+        recent_dom_info->next = NULL;
+    }
 
     state->opts = mock_sdap_options_ldap(state, state->dom,
                                          ctx->tctx->confdb,
