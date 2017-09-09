@@ -37,7 +37,7 @@ static struct sbus_iface_map iface_map[] = {
     { NULL, NULL }
 };
 
-struct sbus_iface_map *responder_get_sbus_interface()
+struct sbus_iface_map *responder_get_sbus_interface(void)
 {
     return iface_map;
 }
