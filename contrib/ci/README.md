@@ -43,6 +43,8 @@ distros:
 
 on Fedora distros:
 
+    # With dnf >= 2.0
+    <USER> ALL=(ALL:ALL) NOPASSWD: /usr/bin/dnf --assumeyes --best --setopt=install_weak_deps=False install -- *
     # We need to use yum-deprecated on Fedora because of BZ1215208.
     <USER> ALL=(ALL:ALL) NOPASSWD: /usr/bin/yum-deprecated --assumeyes install -- *
 
