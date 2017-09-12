@@ -371,7 +371,9 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'override_space',
             'disable_netlink',
             'enable_files_domain',
-            'domain_resolution_order']
+            'domain_resolution_order',
+            'try_inotify',
+        ]
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -567,7 +569,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'max_id',
             'timeout',
             'offline_timeout',
-            'try_inotify',
             'command',
             'enumerate',
             'cache_credentials',
@@ -938,7 +939,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'max_id',
             'timeout',
             'offline_timeout',
-            'try_inotify',
             'command',
             'enumerate',
             'cache_credentials',
