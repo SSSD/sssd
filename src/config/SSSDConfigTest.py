@@ -362,7 +362,9 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'client_idle_timeout',
             'description',
             'certificate_verification',
-            'override_space']
+            'override_space',
+            'try_inotify',
+        ]
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -557,7 +559,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'timeout',
             'force_timeout',
             'offline_timeout',
-            'try_inotify',
             'command',
             'enumerate',
             'cache_credentials',
@@ -926,7 +927,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'timeout',
             'force_timeout',
             'offline_timeout',
-            'try_inotify',
             'command',
             'enumerate',
             'cache_credentials',
