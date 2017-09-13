@@ -988,6 +988,113 @@ fallback_homedir = /home/%u
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>memcache_size (integer)</term>
+                    <listitem>
+                        <para>
+                            Number of slots allocated inside fast in-memory
+                            caches. Note that one entry in fast in-memory
+                            cache can occupy more than one slot. Setting
+                            the size to 0 will disable the in-memory caches.
+                            This option can be overriden by
+                            memcache_size_passwd, memcache_size_group and
+                            memcache_size_initgroups options for passwd, group
+                            and initgroups in-memory caches respectively.
+                        </para>
+                        <para>
+                            Default: 50000
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>memcache_size_passwd (integer)</term>
+                    <listitem>
+                        <para>
+                            Number of slots allocated inside fast in-memory
+                            cache for passwd requests. Note that one entry
+                            in fast in-memory cache can occupy more than one slot.
+                            Setting the size to 0 will disable the passwd in-memory
+                            cache.
+                        </para>
+                        <para>
+                            Default: memcache_size
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>memcache_size_group (integer)</term>
+                    <listitem>
+                        <para>
+                            Number of slots allocated inside fast in-memory
+                            cache for group requests. Note that one entry
+                            in fast in-memory cache can occupy more than one
+                            slot. Setting the size to 0 will disable the group
+                            in-memory cache.
+                        </para>
+                        <para>
+                            Default: memcache_size
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>memcache_size_initgroups (integer)</term>
+                    <listitem>
+                        <para>
+                            Number of slots allocated inside fast in-memory
+                            cache for initgroups requests. Note that one entry
+                            in fast in-memory cache can occupy more than one
+                            slot. Setting the size to 0 will disable the
+                            initgroups in-memory cache.
+                        </para>
+                        <para>
+                            Default: memcache_size
+                        </para>
+                        <para>
+                            WARNING: Disabled or too small in-memory cache can
+                            have significant negative impact on SSSD's
+                            performance.
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>user_attributes (string)</term>
                     <listitem>
                         <para>

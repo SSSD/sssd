@@ -264,6 +264,10 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     int ret, max_retries;
     enum idmap_error_code err;
     int fd_limit;
+    int mc_size;
+    int mc_size_passwd;
+    int mc_size_group;
+    int mc_size_initgroups;
 
     nss_cmds = get_nss_cmds();
 
@@ -351,26 +355,79 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    /* TODO: read cache sizes from configuration */
-    ret = sss_mmap_cache_init(nctx, "passwd", SSS_MC_PASSWD,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
-                              &nctx->pwd_mc_ctx);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "passwd mmap cache is DISABLED\n");
+
+    /* Get all memcache sizes from confdb (default, pwd, grp, initgr) */
+
+    ret = confdb_get_int(nctx->rctx->cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_MEMCACHE_SIZE,
+                         SSS_MC_CACHE_ELEMENTS, &mc_size);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get 'memcache_size' option from confdb.\n");
+        goto fail;
     }
 
-    ret = sss_mmap_cache_init(nctx, "group", SSS_MC_GROUP,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
-                              &nctx->grp_mc_ctx);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "group mmap cache is DISABLED\n");
+    ret = confdb_get_int(nctx->rctx->cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_MEMCACHE_SIZE_PASSWD,
+                         mc_size, &mc_size_passwd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get 'memcache_size_passwd' option from confdb.\n");
+        goto fail;
     }
 
-    ret = sss_mmap_cache_init(nctx, "initgroups", SSS_MC_INITGROUPS,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
-                              &nctx->initgr_mc_ctx);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "initgroups mmap cache is DISABLED\n");
+    ret = confdb_get_int(nctx->rctx->cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_MEMCACHE_SIZE_GROUP,
+                         mc_size, &mc_size_group);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get 'memcache_size_group' option from confdb.\n");
+        goto fail;
+    }
+
+    ret = confdb_get_int(nctx->rctx->cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_MEMCACHE_SIZE_INITGROUPS,
+                         mc_size, &mc_size_initgroups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get 'memcache_size_nitgroups' option from confdb.\n");
+        goto fail;
+    }
+
+    /* Initialize the fast in-memory caches if they were not disabled */
+
+    if (mc_size_passwd != 0) {
+        ret = sss_mmap_cache_init(nctx, "passwd", SSS_MC_PASSWD,
+                                  mc_size_passwd,
+                                  (time_t)memcache_timeout,
+                                  &nctx->pwd_mc_ctx);
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "passwd mmap cache is DISABLED\n");
+        }
+    }
+
+    if (mc_size_group != 0) {
+        ret = sss_mmap_cache_init(nctx, "group", SSS_MC_GROUP,
+                                  mc_size_group,
+                                  (time_t)memcache_timeout,
+                                  &nctx->grp_mc_ctx);
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "group mmap cache is DISABLED\n");
+        }
+    }
+
+    if (mc_size_initgroups != 0) {
+        ret = sss_mmap_cache_init(nctx, "initgroups", SSS_MC_INITGROUPS,
+                                  mc_size_initgroups,
+                                  (time_t)memcache_timeout,
+                                  &nctx->initgr_mc_ctx);
+        if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "initgroups mmap cache is DISABLED\n");
+        }
     }
 
     /* Set up file descriptor limits */

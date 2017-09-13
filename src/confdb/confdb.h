@@ -108,6 +108,10 @@
 #define CONFDB_NSS_SHELL_FALLBACK "shell_fallback"
 #define CONFDB_NSS_DEFAULT_SHELL "default_shell"
 #define CONFDB_MEMCACHE_TIMEOUT "memcache_timeout"
+#define CONFDB_NSS_MEMCACHE_SIZE "memcache_size"
+#define CONFDB_NSS_MEMCACHE_SIZE_PASSWD "memcache_size_passwd"
+#define CONFDB_NSS_MEMCACHE_SIZE_GROUP "memcache_size_group"
+#define CONFDB_NSS_MEMCACHE_SIZE_INITGROUPS "memcache_size_initgroups"
 #define CONFDB_NSS_HOMEDIR_SUBSTRING "homedir_substring"
 #define CONFDB_DEFAULT_HOMEDIR_SUBSTRING "/home"
 
