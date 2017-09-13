@@ -560,6 +560,30 @@
                                 in a random order for each parent domain.
                             </para>
                             <para>
+                                Please, note that when this option is set the
+                                output format of all commands is always
+                                fully-qualified even when using short names
+                                for input.
+                                In case the administrator wants the output not
+                                fully-qualified, the full_name_format option
+                                can be used as shown below:
+                                <quote>full_name_format=%1$s</quote>
+                                However, keep in mind that during login, login
+                                applications often canonicalize the username by
+                                calling
+                                <citerefentry>
+                                    <refentrytitle>getpwnam</refentrytitle>
+                                    <manvolnum>3</manvolnum>
+                                </citerefentry>
+                                which, if a shortname is returned for a
+                                qualified input (while trying to reach a user
+                                which exists in multiple domains) might
+                                re-route the login attempt into the domain
+                                which users shortnames, making this workaround
+                                totally not recommended in cases where
+                                usernames may overlap between domains.
+                            </para>
+                            <para>
                                 Default: Not set
                             </para>
                         </listitem>
