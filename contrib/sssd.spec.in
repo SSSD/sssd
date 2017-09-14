@@ -2,8 +2,8 @@
 # Set --with sssd_user or bcond_without to run SSSD as non-root user(sssd).
 %bcond_with sssd_user
 
-%global rhel6_minor %(%{__grep} -o "6.[0-9]*" /etc/redhat-release |%{__sed} -s 's/6.//')
-%global rhel7_minor %(%{__grep} -o "7.[0-9]*" /etc/redhat-release |%{__sed} -s 's/7.//')
+%global rhel6_minor %(%{__grep} -o "6\\.[0-9]*" /etc/redhat-release |%{__sed} -s 's/6.//')
+%global rhel7_minor %(%{__grep} -o "7\\.[0-9]*" /etc/redhat-release |%{__sed} -s 's/7.//')
 
 %if 0%{?rhel} && 0%{?rhel} <= 6
 %{!?__python2: %global __python2 /usr/bin/python2}
