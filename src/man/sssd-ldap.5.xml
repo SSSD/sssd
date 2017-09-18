@@ -2491,7 +2491,7 @@ ldap_access_filter = (employeeType=admin)
                             has no effect.
                         </para>
                         <para>
-                            Default: true
+                            Default: false
                         </para>
                     </listitem>
                 </varlistentry>
