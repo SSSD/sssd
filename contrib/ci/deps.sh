@@ -46,6 +46,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         rpm-build
         uid_wrapper
         python-requests
+        dbus-python
     )
     _DEPS_LIST_SPEC=`
         sed -e 's/@PACKAGE_VERSION@/0/g' \
@@ -121,6 +122,8 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         systemtap-sdt-dev
         libhttp-parser-dev
         libjansson-dev
+        dbus
+        python-dbus
     )
     DEPS_INTGCHECK_SATISFIED=true
 fi
