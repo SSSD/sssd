@@ -90,7 +90,7 @@ class DBusXmlException(Exception):
         else:
             return message
 
-class Base:
+class Base(object):
     def __init__(self, name):
         if not name:
             raise DBusXmlException('No name on element')
@@ -645,7 +645,7 @@ def expect_attr(attrs, name):
         raise DBusXmlException("Empty attribute '%s'" % name)
     return attrs[name]
 
-class DBusXMLParser:
+class DBusXMLParser(object):
     def __init__(self, filename):
         parser = xml.parsers.expat.ParserCreate()
         parser.CommentHandler = self.handle_comment
