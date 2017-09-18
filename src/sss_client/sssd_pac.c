@@ -169,8 +169,8 @@ static krb5_error_code sssdpac_verify(krb5_context kcontext,
     sss_data.len = sssdctx->data.length;
     sss_data.data = sssdctx->data.data;
 
-    ret = sss_pac_make_request(SSS_PAC_ADD_PAC_USER, &sss_data,
-                               NULL, NULL, &errnop);
+    ret = sss_pac_make_request_with_lock(SSS_PAC_ADD_PAC_USER, &sss_data,
+                                         NULL, NULL, &errnop);
     if (ret != 0) {
         /* Ignore the error */
     }

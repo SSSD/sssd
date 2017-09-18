@@ -3523,6 +3523,9 @@ endif
 if BUILD_WITH_LIBCURL
 noinst_PROGRAMS += tcurl-test-tool
 endif
+if BUILD_PAC_RESPONDER
+    noinst_PROGRAMS += sssd_pac_test_client
+endif
 
 if BUILD_AUTOFS
 autofs_test_client_SOURCES = \
@@ -4256,6 +4259,23 @@ sssd_pac_plugin_la_LIBADD = \
 sssd_pac_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
+
+sssd_pac_test_client_SOURCES = \
+    src/sss_client/sss_pac_responder_client.c \
+    src/sss_client/common.c \
+    src/util/strtonum.c \
+    src/sss_client/sss_cli.h \
+    src/sss_client/krb5_authdata_int.h \
+    $(NULL)
+sssd_pac_test_client_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS) \
+    $(NULL)
+sssd_pac_test_client_LDADD = \
+    $(CLIENT_LIBS) \
+    $(KRB5_LIBS) \
+    -lpthread \
+    $(NULL)
 
 # python[23] bindings
 pysss_la_SOURCES = \
