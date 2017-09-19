@@ -684,6 +684,35 @@ void test_sss_idmap_error_string(void **state)
     }
 }
 
+void test_sss_idmap_calculate_range_slice_collision(void **state)
+{
+    struct test_ctx *test_ctx;
+    enum idmap_error_code err;
+    struct sss_idmap_range range;
+    id_t slice_num = 123;
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+
+    assert_non_null(test_ctx);
+
+    err = sss_idmap_calculate_range(test_ctx->idmap_ctx, NULL, &slice_num,
+                                    &range);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    err = sss_idmap_add_domain_ex(test_ctx->idmap_ctx, TEST_DOM_NAME,
+                                  TEST_DOM_SID, &range, NULL, 0, false);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    err = sss_idmap_calculate_range(test_ctx->idmap_ctx, NULL, &slice_num,
+                                    &range);
+    assert_int_equal(err, IDMAP_COLLISION);
+
+    slice_num++;
+    err = sss_idmap_calculate_range(test_ctx->idmap_ctx, NULL, &slice_num,
+                                    &range);
+    assert_int_equal(err, IDMAP_SUCCESS);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -724,6 +753,9 @@ int main(int argc, const char *argv[])
                                         test_sss_idmap_teardown),
         cmocka_unit_test(test_sss_idmap_check_collision_ex),
         cmocka_unit_test(test_sss_idmap_error_string),
+        cmocka_unit_test_setup_teardown(test_sss_idmap_calculate_range_slice_collision,
+                                        test_sss_idmap_setup,
+                                        test_sss_idmap_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
