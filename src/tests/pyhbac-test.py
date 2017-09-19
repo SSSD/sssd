@@ -148,6 +148,7 @@ class PyHbacRuleElementTest(unittest.TestCase):
         self.assertEquals(el.__repr__(),
                           u'<category 1 names [foo] groups [bar, baz]>')
 
+
 class PyHbacRuleTest(unittest.TestCase):
     def testRuleGetSetName(self):
         name = "testGetRule"
@@ -337,6 +338,7 @@ class PyHbacRequestElementTest(unittest.TestCase):
         r.groups = ['bar', 'baz']
         self.assertEqual(r.__repr__(), u"<name foo groups [bar,baz]>")
 
+
 class PyHbacRequestTest(unittest.TestCase):
     def testRequestElementHandling(self):
         name = "req_name"
@@ -469,6 +471,7 @@ class PyHbacRequestTest(unittest.TestCase):
 
         # catch invalid rule type
         self.assertRaises(TypeError, req.evaluate, (allow_rule, None))
+
 
 class PyHbacModuleTest(unittest.TestCase):
     @classmethod
