@@ -364,9 +364,9 @@ class GroupaddTest(LocalTest):
         "Test adding a local group with a custom GID"
         self.groupname = "testUseraddWithGID"
         self.local.groupadd(self.groupname,
-                           gid=1024)
+                            gid=1024)
         self.validate_group(self.groupname,
-                           gidNumber=1024)
+                            gidNumber=1024)
 
 class GroupaddTestNegative(LocalTest):
     def testGroupaddNoParams(self):
@@ -428,9 +428,9 @@ class GroupmodTest(LocalTest):
     def testGroupmodGID(self):
         "Test modifying UID"
         self.local.groupmod(self.groupname,
-                           gid=1024)
+                            gid=1024)
         self.validate_group(self.groupname,
-                           gidNumber=1024)
+                            gidNumber=1024)
 
     def testGroupmodGroupMembership(self):
         "Test adding to groups"
