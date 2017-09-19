@@ -465,4 +465,3 @@ class GroupmodTest(LocalTest):
 # -------------- run the test suite -------------- #
 if __name__ == "__main__":
     unittest.main()
-
