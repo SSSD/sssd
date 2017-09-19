@@ -180,12 +180,12 @@ class UseraddTest(LocalTest):
     def testUseraddNoHomedir(self):
         "Test adding a local user without creating his home dir"
         self.username = "testUseraddNoHomedir"
-        self.local.useradd(self.username, create_home = False)
+        self.local.useradd(self.username, create_home=False)
         self.validate_user(self.username)
         # check home directory was not created
         username_path = "/home/%s" % self.username
         self.assertEquals(os.access(username_path, os.F_OK), False)
-        self.local.userdel(self.username, remove = False)
+        self.local.userdel(self.username, remove=False)
         self.username = None # fool tearDown into not removing the user
 
     def testUseraddAlternateSkeldir(self):
@@ -201,7 +201,7 @@ class UseraddTest(LocalTest):
         filename = os.path.basename(path)
 
         try:
-            self.local.useradd(self.username, skel = skeldir)
+            self.local.useradd(self.username, skel=skeldir)
             self.validate_user(self.username)
             path = "/home/%s/%s"%(self.username,filename)
             self.assertEquals(os.access(path, os.F_OK), True)
