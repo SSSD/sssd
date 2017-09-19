@@ -463,6 +463,7 @@ class GroupmodTest(LocalTest):
             self.remove_group("gr1")
             self.remove_group("gr2")
 
+
 # -------------- run the test suite -------------- #
 if __name__ == "__main__":
     unittest.main()
