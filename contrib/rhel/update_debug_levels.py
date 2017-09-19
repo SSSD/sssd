@@ -29,7 +29,8 @@ by default""")
                       help="Be verbose")
     (options, args) = parser.parse_args()
     if len(args) > 0:
-        print("Stray arguments: %s" % ' '.join([a for a in args]), file=sys.stderr)
+        print("Stray arguments: %s" % ' '.join([a for a in args]),
+              file=sys.stderr)
         return None
 
     return options
