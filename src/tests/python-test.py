@@ -43,14 +43,15 @@ class LocalTest(unittest.TestCase):
     def _get_object_info(self, name, subtree, domain):
         search_dn = "dn=name=%s,cn=%s,cn=%s,cn=sysdb" % (name, subtree, domain)
         try:
-            output = subprocess.check_call("ldbsearch -H %s %s" % (self.local_path,search_dn),
-                                           shell=True)
+            cmd = "ldbsearch -H %s %s" % (self.local_path,search_dn)
+            output = subprocess.check_call(cmd, shell=True)
             output = output.decode('utf-8')
         except subprocess.CalledProcessError:
             return {}
 
         kw = {}
-        for key, value in [l.split(':') for l in output.split('\n') if ":" in l]:
+        for key, value in \
+                [l.split(':') for l in output.split('\n') if ":" in l]:
             kw[key] = value.strip()
 
         del kw['asq']
@@ -65,13 +66,16 @@ class LocalTest(unittest.TestCase):
     def _validate_object(self, kw, name, **kwargs):
         if kw == {}: self.fail("Could not get %s info" % name)
         for key in kwargs.keys():
-            self.assert_(str(kwargs[key]) == str(kw[key]), "%s %s != %s %s" % (key, kwargs[key], key, kw[key]))
+            self.assert_(str(kwargs[key]) == str(kw[key]),
+                         "%s %s != %s %s" % (key, kwargs[key], key, kw[key]))
 
     def validate_user(self, username, **kwargs):
-        return self._validate_object(self.get_user_info(username), "user", **kwargs)
+        return self._validate_object(self.get_user_info(username), "user",
+                                     **kwargs)
 
     def validate_group(self, groupname, **kwargs):
-        return self._validate_object(self.get_group_info(groupname), "group", **kwargs)
+        return self._validate_object(self.get_group_info(groupname), "group",
+                                     **kwargs)
 
     def _validate_no_object(self, kw, name):
         if kw != {}:
@@ -81,18 +85,21 @@ class LocalTest(unittest.TestCase):
         return self._validate_no_object(self.get_user_info(username), "user")
 
     def validate_no_group(self, groupname):
-        return self._validate_no_object(self.get_group_info(groupname), "group")
+        return self._validate_no_object(self.get_group_info(groupname),
+                                        "group")
 
     def _get_object_membership(self, name, subtree, domain):
         search_dn = "dn=name=%s,cn=%s,cn=%s,cn=sysdb" % (name, subtree, domain)
         try:
-            output = subprocess.check_call("ldbsearch -H %s %s" % (self.local_path,search_dn),
-                                           shell=True)
+            cmd = "ldbsearch -H %s %s" % (self.local_path,search_dn)
+            output = subprocess.check_call(cmd, shell=True)
             output = output.decode('utf-8')
         except subprocess.CalledProcessError:
             return []
 
-        members = [value.strip() for key, value in [l.split(':') for l in output.split('\n') if ":" in l] if key == "memberof"]
+        members = [value.strip() for key, value in
+                   [l.split(':') for l in output.split('\n') if ":" in l]
+                   if key == "memberof"]
         return members
 
     def _assertMembership(self, name, group_list, subtree, domain):
@@ -176,7 +183,8 @@ class UseraddTest(LocalTest):
         self.local.useradd(self.username, create_home = False)
         self.validate_user(self.username)
         # check home directory was not created
-        self.assertEquals(os.access("/home/%s" % self.username, os.F_OK), False)
+        username_path = "/home/%s" % self.username
+        self.assertEquals(os.access(username_path, os.F_OK), False)
         self.local.userdel(self.username, remove = False)
         self.username = None # fool tearDown into not removing the user
 
@@ -195,7 +203,8 @@ class UseraddTest(LocalTest):
         try:
             self.local.useradd(self.username, skel = skeldir)
             self.validate_user(self.username)
-            self.assertEquals(os.access("/home/%s/%s"%(self.username,filename), os.F_OK), True)
+            path = "/home/%s/%s"%(self.username,filename)
+            self.assertEquals(os.access(path, os.F_OK), True)
         finally:
             shutil.rmtree(skeldir)
 
