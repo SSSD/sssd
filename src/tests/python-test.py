@@ -43,7 +43,7 @@ class LocalTest(unittest.TestCase):
     def _get_object_info(self, name, subtree, domain):
         search_dn = "dn=name=%s,cn=%s,cn=%s,cn=sysdb" % (name, subtree, domain)
         try:
-            cmd = "ldbsearch -H %s %s" % (self.local_path,search_dn)
+            cmd = "ldbsearch -H %s %s" % (self.local_path, search_dn)
             output = subprocess.check_call(cmd, shell=True)
             output = output.decode('utf-8')
         except subprocess.CalledProcessError:
@@ -91,7 +91,7 @@ class LocalTest(unittest.TestCase):
     def _get_object_membership(self, name, subtree, domain):
         search_dn = "dn=name=%s,cn=%s,cn=%s,cn=sysdb" % (name, subtree, domain)
         try:
-            cmd = "ldbsearch -H %s %s" % (self.local_path,search_dn)
+            cmd = "ldbsearch -H %s %s" % (self.local_path, search_dn)
             output = subprocess.check_call(cmd, shell=True)
             output = output.decode('utf-8')
         except subprocess.CalledProcessError:
@@ -203,7 +203,7 @@ class UseraddTest(LocalTest):
         try:
             self.local.useradd(self.username, skel=skeldir)
             self.validate_user(self.username)
-            path = "/home/%s/%s"%(self.username,filename)
+            path = "/home/%s/%s"%(self.username, filename)
             self.assertEquals(os.access(path, os.F_OK), True)
         finally:
             shutil.rmtree(skeldir)
@@ -215,9 +215,9 @@ class UseraddTest(LocalTest):
         self.add_group("gr2")
         try:
             self.local.useradd(self.username,
-                               groups=["gr1","gr2"])
+                               groups=["gr1", "gr2"])
             self.assertUserMembership(self.username,
-                                      ["gr1","gr2"])
+                                      ["gr1", "gr2"])
         finally:
             self.remove_group("gr1")
             self.remove_group("gr2")
@@ -323,9 +323,9 @@ class UsermodTest(LocalTest):
 
         try:
             self.local.usermod(self.username,
-                               addgroups=["gr1","gr2"])
+                               addgroups=["gr1", "gr2"])
             self.assertUserMembership(self.username,
-                                      ["gr1","gr2"])
+                                      ["gr1", "gr2"])
             self.local.usermod(self.username,
                                rmgroups=["gr2"])
             self.assertUserMembership(self.username,
@@ -438,9 +438,9 @@ class GroupmodTest(LocalTest):
         self.add_group("gr2")
         try:
             self.local.groupmod(self.groupname,
-                                addgroups=["gr1","gr2"])
+                                addgroups=["gr1", "gr2"])
             self.assertGroupMembership(self.groupname,
-                                       ["gr1","gr2"])
+                                       ["gr1", "gr2"])
             self.local.groupmod(self.groupname,
                                 rmgroups=["gr2"])
             self.assertGroupMembership(self.groupname,
