@@ -44,7 +44,7 @@ class PyHbacImport(unittest.TestCase):
     def setUp(self):
         " Make sure we load the in-tree module "
         self.system_path = sys.path[:]
-        sys.path = [ MODPATH ]
+        sys.path = [MODPATH]
 
     def tearDown(self):
         " Restore the system path "
@@ -223,8 +223,8 @@ class PyHbacRuleTest(unittest.TestCase):
     def testRuleElementInRuleReference(self):
         " Test that references to RuleElement are kept even if element goes out of scope "
         def _get_rule():
-            users = [ "foo", "bar" ]
-            user_groups = [ "abc", "def" ]
+            users = ["foo", "bar"]
+            user_groups = ["abc", "def"]
             el = pyhbac.HbacRuleElement(names=users, groups=user_groups)
             rule = pyhbac.HbacRule("testRuleElement")
             rule.users = el
@@ -247,10 +247,10 @@ class PyHbacRuleTest(unittest.TestCase):
         srchost = "host1"
         targethost = "host2"
 
-        r.users.names = [ name ]
-        r.services.names = [ service ]
-        r.srchosts.names = [ srchost ]
-        r.targethosts.names = [ targethost ]
+        r.users.names = [name]
+        r.services.names = [service]
+        r.srchosts.names = [srchost]
+        r.targethosts.names = [targethost]
 
         self.assertEqual(r.__repr__(), u"<name foo enabled 0 "
                                         "users <category 0 names [%s] groups []> "
@@ -374,10 +374,10 @@ class PyHbacRequestTest(unittest.TestCase):
         targethost = "host2"
 
         allow_rule = pyhbac.HbacRule("allowRule", enabled=True)
-        allow_rule.users.names = [ name ]
-        allow_rule.services.names = [ service ]
-        allow_rule.srchosts.names = [ srchost ]
-        allow_rule.targethosts.names = [ targethost ]
+        allow_rule.users.names = [name]
+        allow_rule.services.names = [service]
+        allow_rule.srchosts.names = [srchost]
+        allow_rule.targethosts.names = [targethost]
 
         req = pyhbac.HbacRequest()
         req.user.name = name
@@ -433,10 +433,10 @@ class PyHbacRequestTest(unittest.TestCase):
         targethost = "host2"
 
         allow_rule = pyhbac.HbacRule("allowRule", enabled=True)
-        allow_rule.users.names = [ name ]
-        allow_rule.services.names = [ service ]
-        allow_rule.srchosts.names = [ srchost ]
-        allow_rule.targethosts.names = [ targethost ]
+        allow_rule.users.names = [name]
+        allow_rule.services.names = [service]
+        allow_rule.srchosts.names = [srchost]
+        allow_rule.targethosts.names = [targethost]
 
         req = pyhbac.HbacRequest()
         req.service.name = service
@@ -492,19 +492,19 @@ class PyHbacModuleTest(unittest.TestCase):
         assert hasattr(pyhbac, "HBAC_RULE_ELEMENT_SOURCEHOSTS")
 
     def testHbacResultString(self):
-        results = [ pyhbac.HBAC_EVAL_ALLOW, pyhbac.HBAC_EVAL_DENY,
-                    pyhbac.HBAC_EVAL_ERROR ]
+        results = [pyhbac.HBAC_EVAL_ALLOW, pyhbac.HBAC_EVAL_DENY,
+                   pyhbac.HBAC_EVAL_ERROR]
         for r in results:
             s = pyhbac.hbac_result_string(r)
             self.assertIsInstance(s, unicode)
             assert len(s) > 0
 
     def testHbacErrorString(self):
-        errors = [ pyhbac.HBAC_ERROR_UNKNOWN,
-                   pyhbac.HBAC_SUCCESS,
-                   pyhbac.HBAC_ERROR_NOT_IMPLEMENTED,
-                   pyhbac.HBAC_ERROR_OUT_OF_MEMORY,
-                   pyhbac.HBAC_ERROR_UNPARSEABLE_RULE ]
+        errors = [pyhbac.HBAC_ERROR_UNKNOWN,
+                  pyhbac.HBAC_SUCCESS,
+                  pyhbac.HBAC_ERROR_NOT_IMPLEMENTED,
+                  pyhbac.HBAC_ERROR_OUT_OF_MEMORY,
+                  pyhbac.HBAC_ERROR_UNPARSEABLE_RULE]
         for e in errors:
             s = pyhbac.hbac_error_string(e)
             self.assertIsInstance(s, unicode)
