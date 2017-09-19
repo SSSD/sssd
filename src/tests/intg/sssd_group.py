@@ -83,7 +83,7 @@ def set_group_dict(res, result_p):
     group_dict['mem'] = list()
 
     i = 0
-    while result_p[0].gr_mem[i] != None:
+    while result_p[0].gr_mem[i] is not None:
         grp_name = result_p[0].gr_mem[i].decode('utf-8')
         group_dict['mem'].append(grp_name)
         i = i+1
