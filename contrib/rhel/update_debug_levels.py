@@ -34,9 +34,11 @@ by default""")
 
     return options
 
+
 def verbose(msg, verbosity):
     if verbosity:
         print(msg)
+
 
 def main():
     options = parse_options()
