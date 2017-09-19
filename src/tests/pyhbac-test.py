@@ -23,6 +23,7 @@ def compat_assertIsInstance(this, obj, cls, msg=None):
 def compat_assertItemsEqual(this, expected_seq, actual_seq, msg=None):
     return this.assertEqual(sorted(expected_seq), sorted(actual_seq))
 
+
 # add compat assertIsInstance for old unittest.TestCase versions
 # (python < 2.7, RHEL6 for instance)
 if not hasattr(unittest.TestCase, "assertIsInstance"):
