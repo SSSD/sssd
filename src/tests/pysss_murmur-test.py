@@ -34,7 +34,7 @@ class PySssMurmurImport(unittest.TestCase):
         " Make sure we load the in-tree module "
         self.system_path = sys.path[:]
         sys.path = [MODPATH]
-        print (os.getcwd())
+        print(os.getcwd())
         print(MODPATH)
 
     def tearDown(self):
