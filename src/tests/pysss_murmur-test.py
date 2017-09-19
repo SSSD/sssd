@@ -56,7 +56,8 @@ class PySssMurmurImport(unittest.TestCase):
 
             import pysss_murmur
         except ImportError as e:
-            print("Could not load the pysss_murmur module. Please check if it is compiled", file=sys.stderr)
+            print("Could not load the pysss_murmur module. "
+                  "Please check if it is compiled", file=sys.stderr)
             raise e
         self.assertEqual(pysss_murmur.__file__, MODPATH + "/pysss_murmur.so")
 
@@ -67,7 +68,8 @@ class PySssMurmurTest(unittest.TestCase):
         os.rmdir(MODPATH)
 
     def testExpectedHash(self):
-        hash = pysss_murmur.murmurhash3("S-1-5-21-2153326666-2176343378-3404031434", 41, 0xdeadbeef)
+        sid = "S-1-5-21-2153326666-2176343378-3404031434"
+        hash = pysss_murmur.murmurhash3(sid, 41, 0xdeadbeef)
         self.assertEqual(hash, 93103853)
 
     def testInvalidArguments(self):
