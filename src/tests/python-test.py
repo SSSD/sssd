@@ -30,6 +30,7 @@ import errno
 # module under test
 import pysss
 
+
 class LocalTest(unittest.TestCase):
     local_path = "/var/lib/sss/db/sssd.ldb"
 
@@ -144,11 +145,13 @@ class LocalTest(unittest.TestCase):
     def remove_user_not_home(self, username):
         self._run_and_check("sss_userdel -R %s" % (username))
 
+
 class SanityTest(unittest.TestCase):
     def testInstantiate(self):
         "Test that the local backed binding can be instantiated"
         local = pysss.local()
         self.assert_(local.__class__, "<type 'sss.local'>")
+
 
 class UseraddTest(LocalTest):
     def tearDown(self):
@@ -230,6 +233,7 @@ class UseraddTest(LocalTest):
         self.validate_user(self.username,
                            uidNumber=1024)
 
+
 class UseraddTestNegative(LocalTest):
     def testUseraddNoParams(self):
         "Test that local.useradd() requires the username parameter"
@@ -261,6 +265,7 @@ class UseraddTestNegative(LocalTest):
         finally:
             self.remove_user(self.username)
 
+
 class UserdelTest(LocalTest):
     def testUserdel(self):
         self.add_user("testUserdel")
@@ -288,6 +293,7 @@ class UserdelTest(LocalTest):
             self.assertEquals(e.errno, errno.ENOENT)
         else:
             fail("Was expecting exception")
+
 
 class UsermodTest(LocalTest):
     def setUp(self):
@@ -349,6 +355,7 @@ class UsermodTest(LocalTest):
         self.validate_user(self.username,
                            disabled="false")
 
+
 class GroupaddTest(LocalTest):
     def tearDown(self):
         if self.groupname:
@@ -367,6 +374,7 @@ class GroupaddTest(LocalTest):
                             gid=1024)
         self.validate_group(self.groupname,
                             gidNumber=1024)
+
 
 class GroupaddTestNegative(LocalTest):
     def testGroupaddNoParams(self):
@@ -398,6 +406,7 @@ class GroupaddTestNegative(LocalTest):
             self.fail("Was expecting exception")
         finally:
             self.remove_group(self.groupname)
+
 
 class GroupdelTest(LocalTest):
     def testGroupdel(self):
