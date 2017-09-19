@@ -47,6 +47,7 @@ class Idx(Union):
 class NameList(Structure):
     pass
 
+
 NameList._fields_ = [("next", POINTER(NameList)),
                      ("name", POINTER(c_char))]
 
