@@ -206,7 +206,7 @@ class UseraddTest(LocalTest):
         try:
             self.local.useradd(self.username, skel=skeldir)
             self.validate_user(self.username)
-            path = "/home/%s/%s"%(self.username, filename)
+            path = "/home/%s/%s" % (self.username, filename)
             self.assertEquals(os.access(path, os.F_OK), True)
         finally:
             shutil.rmtree(skeldir)
