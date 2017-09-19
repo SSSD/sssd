@@ -98,6 +98,7 @@ def main():
     # Save the changes
     sssdconfig.write()
 
+
 if __name__ == "__main__":
     ret = main()
     sys.exit(ret)
