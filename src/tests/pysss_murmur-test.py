@@ -61,6 +61,7 @@ class PySssMurmurImport(unittest.TestCase):
             raise e
         self.assertEqual(pysss_murmur.__file__, MODPATH + "/pysss_murmur.so")
 
+
 class PySssMurmurTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
