@@ -189,7 +189,7 @@ class UseraddTest(LocalTest):
         username_path = "/home/%s" % self.username
         self.assertEquals(os.access(username_path, os.F_OK), False)
         self.local.userdel(self.username, remove=False)
-        self.username = None # fool tearDown into not removing the user
+        self.username = None  # fool tearDown into not removing the user
 
     def testUseraddAlternateSkeldir(self):
         "Test adding a local user and init his homedir from a custom location"
