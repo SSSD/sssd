@@ -56,7 +56,8 @@ class PySssMurmurImport(unittest.TestCase):
 
             import pysss_murmur
         except ImportError as e:
-            print("Could not load the pysss_murmur module. Please check if it is compiled", file=sys.stderr)
+            print("Could not load the pysss_murmur module. "
+                  "Please check if it is compiled", file=sys.stderr)
             raise e
         self.assertEqual(pysss_murmur.__file__, MODPATH + "/pysss_murmur.so")
 
