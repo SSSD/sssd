@@ -65,7 +65,8 @@ class PyHbacImport(unittest.TestCase):
 
             import pyhbac
         except ImportError as e:
-            print("Could not load the pyhbac module. Please check if it is compiled", file=sys.stderr)
+            print("Could not load the pyhbac module. Please check if it is "
+                  "compiled", file=sys.stderr)
             raise e
         self.assertEqual(pyhbac.__file__, MODPATH + "/pyhbac.so")
 
@@ -118,7 +119,8 @@ class PyHbacRuleElementTest(unittest.TestCase):
         assert pyhbac.HBAC_CATEGORY_ALL in el.category
 
         # negative tests
-        self.assertRaises(TypeError, el.__setattr__, "category", [pyhbac.HBAC_CATEGORY_ALL])
+        self.assertRaises(TypeError, el.__setattr__, "category",
+                          [pyhbac.HBAC_CATEGORY_ALL])
         self.assertRaises(TypeError, el.__setattr__, "category", None)
         self.assertRaises(TypeError, el.__setattr__, "category", 1)
 
@@ -143,7 +145,8 @@ class PyHbacRuleElementTest(unittest.TestCase):
         el.category.add(pyhbac.HBAC_CATEGORY_ALL)
         el.names = ['foo']
         el.groups = ['bar, baz']
-        self.assertEquals(el.__repr__(), u'<category 1 names [foo] groups [bar, baz]>')
+        self.assertEquals(el.__repr__(),
+                          u'<category 1 names [foo] groups [bar, baz]>')
 
 class PyHbacRuleTest(unittest.TestCase):
     def testRuleGetSetName(self):
@@ -221,7 +224,8 @@ class PyHbacRuleTest(unittest.TestCase):
         self.assertCountEqual(rule.users.groups, user_groups)
 
     def testRuleElementInRuleReference(self):
-        " Test that references to RuleElement are kept even if element goes out of scope "
+        " Test that references to RuleElement are kept even if element goes"
+        " out of scope "
         def _get_rule():
             users = ["foo", "bar"]
             user_groups = ["abc", "def"]
@@ -236,11 +240,12 @@ class PyHbacRuleTest(unittest.TestCase):
 
     def testRepr(self):
         r = pyhbac.HbacRule('foo')
-        self.assertEqual(r.__repr__(), u"<name foo enabled 0 "
-                                        "users <category 0 names [] groups []> "
-                                        "services <category 0 names [] groups []> "
-                                        "targethosts <category 0 names [] groups []> "
-                                        "srchosts <category 0 names [] groups []>>")
+        self.assertEqual(r.__repr__(),
+                         u"<name foo enabled 0 "
+                         "users <category 0 names [] groups []> "
+                         "services <category 0 names [] groups []> "
+                         "targethosts <category 0 names [] groups []> "
+                         "srchosts <category 0 names [] groups []>>")
 
         name = "someuser"
         service = "ssh"
@@ -252,12 +257,13 @@ class PyHbacRuleTest(unittest.TestCase):
         r.srchosts.names = [srchost]
         r.targethosts.names = [targethost]
 
-        self.assertEqual(r.__repr__(), u"<name foo enabled 0 "
-                                        "users <category 0 names [%s] groups []> "
-                                        "services <category 0 names [%s] groups []> "
-                                        "targethosts <category 0 names [%s] groups []> "
-                                        "srchosts <category 0 names [%s] groups []>>" %
-                                        (name, service, targethost, srchost))
+        self.assertEqual(r.__repr__(),
+                         u"<name foo enabled 0 "
+                         "users <category 0 names [%s] groups []> "
+                         "services <category 0 names [%s] groups []> "
+                         "targethosts <category 0 names [%s] groups []> "
+                         "srchosts <category 0 names [%s] groups []>>" %
+                         (name, service, targethost, srchost))
 
     def testValidate(self):
         r = pyhbac.HbacRule('valid_rule')
@@ -365,7 +371,8 @@ class PyHbacRequestTest(unittest.TestCase):
         req = pyhbac.HbacRequest()
         self.assertEqual(req.rule_name, None)
         # python 2.4 raises TypError, 2.7 raises AttributeError
-        self.assertRaises((TypeError, AttributeError), req.__setattr__, "rule_name", "foo")
+        self.assertRaises((TypeError, AttributeError), req.__setattr__,
+                          "rule_name", "foo")
 
     def testEvaluate(self):
         name = "someuser"
@@ -526,27 +533,29 @@ if __name__ == "__main__":
     sys.path.insert(0, MODPATH)
     import pyhbac
 
-    suite = unittest.TestLoader().loadTestsFromTestCase(PyHbacRuleElementTest)
+    loadTestsFromTestCase = unittest.TestLoader().loadTestsFromTestCase
+
+    suite = loadTestsFromTestCase(PyHbacRuleElementTest)
     res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x2
 
-    suite = unittest.TestLoader().loadTestsFromTestCase(PyHbacRuleTest)
+    suite = loadTestsFromTestCase(PyHbacRuleTest)
     res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x3
 
-    suite = unittest.TestLoader().loadTestsFromTestCase(PyHbacRequestElementTest)
+    suite = loadTestsFromTestCase(PyHbacRequestElementTest)
     res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x4
 
-    suite = unittest.TestLoader().loadTestsFromTestCase(PyHbacRequestTest)
+    suite = loadTestsFromTestCase(PyHbacRequestTest)
     res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x5
 
-    suite = unittest.TestLoader().loadTestsFromTestCase(PyHbacModuleTest)
+    suite = loadTestsFromTestCase(PyHbacModuleTest)
     res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x6
