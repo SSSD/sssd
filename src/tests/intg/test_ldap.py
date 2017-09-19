@@ -1002,7 +1002,6 @@ def test_zero_nesting_level(ldap_conn, rfc2307bis_no_nesting):
     assert sorted(grp_list) == sorted(["primarygroup", "parentgroup"])
 
 
-
 @pytest.fixture
 def sanity_nss_filter(request, ldap_conn):
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
