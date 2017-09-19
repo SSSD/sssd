@@ -33,7 +33,7 @@ class PySssMurmurImport(unittest.TestCase):
     def setUp(self):
         " Make sure we load the in-tree module "
         self.system_path = sys.path[:]
-        sys.path = [ MODPATH ]
+        sys.path = [MODPATH]
         print (os.getcwd())
         print(MODPATH)
 
