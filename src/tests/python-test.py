@@ -65,7 +65,8 @@ class LocalTest(unittest.TestCase):
         return self._get_object_info(name, "groups", domain)
 
     def _validate_object(self, kw, name, **kwargs):
-        if kw == {}: self.fail("Could not get %s info" % name)
+        if kw == {}:
+            self.fail("Could not get %s info" % name)
         for key in kwargs.keys():
             self.assert_(str(kwargs[key]) == str(kw[key]),
                          "%s %s != %s %s" % (key, kwargs[key], key, kw[key]))
