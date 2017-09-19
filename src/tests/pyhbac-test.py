@@ -445,7 +445,7 @@ class PyHbacRequestTest(unittest.TestCase):
         req.user.name = name
 
         saveuser = req.user
-        req.user = None # need to catch this
+        req.user = None  # need to catch this
 
         # catch invalid category value
         savecat = copy.copy(allow_rule.users.category)
@@ -457,7 +457,7 @@ class PyHbacRequestTest(unittest.TestCase):
         self.assertRaises(TypeError, req.evaluate, (allow_rule,))
 
         req.user = saveuser
-        allow_rule.users = None # need to catch this
+        allow_rule.users = None  # need to catch this
         self.assertRaises(TypeError, req.evaluate, (allow_rule,))
 
         # catch invalid rule type
