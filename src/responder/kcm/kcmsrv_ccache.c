@@ -45,7 +45,7 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
                    krb5_principal princ,
                    struct kcm_ccache **_cc)
 {
-    struct kcm_ccache *cc;
+    struct kcm_ccache *cc = NULL;
     krb5_error_code kret;
     errno_t ret;
 
@@ -57,13 +57,13 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
     ret = kcm_check_name(name, owner);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Name %s is malformed\n", name);
-        return ret;
+        goto done;
     }
 
     cc->name = talloc_strdup(cc, name);
     if (cc->name == NULL) {
-        talloc_free(cc);
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     uuid_generate(cc->uuid);
@@ -74,8 +74,8 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE,
               "krb5_copy_principal failed: [%d][%s]\n", kret, err_msg);
         sss_krb5_free_error_message(k5c, err_msg);
-        talloc_free(cc);
-        return ERR_INTERNAL;
+        ret = ERR_INTERNAL;
+        goto done;
     }
 
     cc->owner.uid = cli_creds_get_uid(owner);
@@ -84,7 +84,12 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
 
     talloc_set_destructor(cc, kcm_cc_destructor);
     *_cc = cc;
-    return EOK;
+    ret = EOK;
+done:
+    if (ret != EOK) {
+        talloc_free(cc);
+    }
+    return ret;
 }
 
 const char *kcm_cc_get_name(struct kcm_ccache *cc)
