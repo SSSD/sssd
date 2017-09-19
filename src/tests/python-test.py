@@ -50,7 +50,7 @@ class LocalTest(unittest.TestCase):
             return {}
 
         kw = {}
-        for key, value in [ l.split(':') for l in output.split('\n') if ":" in l ]:
+        for key, value in [l.split(':') for l in output.split('\n') if ":" in l]:
             kw[key] = value.strip()
 
         del kw['asq']
@@ -92,7 +92,7 @@ class LocalTest(unittest.TestCase):
         except subprocess.CalledProcessError:
             return []
 
-        members = [ value.strip() for key, value in [ l.split(':') for l in output.split('\n') if ":" in l ] if key == "memberof" ]
+        members = [value.strip() for key, value in [l.split(':') for l in output.split('\n') if ":" in l] if key == "memberof"]
         return members
 
     def _assertMembership(self, name, group_list, subtree, domain):
