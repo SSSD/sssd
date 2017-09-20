@@ -31,6 +31,19 @@ dbussysconfdir = $(sysconfdir)/dbus-1
 dbusservicedir = $(datadir)/dbus-1/system-services
 
 if INTG_BUILD
+lib_LTLIBRARIES = getsockopt_wrapper.la
+
+getsockopt_wrapper_la_SOURCES = \
+    getsockopt_wrapper.c
+getsockopt_wrapper_la_CFLAGS = \
+    $(AM_CFLAGS)
+getsockopt_wrapper_la_LIBADD = \
+    $(LIBADD_DL) \
+    $(NULL)
+getsockopt_wrapper_la_LDFLAGS = \
+    -avoid-version \
+    -module
+
 dist_dbussysconf_DATA = cwrap-dbus-system.conf
 
 install-data-hook:
@@ -94,12 +107,16 @@ intgcheck-installed: config.py passwd group
 	PATH="$$PATH:$(abs_builddir):$(abs_srcdir)" \
 	PYTHONPATH="$(abs_builddir):$(abs_srcdir)" \
 	LDB_MODULES_PATH="$(DESTDIR)$(ldblibdir)" \
-	LD_PRELOAD="$$nss_wrapper $$uid_wrapper" \
+	LD_PRELOAD="$(libdir)/getsockopt_wrapper.so:$$nss_wrapper:$$uid_wrapper" \
 	NSS_WRAPPER_PASSWD="$(abs_builddir)/passwd" \
 	NSS_WRAPPER_GROUP="$(abs_builddir)/group" \
 	NSS_WRAPPER_MODULE_SO_PATH="$(DESTDIR)$(nsslibdir)/libnss_sss.so.2" \
 	NSS_WRAPPER_MODULE_FN_PREFIX="sss" \
 	UID_WRAPPER=1 \
 	UID_WRAPPER_ROOT=1 \
+	DBUS_SOCK_DIR="$(DESTDIR)$(runstatedir)/dbus/" \
+	DBUS_SESSION_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/fake_socket" \
+	DBUS_SYSTEM_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/system_bus_socket" \
+	DBUS_SYSTEM_BUS_DEFAULT_ADDRESS="$$DBUS_SYSTEM_BUS_ADDRESS" \
 	    fakeroot $(PYTHON2) $(PYTEST) -v --tb=native $(INTGCHECK_PYTEST_ARGS) .
 	rm -f $(DESTDIR)$(logpath)/*
