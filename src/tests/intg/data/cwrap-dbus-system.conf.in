@@ -1,0 +1,83 @@
+<!-- This configuration file controls the systemwide message bus.
+     Add a system-local.conf and edit that rather than changing this
+     file directly. -->
+
+<!-- Note that there are any number of ways you can hose yourself
+     security-wise by screwing up this file; in particular, you
+     probably don't want to listen on any more addresses, add any more
+     auth mechanisms, run as a different user, etc. -->
+
+<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+
+  <!-- Our well-known bus type, do not change this -->
+  <type>system</type>
+
+  <!-- If we fork, keep the user's original umask to avoid affecting
+       the behavior of child processes. -->
+  <keep_umask/>
+
+
+  <!-- Fork into daemon mode -->
+  <fork/>
+
+  <!-- We use system service launching using a helper -->
+  <standard_system_servicedirs/>
+  <servicedir>@dbusservicedir@</servicedir>
+
+
+  <!-- Write a pid file -->
+  <pidfile>@runstatedir@/dbus/messagebus.pid</pidfile>
+
+  <!-- On Unix systems, the most secure authentication mechanism is
+  EXTERNAL, which uses credential-passing over Unix sockets.
+
+  This authentication mechanism is not available on Windows,
+  is not suitable for use with the tcp: or nonce-tcp: transports,
+  and will not work on obscure flavours of Unix that do not have
+  a supported credentials-passing mechanism. On those platforms/transports,
+  comment out the <auth> element to allow fallback to DBUS_COOKIE_SHA1. -->
+  <auth>EXTERNAL</auth>
+
+  <!-- Only listen on a local socket. (abstract=/path/to/socket
+       means use abstract namespace, don't really create filesystem
+       file; only Linux supports this. Use path=/whatever on other
+       systems.) -->
+  <listen>unix:path=@runstatedir@/dbus/system_bus_socket</listen>
+  <policy context="default">
+    <!-- Allow everything to be sent -->
+    <allow send_destination="*" eavesdrop="true"/>
+    <!-- Allow everything to be received -->
+    <allow eavesdrop="true"/>
+    <!-- Allow anyone to own anything -->
+    <allow own="*"/>
+  </policy>
+
+  <!-- Config files are placed here that among other things, punch
+       holes in the above policy for specific services. -->
+  <includedir>system.d</includedir>
+
+  <!--
+  <includedir>/etc/dbus-1/system.d</includedir>
+  -->
+
+  <!-- This is included last so local configuration can override what's
+       in this standard file -->
+  <include ignore_missing="yes">/etc/dbus-1/system-local.conf</include>
+
+  <include if_selinux_enabled="yes" selinux_root_relative="yes">contexts/dbus_contexts</include>
+
+  <!-- For the session bus, override the default relatively-low limits
+       with essentially infinite limits, since the bus is just running
+       as the user anyway, using up bus resources is not something we need
+       to worry about. In some cases, we do set the limits lower than
+       "all available memory" if exceeding the limit is almost certainly a bug,
+       having the bus enforce a limit is nicer than a huge memory leak. But the
+       intent is that these limits should never be hit. -->
+
+  <!-- the memory limits are 1G instead of say 4G because they can't exceed 32-bit signed int max -->
+  <!-- We do not override max_message_unix_fds here since the in-kernel
+       limit is also relatively low -->
+
+</busconfig>
