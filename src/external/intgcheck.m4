@@ -30,3 +30,5 @@ AC_DEFUN([SSS_ENABLE_INTGCHECK_REQS], [
         SSS_INTGCHECK_REQ([HAVE_PY2MOD_LDAP], [python-ldap])
     fi
 ])
+
+AM_CONDITIONAL([INTG_BUILD], [test x"$enable_intgcheck_reqs" = xyes])

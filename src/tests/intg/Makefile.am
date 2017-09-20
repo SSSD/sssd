@@ -21,6 +21,25 @@ dist_noinst_DATA = \
     test_pysss_nss_idmap.py \
     $(NULL)
 
+EXTRA_DIST = data/cwrap-dbus-system.conf.in
+
+dbussysconfdir = $(sysconfdir)/dbus-1
+dbusservicedir = $(datadir)/dbus-1/system-services
+
+if INTG_BUILD
+dist_dbussysconf_DATA = cwrap-dbus-system.conf
+
+install-data-hook:
+	$(MKDIR_P) $(DESTDIR)$(runstatedir)/dbus
+	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/session.d
+
+endif
+
+cwrap-dbus-system.conf: data/cwrap-dbus-system.conf.in Makefile
+	$(SED) -e "s!@runstatedir[@]!$(runstatedir)!" \
+           -e "s!@dbusservicedir[@]!$(dbusservicedir)!" \
+       $< > $@
+
 config.py: config.py.m4
 	m4 -D "prefix=\`$(prefix)'" \
 	   -D "sysconfdir=\`$(sysconfdir)'" \
@@ -28,6 +47,8 @@ config.py: config.py.m4
 	   -D "pidpath=\`$(pidpath)'" \
 	   -D "logpath=\`$(logpath)'" \
 	   -D "mcpath=\`$(mcpath)'" \
+	   -D "libexecpath=\`$(libexecdir)'" \
+	   -D "runstatedir=\`$(runstatedir)'" \
 	   -D "py2execdir=\`$(py2execdir)'" \
 	   -D "py3execdir=\`$(py3execdir)'" \
 	   -D "python2dir=\`$(python2dir)'" \
@@ -49,6 +70,7 @@ CLEANFILES=config.py config.pyc passwd group
 
 clean-local:
 	rm -Rf root
+	rm -f $(builddir)/cwrap-dbus-system.conf
 
 intgcheck-installed: config.py passwd group
 	pipepath="$(DESTDIR)$(pipepath)"; \

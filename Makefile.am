@@ -55,6 +55,7 @@ sssdapiplugindir = $(sssddatadir)/sssd.api.d
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 dbusservicedir = $(datadir)/dbus-1/system-services
 sss_statedir = $(localstatedir)/lib/sss
+runstatedir = @runstatedir@
 localedir = @localedir@
 nsslibdir = @nsslibdir@
 pamlibdir = @pammoddir@

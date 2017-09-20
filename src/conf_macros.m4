@@ -847,3 +847,12 @@ AC_DEFUN([ENABLE_POLKIT_RULES_PATH],
 
     AM_CONDITIONAL([HAVE_POLKIT_RULES_D], [test x$HAVE_POLKIT_RULES_D != x])
   ])
+
+dnl Backwards compat for older autoconf
+AC_DEFUN([SSSD_RUNSTATEDIR],
+  [
+    if test x"$runstatedir" = x; then
+        AC_SUBST([runstatedir],
+                 ["${localstatedir}/run"])
+    fi
+  ])
