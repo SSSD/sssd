@@ -4352,7 +4352,7 @@ ad_gpo_get_sd_referral_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct ad_gpo_get_sd_referral_state *state;
     struct tevent_req *subreq;
-    LDAPURLDesc *lud;
+    LDAPURLDesc *lud = NULL;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_gpo_get_sd_referral_state);
@@ -4388,14 +4388,17 @@ ad_gpo_get_sd_referral_send(TALLOC_CTX *mem_ctx,
      */
     state->ref_domain = find_domain_by_name(state->host_domain,
                                             lud->lud_host, true);
-    ldap_free_urldesc(lud);
     if (!state->ref_domain) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not find domain matching [%s]\n",
               lud->lud_host);
+        ldap_free_urldesc(lud);
         ret = EIO;
         goto done;
     }
+
+    ldap_free_urldesc(lud);
+    lud = NULL;
 
     state->conn = ad_get_dom_ldap_conn(state->access_ctx->ad_id_ctx,
                                        state->ref_domain);
