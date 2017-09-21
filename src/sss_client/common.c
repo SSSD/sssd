@@ -821,6 +821,22 @@ int sss_pac_make_request(enum sss_cli_command cmd,
     }
 }
 
+int sss_pac_make_request_with_lock(enum sss_cli_command cmd,
+                                   struct sss_cli_req_data *rd,
+                                   uint8_t **repbuf, size_t *replen,
+                                   int *errnop)
+{
+    int ret;
+
+    sss_pac_lock();
+
+    ret = sss_pac_make_request(cmd, rd, repbuf, replen, errnop);
+
+    sss_pac_unlock();
+
+    return ret;
+}
+
 errno_t check_server_cred(int sockfd)
 {
 #ifdef HAVE_UCRED
@@ -1079,6 +1095,8 @@ static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
 static struct sss_mutex sss_nss_mc_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
+static struct sss_mutex sss_pac_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
+
 static void sss_mt_lock(struct sss_mutex *m)
 {
     pthread_mutex_lock(&m->mtx);
@@ -1121,6 +1139,16 @@ void sss_nss_mc_unlock(void)
     sss_mt_unlock(&sss_nss_mc_mtx);
 }
 
+/* PAC mutex wrappers */
+void sss_pac_lock(void)
+{
+    sss_mt_lock(&sss_pac_mtx);
+}
+void sss_pac_unlock(void)
+{
+    sss_mt_unlock(&sss_pac_mtx);
+}
+
 #else
 
 /* sorry no mutexes available */
@@ -1130,6 +1158,8 @@ void sss_pam_lock(void) { return; }
 void sss_pam_unlock(void) { return; }
 void sss_nss_mc_lock(void) { return; }
 void sss_nss_mc_unlock(void) { return; }
+void sss_pac_lock(void) { return; }
+void sss_pac_unlock(void) { return; }
 #endif
 
 

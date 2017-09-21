@@ -585,6 +585,11 @@ int sss_pac_make_request(enum sss_cli_command cmd,
                          uint8_t **repbuf, size_t *replen,
                          int *errnop);
 
+int sss_pac_make_request_with_lock(enum sss_cli_command cmd,
+                                   struct sss_cli_req_data *rd,
+                                   uint8_t **repbuf, size_t *replen,
+                                   int *errnop);
+
 int sss_sudo_make_request(enum sss_cli_command cmd,
                           struct sss_cli_req_data *rd,
                           uint8_t **repbuf, size_t *replen,
@@ -634,6 +639,8 @@ void sss_pam_lock(void);
 void sss_pam_unlock(void);
 void sss_nss_mc_lock(void);
 void sss_nss_mc_unlock(void);
+void sss_pac_lock(void);
+void sss_pac_unlock(void);
 
 errno_t sss_readrep_copy_string(const char *in,
                                 size_t *offset,
