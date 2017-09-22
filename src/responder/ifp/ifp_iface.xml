@@ -5,8 +5,8 @@
         <annotation value="iface_ifp" name="org.freedesktop.DBus.GLib.CSymbol"/>
 
         <method name="Ping">
-            <!-- manual argument parsing, raw handler -->
-            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
+            <arg name="ping" type="s" direction="in" />
+            <arg name="pong" type="s" direction="out" />
         </method>
 
         <!-- SSSD components -->
