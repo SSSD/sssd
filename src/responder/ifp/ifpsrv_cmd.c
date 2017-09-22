@@ -673,20 +673,17 @@ struct cli_protocol_version *register_cli_protocol_version(void)
     return ssh_cli_protocol_version;
 }
 
-/* This is a throwaway method to ease the review of the patch.
- * It will be removed later */
-int ifp_ping(struct sbus_request *dbus_req, void *data)
+int ifp_ping(struct sbus_request *dbus_req, void *data, const char *ping)
 {
     struct ifp_ctx *ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    static const char *pong = "PONG";
-    const char *request;
-    DBusError dberr;
-    errno_t ret;
     struct ifp_req *ifp_req;
+    errno_t ret;
 
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+        sbus_request_reply_error(dbus_req, SBUS_ERROR_INTERNAL,
+                                 "Invalid infopipe context!");
+        return ERR_SBUS_REQUEST_HANDLED;
     }
 
     ret = ifp_req_create(dbus_req, ifp_ctx, &ifp_req);
@@ -694,23 +691,13 @@ int ifp_ping(struct sbus_request *dbus_req, void *data)
         return ifp_req_create_handle_failure(dbus_req, ret);
     }
 
-    if (!sbus_request_parse_or_finish(dbus_req,
-                                      DBUS_TYPE_STRING, &request,
-                                      DBUS_TYPE_INVALID)) {
-        return EOK; /* handled */
+    DEBUG(SSSDBG_CONF_SETTINGS, "Got request for [%s]\n", ping);
+
+    if (strcasecmp(ping, "ping") != 0) {
+        sbus_request_reply_error(dbus_req, DBUS_ERROR_INVALID_ARGS,
+                                 "Ping() only accepts \"ping\" as a param\n");
+        return ERR_SBUS_REQUEST_HANDLED;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, "Got request for [%s]\n", request);
-
-    if (strcasecmp(request, "ping") != 0) {
-        dbus_error_init(&dberr);
-        dbus_set_error_const(&dberr,
-                             DBUS_ERROR_INVALID_ARGS,
-                             "Ping() only accepts ping as a param\n");
-        return sbus_request_fail_and_finish(dbus_req, &dberr);
-    }
-
-    return sbus_request_return_and_finish(dbus_req,
-                                          DBUS_TYPE_STRING, &pong,
-                                          DBUS_TYPE_INVALID);
+    return iface_ifp_Ping_finish(dbus_req, "PONG");
 }
