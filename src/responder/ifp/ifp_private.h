@@ -48,9 +48,7 @@ errno_t ifp_register_sbus_interface(struct sbus_connection *conn,
 
 void ifp_register_nodes(struct ifp_ctx *ctx, struct sbus_connection *conn);
 
-/* This is a throwaway method to ease the review of the patch.
- * It will be removed later */
-int ifp_ping(struct sbus_request *dbus_req, void *data);
+int ifp_ping(struct sbus_request *dbus_req, void *data, const char *ping);
 
 int ifp_user_get_attr(struct sbus_request *dbus_req, void *data);
 
