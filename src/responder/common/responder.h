@@ -157,6 +157,7 @@ struct resp_ctx {
     bool socket_activated;
     bool dbus_activated;
     bool cache_first;
+    bool enumeration_warn_logged;
 };
 
 struct cli_creds;
