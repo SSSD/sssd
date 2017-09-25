@@ -37,6 +37,7 @@ typedef uint32_t rel_ptr_t;
 #define MC_ALIGN32(size) ( ((size) + MC_32 -1) & (~(MC_32 -1)) )
 #define MC_ALIGN64(size) ( ((size) + MC_64 -1) & (~(MC_64 -1)) )
 #define MC_HEADER_SIZE MC_ALIGN64(sizeof(struct sss_mc_header))
+#define MC_REC_SIZE MC_ALIGN64(sizeof(struct sss_mc_rec))
 
 #define MC_HT_SIZE(elems) ( (elems) * MC_32 )
 #define MC_HT_ELEMS(size) ( (size) / MC_32 )
@@ -73,7 +74,7 @@ typedef uint32_t rel_ptr_t;
 #define MC_VALID_BARRIER(val) (((val) & 0xff000000) == 0xf0000000)
 
 #define MC_CHECK_RECORD_LENGTH(mc_ctx, rec) \
-        ((rec)->len >= MC_HEADER_SIZE && (rec)->len != MC_INVALID_VAL32 \
+        ((rec)->len >= MC_REC_SIZE && (rec)->len != MC_INVALID_VAL32 \
          && ((rec)->len <= ((mc_ctx)->dt_size \
                             - MC_PTR_DIFF(rec, (mc_ctx)->data_table))))
 
