@@ -30,7 +30,7 @@
 
 #define NOT_FOUND_MSG(obj) _(obj " %s is not present in cache.\n")
 
-#define SSSCTL_CACHE_NAME   {_("Name"), SYSDB_NAME, attr_name}
+#define SSSCTL_CACHE_NAME   {_("Name"), SYSDB_NAME, fn_attr_name}
 #define SSSCTL_CACHE_CREATE {_("Cache entry creation date"), SYSDB_CREATE_TIME, attr_time}
 #define SSSCTL_CACHE_UPDATE {_("Cache entry last update time"), SYSDB_LAST_UPDATE, attr_time}
 #define SSSCTL_CACHE_EXPIRE {_("Cache entry expiration time"), SYSDB_CACHE_EXPIRE, attr_expire}
@@ -87,7 +87,7 @@ static errno_t time_to_string(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t attr_name(TALLOC_CTX *mem_ctx,
+static errno_t fn_attr_name(TALLOC_CTX *mem_ctx,
                            struct sysdb_attrs *entry,
                            struct sss_domain_info *dom,
                            const char *attr,
@@ -357,7 +357,7 @@ static errno_t sssctl_find_object(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom;
-    struct sysdb_attrs *entry;
+    struct sysdb_attrs *entry = NULL;
     struct ldb_dn *base_dn;
     bool fqn_provided;
     const char *filter;

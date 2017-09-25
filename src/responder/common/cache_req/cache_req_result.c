@@ -32,11 +32,11 @@ cache_req_add_result(TALLOC_CTX *mem_ctx,
                      size_t *_num_results)
 {
     struct cache_req_result **results = *_results;
-    size_t index;
+    size_t idx;
     size_t count;
 
     /* Make space for new results. */
-    index = *_num_results;
+    idx = *_num_results;
     count = *_num_results + 1;
 
     results = talloc_realloc(mem_ctx, results, struct cache_req_result *,
@@ -45,8 +45,8 @@ cache_req_add_result(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    results[index] = talloc_steal(results, new_result);
-    results[index + 1] = NULL;
+    results[idx] = talloc_steal(results, new_result);
+    results[idx + 1] = NULL;
 
     *_results = results;
     *_num_results = count;
