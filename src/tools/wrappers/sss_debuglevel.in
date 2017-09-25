@@ -1,0 +1,4 @@
+#!/bin/sh
+sbindir=@sbindir@
+echo "Redirecting to $sbindir/sssctl debug-level"
+$sbindir/sssctl debug-level $@

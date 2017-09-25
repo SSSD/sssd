@@ -98,6 +98,10 @@ errno_t sssctl_cache_upgrade(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt);
 
+errno_t sssctl_cache_expire(struct sss_cmdline *cmdline,
+                            struct sss_tool_ctx *tool_ctx,
+                            void *pvt);
+
 errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
                            struct sss_tool_ctx *tool_ctx,
                            void *pvt);
@@ -105,6 +109,10 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
 errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
                           struct sss_tool_ctx *tool_ctx,
                           void *pvt);
+
+errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
+                           struct sss_tool_ctx *tool_ctx,
+                           void *pvt);
 
 errno_t sssctl_user_show(struct sss_cmdline *cmdline,
                          struct sss_tool_ctx *tool_ctx,

@@ -20,7 +20,6 @@ src/tools/sss_useradd.c
 src/tools/sss_userdel.c
 src/tools/sss_usermod.c
 src/tools/sss_cache.c
-src/tools/sss_debuglevel.c
 src/tools/tools_util.c
 src/tools/tools_util.h
 src/tools/sssctl/sssctl.c

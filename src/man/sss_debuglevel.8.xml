@@ -13,7 +13,7 @@
 
     <refnamediv id='name'>
         <refname>sss_debuglevel</refname>
-        <refpurpose>change debug level while SSSD is running</refpurpose>
+        <refpurpose>[DEPRECATED] change debug level while SSSD is running</refpurpose>
     </refnamediv>
 
     <refsynopsisdiv id='synopsis'>
@@ -29,38 +29,10 @@
     <refsect1 id='description'>
         <title>DESCRIPTION</title>
         <para>
-            <command>sss_debuglevel</command> changes debug level of SSSD monitor
-            and providers to <replaceable>NEW_DEBUG_LEVEL</replaceable> while SSSD is running.
+            <command>sss_debuglevel</command> is deprecated and replaced
+            by the sssctl debug-level command. Please refer to the
+            <command>sssctl</command> man page for more information on sssctl usage.
         </para>
-    </refsect1>
-
-    <refsect1 id='options'>
-        <title>OPTIONS</title>
-        <variablelist remap='IP'>
-            <varlistentry>
-                <term>
-                    <option>-c</option>,<option>--config</option>
-                </term>
-                <listitem>
-                    <para>
-                        Specify a non-default config file. The default is
-                        <filename>/etc/sssd/sssd.conf</filename>. For reference
-                        on the config file syntax and options, consult the
-                        <citerefentry>
-                            <refentrytitle>sssd.conf</refentrytitle>
-                            <manvolnum>5</manvolnum>
-                        </citerefentry>
-                        manual page.
-                    </para>
-                </listitem>
-            </varlistentry>
-            <varlistentry>
-                <term>
-                    <replaceable>NEW_DEBUG_LEVEL</replaceable>
-                </term>
-                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
-            </varlistentry>
-        </variablelist>
     </refsect1>
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
