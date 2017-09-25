@@ -236,6 +236,7 @@ nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
     struct sized_string gecos;
     struct sized_string homedir;
     struct sized_string shell;
+    struct sized_string inputname;
     uint32_t gid;
     uint32_t uid;
     uint32_t num_results;
@@ -303,6 +304,21 @@ nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Failed to store user %s (%s) in mmap cache [%d]: %s!\n",
                       name->str, result->domain->name, ret, sss_strerror(ret));
+            }
+
+            if (cmd_ctx->rawname != NULL
+                    && strcmp(name->str, cmd_ctx->rawname) != 0) {
+                inputname.str = cmd_ctx->rawname;
+                inputname.len = strlen(inputname.str) + 1;
+                ret = sss_mmap_cache_link_store(&nss_ctx->pwd_mc_ctx, name,
+                                                &inputname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "Failed to store link %s to user %s (%s) "
+                          "in mmap cache [%d]: %s!\n", cmd_ctx->rawname,
+                          name->str, result->domain->name, ret,
+                          sss_strerror(ret));
+                }
             }
         }
     }

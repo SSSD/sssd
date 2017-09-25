@@ -201,6 +201,7 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
     struct ldb_message *msg;
     struct sized_string *name;
     struct sized_string pwfield;
+    struct sized_string inputname;
     uint32_t gid;
     uint32_t num_results;
     uint32_t num_members;
@@ -285,6 +286,21 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Failed to store group %s (%s) in mem-cache [%d]: %s!\n",
                       name->str, result->domain->name, ret, sss_strerror(ret));
+            }
+
+            if (cmd_ctx->rawname != NULL
+                    && strcmp(name->str, cmd_ctx->rawname) != 0) {
+                inputname.str = cmd_ctx->rawname;
+                inputname.len = strlen(inputname.str) + 1;
+                ret = sss_mmap_cache_link_store(&nss_ctx->grp_mc_ctx, name,
+                                                &inputname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "Failed to store link %s to group %s (%s) "
+                          "in mmap cache [%d]: %s!\n", cmd_ctx->rawname,
+                          name->str, result->domain->name, ret,
+                          sss_strerror(ret));
+                }
             }
         }
     }

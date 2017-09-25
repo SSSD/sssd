@@ -68,6 +68,9 @@ errno_t sss_nss_str_ptr_from_buffer(char **str, void **cookie,
                                     char *buf, size_t len);
 uint32_t sss_nss_mc_next_slot_with_hash(struct sss_mc_rec *rec,
                                         uint32_t hash);
+errno_t sss_nss_mc_find_rec_by_hash(struct sss_cli_mc_ctx *ctx,
+                                           uint32_t hash,
+                                           struct sss_mc_rec **_rec);
 
 /* passwd db */
 errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,

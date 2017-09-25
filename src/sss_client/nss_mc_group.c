@@ -107,13 +107,16 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
                             char *buffer, size_t buflen)
 {
     struct sss_mc_rec *rec = NULL;
+    struct sss_mc_rec *new_rec = NULL;
     struct sss_mc_grp_data *data;
+    struct sss_mc_link_data *link_data;
     char *rec_name;
     uint32_t hash;
     uint32_t slot;
     int ret;
     const size_t strs_offset = offsetof(struct sss_mc_grp_data, strs);
     size_t data_size;
+    bool link = false;
 
     ret = sss_nss_mc_get_ctx("group", &gr_mc_ctx);
     if (ret) {
@@ -147,13 +150,33 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
             continue;
         }
 
+        if (rec->type == SSS_MC_REC_TYPE_LINK) {
+            link_data = (struct sss_mc_link_data *) rec->data;
+            rec_name = (char *) link_data + link_data->name;
+            if (strcmp(name, rec_name) != 0) {
+                slot = sss_nss_mc_next_slot_with_hash(rec, hash);
+                continue;
+            }
+
+            ret = sss_nss_mc_find_rec_by_hash(&gr_mc_ctx, link_data->hash,
+                                              &new_rec);
+            if (ret) {
+                goto done;
+            }
+            free(rec);
+            rec = new_rec;
+            link = true;
+        }
+
         data = (struct sss_mc_grp_data *)rec->data;
         /* Integrity check
+         * - record must be a data record
          * - name_len cannot be longer than all strings
          * - data->name cannot point outside strings
          * - all strings must be within copy of record
          * - size of record must be lower that data table size */
-        if (name_len > data->strs_len
+        if (rec->type != SSS_MC_REC_TYPE_DATA
+            || name_len > data->strs_len
             || (data->name + name_len) > (strs_offset + data->strs_len)
             || data->strs_len > rec->len
             || rec->len > data_size) {
@@ -162,7 +185,7 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
         }
 
         rec_name = (char *)data + data->name;
-        if (strcmp(name, rec_name) == 0) {
+        if (link || strcmp(name, rec_name) == 0) {
             break;
         }
 
