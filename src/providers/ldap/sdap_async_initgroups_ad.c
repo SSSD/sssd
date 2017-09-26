@@ -1584,7 +1584,7 @@ sdap_ad_get_domain_local_groups_parse_parents(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = sysdb_attrs_primary_fqdn_list(dom, tmp_ctx,
+        ret = sysdb_attrs_primary_name_list(dom->sysdb, tmp_ctx,
                                     gr->ldap_parents, gr->parents_count,
                                     opts->group_map[SDAP_AT_GROUP_NAME].name,
                                     &groupnamelist);
@@ -1631,8 +1631,6 @@ sdap_ad_get_domain_local_groups_parse_parents(TALLOC_CTX *mem_ctx,
             group_name = sysdb_name;
         }
 
-        group_name = sss_create_internal_fqname(tmp_ctx, group_name,
-                                                dom->name);
         if (group_name != NULL) {
             sysdb_name = group_name;
         }

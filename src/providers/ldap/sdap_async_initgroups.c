@@ -1278,17 +1278,6 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
         }
     }
 
-    if (ldap_parent_name_list) {
-        ldap_fqdnlist = sss_create_internal_fqname_list(
-                                  tmp_ctx,
-                                  (const char * const *) ldap_parent_name_list,
-                                  state->dom->name);
-        if (ldap_fqdnlist == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
     ret = sysdb_get_direct_parents(tmp_ctx, state->dom, state->dom,
                                    SYSDB_MEMBER_USER,
                                    state->username, &sysdb_parent_name_list);
@@ -3038,7 +3027,6 @@ errno_t sdap_ad_check_domain_local_groups(struct tevent_req *req)
                                                struct sdap_get_initgr_state);
     int ret;
     struct sdap_domain *local_sdom;
-    const char *orig_name;
     const char *sysdb_name;
     struct ldb_result *res;
     struct tevent_req *subreq;
@@ -3046,10 +3034,11 @@ errno_t sdap_ad_check_domain_local_groups(struct tevent_req *req)
 
     /* We only need to check for domain local groups in the AD case and if the
      * user is not from our domain, i.e. if the user comes from a sub-domain.
+     * Checking the schema_type should be sufficient, if SDAP_SCHEMA_AD is
+     * used with the plain LDAP provider there would be no sub-domain users.
      */
     if (state->opts->schema_type != SDAP_SCHEMA_AD
-            || !IS_SUBDOMAIN(state->dom)
-            || !dp_target_enabled(state->id_ctx->be->provider, "ad", DPT_ID)) {
+            || !IS_SUBDOMAIN(state->dom)) {
         return EOK;
     }
 
@@ -3060,16 +3049,10 @@ errno_t sdap_ad_check_domain_local_groups(struct tevent_req *req)
         return EINVAL;
     }
 
-    ret = sysdb_attrs_get_string(state->orig_user, SYSDB_NAME, &orig_name);
+    ret = sysdb_attrs_get_string(state->orig_user, SYSDB_NAME, &sysdb_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing name in user object.\n");
         return ret;
-    }
-
-    sysdb_name = sss_create_internal_fqname(state, orig_name, state->dom->name);
-    if (sysdb_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_create_internal_fqname failed.\n");
-        return ENOMEM;
     }
 
     ret = sysdb_initgroups(state, state->dom, sysdb_name, &res);
