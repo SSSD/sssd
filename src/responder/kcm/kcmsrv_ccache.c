@@ -1291,6 +1291,10 @@ struct tevent_req *kcm_ccdb_delete_cc_send(TALLOC_CTX *mem_ctx,
                                          state->db,
                                          state->client,
                                          state->uuid);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediate;
+    }
     tevent_req_set_callback(subreq, kcm_ccdb_delete_done, req);
 
     return req;
