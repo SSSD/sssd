@@ -405,6 +405,7 @@ static struct tevent_req *ccdb_mem_getbyuuid_send(TALLOC_CTX *mem_ctx,
     struct ccdb_mem_getbyuuid_state *state = NULL;
     struct ccdb_mem *memdb = talloc_get_type(db->db_handle, struct ccdb_mem);
     struct ccache_mem_wrap *ccwrap = NULL;
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct ccdb_mem_getbyuuid_state);
     if (req == NULL) {
@@ -414,9 +415,19 @@ static struct tevent_req *ccdb_mem_getbyuuid_send(TALLOC_CTX *mem_ctx,
     ccwrap = memdb_get_by_uuid(memdb, client, uuid);
     if (ccwrap != NULL) {
         state->cc = kcm_ccache_dup(state, ccwrap->cc);
+        if (state->cc == NULL) {
+            ret = ENOMEM;
+            goto immediate;
+        }
     }
 
-    tevent_req_done(req);
+    ret = EOK;
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
     tevent_req_post(req, ev);
     return req;
 }
@@ -447,6 +458,7 @@ static struct tevent_req *ccdb_mem_getbyname_send(TALLOC_CTX *mem_ctx,
     struct ccdb_mem_getbyname_state *state = NULL;
     struct ccache_mem_wrap *ccwrap = NULL;
     struct ccdb_mem *memdb = talloc_get_type(db->db_handle, struct ccdb_mem);
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct ccdb_mem_getbyname_state);
     if (req == NULL) {
@@ -456,9 +468,19 @@ static struct tevent_req *ccdb_mem_getbyname_send(TALLOC_CTX *mem_ctx,
     ccwrap = memdb_get_by_name(memdb, client, name);
     if (ccwrap != NULL) {
         state->cc = kcm_ccache_dup(state, ccwrap->cc);
+        if (state->cc == NULL) {
+            ret = ENOMEM;
+            goto immediate;
+        }
     }
 
-    tevent_req_done(req);
+    ret = EOK;
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
     tevent_req_post(req, ev);
     return req;
 }
