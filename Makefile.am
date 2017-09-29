@@ -1159,13 +1159,28 @@ pkgconfig_DATA += src/sss_client/idmap/sss_nss_idmap.pc
 libsss_nss_idmap_la_DEPENDENCIES = src/sss_client/idmap/sss_nss_idmap.exports
 libsss_nss_idmap_la_SOURCES = \
     src/sss_client/idmap/sss_nss_idmap.c \
+    src/sss_client/idmap/sss_nss_ex.c \
+    src/sss_client/idmap/sss_nss_idmap_private.h \
     src/sss_client/common.c \
-    src/util/strtonum.c
+    src/sss_client/idmap/common_ex.c \
+    src/sss_client/nss_mc_passwd.c \
+    src/sss_client/nss_passwd.c \
+    src/sss_client/nss_mc_group.c \
+    src/sss_client/nss_group.c \
+    src/sss_client/nss_mc_initgr.c \
+    src/sss_client/nss_mc_common.c \
+    src/util/strtonum.c \
+    src/util/murmurhash3.c \
+    src/util/io.c \
+    $(NULL)
 libsss_nss_idmap_la_LIBADD = \
-    $(CLIENT_LIBS)
+    $(LIBCLOCK_GETTIME) \
+    $(CLIENT_LIBS) \
+    -lpthread \
+    $(NULL)
 libsss_nss_idmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.exports \
-    -version-info 3:0:3
+    -version-info 4:0:4
 
 dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.exports
 
@@ -3624,6 +3639,7 @@ libnss_sss_la_SOURCES = \
     src/sss_client/sss_cli.h \
     src/sss_client/nss_compat.h \
     src/sss_client/nss_common.h \
+    src/sss_client/common_private.h \
     src/sss_client/nss_mc_common.c \
     src/util/io.c \
     src/util/murmurhash3.c \
