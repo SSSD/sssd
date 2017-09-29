@@ -43,6 +43,7 @@
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
 #include "sss_cli.h"
+#include "common_private.h"
 
 #if HAVE_PTHREAD
 #include <pthread.h>
@@ -1113,13 +1114,7 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
 #if HAVE_PTHREAD
 typedef void (*sss_mutex_init)(void);
 
-struct sss_mutex {
-    pthread_mutex_t mtx;
-
-    int old_cancel_state;
-};
-
-static struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
+struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 
 static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER };
 

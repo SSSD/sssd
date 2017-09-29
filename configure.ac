@@ -75,6 +75,19 @@ AC_SEARCH_LIBS([timer_create], [rt posix4],
 AC_SUBST([LIBADD_TIMER])
 LIBS=$SAVE_LIBS
 
+# Check library for the clock_gettime function
+SAVE_LIBS=$LIBS
+LIBS=
+LIBCLOCK_GETTIME=
+AC_SEARCH_LIBS([clock_gettime], [rt posix4],
+    [AC_DEFINE([HAVE_LIBRT], [1],
+         [Define if you have the librt library or equivalent.])
+     LIBCLOCK_GETTIME="$LIBS"],
+    [AC_MSG_ERROR([unable to find library for the clock_gettime() function])])
+
+AC_SUBST([LIBCLOCK_GETTIME])
+LIBS=$SAVE_LIBS
+
 # Check for presence of modern functions for setting file timestamps
 AC_CHECK_FUNCS([ utimensat \
                  futimens ])

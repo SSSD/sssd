@@ -26,6 +26,9 @@
 #define SSS_NSS_IDMAP_H_
 
 #include <stdint.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 
 /**
  * Object types
@@ -159,4 +162,136 @@ int sss_nss_getlistbycert(const char *cert, char ***fq_name,
  * @param[in] kv_list Key-value list returned by sss_nss_getorigbyname().
  */
 void sss_nss_free_kv(struct sss_nss_kv *kv_list);
+
+/**
+ * Flags to control the behavior and the results for sss_*_ex() calls
+ */
+
+#define SSS_NSS_EX_FLAG_NO_FLAGS 0
+
+#ifdef IPA_389DS_PLUGIN_HELPER_CALLS
+
+/**
+ * @brief Return user information based on the user name
+ *
+ * @param[in]  name       same as for getpwnam_r(3)
+ * @param[in]  pwd        same as for getpwnam_r(3)
+ * @param[in]  buffer     same as for getpwnam_r(3)
+ * @param[in]  buflen     same as for getpwnam_r(3)
+ * @param[out] result     same as for getpwnam_r(3)
+ * @param[in]  flags      flags to control the behavior and the results of the
+ *                        call
+ * @param[in]  timeout    timeout in milliseconds
+ *
+ * @return
+ *  - 0:
+ *  - ENOENT:    no user with the given name found
+ *  - ERANGE:    Insufficient buffer space supplied
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getpwnam_timeout(const char *name, struct passwd *pwd,
+                             char *buffer, size_t buflen,
+                             struct passwd **result,
+                             uint32_t flags, unsigned int timeout);
+
+/**
+ * @brief Return user information based on the user uid
+ *
+ * @param[in]  uid        same as for getpwuid_r(3)
+ * @param[in]  pwd        same as for getpwuid_r(3)
+ * @param[in]  buffer     same as for getpwuid_r(3)
+ * @param[in]  buflen     same as for getpwuid_r(3)
+ * @param[out] result     same as for getpwuid_r(3)
+ * @param[in]  flags      flags to control the behavior and the results of the
+ *                        call
+ * @param[in]  timeout    timeout in milliseconds
+ *
+ * @return
+ *  - 0:
+ *  - ENOENT:    no user with the given uid found
+ *  - ERANGE:    Insufficient buffer space supplied
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getpwuid_timeout(uid_t uid, struct passwd *pwd,
+                             char *buffer, size_t buflen,
+                             struct passwd **result,
+                             uint32_t flags, unsigned int timeout);
+
+/**
+ * @brief Return group information based on the group name
+ *
+ * @param[in]  name       same as for getgrnam_r(3)
+ * @param[in]  pwd        same as for getgrnam_r(3)
+ * @param[in]  buffer     same as for getgrnam_r(3)
+ * @param[in]  buflen     same as for getgrnam_r(3)
+ * @param[out] result     same as for getgrnam_r(3)
+ * @param[in]  flags      flags to control the behavior and the results of the
+ *                        call
+ * @param[in]  timeout    timeout in milliseconds
+ *
+ * @return
+ *  - 0:
+ *  - ENOENT:    no group with the given name found
+ *  - ERANGE:    Insufficient buffer space supplied
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getgrnam_timeout(const char *name, struct group *grp,
+                             char *buffer, size_t buflen, struct group **result,
+                             uint32_t flags, unsigned int timeout);
+
+/**
+ * @brief Return group information based on the group gid
+ *
+ * @param[in]  gid        same as for getgrgid_r(3)
+ * @param[in]  pwd        same as for getgrgid_r(3)
+ * @param[in]  buffer     same as for getgrgid_r(3)
+ * @param[in]  buflen     same as for getgrgid_r(3)
+ * @param[out] result     same as for getgrgid_r(3)
+ * @param[in]  flags      flags to control the behavior and the results of the
+ *                        call
+ * @param[in]  timeout    timeout in milliseconds
+ *
+ * @return
+ *  - 0:
+ *  - ENOENT:    no group with the given gid found
+ *  - ERANGE:    Insufficient buffer space supplied
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getgrgid_timeout(gid_t gid, struct group *grp,
+                             char *buffer, size_t buflen, struct group **result,
+                             uint32_t flags, unsigned int timeout);
+
+/**
+ * @brief Return a list of groups to which a user belongs
+ *
+ * @param[in]      name       name of the user
+ * @param[in]      group      same as second argument of getgrouplist(3)
+ * @param[in]      groups     array of gid_t of size ngroups, will be filled
+ *                            with GIDs of groups the user belongs to
+ * @param[in,out]  ngroups    size of the groups array on input. On output it
+ *                            will contain the actual number of groups the
+ *                            user belongs to. With a return value of 0 the
+ *                            groups array was large enough to hold all group.
+ *                            With a return valu of ERANGE the array was not
+ *                            large enough and ngroups will have the needed
+ *                            size.
+ * @param[in]  flags          flags to control the behavior and the results of
+ *                            the call
+ * @param[in]  timeout        timeout in milliseconds
+ *
+ * @return
+ *  - 0:         success
+ *  - ENOENT:    no user with the given name found
+ *  - ERANGE:    Insufficient buffer space supplied
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getgrouplist_timeout(const char *name, gid_t group,
+                                 gid_t *groups, int *ngroups,
+                                 uint32_t flags, unsigned int timeout);
+#endif /* IPA_389DS_PLUGIN_HELPER_CALLS */
 #endif /* SSS_NSS_IDMAP_H_ */
