@@ -50,6 +50,12 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         krb5-server
         krb5-workstation
     )
+
+    if [[ "$DISTRO_BRANCH" != -redhat-redhatenterprise*-6.*- ||
+          "$DISTRO_BRANCH" != -redhat-centos-6.*- ]]; then
+        DEPS_LIST+=(http-parser-devel)
+    fi
+
     _DEPS_LIST_SPEC=`
         sed -e 's/@PACKAGE_VERSION@/0/g' \
             -e 's/@PACKAGE_NAME@/package-name/g' \
