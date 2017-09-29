@@ -34,7 +34,9 @@ struct sss_cli_mc_ctx gr_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
 
 static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
                                        struct group *result,
-                                       char *buffer, size_t buflen)
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       size_t *_extra_data_len)
 {
     struct sss_mc_grp_data *data;
     time_t expire;
@@ -43,6 +45,8 @@ static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
     size_t memsize;
     int ret;
     int i;
+    uint32_t extra_data_len;
+    char *p;
 
     /* additional checks before filling result*/
     expire = rec->expire;
@@ -95,16 +99,48 @@ static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
             return ret;
         }
     }
-    if (cookie != NULL) {
+    if (cookie == NULL) {
+        /* No extra data */
+        return 0;
+    }
+
+    /* Extra data starts after last gr_mem string  or after gr_passwd if there
+     * are not members */
+    if (data->members == 0) {
+        p = result->gr_passwd + strlen(result->gr_passwd) + 1;
+    } else {
+        p = result->gr_mem[data->members - 1]
+                    + strlen(result->gr_mem[data->members - 1]) + 1;
+    }
+    if ( (p - membuf) + sizeof(uint32_t) > data->strs_len) {
+        /* Remaining data to small for data size */
         return EINVAL;
     }
+
+    SAFEALIGN_COPY_UINT32(&extra_data_len, p, NULL);
+
+    if ((p - membuf) + extra_data_len != data->strs_len) {
+        /* Inconsistent extra data */
+        return EINVAL;
+    }
+
+    if (extra_data != NULL) {
+        *extra_data = p;
+    }
+
+    if (_extra_data_len != NULL) {
+        *_extra_data_len = extra_data_len;
+    }
+
 
     return 0;
 }
 
-errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
-                            struct group *result,
-                            char *buffer, size_t buflen)
+errno_t sss_nss_mc_getgrnam_with_extra(const char *name, size_t name_len,
+                                       struct group *result,
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       uint32_t *extra_data_len)
 {
     struct sss_mc_rec *rec = NULL;
     struct sss_mc_rec *new_rec = NULL;
@@ -197,7 +233,8 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
         goto done;
     }
 
-    ret = sss_nss_mc_parse_result(rec, result, buffer, buflen);
+    ret = sss_nss_mc_parse_result(rec, result, buffer, buflen,
+                                  extra_data, extra_data_len);
 
 done:
     free(rec);
@@ -205,9 +242,19 @@ done:
     return ret;
 }
 
-errno_t sss_nss_mc_getgrgid(gid_t gid,
+errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
                             struct group *result,
                             char *buffer, size_t buflen)
+{
+    return sss_nss_mc_getgrnam_with_extra(name, name_len, result,
+                                          buffer, buflen, NULL, 0);
+}
+
+errno_t sss_nss_mc_getgrgid_with_extra(gid_t gid,
+                                       struct group *result,
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       uint32_t *extra_data_len)
 {
     struct sss_mc_rec *rec = NULL;
     struct sss_mc_grp_data *data;
@@ -265,7 +312,8 @@ errno_t sss_nss_mc_getgrgid(gid_t gid,
         goto done;
     }
 
-    ret = sss_nss_mc_parse_result(rec, result, buffer, buflen);
+    ret = sss_nss_mc_parse_result(rec, result, buffer, buflen,
+                                  extra_data, extra_data_len);
 
 done:
     free(rec);
@@ -273,3 +321,9 @@ done:
     return ret;
 }
 
+errno_t sss_nss_mc_getgrgid(gid_t gid,
+                            struct group *result,
+                            char *buffer, size_t buflen)
+{
+    return sss_nss_mc_getgrgid_with_extra(gid, result, buffer, buflen, NULL, 0);
+}

@@ -521,6 +521,11 @@ struct sized_string {
     size_t len;
 };
 
+struct sized_data {
+    const uint8_t *data;
+    size_t len;
+};
+
 void to_sized_string(struct sized_string *out, const char *in);
 
 /* from domain_info.c */

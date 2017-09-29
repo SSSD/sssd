@@ -47,13 +47,15 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
                                 uid_t uid, gid_t gid,
                                 struct sized_string *gecos,
                                 struct sized_string *homedir,
-                                struct sized_string *shell);
+                                struct sized_string *shell,
+                                struct sized_data *extra_data);
 
 errno_t sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
                                 struct sized_string *name,
                                 struct sized_string *pw,
                                 gid_t gid, size_t memnum,
-                                char *membuf, size_t memsize);
+                                char *membuf, size_t memsize,
+                                struct sized_data *extra_data);
 
 errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
                                     struct sized_string *name,

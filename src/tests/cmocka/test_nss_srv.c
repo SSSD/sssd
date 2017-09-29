@@ -39,6 +39,7 @@
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_nss_conf.ldb"
 #define TEST_DOM_NAME "nss_test"
+#define TEST_DOM_FLAT_NAME "NSSTEST"
 #define TEST_SUBDOM_NAME "test.subdomain"
 #define TEST_ID_PROVIDER "ldap"
 #define TEST_DOM_SID "S-1-5-21-444379608-1639770488-2995963434"
@@ -304,9 +305,16 @@ static void mock_fill_bysid(void)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 }
 
-static int parse_user_packet(uint8_t *body, size_t blen, struct passwd *pwd)
+struct test_sss_nss_ex_data {
+    const char *items[EX_DATA_END];
+};
+
+static int parse_user_packet(uint8_t *body, size_t blen, struct passwd *pwd,
+                             struct test_sss_nss_ex_data *extra_data)
 {
     size_t rp = 2 * sizeof(uint32_t);
+    uint32_t extra_data_len;
+    uint32_t extra_data_count;
 
     SAFEALIGN_COPY_UINT32(&pwd->pw_uid, body+rp, &rp);
     SAFEALIGN_COPY_UINT32(&pwd->pw_gid, body+rp, &rp);
@@ -330,15 +338,41 @@ static int parse_user_packet(uint8_t *body, size_t blen, struct passwd *pwd)
 
     pwd->pw_shell = (char *) body+rp;
     rp += strlen(pwd->pw_shell) + 1;
+
+    /* End of struct passwd data, checking extra data */
+    SAFEALIGN_COPY_UINT32(&extra_data_len, body+rp, &rp);
+    SAFEALIGN_COPY_UINT32(&extra_data_count, body+rp, &rp);
+    extra_data->items[EX_DATA_SHORT_NAME] = (char *) body+rp;
+    rp += strlen(extra_data->items[EX_DATA_SHORT_NAME]) + 1;
+
+    extra_data->items[EX_DATA_DOMAIN_NAME] = (char *) body+rp;
+    rp += strlen(extra_data->items[EX_DATA_DOMAIN_NAME]) + 1;
+
+    extra_data->items[EX_DATA_SHORT_DOMAIN_NAME] = (char *) body+rp;
+    rp += strlen(extra_data->items[EX_DATA_SHORT_DOMAIN_NAME]) + 1;
+
+    extra_data->items[EX_DATA_SID_STR] = (char *) body+rp;
+    rp += strlen(extra_data->items[EX_DATA_SID_STR]) + 1;
     if (rp != blen) return EINVAL;
+    if (extra_data_len != strlen(extra_data->items[EX_DATA_SHORT_NAME])
+                +  strlen(extra_data->items[EX_DATA_DOMAIN_NAME])
+                +  strlen(extra_data->items[EX_DATA_SHORT_DOMAIN_NAME])
+                +  strlen(extra_data->items[EX_DATA_SID_STR])
+                +  extra_data_count /* Number of \0s */
+                + 2 * sizeof(uint32_t)) {
+        return EINVAL;
+    }
 
     return EOK;
 }
 
-static int parse_group_packet(uint8_t *body, size_t blen, struct group *gr, uint32_t *nmem)
+static int parse_group_packet(uint8_t *body, size_t blen, struct group *gr, uint32_t *nmem,
+                              struct test_sss_nss_ex_data *extra_data)
 {
     size_t rp = 2 * sizeof(uint32_t); /* Len and reserved */
     unsigned i;
+    uint32_t extra_data_len;
+    uint32_t extra_data_count;
 
     SAFEALIGN_COPY_UINT32(&gr->gr_gid, body+rp, &rp);
     SAFEALIGN_COPY_UINT32(nmem, body+rp, &rp);
@@ -363,7 +397,32 @@ static int parse_group_packet(uint8_t *body, size_t blen, struct group *gr, uint
     }
 
     /* Make sure we exactly matched the end of the packet */
+    //if (rp != blen) return EINVAL;
+
+    /* End of struct passwd data, checking extra data */
+    SAFEALIGN_COPY_UINT32(&extra_data_len, body+rp, &rp);
+    SAFEALIGN_COPY_UINT32(&extra_data_count, body+rp, &rp);
+    extra_data->items[EX_DATA_SHORT_NAME] = (char *) body+rp;
+    rp += strlen(extra_data->items[EX_DATA_SHORT_NAME]) + 1;
+
+    extra_data->items[EX_DATA_DOMAIN_NAME] = (char *) body+rp;
+    rp += strlen(extra_data->items[EX_DATA_DOMAIN_NAME]) + 1;
+
+    extra_data->items[EX_DATA_SHORT_DOMAIN_NAME] = (char *) body+rp;
+    rp += strlen(extra_data->items[EX_DATA_SHORT_DOMAIN_NAME]) + 1;
+
+    extra_data->items[EX_DATA_SID_STR] = (char *) body+rp;
+    rp += strlen(extra_data->items[EX_DATA_SID_STR]) + 1;
     if (rp != blen) return EINVAL;
+    if (extra_data_len != strlen(extra_data->items[EX_DATA_SHORT_NAME])
+                +  strlen(extra_data->items[EX_DATA_DOMAIN_NAME])
+                +  strlen(extra_data->items[EX_DATA_SHORT_DOMAIN_NAME])
+                +  strlen(extra_data->items[EX_DATA_SID_STR])
+                +  extra_data_count /* Number of \0s */
+                + 2 * sizeof(uint32_t)) {
+        return EINVAL;
+    }
+
     return EOK;
 }
 
@@ -486,6 +545,16 @@ static void assert_users_equal(struct passwd *a, struct passwd *b)
     assert_string_equal(a->pw_name, b->pw_name);
     assert_string_equal(a->pw_shell, b->pw_shell);
     assert_string_equal(a->pw_passwd, b->pw_passwd);
+}
+
+static void assert_extra_data_equal(struct test_sss_nss_ex_data *a,
+                                    struct test_sss_nss_ex_data *b)
+{
+    size_t i;
+
+    for (i = 0; i < EX_DATA_END; i++) {
+        assert_string_equal(a->items[i], b->items[i]);
+    }
 }
 
 static errno_t store_group(struct nss_test_ctx *ctx,
@@ -629,6 +698,13 @@ struct passwd getpwnam_usr = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_usr = {
+    .items[0] = "testuser",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 /* Check getting cached and valid user from cache. Account callback will
  * not be called and test_nss_getpwnam_check will make sure the user is
  * the same as the test entered before starting
@@ -636,14 +712,16 @@ struct passwd getpwnam_usr = {
 static int test_nss_getpwnam_check(uint32_t status, uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_users_equal(&pwd, &getpwnam_usr);
+    assert_extra_data_equal(&extra_data, &extra_data_usr);
     return EOK;
 }
 
@@ -721,6 +799,13 @@ struct passwd getpwnam_search_usr = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_search_usr = {
+    .items[0] = "testuser_search",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwnam_search_acct_cb(void *pvt)
 {
     struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
@@ -732,14 +817,16 @@ static int test_nss_getpwnam_search_check(uint32_t status,
                                           uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_users_equal(&pwd, &getpwnam_search_usr);
+    assert_extra_data_equal(&extra_data, &extra_data_search_usr);
     return EOK;
 }
 
@@ -790,6 +877,13 @@ struct passwd getpwnam_update = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_update_usr = {
+    .items[0] = "testuser_update",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwnam_update_acct_cb(void *pvt)
 {
     struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
@@ -802,14 +896,16 @@ static int test_nss_getpwnam_update_check(uint32_t status,
                                           uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_users_equal(&pwd, &getpwnam_update);
+    assert_extra_data_equal(&extra_data, &extra_data_update_usr);
     return EOK;
 }
 
@@ -866,21 +962,30 @@ struct passwd getpwnam_fqdn = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_fqdn = {
+    .items[0] = "testuser_fqdn",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwnam_check_fqdn(uint32_t status,
                                         uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
     nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     getpwnam_fqdn.pw_name = discard_const("testuser_fqdn@"TEST_DOM_NAME);
     assert_users_equal(&pwd, &getpwnam_fqdn);
+    assert_extra_data_equal(&extra_data, &extra_data_fqdn);
     return EOK;
 }
 
@@ -920,18 +1025,27 @@ struct passwd getpwnam_space = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_space = {
+    .items[0] = "space user",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwnam_check_space(uint32_t status,
                                          uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_users_equal(&pwd, &getpwnam_space);
+    assert_extra_data_equal(&extra_data, &extra_data_space);
     return EOK;
 }
 
@@ -960,21 +1074,30 @@ void test_nss_getpwnam_space(void **state)
 
 }
 
+struct test_sss_nss_ex_data extra_data_space_sub = {
+    .items[0] = "space_user",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwnam_check_space_sub(uint32_t status,
                                              uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_int_equal(pwd.pw_uid, 225);
     assert_int_equal(pwd.pw_gid, 558);
     assert_string_equal(pwd.pw_name, "space_user");
     assert_string_equal(pwd.pw_shell, "/bin/sh");
+    assert_extra_data_equal(&extra_data, &extra_data_space_sub);
     return EOK;
 }
 
@@ -1038,23 +1161,32 @@ struct passwd getpwnam_fancy_fqdn = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_fancy_fqdn = {
+    .items[0] = "testuser_fqdn_fancy",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwnam_check_fancy_fqdn(uint32_t status,
                                               uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
     nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_int_equal(pwd.pw_uid, 125);
     assert_int_equal(pwd.pw_gid, 458);
     assert_string_equal(pwd.pw_name, "testuser_fqdn_fancy@@@@@"TEST_DOM_NAME);
     assert_string_equal(pwd.pw_shell, "/bin/sh");
+    assert_extra_data_equal(&extra_data, &extra_data_fancy_fqdn);
     return EOK;
 }
 
@@ -1097,17 +1229,26 @@ struct passwd getpwuid_usr = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_uid = {
+    .items[0] = "testuser1",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwuid_check(uint32_t status, uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_users_equal(&pwd, &getpwuid_usr);
+    assert_extra_data_equal(&extra_data, &extra_data_uid);
     return EOK;
 }
 
@@ -1191,6 +1332,13 @@ struct passwd getpwuid_srch = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_srch = {
+    .items[0] = "exampleuser_search",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwuid_search_acct_cb(void *pvt)
 {
     struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
@@ -1202,14 +1350,16 @@ static int test_nss_getpwuid_search_check(uint32_t status,
                                           uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_users_equal(&pwd, &getpwuid_srch);
+    assert_extra_data_equal(&extra_data, &extra_data_srch);
     return EOK;
 }
 
@@ -1259,6 +1409,13 @@ struct passwd getpwuid_update = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_update_uid = {
+    .items[0] = "exampleuser_update",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwuid_update_acct_cb(void *pvt)
 {
     struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
@@ -1271,14 +1428,16 @@ static int test_nss_getpwuid_update_check(uint32_t status,
                                           uint8_t *body, size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_users_equal(&pwd, &getpwuid_update);
+    assert_extra_data_equal(&extra_data, &extra_data_update_uid);
     return EOK;
 }
 
@@ -1338,6 +1497,7 @@ void test_nss_setup(struct sss_test_conf_param params[],
     assert_non_null(nss_test_ctx->tctx);
 
     nss_test_ctx->tctx->dom->domain_id = discard_const(TEST_DOM_SID);
+    nss_test_ctx->tctx->dom->flat_name = discard_const(TEST_DOM_FLAT_NAME);
 
     nss_test_ctx->nss_cmds = get_nss_cmds();
     assert_non_null(nss_test_ctx->nss_cmds);
@@ -1384,20 +1544,29 @@ struct group getgrnam_no_members = {
     .gr_mem = NULL,
 };
 
+struct test_sss_nss_ex_data extra_data_no_members = {
+    .items[0] = "testgroup",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getgrnam_no_members_check(uint32_t status,
                                               uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
     struct group gr;
+    struct test_sss_nss_ex_data extra_data;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 0);
 
     assert_groups_equal(&getgrnam_no_members, &gr, nmem);
+    assert_extra_data_equal(&extra_data, &extra_data_no_members);
     return EOK;
 }
 
@@ -1455,6 +1624,13 @@ struct group testgroup_members = {
     .gr_mem = NULL,
 };
 
+struct test_sss_nss_ex_data extra_data_testgroup_members = {
+    .items[0] = "testgroup_members",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getgrnam_members_check(uint32_t status,
                                            uint8_t *body, size_t blen)
 {
@@ -1469,14 +1645,16 @@ static int test_nss_getgrnam_members_check(uint32_t status,
         .gr_passwd = testgroup_members.gr_passwd,
         .gr_mem = discard_const(exp_members)
     };
+    struct test_sss_nss_ex_data extra_data;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 2);
 
     assert_groups_equal(&expected, &gr, nmem);
+    assert_extra_data_equal(&extra_data, &extra_data_testgroup_members);
     return EOK;
 }
 
@@ -1543,6 +1721,7 @@ static int test_nss_getgrnam_members_check_fqdn(uint32_t status,
         .gr_mem = discard_const(exp_members)
     };
     TALLOC_CTX *tmp_ctx;
+    struct test_sss_nss_ex_data extra_data;
 
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
@@ -1562,12 +1741,12 @@ static int test_nss_getgrnam_members_check_fqdn(uint32_t status,
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 2);
 
     assert_groups_equal(&expected, &gr, nmem);
-    assert_int_equal(ret, EOK);
+    assert_extra_data_equal(&extra_data, &extra_data_testgroup_members);
 
     talloc_free(tmp_ctx);
     return EOK;
@@ -1631,6 +1810,13 @@ struct group testsubdomgroup = {
     .gr_mem = NULL,
 };
 
+struct test_sss_nss_ex_data extra_data_testsubdomgroup = {
+    .items[0] = "testsubdomgroup",
+    .items[1] = TEST_SUBDOM_NAME,
+    .items[2] = "test",
+    .items[3] = ""
+};
+
 static int test_nss_getgrnam_members_check_subdom(uint32_t status,
                                                   uint8_t *body, size_t blen)
 {
@@ -1644,6 +1830,7 @@ static int test_nss_getgrnam_members_check_subdom(uint32_t status,
         .gr_mem = discard_const(exp_members)
     };
     TALLOC_CTX *tmp_ctx;
+    struct test_sss_nss_ex_data extra_data;
 
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
@@ -1668,12 +1855,12 @@ static int test_nss_getgrnam_members_check_subdom(uint32_t status,
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 2);
 
     assert_groups_equal(&expected, &gr, nmem);
-    assert_int_equal(ret, EOK);
+    assert_extra_data_equal(&extra_data, &extra_data_testsubdomgroup);
 
     talloc_free(tmp_ctx);
     return EOK;
@@ -1734,6 +1921,7 @@ static int test_nss_getgrnam_check_mix_dom(uint32_t status,
         .gr_mem = discard_const(exp_members)
     };
     TALLOC_CTX *tmp_ctx;
+    struct test_sss_nss_ex_data extra_data;
 
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
@@ -1748,12 +1936,12 @@ static int test_nss_getgrnam_check_mix_dom(uint32_t status,
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 3);
 
     assert_groups_equal(&expected, &gr, nmem);
-    assert_int_equal(ret, EOK);
+    assert_extra_data_equal(&extra_data, &extra_data_testgroup_members);
 
     talloc_free(tmp_ctx);
     return EOK;
@@ -1826,6 +2014,7 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
         .gr_mem = discard_const(exp_members)
     };
     TALLOC_CTX *tmp_ctx;
+    struct test_sss_nss_ex_data extra_data;
 
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
@@ -1857,12 +2046,12 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 3);
 
     assert_groups_equal(&expected, &gr, nmem);
-    assert_int_equal(ret, EOK);
+    assert_extra_data_equal(&extra_data, &extra_data_testgroup_members);
 
     talloc_free(tmp_ctx);
     return EOK;
@@ -1944,6 +2133,7 @@ static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
         .gr_mem = discard_const(exp_members)
     };
     TALLOC_CTX *tmp_ctx;
+    struct test_sss_nss_ex_data extra_data;
 
     tmp_ctx = talloc_new(nss_test_ctx);
     assert_non_null(tmp_ctx);
@@ -1973,12 +2163,12 @@ static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 3);
 
     assert_groups_equal(&expected, &gr, nmem);
-    assert_int_equal(ret, EOK);
+    assert_extra_data_equal(&extra_data, &extra_data_testsubdomgroup);
 
     talloc_free(tmp_ctx);
     return EOK;
@@ -2046,21 +2236,29 @@ struct group space_group = {
     .gr_mem = NULL,
 };
 
+struct test_sss_nss_ex_data extra_data_space_group = {
+    .items[0] = "space group",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getgrnam_space_check(uint32_t status,
                                          uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
     struct group gr;
+    struct test_sss_nss_ex_data extra_data;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 0);
 
     assert_groups_equal(&space_group, &gr, nmem);
-    assert_int_equal(ret, EOK);
+    assert_extra_data_equal(&extra_data, &extra_data_space_group);
 
     return EOK;
 }
@@ -2092,22 +2290,30 @@ void test_nss_getgrnam_space(void **state)
     assert_int_equal(ret, EOK);
 }
 
+struct test_sss_nss_ex_data extra_data_space_group_replaced = {
+    .items[0] = "space_group",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getgrnam_space_sub_check(uint32_t status,
                                              uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
     struct group gr;
+    struct test_sss_nss_ex_data extra_data;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_group_packet(body, blen, &gr, &nmem);
+    ret = parse_group_packet(body, blen, &gr, &nmem, &extra_data);
     assert_int_equal(ret, EOK);
     assert_int_equal(nmem, 0);
 
     space_group.gr_name = discard_const("space_group");
     assert_groups_equal(&space_group, &gr, nmem);
-    assert_int_equal(ret, EOK);
+    assert_extra_data_equal(&extra_data, &extra_data_space_group_replaced);
 
     return EOK;
 }
@@ -2716,19 +2922,28 @@ struct passwd upn_user = {
     .pw_passwd = discard_const("*"),
 };
 
+struct test_sss_nss_ex_data extra_data_upnuser = {
+    .items[0] = "upnuser",
+    .items[1] = TEST_DOM_NAME,
+    .items[2] = TEST_DOM_FLAT_NAME,
+    .items[3] = ""
+};
+
 static int test_nss_getpwnam_upn_check(uint32_t status,
                                        uint8_t *body,
                                        size_t blen)
 {
     struct passwd pwd;
+    struct test_sss_nss_ex_data extra_data;
     errno_t ret;
 
     assert_int_equal(status, EOK);
 
-    ret = parse_user_packet(body, blen, &pwd);
+    ret = parse_user_packet(body, blen, &pwd, &extra_data);
     assert_int_equal(ret, EOK);
 
     assert_users_equal(&pwd, &upn_user);
+    assert_extra_data_equal(&extra_data, &extra_data_upnuser);
     return EOK;
 }
 

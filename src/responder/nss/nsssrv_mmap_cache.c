@@ -756,7 +756,8 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
                                 uid_t uid, gid_t gid,
                                 struct sized_string *gecos,
                                 struct sized_string *homedir,
-                                struct sized_string *shell)
+                                struct sized_string *shell,
+                                struct sized_data *extra_data)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -779,7 +780,8 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     }
     to_sized_string(&uidkey, uidstr);
 
-    data_len = name->len + pw->len + gecos->len + homedir->len + shell->len;
+    data_len = name->len + pw->len + gecos->len + homedir->len + shell->len
+                         + extra_data->len;
     rec_len = sizeof(struct sss_mc_rec) +
               sizeof(struct sss_mc_pwd_data) +
               data_len;
@@ -816,6 +818,8 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     pos += homedir->len;
     memcpy(&data->strs[pos], shell->str, shell->len);
     pos += shell->len;
+    memcpy(&data->strs[pos], extra_data->data, extra_data->len);
+    pos += extra_data->len;
 
     MC_LOWER_BARRIER(rec);
 
@@ -899,7 +903,8 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
                             struct sized_string *name,
                             struct sized_string *pw,
                             gid_t gid, size_t memnum,
-                            char *membuf, size_t memsize)
+                            char *membuf, size_t memsize,
+                            struct sized_data *extra_data)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -922,7 +927,7 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     }
     to_sized_string(&gidkey, gidstr);
 
-    data_len = name->len + pw->len + memsize;
+    data_len = name->len + pw->len + memsize + extra_data->len;
     rec_len = sizeof(struct sss_mc_rec) +
               sizeof(struct sss_mc_grp_data) +
               data_len;
@@ -955,6 +960,8 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     pos += pw->len;
     memcpy(&data->strs[pos], membuf, memsize);
     pos += memsize;
+    memcpy(&data->strs[pos], extra_data->data, extra_data->len);
+    pos += extra_data->len;
 
     MC_LOWER_BARRIER(rec);
 

@@ -27,18 +27,23 @@
 #include <sys/mman.h>
 #include <time.h>
 #include "nss_mc.h"
+#include "shared/safealign.h"
 
 struct sss_cli_mc_ctx pw_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
                                     NULL, 0, 0 };
 
 static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
                                        struct passwd *result,
-                                       char *buffer, size_t buflen)
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       size_t *_extra_data_len)
 {
     struct sss_mc_pwd_data *data;
     time_t expire;
     void *cookie;
     int ret;
+    uint32_t extra_data_len;
+    char *p;
 
     /* additional checks before filling result*/
     expire = rec->expire;
@@ -88,16 +93,42 @@ static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
     if (ret) {
         return ret;
     }
-    if (cookie != NULL) {
+
+    if (cookie == NULL) {
+        /* No extra data */
+        return 0;
+    }
+
+    /* Extra data starts after shell string */
+    p = result->pw_shell + strlen(result->pw_shell) + 1;
+    if ( (p - buffer) + sizeof(uint32_t) > data->strs_len) {
+        /* Remaining data to small for data size */
         return EINVAL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&extra_data_len, p, NULL);
+
+    if ((p - buffer) + extra_data_len != data->strs_len) {
+        /* Inconsistent extra data */
+        return EINVAL;
+    }
+
+    if (extra_data != NULL) {
+        *extra_data = p;
+    }
+
+    if (_extra_data_len != NULL) {
+        *_extra_data_len = extra_data_len;
     }
 
     return 0;
 }
 
-errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
-                            struct passwd *result,
-                            char *buffer, size_t buflen)
+errno_t sss_nss_mc_getpwnam_with_extra(const char *name, size_t name_len,
+                                       struct passwd *result,
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       uint32_t *extra_data_len)
 {
     struct sss_mc_rec *rec = NULL;
     struct sss_mc_rec *new_rec = NULL;
@@ -190,7 +221,8 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
         goto done;
     }
 
-    ret = sss_nss_mc_parse_result(rec, result, buffer, buflen);
+    ret = sss_nss_mc_parse_result(rec, result, buffer, buflen,
+                                  extra_data, extra_data_len);
 
 done:
     free(rec);
@@ -198,9 +230,19 @@ done:
     return ret;
 }
 
-errno_t sss_nss_mc_getpwuid(uid_t uid,
+errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
                             struct passwd *result,
                             char *buffer, size_t buflen)
+{
+    return sss_nss_mc_getpwnam_with_extra(name, name_len, result,
+                                          buffer, buflen, NULL, NULL);
+}
+
+errno_t sss_nss_mc_getpwuid_with_extra(uid_t uid,
+                                       struct passwd *result,
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       uint32_t *extra_data_len)
 {
     struct sss_mc_rec *rec = NULL;
     struct sss_mc_pwd_data *data;
@@ -258,7 +300,8 @@ errno_t sss_nss_mc_getpwuid(uid_t uid,
         goto done;
     }
 
-    ret = sss_nss_mc_parse_result(rec, result, buffer, buflen);
+    ret = sss_nss_mc_parse_result(rec, result, buffer, buflen,
+                                  extra_data, extra_data_len);
 
 done:
     free(rec);
@@ -266,3 +309,10 @@ done:
     return ret;
 }
 
+errno_t sss_nss_mc_getpwuid(uid_t uid,
+                            struct passwd *result,
+                            char *buffer, size_t buflen)
+{
+    return sss_nss_mc_getpwuid_with_extra(uid, result, buffer, buflen,
+                                          NULL, NULL);
+}
