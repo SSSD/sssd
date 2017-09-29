@@ -28,6 +28,7 @@
 #include <string.h>
 #include "sss_cli.h"
 #include "nss_mc.h"
+#include "nss_common.h"
 
 static struct sss_nss_getpwent_data {
     size_t len;
@@ -63,14 +64,8 @@ static void sss_nss_getpwent_data_clean(void) {
  *  8-X: sequence of 5, 0 terminated, strings (name, passwd, gecos, dir, shell)
  */
 
-struct sss_nss_pw_rep {
-    struct passwd *result;
-    char *buffer;
-    size_t buflen;
-};
-
-static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
-                                 uint8_t *buf, size_t *len)
+int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
+                          uint8_t *buf, size_t *len)
 {
     errno_t ret;
     size_t i, slen, dlen;
