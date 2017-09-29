@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include "sss_cli.h"
 #include "nss_mc.h"
+#include "nss_common.h"
 
 static struct sss_nss_getgrent_data {
     size_t len;
@@ -190,14 +191,9 @@ done:
  *
  *  FIXME: do we need to pad so that each result is 32 bit aligned ?
  */
-struct sss_nss_gr_rep {
-    struct group *result;
-    char *buffer;
-    size_t buflen;
-};
 
-static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
-                                 uint8_t *buf, size_t *len)
+int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
+                          uint8_t *buf, size_t *len)
 {
     errno_t ret;
     size_t i, l, slen, ptmem, pad, dlen, glen;
