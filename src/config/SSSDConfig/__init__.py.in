@@ -195,6 +195,7 @@ option_strings = {
     'cached_auth_timeout' : _('How long can cached credentials be used for cached authentication'),
     'full_name_format' : _('Printf-compatible format for displaying fully-qualified names'),
     're_expression' : _('Regex to parse username and domain'),
+    'auto_private_groups' : _('Whether to automatically create private groups for users'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

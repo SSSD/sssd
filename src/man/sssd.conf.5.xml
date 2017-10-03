@@ -2816,6 +2816,26 @@ subdomain_inherit = ldap_purge_cache_timeout
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>auto_private_groups (string)</term>
+                    <listitem>
+                        <para>
+                            If this option is enabled, SSSD will automatically
+                            create user private groups based on user's
+                            UID number. The GID number is ignored in this case.
+                        </para>
+                        <para>
+                            NOTE: Because the GID number and the user private group
+                            are inferred frm the UID number, it is not supported
+                            to have multiple entries with the same UID or GID number
+                            with this option. In other words, enabling this option
+                            enforces uniqueness across the ID space.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 

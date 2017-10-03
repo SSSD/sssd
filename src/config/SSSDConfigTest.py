@@ -624,7 +624,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'subdomain_homedir',
             'full_name_format',
             're_expression',
-            'cached_auth_timeout']
+            'cached_auth_timeout',
+            'auto_private_groups']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -994,7 +995,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'subdomain_homedir',
             'full_name_format',
             're_expression',
-            'cached_auth_timeout']
+            'cached_auth_timeout',
+            'auto_private_groups']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
