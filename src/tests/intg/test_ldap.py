@@ -1169,3 +1169,217 @@ def test_nss_filters_cached(ldap_conn, sanity_nss_filter_cached):
 
     res, _ = call_sssd_getgrgid(0)
     assert res == NssReturnCode.NOTFOUND
+
+
+@pytest.fixture
+def mpg_setup(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2002)
+    ent_list.add_user("user3", 1003, 2003)
+
+    ent_list.add_group_bis("group1", 2001)
+    ent_list.add_group_bis("group2", 2002)
+    ent_list.add_group_bis("group3", 2003)
+
+    ent_list.add_group_bis("two_user_group", 2012, ["user1", "user2"])
+    ent_list.add_group_bis("one_user_group1", 2015, ["user1"])
+    ent_list.add_group_bis("one_user_group2", 2016, ["user2"])
+
+    create_ldap_entries(ldap_conn, ent_list)
+    create_ldap_cleanup(request, ldap_conn, None)
+
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
+        unindent("""
+            [domain/LDAP]
+            auto_private_groups = True
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_ldap_auto_private_groups_direct(ldap_conn, mpg_setup):
+    """
+    Integration test for auto_private_groups
+
+    See also ticket https://pagure.io/SSSD/sssd/issue/1872
+    """
+    # Make sure the user's GID is taken from their uidNumber
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=1001))
+    # Make sure the private group is resolvable by name and by GID
+    ent.assert_group_by_name("user1", dict(gid=1001, mem=ent.contains_only()))
+    ent.assert_group_by_gid(1001, dict(name="user1", mem=ent.contains_only()))
+
+    # The group referenced in user's gidNumber attribute should be still
+    # visible, but it's fine that it doesn't contain the user as a member
+    # as the group is currently added during the initgroups operation only
+    ent.assert_group_by_name("group1", dict(gid=2001, mem=ent.contains_only()))
+    ent.assert_group_by_gid(2001, dict(name="group1", mem=ent.contains_only()))
+
+    # The user's secondary groups list must be correct as well
+    # Note that the original GID is listed as well -- this is correct and expected
+    # because we save the original GID in the SYSDB_PRIMARY_GROUP_GIDNUM attribute
+    user1_expected_gids = [1001, 2001, 2012, 2015]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user1", 1001)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(user1_expected_gids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
+        )
+
+    # Request user2's private group by GID without resolving the user first.
+    # This must trigger user resolution through by-GID resolution, since the GID
+    # doesn't exist on its own in LDAP
+    ent.assert_group_by_gid(1002, dict(name="user2", mem=ent.contains_only()))
+
+    # Test supplementary groups for user2 as well
+    user1_expected_gids = [1002, 2002, 2012, 2016]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user2", 1002)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(user1_expected_gids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
+        )
+
+    # Request user3's private group by name without resolving the user first
+    # This must trigger user resolution through by-name resolution, since the
+    # name doesn't exist on its own in LDAP
+    ent.assert_group_by_name("user3", dict(gid=1003, mem=ent.contains_only()))
+
+    # Remove entries and request them again to make sure they are not
+    # resolvable anymore
+    cleanup_ldap_entries(ldap_conn, None)
+
+    if subprocess.call(["sss_cache", "-GU"]) != 0:
+        raise Exception("sssd_cache failed")
+
+    with pytest.raises(KeyError):
+        pwd.getpwnam("user1")
+    with pytest.raises(KeyError):
+        grp.getgrnam("user1")
+    with pytest.raises(KeyError):
+        grp.getgrgid(1002)
+    with pytest.raises(KeyError):
+        grp.getgrnam("user3")
+
+
+@pytest.fixture
+def mpg_setup_conflict(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2002)
+    ent_list.add_user("user3", 1003, 1003)
+    ent_list.add_group_bis("group1", 1001)
+    ent_list.add_group_bis("group2", 1002)
+    ent_list.add_group_bis("group3", 1003)
+    ent_list.add_group_bis("supp_group", 2015, ["user3"])
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
+        unindent("""
+            [domain/LDAP]
+            auto_private_groups = True
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_ldap_auto_private_groups_conflict(ldap_conn, mpg_setup_conflict):
+    """
+    Make sure that conflicts between groups that are auto-created with the
+    help of the auto_private_groups option and between 'real' LDAP groups
+    are handled in a predictable manner.
+    """
+    # Make sure the user's GID is taken from their uidNumber
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=1001))
+    # Make sure the private group is resolvable by name and by GID
+    ent.assert_group_by_name("user1", dict(gid=1001, mem=ent.contains_only()))
+    ent.assert_group_by_gid(1001, dict(name="user1", mem=ent.contains_only()))
+
+    # Let's request the group with the same ID as user2's private group
+    # The request should match the 'real' group
+    ent.assert_group_by_gid(1002, dict(name="group2", mem=ent.contains_only()))
+    # But because of the GID conflict, the user cannot be resolved
+    with pytest.raises(KeyError):
+        pwd.getpwnam("user2")
+
+    # This user's GID is the same as the UID in this entry. The most important
+    # thing here is that the supplementary groups are correct and the GID
+    # resolves to the private group (as long as the user was requested first)
+    user3_expected_gids = [1003, 2015]
+    ent.assert_passwd_by_name("user3", dict(name="user3", uid=1003, gid=1003))
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user3", 1003)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(user3_expected_gids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user3_expected_gids)])
+        )
+    # Make sure the private group is resolvable by name and by GID
+    ent.assert_group_by_gid(1003, dict(name="user3", mem=ent.contains_only()))
+    ent.assert_group_by_name("user3", dict(gid=1003, mem=ent.contains_only()))
+
+
+@pytest.fixture
+def mpg_setup_no_gid(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+
+    ent_list.add_group_bis("group1", 2001)
+    ent_list.add_group_bis("one_user_group1", 2015, ["user1"])
+
+    create_ldap_entries(ldap_conn, ent_list)
+    create_ldap_cleanup(request, ldap_conn, None)
+
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
+        unindent("""
+            [domain/LDAP]
+            auto_private_groups = True
+            ldap_user_gid_number = no_such_attribute
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_ldap_auto_private_groups_direct_no_gid(ldap_conn, mpg_setup_no_gid):
+    """
+    Integration test for auto_private_groups - test that even a user with
+    no GID assigned at all can be resolved including their autogenerated
+    primary group.
+
+    See also ticket https://pagure.io/SSSD/sssd/issue/1872
+    """
+    # Make sure the user's GID is taken from their uidNumber
+    ent.assert_passwd_by_name("user1", dict(name="user1", uid=1001, gid=1001))
+    # Make sure the private group is resolvable by name and by GID
+    ent.assert_group_by_name("user1", dict(gid=1001, mem=ent.contains_only()))
+    ent.assert_group_by_gid(1001, dict(name="user1", mem=ent.contains_only()))
+
+    # The group referenced in user's gidNumber attribute should be still
+    # visible, but shouldn't have any relation to the user
+    ent.assert_group_by_name("group1", dict(gid=2001, mem=ent.contains_only()))
+    ent.assert_group_by_gid(2001, dict(name="group1", mem=ent.contains_only()))
+
+    # The user's secondary groups list must be correct as well. This time only
+    # the generated group and the explicit secondary group are added, since
+    # there is no original GID
+    user1_expected_gids = [1001, 2015]
+    (res, errno, gids) = sssd_id.call_sssd_initgroups("user1", 1001)
+    assert res == sssd_id.NssReturnCode.SUCCESS
+
+    assert sorted(gids) == sorted(user1_expected_gids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
+        )
