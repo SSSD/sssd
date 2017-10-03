@@ -936,6 +936,14 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    ret = get_entry_as_bool(res->msgs[0], &domain->mpg,
+                            CONFDB_DOMAIN_AUTO_UPG, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for %s\n", CONFDB_DOMAIN_AUTO_UPG);
+        goto done;
+    }
+
     if (strcasecmp(domain->provider, "local") == 0) {
         /* If this is the local provider, we need to ensure that
          * no other provider was specified for other types, since
