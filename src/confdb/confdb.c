@@ -1111,14 +1111,6 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = get_entry_as_bool(res->msgs[0], &domain->legacy_passwords,
-                            CONFDB_DOMAIN_LEGACY_PASS, 0);
-    if(ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for %s\n", CONFDB_DOMAIN_LEGACY_PASS);
-        goto done;
-    }
-
     /* Get the global entry cache timeout setting */
     ret = get_entry_as_uint32(res->msgs[0], &entry_cache_timeout,
                               CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT, 5400);

@@ -164,7 +164,6 @@ option_strings = {
     'max_id' : _('Maximum user ID'),
     'enumerate' : _('Enable enumerating all users/groups'),
     'cache_credentials' : _('Cache credentials for offline login'),
-    'store_legacy_passwords' : _('Store password hashes'),
     'use_fully_qualified_names' : _('Display users/groups in fully-qualified form'),
     'ignore_group_members' : _('Don\'t include group members in group lookups'),
     'entry_cache_timeout' : _('Entry cache timeout length (seconds)'),
