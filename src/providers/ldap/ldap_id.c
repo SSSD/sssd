@@ -694,6 +694,8 @@ struct groups_get_state {
 static int groups_get_retry(struct tevent_req *req);
 static void groups_get_connect_done(struct tevent_req *subreq);
 static void groups_get_posix_check_done(struct tevent_req *subreq);
+static void groups_get_mpg_done(struct tevent_req *subreq);
+static errno_t groups_get_handle_no_group(struct tevent_req *req);
 static void groups_get_search(struct tevent_req *req);
 static void groups_get_done(struct tevent_req *subreq);
 
@@ -1051,8 +1053,6 @@ static void groups_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
-    char *endptr;
-    gid_t gid;
     int dp_error = DP_ERR_FATAL;
     int ret;
 
@@ -1078,55 +1078,129 @@ static void groups_get_done(struct tevent_req *subreq)
         return;
     }
 
-    if (ret == ENOENT && state->noexist_delete == true) {
-        switch (state->filter_type) {
-        case BE_FILTER_ENUM:
-            tevent_req_error(req, ret);
+    if (ret == ENOENT
+            && state->domain->mpg == true) {
+        /* The requested filter did not find a group. Before giving up, we must
+         * also check if the GID can be resolved through a primary group of a
+         * user
+         */
+        subreq = users_get_send(state,
+                                state->ev,
+                                state->ctx,
+                                state->sdom,
+                                state->conn,
+                                state->filter_value,
+                                state->filter_type,
+                                NULL,
+                                state->noexist_delete);
+        if (subreq == NULL) {
+            tevent_req_error(req, ENOMEM);
             return;
-        case BE_FILTER_NAME:
-            ret = sysdb_delete_group(state->domain, state->filter_value, 0);
-            if (ret != EOK && ret != ENOENT) {
-                tevent_req_error(req, ret);
-                return;
-            }
-            break;
-
-        case BE_FILTER_IDNUM:
-            gid = (gid_t) strtouint32(state->filter_value, &endptr, 10);
-            if (errno || *endptr || (state->filter_value == endptr)) {
-                tevent_req_error(req, errno ? errno : EINVAL);
-                return;
-            }
-
-            ret = sysdb_delete_group(state->domain, NULL, gid);
-            if (ret != EOK && ret != ENOENT) {
-                tevent_req_error(req, ret);
-                return;
-            }
-            break;
-
-        case BE_FILTER_SECID:
-        case BE_FILTER_UUID:
-            /* Since it is not clear if the SID/UUID belongs to a user or a
-             * group we have nothing to do here. */
-            break;
-
-        case BE_FILTER_WILDCARD:
-            /* We can't know if all groups are up-to-date, especially in
-             * a large environment. Do not delete any records, let the
-             * responder fetch the entries they are requested in.
-             */
-            break;
-
-
-        default:
-            tevent_req_error(req, EINVAL);
+        }
+        tevent_req_set_callback(subreq, groups_get_mpg_done, req);
+        return;
+    } else if (ret == ENOENT && state->noexist_delete == true) {
+        ret = groups_get_handle_no_group(req);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not delete group [%d]: %s\n", ret, sss_strerror(ret));
+            tevent_req_error(req, ret);
             return;
         }
     }
 
     state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
+}
+
+static void groups_get_mpg_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct groups_get_state *state = tevent_req_data(req,
+                                                     struct groups_get_state);
+
+    ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->sdap_ret == ENOENT && state->noexist_delete == true) {
+        ret = groups_get_handle_no_group(req);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Could not delete group [%d]: %s\n", ret, sss_strerror(ret));
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
+    /* GID resolved to a user private group, done */
+    tevent_req_done(req);
+    return;
+}
+
+static errno_t groups_get_handle_no_group(struct tevent_req *req)
+{
+    struct groups_get_state *state = tevent_req_data(req,
+                                                     struct groups_get_state);
+    errno_t ret;
+    char *endptr;
+    gid_t gid;
+
+    switch (state->filter_type) {
+    case BE_FILTER_ENUM:
+        ret = ENOENT;
+        break;
+    case BE_FILTER_NAME:
+        ret = sysdb_delete_group(state->domain, state->filter_value, 0);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot delete group %s [%d]: %s\n",
+                  state->filter_value, ret, sss_strerror(ret));
+            return ret;
+        }
+        ret = EOK;
+        break;
+    case BE_FILTER_IDNUM:
+        gid = (gid_t) strtouint32(state->filter_value, &endptr, 10);
+        if (errno || *endptr || (state->filter_value == endptr)) {
+            ret = errno ? errno : EINVAL;
+            break;
+        }
+
+        ret = sysdb_delete_group(state->domain, NULL, gid);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot delete group %"SPRIgid" [%d]: %s\n",
+                  gid, ret, sss_strerror(ret));
+            return ret;
+        }
+        ret = EOK;
+        break;
+    case BE_FILTER_SECID:
+    case BE_FILTER_UUID:
+        /* Since it is not clear if the SID/UUID belongs to a user or a
+         * group we have nothing to do here. */
+        ret = EOK;
+        break;
+    case BE_FILTER_WILDCARD:
+        /* We can't know if all groups are up-to-date, especially in
+         * a large environment. Do not delete any records, let the
+         * responder fetch the entries they are requested in.
+         */
+        ret = EOK;
+        break;
+    default:
+        ret = EINVAL;
+        break;
+    }
+
+    return ret;
 }
 
 int groups_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret)
