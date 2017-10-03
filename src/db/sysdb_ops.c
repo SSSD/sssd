@@ -2710,7 +2710,7 @@ int sysdb_store_user(struct sss_domain_info *domain,
         }
     }
 
-    if (pwd && (domain->legacy_passwords || !*pwd)) {
+    if (pwd && !*pwd) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_PWD, pwd);
         if (ret) goto done;
     }
