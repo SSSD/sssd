@@ -74,6 +74,7 @@ intgcheck-installed: config.py passwd group
 	cd "$(abs_srcdir)"; \
 	nss_wrapper=$$(pkg-config --libs nss_wrapper); \
 	uid_wrapper=$$(pkg-config --libs uid_wrapper); \
+	unset HOME; \
 	PATH="$$(dirname -- $(SLAPD)):$$PATH" \
 	PATH="$(DESTDIR)$(sbindir):$(DESTDIR)$(bindir):$$PATH" \
 	PATH="$(abs_builddir):$(abs_srcdir):$$PATH" \
