@@ -114,3 +114,12 @@ AM_COND_IF([BUILD_KRB5_LOCALAUTH_PLUGIN],
 
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
+
+AC_CHECK_PROG([HAVE_KRB5KDC], [krb5kdc], [yes], [no])
+AC_CHECK_PROG([HAVE_KDB5_UTIL], [kdb5_util], [yes], [no])
+AC_CHECK_PROG([HAVE_KINIT], [kinit], [yes], [no])
+AC_CHECK_PROG([HAVE_KVNO], [kvno], [yes], [no])
+AC_CHECK_PROG([HAVE_KDESTROY], [kdestroy], [yes], [no])
+AC_CHECK_PROG([HAVE_KSWITCH], [kswitch], [yes], [no])
+AC_CHECK_PROG([HAVE_KLIST], [klist], [yes], [no])
+AC_CHECK_PROG([HAVE_KADMIN_LOCAL], [kadmin.local], [yes], [no])

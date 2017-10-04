@@ -19,7 +19,11 @@
 
 set -o nounset -o pipefail -o errexit
 declare -r CI_DIR=`dirname "\`readlink -f \"\$0\"\`"`
-export PATH=$CI_DIR:$PATH
+# sbin is not part of the PATH when running our CI.
+# As some binaries checks depend on having sbin in the
+# PATH, let's add it manually here.
+declare -r SBIN_PATH="/usr/local/sbin:/sbin:/usr/sbin"
+export PATH=$CI_DIR:$SBIN_PATH:$PATH
 export LC_ALL=C
 
 . deps.sh

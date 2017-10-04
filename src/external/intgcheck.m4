@@ -29,5 +29,13 @@ AC_DEFUN([SSS_ENABLE_INTGCHECK_REQS], [
         SSS_INTGCHECK_REQ([HAVE_PYTEST], [pytest])
         SSS_INTGCHECK_REQ([HAVE_PY2MOD_LDAP], [python-ldap])
         SSS_INTGCHECK_REQ([HAVE_PY2MOD_LDAP], [pyldb])
+        SSS_INTGCHECK_REQ([HAVE_KRB5KDC], [krb5kdc])
+        SSS_INTGCHECK_REQ([HAVE_KDB5_UTIL], [kdb5_util])
+        SSS_INTGCHECK_REQ([HAVE_KINIT], [kinit])
+        SSS_INTGCHECK_REQ([HAVE_KVNO], [kvno])
+        SSS_INTGCHECK_REQ([HAVE_KDESTROY], [kdestroy])
+        SSS_INTGCHECK_REQ([HAVE_KSWITCH], [kswitch])
+        SSS_INTGCHECK_REQ([HAVE_KLIST], [klist])
+        SSS_INTGCHECK_REQ([HAVE_KADMIN_LOCAL], [kadmin.local])
     fi
 ])
