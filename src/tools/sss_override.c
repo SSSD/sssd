@@ -341,6 +341,12 @@ static struct sysdb_attrs *build_attrs(TALLOC_CTX *mem_ctx,
             goto done;
         }
     }
+    
+    if(uid == 0 && gid == 0 || uid != 0 && gid == 0 || uid == 0 && gid != 0) {
+        fprintf(stderr, _("Setting uid or gid as 0 is not allowed\n"));
+        ret = EINVAL;
+        goto done;
+    }
 
     if (home != NULL) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_HOMEDIR, home);
