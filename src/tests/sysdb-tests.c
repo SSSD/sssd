@@ -6266,6 +6266,13 @@ START_TEST(test_upn_basic)
     fail_unless(strcmp(str, UPN_PRINC) == 0,
                 "Expected [%s], got [%s].", UPN_PRINC, str);
 
+    /* check if input is sanitized */
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   "abc@def.ghi)(name="UPN_USER_NAME")(abc=xyz",
+                                   NULL, &msg);
+    fail_unless(ret == ENOENT,
+                "sysdb_search_user_by_upn failed with un-sanitized input.");
+
     talloc_free(test_ctx);
 }
 END_TEST
