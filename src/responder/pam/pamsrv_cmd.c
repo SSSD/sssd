@@ -1568,12 +1568,12 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                                             preq->module_name,
                                             preq->key_id,
                                             SSS_PAM_CERT_INFO_WITH_HINT);
+                preq->pd->pam_status = PAM_SUCCESS;
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
                     preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
                 }
                 ret = EOK;
-                preq->pd->pam_status = PAM_SUCCESS;
                 pam_reply(preq);
                 goto done;
             }
