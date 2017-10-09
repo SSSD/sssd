@@ -953,6 +953,7 @@ done:
 
 static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
                                       const char *err_msg, void *ptr);
+static int nss_cmd_assume_upn(struct nss_dom_ctx *dctx);
 
 /* search for a user.
  * Returns:
@@ -973,6 +974,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_message *msg;
     const char *extra_flag = NULL;
+    char *neg_cache_name;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1007,10 +1009,16 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             return ENOMEM;
         }
 
+        if (cmdctx->name_is_upn) {
+            neg_cache_name = talloc_asprintf(name, "@%s", name);
+        } else {
+            neg_cache_name = name;
+        }
+
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
         ret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
-                                    dom, name);
+                                    dom, neg_cache_name);
 
         /* if neg cached, return we didn't find it */
         if (ret == EEXIST) {
@@ -1029,6 +1037,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             /* There are no further domains or this was a
              * fully-qualified user request.
              */
+
             return ENOENT;
         }
 
@@ -1090,7 +1099,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
+            ret = sss_ncache_set_user(nctx->ncache, false, dom,
+                                      neg_cache_name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for %s@%s\n",
                       name, dom->name);
@@ -1105,8 +1115,6 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
                 }
                 if (dom) continue;
             }
-
-            DEBUG(SSSDBG_OP_FAILURE, "No results for getpwnam call\n");
 
             /* User not found in ldb -> delete user from memory cache. */
             ret = delete_entry_from_memcache(dctx->domain, name,
@@ -1123,6 +1131,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Deleting user from memcache failed.\n");
             }
+
+            DEBUG(SSSDBG_OP_FAILURE, "No results for getpwnam call\n");
 
             return ENOENT;
         }
@@ -1178,7 +1188,7 @@ static int nss_cmd_assume_upn(struct nss_dom_ctx *dctx)
 {
     int ret;
 
-    if (dctx->domain == NULL) {
+    if (dctx->cmdctx->name_is_upn == false) {
         dctx->domain = dctx->cmdctx->cctx->rctx->domains;
         dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         dctx->cmdctx->check_next = true;
@@ -1523,6 +1533,7 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
 
     rawname = (const char *)body;
     dctx->mc_name = rawname;
+    dctx->rawname = rawname;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Running command [%d][%s] with input [%s].\n",
           cmd, sss_cmd2str(dctx->cmdctx->cmd), rawname);
@@ -1548,7 +1559,6 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
         if (req == NULL) {
             ret = ENOMEM;
         } else {
-            dctx->rawname = rawname;
             tevent_req_set_callback(req, nss_cmd_getbynam_done, dctx);
             ret = EAGAIN;
         }
@@ -1564,7 +1574,6 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
         if (req == NULL) {
             ret = ENOMEM;
         } else {
-            dctx->rawname = rawname;
             tevent_req_set_callback(req, nss_cmd_getbynam_done, dctx);
             ret = EAGAIN;
         }
@@ -1586,7 +1595,6 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
     } else {
         /* this is a multidomain search */
-        dctx->rawname = rawname;
         dctx->domain = cctx->rctx->domains;
         cmdctx->check_next = true;
         if (cctx->rctx->get_domains_last_call.tv_sec == 0) {

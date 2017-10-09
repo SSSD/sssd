@@ -1019,6 +1019,39 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
 static int pam_check_user_search(struct pam_auth_req *preq);
 static int pam_check_user_done(struct pam_auth_req *preq, int ret);
 
+static errno_t pam_cmd_assume_upn(struct pam_auth_req *preq)
+{
+    int ret;
+
+    if (!preq->pd->name_is_upn
+            && preq->pd->logon_name != NULL
+            && strchr(preq->pd->logon_name, '@') != NULL) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "No entry found so far, trying UPN/email lookup with [%s].\n",
+              preq->pd->logon_name);
+        /* Assuming Kerberos principal */
+        preq->domain = preq->cctx->rctx->domains;
+        preq->check_provider =
+                            NEED_CHECK_PROVIDER(preq->domain->provider);
+        preq->pd->user = talloc_strdup(preq->pd, preq->pd->logon_name);
+        if (preq->pd->user == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            return ENOMEM;
+        }
+        preq->pd->name_is_upn = true;
+        preq->pd->domain = NULL;
+
+        ret = pam_check_user_search(preq);
+        if (ret == EOK) {
+            pam_dom_forwarder(preq);
+        }
+        return EOK;
+    }
+
+    return ENOENT;
+}
+
+
 /* TODO: we should probably return some sort of cookie that is set in the
  * PAM_ENVIRONMENT, so that we can save performing some calls and cache
  * data. */
@@ -1298,6 +1331,8 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     ret = pam_check_user_search(preq);
     if (ret == EOK) {
         pam_dom_forwarder(preq);
+    } else if (ret == ENOENT) {
+        ret = pam_cmd_assume_upn(preq);
     }
 
 done:
@@ -1496,6 +1531,8 @@ static void pam_forwarder_cb(struct tevent_req *req)
     ret = pam_check_user_search(preq);
     if (ret == EOK) {
         pam_dom_forwarder(preq);
+    } else if  (ret == ENOENT) {
+        ret = pam_cmd_assume_upn(preq);
     }
 
 done:
@@ -1516,6 +1553,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_message *msg;
     struct ldb_result *res;
+    const char *sysdb_name;
 
     while (dom) {
        /* if it is a domainless search, skip domains that require fully
@@ -1582,6 +1620,22 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         if (preq->pd->name_is_upn) {
             ret = sysdb_search_user_by_upn(preq, dom, name, user_attrs, &msg);
+
+            /* Since sysdb_search_user_by_upn() searches the whole cache we
+             * have to set the domain so that it matches the result. */
+            sysdb_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+            if (sysdb_name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Cached entry has no name.\n");
+                return EINVAL;
+            }
+            preq->domain = find_domain_by_object_name(get_domains_head(dom),
+                                                      sysdb_name);
+            if (preq->domain == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Cannot find matching domain for [%s].\n",
+                      sysdb_name);
+                return EINVAL;
+            }
         } else {
             ret = sysdb_getpwnam_with_views(preq, dom, name, &res);
             if (res->count > 1) {
@@ -1779,6 +1833,8 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
         }
 
         pam_dom_forwarder(preq);
+    } else if (ret == ENOENT) {
+        ret = pam_cmd_assume_upn(preq);
     }
 
     ret = pam_check_user_done(preq, ret);
