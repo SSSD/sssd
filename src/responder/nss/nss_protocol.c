@@ -134,6 +134,61 @@ nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
 }
 
 errno_t
+nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
+                           uint32_t *_flags)
+{
+    struct cli_protocol *pctx;
+    const char *rawname;
+    uint8_t *body;
+    size_t blen;
+    uint8_t *p;
+    uint32_t flags;
+
+    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
+
+    if (blen < 1 + sizeof(uint32_t)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Body too short!\n");
+        return EINVAL;
+    }
+
+    /* If first argument not terminated fail. */
+    if (body[blen - 1 - sizeof(uint32_t)] != '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated!\n");
+        return EINVAL;
+    }
+
+    p = memchr(body, '\0', blen);
+
+    /* If the body isn't valid UTF-8, fail */
+    if (!sss_utf8_check(body, (p - body))) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "First argument is not UTF-8 string!\n");
+        return EINVAL;
+    }
+
+    rawname = (const char *)body;
+    if (rawname[0] == '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE, "An empty name was provided!\n");
+        return EINVAL;
+    }
+
+    p++;
+    if ((p - body) + sizeof(uint32_t) != blen) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Body has unexpected size!\n");
+        return EINVAL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&flags, p, NULL);
+    p += sizeof(uint32_t);
+
+    *_rawname = rawname;
+    *_flags = flags;
+
+    return EOK;
+}
+
+errno_t
 nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id)
 {
     struct cli_protocol *pctx;
@@ -150,6 +205,32 @@ nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id)
     }
 
     SAFEALIGN_COPY_UINT32(&id, body, NULL);
+
+    *_id = id;
+
+    return EOK;
+}
+
+errno_t
+nss_protocol_parse_id_ex(struct cli_ctx *cli_ctx, uint32_t *_id,
+                         uint32_t *_flags)
+{
+    struct cli_protocol *pctx;
+    uint8_t *body;
+    size_t blen;
+    uint32_t id;
+    uint32_t flags;
+
+    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
+
+    if (blen != 2 * sizeof(uint32_t)) {
+        return EINVAL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&id, body, NULL);
+    SAFEALIGN_COPY_UINT32(&flags, body + sizeof(uint32_t), NULL);
 
     *_id = id;
 
