@@ -89,7 +89,15 @@ errno_t
 nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname);
 
 errno_t
+nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
+                           uint32_t *_flags);
+
+errno_t
 nss_protocol_parse_id(struct cli_ctx *cli_ctx, uint32_t *_id);
+
+errno_t
+nss_protocol_parse_id_ex(struct cli_ctx *cli_ctx, uint32_t *_id,
+                         uint32_t *_flags);
 
 errno_t
 nss_protocol_parse_limit(struct cli_ctx *cli_ctx, uint32_t *_limit);

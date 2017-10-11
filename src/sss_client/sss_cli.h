@@ -79,6 +79,9 @@ enum sss_cli_command {
     SSS_NSS_GETPWENT       = 0x0014,
     SSS_NSS_ENDPWENT       = 0x0015,
 
+    SSS_NSS_GETPWNAM_EX    = 0x0019,
+    SSS_NSS_GETPWUID_EX    = 0x001A,
+
 /* group */
 
     SSS_NSS_GETGRNAM       = 0x0021,
@@ -87,6 +90,10 @@ enum sss_cli_command {
     SSS_NSS_GETGRENT       = 0x0024,
     SSS_NSS_ENDGRENT       = 0x0025,
     SSS_NSS_INITGR         = 0x0026,
+
+    SSS_NSS_GETGRNAM_EX    = 0x0029,
+    SSS_NSS_GETGRGID_EX    = 0x002A,
+    SSS_NSS_INITGR_EX      = 0x002E,
 
 #if 0
 /* aliases */

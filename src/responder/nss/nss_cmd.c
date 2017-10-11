@@ -54,6 +54,7 @@ static void nss_getby_done(struct tevent_req *subreq);
 static void nss_getlistby_done(struct tevent_req *subreq);
 
 static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
+                              bool ex_version,
                               enum cache_req_type type,
                               const char **attrs,
                               enum sss_mc_type memcache,
@@ -64,6 +65,7 @@ static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
     struct tevent_req *subreq;
     const char *rawname;
     errno_t ret;
+    uint32_t flags = 0;
 
     cmd_ctx = nss_cmd_ctx_create(cli_ctx, cli_ctx, type, fill_fn);
     if (cmd_ctx == NULL) {
@@ -71,7 +73,11 @@ static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
         goto done;
     }
 
-    ret = nss_protocol_parse_name(cli_ctx, &rawname);
+    if (ex_version) {
+        ret = nss_protocol_parse_name_ex(cli_ctx, &rawname, &flags);
+    } else {
+        ret = nss_protocol_parse_name(cli_ctx, &rawname);
+    }
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request message!\n");
         goto done;
@@ -108,6 +114,7 @@ done:
 }
 
 static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
+                            bool ex_version,
                             enum cache_req_type type,
                             const char **attrs,
                             enum sss_mc_type memcache,
@@ -118,6 +125,7 @@ static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
     struct tevent_req *subreq;
     uint32_t id;
     errno_t ret;
+    uint32_t flags = 0;
 
     cmd_ctx = nss_cmd_ctx_create(cli_ctx, cli_ctx, type, fill_fn);
     if (cmd_ctx == NULL) {
@@ -125,7 +133,11 @@ static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
         goto done;
     }
 
-    ret = nss_protocol_parse_id(cli_ctx, &id);
+    if (ex_version) {
+        ret = nss_protocol_parse_id_ex(cli_ctx, &id, &flags);
+    } else {
+        ret = nss_protocol_parse_id(cli_ctx, &id);
+    }
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request message!\n");
         goto done;
@@ -766,14 +778,26 @@ static errno_t nss_endent(struct cli_ctx *cli_ctx,
 
 static errno_t nss_cmd_getpwnam(struct cli_ctx *cli_ctx)
 {
-    return nss_getby_name(cli_ctx, CACHE_REQ_USER_BY_NAME, NULL, SSS_MC_PASSWD,
-                          nss_protocol_fill_pwent);
+    return nss_getby_name(cli_ctx, false, CACHE_REQ_USER_BY_NAME, NULL,
+                          SSS_MC_PASSWD, nss_protocol_fill_pwent);
 }
 
 static errno_t nss_cmd_getpwuid(struct cli_ctx *cli_ctx)
 {
-    return nss_getby_id(cli_ctx, CACHE_REQ_USER_BY_ID, NULL, SSS_MC_PASSWD,
-                        nss_protocol_fill_pwent);
+    return nss_getby_id(cli_ctx, false, CACHE_REQ_USER_BY_ID, NULL,
+                        SSS_MC_PASSWD, nss_protocol_fill_pwent);
+}
+
+static errno_t nss_cmd_getpwnam_ex(struct cli_ctx *cli_ctx)
+{
+    return nss_getby_name(cli_ctx, true, CACHE_REQ_USER_BY_NAME, NULL,
+                          SSS_MC_PASSWD, nss_protocol_fill_pwent);
+}
+
+static errno_t nss_cmd_getpwuid_ex(struct cli_ctx *cli_ctx)
+{
+    return nss_getby_id(cli_ctx, true, CACHE_REQ_USER_BY_ID, NULL,
+                        SSS_MC_PASSWD, nss_protocol_fill_pwent);
 }
 
 static errno_t nss_cmd_setpwent(struct cli_ctx *cli_ctx)
@@ -809,15 +833,28 @@ static errno_t nss_cmd_endpwent(struct cli_ctx *cli_ctx)
 
 static errno_t nss_cmd_getgrnam(struct cli_ctx *cli_ctx)
 {
-    return nss_getby_name(cli_ctx, CACHE_REQ_GROUP_BY_NAME, NULL, SSS_MC_GROUP,
-                          nss_protocol_fill_grent);
+    return nss_getby_name(cli_ctx, false, CACHE_REQ_GROUP_BY_NAME, NULL,
+                          SSS_MC_GROUP, nss_protocol_fill_grent);
 }
 
 static errno_t nss_cmd_getgrgid(struct cli_ctx *cli_ctx)
 {
-    return nss_getby_id(cli_ctx, CACHE_REQ_GROUP_BY_ID, NULL, SSS_MC_GROUP,
-                        nss_protocol_fill_grent);
+    return nss_getby_id(cli_ctx, false, CACHE_REQ_GROUP_BY_ID, NULL,
+                        SSS_MC_GROUP, nss_protocol_fill_grent);
 }
+
+static errno_t nss_cmd_getgrnam_ex(struct cli_ctx *cli_ctx)
+{
+    return nss_getby_name(cli_ctx, true, CACHE_REQ_GROUP_BY_NAME, NULL,
+                          SSS_MC_GROUP, nss_protocol_fill_grent);
+}
+
+static errno_t nss_cmd_getgrgid_ex(struct cli_ctx *cli_ctx)
+{
+    return nss_getby_id(cli_ctx, true, CACHE_REQ_GROUP_BY_ID, NULL,
+                        SSS_MC_GROUP, nss_protocol_fill_grent);
+}
+
 
 static errno_t nss_cmd_setgrent(struct cli_ctx *cli_ctx)
 {
@@ -852,7 +889,13 @@ static errno_t nss_cmd_endgrent(struct cli_ctx *cli_ctx)
 
 static errno_t nss_cmd_initgroups(struct cli_ctx *cli_ctx)
 {
-    return nss_getby_name(cli_ctx, CACHE_REQ_INITGROUPS, NULL,
+    return nss_getby_name(cli_ctx, false, CACHE_REQ_INITGROUPS, NULL,
+                          SSS_MC_INITGROUPS, nss_protocol_fill_initgr);
+}
+
+static errno_t nss_cmd_initgroups_ex(struct cli_ctx *cli_ctx)
+{
+    return nss_getby_name(cli_ctx, true, CACHE_REQ_INITGROUPS, NULL,
                           SSS_MC_INITGROUPS, nss_protocol_fill_initgr);
 }
 
@@ -943,7 +986,7 @@ static errno_t nss_cmd_getsidbyname(struct cli_ctx *cli_ctx)
 {
     const char *attrs[] = { SYSDB_SID_STR, NULL };
 
-    return nss_getby_name(cli_ctx, CACHE_REQ_OBJECT_BY_NAME, attrs,
+    return nss_getby_name(cli_ctx, false, CACHE_REQ_OBJECT_BY_NAME, attrs,
                           SSS_MC_NONE, nss_protocol_fill_sid);
 }
 
@@ -951,7 +994,7 @@ static errno_t nss_cmd_getsidbyid(struct cli_ctx *cli_ctx)
 {
     const char *attrs[] = { SYSDB_SID_STR, NULL };
 
-    return nss_getby_id(cli_ctx, CACHE_REQ_OBJECT_BY_ID, attrs,
+    return nss_getby_id(cli_ctx, false, CACHE_REQ_OBJECT_BY_ID, attrs,
                         SSS_MC_NONE, nss_protocol_fill_sid);
 }
 
@@ -1006,7 +1049,7 @@ static errno_t nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
         attrs = defattrs;
     }
 
-    return nss_getby_name(cli_ctx, CACHE_REQ_OBJECT_BY_NAME, attrs,
+    return nss_getby_name(cli_ctx, false, CACHE_REQ_OBJECT_BY_NAME, attrs,
                           SSS_MC_NONE, nss_protocol_fill_orig);
 }
 
@@ -1051,6 +1094,11 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_GETORIGBYNAME, nss_cmd_getorigbyname },
         { SSS_NSS_GETNAMEBYCERT, nss_cmd_getnamebycert },
         { SSS_NSS_GETLISTBYCERT, nss_cmd_getlistbycert },
+        { SSS_NSS_GETPWNAM_EX, nss_cmd_getpwnam_ex },
+        { SSS_NSS_GETPWUID_EX, nss_cmd_getpwuid_ex },
+        { SSS_NSS_GETGRNAM_EX, nss_cmd_getgrnam_ex },
+        { SSS_NSS_GETGRGID_EX, nss_cmd_getgrgid_ex },
+        { SSS_NSS_INITGR_EX, nss_cmd_initgroups_ex },
         { SSS_CLI_NULL, NULL }
     };
 

@@ -61,31 +61,37 @@ errno_t sss_nss_mc_get(struct nss_input *inp)
 {
     switch(inp->cmd) {
     case SSS_NSS_GETPWNAM:
-        return sss_nss_mc_getpwnam(inp->input.name, (inp->rd.len - 1),
+    case SSS_NSS_GETPWNAM_EX:
+        return sss_nss_mc_getpwnam(inp->input.name, strlen(inp->input.name),
                                    inp->result.pwrep.result,
                                    inp->result.pwrep.buffer,
                                    inp->result.pwrep.buflen);
         break;
     case SSS_NSS_GETPWUID:
+    case SSS_NSS_GETPWUID_EX:
         return sss_nss_mc_getpwuid(inp->input.uid,
                                    inp->result.pwrep.result,
                                    inp->result.pwrep.buffer,
                                    inp->result.pwrep.buflen);
         break;
     case SSS_NSS_GETGRNAM:
-        return sss_nss_mc_getgrnam(inp->input.name, (inp->rd.len - 1),
+    case SSS_NSS_GETGRNAM_EX:
+        return sss_nss_mc_getgrnam(inp->input.name, strlen(inp->input.name),
                                    inp->result.grrep.result,
                                    inp->result.grrep.buffer,
                                    inp->result.grrep.buflen);
         break;
     case SSS_NSS_GETGRGID:
+    case SSS_NSS_GETGRGID_EX:
         return sss_nss_mc_getgrgid(inp->input.gid,
                                    inp->result.grrep.result,
                                    inp->result.grrep.buffer,
                                    inp->result.grrep.buflen);
         break;
     case SSS_NSS_INITGR:
-        return sss_nss_mc_initgroups_dyn(inp->input.name, (inp->rd.len - 1),
+    case SSS_NSS_INITGR_EX:
+        return sss_nss_mc_initgroups_dyn(inp->input.name,
+                                         strlen(inp->input.name),
                                          -1 /* currently ignored */,
                                          inp->result.initgrrep.start,
                                          inp->result.initgrrep.ngroups,
@@ -163,7 +169,7 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
         goto out;
     }
 
-    if (inp->cmd == SSS_NSS_INITGR) {
+    if (inp->cmd == SSS_NSS_INITGR || inp->cmd == SSS_NSS_INITGR_EX) {
         if ((*(inp->result.initgrrep.ngroups) - *(inp->result.initgrrep.start))
                     < num_results) {
             new_groups = realloc(inp->result.initgrrep.groups,
@@ -198,15 +204,24 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
     }
 
     len = replen - 8;
-    if (inp->cmd == SSS_NSS_GETPWNAM || inp->cmd == SSS_NSS_GETPWUID) {
+
+    switch(inp->cmd) {
+    case SSS_NSS_GETPWNAM:
+    case SSS_NSS_GETPWUID:
+    case SSS_NSS_GETPWNAM_EX:
+    case SSS_NSS_GETPWUID_EX:
         ret = sss_nss_getpw_readrep(&(inp->result.pwrep), repbuf+8, &len);
-    } else if (inp->cmd == SSS_NSS_GETGRNAM || inp->cmd == SSS_NSS_GETGRGID) {
+        break;
+    case SSS_NSS_GETGRNAM:
+    case SSS_NSS_GETGRGID:
+    case SSS_NSS_GETGRNAM_EX:
+    case SSS_NSS_GETGRGID_EX:
         ret = sss_nss_getgr_readrep(&(inp->result.grrep), repbuf+8, &len);
-    } else {
+        break;
+    default:
         ret = EINVAL;
-        goto out;
     }
-    if (ret) {
+    if (ret != 0) {
         goto out;
     }
 
@@ -223,6 +238,39 @@ out:
     return ret;
 }
 
+static int make_name_flag_req_data(const char *name, uint32_t flags,
+                                   struct sss_cli_req_data *rd)
+{
+    size_t len;
+    size_t name_len;
+    uint8_t *data;
+    int ret;
+
+    if (name == NULL) {
+        return EINVAL;
+    }
+
+    ret = sss_strnlen(name, SSS_NAME_MAX, &name_len);
+    if (ret != 0) {
+        return ret;
+    }
+    name_len++;
+
+    len = name_len + sizeof(uint32_t);
+    data = malloc(len);
+    if (data == NULL) {
+        return ENOMEM;
+    }
+
+    memcpy(data, name, name_len);
+    SAFEALIGN_COPY_UINT32(data + name_len, &flags, NULL);
+
+    rd->len = len;
+    rd->data = data;
+
+    return 0;
+}
+
 int sss_nss_getpwnam_timeout(const char *name, struct passwd *pwd,
                              char *buffer, size_t buflen,
                              struct passwd **result,
@@ -231,8 +279,7 @@ int sss_nss_getpwnam_timeout(const char *name, struct passwd *pwd,
     int ret;
     struct nss_input inp = {
         .input.name = name,
-        .cmd = SSS_NSS_GETPWNAM,
-        .rd.data = name,
+        .cmd = SSS_NSS_GETPWNAM_EX,
         .result.pwrep.result = pwd,
         .result.pwrep.buffer = buffer,
         .result.pwrep.buflen = buflen};
@@ -241,15 +288,15 @@ int sss_nss_getpwnam_timeout(const char *name, struct passwd *pwd,
         return ERANGE;
     }
 
-    ret = sss_strnlen(name, SSS_NAME_MAX, &inp.rd.len);
+    ret = make_name_flag_req_data(name, flags, &inp.rd);
     if (ret != 0) {
-        return EINVAL;
+        return ret;
     }
-    inp.rd.len++;
 
     *result = NULL;
 
     ret = sss_get_ex(&inp, flags, timeout);
+    free(discard_const(inp.rd.data));
     if (ret == 0) {
         *result = inp.result.pwrep.result;
     }
@@ -262,12 +309,12 @@ int sss_nss_getpwuid_timeout(uid_t uid, struct passwd *pwd,
                              uint32_t flags, unsigned int timeout)
 {
     int ret;
-    uint32_t user_uid = uid;
+    uint32_t req_data[2];
     struct nss_input inp = {
         .input.uid = uid,
-        .cmd = SSS_NSS_GETPWUID,
-        .rd.len = sizeof(uint32_t),
-        .rd.data = &user_uid,
+        .cmd = SSS_NSS_GETPWUID_EX,
+        .rd.len = 2 * sizeof(uint32_t),
+        .rd.data = &req_data,
         .result.pwrep.result = pwd,
         .result.pwrep.buffer = buffer,
         .result.pwrep.buflen = buflen};
@@ -276,6 +323,8 @@ int sss_nss_getpwuid_timeout(uid_t uid, struct passwd *pwd,
         return ERANGE;
     }
 
+    SAFEALIGN_COPY_UINT32(&req_data[0], &uid, NULL);
+    SAFEALIGN_COPY_UINT32(&req_data[1], &flags, NULL);
     *result = NULL;
 
     ret = sss_get_ex(&inp, flags, timeout);
@@ -292,8 +341,7 @@ int sss_nss_getgrnam_timeout(const char *name, struct group *grp,
     int ret;
     struct nss_input inp = {
         .input.name = name,
-        .cmd = SSS_NSS_GETGRNAM,
-        .rd.data = name,
+        .cmd = SSS_NSS_GETGRNAM_EX,
         .result.grrep.result = grp,
         .result.grrep.buffer = buffer,
         .result.grrep.buflen = buflen};
@@ -302,15 +350,15 @@ int sss_nss_getgrnam_timeout(const char *name, struct group *grp,
         return ERANGE;
     }
 
-    ret = sss_strnlen(name, SSS_NAME_MAX, &inp.rd.len);
+    ret = make_name_flag_req_data(name, flags, &inp.rd);
     if (ret != 0) {
-        return EINVAL;
+        return ret;
     }
-    inp.rd.len++;
 
     *result = NULL;
 
     ret = sss_get_ex(&inp, flags, timeout);
+    free(discard_const(inp.rd.data));
     if (ret == 0) {
         *result = inp.result.grrep.result;
     }
@@ -322,12 +370,12 @@ int sss_nss_getgrgid_timeout(gid_t gid, struct group *grp,
                              uint32_t flags, unsigned int timeout)
 {
     int ret;
-    uint32_t group_gid = gid;
+    uint32_t req_data[2];
     struct nss_input inp = {
         .input.gid = gid,
-        .cmd = SSS_NSS_GETGRGID,
-        .rd.len = sizeof(uint32_t),
-        .rd.data = &group_gid,
+        .cmd = SSS_NSS_GETGRGID_EX,
+        .rd.len = 2 * sizeof(uint32_t),
+        .rd.data = &req_data,
         .result.grrep.result = grp,
         .result.grrep.buffer = buffer,
         .result.grrep.buflen = buflen};
@@ -336,6 +384,8 @@ int sss_nss_getgrgid_timeout(gid_t gid, struct group *grp,
         return ERANGE;
     }
 
+    SAFEALIGN_COPY_UINT32(&req_data[0], &gid, NULL);
+    SAFEALIGN_COPY_UINT32(&req_data[1], &flags, NULL);
     *result = NULL;
 
     ret = sss_get_ex(&inp, flags, timeout);
@@ -355,18 +405,16 @@ int sss_nss_getgrouplist_timeout(const char *name, gid_t group,
     long int start = 1;
     struct nss_input inp = {
         .input.name = name,
-        .cmd = SSS_NSS_INITGR,
-        .rd.data = name};
+        .cmd = SSS_NSS_INITGR_EX};
 
     if (groups == NULL || ngroups == NULL || *ngroups == 0) {
         return EINVAL;
     }
 
-    ret = sss_strnlen(name, SSS_NAME_MAX, &inp.rd.len);
+    ret = make_name_flag_req_data(name, flags, &inp.rd);
     if (ret != 0) {
         return ret;
     }
-    inp.rd.len++;
 
     new_ngroups = MAX(1, *ngroups);
     new_groups = malloc(new_ngroups * sizeof(gid_t));
