@@ -32,10 +32,6 @@
 
 static void sss_tool_print_common_opts(int min_len)
 {
-    fprintf(stderr, _("Common options:\n"));
-    fprintf(stderr, "  %-*s\t %s\n", min_len, "--debug=INT",
-                    _("The debug level to run with"));
-    fprintf(stderr, "\n");
     fprintf(stderr, _("Help options:\n"));
     fprintf(stderr, "  %-*s\t %s\n", min_len, "-?, --help",
                     _("Show this for a command"));
@@ -46,7 +42,7 @@ static void sss_tool_print_common_opts(int min_len)
 static struct poptOption *sss_tool_common_opts_table(void)
 {
     static struct poptOption common_opts[] = {
-        {"debug", '\0', POPT_ARG_INT, NULL,
+        {"debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, NULL,
             0, NULL, NULL },
         POPT_TABLEEND
     };
@@ -380,7 +376,7 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
         {NULL, '\0', POPT_ARG_INCLUDE_TABLE, nonnull_popt_table(options), \
          0, _("Command options:"), NULL },
         {NULL, '\0', POPT_ARG_INCLUDE_TABLE, sss_tool_common_opts_table(), \
-         0, _("Common options:"), NULL },
+         0, NULL, NULL },
         POPT_AUTOHELP
         POPT_TABLEEND
     };
