@@ -301,51 +301,24 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
                            void *pvt)
 {
     int ret;
-    int pc_debug = SSSDBG_DEFAULT;
     int debug_to_set = SSSDBG_INVALID;
     const char *debug_as_string = NULL;
     const char *config_file = NULL;
     const char *pc_config_file = NULL;
     struct debuglevel_tool_ctx *ctx = NULL;
     struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        {"debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,
-            0, _("The debug level to run with"), NULL },
         {"config", 'c', POPT_ARG_STRING, &pc_config_file,
             0, _("Specify a non-default config file"), NULL},
         POPT_TABLEEND
     };
-    poptContext pc = NULL;
 
-    debug_prg_name = cmdline->argv[0];
-
-    /* parse parameters */
-    pc = poptGetContext(cmdline->argv[0], cmdline->argc, cmdline->argv,
-                        long_options, POPT_CONTEXT_KEEP_FIRST);
-    poptSetOtherOptionHelp(pc, "DEBUG_LEVEL_TO_SET");
-    while ((ret = poptGetNextOpt(pc)) != -1) {
-        switch (ret) {
-        default:
-            fprintf(stderr, "\nInvalid option %s: %s\n\n",
-                    poptBadOption(pc, 0), poptStrerror(ret));
-            poptPrintUsage(pc, stderr, 0);
-            ret = EXIT_FAILURE;
-            goto fini;
-        }
-    }
-    DEBUG_CLI_INIT(pc_debug);
-
-    /* get debug level */
-    debug_as_string = poptGetArg(pc);
-    if (debug_as_string == NULL) {
-        BAD_POPT_PARAMS(pc, _("Specify debug level you want to set\n"),
-                        ret, fini);
-    }
-
-    /* No more arguments expected. If something follows it is an error. */
-    if (poptGetArg(pc)) {
-        BAD_POPT_PARAMS(pc, _("Only one argument expected\n"),
-                        ret, fini);
+    ret = sss_tool_popt_ex(cmdline, long_options, SSS_TOOL_OPT_OPTIONAL, NULL,
+                           NULL, "DEBUG_LEVEL_TO_SET",
+                           _("Specify debug level you want to set"),
+                           &debug_as_string, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
+        return ret;
     }
 
     /* get config file */
@@ -393,7 +366,6 @@ errno_t sssctl_debug_level(struct sss_cmdline *cmdline,
           "Is sssd running?");
 
 fini:
-    poptFreeContext(pc);
     talloc_free(ctx);
     return ret;
 }
