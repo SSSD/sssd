@@ -262,9 +262,17 @@ static void be_check_online_done(struct tevent_req *req)
 
     switch (reply->dp_error) {
     case DP_ERR_OK:
+        if (be_ctx->last_dp_state != DP_ERR_OK) {
+            be_ctx->last_dp_state = DP_ERR_OK;
+            sss_log(SSS_LOG_INFO, "Backend is online\n");
+        }
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is online\n");
         break;
     case DP_ERR_OFFLINE:
+        if (be_ctx->last_dp_state != DP_ERR_OFFLINE) {
+            be_ctx->last_dp_state = DP_ERR_OFFLINE;
+            sss_log(SSS_LOG_INFO, "Backend is offline\n");
+        }
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline\n");
         break;
     default:
@@ -397,6 +405,7 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+    be_ctx->last_dp_state = -1;
 
     ret = be_init_failover(be_ctx);
     if (ret != EOK) {
