@@ -249,7 +249,7 @@ static errno_t be_check_online_request(struct be_ctx *be_ctx)
 static void be_check_online_done(struct tevent_req *req)
 {
     struct be_ctx *be_ctx;
-    struct dp_reply_std reply;
+    struct dp_reply_std *reply;
     errno_t ret;
 
     be_ctx = tevent_req_callback_data(req, struct be_ctx);
@@ -260,7 +260,7 @@ static void be_check_online_done(struct tevent_req *req)
         goto done;
     }
 
-    switch (reply.dp_error) {
+    switch (reply->dp_error) {
     case DP_ERR_OK:
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is online\n");
         break;
@@ -275,7 +275,7 @@ static void be_check_online_done(struct tevent_req *req)
 
     be_ctx->check_online_ref_count--;
 
-    if (reply.dp_error != DP_ERR_OK && be_ctx->check_online_ref_count > 0) {
+    if (reply->dp_error != DP_ERR_OK && be_ctx->check_online_ref_count > 0) {
         ret = be_check_online_request(be_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create check online req.\n");
@@ -286,8 +286,8 @@ static void be_check_online_done(struct tevent_req *req)
 
 done:
     be_ctx->check_online_ref_count = 0;
-    if (reply.dp_error != DP_ERR_OFFLINE) {
-        if (reply.dp_error != DP_ERR_OK) {
+    if (reply->dp_error != DP_ERR_OFFLINE) {
+        if (reply->dp_error != DP_ERR_OK) {
             reset_fo(be_ctx);
         }
         be_reset_offline(be_ctx);
