@@ -92,6 +92,10 @@ static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
         goto done;
     }
 
+    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0) {
+        cache_req_data_set_bypass_cache(data, true);
+    }
+
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
                                  data, memcache, rawname, 0);
     if (subreq == NULL) {
@@ -150,6 +154,10 @@ static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set cache request data!\n");
         ret = ENOMEM;
         goto done;
+    }
+
+    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0) {
+        cache_req_data_set_bypass_cache(data, true);
     }
 
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,

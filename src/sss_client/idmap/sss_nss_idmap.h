@@ -169,6 +169,10 @@ void sss_nss_free_kv(struct sss_nss_kv *kv_list);
 
 #define SSS_NSS_EX_FLAG_NO_FLAGS 0
 
+/** Always request data from the server side, client must be privileged to do
+ *  so, see nss_trusted_users option in man sssd.conf for details */
+#define SSS_NSS_EX_FLAG_NO_CACHE (1 << 0)
+
 #ifdef IPA_389DS_PLUGIN_HELPER_CALLS
 
 /**
