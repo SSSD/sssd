@@ -113,6 +113,11 @@ struct be_ctx {
     size_t check_online_ref_count;
 
     struct data_provider *provider;
+
+    /* Indicates whether the last state of the DP that has been logged is
+     * DP_ERR_OK or DP_ERR_OFFLINE. The only usage of this var, so far, is
+     * to log the DP status without spamming the syslog/journal. */
+    int last_dp_state;
 };
 
 bool be_is_offline(struct be_ctx *ctx);
