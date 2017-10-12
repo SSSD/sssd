@@ -115,42 +115,51 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
     size_t c;
     gid_t *new_groups;
     size_t idx;
+    bool skip_mc = false;
 
-    ret = sss_nss_mc_get(inp);
-    switch (ret) {
-    case 0:
-        return 0;
-    case ERANGE:
-        return ERANGE;
-    case ENOENT:
-        /* fall through, we need to actively ask the parent
-         * if no entry is found */
-        break;
-    default:
-        /* if using the mmaped cache failed,
-         * fall back to socket based comms */
-        break;
+    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0) {
+        skip_mc = true;
+    }
+
+    if (!skip_mc) {
+        ret = sss_nss_mc_get(inp);
+        switch (ret) {
+        case 0:
+            return 0;
+        case ERANGE:
+            return ERANGE;
+        case ENOENT:
+            /* fall through, we need to actively ask the parent
+             * if no entry is found */
+            break;
+        default:
+            /* if using the mmaped cache failed,
+             * fall back to socket based comms */
+            break;
+        }
     }
 
     sss_nss_timedlock(timeout, &time_left);
 
-    /* previous thread might already initialize entry in mmap cache */
-    ret = sss_nss_mc_get(inp);
-    switch (ret) {
-    case 0:
-        ret = 0;
-        goto out;
-    case ERANGE:
-        ret = ERANGE;
-        goto out;
-    case ENOENT:
-        /* fall through, we need to actively ask the parent
-         * if no entry is found */
-        break;
-    default:
-        /* if using the mmaped cache failed,
-         * fall back to socket based comms */
-        break;
+    if (!skip_mc) {
+        /* previous thread might already initialize entry in mmap cache */
+        ret = sss_nss_mc_get(inp);
+        switch (ret) {
+        case 0:
+            ret = 0;
+            goto out;
+        case ERANGE:
+            ret = ERANGE;
+            goto out;
+        case ENOENT:
+            /* fall through, we need to actively ask the parent
+             * if no entry is found */
+            break;
+        default:
+            /* if using the mmaped cache failed,
+             * fall back to socket based comms */
+            break;
+        }
     }
 
     ret = sss_nss_make_request_timeout(inp->cmd, &inp->rd, time_left,
