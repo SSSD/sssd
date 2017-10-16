@@ -39,6 +39,7 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
     char *cert_filter;
     int ret;
     char *shortname;
+    char *sanitized_name;
 
     switch (ar->filter_type) {
     case BE_FILTER_NAME:
@@ -48,20 +49,27 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
             return ret;
         }
 
+        ret = sss_filter_sanitize(mem_ctx, shortname, &sanitized_name);
+        talloc_free(shortname);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize failed.\n");
+            return ret;
+        }
+
         switch ((ar->entry_type & BE_REQ_TYPE_MASK)) {
         case BE_REQ_USER:
         case BE_REQ_INITGROUPS:
             filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(%s=%s))",
                          ipa_opts->override_map[IPA_OC_OVERRIDE_USER].name,
                          ipa_opts->override_map[IPA_AT_OVERRIDE_USER_NAME].name,
-                         shortname);
+                         sanitized_name);
             break;
 
          case BE_REQ_GROUP:
             filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(%s=%s))",
                         ipa_opts->override_map[IPA_OC_OVERRIDE_GROUP].name,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_GROUP_NAME].name,
-                        shortname);
+                        sanitized_name);
             break;
 
          case BE_REQ_USER_AND_GROUP:
@@ -70,15 +78,15 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_USER_NAME].name,
                         ar->filter_value,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_GROUP_NAME].name,
-                        shortname);
+                        sanitized_name);
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected entry type [%d] for name filter.\n",
                                        ar->entry_type);
-            talloc_free(shortname);
+            talloc_free(sanitized_name);
             return EINVAL;
         }
-        talloc_free(shortname);
+        talloc_free(sanitized_name);
         break;
 
     case BE_FILTER_IDNUM:
