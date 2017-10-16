@@ -36,6 +36,10 @@
 #include <security/pam_modules.h>
 #include <security/pam_appl.h>
 
+#ifdef HAVE_GDM_PAM_EXTENSIONS
+#include <gdm/gdm-pam-extensions.h>
+#endif
+
 #include "sss_pam_compat.h"
 #include "sss_pam_macros.h"
 
@@ -43,6 +47,7 @@
 #include "pam_message.h"
 #include "util/atomic_io.h"
 #include "util/authtok-utils.h"
+#include "util/dlinklist.h"
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
@@ -118,6 +123,40 @@ static void close_fd(pam_handle_t *pamh, void *ptr, int err)
     sss_pam_close_fd();
 }
 
+struct cert_auth_info {
+    char *cert_user;
+    char *cert;
+    char *token_name;
+    char *module_name;
+    char *key_id;
+    struct cert_auth_info *prev;
+    struct cert_auth_info *next;
+};
+
+static void free_cai(struct cert_auth_info *cai)
+{
+    if (cai != NULL) {
+        free(cai->cert_user);
+        free(cai->cert);
+        free(cai->token_name);
+        free(cai->key_id);
+        free(cai);
+    }
+}
+
+static void free_cert_list(struct cert_auth_info *list)
+{
+    struct cert_auth_info *cai;
+    struct cert_auth_info *cai_next;
+
+    if (list != NULL) {
+        DLIST_FOR_EACH_SAFE(cai, cai_next, list) {
+            DLIST_REMOVE(list, cai);
+            free_cai(cai);
+        }
+    }
+}
+
 static void overwrite_and_free_authtoks(struct pam_items *pi)
 {
     if (pi->pam_authtok != NULL) {
@@ -158,17 +197,9 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
     free(pi->otp_challenge);
     pi->otp_challenge = NULL;
 
-    free(pi->cert_user);
-    pi->cert_user = NULL;
-
-    free(pi->token_name);
-    pi->token_name = NULL;
-
-    free(pi->module_name);
-    pi->module_name = NULL;
-
-    free(pi->key_id);
-    pi->key_id = NULL;
+    free_cert_list(pi->cert_list);
+    pi->cert_list = NULL;
+    pi->selected_cert = NULL;
 }
 
 static int null_strcmp(const char *s1, const char *s2) {
@@ -821,6 +852,90 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
     return ret;
 }
 
+static int parse_cert_info(struct pam_items *pi, uint8_t *buf, size_t len,
+                           size_t *p, const char **cert_user)
+{
+    struct cert_auth_info *cai = NULL;
+    size_t offset;
+    int ret;
+
+    if (buf[*p + (len - 1)] != '\0') {
+        D(("cert info does not end with \\0."));
+        return EINVAL;
+    }
+
+    cai = calloc(1, sizeof(struct cert_auth_info));
+    if (cai == NULL) {
+        return ENOMEM;
+    }
+
+    cai->cert_user = strdup((char *) &buf[*p]);
+    if (cai->cert_user == NULL) {
+        D(("strdup failed"));
+        ret = ENOMEM;
+        goto done;
+    }
+    if (cert_user != NULL) {
+        *cert_user = cai->cert_user;
+    }
+
+    offset = strlen(cai->cert_user) + 1;
+    if (offset >= len) {
+        D(("Cert message size mismatch"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    cai->token_name = strdup((char *) &buf[*p + offset]);
+    if (cai->token_name == NULL) {
+        D(("strdup failed"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset += strlen(cai->token_name) + 1;
+    if (offset >= len) {
+        D(("Cert message size mismatch"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    cai->module_name = strdup((char *) &buf[*p + offset]);
+    if (cai->module_name == NULL) {
+        D(("strdup failed"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    offset += strlen(cai->module_name) + 1;
+    if (offset >= len) {
+        D(("Cert message size mismatch"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    cai->key_id = strdup((char *) &buf[*p + offset]);
+    if (cai->key_id == NULL) {
+        D(("strdup failed"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    D(("cert user: [%s] token name: [%s] module: [%s] key id: [%s]",
+        cai->cert_user, cai->token_name, cai->module_name,
+        cai->key_id));
+
+    DLIST_ADD(pi->cert_list, cai);
+    ret = 0;
+
+done:
+    if (ret != 0) {
+        free_cai(cai);
+    }
+
+    return ret;
+}
+
 static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                          struct pam_items *pi)
 {
@@ -832,6 +947,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
     int32_t len;
     int32_t pam_status;
     size_t offset;
+    const char *cert_user;
 
     if (buflen < (2*sizeof(int32_t))) {
         D(("response buffer is too small"));
@@ -988,27 +1104,21 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
 
-                free(pi->cert_user);
-                pi->cert_user = strdup((char *) &buf[p]);
-                if (pi->cert_user == NULL) {
-                    D(("strdup failed"));
-                    break;
-                }
-
-                if (type == SSS_PAM_CERT_INFO && *pi->cert_user == '\0') {
-                    D(("Invalid CERT message"));
-                    break;
-                }
-
                 if (type == SSS_PAM_CERT_INFO_WITH_HINT) {
                     pi->user_name_hint = true;
                 } else {
                     pi->user_name_hint = false;
                 }
 
+                ret = parse_cert_info(pi, buf, len, &p, &cert_user);
+                if (ret != 0) {
+                    D(("Failed to parse cert info"));
+                    break;
+                }
+
                 if ((pi->pam_user == NULL || *(pi->pam_user) == '\0')
-                        && *pi->cert_user != '\0') {
-                    ret = pam_set_item(pamh, PAM_USER, pi->cert_user);
+                        && *cert_user != '\0') {
+                    ret = pam_set_item(pamh, PAM_USER, cert_user);
                     if (ret != PAM_SUCCESS) {
                         D(("Failed to set PAM_USER during "
                            "Smartcard authentication [%s]",
@@ -1027,59 +1137,6 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
 
                     pi->pam_user_size = strlen(pi->pam_user) + 1;
                 }
-
-                offset = strlen(pi->cert_user) + 1;
-                if (offset >= len) {
-                    D(("Cert message size mismatch"));
-                    free(pi->cert_user);
-                    pi->cert_user = NULL;
-                    break;
-                }
-                free(pi->token_name);
-                pi->token_name = strdup((char *) &buf[p + offset]);
-                if (pi->token_name == NULL) {
-                    D(("strdup failed"));
-                    free(pi->cert_user);
-                    pi->cert_user = NULL;
-                    break;
-                }
-
-                offset += strlen(pi->token_name) + 1;
-                if (offset >= len) {
-                    D(("Cert message size mismatch"));
-                    free(pi->cert_user);
-                    pi->cert_user = NULL;
-                    free(pi->token_name);
-                    pi->token_name = NULL;
-                    break;
-                }
-                free(pi->module_name);
-                pi->module_name = strdup((char *) &buf[p + offset]);
-                if (pi->module_name == NULL) {
-                    D(("strdup failed"));
-                    break;
-                }
-
-                offset += strlen(pi->module_name) + 1;
-                if (offset >= len) {
-                    D(("Cert message size mismatch"));
-                    free(pi->cert_user);
-                    pi->cert_user = NULL;
-                    free(pi->token_name);
-                    pi->token_name = NULL;
-                    free(pi->module_name);
-                    pi->module_name = NULL;
-                    break;
-                }
-                free(pi->key_id);
-                pi->key_id = strdup((char *) &buf[p + offset]);
-                if (pi->key_id == NULL) {
-                    D(("strdup failed"));
-                    break;
-                }
-                D(("cert user: [%s] token name: [%s] module: [%s] key id: [%s]",
-                    pi->cert_user, pi->token_name, pi->module_name,
-                    pi->key_id));
                 break;
             case SSS_PASSWORD_PROMPTING:
                 D(("Password prompting available."));
@@ -1175,10 +1232,8 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
     pi->otp_challenge = NULL;
     pi->password_prompting = false;
 
-    pi->cert_user = NULL;
-    pi->token_name = NULL;
-    pi->module_name = NULL;
-    pi->key_id = NULL;
+    pi->cert_list = NULL;
+    pi->selected_cert = NULL;
 
     return PAM_SUCCESS;
 }
@@ -1484,6 +1539,186 @@ done:
 
 #define SC_PROMPT_FMT "PIN for %s"
 
+#ifndef discard_const
+#define discard_const(ptr) ((void *)((uintptr_t)(ptr)))
+#endif
+
+#define CERT_SEL_PROMPT_FMT "Certificate: %s"
+#define SEL_TITLE discard_const("Please select a certificate")
+
+static int prompt_multi_cert_gdm(pam_handle_t *pamh, struct pam_items *pi)
+{
+#ifdef HAVE_GDM_PAM_EXTENSIONS
+    int ret;
+    size_t cert_count = 0;
+    size_t c;
+    const struct pam_conv *conv;
+    struct cert_auth_info *cai;
+    GdmPamExtensionChoiceListRequest *request = NULL;
+    GdmPamExtensionChoiceListResponse *response = NULL;
+    struct pam_message prompt_message;
+    const struct pam_message *prompt_messages[1];
+    struct pam_response *reply = NULL;
+    char *prompt;
+
+    if (!GDM_PAM_EXTENSION_SUPPORTED (GDM_PAM_EXTENSION_CHOICE_LIST)) {
+        return ENOTSUP;
+    }
+
+    if (pi->cert_list == NULL) {
+        return EINVAL;
+    }
+
+    DLIST_FOR_EACH(cai, pi->cert_list) cert_count++;
+
+    ret = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
+    if (ret != PAM_SUCCESS) {
+        ret = EIO;
+        return ret;
+    }
+
+    request = calloc(1, GDM_PAM_EXTENSION_CHOICE_LIST_REQUEST_SIZE(cert_count));
+    if (request == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    GDM_PAM_EXTENSION_CHOICE_LIST_REQUEST_INIT (request, SEL_TITLE, cert_count);
+
+    c = 0;
+    DLIST_FOR_EACH(cai, pi->cert_list) {
+        ret = asprintf(&prompt, CERT_SEL_PROMPT_FMT, cai->key_id);
+        if (ret == -1) {
+            ret = ENOMEM;
+            goto done;
+        }
+        request->list.items[c].key = cai->key_id;
+        request->list.items[c++].text = prompt;
+    }
+
+    GDM_PAM_EXTENSION_MESSAGE_TO_BINARY_PROMPT_MESSAGE(request,
+                                                       &prompt_message);
+    prompt_messages[0] = &prompt_message;
+
+    ret = conv->conv (1, prompt_messages, &reply, conv->appdata_ptr);
+    if (ret != PAM_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EIO;
+    response = GDM_PAM_EXTENSION_REPLY_TO_CHOICE_LIST_RESPONSE(reply);
+    if (response->key == NULL) {
+        goto done;
+    }
+
+    DLIST_FOR_EACH(cai, pi->cert_list) {
+        if (strcmp(response->key, cai->key_id) == 0) {
+            pam_info (pamh, "Certificate ‘%s’ selected", cai->key_id);
+            pi->selected_cert = cai;
+            ret = 0;
+            break;
+        }
+    }
+
+done:
+    if (request != NULL) {
+        for (c = 0; c < cert_count; c++) {
+            free(discard_const(request->list.items[c++].text));
+        }
+        free(request);
+    }
+    free(response);
+
+    return ret;
+#else
+    return ENOTSUP;
+#endif
+}
+
+#define TEXT_CERT_SEL_PROMPT_FMT "%s[%zu] Certificate: %s\n"
+#define TEXT_SEL_TITLE discard_const("Please select a certificate by typing " \
+                                     "the corresponding number\n")
+static int prompt_multi_cert(pam_handle_t *pamh, struct pam_items *pi)
+{
+    int ret;
+    size_t cert_count = 0;
+    size_t tries = 0;
+    long int resp = -1;
+    struct cert_auth_info *cai;
+    char *prompt;
+    char *tmp;
+    char *answer;
+    char *ep;
+
+
+    /* First check if gdm extension is supported */
+    ret = prompt_multi_cert_gdm(pamh, pi);
+    if (ret != ENOTSUP) {
+        return ret;
+    }
+
+    if (pi->cert_list == NULL) {
+        return EINVAL;
+    }
+
+    prompt = strdup(TEXT_SEL_TITLE);
+    if (prompt == NULL) {
+        return ENOMEM;
+    }
+
+    DLIST_FOR_EACH(cai, pi->cert_list) {
+        cert_count++;
+        ret = asprintf(&tmp, TEXT_CERT_SEL_PROMPT_FMT, prompt, cert_count,
+                                                       cai->key_id);
+        free(prompt);
+        if (ret == -1) {
+            return ENOMEM;
+        }
+
+        prompt = tmp;
+    }
+
+
+    do {
+        ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_ON, prompt, NULL,
+                                  &answer);
+        if (ret != PAM_SUCCESS) {
+            D(("do_pam_conversation failed."));
+            break;
+        }
+
+        errno = 0;
+        resp = strtol(answer, &ep, 10);
+        if (errno == 0 && *ep == '\0' && resp > 0 && resp <= cert_count) {
+            /* do not free answer ealier because ep is pointing to it */
+            free(answer);
+            break;
+        }
+        free(answer);
+        resp = -1;
+    } while (++tries < 5);
+    free(prompt);
+
+    pi->selected_cert = NULL;
+    ret = ENOENT;
+    if (resp > 0 && resp <= cert_count) {
+        cert_count = 0;
+        DLIST_FOR_EACH(cai, pi->cert_list) {
+            cert_count++;
+            if (resp == cert_count) {
+                pam_info (pamh, "Certificate ‘%s’ selected", cai->key_id);
+                pi->selected_cert = cai;
+                ret = 0;
+                break;
+            }
+        }
+    }
+
+    return ret;
+
+}
+
+
 static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
 {
     int ret;
@@ -1495,19 +1730,20 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     const struct pam_message *mesg[2] = { NULL, NULL };
     struct pam_message m[2] = { { 0 }, { 0 } };
     struct pam_response *resp = NULL;
+    struct cert_auth_info *cai = pi->selected_cert;
 
-    if (pi->token_name == NULL || *pi->token_name == '\0') {
+    if (cai == NULL || cai->token_name == NULL || *cai->token_name == '\0') {
         return EINVAL;
     }
 
-    size = sizeof(SC_PROMPT_FMT) + strlen(pi->token_name);
+    size = sizeof(SC_PROMPT_FMT) + strlen(cai->token_name);
     prompt = malloc(size);
     if (prompt == NULL) {
         D(("malloc failed."));
         return ENOMEM;
     }
 
-    ret = snprintf(prompt, size, SC_PROMPT_FMT, pi->token_name);
+    ret = snprintf(prompt, size, SC_PROMPT_FMT, cai->token_name);
     if (ret < 0 || ret >= size) {
         D(("snprintf failed."));
         free(prompt);
@@ -1604,9 +1840,9 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         pi->pam_authtok_size=0;
     } else {
 
-        ret = sss_auth_pack_sc_blob(answer, 0, pi->token_name, 0,
-                                    pi->module_name, 0,
-                                    pi->key_id, 0,
+        ret = sss_auth_pack_sc_blob(answer, 0, cai->token_name, 0,
+                                    cai->module_name, 0,
+                                    cai->key_id, 0,
                                     NULL, 0, &needed_size);
         if (ret != EAGAIN) {
             D(("sss_auth_pack_sc_blob failed."));
@@ -1621,9 +1857,9 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
             goto done;
         }
 
-        ret = sss_auth_pack_sc_blob(answer, 0, pi->token_name, 0,
-                                    pi->module_name, 0,
-                                    pi->key_id, 0,
+        ret = sss_auth_pack_sc_blob(answer, 0, cai->token_name, 0,
+                                    cai->module_name, 0,
+                                    cai->key_id, 0,
                                     (uint8_t *) pi->pam_authtok, needed_size,
                                     &needed_size);
         if (ret != EOK) {
@@ -1786,7 +2022,17 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                 ret = prompt_2fa(pamh, pi, _("First Factor: "),
                                  _("Second Factor: "));
             }
-        } else if (pi->token_name != NULL && *(pi->token_name) != '\0') {
+        } else if (pi->cert_list != NULL) {
+            if (pi->cert_list->next == NULL) {
+                /* Only one certificate */
+                pi->selected_cert = pi->cert_list;
+            } else {
+                ret = prompt_multi_cert(pamh, pi);
+                if (ret != 0) {
+                    D(("Failed to select certificate"));
+                    return PAM_AUTHTOK_ERR;
+                }
+            }
             ret = prompt_sc_pin(pamh, pi);
         } else {
             ret = prompt_password(pamh, pi, _("Password: "));
@@ -1905,14 +2151,21 @@ static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
     char *prompt = NULL;
     size_t size;
     char *answer = NULL;
+    /* TODO: check multiple cert case */
+    struct cert_auth_info *cai = pi->cert_list;
+
+    if (cai == NULL) {
+        D(("No certificate information available"));
+        return EINVAL;
+    }
 
     login_token_name = getenv("PKCS11_LOGIN_TOKEN_NAME");
     if (login_token_name == NULL) {
         return PAM_SUCCESS;
     }
 
-    while (pi->token_name == NULL
-            || strcmp(login_token_name, pi->token_name) != 0) {
+    while (cai->token_name == NULL
+            || strcmp(login_token_name, cai->token_name) != 0) {
         size = sizeof(SC_ENTER_FMT) + strlen(login_token_name);
         prompt = malloc(size);
         if (prompt == NULL) {

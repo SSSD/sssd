@@ -27,3 +27,15 @@ AC_CHECK_FUNCS(pam_modutil_getlogin pam_vsyslog)
 
 dnl restore LIBS
 LIBS="$save_LIBS"
+
+PKG_CHECK_MODULES([GDM_PAM_EXTENSIONS], [gdm-pam-extensions],
+                  [found_gdm_pam_extensions=yes],
+                  [AC_MSG_NOTICE([gdm-pam-extensions were not found. gdm support
+for multiple certificates will not be build.
+])])
+
+AC_SUBST(GDM_PAM_EXTENSIONS_CFLAGS)
+
+AS_IF([test x"$found_gdm_pam_extensions" = xyes],
+      [AC_DEFINE_UNQUOTED(HAVE_GDM_PAM_EXTENSIONS, 1,
+                          [Build with gdm-pam-extensions support])])
