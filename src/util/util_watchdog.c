@@ -160,6 +160,10 @@ static void watchdog_fd_read_handler(struct tevent_context *ev,
               "[%d]: %s\n", ret, sss_strerror(ret));
         orderly_shutdown(1);
     }
+    if (strncmp(debug_prg_name, "sssd[be[", sizeof("sssd[be[") - 1) == 0) {
+        kill(getpid(), SIGUSR2);
+        DEBUG(SSSDBG_IMPORTANT_INFO, "SIGUSR2 sent to %s\n", debug_prg_name);
+    }
 }
 
 int setup_watchdog(struct tevent_context *ev, int interval)
