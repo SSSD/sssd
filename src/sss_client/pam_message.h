@@ -29,6 +29,8 @@
 
 #include "sss_client/sss_cli.h"
 
+struct cert_auth_info;
+
 struct pam_items {
     const char *pam_service;
     const char *pam_user;
@@ -59,11 +61,9 @@ struct pam_items {
     char *first_factor;
     bool password_prompting;
 
-    char *cert_user;
-    char *token_name;
-    char *module_name;
-    char *key_id;
     bool user_name_hint;
+    struct cert_auth_info *cert_list;
+    struct cert_auth_info *selected_cert;
 };
 
 int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer);

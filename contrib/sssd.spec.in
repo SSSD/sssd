@@ -121,6 +121,12 @@
     %global with_kcm_option --without-kcm
 %endif
 
+%if (0%{?fedora} >= 27 || (0%{?rhel} >= 7 && 0%{?rhel7_minor} > 4))
+    %global with_gdm_pam_extensions 1
+%else
+    %global with_gdm_pam_extensions 0
+%endif
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
@@ -232,6 +238,9 @@ BuildRequires: libuuid-devel
 %if (0%{?with_secrets} == 1 || 0%{?with_kcm} == 1)
 BuildRequires: jansson-devel
 BuildRequires: libcurl-devel
+%endif
+%if (0%{?with_gdm_pam_extensions} == 1)
+BuildRequires: gdm-devel
 %endif
 
 %description
