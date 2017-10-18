@@ -102,6 +102,7 @@
 
 #define SYSDB_AUTHORIZED_SERVICE "authorizedService"
 #define SYSDB_AUTHORIZED_HOST "authorizedHost"
+#define SYSDB_AUTHORIZED_RHOST "authorizedRHost"
 
 #define SYSDB_NETGROUP_TRIPLE "netgroupTriple"
 #define SYSDB_ORIG_NETGROUP_MEMBER "originalMemberNisNetgroup"

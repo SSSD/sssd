@@ -830,6 +830,34 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_authorized_rhost (string)</term>
+                    <listitem>
+                        <para>
+                            If access_provider=ldap and
+                            ldap_access_order=rhost, SSSD will use the presence
+                            of the rhost attribute in the user's LDAP entry to
+                            determine access privilege. Similarly to host
+                            verification process.
+                        </para>
+                        <para>
+                            An explicit deny (!rhost) is resolved first. Second,
+                            SSSD searches for explicit allow (rhost) and finally
+                            for allow_all (*).
+                        </para>
+                        <para>
+                            Please note that the ldap_access_order
+                            configuration option <emphasis>must</emphasis>
+                            include <quote>rhost</quote> in order for the
+                            ldap_user_authorized_rhost option
+                            to work.
+                        </para>
+                        <para>
+                            Default: rhost
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_user_certificate (string)</term>
                     <listitem>
                         <para>
@@ -2087,6 +2115,15 @@ ldap_access_filter = (employeeType=admin)
                         <para>
                             <emphasis>host</emphasis>: use the host attribute
                             to determine access
+                        </para>
+                        <para>
+                            <emphasis>rhost</emphasis>: use the rhost attribute
+                            to determine whether remote host can access
+                        </para>
+                        <para>
+                            Please note, rhost field in pam is set by application,
+                            it is better to check what the application sends to
+                            pam, before enabling this access control option
                         </para>
                         <para>
                             Default: filter
