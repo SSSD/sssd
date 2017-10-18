@@ -663,6 +663,7 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_krb5.h \
     src/tests/cmocka/common_mock_be.h \
     src/tests/cmocka/test_expire_common.h \
+    src/tests/cmocka/test_sdap_access.h \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
@@ -2197,6 +2198,7 @@ test_sdap_access_SOURCES = \
 test_sdap_access_LDADD = \
     $(CMOCKA_LIBS) \
     $(TALLOC_LIBS) \
+    $(LDB_LIBS) \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
