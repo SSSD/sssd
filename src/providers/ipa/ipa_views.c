@@ -161,6 +161,7 @@ static errno_t get_be_acct_req_for_xyz(TALLOC_CTX *mem_ctx, const char *val,
                                        struct be_acct_req **_ar)
 {
     struct be_acct_req *ar;
+    errno_t ret;
 
     ar = talloc_zero(mem_ctx, struct be_acct_req);
     if (ar == NULL) {
@@ -183,22 +184,32 @@ static errno_t get_be_acct_req_for_xyz(TALLOC_CTX *mem_ctx, const char *val,
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported request type [%d].\n", type);
-        talloc_free(ar);
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
-    ar->filter_value = talloc_strdup(ar, val);
+    ret = sss_filter_sanitize(ar, val, &ar->filter_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize failed.\n");
+        goto done;
+    }
+
     ar->domain = talloc_strdup(ar, domain_name);
     if (ar->filter_value == NULL || ar->domain == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-        talloc_free(ar);
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
-
     *_ar = ar;
+    ret = EOK;
 
-    return EOK;
+done:
+    if (ret != EOK) {
+        talloc_free(ar);
+    }
+
+    return ret;
 }
 
 errno_t get_be_acct_req_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
