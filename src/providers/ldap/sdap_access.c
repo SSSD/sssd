@@ -97,6 +97,8 @@ static  errno_t sdap_access_service(struct pam_data *pd,
 
 static errno_t sdap_access_host(struct ldb_message *user_entry);
 
+errno_t sdap_access_rhost(struct ldb_message *user_entry, char *rhost);
+
 enum sdap_access_control_type {
     SDAP_ACCESS_CONTROL_FILTER,
     SDAP_ACCESS_CONTROL_PPOLICY_LOCK,
@@ -307,6 +309,10 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
 
         case LDAP_ACCESS_HOST:
             ret = sdap_access_host(state->user_entry);
+            break;
+
+        case LDAP_ACCESS_RHOST:
+            ret = sdap_access_rhost(state->user_entry, state->pd->rhost);
             break;
 
         default:
@@ -1292,6 +1298,88 @@ static errno_t sdap_access_host(struct ldb_message *user_entry)
 
     if (ret == ENOENT) {
         DEBUG(SSSDBG_CONF_SETTINGS, "No matching host rule found\n");
+        ret = ERR_ACCESS_DENIED;
+    }
+
+    return ret;
+}
+
+errno_t sdap_access_rhost(struct ldb_message *user_entry, char *pam_rhost)
+{
+    errno_t ret;
+    struct ldb_message_element *el;
+    char *be_rhost_rule;
+    unsigned int i;
+
+    /* If user_entry is NULL do not perform any checks */
+    if (user_entry == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "user_entry is NULL, that is not possible, "
+              "so we just reject access\n");
+        return ERR_ACCESS_DENIED;
+    }
+
+    /* If pam_rhost is NULL do not perform any checks */
+    if (pam_rhost == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pam_rhost is NULL, no rhost check is possible\n");
+        return EOK;
+    }
+
+    /* When the access is local we get empty string as pam_rhost
+       in which case we should not evaluate rhost access rules */
+    /* FIXME: I think ideally should have LDAP to define what to do in
+     * this case */
+    if (pam_rhost[0] == '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pam_rhost is empty, possible local access, "
+              "no rhost check possible\n");
+        return EOK;
+    }
+
+    /* If rhost validation is enabled and entry has no relevant attribute -
+     * deny access */
+    el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_RHOST);
+    if (!el || el->num_values == 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Missing rhost entries. Access denied\n");
+        return ERR_ACCESS_DENIED;
+    }
+
+    ret = ENOENT;
+
+    for (i = 0; i < el->num_values; i++) {
+        be_rhost_rule = (char *)el->values[i].data;
+        if (be_rhost_rule[0] == '!'
+                && strcasecmp(pam_rhost, be_rhost_rule+1) == 0) {
+            /* This rhost is explicitly denied */
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Access from [%s] denied by [%s]\n",
+                  pam_rhost, be_rhost_rule);
+            /* A denial trumps all. Break here */
+            return ERR_ACCESS_DENIED;
+        } else if (strcasecmp(pam_rhost, be_rhost_rule) == 0) {
+            /* This rhost is explicitly allowed */
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Access from [%s] granted by [%s]\n",
+                  pam_rhost, be_rhost_rule);
+            /* We still need to loop through to make sure
+             * that it's not also explicitly denied
+             */
+            ret = EOK;
+        } else if (strcmp("*", be_rhost_rule) == 0) {
+            /* This user has access from anywhere */
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Access from [%s] granted by [*]\n", pam_rhost);
+            /* We still need to loop through to make sure
+             * that it's not also explicitly denied
+             */
+            ret = EOK;
+        }
+    }
+
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "No matching rhost rules found\n");
         ret = ERR_ACCESS_DENIED;
     }
 
