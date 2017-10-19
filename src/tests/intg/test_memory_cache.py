@@ -207,6 +207,32 @@ def fqname_case_insensitive_rfc2307(request, ldap_conn):
     return None
 
 
+@pytest.fixture
+def zero_timeout_rfc2307(request, ldap_conn):
+    load_data_to_ldap(request, ldap_conn)
+
+    conf = unindent("""\
+        [sssd]
+        domains             = LDAP
+        services            = nss
+
+        [nss]
+        memcache_timeout = 0
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        ldap_schema         = rfc2307
+        id_provider         = ldap
+        auth_provider       = ldap
+        sudo_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
 def test_getpwnam(ldap_conn, sanity_rfc2307):
     ent.assert_passwd_by_name(
         'user1',
@@ -766,6 +792,39 @@ def test_removed_mc(ldap_conn, sanity_rfc2307):
     # remove cache without invalidation
     for path in os.listdir(config.MCACHE_PATH):
         os.unlink(config.MCACHE_PATH + "/" + path)
+
+    # sssd is stopped; so the memory cache should not be used
+    # in long living clients (py.test in this case)
+    with pytest.raises(KeyError):
+        pwd.getpwnam('user1')
+    with pytest.raises(KeyError):
+        pwd.getpwuid(1001)
+
+    with pytest.raises(KeyError):
+        grp.getgrnam('group1')
+    with pytest.raises(KeyError):
+        grp.getgrgid(2001)
+
+
+def test_mc_zero_timeout(ldap_conn, zero_timeout_rfc2307):
+    """
+    Test that the memory cache is not created at all with memcache_timeout=0
+    """
+    # No memory cache files must be created
+    assert len(os.listdir(config.MCACHE_PATH)) == 0
+
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    ent.assert_group_by_name("group1", dict(name="group1", gid=2001))
+    ent.assert_group_by_gid(2001, dict(name="group1", gid=2001))
+    stop_sssd()
 
     # sssd is stopped; so the memory cache should not be used
     # in long living clients (py.test in this case)
