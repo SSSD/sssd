@@ -1413,7 +1413,9 @@ pam_account_locked_message = Account locked, please contact help desk.
                             with <quote>rules refresh</quote> mechanism. If
                             the threshold is exceeded a
                             <quote>full refresh</quote> of sudo rules is
-                            triggered instead.
+                            triggered instead. This threshold number also
+                            applies to IPA sudo command and command group
+                            searches.
                         </para>
                         <para>
                             Default: 50

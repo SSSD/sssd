@@ -33,6 +33,7 @@ struct ipa_sudo_ctx {
     struct sdap_attr_map *sudorule_map;
     struct sdap_attr_map *sudocmd_map;
     struct sdap_search_base **sudo_sb;
+    int sudocmd_threshold;
 };
 
 errno_t
@@ -105,13 +106,21 @@ ipa_sudo_conv_has_cmdgroups(struct ipa_sudo_conv *conv);
 bool
 ipa_sudo_conv_has_cmds(struct ipa_sudo_conv *conv);
 
+bool
+ipa_sudo_cmdgroups_exceed_threshold(struct ipa_sudo_conv *conv, int threshold);
+
+bool
+ipa_sudo_cmds_exceed_threshold(struct ipa_sudo_conv *conv, int threshold);
+
 char *
 ipa_sudo_conv_cmdgroup_filter(TALLOC_CTX *mem_ctx,
-                              struct ipa_sudo_conv *conv);
+                              struct ipa_sudo_conv *conv,
+                              int cmd_threshold);
 
 char *
 ipa_sudo_conv_cmd_filter(TALLOC_CTX *mem_ctx,
-                         struct ipa_sudo_conv *conv);
+                         struct ipa_sudo_conv *conv,
+                         int cmd_threshold);
 
 errno_t
 ipa_sudo_conv_result(TALLOC_CTX *mem_ctx,
