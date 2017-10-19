@@ -213,6 +213,7 @@ struct sdap_attr_map ad_2008r2_user_map[] = {
     { "ldap_user_ad_user_account_control", "userAccountControl", SYSDB_AD_USER_ACCOUNT_CONTROL, NULL},
     { "ldap_ns_account_lock", NULL, SYSDB_NS_ACCOUNT_LOCK, NULL},
     { "ldap_user_authorized_host", NULL, SYSDB_AUTHORIZED_HOST, NULL },
+    { "ldap_user_authorized_rhost", NULL, SYSDB_AUTHORIZED_RHOST, NULL },
     { "ldap_user_nds_login_disabled", NULL, SYSDB_NDS_LOGIN_DISABLED, NULL },
     { "ldap_user_nds_login_expiration_time", NULL, SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
     { "ldap_user_nds_login_allowed_time_map", NULL, SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
