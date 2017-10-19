@@ -405,24 +405,6 @@ static errno_t ipa_init_krb5_auth_ctx(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    /* On clients, set flag that controls whether we want to write the
-     * kdcinfo files at all. Never write kdcinfo files on servers as
-     * we always want to talk to 'self' anyway and we've had broken
-     * sssd configurations with _srv_ on the server which wwould point
-     * to other KDCs with PKINIT certs not trusted on this IDM server.
-     */
-    if (server_mode) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Disabling kdcinfo files on IDM server\n");
-        dp_opt_set_bool(ipa_options->auth, KRB5_USE_KDCINFO, false);
-    }
-
-    ipa_options->service->krb5_service->write_kdcinfo = \
-        dp_opt_get_bool(ipa_options->auth, KRB5_USE_KDCINFO);
-    DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
-          ipa_options->auth[KRB5_USE_KDCINFO].opt_name,
-          ipa_options->service->krb5_service->write_kdcinfo ? "true" : "false");
-
     *_krb5_auth_ctx = krb5_auth_ctx;
     return EOK;
 }
