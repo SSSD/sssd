@@ -252,6 +252,56 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
     /* nss_shutdown(rctx); */
 }
 
+static int setup_memcaches(struct nss_ctx *nctx)
+{
+    int ret;
+    int memcache_timeout;
+
+    /* Remove the CLEAR_MC_FLAG file if exists. */
+    ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
+    if (ret != 0 && errno != ENOENT) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to unlink file [%s]. This can cause memory cache to "
+               "be purged when next log rotation is requested. %d: %s\n",
+               SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, ret, strerror(ret));
+    }
+
+    ret = confdb_get_int(nctx->rctx->cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_MEMCACHE_TIMEOUT,
+                         300, &memcache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get 'memcache_timeout' option from confdb.\n");
+        return ret;
+    }
+
+    /* TODO: read cache sizes from configuration */
+    ret = sss_mmap_cache_init(nctx, "passwd", SSS_MC_PASSWD,
+                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
+                              &nctx->pwd_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "passwd mmap cache is DISABLED\n");
+    }
+
+    ret = sss_mmap_cache_init(nctx, "group", SSS_MC_GROUP,
+                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
+                              &nctx->grp_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "group mmap cache is DISABLED\n");
+    }
+
+    ret = sss_mmap_cache_init(nctx, "initgroups", SSS_MC_INITGROUPS,
+                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
+                              &nctx->initgr_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "initgroups mmap cache is DISABLED\n");
+    }
+
+    return EOK;
+}
+
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -260,7 +310,6 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct sss_cmd_table *nss_cmds;
     struct be_conn *iter;
     struct nss_ctx *nctx;
-    int memcache_timeout;
     int ret, max_retries;
     enum idmap_error_code err;
     int fd_limit;
@@ -330,47 +379,9 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    /* create mmap caches */
-    /* Remove the CLEAR_MC_FLAG file if exists. */
-    ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
-    if (ret != 0 && errno != ENOENT) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to unlink file [%s]. This can cause memory cache to "
-               "be purged when next log rotation is requested. %d: %s\n",
-               SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, ret, strerror(ret));
-    }
-
-    ret = confdb_get_int(nctx->rctx->cdb,
-                         CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_MEMCACHE_TIMEOUT,
-                         300, &memcache_timeout);
+    ret = setup_memcaches(nctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get 'memcache_timeout' option from confdb.\n");
         goto fail;
-    }
-
-    /* TODO: read cache sizes from configuration */
-    ret = sss_mmap_cache_init(nctx, "passwd", SSS_MC_PASSWD,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
-                              &nctx->pwd_mc_ctx);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "passwd mmap cache is DISABLED\n");
-    }
-
-    ret = sss_mmap_cache_init(nctx, "group", SSS_MC_GROUP,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
-                              &nctx->grp_mc_ctx);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "group mmap cache is DISABLED\n");
-    }
-
-    ret = sss_mmap_cache_init(nctx, "initgroups", SSS_MC_INITGROUPS,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
-                              &nctx->initgr_mc_ctx);
-    if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "initgroups mmap cache is DISABLED\n");
     }
 
     /* Set up file descriptor limits */
