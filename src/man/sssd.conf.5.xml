@@ -974,10 +974,17 @@ fallback_homedir = /home/%u
                     <listitem>
                         <para>
                             Specifies time in seconds for which records
-                            in the in-memory cache will be valid.
+                            in the in-memory cache will be valid. Setting this
+                            option to zero will disable the in-memory cache.
                         </para>
                         <para>
                             Default: 300
+                        </para>
+                        <para>
+                            WARNING: Disabling the in-memory cache will
+                            have significant negative impact on SSSD's
+                            performance and should only be used for
+                            testing.
                         </para>
                         <para>
                             NOTE: If the environment variable
