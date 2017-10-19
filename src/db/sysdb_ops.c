@@ -1960,15 +1960,33 @@ int sysdb_add_user(struct sss_domain_info *domain,
     }
 
     if (domain->mpg) {
-        /* In MPG domains you can't have groups with the same name as users,
-         * search if a group with the same name exists.
+        /* In MPG domains you can't have groups with the same name or GID
+         * as users, search if a group with the same name exists.
          * Don't worry about users, if we try to add a user with the same
          * name the operation will fail */
 
         ret = sysdb_search_group_by_name(tmp_ctx, domain, name, NULL, &msg);
         if (ret != ENOENT) {
-            if (ret == EOK) ret = EEXIST;
+            if (ret == EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Group named %s already exists in an MPG domain\n",
+                      name);
+                ret = EEXIST;
+            }
             goto done;
+        }
+
+        if (strcasecmp(domain->provider, "local") != 0) {
+            ret = sysdb_search_group_by_gid(tmp_ctx, domain, uid, NULL, &msg);
+            if (ret != ENOENT) {
+                if (ret == EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                        "Group with GID [%"SPRIgid"] already exists in an "
+                        "MPG domain\n", gid);
+                    ret = EEXIST;
+                }
+                goto done;
+            }
         }
     }
 
@@ -2176,6 +2194,23 @@ int sysdb_add_group(struct sss_domain_info *domain,
                       "sysdb_search_user_by_name failed for user %s.\n", name);
             }
             goto done;
+        }
+
+        if (strcasecmp(domain->provider, "local") != 0) {
+            ret = sysdb_search_user_by_uid(tmp_ctx, domain, gid, NULL, &msg);
+            if (ret != ENOENT) {
+                if (ret == EOK) {
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          "User with the same UID exists in MPG domain: "
+                          "[%"SPRIgid"].\n", gid);
+                    ret = EEXIST;
+                } else {
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          "sysdb_search_user_by_uid failed for gid: "
+                          "[%"SPRIgid"].\n", gid);
+                }
+                goto done;
+            }
         }
     }
 
