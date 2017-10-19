@@ -279,7 +279,6 @@ done:
 struct sdap_sudo_refresh_state {
     struct sdap_sudo_ctx *sudo_ctx;
     struct tevent_context *ev;
-    struct sdap_server_opts *srv_opts;
     struct sdap_options *opts;
     struct sdap_id_op *sdap_op;
     struct sysdb_ctx *sysdb;
@@ -404,9 +403,6 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
-
-    /* Obtain srv_opts here in case of first connection. */
-    state->srv_opts = state->sudo_ctx->id_ctx->srv_opts;
 
     /* Renew host information if needed. */
     if (state->sudo_ctx->run_hostinfo) {
@@ -586,7 +582,6 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
         goto done;
     }
 
-
     /* start transaction */
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
@@ -621,7 +616,7 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     /* remember new usn */
     ret = sysdb_get_highest_usn(state, rules, rules_count, &usn);
     if (ret == EOK) {
-        sdap_sudo_set_usn(state->srv_opts, usn);
+        sdap_sudo_set_usn(state->sudo_ctx->id_ctx->srv_opts, usn);
     } else {
         DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get highest USN [%d]: %s\n",
               ret, sss_strerror(ret));
