@@ -736,6 +736,15 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
               ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name, value);
     }
 
+    /* Set flag that controls whether we want to write the
+     * kdcinfo files at all
+     */
+    ipa_opts->service->krb5_service->write_kdcinfo = \
+        dp_opt_get_bool(ipa_opts->auth, KRB5_USE_KDCINFO);
+    DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
+          ipa_opts->auth[KRB5_USE_KDCINFO].opt_name,
+          ipa_opts->service->krb5_service->write_kdcinfo ? "true" : "false");
+
     *_opts = ipa_opts->auth;
     ret = EOK;
 
