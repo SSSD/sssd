@@ -277,6 +277,12 @@ static int setup_memcaches(struct nss_ctx *nctx)
         return ret;
     }
 
+    if (memcache_timeout == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Fast in-memory cache will not be initialized.");
+        return EOK;
+    }
+
     /* TODO: read cache sizes from configuration */
     ret = sss_mmap_cache_init(nctx, "passwd", SSS_MC_PASSWD,
                               SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
