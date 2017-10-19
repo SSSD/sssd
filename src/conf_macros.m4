@@ -613,6 +613,7 @@ AC_ARG_ENABLE([all-experimental-features],
                               [build all experimental features])],
               [build_all_experimental_features=$enableval],
               [build_all_experimental_features=no])
+AM_CONDITIONAL([ENABLE_EXPERMINETAL], [test x"$build_all_experimental_features" = xyes])
 
 
 AC_DEFUN([WITH_UNICODE_LIB],

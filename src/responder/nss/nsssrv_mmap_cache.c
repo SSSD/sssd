@@ -1218,6 +1218,10 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
     int payload;
     int ret, dret;
 
+#ifdef ENABLE_EXPERMINETAL
+    if (timeout == 0) return EOK;
+#endif
+
     switch (type) {
     case SSS_MC_PASSWD:
         payload = SSS_AVG_PASSWD_PAYLOAD;
