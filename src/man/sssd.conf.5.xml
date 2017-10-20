@@ -2355,6 +2355,14 @@ pam_account_locked_message = Account locked, please contact help desk.
                                  <manvolnum>5</manvolnum>
                              </citerefentry>.
                         </para>
+                        <para>
+                            <emphasis>NOTE:</emphasis> Sudo rules are
+                            periodically downloaded in the background unless
+                            the sudo provider is explicitly disabled. Set
+                            <emphasis>sudo_provider = None</emphasis> to
+                            disable all sudo-related activity in SSSD if you do
+                            not want to use sudo with SSSD at all.
+                        </para>
                     </listitem>
                 </varlistentry>
                 <varlistentry>
