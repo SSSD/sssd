@@ -699,6 +699,7 @@ struct cache_req_state {
     const char *domain_name;
 
     /* work data */
+    struct cache_req_domain *cr_domains;
     struct cache_req_result **results;
     size_t num_results;
     bool first_iteration;
@@ -953,6 +954,7 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
     bool bypass_cache;
     bool bypass_dp;
     bool search;
+    errno_t ret;
 
     state = tevent_req_data(req, struct cache_req_state);
 
@@ -964,12 +966,20 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
         return EOK;
     }
 
+    ret = cache_req_domain_copy_cr_domains(state,
+                                           state->cr->rctx->cr_domains,
+                                           &state->cr_domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_copy_cr_domains() failed\n");
+        return EINVAL;
+    }
+
     if (domain_name != NULL) {
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Performing a single domain search\n");
 
         cr_domain = cache_req_domain_get_domain_by_name(
-                                    state->cr->rctx->cr_domains, domain_name);
+                                    state->cr_domains, domain_name);
         if (cr_domain == NULL) {
             return ERR_DOMAIN_NOT_FOUND;
         }
@@ -978,7 +988,7 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Performing a multi-domain search\n");
 
-        cr_domain = state->cr->rctx->cr_domains;
+        cr_domain = state->cr_domains;
         check_next = true;
     }
 
