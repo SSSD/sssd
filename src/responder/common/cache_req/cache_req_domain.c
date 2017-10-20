@@ -47,6 +47,44 @@ cache_req_domain_get_domain_by_name(struct cache_req_domain *domains,
     return ret;
 }
 
+errno_t
+cache_req_domain_copy_cr_domains(TALLOC_CTX *mem_ctx,
+                                 struct cache_req_domain *src,
+                                 struct cache_req_domain **_dest)
+{
+    struct cache_req_domain *cr_domains = NULL;
+    struct cache_req_domain *cr_domain;
+    struct cache_req_domain *iter;
+    errno_t ret;
+
+    if (src == NULL) {
+        return EINVAL;
+    }
+
+    DLIST_FOR_EACH(iter, src) {
+        cr_domain = talloc_zero(mem_ctx, struct cache_req_domain);
+        if (cr_domain == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        cr_domain->domain = iter->domain;
+        cr_domain->fqnames = iter->fqnames;
+
+        DLIST_ADD_END(cr_domains, cr_domain, struct cache_req_domain *);
+    }
+
+    *_dest = cr_domains;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        cache_req_domain_list_zfree(&cr_domains);
+    }
+
+    return ret;
+}
+
 void cache_req_domain_list_zfree(struct cache_req_domain **cr_domains)
 {
     struct cache_req_domain *p, *q, *r;

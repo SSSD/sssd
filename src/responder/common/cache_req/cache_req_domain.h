@@ -50,6 +50,11 @@ cache_req_domain_new_list_from_domain_resolution_order(
                                         const char *domain_resolution_order,
                                         struct cache_req_domain **_cr_domains);
 
+errno_t
+cache_req_domain_copy_cr_domains(TALLOC_CTX *mem_ctx,
+                                 struct cache_req_domain *src,
+                                 struct cache_req_domain **_dest);
+
 void cache_req_domain_list_zfree(struct cache_req_domain **cr_domains);
 
 
