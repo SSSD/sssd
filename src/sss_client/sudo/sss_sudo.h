@@ -87,11 +87,11 @@ struct sss_sudo_result {
 };
 
 /**
- * @brief Send a request to SSSD to retreive all SUDO rules for a given
+ * @brief Send a request to SSSD to retrieve all SUDO rules for a given
  * user.
  *
- * @param[in] uid         The uid of the user to retreive the rules for.
- * @param[in] username    The username to retreive the rules for
+ * @param[in] uid         The uid of the user to retrieve the rules for.
+ * @param[in] username    The username to retrieve the rules for
  * @param[in] domainname  The domain name the user is a member of.
  * @param[out] _error     The result of the search in SSSD's domains. If the
  *                        user was present in the domain, the _error code is
@@ -122,9 +122,9 @@ int sss_sudo_send_recv(uid_t uid,
  * @brief Send a request to SSSD to retrieve the default options, commonly
  * stored in the "cn=defaults" record,
  *
- * @param[in] uid          The uid of the user to retreive the rules for.
+ * @param[in] uid          The uid of the user to retrieve the rules for.
  *
- * @param[in] username     The username to retreive the rules for.
+ * @param[in] username     The username to retrieve the rules for.
  *
  * @param[out] _error      The result of the search in SSSD's domains. If the
  *                         options were present in the domain, the _error code

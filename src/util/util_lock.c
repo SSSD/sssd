@@ -74,7 +74,7 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                 return ret;
             }
         } else if (ret == 0) {
-            /* File successfuly locked */
+            /* File successfully locked */
             break;
         }
     }

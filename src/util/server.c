@@ -69,7 +69,7 @@ static void close_low_fds(void)
 #endif
 }
 
-static void deamon_parent_sigterm(int sig)
+static void daemon_parent_sigterm(int sig)
 {
     _exit(0);
 }
@@ -88,10 +88,10 @@ void become_daemon(bool Fork)
         pid = fork();
         if (pid != 0) {
             /* Terminate parent process on demand so we can hold systemd
-             * or initd from starting next service until sssd in initialized.
+             * or initd from starting next service until sssd is initialized.
              * We use signals directly here because we don't have a tevent
              * context yet. */
-            CatchSignal(SIGTERM, deamon_parent_sigterm);
+            CatchSignal(SIGTERM, daemon_parent_sigterm);
 
             /* or exit when sssd monitor is terminated */
             do {

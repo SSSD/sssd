@@ -706,7 +706,7 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
         return;
     }
 
-    /* The second address matched either immediatelly or after a retry.
+    /* The second address matched either immediately or after a retry.
      * No need to retry again. */
     ret = EOK;
 

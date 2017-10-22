@@ -210,7 +210,7 @@ bool sec_key_match_uuid(const char *sec_key,
 /*
  * Creates an array of principal elements that will be used later
  * in the form of:
- *          "componenets": [ "elem1", "elem2", ...]
+ *          "components": [ "elem1", "elem2", ...]
  */
 static json_t *princ_data_to_json(TALLOC_CTX *mem_ctx,
                                   krb5_principal princ)

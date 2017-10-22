@@ -722,7 +722,7 @@ static errno_t safe_original_attributes(struct sss_domain_info *domain,
         goto done;
     }
 
-    /* Safe orginal values in attributes prefixed by OriginalAD. */
+    /* Safe original values in attributes prefixed by OriginalAD. */
     for (c = 0; allowed_attrs[c] != NULL; c++) {
         el = ldb_msg_find_element(orig_obj->msgs[0], allowed_attrs[c]);
         if (el != NULL) {
@@ -753,7 +753,7 @@ static errno_t safe_original_attributes(struct sss_domain_info *domain,
     el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_NAME_ALIAS);
     if (el != NULL) {
         for (c = 0; c < el->num_values; c++) {
-            /* To avoid issue with ldb_modify if e.g. the orginal and the
+            /* To avoid issue with ldb_modify if e.g. the original and the
              * override name are the same, we use the *_safe version here. */
             ret = sysdb_attrs_add_val_safe(attrs, SYSDB_NAME_ALIAS,
                                            &el->values[c]);

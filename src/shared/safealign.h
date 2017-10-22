@@ -98,8 +98,8 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
     SAFEALIGN_SETMEM_VALUE(dest, value, uint16_t, pctr)
 
 /* These macros are the same as their equivalents without _CHECK suffix,
- * but additionally make the caller return EINVAL immediatelly if *pctr
- * would excceed len. */
+ * but additionally make the caller return EINVAL immediately if *pctr
+ * would exceed len. */
 #define SAFEALIGN_COPY_UINT32_CHECK(dest, src, len, pctr) do { \
     if ((*(pctr) + sizeof(uint32_t)) > (len) || \
         SIZE_T_OVERFLOW(*(pctr), sizeof(uint32_t))) { return EINVAL; } \

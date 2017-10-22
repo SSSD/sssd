@@ -23,7 +23,7 @@
 
 #include "util/util.h"
 
-bool sss_deamon_running(void);
+bool sss_daemon_running(void);
 errno_t sss_signal(int signum);
 
 #endif /* _SSS_PROCESS_H_ */

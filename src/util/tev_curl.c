@@ -67,7 +67,7 @@ struct tcurl_ctx {
 struct tcurl_sock {
     struct tcurl_ctx *tctx;     /* Backchannel to the main context */
 
-    curl_socket_t sockfd;       /* curl socket is an int typedef on Unix */
+    curl_socket_t sockfd;       /* curl socket is an int typedef on UNIX */
     struct tevent_fd *fde;      /* tevent tracker of the fd events */
 };
 

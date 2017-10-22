@@ -24,7 +24,7 @@
 #include "responder/common/responder.h"
 #include "tests/cmocka/common_mock_resp.h"
 
-/* Mock DP requests that finish immediatelly and return
+/* Mock DP requests that finish immediately and return
  * mocked values as per previous set by mock_account_recv
  */
 struct tevent_req *

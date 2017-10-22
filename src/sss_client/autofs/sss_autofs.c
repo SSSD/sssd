@@ -30,7 +30,7 @@
 #define MAX_AUTOMNTMAPNAME_LEN  NAME_MAX
 #define MAX_AUTOMNTKEYNAME_LEN  PATH_MAX
 
-/* How many entries shall _sss_getautomntent_r retreive at once */
+/* How many entries shall _sss_getautomntent_r retrieve at once */
 #define GETAUTOMNTENT_MAX_ENTRIES   512
 
 struct automtent {
@@ -287,7 +287,7 @@ _sss_getautomntent_r(char **key, char **value, void *context)
     data_len = sizeof(uint32_t) +            /* mapname len */
                name_len + 1 +                /* mapname\0   */
                sizeof(uint32_t) +            /* index into the map */
-               sizeof(uint32_t);             /* num entries to retreive */
+               sizeof(uint32_t);             /* num entries to retrieve */
 
     data = malloc(data_len);
     if (!data) {

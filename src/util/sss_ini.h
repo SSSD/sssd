@@ -94,7 +94,7 @@ int sss_ini_call_validators_strs(TALLOC_CTX *mem_ctx,
 struct ref_array *
 sss_ini_get_ra_error_list(struct sss_ini_initdata *init_data);
 
-/* Get pointer to list of successfuly merged snippet files */
+/* Get pointer to list of successfully merged snippet files */
 struct ref_array *
 sss_ini_get_ra_success_list(struct sss_ini_initdata *init_data);
 

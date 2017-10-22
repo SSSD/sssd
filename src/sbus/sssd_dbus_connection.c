@@ -179,7 +179,7 @@ int sbus_init_connection(TALLOC_CTX *ctx,
 
     conn->incoming_signals = sbus_incoming_signal_hash_init(conn);
     if (conn->incoming_signals == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create incoming singals "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create incoming signals "
               "hash table\n");
         talloc_free(conn);
         return EIO;
@@ -327,7 +327,7 @@ static int connection_destructor(void *ctx)
 
 /*
  * sbus_get_connection
- * Utility function to retreive the DBusConnection object
+ * Utility function to retrieve the DBusConnection object
  * from a sbus_connection
  */
 DBusConnection *sbus_get_connection(struct sbus_connection *conn)

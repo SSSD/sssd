@@ -241,7 +241,7 @@ the system and a pluggable backend system to connect to multiple different
 account sources. It is also the basis to provide client auditing and policy
 services for projects like FreeIPA.
 
-The sssd subpackage is a meta-package that contains the deamon as well as all
+The sssd subpackage is a meta-package that contains the daemon as well as all
 the existing back ends.
 
 %package common
@@ -496,7 +496,7 @@ Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
 %description -n libsss_idmap
-Utility library to convert SIDs to Unix uids and gids
+Utility library to convert SIDs to UNIX UIDs and GIDs
 
 %package -n libsss_idmap-devel
 Summary: FreeIPA Idmap library
@@ -505,7 +505,7 @@ License: LGPLv3+
 Requires: libsss_idmap = %{version}-%{release}
 
 %description -n libsss_idmap-devel
-Utility library to SIDs to Unix uids and gids
+Utility library to SIDs to UNIX UIDs and GIDs
 
 %package -n libipa_hbac
 Summary: FreeIPA HBAC Evaluator library

@@ -148,7 +148,7 @@ bool sssctl_start_sssd(bool force)
     enum sssctl_prompt_result prompt;
     errno_t ret;
 
-    if (sss_deamon_running()) {
+    if (sss_daemon_running()) {
         return true;
     }
 
@@ -187,7 +187,7 @@ bool sssctl_stop_sssd(bool force)
     enum sssctl_prompt_result prompt;
     errno_t ret;
 
-    if (!sss_deamon_running()) {
+    if (!sss_daemon_running()) {
         return true;
     }
 

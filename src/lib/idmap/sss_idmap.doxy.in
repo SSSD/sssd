@@ -719,7 +719,7 @@ RECURSIVE              = NO
 EXCLUDE                =
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
-# directories that are symbolic links (a Unix file system feature) are excluded
+# directories that are symbolic links (a UNIX file system feature) are excluded
 # from the input.
 
 EXCLUDE_SYMLINKS       = NO

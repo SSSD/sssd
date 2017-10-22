@@ -72,7 +72,7 @@ void test_sbus_opath_escape_unescape(void **state)
 
     escaped = sbus_opath_escape_part(mem_ctx, "path_with_underscore");
     assert_non_null(escaped);
-    /* underscore is 0x5F in ascii */
+    /* underscore is 0x5F in ASCII */
     assert_string_equal(escaped, "path_5fwith_5funderscore");
     raw = sbus_opath_unescape_part(mem_ctx, escaped);
     talloc_free(escaped);

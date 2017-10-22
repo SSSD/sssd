@@ -606,7 +606,7 @@ wbcErr wbcGetgrlist(struct group **grp)
     WBC_SSSD_NOT_IMPLEMENTED;
 }
 
-/* Return the unix group array belonging to the given user */
+/* Return the Unix group array belonging to the given user */
 wbcErr wbcGetGroups(const char *account,
             uint32_t *num_groups,
             gid_t **_groups)

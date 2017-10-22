@@ -185,7 +185,7 @@ int sysdb_delete_ulong(struct ldb_message *msg,
 
 /* The utility function to create a subdomain sss_domain_info object is handy
  * for unit tests, so it should be available in a header, but not a public util
- * one, because the only interface for the deamon itself should be adding
+ * one, because the only interface for the daemon itself should be adding
  * the sysdb domain object and calling sysdb_update_subdomains()
  */
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,

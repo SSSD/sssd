@@ -1612,7 +1612,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         goto done;
     }
 
-    /* Successfull authentication! Check if ccache contains the
+    /* Successful authentication! Check if ccache contains the
      * right principal...
      */
     kerr = sss_krb5_check_ccache_princ(kr->ctx, kr->ccname, kr->creds->client);

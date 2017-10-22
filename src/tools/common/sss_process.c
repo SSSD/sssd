@@ -97,7 +97,7 @@ done:
     return ret;
 }
 
-bool sss_deamon_running(void)
+bool sss_daemon_running(void)
 {
     return sss_signal(0) == EOK;
 }

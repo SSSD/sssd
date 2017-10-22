@@ -270,7 +270,7 @@ errno_t sssctl_cache_upgrade(struct sss_cmdline *cmdline,
         return ret;
     }
 
-    if (sss_deamon_running()) {
+    if (sss_daemon_running()) {
         return ERR_SSSD_RUNNING;
     }
 

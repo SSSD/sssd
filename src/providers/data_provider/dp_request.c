@@ -412,7 +412,7 @@ static void dp_terminate_request(struct dp_req *dp_req)
 {
     if (dp_req->handler_req == NULL) {
         /* This may occur when the handler already finished but the caller
-         * of dp request did not yet recieved data/free dp_req. We just
+         * of dp request did not yet received data/free dp_req. We just
          * return here. */
         return;
     }

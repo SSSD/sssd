@@ -616,7 +616,7 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     }
     in_transaction = false;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Sudoers is successfuly stored in cache\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "Sudoers is successfully stored in cache\n");
 
     /* remember new usn */
     ret = sysdb_get_highest_usn(state, rules, rules_count, &usn);

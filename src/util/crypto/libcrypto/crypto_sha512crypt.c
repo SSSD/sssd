@@ -7,7 +7,7 @@
  *  Sumit Bose <sbose@redhat.com>
  *  George McCollister <georgem@novatech-llc.com>
  */
-/* SHA512-based Unix crypt implementation.
+/* SHA512-based UNIX crypt implementation.
    Released into the Public Domain by Ulrich Drepper <drepper@redhat.com>.  */
 
 #include "config.h"

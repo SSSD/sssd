@@ -179,7 +179,7 @@ static struct kcm_ops_queue *kcm_op_queue_get(struct kcm_ops_queue_ctx *qctx,
     case HASH_ERROR_KEY_NOT_FOUND:
         /* No request for this UID yet. Enqueue this request in case
          * another one comes in and return EOK to run the current request
-         * immediatelly
+         * immediately
          */
         DEBUG(SSSDBG_TRACE_LIBS, "No existing queue for this ID\n");
 
@@ -220,7 +220,7 @@ static errno_t kcm_op_queue_add_req(struct kcm_ops_queue *kq,
  * Enqueue a request.
  *
  * If the request queue /for the given ID/ is empty, that is, if this
- * request is the first one in the queue, run the request immediatelly.
+ * request is the first one in the queue, run the request immediately.
  *
  * Otherwise just add it to the queue and wait until the previous request
  * finishes and only at that point mark the current request as done, which
