@@ -599,6 +599,7 @@ int main(int argc, const char *argv[])
     int kerr;
     int opt;
     int debug_fd = -1;
+    char *opt_logger = NULL;
     poptContext pc;
     TALLOC_CTX *main_ctx = NULL;
     uint8_t *buf = NULL;
@@ -622,6 +623,7 @@ int main(int argc, const char *argv[])
          _("An open file descriptor for the debug logs"), NULL},
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
          _("Send the debug output to stderr directly."), NULL }, \
+        SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
 
@@ -656,6 +658,8 @@ int main(int argc, const char *argv[])
             DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
     }
+
+    sss_set_logger(opt_logger);
 
     BlockSignals(false, SIGTERM);
     CatchSignal(SIGTERM, sig_term_handler);

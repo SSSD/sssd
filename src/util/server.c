@@ -455,7 +455,7 @@ int server_setup(const char *name, int flags,
     char *conf_db;
     int ret = EOK;
     bool dt;
-    bool dl;
+    bool dl = false;
     bool dm;
     struct tevent_signal *tes;
     struct logrotate_ctx *lctx;
@@ -637,16 +637,18 @@ int server_setup(const char *name, int flags,
     }
 
     /* same for debug to file */
-    dl = (debug_to_file != 0);
     ret = confdb_get_bool(ctx->confdb_ctx, conf_entry,
                           CONFDB_SERVICE_DEBUG_TO_FILES,
-                          dl, &dl);
+                          false, &dl);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
                                      ret, strerror(ret));
         return ret;
     }
-    if (dl) debug_to_file = 1;
+    if (dl) {
+        debug_to_file = 1;
+        sss_set_logger(sss_logger_str[FILES_LOGGER]);
+    }
 
     /* before opening the log file set up log rotation */
     lctx = talloc_zero(ctx, struct logrotate_ctx);
@@ -662,7 +664,7 @@ int server_setup(const char *name, int flags,
     }
 
     /* open log file if told so */
-    if (debug_to_file) {
+    if (sss_logger == FILES_LOGGER) {
         ret = open_debug_file();
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) "

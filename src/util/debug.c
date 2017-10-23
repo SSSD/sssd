@@ -277,7 +277,7 @@ void sss_vdebug_fn(const char *file,
     errno_t ret;
     va_list ap_fallback;
 
-    if (!debug_file && !debug_to_stderr) {
+    if (sss_logger == JOURNALD_LOGGER) {
         /* If we are not outputting logs to files, we should be sending them
          * to journald.
          * NOTE: on modern systems, this is where stdout/stderr will end up
@@ -470,7 +470,7 @@ int rotate_debug_files(void)
     int ret;
     errno_t error;
 
-    if (!debug_to_file) return EOK;
+    if (sss_logger != FILES_LOGGER) return EOK;
 
     do {
         error = 0;

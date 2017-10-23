@@ -343,6 +343,7 @@ START_TEST(test_debug_is_set_single_no_timestamp)
     debug_microseconds = 0;
     debug_to_file = 1;
     debug_prg_name = "sssd";
+    sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
@@ -385,6 +386,8 @@ START_TEST(test_debug_is_set_single_timestamp)
     debug_microseconds = 0;
     debug_to_file = 1;
     debug_prg_name = "sssd";
+    sss_set_logger(sss_logger_str[FILES_LOGGER]);
+
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
@@ -432,6 +435,8 @@ START_TEST(test_debug_is_set_single_timestamp_microseconds)
     debug_microseconds = 1;
     debug_to_file = 1;
     debug_prg_name = "sssd";
+    sss_set_logger(sss_logger_str[FILES_LOGGER]);
+
 
     for (i = 0; i <= 9; i++) {
         debug_level = levels[i];
@@ -480,6 +485,8 @@ START_TEST(test_debug_is_notset_no_timestamp)
     debug_microseconds = 0;
     debug_to_file = 1;
     debug_prg_name = "sssd";
+    sss_set_logger(sss_logger_str[FILES_LOGGER]);
+
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];
@@ -525,6 +532,8 @@ START_TEST(test_debug_is_notset_timestamp)
     debug_microseconds = 0;
     debug_to_file = 1;
     debug_prg_name = "sssd";
+    sss_set_logger(sss_logger_str[FILES_LOGGER]);
+
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];
@@ -570,6 +579,7 @@ START_TEST(test_debug_is_notset_timestamp_microseconds)
     debug_microseconds = 1;
     debug_to_file = 1;
     debug_prg_name = "sssd";
+    sss_set_logger(sss_logger_str[FILES_LOGGER]);
 
     for (i = 0; i <= 9; i++) {
         debug_level = all_set & ~levels[i];

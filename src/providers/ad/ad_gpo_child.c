@@ -687,6 +687,7 @@ main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int debug_fd = -1;
+    char *opt_logger = NULL;
     errno_t ret;
     int sysvol_gpt_version;
     int result;
@@ -710,6 +711,7 @@ main(int argc, const char *argv[])
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
          &debug_to_stderr, 0,
          _("Send the debug output to stderr directly."), NULL },
+        SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
 
@@ -743,6 +745,8 @@ main(int argc, const char *argv[])
             DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
     }
+
+    sss_set_logger(opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "gpo_child started.\n");
 

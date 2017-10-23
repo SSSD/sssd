@@ -94,6 +94,37 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>--logger=</option><replaceable>value</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Location where SSSD will send log messages. This option
+                        overrides the value of the deprecated option
+                        <option>--debug-to-files</option>. The deprecated
+                        option will still work if the <option>--logger</option>
+                        is not used.
+                    </para>
+                    <para>
+                        <emphasis>stderr</emphasis>: Redirect debug messages to
+                        standard error output.
+                    </para>
+                    <para>
+                        <emphasis>files</emphasis>: Redirect debug messages to
+                        the log files. By default, the log files are stored in
+                        <filename>/var/log/sssd</filename> and there are
+                        separate log files for every SSSD service and domain.
+                    </para>
+                    <para>
+                        <emphasis>journald</emphasis>: Redirect debug messages
+                        to systemd-journald
+                    </para>
+                    <para>
+                        Default: not set
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>-D</option>,<option>--daemon</option>
                 </term>
                 <listitem>

@@ -1211,22 +1211,11 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
             }
         }
 
-        if (debug_to_file) {
-            svc->command = talloc_strdup_append(
-                svc->command, " --debug-to-files"
-            );
-            if (!svc->command) {
-                talloc_free(svc);
-                return ENOMEM;
-            }
-        } else if (ctx->is_daemon == false) {
-            svc->command = talloc_strdup_append(
-                svc->command, " --debug-to-stderr"
-            );
-            if (!svc->command) {
-                talloc_free(svc);
-                return ENOMEM;
-            }
+        svc->command = talloc_asprintf_append(
+            svc->command, " --logger=%s", sss_logger_str[sss_logger]);
+        if (!svc->command) {
+            talloc_free(svc);
+            return ENOMEM;
         }
     }
 
@@ -1374,22 +1363,11 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
             }
         }
 
-        if (debug_to_file) {
-            svc->command = talloc_strdup_append(
-                svc->command, " --debug-to-files"
-            );
-            if (!svc->command) {
-                talloc_free(svc);
-                return ENOMEM;
-            }
-        } else if (ctx->is_daemon == false) {
-            svc->command = talloc_strdup_append(
-                svc->command, " --debug-to-stderr"
-            );
-            if (!svc->command) {
-                talloc_free(svc);
-                return ENOMEM;
-            }
+        svc->command = talloc_asprintf_append(
+            svc->command, " --logger=%s", sss_logger_str[sss_logger]);
+        if (!svc->command) {
+            talloc_free(svc);
+            return ENOMEM;
         }
     }
 
@@ -2454,6 +2432,7 @@ int main(int argc, const char *argv[])
     int opt_version = 0;
     int opt_netlinkoff = 0;
     char *opt_config_file = NULL;
+    char *opt_logger = NULL;
     char *config_file = NULL;
     int flags = 0;
     struct main_context *main_ctx;
@@ -2465,6 +2444,7 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
+        SSSD_LOGGER_OPTS
         {"daemon", 'D', POPT_ARG_NONE, &opt_daemon, 0, \
          _("Become a daemon (default)"), NULL }, \
         {"interactive", 'i', POPT_ARG_NONE, &opt_interactive, 0, \
@@ -2551,6 +2531,8 @@ int main(int argc, const char *argv[])
         debug_to_stderr = 1;
     }
 
+    sss_set_logger(opt_logger);
+
     if (opt_config_file) {
         config_file = talloc_strdup(tmp_ctx, opt_config_file);
     } else {
@@ -2575,7 +2557,7 @@ int main(int argc, const char *argv[])
 
     /* Open before server_setup() does to have logging
      * during configuration checking */
-    if (debug_to_file) {
+    if (sss_logger == FILES_LOGGER) {
         ret = open_debug_file();
         if (ret) {
             return 7;

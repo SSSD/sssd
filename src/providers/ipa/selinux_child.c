@@ -206,6 +206,7 @@ int main(int argc, const char *argv[])
     struct response *resp = NULL;
     ssize_t written;
     bool needs_update;
+    char *opt_logger = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -220,6 +221,7 @@ int main(int argc, const char *argv[])
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
          &debug_to_stderr, 0,
          _("Send the debug output to stderr directly."), NULL },
+        SSSD_LOGGER_OPTS
         POPT_TABLEEND
     };
 
@@ -253,6 +255,8 @@ int main(int argc, const char *argv[])
             DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
     }
+
+    sss_set_logger(opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "selinux_child started.\n");
     DEBUG(SSSDBG_TRACE_INTERNAL,
