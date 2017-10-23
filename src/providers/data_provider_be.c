@@ -537,6 +537,7 @@ int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
+    char *opt_logger = NULL;
     char *be_domain = NULL;
     char *srv_name = NULL;
     struct main_context *main_ctx;
@@ -548,6 +549,7 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
+        SSSD_LOGGER_OPTS
         SSSD_SERVER_OPTS(uid, gid)
         {"domain", 0, POPT_ARG_STRING, &be_domain, 0,
          _("Domain of the information provider (mandatory)"), NULL },
@@ -581,6 +583,8 @@ int main(int argc, const char *argv[])
     /* set up things like debug , signals, daemonization, etc... */
     debug_log_file = talloc_asprintf(NULL, "sssd_%s", be_domain);
     if (!debug_log_file) return 2;
+
+    sss_set_logger(opt_logger);
 
     srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_domain);
     if (!srv_name) return 2;

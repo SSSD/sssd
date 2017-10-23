@@ -676,7 +676,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
         }
 
         if (child_debug_stderr) {
-            argv[--argc] = talloc_strdup(argv, "--debug-to-stderr");
+            argv[--argc] = talloc_strdup(argv, "--logger=stderr");
             if (argv[argc] == NULL) {
                 ret = ENOMEM;
                 goto fail;

@@ -34,6 +34,7 @@ int main(int argc, const char *argv[])
 {
     int opt;
     int debug_fd = -1;
+    char *opt_logger = NULL;
     poptContext pc;
     ssize_t len;
     ssize_t written;
@@ -55,6 +56,7 @@ int main(int argc, const char *argv[])
          _("An open file descriptor for the debug logs"), NULL},
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
          _("Send the debug output to stderr directly."), NULL },
+        SSSD_LOGGER_OPTS
         {"guitar", 0, POPT_ARG_STRING, &guitar, 0, _("Who plays guitar"), NULL },
         {"drums", 0, POPT_ARG_STRING, &drums, 0, _("Who plays drums"), NULL },
         POPT_TABLEEND
@@ -75,6 +77,8 @@ int main(int argc, const char *argv[])
         }
     }
     poptFreeContext(pc);
+
+    sss_set_logger(opt_logger);
 
     action = getenv("TEST_CHILD_ACTION");
     if (action) {

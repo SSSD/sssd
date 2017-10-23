@@ -3020,6 +3020,7 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int debug_fd = -1;
+    char *opt_logger = NULL;
     errno_t ret;
     krb5_error_code kerr;
     uid_t fast_uid;
@@ -3039,6 +3040,7 @@ int main(int argc, const char *argv[])
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
          &debug_to_stderr, 0,
          _("Send the debug output to stderr directly."), NULL },
+        SSSD_LOGGER_OPTS
         {CHILD_OPT_FAST_CCACHE_UID, 0, POPT_ARG_INT, &fast_uid, 0,
           _("The user to create FAST ccache as"), NULL},
         {CHILD_OPT_FAST_CCACHE_GID, 0, POPT_ARG_INT, &fast_gid, 0,
@@ -3096,6 +3098,8 @@ int main(int argc, const char *argv[])
             DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
     }
+
+    sss_set_logger(opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "krb5_child started.\n");
 

@@ -324,6 +324,7 @@ int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
+    char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
     uid_t uid;
@@ -332,6 +333,7 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
+        SSSD_LOGGER_OPTS
         SSSD_SERVER_OPTS(uid, gid)
         POPT_TABLEEND
     };
@@ -358,6 +360,8 @@ int main(int argc, const char *argv[])
 
     /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_secrets";
+
+    sss_set_logger(opt_logger);
 
     ret = server_setup("sssd[secrets]", 0, uid, gid, CONFDB_SEC_CONF_ENTRY,
                        &main_ctx);

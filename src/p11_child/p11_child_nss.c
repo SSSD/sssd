@@ -537,6 +537,7 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int debug_fd = -1;
+    char *opt_logger = NULL;
     errno_t ret;
     TALLOC_CTX *main_ctx = NULL;
     char *cert;
@@ -564,6 +565,7 @@ int main(int argc, const char *argv[])
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
          &debug_to_stderr, 0,
          _("Send the debug output to stderr directly."), NULL },
+        SSSD_LOGGER_OPTS
         {"auth", 0, POPT_ARG_NONE, NULL, 'a', _("Run in auth mode"), NULL},
         {"pre", 0, POPT_ARG_NONE, NULL, 'p', _("Run in pre-auth mode"), NULL},
         {"pin", 0, POPT_ARG_NONE, NULL, 'i', _("Expect PIN on stdin"), NULL},
@@ -672,6 +674,7 @@ int main(int argc, const char *argv[])
             DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
     }
+    sss_set_logger(opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "p11_child started.\n");
 
