@@ -743,11 +743,17 @@ AC_DEFUN([WITH_LIBWBCLIENT],
     if test x"$with_libwbclient" = xyes; then
         AC_DEFINE(BUILD_LIBWBCLIENT, 1, [whether to build SSSD implementation of libwbclient])
 
-        libwbclient_version="0.14"
+        libwbclient_version=$($PKG_CONFIG --print-provides wbclient | tr -d ' ' | cut -d= -f2)
         AC_SUBST(libwbclient_version)
+        libwbclient_v_i=$(echo ${libwbclient_version} | tr . = | cut -d= -f2)
 
-        libwbclient_version_info="14:0:14"
+        libwbclient_version_info="${libwbclient_v_i}:0:${libwbclient_v_i}"
         AC_SUBST(libwbclient_version_info)
+
+       fgrep -q "WBCLIENT_${libwbclient_version} {" ${srcdir}/src/sss_client/libwbclient/wbclient.exports
+       if test ! "$?" = "0" ; then
+           AC_MSG_ERROR("wbclient interface version is not known to SSSD! Make sure to verify wbclient.exports.")
+       fi
     fi
     AM_CONDITIONAL([BUILD_LIBWBCLIENT], [test x"$with_libwbclient" = xyes])
   ])
