@@ -42,6 +42,7 @@ struct cache_req {
     struct sss_domain_info *domain;
     bool cache_first;
     bool bypass_cache;
+    bool bypass_dp;
     /* Only contact domains with this type */
     enum cache_req_dom_type req_dom_type;
 
@@ -90,6 +91,7 @@ struct cache_req_data {
     } svc;
 
     bool bypass_cache;
+    bool bypass_dp;
 };
 
 struct tevent_req *

@@ -365,3 +365,15 @@ cache_req_data_set_bypass_cache(struct cache_req_data *data,
 
     data->bypass_cache = bypass_cache;
 }
+
+void
+cache_req_data_set_bypass_dp(struct cache_req_data *data,
+                             bool bypass_dp)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return;
+    }
+
+    data->bypass_dp = bypass_dp;
+}
