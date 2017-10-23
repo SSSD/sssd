@@ -43,8 +43,62 @@ int debug_timestamps = SSSDBG_TIMESTAMP_UNRESOLVED;
 int debug_microseconds = SSSDBG_MICROSECONDS_UNRESOLVED;
 int debug_to_file = 0;
 int debug_to_stderr = 0;
+enum sss_logger_t sss_logger;
 const char *debug_log_file = "sssd";
 FILE *debug_file = NULL;
+
+const char *sss_logger_str[] = {
+        [STDERR_LOGGER] = "stderr",
+        [FILES_LOGGER] = "files",
+#ifdef WITH_JOURNALD
+        [JOURNALD_LOGGER] = "journald",
+#endif
+        NULL,
+};
+
+#ifdef WITH_JOURNALD
+#define JOURNALD_STR " journald,"
+#else
+#define JOURNALD_STR ""
+#endif
+
+void sss_set_logger(const char *logger)
+{
+    /* use old flags */
+    if (logger == NULL) {
+        if (debug_to_stderr != 0) {
+            sss_logger = STDERR_LOGGER;
+        }
+        /* It is never described what should be used in case of
+         * debug_to_stderr == 1 && debug_to_file == 1. Because neither
+         * of binaries provide both command line arguments.
+         * Let files have higher priority.
+         */
+        if (debug_to_file != 0) {
+            sss_logger = FILES_LOGGER;
+        }
+#ifdef WITH_JOURNALD
+        if (debug_to_file == 0 && debug_to_stderr == 0) {
+            sss_logger = JOURNALD_LOGGER;
+        }
+#endif
+    } else {
+        if (strcmp(logger, "stderr") == 0) {
+            sss_logger = STDERR_LOGGER;
+        } else if (strcmp(logger, "files") == 0) {
+            sss_logger = FILES_LOGGER;
+#ifdef WITH_JOURNALD
+        } else if (strcmp(logger, "journald") == 0) {
+            sss_logger = JOURNALD_LOGGER;
+#endif
+        } else {
+            /* unexpected value */
+            fprintf(stderr, "Unexpected logger: %s\nExpected:%s stderr, "
+                            "files\n", logger, JOURNALD_STR);
+            sss_logger = STDERR_LOGGER;
+        }
+    }
+}
 
 errno_t set_debug_file_from_fd(const int fd)
 {
