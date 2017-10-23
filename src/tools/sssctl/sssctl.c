@@ -264,6 +264,7 @@ int main(int argc, const char **argv)
         SSS_TOOL_COMMAND("domain-list", "List available domains", 0, sssctl_domain_list),
         SSS_TOOL_COMMAND("domain-status", "Print information about domain", 0, sssctl_domain_status),
         SSS_TOOL_COMMAND("user-checks", "Print information about a user and check authentication", 0, sssctl_user_checks),
+        SSS_TOOL_COMMAND("access-report", "Generate access report for a domain", 0, sssctl_access_report),
         SSS_TOOL_DELIMITER("Information about cached content:"),
         SSS_TOOL_COMMAND("user-show", "Information about cached user", 0, sssctl_user_show),
         SSS_TOOL_COMMAND("group-show", "Information about cached group", 0, sssctl_group_show),
