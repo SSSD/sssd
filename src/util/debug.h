@@ -31,13 +31,26 @@
 
 #define APPEND_LINE_FEED 0x1
 
+enum sss_logger_t {
+    STDERR_LOGGER = 0,
+    FILES_LOGGER,
+#ifdef WITH_JOURNALD
+    JOURNALD_LOGGER,
+#endif
+};
+
+extern const char *sss_logger_str[];
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
 extern int debug_microseconds;
 extern int debug_to_file;
 extern int debug_to_stderr;
+extern enum sss_logger_t sss_logger;
 extern const char *debug_log_file;
+
+void sss_set_logger(const char *logger);
+
 void sss_vdebug_fn(const char *file,
                    long line,
                    const char *function,
@@ -79,6 +92,11 @@ int get_fd_from_debug_file(void);
 
 #define SSSDBG_MICROSECONDS_UNRESOLVED   -1
 #define SSSDBG_MICROSECONDS_DEFAULT       0
+
+#define SSSD_LOGGER_OPTS \
+        {"logger", '\0', POPT_ARG_STRING, &opt_logger, 0, \
+         _("Set logger"), "stderr|files|journald"},
+
 
 #define SSSD_DEBUG_OPTS \
         {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0, \
