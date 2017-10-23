@@ -9,5 +9,6 @@ RefuseManualStart=true
 Also=sssd-nss.socket
 
 [Service]
-ExecStart=@libexecdir@/sssd/sssd_nss --debug-to-files --socket-activated
+Environment=DEBUG_LOGGER=--logger=files
+ExecStart=@libexecdir@/sssd/sssd_nss ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure

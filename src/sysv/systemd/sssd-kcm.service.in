@@ -6,4 +6,5 @@ Documentation=man:sssd-kcm(5)
 Also=sssd-kcm.socket
 
 [Service]
-ExecStart=@libexecdir@/sssd/sssd_kcm --uid 0 --gid 0 --debug-to-files
+Environment=DEBUG_LOGGER=--logger=files
+ExecStart=@libexecdir@/sssd/sssd_kcm --uid 0 --gid 0 ${DEBUG_LOGGER}
