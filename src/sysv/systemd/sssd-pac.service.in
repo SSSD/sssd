@@ -9,8 +9,9 @@ RefuseManualStart=true
 Also=sssd-pac.socket
 
 [Service]
+Environment=DEBUG_LOGGER=--logger=files
 ExecStartPre=-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_pac.log
-ExecStart=@libexecdir@/sssd/sssd_pac --debug-to-files --socket-activated
+ExecStart=@libexecdir@/sssd/sssd_pac ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure
 User=@SSSD_USER@
 Group=@SSSD_USER@

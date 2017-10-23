@@ -9,8 +9,9 @@ RefuseManualStart=true
 Also=sssd-sudo.socket
 
 [Service]
+Environment=DEBUG_LOGGER=--logger=files
 ExecStartPre=-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_sudo.log
-ExecStart=@libexecdir@/sssd/sssd_sudo --debug-to-files --socket-activated
+ExecStart=@libexecdir@/sssd/sssd_sudo --socket-activated
 Restart=on-failure
 User=@SSSD_USER@
 Group=@SSSD_USER@

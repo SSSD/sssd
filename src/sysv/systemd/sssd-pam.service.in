@@ -9,8 +9,9 @@ RefuseManualStart=true
 Also=sssd-pam.socket sssd-pam-priv.socket
 
 [Service]
+Environment=DEBUG_LOGGER=--logger=files
 ExecStartPre=-/bin/chown @SSSD_USER@:@SSSD_USER@ @logpath@/sssd_pam.log
-ExecStart=@libexecdir@/sssd/sssd_pam --debug-to-files --socket-activated
+ExecStart=@libexecdir@/sssd/sssd_pam ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure
 User=@SSSD_USER@
 Group=@SSSD_USER@

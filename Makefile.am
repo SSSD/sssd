@@ -91,7 +91,7 @@ sssdkcmdatadir = $(datadir)/sssd-kcm
 deskprofilepath = $(sss_statedir)/deskprofile
 
 if HAVE_SYSTEMD_UNIT
-ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --debug-to-files --dbus-activated
+ifp_exec_cmd = $(sssdlibexecdir)/sssd_ifp --uid 0 --gid 0 --dbus-activated
 ifp_systemdservice = SystemdService=sssd-ifp.service
 ifp_restart = Restart=on-failure
 else
@@ -4483,10 +4483,6 @@ if BUILD_KCM
         src/sysv/systemd/sssd-kcm.service \
         $(NULL)
 endif
-if WITH_JOURNALD
-    systemdconf_DATA += \
-        src/sysv/systemd/journal.conf
-endif
 else
 if HAVE_SUSE
     init_SCRIPTS += \
@@ -4535,7 +4531,6 @@ replace_script = \
 
 EXTRA_DIST += \
     src/sysv/systemd/sssd.service.in \
-    src/sysv/systemd/journal.conf.in \
     src/sysv/systemd/sssd-nss.socket.in \
     src/sysv/systemd/sssd-nss.service.in \
     src/sysv/systemd/sssd-pam.socket.in \
@@ -4582,10 +4577,6 @@ EXTRA_DIST += \
 endif
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
-	@$(MKDIR_P) src/sysv/systemd/
-	$(replace_script)
-
-src/sysv/systemd/journal.conf: src/sysv/systemd/journal.conf.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 
@@ -4924,7 +4915,6 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/sssd-secrets.service
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.socket
 	rm -f $(builddir)/src/sysv/systemd/sssd-kcm.service
-	rm -f $(builddir)/src/sysv/systemd/journal.conf
 	rm -f $(builddir)/src/tools/wrappers/sss_debuglevel
 
 CLEANFILES += *.X */*.X */*/*.X
