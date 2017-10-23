@@ -127,6 +127,9 @@ void
 cache_req_data_set_bypass_cache(struct cache_req_data *data,
                                 bool bypass_cache);
 
+void
+cache_req_data_set_bypass_dp(struct cache_req_data *data,
+                             bool bypass_dp);
 /* Output data. */
 
 struct cache_req_result {

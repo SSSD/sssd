@@ -142,6 +142,13 @@ cache_req_create(TALLOC_CTX *mem_ctx,
 
     cr->cache_first = rctx->cache_first;
     cr->bypass_cache = cr->plugin->bypass_cache || cr->data->bypass_cache;
+    cr->bypass_dp = cr->data->bypass_dp;
+    if (cr->bypass_cache && cr->bypass_dp) {
+        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
+                        "Cannot bypass cache and dp at the same time!");
+        talloc_free(cr);
+        return NULL;
+    }
 
     return cr;
 }
@@ -657,6 +664,14 @@ static bool cache_req_search_schema(struct cache_req *cr,
          * or it is inferred by cache_req plug-in. */
         bypass_cache = true;
         bypass_dp = false;
+
+        if (!first_iteration) {
+            return false;
+        }
+    } else if (cr->bypass_dp) {
+        /* The caller wants to lookup only in the cache */
+        bypass_cache = false;
+        bypass_dp = true;
 
         if (!first_iteration) {
             return false;
