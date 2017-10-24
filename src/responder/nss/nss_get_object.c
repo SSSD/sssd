@@ -86,7 +86,7 @@ memcache_delete_entry_by_id(struct nss_ctx *nss_ctx,
     return ret;
 }
 
-static errno_t
+errno_t
 memcache_delete_entry(struct nss_ctx *nss_ctx,
                       struct resp_ctx *rctx,
                       struct sss_domain_info *domain,
