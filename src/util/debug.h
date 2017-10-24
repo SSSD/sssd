@@ -101,7 +101,7 @@ int get_fd_from_debug_file(void);
 #define SSSD_DEBUG_OPTS \
         {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0, \
          _("Debug level"), NULL}, \
-        {"debug-to-files", 'f', POPT_ARG_NONE, &debug_to_file, 0, \
+        {"debug-to-files", 'f', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_file, 0, \
          _("Send the debug output to files instead of stderr"), NULL }, \
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
          _("Send the debug output to stderr directly."), NULL }, \
