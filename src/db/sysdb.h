@@ -154,6 +154,7 @@
 #define SYSDB_SUBDOMAIN_FOREST "memberOfForest"
 #define SYSDB_SUBDOMAIN_TRUST_DIRECTION "trustDirection"
 #define SYSDB_UPN_SUFFIXES "upnSuffixes"
+#define SYSDB_SITE "site"
 
 #define SYSDB_BASE_ID "baseID"
 #define SYSDB_ID_RANGE_SIZE "idRangeSize"
@@ -508,6 +509,15 @@ errno_t sysdb_domain_update_domain_resolution_order(
                                         struct sysdb_ctx *sysdb,
                                         const char *domain_name,
                                         const char *domain_resolution_order);
+
+errno_t
+sysdb_get_site(TALLOC_CTX *mem_ctx,
+               struct sss_domain_info *dom,
+               const char **_site);
+
+errno_t
+sysdb_set_site(struct sss_domain_info *dom,
+               const char *site);
 
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
