@@ -103,6 +103,18 @@ errno_t sss_nss_mc_get(struct nss_input *inp)
     }
 }
 
+static int check_flags(uint32_t flags)
+{
+    /* SSS_NSS_EX_FLAG_NO_CACHE and SSS_NSS_EX_FLAG_INVALIDATE_CACHE are
+     * mutually exclusive */
+    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0
+            && (flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
+        return EINVAL;
+    }
+
+    return 0;
+}
+
 int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
 {
     uint8_t *repbuf = NULL;
@@ -117,7 +129,13 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
     size_t idx;
     bool skip_mc = false;
 
-    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0) {
+    ret = check_flags(flags);
+    if (ret != 0) {
+        return ret;
+    }
+
+    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0
+            || (flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
         skip_mc = true;
     }
 

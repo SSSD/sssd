@@ -274,8 +274,10 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
 
         num_results++;
 
-        /* Do not store entry in memory cache during enumeration. */
-        if (!cmd_ctx->enumeration) {
+        /* Do not store entry in memory cache during enumeration or when
+         * requested. */
+        if (!cmd_ctx->enumeration
+                && (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0) {
             members = (char *)&body[rp_members];
             members_size = body_len - rp_members;
             ret = sss_mmap_cache_gr_store(&nss_ctx->grp_mc_ctx, name, &pwfield,
@@ -390,7 +392,8 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
         num_results++;
     }
 
-    if (nss_ctx->initgr_mc_ctx) {
+    if (nss_ctx->initgr_mc_ctx
+                && (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0) {
         to_sized_string(&rawname, cmd_ctx->rawname);
         to_sized_string(&unique_name, result->lookup_name);
 
