@@ -1284,3 +1284,111 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t
+sysdb_get_site(TALLOC_CTX *mem_ctx,
+               struct sss_domain_info *dom,
+               const char **_site)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_res *res;
+    struct ldb_dn *dn;
+    const char *attrs[] = { SYSDB_SITE, NULL };
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, dom->sysdb->ldb, SYSDB_DOM_BASE, dom->name);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(dom->sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                     attrs, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        *_site = NULL;
+        ret = EOK;
+        goto done;
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Got more than one reply for base search!\n");
+        ret = EIO;
+        goto done;
+    }
+
+    *_site = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SITE, NULL);
+    talloc_steal(mem_ctx, *_site);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_set_site(struct sss_domain_info *dom,
+               const char *site)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    struct ldb_dn *dn;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, dom->sysdb->ldb, SYSDB_DOM_BASE, dom->name);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = dn;
+
+    ret = ldb_msg_add_empty(msg, SYSDB_SITE, LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    if (site != NULL) {
+        ret = ldb_msg_add_string(msg, SYSDB_SITE, site);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    ret = ldb_modify(dom->sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb_modify()_failed: [%s][%d][%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(dom->sysdb->ldb));
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
