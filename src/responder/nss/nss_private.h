@@ -92,6 +92,14 @@ struct sss_cmd_table *get_nss_cmds(void);
 
 int nss_connection_setup(struct cli_ctx *cli_ctx);
 
+errno_t
+memcache_delete_entry(struct nss_ctx *nss_ctx,
+                      struct resp_ctx *rctx,
+                      struct sss_domain_info *domain,
+                      const char *name,
+                      uint32_t id,
+                      enum sss_mc_type type);
+
 struct tevent_req *
 nss_get_object_send(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
