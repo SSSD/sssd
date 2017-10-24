@@ -90,6 +90,10 @@
                         log files are stored in <filename>/var/log/sssd</filename> and
                         there are separate log files for every SSSD service and domain.
                     </para>
+                    <para>
+                        This option is deprecated. It is replaced by
+                        <option>--logger=files</option>.
+                    </para>
                 </listitem>
             </varlistentry>
             <varlistentry>
