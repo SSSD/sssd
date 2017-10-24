@@ -10,5 +10,6 @@ Also=sssd-nss.socket
 
 [Service]
 Environment=DEBUG_LOGGER=--logger=files
+EnvironmentFile=-@environment_file@
 ExecStart=@libexecdir@/sssd/sssd_nss ${DEBUG_LOGGER} --socket-activated
 Restart=on-failure
