@@ -170,8 +170,14 @@ void sss_nss_free_kv(struct sss_nss_kv *kv_list);
 #define SSS_NSS_EX_FLAG_NO_FLAGS 0
 
 /** Always request data from the server side, client must be privileged to do
- *  so, see nss_trusted_users option in man sssd.conf for details */
+ *  so, see nss_trusted_users option in man sssd.conf for details.
+ *  This flag cannot be used together with SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
 #define SSS_NSS_EX_FLAG_NO_CACHE (1 << 0)
+
+/** Invalidate the data in the caches, client must be privileged to do
+ *  so, see nss_trusted_users option in man sssd.conf for details.
+ *  This flag cannot be used together with SSS_NSS_EX_FLAG_NO_CACHE */
+#define SSS_NSS_EX_FLAG_INVALIDATE_CACHE (1 << 1)
 
 #ifdef IPA_389DS_PLUGIN_HELPER_CALLS
 

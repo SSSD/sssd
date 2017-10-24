@@ -50,6 +50,26 @@ nss_cmd_ctx_create(TALLOC_CTX *mem_ctx,
     return cmd_ctx;
 }
 
+static errno_t eval_flags(struct nss_cmd_ctx *cmd_ctx,
+                          struct cache_req_data *data)
+{
+    if ((cmd_ctx->flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0
+            && (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Flags SSS_NSS_EX_FLAG_NO_CACHE and "
+                                   "SSS_NSS_EX_FLAG_INVALIDATE_CACHE are "
+                                   "mutually exclusive.\n");
+        return EINVAL;
+    }
+
+    if ((cmd_ctx->flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0) {
+        cache_req_data_set_bypass_cache(data, true);
+    } else if ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
+        cache_req_data_set_bypass_dp(data, true);
+    }
+
+    return EOK;
+}
+
 static void nss_getby_done(struct tevent_req *subreq);
 static void nss_getlistby_done(struct tevent_req *subreq);
 
@@ -65,7 +85,6 @@ static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
     struct tevent_req *subreq;
     const char *rawname;
     errno_t ret;
-    uint32_t flags = 0;
 
     cmd_ctx = nss_cmd_ctx_create(cli_ctx, cli_ctx, type, fill_fn);
     if (cmd_ctx == NULL) {
@@ -73,8 +92,9 @@ static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
         goto done;
     }
 
+    cmd_ctx->flags = 0;
     if (ex_version) {
-        ret = nss_protocol_parse_name_ex(cli_ctx, &rawname, &flags);
+        ret = nss_protocol_parse_name_ex(cli_ctx, &rawname, &cmd_ctx->flags);
     } else {
         ret = nss_protocol_parse_name(cli_ctx, &rawname);
     }
@@ -92,8 +112,10 @@ static errno_t nss_getby_name(struct cli_ctx *cli_ctx,
         goto done;
     }
 
-    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0) {
-        cache_req_data_set_bypass_cache(data, true);
+    ret = eval_flags(cmd_ctx, data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "eval_flags failed.\n");
+        goto done;
     }
 
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
@@ -129,7 +151,6 @@ static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
     struct tevent_req *subreq;
     uint32_t id;
     errno_t ret;
-    uint32_t flags = 0;
 
     cmd_ctx = nss_cmd_ctx_create(cli_ctx, cli_ctx, type, fill_fn);
     if (cmd_ctx == NULL) {
@@ -138,7 +159,7 @@ static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
     }
 
     if (ex_version) {
-        ret = nss_protocol_parse_id_ex(cli_ctx, &id, &flags);
+        ret = nss_protocol_parse_id_ex(cli_ctx, &id, &cmd_ctx->flags);
     } else {
         ret = nss_protocol_parse_id(cli_ctx, &id);
     }
@@ -156,8 +177,10 @@ static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
         goto done;
     }
 
-    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0) {
-        cache_req_data_set_bypass_cache(data, true);
+    ret = eval_flags(cmd_ctx, data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "eval_flags failed.\n");
+        goto done;
     }
 
     subreq = nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
@@ -425,6 +448,98 @@ done:
     return EOK;
 }
 
+static errno_t invalidate_cache(struct nss_cmd_ctx *cmd_ctx,
+                                struct cache_req_result *result)
+{
+    int ret;
+    enum sss_mc_type memcache_type;
+    const char *name;
+    char *output_name = NULL;
+    bool is_user;
+    struct sysdb_attrs *attrs = NULL;
+
+    switch (cmd_ctx->type) {
+    case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
+        memcache_type = SSS_MC_INITGROUPS;
+        is_user = true;
+        break;
+    case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_ID:
+        memcache_type = SSS_MC_PASSWD;
+        is_user = true;
+        break;
+    case CACHE_REQ_GROUP_BY_NAME:
+    case CACHE_REQ_GROUP_BY_ID:
+        memcache_type = SSS_MC_GROUP;
+        is_user = false;
+        break;
+    default:
+        /* nothing to do */
+        return EOK;
+    }
+
+    /* Find output name to invalidate memory cache entry*/
+    name = sss_get_name_from_msg(result->domain, result->msgs[0]);
+    if (name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Found object has no name.\n");
+        return EINVAL;
+    }
+    ret = sss_output_fqname(cmd_ctx, result->domain, name,
+                            cmd_ctx->nss_ctx->rctx->override_space,
+                            &output_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_output_fqname failed.\n");
+        return ret;
+    }
+
+    memcache_delete_entry(cmd_ctx->nss_ctx, cmd_ctx->nss_ctx->rctx, NULL,
+                          output_name, 0, memcache_type);
+    if (memcache_type == SSS_MC_INITGROUPS) {
+        /* Invalidate the passwd data as well */
+        memcache_delete_entry(cmd_ctx->nss_ctx, cmd_ctx->nss_ctx->rctx,
+                              result->domain, output_name, 0, SSS_MC_PASSWD);
+    }
+    talloc_free(output_name);
+
+    /* Use sysdb name to invalidate disk cache entry */
+    name = ldb_msg_find_attr_as_string(result->msgs[0], SYSDB_NAME, NULL);
+    if (name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Found object has no name.\n");
+        return EINVAL;
+    }
+
+    if (memcache_type == SSS_MC_INITGROUPS) {
+        attrs = sysdb_new_attrs(cmd_ctx);
+        if (attrs == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
+            return ENOMEM;
+        }
+
+        ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE, 1);
+        if (ret != EOK) {
+            talloc_free(attrs);
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_time_t failed.\n");
+            return ret;
+        }
+
+        ret = sysdb_set_user_attr(result->domain, name, attrs, SYSDB_MOD_REP);
+        talloc_free(attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_user_attr failed.\n");
+            return ret;
+        }
+    }
+
+    ret = sysdb_invalidate_cache_entry(result->domain, name, is_user);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_invalidate_cache_entry failed.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
 static void nss_getby_done(struct tevent_req *subreq)
 {
     struct cache_req_result *result;
@@ -438,6 +553,16 @@ static void nss_getby_done(struct tevent_req *subreq)
     if (ret != EOK) {
         nss_protocol_done(cmd_ctx->cli_ctx, ret);
         goto done;
+    }
+
+    if ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
+        ret = invalidate_cache(cmd_ctx, result);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to invalidate cache for [%s].\n",
+                                     cmd_ctx->rawname);
+            nss_protocol_done(cmd_ctx->cli_ctx, ret);
+            goto done;
+        }
     }
 
     nss_protocol_reply(cmd_ctx->cli_ctx, cmd_ctx->nss_ctx, cmd_ctx,

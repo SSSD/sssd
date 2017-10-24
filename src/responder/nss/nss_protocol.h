@@ -50,6 +50,7 @@ struct nss_cmd_ctx {
     struct nss_ctx *nss_ctx;
     struct nss_state_ctx *state_ctx;
     nss_protocol_fill_packet_fn fill_fn;
+    uint32_t flags;
 
     /* For initgroups- */
     const char *rawname;

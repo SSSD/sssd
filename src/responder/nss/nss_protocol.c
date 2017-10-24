@@ -233,6 +233,7 @@ nss_protocol_parse_id_ex(struct cli_ctx *cli_ctx, uint32_t *_id,
     SAFEALIGN_COPY_UINT32(&flags, body + sizeof(uint32_t), NULL);
 
     *_id = id;
+    *_flags = flags;
 
     return EOK;
 }
