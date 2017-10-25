@@ -320,6 +320,7 @@ static errno_t ad_init_auth_ctx(TALLOC_CTX *mem_ctx,
     }
 
     krb5_auth_ctx->config_type = K5C_GENERIC;
+    krb5_auth_ctx->sss_creds_password = true;
     krb5_auth_ctx->service = ad_options->service->krb5_service;
 
     ret = ad_get_auth_options(krb5_auth_ctx, ad_options, be_ctx,
