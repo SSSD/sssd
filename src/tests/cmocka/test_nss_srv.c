@@ -255,6 +255,45 @@ static void mock_input_user_or_group(const char *input)
     mock_parse_inp(shortname, domname, EOK);
 }
 
+static void mock_input_user_or_group_ex(bool do_parse_inp, const char *input,
+                                        uint32_t flags)
+{
+    const char *copy;
+    const char *shortname;
+    const char *domname;
+    char *separator;
+    uint8_t *data;
+    size_t len;
+
+    len = strlen(input);
+    len++;
+    data = talloc_size(nss_test_ctx, len + sizeof(uint32_t));
+    assert_non_null(data);
+    memcpy(data, input, len);
+    SAFEALIGN_COPY_UINT32(data + len, &flags, NULL);
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, data);
+    will_return(__wrap_sss_packet_get_body, len + sizeof(uint32_t));
+
+    if (do_parse_inp) {
+        copy = talloc_strdup(nss_test_ctx, input);
+        assert_non_null(copy);
+
+        separator = strrchr(copy, '@');
+        if (separator == NULL) {
+            shortname = input;
+            domname = NULL;
+        } else {
+            *separator = '\0';
+            shortname = copy;
+            domname = separator + 1;
+        }
+
+        mock_parse_inp(shortname, domname, EOK);
+    }
+}
+
 static void mock_input_upn(const char *upn)
 {
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
@@ -289,6 +328,20 @@ static void mock_input_id(TALLOC_CTX *mem_ctx, uint32_t id)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, body);
     will_return(__wrap_sss_packet_get_body, sizeof(uint32_t));
+}
+
+static void mock_input_id_ex(TALLOC_CTX *mem_ctx, uint32_t id, uint32_t flags)
+{
+    uint8_t *body;
+
+    body = talloc_zero_array(mem_ctx, uint8_t, 8);
+    if (body == NULL) return;
+
+    SAFEALIGN_SETMEM_UINT32(body, id, NULL);
+    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), flags, NULL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, body);
+    will_return(__wrap_sss_packet_get_body, 2 * sizeof(uint32_t));
 }
 
 static void mock_fill_user(void)
@@ -4143,6 +4196,482 @@ void test_nss_getsidbyname_neg(void **state)
     assert_int_equal(ret, ENOENT);
 }
 
+static int test_nss_EINVAL_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    assert_int_equal(status, EINVAL);
+    assert_int_equal(blen, 0);
+
+    return EOK;
+}
+
+#define RESET_TCTX do { \
+    nss_test_ctx->tctx->done = false; \
+    nss_test_ctx->tctx->error = EIO; \
+} while (0)
+
+void test_nss_getpwnam_ex(void **state)
+{
+    errno_t ret;
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &getpwnam_usr, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group_ex(true, "testuser", 0);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM_EX);
+    mock_fill_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwnam_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use old input format, expect EINVAL */
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "testuser");
+    will_return(__wrap_sss_packet_get_body, 0);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use unsupported flag combination, expect EINVAL */
+    mock_input_user_or_group_ex(false, "testuser",
+                                SSS_NSS_EX_FLAG_NO_CACHE
+                                    |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_NO_CACHE,
+     * will cause a backend lookup -> mock_account_recv_simple() */
+    mock_input_user_or_group_ex(true, "testuser", SSS_NSS_EX_FLAG_NO_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM_EX);
+    mock_fill_user();
+    mock_account_recv_simple();
+
+    set_cmd_cb(test_nss_getpwnam_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
+    mock_input_user_or_group_ex(true, "testuser",
+                                SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM_EX);
+    mock_fill_user();
+
+    set_cmd_cb(test_nss_getpwnam_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getpwuid_ex(void **state)
+{
+    errno_t ret;
+    uint32_t id = 101;
+
+    /* Prime the cache with a valid user */
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &getpwuid_usr, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_id_ex(nss_test_ctx, id, 0);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
+    mock_fill_user();
+
+    /* Query for that id, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwuid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use old input format, expect failure */
+    mock_input_id(nss_test_ctx, id);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use unsupported flag combination, expect EINVAL */
+    mock_input_id_ex(nss_test_ctx, id, SSS_NSS_EX_FLAG_NO_CACHE
+                                            |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_NO_CACHE,
+     * will cause a backend lookup -> mock_account_recv_simple() */
+    mock_input_id_ex(nss_test_ctx, id, SSS_NSS_EX_FLAG_NO_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
+    mock_fill_user();
+    mock_account_recv_simple();
+
+    set_cmd_cb(test_nss_getpwuid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
+    mock_input_id_ex(nss_test_ctx, id, SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID_EX);
+    mock_fill_user();
+
+    set_cmd_cb(test_nss_getpwuid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getgrnam_ex_no_members(void **state)
+{
+    errno_t ret;
+
+    /* Test group is still in the cache */
+
+    mock_input_user_or_group_ex(true, getgrnam_no_members.gr_name, 0);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM_EX);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use old input format, expect failure */
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "testgroup");
+    will_return(__wrap_sss_packet_get_body, 0);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use unsupported flag combination, expect EINVAL */
+    mock_input_user_or_group_ex(false, getgrnam_no_members.gr_name,
+                                SSS_NSS_EX_FLAG_NO_CACHE
+                                    |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_NO_CACHE,
+     * will cause a backend lookup -> mock_account_recv_simple() */
+    mock_input_user_or_group_ex(true, getgrnam_no_members.gr_name,
+                                SSS_NSS_EX_FLAG_NO_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM_EX);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    mock_account_recv_simple();
+
+    set_cmd_cb(test_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
+    mock_input_user_or_group_ex(true, getgrnam_no_members.gr_name,
+                                SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM_EX);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getgrgid_ex_no_members(void **state)
+{
+    errno_t ret;
+
+    /* Test group is still in the cache */
+
+    mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid, 0);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    mock_account_recv_simple();
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use old input format, expect failure */
+    mock_input_id(nss_test_ctx, getgrnam_no_members.gr_gid);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use unsupported flag combination, expect EINVAL */
+    mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid,
+                     SSS_NSS_EX_FLAG_NO_CACHE
+                        |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_NO_CACHE,
+     * will cause a backend lookup -> mock_account_recv_simple() */
+    mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid,
+                     SSS_NSS_EX_FLAG_NO_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    mock_account_recv_simple();
+    mock_account_recv_simple();
+
+    set_cmd_cb(test_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
+    mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid,
+                     SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_initgroups_ex(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
+                                 time(NULL) + 300);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upninitgr@upndomain.test");
+    assert_int_equal(ret, EOK);
+
+    ret = store_user(nss_test_ctx, nss_test_ctx->tctx->dom,
+                     &testinitgr_usr, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group_ex(true, "testinitgr", 0);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR_EX);
+    mock_fill_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_initgr_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use old input format, expect failure */
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "testinitgr");
+    will_return(__wrap_sss_packet_get_body, 0);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use unsupported flag combination, expect EINVAL */
+    mock_input_user_or_group_ex(false, "testinitgr",
+                                SSS_NSS_EX_FLAG_NO_CACHE
+                                    |SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR_EX);
+
+    set_cmd_cb(test_nss_EINVAL_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_NO_CACHE,
+     * will cause a backend lookup -> mock_account_recv_simple() */
+    mock_input_user_or_group_ex(true, "testinitgr",
+                                SSS_NSS_EX_FLAG_NO_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR_EX);
+    mock_fill_user();
+    mock_account_recv_simple();
+
+    set_cmd_cb(test_nss_initgr_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    RESET_TCTX;
+
+    /* Use flag SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
+    mock_input_user_or_group_ex(true, "testinitgr",
+                                SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR_EX);
+    mock_fill_user();
+
+    set_cmd_cb(test_nss_initgr_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR_EX,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -4287,6 +4816,16 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_getsidbyupn,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getsidbyname_neg,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_ex,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwuid_ex,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_ex_no_members,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrgid_ex_no_members,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_initgroups_ex,
                                         nss_test_setup, nss_test_teardown),
     };
 
