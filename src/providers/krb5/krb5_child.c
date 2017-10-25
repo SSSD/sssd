@@ -48,6 +48,14 @@
     sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_PIN \
         || sss_authtok_get_type((tok)) == SSS_AUTHTOK_TYPE_SC_KEYPAD)
 
+typedef krb5_error_code
+(*k5_init_creds_password_fn_t)(krb5_context context, krb5_creds *creds,
+                               krb5_principal client, const char *password,
+                               krb5_prompter_fct prompter, void *data,
+                               krb5_deltat start_time,
+                               const char *in_tkt_service,
+                               krb5_get_init_creds_opt *k5_gic_options);
+
 enum k5c_fast_opt {
     K5C_FAST_NEVER,
     K5C_FAST_TRY,
@@ -76,6 +84,7 @@ struct krb5_req {
     char *otp_token_id;
     char *otp_challenge;
     krb5_get_init_creds_opt *options;
+    k5_init_creds_password_fn_t krb5_get_init_creds_password;
 
     struct pam_data *pd;
 
@@ -1477,6 +1486,146 @@ done:
 
 }
 
+/* [MS-KILE]: Kerberos Protocol Extensions
+ * https://msdn.microsoft.com/en-us/library/cc233855.aspx
+ * http://download.microsoft.com/download/9/5/E/95EF66AF-9026-4BB0-A41D-A4F81802D92C/%5BMS-KILE%5D.pdf
+ * 2.2.1 KERB-EXT-ERROR
+ */
+bool have_ms_kile_ext_error(unsigned char *data, unsigned int length,
+                            uint32_t *_ntstatus)
+{
+    /* [MS-KILE] 2.2.2 KERB-ERROR-DATA
+     * Kerberos V5 messages are defined using Abstract Syntax Notation One
+     * (ASN.1)
+     * KERB-ERROR-DATA ::= SEQUENCE {
+     *      data-type              [1] INTEGER,
+     *      data-value             [2] OCTET STRING OPTIONAL
+     * }
+     * We are interested in data-type 3 KERB_ERR_TYPE_EXTENDED
+     */
+    uint8_t kile_asn1_begining[] = {
+        0x30, 0x15, /* 0x30 is SEQUENCE, 0x15 length */
+        0xA1, 0x03, /* 0xA1 is 1st element of sequence, 0x03 length */
+        0x02, 0x01, 0x03, /* 0x02 is INTEGER, 0x01 length, 0x03 value */
+        0xA2, 0x0E, /* 0xA2 is 2nd element of sequence, 0x0E length */
+        0x04, 0x0C, /* 0x04 is OCTET STRING, 0x0C length (12 bytes) */
+    };
+    const size_t offset = sizeof(kile_asn1_begining);
+    uint32_t value;
+
+    if (length != 23 || data == NULL) {
+        return false;
+    }
+
+    if (memcmp(data, kile_asn1_begining, offset) != 0) {
+        return false;
+    }
+
+    /* [MS-KILE] 2.2.1 KERB-EXT-ERROR
+     * typedef struct KERB_EXT_ERROR {
+     *     unsigned long status;
+     *     unsigned long reserved;
+     *     unsigned long flags;
+     * } KERB_EXT_ERROR;
+     * Status: An NTSTATUS value. See [MS-ERREF] section 2.3.
+     */
+    value = data[offset + 3] << 24
+            | data[offset + 2] << 16
+            | data[offset + 1] << 8
+            | data[offset + 0];
+
+    *_ntstatus = value;
+    return true;
+}
+
+/* Following NTSTATUS values are from:
+ * [MS-ERREF]: Windows Error Codes -> Section 2.3.1
+ * https://msdn.microsoft.com/en-us/library/cc231196.aspx
+ * http://download.microsoft.com/download/9/5/E/95EF66AF-9026-4BB0-A41D-A4F81802D92C/%5BMS-ERREF%5D.pdf
+ */
+#define NT_STATUS_ACCOUNT_EXPIRED 0xC0000193
+#define NT_STATUS_ACCOUNT_DISABLED 0xC0000072
+
+void check_ms_kile_ext_krb5err(krb5_context context,
+                               krb5_init_creds_context init_cred_ctx,
+                               krb5_error_code *_kerr)
+{
+    krb5_error_code err;
+    krb5_error *error = NULL;
+    uint32_t ntstatus;
+
+    err = krb5_init_creds_get_error(context, init_cred_ctx, &error);
+    if (err != 0 || error == NULL) {
+        KRB5_CHILD_DEBUG(SSSDBG_TRACE_FUNC, err);
+        return;
+    }
+
+    if (have_ms_kile_ext_error((unsigned char *)error->e_data.data, error->e_data.length,
+                               &ntstatus)) {
+        switch (ntstatus) {
+        case NT_STATUS_ACCOUNT_EXPIRED:
+            *_kerr = KRB5KDC_ERR_NAME_EXP;
+            break;
+        case NT_STATUS_ACCOUNT_DISABLED:
+            *_kerr = KRB5KDC_ERR_CLIENT_REVOKED;
+            break;
+        }
+    }
+}
+
+krb5_error_code
+sss_krb5_get_init_creds_password(krb5_context context, krb5_creds *creds,
+                                 krb5_principal client, const char *password,
+                                 krb5_prompter_fct prompter, void *data,
+                                 krb5_deltat start_time,
+                                 const char *in_tkt_service,
+                                 krb5_get_init_creds_opt *k5_gic_options)
+{
+    krb5_error_code kerr;
+    krb5_init_creds_context init_cred_ctx = NULL;
+
+    kerr = krb5_init_creds_init(context, client, prompter, data,
+                                start_time, k5_gic_options,
+                                &init_cred_ctx);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        goto done;
+    }
+
+    if (password != NULL) {
+        kerr = krb5_init_creds_set_password(context, init_cred_ctx, password);
+        if (kerr != 0) {
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            goto done;
+        }
+    }
+
+    if (in_tkt_service != NULL) {
+        kerr = krb5_init_creds_set_service(context, init_cred_ctx,
+                                           in_tkt_service);
+        if (kerr != 0) {
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            goto done;
+        }
+    }
+
+    kerr = krb5_init_creds_get(context, init_cred_ctx);
+    if (kerr == KRB5KDC_ERR_CLIENT_REVOKED) {
+        check_ms_kile_ext_krb5err(context, init_cred_ctx, &kerr);
+    }
+
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        goto done;
+    }
+
+    kerr = krb5_init_creds_get_creds(context, init_cred_ctx, creds);
+
+done:
+    krb5_init_creds_free(context, init_cred_ctx);
+    return kerr;
+}
+
 static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                         const char *password)
 {
@@ -1528,10 +1677,10 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Attempting kinit for realm [%s]\n",realm_name);
-    kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        password_or_responder(password),
-                                        sss_krb5_prompter, kr, 0,
-                                        NULL, kr->options);
+    kerr = kr->krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
+                                            password_or_responder(password),
+                                            sss_krb5_prompter, kr, 0, NULL,
+                                            kr->options);
     if (kr->pd->cmd == SSS_PAM_PREAUTH && kerr != KRB5KDC_ERR_KEY_EXP) {
         /* Any errors except KRB5KDC_ERR_KEY_EXP are ignored during pre-auth,
          * only data is collected to be send back to the client.
@@ -1757,11 +1906,11 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Attempting kinit for realm [%s]\n",realm_name);
-    kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        password_or_responder(password),
-                                        prompter, kr, 0,
-                                        SSSD_KRB5_CHANGEPW_PRINCIPAL,
-                                        kr->options);
+    kerr = kr->krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
+                                            password_or_responder(password),
+                                            prompter, kr, 0,
+                                            SSSD_KRB5_CHANGEPW_PRINCIPAL,
+                                            kr->options);
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "chpass is%s using OTP\n", kr->otp ? "" : " not");
     if (kerr != 0) {
@@ -1995,11 +2144,11 @@ static errno_t tgt_req_child(struct krb5_req *kr)
     }
 
     set_changepw_options(kr->options);
-    kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ_orig,
-                                        password_or_responder(password),
-                                        sss_krb5_prompter, kr, 0,
-                                        SSSD_KRB5_CHANGEPW_PRINCIPAL,
-                                        kr->options);
+    kerr = kr->krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ_orig,
+                                            password_or_responder(password),
+                                            sss_krb5_prompter, kr, 0,
+                                            SSSD_KRB5_CHANGEPW_PRINCIPAL,
+                                            kr->options);
 
     krb5_free_cred_contents(kr->ctx, kr->creds);
 
@@ -3151,6 +3300,11 @@ int main(int argc, const char *argv[])
     kr->fast_uid = fast_uid;
     kr->fast_gid = fast_gid;
     kr->cli_opts = &cli_opts;
+    if (sss_creds_password != 0) {
+        kr->krb5_get_init_creds_password = sss_krb5_get_init_creds_password;
+    } else {
+        kr->krb5_get_init_creds_password = krb5_get_init_creds_password;
+    }
 
     ret = k5c_recv_data(kr, STDIN_FILENO, &offline);
     if (ret != EOK) {
