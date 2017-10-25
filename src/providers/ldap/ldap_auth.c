@@ -619,14 +619,11 @@ struct auth_state {
     char *dn;
     enum pwexpire pw_expire_type;
     void *pw_expire_data;
-
-    struct fo_server *srv;
 };
 
-static struct tevent_req *auth_get_server(struct tevent_req *req);
+static struct tevent_req *auth_connect_send(struct tevent_req *req);
 static void auth_get_dn_done(struct tevent_req *subreq);
 static void auth_do_bind(struct tevent_req *req);
-static void auth_resolve_done(struct tevent_req *subreq);
 static void auth_connect_done(struct tevent_req *subreq);
 static void auth_bind_user_done(struct tevent_req *subreq);
 
@@ -659,7 +656,6 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->username = username;
     state->authtok = authtok;
-    state->srv = NULL;
     if (try_chpass_service && ctx->chpass_service != NULL &&
         ctx->chpass_service->name != NULL) {
         state->sdap_service = ctx->chpass_service;
@@ -667,7 +663,7 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
         state->sdap_service = ctx->service;
     }
 
-    if (!auth_get_server(req)) goto fail;
+    if (!auth_connect_send(req)) goto fail;
 
     return req;
 
@@ -676,75 +672,37 @@ fail:
     return NULL;
 }
 
-static struct tevent_req *auth_get_server(struct tevent_req *req)
+static struct tevent_req *auth_connect_send(struct tevent_req *req)
 {
-    struct tevent_req *next_req;
+    struct tevent_req *subreq;
     struct auth_state *state = tevent_req_data(req,
                                                struct auth_state);
+    bool use_tls;
 
-     /* NOTE: this call may cause service->uri to be refreshed
-      * with a new valid server. Do not use service->uri before */
-    next_req = be_resolve_server_send(state,
-                                      state->ev,
-                                      state->ctx->be,
-                                      state->sdap_service->name,
-                                      state->srv == NULL ? true : false);
-    if (!next_req) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "be_resolve_server_send failed.\n");
+    /* Check for undocumented debugging feature to disable TLS
+     * for authentication. This should never be used in production
+     * for obvious reasons.
+     */
+    use_tls = !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS);
+    if (!use_tls) {
+        sss_log(SSS_LOG_ALERT, "LDAP authentication being performed over "
+                               "insecure connection. This should be done "
+                               "for debugging purposes only.");
+    }
+
+    subreq = sdap_cli_connect_send(state, state->ev, state->ctx->opts,
+                                   state->ctx->be,
+                                   state->sdap_service, false,
+                                   use_tls ? CON_TLS_ON : CON_TLS_OFF, false);
+
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
         return NULL;
     }
 
-    tevent_req_set_callback(next_req, auth_resolve_done, req);
-    return next_req;
-}
-
-static void auth_resolve_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct auth_state *state = tevent_req_data(req,
-                                                    struct auth_state);
-    int ret;
-    bool use_tls;
-
-    ret = be_resolve_server_recv(subreq, state, &state->srv);
-    talloc_zfree(subreq);
-    if (ret) {
-        /* all servers have been tried and none
-         * was found good, go offline */
-        tevent_req_error(req, ETIMEDOUT);
-        return;
-    }
-
-    /* Determine whether we need to use TLS */
-    if (sdap_is_secure_uri(state->ctx->service->uri)) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "[%s] is a secure channel. No need to run START_TLS\n",
-                  state->ctx->service->uri);
-        use_tls = false;
-    } else {
-
-        /* Check for undocumented debugging feature to disable TLS
-         * for authentication. This should never be used in production
-         * for obvious reasons.
-         */
-        use_tls = !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS);
-        if (!use_tls) {
-            sss_log(SSS_LOG_ALERT, "LDAP authentication being performed over "
-                                   "insecure connection. This should be done "
-                                   "for debugging purposes only.");
-        }
-    }
-
-    subreq = sdap_connect_send(state, state->ev, state->ctx->opts,
-                               state->sdap_service->uri,
-                               state->sdap_service->sockaddr, use_tls);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
     tevent_req_set_callback(subreq, auth_connect_done, req);
+
+    return subreq;
 }
 
 static void auth_connect_done(struct tevent_req *subreq)
@@ -755,35 +713,13 @@ static void auth_connect_done(struct tevent_req *subreq)
                                                     struct auth_state);
     int ret;
 
-    ret = sdap_connect_recv(subreq, state, &state->sh);
+    ret = sdap_cli_connect_recv(subreq, state, NULL, &state->sh, NULL);
     talloc_zfree(subreq);
-    if (ret) {
-        if (state->srv) {
-            /* mark this server as bad if connection failed */
-            be_fo_set_port_status(state->ctx->be,
-                                  state->sdap_service->name,
-                                  state->srv, PORT_NOT_WORKING);
-        }
-
-        if (auth_get_server(req) == NULL) {
+    if (ret != EOK) {
+        if (auth_connect_send(req) == NULL) {
             tevent_req_error(req, ENOMEM);
         }
         return;
-    } else if (state->srv) {
-        be_fo_set_port_status(state->ctx->be, state->sdap_service->name,
-                              state->srv, PORT_WORKING);
-    }
-
-    /* In case the ID provider is set to proxy, this might be the first
-     * LDAP operation at all, so we need to set the connection status
-     */
-    if (state->sh->connected == false) {
-        ret = sdap_set_connected(state->sh, state->ev);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot set connected status\n");
-            tevent_req_error(req, ret);
-            return;
-        }
     }
 
     ret = get_user_dn(state, state->ctx->be->domain,
@@ -870,7 +806,7 @@ static void auth_bind_user_done(struct tevent_req *subreq)
         break;
     case ETIMEDOUT:
     case ERR_NETWORK_IO:
-        if (auth_get_server(req) == NULL) {
+        if (auth_connect_send(req) == NULL) {
             tevent_req_error(req, ENOMEM);
         }
         return;
