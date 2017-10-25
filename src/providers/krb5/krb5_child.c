@@ -3059,6 +3059,7 @@ int main(int argc, const char *argv[])
     uid_t fast_uid;
     gid_t fast_gid;
     struct cli_opts cli_opts = { 0 };
+    int sss_creds_password = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -3091,6 +3092,8 @@ int main(int argc, const char *argv[])
          _("Specifies the server principal to use for FAST"), NULL},
         {CHILD_OPT_CANONICALIZE, 0, POPT_ARG_NONE, NULL, 'C',
          _("Requests canonicalization of the principal name"), NULL},
+        {CHILD_OPT_SSS_CREDS_PASSWORD, 0, POPT_ARG_NONE, &sss_creds_password,
+         0, _("Use custom version of krb5_get_init_creds_password"), NULL},
         POPT_TABLEEND
     };
 

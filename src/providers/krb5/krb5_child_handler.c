@@ -306,7 +306,7 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         return EINVAL;
     }
 
-    extra_args = talloc_zero_array(mem_ctx, const char *, 9);
+    extra_args = talloc_zero_array(mem_ctx, const char *, 10);
     if (extra_args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
         return ENOMEM;
@@ -394,6 +394,16 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                                       "--" CHILD_OPT_CANONICALIZE);
         if (extra_args[c] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        c++;
+    }
+
+    if (krb5_ctx->sss_creds_password) {
+        extra_args[c] = talloc_strdup(extra_args,
+                                      "--" CHILD_OPT_SSS_CREDS_PASSWORD);
+        if (extra_args[c] == NULL) {
             ret = ENOMEM;
             goto done;
         }

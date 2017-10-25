@@ -46,6 +46,7 @@
 #define CHILD_OPT_USE_FAST "use-fast"
 #define CHILD_OPT_FAST_PRINCIPAL "fast-principal"
 #define CHILD_OPT_CANONICALIZE "canonicalize"
+#define CHILD_OPT_SSS_CREDS_PASSWORD "sss-creds-password"
 
 struct krb5child_req {
     struct pam_data *pd;
