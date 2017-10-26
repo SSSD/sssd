@@ -640,7 +640,9 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
         goto done;
     } else if (res->count > 1) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Search for upn [%s] returns more than one result.\n", upn);
+              "Search for upn [%s] returns more than one result. One of the "
+              "possible reasons can be that several users share the same "
+              "email address.\n", upn);
         ret = EINVAL;
         goto done;
     }
