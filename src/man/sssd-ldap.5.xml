@@ -878,6 +878,15 @@
                             address of the user.
                         </para>
                         <para>
+                            Note: If an email address of a user conflicts with
+                            an email address or fully qualified name of another
+                            user, then SSSD will not be able to serve those
+                            users properly. If for some reason several users
+                            need to share the same email address then set
+                            this option to a nonexistent attribute name in
+                            order to disable user lookup/login by email.
+                        </para>
+                        <para>
                             Default: mail
                         </para>
                     </listitem>

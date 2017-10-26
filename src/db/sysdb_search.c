@@ -218,6 +218,21 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (res->count > 1) {
+        /* We expected either 0 or 1 result for search with
+         * SYSDB_PWNAM_FILTER, but we got more. This error
+         * is handled individually depending on what function
+         * called sysdb_getpwnam, so we just print a message
+         * here and let the caller decide what error code to
+         * propagate based on res->count > 1. */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Search for [%s] returned multiple results. It can be an email "
+              "address shared among multiple users or an email address of a "
+              "user that conflicts with another user's fully qualified name. "
+              "SSSD will not be able to handle those users properly.\n",
+              sanitized_name);
+    }
+
     /* Merge in the timestamps from the fast ts db */
     ret = sysdb_merge_res_ts_attrs(domain->sysdb, res, attrs);
     if (ret != EOK) {
