@@ -687,7 +687,9 @@ static void mock_input_pam(TALLOC_CTX *mem_ctx,
 }
 
 static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
-                                const char *pin, const char *service,
+                                const char *pin, const char *token_name,
+                                const char *module_name, const char *key_id,
+                                const char *service,
                                 acct_cb_t acct_cb, const char *cert,
                                 bool only_one_provider_call)
 {
@@ -697,6 +699,7 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
     struct pam_items pi = { 0 };
     int ret;
     bool already_mocked = false;
+    size_t needed_size;
 
     if (name != NULL) {
         pi.pam_user = name;
@@ -707,9 +710,21 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
     }
 
     if (pin != NULL) {
-        pi.pam_authtok = discard_const(pin);
-        pi.pam_authtok_size = strlen(pi.pam_authtok) + 1;
+        ret = sss_auth_pack_sc_blob(pin, 0, token_name, 0, module_name, 0,
+                                    key_id, 0, NULL, 0, &needed_size);
+        assert_int_equal(ret, EAGAIN);
+
+        pi.pam_authtok = malloc(needed_size);
+        assert_non_null(pi.pam_authtok);
+
+        ret = sss_auth_pack_sc_blob(pin, 0, token_name, 0, module_name, 0,
+                                    key_id, 0,
+                                    (uint8_t *)pi.pam_authtok, needed_size,
+                                    &needed_size);
+        assert_int_equal(ret, EOK);
+
         pi.pam_authtok_type = SSS_AUTHTOK_TYPE_SC_PIN;
+        pi.pam_authtok_size = needed_size;
     }
 
     pi.pam_service = service == NULL ? "login" : service;
@@ -724,6 +739,7 @@ static void mock_input_pam_cert(TALLOC_CTX *mem_ctx, const char *name,
     pi.cli_pid = 12345;
 
     ret = pack_message_v3(&pi, &buf_size, &m_buf);
+    free(pi.pam_authtok);
     assert_int_equal(ret, 0);
 
     buf = talloc_memdup(mem_ctx, m_buf, buf_size);
@@ -1732,7 +1748,8 @@ void test_pam_preauth_no_logon_name(void **state)
 {
     int ret;
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, false);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                        NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1824,7 +1841,8 @@ void test_pam_preauth_cert_nocert(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, false);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
+                        NULL, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -1962,7 +1980,7 @@ void test_pam_preauth_cert_nomatch(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
@@ -1984,7 +2002,7 @@ void test_pam_preauth_cert_match(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
@@ -2007,8 +2025,9 @@ void test_pam_preauth_cert_match_gdm_smartcard(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, "gdm-smartcard",
-                        test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL,
+                        "gdm-smartcard", test_lookup_by_cert_cb,
+                        TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -2029,7 +2048,7 @@ void test_pam_preauth_cert_match_wrong_user(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_wrong_user_cb,
                         TEST_TOKEN_CERT, false);
 
@@ -2061,7 +2080,7 @@ void test_pam_preauth_cert_no_logon_name(void **state)
      * Additionally sss_parse_inp_recv() must be mocked because the cache
      * request will be done with the username found by the certificate
      * lookup. */
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
     mock_account_recv_simple();
     mock_parse_inp("pamuser", NULL, EOK);
@@ -2090,7 +2109,7 @@ void test_pam_preauth_cert_no_logon_name_with_hint(void **state)
      * Since user name hint is enabled we do not have to search the user
      * during pre-auth and there is no need for an extra mocked response as in
      * test_pam_preauth_cert_no_logon_name. */
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
@@ -2112,7 +2131,7 @@ void test_pam_preauth_cert_no_logon_name_double_cert(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_double_cb, TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
@@ -2135,7 +2154,7 @@ void test_pam_preauth_cert_no_logon_name_double_cert_with_hint(void **state)
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
     pam_test_ctx->rctx->domains->user_name_hint = true;
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_double_cb, TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
@@ -2157,7 +2176,8 @@ void test_pam_preauth_no_cert_no_logon_name(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, false);
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                        NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -2178,7 +2198,7 @@ void test_pam_preauth_cert_no_logon_name_no_match(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
@@ -2206,7 +2226,9 @@ void test_pam_cert_auth(void **state)
      * is looked up. Since the first mocked reply already adds the certificate
      * to the user entry the lookup by certificate will already find the user
      * in the cache and no second request to the backend is needed. */
-    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", NULL,
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
+                        "NSS-Internal",
+                        "A5EF7DEE625CA5996C8D1BA7D036708161FD49E7", NULL,
                         test_lookup_by_cert_cb, TEST_TOKEN_CERT, true);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
@@ -2232,7 +2254,9 @@ void test_pam_cert_auth_double_cert(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", NULL,
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
+                        "NSS-Internal",
+                        "A5EF7DEE625CA5996C8D1BA7D036708161FD49E7", NULL,
                         test_lookup_by_cert_double_cb, TEST_TOKEN_CERT, true);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
@@ -2257,7 +2281,7 @@ void test_pam_cert_preauth_2certs_one_mapping(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, TEST_TOKEN_CERT, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
@@ -2279,7 +2303,7 @@ void test_pam_cert_preauth_2certs_two_mappings(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
 
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL,
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb_2nd_cert_same_user,
                         TEST_TOKEN_CERT, false);
 

@@ -399,10 +399,13 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct timeval tv;
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
-    const char *extra_args[7] = { NULL };
+    const char *extra_args[13] = { NULL };
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
     size_t arg_c;
+    const char *module_name = NULL;
+    const char *token_name = NULL;
+    const char *key_id = NULL;
 
     req = tevent_req_create(mem_ctx, &state, struct pam_check_cert_state);
     if (req == NULL) {
@@ -423,6 +426,30 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         extra_args[arg_c++] = verify_opts;
         extra_args[arg_c++] = "--verify";
     }
+
+    if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_PIN
+            || sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+        ret = sss_authtok_get_sc(pd->authtok, NULL, NULL, &token_name, NULL,
+                                 &module_name, NULL, &key_id, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
+            goto done;
+        }
+
+        if (module_name != NULL && *module_name != '\0') {
+            extra_args[arg_c++] = module_name;
+            extra_args[arg_c++] = "--module_name";
+        }
+        if (token_name != NULL && *token_name != '\0') {
+            extra_args[arg_c++] = token_name;
+            extra_args[arg_c++] = "--token_name";
+        }
+        if (key_id != NULL && *key_id != '\0') {
+            extra_args[arg_c++] = key_id;
+            extra_args[arg_c++] = "--key_id";
+        }
+    }
+
     if (pd->cmd == SSS_PAM_AUTHENTICATE) {
         extra_args[arg_c++] = "--auth";
         switch (sss_authtok_get_type(pd->authtok)) {
@@ -437,6 +464,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
             ret = EINVAL;
             goto done;
         }
+
     } else if (pd->cmd == SSS_PAM_PREAUTH) {
         extra_args[arg_c++] = "--pre";
     } else {

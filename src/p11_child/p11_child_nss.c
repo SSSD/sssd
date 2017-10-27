@@ -67,12 +67,34 @@ static char *password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
   return PL_strdup((char *)arg);
 }
 
+static char *get_key_id_str(PK11SlotInfo *slot, CERTCertificate *cert)
+{
+    SECItem *key_id = NULL;
+    char *key_id_str = NULL;
 
+    key_id = PK11_GetLowLevelKeyIDForCert(slot, cert, NULL);
+    if (key_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "PK11_GetLowLevelKeyIDForCert failed [%d].\n",
+              PR_GetError());
+        return NULL;
+    }
 
-int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
+    key_id_str = CERT_Hexify(key_id, PR_FALSE);
+    SECITEM_FreeItem(key_id, PR_TRUE);
+    if (key_id_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_Hexify failed [%d].\n", PR_GetError());
+        return NULL;
+    }
+
+    return key_id_str;
+}
+
+int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
             enum op_mode mode, const char *pin,
             struct cert_verify_opts *cert_verify_opts,
-            char **_multi)
+            const char *module_name_in, const char *token_name_in,
+            const char *key_id_in, char **_multi)
 {
     int ret;
     SECStatus rv;
@@ -153,42 +175,31 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
                                 mod_list_item->module->dllName);
     }
 
-    if (slot_name_in != NULL) {
-        slot = PK11_FindSlotByName(slot_name_in);
-        if (slot == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "PK11_FindSlotByName failed for [%s]: [%d].\n",
-                                     slot_name_in, PR_GetError());
-            return EIO;
-        }
-    } else {
-
-        list = PK11_GetAllTokens(CKM_INVALID_MECHANISM, PR_FALSE, PR_TRUE,
-                                 NULL);
-        if (list == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "PK11_GetAllTokens failed.\n");
-            return EIO;
-        }
-
-        for (le = list->head; le; le = le->next) {
-            CK_SLOT_INFO slInfo;
-
-            slInfo.flags = 0;
-            rv = PK11_GetSlotInfo(le->slot, &slInfo);
-            DEBUG(SSSDBG_TRACE_ALL,
-                  "Description [%s] Manufacturer [%s] flags [%lu].\n",
-                  slInfo.slotDescription, slInfo.manufacturerID, slInfo.flags);
-            if (rv == SECSuccess && (slInfo.flags & CKF_REMOVABLE_DEVICE)) {
-                slot = PK11_ReferenceSlot(le->slot);
-                break;
-           }
-        }
-        PK11_FreeSlotList(list);
-        if (slot == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "No removable slots found.\n");
-            return EIO;
-        }
+    list = PK11_GetAllTokens(CKM_INVALID_MECHANISM, PR_FALSE, PR_TRUE,
+                             NULL);
+    if (list == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "PK11_GetAllTokens failed.\n");
+        return EIO;
     }
 
+    for (le = list->head; le; le = le->next) {
+        CK_SLOT_INFO slInfo;
+
+        slInfo.flags = 0;
+        rv = PK11_GetSlotInfo(le->slot, &slInfo);
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Description [%s] Manufacturer [%s] flags [%lu].\n",
+              slInfo.slotDescription, slInfo.manufacturerID, slInfo.flags);
+        if (rv == SECSuccess && (slInfo.flags & CKF_REMOVABLE_DEVICE)) {
+            slot = PK11_ReferenceSlot(le->slot);
+            break;
+        }
+    }
+    PK11_FreeSlotList(list);
+    if (slot == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "No removable slots found.\n");
+        return EIO;
+    }
 
     slot_id = PK11_GetSlotID(slot);
     module_id = PK11_GetModuleID(slot);
@@ -317,24 +328,60 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
     for (cert_list_node = CERT_LIST_HEAD(cert_list);
                 !CERT_LIST_END(cert_list_node, cert_list);
                 cert_list_node = CERT_LIST_NEXT(cert_list_node)) {
-        if (cert_list_node->cert) {
-            DEBUG(SSSDBG_TRACE_ALL, "found cert[%s][%s]\n",
-                             cert_list_node->cert->nickname,
-                             cert_list_node->cert->subjectName);
+        if (cert_list_node->cert == NULL) {
+            DEBUG(SSSDBG_TRACE_ALL, "--- empty cert list node ---\n");
+            continue;
+        }
 
-            if (cert_verify_opts->do_verification) {
-                rv = CERT_VerifyCertificateNow(handle, cert_list_node->cert,
-                                               PR_TRUE,
-                                               certificateUsageSSLClient,
-                                               NULL, NULL);
-                if (rv != SECSuccess) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "Certificate [%s][%s] not valid [%d], skipping.\n",
-                          cert_list_node->cert->nickname,
-                          cert_list_node->cert->subjectName, PR_GetError());
-                    continue;
-                }
+        DEBUG(SSSDBG_TRACE_ALL,
+              "found cert[%s][%s]\n",
+              cert_list_node->cert->nickname,
+              cert_list_node->cert->subjectName);
+
+        if (cert_verify_opts->do_verification) {
+            rv = CERT_VerifyCertificateNow(handle, cert_list_node->cert,
+                                           PR_TRUE,
+                                           certificateUsageSSLClient,
+                                           NULL, NULL);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Certificate [%s][%s] not valid [%d], skipping.\n",
+                      cert_list_node->cert->nickname,
+                      cert_list_node->cert->subjectName, PR_GetError());
+                continue;
             }
+        }
+
+        if (key_id_in != NULL) {
+            PORT_Free(key_id_str);
+            key_id_str = NULL;
+            key_id_str = get_key_id_str(slot, cert_list_node->cert);
+        }
+        /* Check if we found the certificates we needed for authentication or
+         * the requested ones for pre-auth. For authentication all attributes
+         * must be given and match, for pre-auth only the given ones must
+         * match. */
+        DEBUG(SSSDBG_TRACE_ALL, "%s %s %s %s %s %s.\n",
+              module_name_in, module_name, token_name_in, token_name,
+              key_id_in, key_id_str);
+        if ((mode == OP_AUTH
+                && module_name_in != NULL
+                && token_name_in != NULL
+                && key_id_in != NULL
+                && key_id_str != NULL
+                && strcmp(key_id_in, key_id_str) == 0
+                && strcmp(token_name_in, token_name) == 0
+                && strcmp(module_name_in, module_name) == 0)
+            || (mode == OP_PREAUTH
+                && (module_name_in == NULL
+                    || (module_name_in != NULL
+                        && strcmp(module_name_in, module_name) == 0))
+                && (token_name_in == NULL
+                    || (token_name_in != NULL
+                        && strcmp(token_name_in, token_name) == 0))
+                && (key_id_in == NULL
+                    || (key_id_in != NULL && key_id_str != NULL
+                        && strcmp(key_id_in, key_id_str) == 0)))) {
 
             rv = CERT_AddCertToListTail(valid_certs, cert_list_node->cert);
             if (rv != SECSuccess) {
@@ -343,15 +390,6 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
                 ret = EIO;
                 goto done;
             }
-
-            if (found_cert == NULL) {
-                found_cert = cert_list_node->cert;
-            } else {
-                DEBUG(SSSDBG_TRACE_ALL, "More than one certificate found, " \
-                                        "using just the first one.\n");
-            }
-        } else {
-            DEBUG(SSSDBG_TRACE_ALL, "--- empty cert list node ---\n");
         }
     }
 
@@ -367,7 +405,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
         }
     }
 
-    if (found_cert == NULL) {
+    if (CERT_LIST_EMPTY(valid_certs)) {
         DEBUG(SSSDBG_TRACE_ALL, "No certificate found.\n");
         *_multi = NULL;
         ret = EOK;
@@ -375,6 +413,23 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
     }
 
     if (mode == OP_AUTH) {
+        cert_list_node = CERT_LIST_HEAD(valid_certs);
+        if (!CERT_LIST_END(CERT_LIST_NEXT(cert_list_node), valid_certs)) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "More than one certificate found for authentication, "
+                  "aborting!\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        found_cert = cert_list_node->cert;
+        if (found_cert == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "No certificate found for authentication, aborting!\n");
+            ret = EINVAL;
+            goto done;
+        }
+
         rv = PK11_GenerateRandom(random_value, sizeof(random_value));
         if (rv != SECSuccess) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -449,21 +504,10 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
 
         found_cert = cert_list_node->cert;
 
-        SECITEM_FreeItem(key_id, PR_TRUE);
         PORT_Free(key_id_str);
-        key_id = PK11_GetLowLevelKeyIDForCert(slot, found_cert, NULL);
-        if (key_id == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "PK11_GetLowLevelKeyIDForCert failed [%d].\n",
-                  PR_GetError());
-            ret = EINVAL;
-            goto done;
-        }
-
-        key_id_str = CERT_Hexify(key_id, PR_FALSE);
+        key_id_str = get_key_id_str(slot, found_cert);
         if (key_id_str == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "CERT_Hexify failed [%d].\n",
-                  PR_GetError());
+            DEBUG(SSSDBG_OP_FAILURE, "get_key_id_str [%d].\n", PR_GetError());
             ret = ENOMEM;
             goto done;
         }
@@ -576,11 +620,13 @@ int main(int argc, const char *argv[])
     enum op_mode mode = OP_NONE;
     enum pin_mode pin_mode = PIN_NONE;
     char *pin = NULL;
-    char *slot_name_in = NULL;
     char *nss_db = NULL;
     struct cert_verify_opts *cert_verify_opts;
     char *verify_opts = NULL;
     char *multi = NULL;
+    char *module_name = NULL;
+    char *token_name = NULL;
+    char *key_id = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -605,6 +651,12 @@ int main(int argc, const char *argv[])
          NULL},
         {"nssdb", 0, POPT_ARG_STRING, &nss_db, 0, _("NSS DB to use"),
          NULL},
+        {"module_name", 0, POPT_ARG_STRING, &module_name, 0,
+         _("Module name for authentication"), NULL},
+        {"token_name", 0, POPT_ARG_STRING, &token_name, 0,
+         _("Token name for authentication"), NULL},
+        {"key_id", 0, POPT_ARG_STRING, &key_id, 0,
+         _("Key ID for authentication"), NULL},
         POPT_TABLEEND
     };
 
@@ -730,6 +782,15 @@ int main(int argc, const char *argv[])
     }
     talloc_steal(main_ctx, debug_prg_name);
 
+    if (mode == OP_AUTH && (module_name == NULL || token_name == NULL
+                                || key_id == NULL)) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "--module_name, --token_name and --key_id must be for "
+              "authentication");
+        ret = EINVAL;
+        goto fail;
+    }
+
     ret = parse_cert_verify_opts(main_ctx, verify_opts, &cert_verify_opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verifiy option.\n");
@@ -744,8 +805,8 @@ int main(int argc, const char *argv[])
         }
     }
 
-    ret = do_work(main_ctx, nss_db, slot_name_in, mode, pin, cert_verify_opts,
-                  &multi);
+    ret = do_work(main_ctx, nss_db, mode, pin, cert_verify_opts, module_name,
+                  token_name, key_id, &multi);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");
         goto fail;
