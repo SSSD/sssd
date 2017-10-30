@@ -75,15 +75,16 @@ static char *get_key_id_str(PK11SlotInfo *slot, CERTCertificate *cert)
     key_id = PK11_GetLowLevelKeyIDForCert(slot, cert, NULL);
     if (key_id == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "PK11_GetLowLevelKeyIDForCert failed [%d].\n",
-              PR_GetError());
+              "PK11_GetLowLevelKeyIDForCert failed [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
         return NULL;
     }
 
     key_id_str = CERT_Hexify(key_id, PR_FALSE);
     SECITEM_FreeItem(key_id, PR_TRUE);
     if (key_id_str == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_Hexify failed [%d].\n", PR_GetError());
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_Hexify failed [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
         return NULL;
     }
 
@@ -138,8 +139,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
 
     nss_ctx = NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters, flags);
     if (nss_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "NSS_InitContext failed [%d].\n",
-                                 PR_GetError());
+        DEBUG(SSSDBG_OP_FAILURE, "NSS_InitContext failed [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
         return EIO;
     }
 
@@ -232,8 +233,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         if (pin != NULL) {
             rv = PK11_Authenticate(slot, PR_FALSE, discard_const(pin));
             if (rv !=  SECSuccess) {
-                DEBUG(SSSDBG_OP_FAILURE, "PK11_Authenticate failed: [%d].\n",
-                                         PR_GetError());
+                DEBUG(SSSDBG_OP_FAILURE, "PK11_Authenticate failed: [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
                 return EIO;
             }
         } else {
@@ -246,8 +247,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
 
     cert_list = PK11_ListCertsInSlot(slot);
     if (cert_list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "PK11_ListCertsInSlot failed: [%d].\n",
-                                 PR_GetError());
+        DEBUG(SSSDBG_OP_FAILURE, "PK11_ListCertsInSlot failed: [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
         return EIO;
     }
 
@@ -265,31 +266,33 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
 
     rv = CERT_FilterCertListByUsage(cert_list, certUsageSSLClient, PR_FALSE);
     if (rv != SECSuccess) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_FilterCertListByUsage failed: [%d].\n",
-                                 PR_GetError());
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_FilterCertListByUsage failed: [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
         return EIO;
     }
 
     rv = CERT_FilterCertListForUserCerts(cert_list);
     if (rv != SECSuccess) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_FilterCertListForUserCerts failed: [%d].\n",
-                                 PR_GetError());
+        DEBUG(SSSDBG_OP_FAILURE,
+              "CERT_FilterCertListForUserCerts failed: [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
         return EIO;
     }
 
 
     handle = CERT_GetDefaultCertDB();
     if (handle == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_GetDefaultCertDB failed: [%d].\n",
-                                 PR_GetError());
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_GetDefaultCertDB failed: [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
         return EIO;
     }
 
     if (cert_verify_opts->do_ocsp) {
         rv = CERT_EnableOCSPChecking(handle);
         if (rv != SECSuccess) {
-            DEBUG(SSSDBG_OP_FAILURE, "CERT_EnableOCSPChecking failed: [%d].\n",
-                                     PR_GetError());
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "CERT_EnableOCSPChecking failed: [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
             return EIO;
         }
 
@@ -300,16 +303,16 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
                          cert_verify_opts->ocsp_default_responder_signing_cert);
             if (rv != SECSuccess) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "CERT_SetOCSPDefaultResponder failed: [%d].\n",
-                      PR_GetError());
+                      "CERT_SetOCSPDefaultResponder failed: [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
                 return EIO;
             }
 
             rv = CERT_EnableOCSPDefaultResponder(handle);
             if (rv != SECSuccess) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "CERT_EnableOCSPDefaultResponder failed: [%d].\n",
-                      PR_GetError());
+                      "CERT_EnableOCSPDefaultResponder failed: [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
                 return EIO;
             }
         }
@@ -318,8 +321,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
     found_cert = NULL;
     valid_certs = CERT_NewCertList();
     if (valid_certs == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_NewCertList failed [%d].\n",
-                                 PR_GetError());
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_NewCertList failed [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
         ret = ENOMEM;
         goto done;
     }
@@ -345,9 +348,10 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
                                            NULL, NULL);
             if (rv != SECSuccess) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "Certificate [%s][%s] not valid [%d], skipping.\n",
+                      "Certificate [%s][%s] not valid [%d][%s], skipping.\n",
                       cert_list_node->cert->nickname,
-                      cert_list_node->cert->subjectName, PR_GetError());
+                      cert_list_node->cert->subjectName,
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
                 continue;
             }
         }
@@ -386,7 +390,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
             rv = CERT_AddCertToListTail(valid_certs, cert_list_node->cert);
             if (rv != SECSuccess) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "CERT_AddCertToListTail failed [%d].\n", PR_GetError());
+                      "CERT_AddCertToListTail failed [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
                 ret = EIO;
                 goto done;
             }
@@ -400,8 +405,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         rv = CERT_DisableOCSPDefaultResponder(handle);
         if (rv != SECSuccess) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "CERT_DisableOCSPDefaultResponder failed: [%d].\n",
-                  PR_GetError());
+                  "CERT_DisableOCSPDefaultResponder failed: [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
         }
     }
 
@@ -433,15 +438,17 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         rv = PK11_GenerateRandom(random_value, sizeof(random_value));
         if (rv != SECSuccess) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "PK11_GenerateRandom failed [%d].\n", PR_GetError());
+                  "PK11_GenerateRandom failed [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
             return EIO;
         }
 
         priv_key = PK11_FindPrivateKeyFromCert(slot, found_cert, NULL);
         if (priv_key == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "PK11_FindPrivateKeyFromCert failed [%d]." \
-                  "Maybe pin is missing.\n", PR_GetError());
+                  "PK11_FindPrivateKeyFromCert failed [%d][%s]."
+                  "Maybe pin is missing.\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
             ret = EIO;
             goto done;
         }
@@ -451,8 +458,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         if (algtag == SEC_OID_UNKNOWN) {
             SECKEY_DestroyPrivateKey(priv_key);
             DEBUG(SSSDBG_OP_FAILURE,
-                  "SEC_GetSignatureAlgorithmOidTag failed [%d].\n",
-                  PR_GetError());
+                  "SEC_GetSignatureAlgorithmOidTag failed [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
             ret = EIO;
             goto done;
         }
@@ -462,8 +469,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
                           priv_key, algtag);
         SECKEY_DestroyPrivateKey(priv_key);
         if (rv != SECSuccess) {
-            DEBUG(SSSDBG_OP_FAILURE, "SEC_SignData failed [%d].\n",
-                                     PR_GetError());
+            DEBUG(SSSDBG_OP_FAILURE, "SEC_SignData failed [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
             ret = EIO;
             goto done;
         }
@@ -471,7 +478,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         pub_key = CERT_ExtractPublicKey(found_cert);
         if (pub_key == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "CERT_ExtractPublicKey failed [%d].\n", PR_GetError());
+                  "CERT_ExtractPublicKey failed [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
             ret = EIO;
             goto done;
         }
@@ -481,8 +489,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
                             NULL);
         SECKEY_DestroyPublicKey(pub_key);
         if (rv != SECSuccess) {
-            DEBUG(SSSDBG_OP_FAILURE, "VFY_VerifyData failed [%d].\n",
-                                     PR_GetError());
+            DEBUG(SSSDBG_OP_FAILURE, "VFY_VerifyData failed [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
             ret = EACCES;
             goto done;
         }
@@ -507,7 +515,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         PORT_Free(key_id_str);
         key_id_str = get_key_id_str(slot, found_cert);
         if (key_id_str == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_key_id_str [%d].\n", PR_GetError());
+            DEBUG(SSSDBG_OP_FAILURE, "get_key_id_str [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
             ret = ENOMEM;
             goto done;
         }
@@ -562,8 +571,8 @@ done:
 
     rv = NSS_ShutdownContext(nss_ctx);
     if (rv != SECSuccess) {
-        DEBUG(SSSDBG_OP_FAILURE, "NSS_ShutdownContext failed [%d].\n",
-                                 PR_GetError());
+        DEBUG(SSSDBG_OP_FAILURE, "NSS_ShutdownContext failed [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
     }
 
     return ret;
