@@ -1400,6 +1400,7 @@ sssd_pam_LDADD = \
     $(SELINUX_LIBS) \
     $(PAM_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
+    libsss_certmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 
@@ -2423,6 +2424,7 @@ pam_srv_tests_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
+    libsss_certmap.la \
     $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \

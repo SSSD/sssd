@@ -129,6 +129,7 @@ struct cert_auth_info {
     char *token_name;
     char *module_name;
     char *key_id;
+    char *prompt_str;
     struct cert_auth_info *prev;
     struct cert_auth_info *next;
 };
@@ -140,6 +141,7 @@ static void free_cai(struct cert_auth_info *cai)
         free(cai->cert);
         free(cai->token_name);
         free(cai->key_id);
+        free(cai->prompt_str);
         free(cai);
     }
 }
@@ -921,9 +923,25 @@ static int parse_cert_info(struct pam_items *pi, uint8_t *buf, size_t len,
         goto done;
     }
 
-    D(("cert user: [%s] token name: [%s] module: [%s] key id: [%s]",
+    offset += strlen(cai->key_id) + 1;
+    if (offset >= len) {
+        D(("Cert message size mismatch"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    cai->prompt_str = strdup((char *) &buf[*p + offset]);
+    if (cai->prompt_str == NULL) {
+        D(("strdup failed"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+
+    D(("cert user: [%s] token name: [%s] module: [%s] key id: [%s] "
+       "prompt: [%s]",
        cai->cert_user, cai->token_name, cai->module_name,
-       cai->key_id));
+       cai->key_id, cai->prompt_str));
 
     DLIST_ADD(pi->cert_list, cai);
     ret = 0;
@@ -1543,7 +1561,7 @@ done:
 #define discard_const(ptr) ((void *)((uintptr_t)(ptr)))
 #endif
 
-#define CERT_SEL_PROMPT_FMT "Certificate: %s"
+#define CERT_SEL_PROMPT_FMT "%s"
 #define SEL_TITLE discard_const("Please select a certificate")
 
 static int prompt_multi_cert_gdm(pam_handle_t *pamh, struct pam_items *pi)
@@ -1588,7 +1606,7 @@ static int prompt_multi_cert_gdm(pam_handle_t *pamh, struct pam_items *pi)
 
     c = 0;
     DLIST_FOR_EACH(cai, pi->cert_list) {
-        ret = asprintf(&prompt, CERT_SEL_PROMPT_FMT, cai->key_id);
+        ret = asprintf(&prompt, CERT_SEL_PROMPT_FMT, cai->prompt_str);
         if (ret == -1) {
             ret = ENOMEM;
             goto done;
@@ -1637,9 +1655,10 @@ done:
 #endif
 }
 
-#define TEXT_CERT_SEL_PROMPT_FMT "%s[%zu] Certificate: %s\n"
+#define TEXT_CERT_SEL_PROMPT_FMT "%s\n[%zu]:\n%s\n"
 #define TEXT_SEL_TITLE discard_const("Please select a certificate by typing " \
                                      "the corresponding number\n")
+
 static int prompt_multi_cert(pam_handle_t *pamh, struct pam_items *pi)
 {
     int ret;
@@ -1670,7 +1689,7 @@ static int prompt_multi_cert(pam_handle_t *pamh, struct pam_items *pi)
     DLIST_FOR_EACH(cai, pi->cert_list) {
         cert_count++;
         ret = asprintf(&tmp, TEXT_CERT_SEL_PROMPT_FMT, prompt, cert_count,
-                                                       cai->key_id);
+                                                       cai->prompt_str);
         free(prompt);
         if (ret == -1) {
             return ENOMEM;

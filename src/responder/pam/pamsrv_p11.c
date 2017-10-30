@@ -26,6 +26,8 @@
 #include "util/child_common.h"
 #include "util/strtonum.h"
 #include "responder/pam/pamsrv.h"
+#include "lib/certmap/sss_certmap.h"
+#include "util/crypto/sss_crypto.h"
 
 
 #ifndef SSSD_LIBEXEC_PATH
@@ -683,6 +685,54 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static char *get_cert_prompt(TALLOC_CTX *mem_ctx, const char *cert)
+{
+    int ret;
+    struct sss_certmap_ctx *ctx = NULL;
+    unsigned char *der = NULL;
+    size_t der_size;
+    char *prompt = NULL;
+    char *filter = NULL;
+    char **domains = NULL;
+
+    ret = sss_certmap_init(mem_ctx, NULL, NULL, &ctx);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_init failed.\n");
+        return NULL;
+    }
+
+    ret = sss_certmap_add_rule(ctx, 10, "KRB5:<ISSUER>.*",
+                               "LDAP:{subject_dn!nss}", NULL);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_add_rule failed.\n");
+        goto done;
+    }
+
+    der = sss_base64_decode(mem_ctx, cert, &der_size);
+    if (der == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+        goto done;
+    }
+
+    ret = sss_certmap_get_search_filter(ctx, der, der_size, &filter, &domains);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_get_search_filter failed.\n");
+        goto done;
+    }
+
+    prompt = talloc_strdup(mem_ctx, filter);
+    if (prompt == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+    }
+
+done:
+    sss_certmap_free_filter_and_domains(filter, domains);
+    sss_certmap_free_ctx(ctx);
+    talloc_free(der);
+
+    return prompt;
+}
+
 static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
                               struct cert_auth_info *cert_info,
                               uint8_t **_msg, size_t *_msg_len)
@@ -692,14 +742,22 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     const char *token_name;
     const char *module_name;
     const char *key_id;
+    char *prompt;
     size_t user_len;
     size_t token_len;
     size_t module_len;
     size_t key_id_len;
+    size_t prompt_len;
     const char *username = "";
 
     if (sysdb_username != NULL) {
         username = sysdb_username;
+    }
+
+    prompt = get_cert_prompt(mem_ctx, sss_cai_get_cert(cert_info));
+    if (prompt == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_cert_prompt failed.\n");
+        return EIO;
     }
 
     token_name = sss_cai_get_token_name(cert_info);
@@ -710,10 +768,12 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     token_len = strlen(token_name) + 1;
     module_len = strlen(module_name) + 1;
     key_id_len = strlen(key_id) + 1;
-    msg_len = user_len + token_len + module_len + key_id_len;
+    prompt_len = strlen(prompt) + 1;
+    msg_len = user_len + token_len + module_len + key_id_len + prompt_len;
 
     msg = talloc_zero_size(mem_ctx, msg_len);
     if (msg == NULL) {
+        talloc_free(prompt);
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
         return ENOMEM;
     }
@@ -722,6 +782,9 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     memcpy(msg + user_len, token_name, token_len);
     memcpy(msg + user_len + token_len, module_name, module_len);
     memcpy(msg + user_len + token_len + module_len, key_id, key_id_len);
+    memcpy(msg + user_len + token_len + module_len + key_id_len,
+           prompt, prompt_len);
+    talloc_free(prompt);
 
     if (_msg != NULL) {
         *_msg = msg;
