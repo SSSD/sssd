@@ -300,6 +300,7 @@ function build_coverage()
                                  --output-file ci-dirty.info
     stage lcov-clean        lcov --remove ci-dirty.info \
                                  "/usr/*" "src/tests/*" "/tmp/*" \
+                                 "*dtrace-temp.c" \
                                  --output-file ci.info
     stage genhtml           eval 'genhtml --output-directory \
                                           "$coverage_report_dir" \
