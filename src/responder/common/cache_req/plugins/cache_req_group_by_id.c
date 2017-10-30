@@ -155,7 +155,10 @@ const struct cache_req_plugin cache_req_group_by_id = {
     .ncache_filter_fn = cache_req_group_by_id_ncache_filter,
     .lookup_fn = cache_req_group_by_id_lookup,
     .dp_send_fn = cache_req_group_by_id_dp_send,
-    .dp_recv_fn = cache_req_common_dp_recv
+    .dp_recv_fn = cache_req_common_dp_recv,
+    .dp_get_domain_check_fn = NULL,
+    .dp_get_domain_send_fn = NULL,
+    .dp_get_domain_recv_fn = NULL,
 };
 
 struct tevent_req *
