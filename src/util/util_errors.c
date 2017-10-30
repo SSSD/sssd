@@ -116,6 +116,7 @@ struct err_string error_to_str[] = {
     { "Unable to verify peer" }, /* ERR_UNABLE_TO_VERIFY_PEER */
     { "Unable to resolve host" }, /* ERR_UNABLE_TO_RESOLVE_HOST */
     { "GetAccountDomain() not supported" }, /* ERR_GET_ACCT_DOM_NOT_SUPPORTED */
+    { "The last GetAccountDomain() result is still valid" }, /* ERR_GET_ACCT_DOM_CACHED */
     { "ERR_LAST" } /* ERR_LAST */
 };
 
