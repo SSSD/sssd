@@ -1151,6 +1151,7 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
     size_t blen;
     errno_t ret;
     uint32_t terminator;
+    const char *key_id;
 
     prctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
 
@@ -1191,9 +1192,33 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
                                          pd->logon_name,
                                          &pd->domain, &pd->user);
     } else {
-        /* Only SSS_PAM_PREAUTH request may have a missing name, e.g. if the
-         * name is determined with the help of a certificate */
-        if (pd->cmd == SSS_PAM_PREAUTH
+        /* SSS_PAM_PREAUTH request may have a missing name, e.g. if the
+         * name is determined with the help of a certificate. During
+         * SSS_PAM_AUTHENTICATE at least a key ID is needed to identify the
+         * selected certificate. */
+        if (pd->cmd == SSS_PAM_AUTHENTICATE
+                && may_do_cert_auth(talloc_get_type(cctx->rctx->pvt_ctx,
+                                                    struct pam_ctx), pd)
+                && (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_PIN
+                    || sss_authtok_get_type(pd->authtok)
+                                               == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
+            ret = sss_authtok_get_sc(pd->authtok, NULL, NULL, NULL, NULL, NULL,
+                                     NULL, &key_id, NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
+                goto done;
+            }
+
+            if (key_id == NULL || *key_id == '\0') {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Missing logon and Smartcard key ID during "
+                      "authentication.\n");
+                ret = ERR_NO_CREDS;
+                goto done;
+            }
+
+            ret = EOK;
+        } else if (pd->cmd == SSS_PAM_PREAUTH
                 && may_do_cert_auth(talloc_get_type(cctx->rctx->pvt_ctx,
                                                     struct pam_ctx), pd)) {
             ret = EOK;
@@ -1375,9 +1400,12 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     /* Determine what domain type to contact */
     preq->req_dom_type = get_domain_request_type(preq, pctx);
 
-    /* try backend first for authentication before doing local Smartcard
-     * authentication */
-    if (pd->cmd != SSS_PAM_AUTHENTICATE && may_do_cert_auth(pctx, pd)) {
+    /* Try backend first for authentication before doing local Smartcard
+     * authentication if a logon name is available. Otherwise try to derive
+     * the logon name from the certificate first. */
+    if ((pd->cmd != SSS_PAM_AUTHENTICATE
+                || (pd->cmd == SSS_PAM_AUTHENTICATE && pd->logon_name == NULL))
+            && may_do_cert_auth(pctx, pd)) {
         ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
         /* Finish here */
         goto done;
@@ -1577,9 +1605,10 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
     } else {
 
         if (preq->pd->logon_name == NULL) {
-            if (preq->pd->cmd != SSS_PAM_PREAUTH) {
+            if (preq->pd->cmd != SSS_PAM_PREAUTH
+                    && preq->pd->cmd != SSS_PAM_AUTHENTICATE) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Missing logon name only allowed during pre-auth.\n");
+                      "Missing logon name only allowed during (pre-)auth.\n");
                 ret = ENOENT;
                 goto done;
             }
@@ -1641,7 +1670,8 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 }
             }
 
-            if (preq->cctx->rctx->domains->user_name_hint) {
+            if (preq->cctx->rctx->domains->user_name_hint
+                    && preq->pd->cmd == SSS_PAM_PREAUTH) {
                 ret = add_pam_cert_response(preq->pd, cert_user,
                                             preq->cert_list,
                                             SSS_PAM_CERT_INFO_WITH_HINT);
@@ -1662,6 +1692,20 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                       "More than one user mapped to certificate.\n");
                 ret = ERR_NO_CREDS;
                 goto done;
+            }
+
+            /* If logon_name was not given during authentication add a
+             * SSS_PAM_CERT_INFO message to send the name to the caller. */
+            if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
+                    && preq->pd->logon_name == NULL) {
+                ret = add_pam_cert_response(preq->pd, cert_user,
+                                            preq->cert_list,
+                                            SSS_PAM_CERT_INFO);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
+                    preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+                    goto done;
+                }
             }
 
             /* cert_user will be returned to the PAM client as user name, so
@@ -2039,7 +2083,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                                   "the backend.\n");
                         }
 
-                        /* FIXME: use the right cert info */
                         ret = add_pam_cert_response(preq->pd, cert_user,
                                                     preq->current_cert,
                                                     SSS_PAM_CERT_INFO);

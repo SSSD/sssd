@@ -967,6 +967,16 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
                                   NULL);
 }
 
+static int test_pam_cert_check_auth_success(uint32_t status, uint8_t *body,
+                                            size_t blen)
+{
+    assert_int_equal(pam_test_ctx->exp_pam_status, PAM_BAD_ITEM);
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+    return test_pam_cert_check_ex(status, body, blen,
+                                  SSS_PAM_CERT_INFO, "pamuser@"TEST_DOM_NAME,
+                                  NULL);
+}
+
 static int test_pam_cert_check_with_hint(uint32_t status, uint8_t *body,
                                          size_t blen)
 {
@@ -2265,6 +2275,74 @@ void test_pam_cert_auth(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_cert_auth_no_logon_name(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+
+    /* Here the last option must be set to true because the backend is only
+     * connected once. During authentication the backend is connected first to
+     * see if it can handle Smartcard authentication, but before that the user
+     * is looked up. Since the first mocked reply already adds the certificate
+     * to the user entry the lookup by certificate will already find the user
+     * in the cache and no second request to the backend is needed. */
+    mock_input_pam_cert(pam_test_ctx, NULL, "123456", "SSSD Test Token",
+                        "NSS-Internal",
+                        "A5EF7DEE625CA5996C8D1BA7D036708161FD49E7", NULL,
+                        test_lookup_by_cert_cb, TEST_TOKEN_CERT, true);
+
+    mock_account_recv_simple();
+    mock_parse_inp("pamuser", NULL, EOK);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_cert_check_auth_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_cert_auth_no_logon_name_no_key_id(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+
+    /* Here the last option must be set to true because the backend is only
+     * connected once. During authentication the backend is connected first to
+     * see if it can handle Smartcard authentication, but before that the user
+     * is looked up. Since the first mocked reply already adds the certificate
+     * to the user entry the lookup by certificate will already find the user
+     * in the cache and no second request to the backend is needed. */
+    mock_input_pam_cert(pam_test_ctx, NULL, "123456", "SSSD Test Token",
+                        "NSS-Internal", NULL, NULL,
+                        NULL, NULL, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_creds_insufficient_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_pam_cert_auth_double_cert(void **state)
 {
     int ret;
@@ -2769,6 +2847,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_one_mapping,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_two_mappings,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth_no_logon_name,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth_no_logon_name_no_key_id,
                                         pam_test_setup, pam_test_teardown),
 #endif /* HAVE_NSS */
 
