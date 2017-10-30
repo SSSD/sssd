@@ -137,6 +137,7 @@ enum sssd_errors {
     ERR_SSL_FAILURE,
     ERR_UNABLE_TO_VERIFY_PEER,
     ERR_UNABLE_TO_RESOLVE_HOST,
+    ERR_GET_ACCT_DOM_NOT_SUPPORTED,
     ERR_LAST            /* ALWAYS LAST */
 };
 

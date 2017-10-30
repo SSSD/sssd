@@ -33,7 +33,8 @@ struct iface_dp iface_dp = {
     .autofsHandler = dp_autofs_handler,
     .hostHandler = dp_host_handler,
     .getDomains = dp_subdomains_handler,
-    .getAccountInfo = dp_get_account_info_handler
+    .getAccountInfo = dp_get_account_info_handler,
+    .getAccountDomain = dp_get_account_domain_handler,
 };
 
 struct iface_dp_backend iface_dp_backend = {
