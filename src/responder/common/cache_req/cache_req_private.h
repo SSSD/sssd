@@ -106,6 +106,13 @@ errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
                               struct ldb_result **_result,
                               bool *_dp_success);
 
+struct tevent_req *cache_req_locate_domain_send(TALLOC_CTX *mem_ctx,
+                                                struct tevent_context *ev,
+                                                struct cache_req *cr);
+errno_t cache_req_locate_domain_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req,
+                                     char **_found_domain);
+
 struct tevent_req *
 cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               struct tevent_context *ev,

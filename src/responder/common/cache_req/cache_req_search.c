@@ -485,3 +485,96 @@ errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+struct cache_req_locate_domain_state {
+    struct cache_req *cr;
+
+    char *found_domain;
+};
+
+static void cache_req_locate_domain_done(struct tevent_req *subreq);
+
+struct tevent_req *cache_req_locate_domain_send(TALLOC_CTX *mem_ctx,
+                                                struct tevent_context *ev,
+                                                struct cache_req *cr)
+{
+    struct cache_req_locate_domain_state *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    errno_t ret;
+    bool should_run;
+
+    req = tevent_req_create(mem_ctx, &state, struct cache_req_locate_domain_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+    state->cr = cr;
+
+    should_run = cr->plugin->dp_get_domain_check_fn(cr->rctx,
+                                                    get_domains_head(cr->domain),
+                                                    cr->data);
+    if (should_run == false) {
+        /* The request was tried too recently, don't issue a new one
+         * as its results are still valid
+         */
+        ret = ERR_GET_ACCT_DOM_CACHED;
+        goto immediate;
+    }
+
+    subreq = cr->plugin->dp_get_domain_send_fn(state,
+                                               cr->rctx,
+                                               get_domains_head(cr->domain),
+                                               cr->data);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+    tevent_req_set_callback(subreq, cache_req_locate_domain_done, req);
+    return req;
+
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void cache_req_locate_domain_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct cache_req_locate_domain_state *state;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct cache_req_locate_domain_state);
+
+    ret = state->cr->plugin->dp_get_domain_recv_fn(state,
+                                                   subreq,
+                                                   state->cr,
+                                                   &state->found_domain);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t cache_req_locate_domain_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req,
+                                     char **_found_domain)
+{
+    struct cache_req_locate_domain_state *state = NULL;
+
+    state = tevent_req_data(req, struct cache_req_locate_domain_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_found_domain = talloc_steal(mem_ctx, state->found_domain);
+    return EOK;
+}
