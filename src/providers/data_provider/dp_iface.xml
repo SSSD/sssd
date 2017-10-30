@@ -79,5 +79,12 @@
             <arg name="error" type="u" direction="out" />
             <arg name="error_message" type="s" direction="out" />
         </method>
+        <method name="getAccountDomain">
+            <arg name="entry_type" type="u" direction="in" />
+            <arg name="filter" type="s" direction="in" />
+            <arg name="dp_error" type="q" direction="out" />
+            <arg name="error" type="u" direction="out" />
+            <arg name="domain_name" type="s" direction="out" />
+        </method>
     </interface>
 </node>

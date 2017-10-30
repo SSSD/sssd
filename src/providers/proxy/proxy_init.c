@@ -351,6 +351,10 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
                   proxy_account_info_handler_send, proxy_account_info_handler_recv, ctx,
                   struct proxy_id_ctx, struct dp_id_data, struct dp_reply_std);
 
+    dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
+                  default_account_domain_send, default_account_domain_recv, NULL,
+                  void, struct dp_get_acct_domain_data, struct dp_reply_std);
+
     ret = EOK;
 
 done:

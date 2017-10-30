@@ -38,6 +38,7 @@
 #define IFACE_DP_HOSTHANDLER "hostHandler"
 #define IFACE_DP_GETDOMAINS "getDomains"
 #define IFACE_DP_GETACCOUNTINFO "getAccountInfo"
+#define IFACE_DP_GETACCOUNTDOMAIN "getAccountDomain"
 
 /* ------------------------------------------------------------------------
  * DBus handlers
@@ -110,6 +111,7 @@ struct iface_dp {
     int (*hostHandler)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, const char *arg_name, const char *arg_alias);
     int (*getDomains)(struct sbus_request *req, void *data, const char *arg_domain_hint);
     int (*getAccountInfo)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, uint32_t arg_entry_type, const char *arg_filter, const char *arg_domain, const char *arg_extra);
+    int (*getAccountDomain)(struct sbus_request *req, void *data, uint32_t arg_entry_type, const char *arg_filter);
 };
 
 /* finish function for autofsHandler */
@@ -123,6 +125,9 @@ int iface_dp_getDomains_finish(struct sbus_request *req, uint16_t arg_dp_error, 
 
 /* finish function for getAccountInfo */
 int iface_dp_getAccountInfo_finish(struct sbus_request *req, uint16_t arg_dp_error, uint32_t arg_error, const char *arg_error_message);
+
+/* finish function for getAccountDomain */
+int iface_dp_getAccountDomain_finish(struct sbus_request *req, uint16_t arg_dp_error, uint32_t arg_error, const char *arg_domain_name);
 
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata

@@ -490,3 +490,117 @@ done:
 
     return ret;
 }
+
+static bool
+check_and_parse_acct_domain_filter(struct dp_get_acct_domain_data *data,
+                                   const char *filter)
+{
+    /* We will use sizeof() to determine the length of a string so we don't
+     * call strlen over and over again with each request. Not a bottleneck,
+     * but unnecessary and simple to avoid. */
+    static struct {
+        const char *name;
+        size_t lenght;
+        uint32_t type;
+    } types[] = {FILTER_TYPE("idnumber", BE_FILTER_IDNUM),
+                 {0, 0, 0}};
+    int i;
+
+    if (SBUS_IS_STRING_EMPTY(filter)) {
+        return false;
+    }
+
+    for (i = 0; types[i].name != NULL; i++) {
+        if (strncmp(filter, types[i].name, types[i].lenght) == 0) {
+            data->filter_type = types[i].type;
+            data->filter_value = SBUS_SET_STRING(&filter[types[i].lenght]);
+            return true;
+        }
+    }
+
+    if (strcmp(filter, ENUM_INDICATOR) == 0) {
+        data->filter_type = BE_FILTER_ENUM;
+        data->filter_value = NULL;
+        return true;
+    }
+
+    return false;
+}
+
+errno_t dp_get_account_domain_handler(struct sbus_request *sbus_req,
+                                      void *dp_cli,
+                                      uint32_t entry_type,
+                                      const char *filter)
+{
+    struct dp_get_acct_domain_data *data;
+    const char *key = NULL;
+    errno_t ret;
+
+    data = talloc_zero(sbus_req, struct dp_get_acct_domain_data);
+    if (data == NULL) {
+        return ENOMEM;
+    }
+    data->entry_type = entry_type;
+
+    if (!check_and_parse_acct_domain_filter(data, filter)) {
+        ret = EINVAL;
+        goto done;
+    }
+
+
+    dp_req_with_reply(dp_cli, NULL, "AccountDomain", key, sbus_req,
+                      DPT_ID, DPM_ACCT_DOMAIN_HANDLER, 0, data,
+                      dp_req_reply_std, struct dp_reply_std);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(data);
+    }
+
+    return ret;
+}
+
+struct default_account_domain_state {
+    struct dp_reply_std reply;
+};
+
+struct tevent_req *
+default_account_domain_send(TALLOC_CTX *mem_ctx,
+                            void *unused_ctx,
+                            struct dp_get_acct_domain_data *data,
+                            struct dp_req_params *params)
+{
+    struct default_account_domain_state *state;
+    struct tevent_req *req;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct default_account_domain_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    dp_reply_std_set(&state->reply,
+                     DP_ERR_DECIDE, ERR_GET_ACCT_DOM_NOT_SUPPORTED,
+                     NULL);
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+    return req;
+}
+
+errno_t default_account_domain_recv(TALLOC_CTX *mem_ctx,
+                                    struct tevent_req *req,
+                                    struct dp_reply_std *data)
+{
+    struct default_account_domain_state *state = NULL;
+
+    state = tevent_req_data(req, struct default_account_domain_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
+
+    return EOK;
+}
