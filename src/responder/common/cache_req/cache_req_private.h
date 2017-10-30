@@ -116,6 +116,9 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               struct cache_req_data *data);
 
+void cache_req_search_ncache_add_to_domain(struct cache_req *cr,
+                                           struct sss_domain_info *domain);
+
 errno_t
 cache_req_add_result(TALLOC_CTX *mem_ctx,
                      struct cache_req_result *new_result,

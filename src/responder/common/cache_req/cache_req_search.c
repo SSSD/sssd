@@ -60,7 +60,8 @@ static errno_t cache_req_search_ncache(struct cache_req *cr)
     return EOK;
 }
 
-static void cache_req_search_ncache_add(struct cache_req *cr)
+void cache_req_search_ncache_add_to_domain(struct cache_req *cr,
+                                           struct sss_domain_info *domain)
 {
     errno_t ret;
 
@@ -73,7 +74,7 @@ static void cache_req_search_ncache_add(struct cache_req *cr)
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Adding [%s] to negative cache\n",
                     cr->debugobj);
 
-    ret = cr->plugin->ncache_add_fn(cr->ncache, cr->domain, cr->data);
+    ret = cr->plugin->ncache_add_fn(cr->ncache, domain, cr->data);
     if (ret != EOK) {
         CACHE_REQ_DEBUG(SSSDBG_MINOR_FAILURE, cr,
                         "Cannot set negative cache for [%s] [%d]: %s\n",
@@ -82,6 +83,11 @@ static void cache_req_search_ncache_add(struct cache_req *cr)
     }
 
     return;
+}
+
+static void cache_req_search_ncache_add(struct cache_req *cr)
+{
+    return cache_req_search_ncache_add_to_domain(cr, cr->domain);
 }
 
 static errno_t cache_req_search_ncache_filter(TALLOC_CTX *mem_ctx,
