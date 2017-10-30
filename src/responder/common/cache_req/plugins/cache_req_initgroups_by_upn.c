@@ -123,5 +123,8 @@ const struct cache_req_plugin cache_req_initgroups_by_upn = {
     .ncache_filter_fn = NULL,
     .lookup_fn = cache_req_initgroups_by_upn_lookup,
     .dp_send_fn = cache_req_initgroups_by_upn_dp_send,
-    .dp_recv_fn = cache_req_common_dp_recv
+    .dp_recv_fn = cache_req_common_dp_recv,
+    .dp_get_domain_check_fn = NULL,
+    .dp_get_domain_send_fn = NULL,
+    .dp_get_domain_recv_fn = NULL,
 };
