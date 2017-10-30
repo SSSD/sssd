@@ -642,3 +642,158 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 
     return state->error;
 }
+
+/* ========== Get domain of an ccount ================= */
+struct sss_dp_get_account_domain_info {
+    struct sss_domain_info *dom;
+    enum sss_dp_acct_type type;
+    uint32_t opt_id;
+};
+
+static DBusMessage *sss_dp_get_account_domain_msg(void *pvt);
+
+struct tevent_req *sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
+                                                  struct resp_ctx *rctx,
+                                                  struct sss_domain_info *dom,
+                                                  enum sss_dp_acct_type type,
+                                                  uint32_t opt_id)
+{
+    struct tevent_req *req;
+    struct sss_dp_get_account_domain_info *info;
+    struct sss_dp_req_state *state;
+    char *key;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sss_dp_req_state);
+    if (!req) {
+        return NULL;
+    }
+
+    info = talloc_zero(state, struct sss_dp_get_account_domain_info);
+    if (info == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    info->type = type;
+    info->opt_id = opt_id;
+    info->dom = dom;
+
+    key = talloc_asprintf(state, "%d: %"SPRIuid"@%s", type, opt_id, dom->name);
+    if (key == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    ret = sss_dp_issue_request(state, rctx, key, dom,
+                               sss_dp_get_account_domain_msg,
+                               info, req);
+    talloc_free(key);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not issue DP request [%d]: %s\n",
+               ret, sss_strerror(ret));
+        goto immediately;
+    }
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, rctx->ev);
+    return req;
+}
+
+static DBusMessage *
+sss_dp_get_account_domain_msg(void *pvt)
+{
+    DBusMessage *msg;
+    dbus_bool_t dbret;
+    struct sss_dp_get_account_domain_info *info;
+    uint32_t entry_type;
+    char *filter;
+
+    info = talloc_get_type(pvt, struct sss_dp_get_account_domain_info);
+
+    switch (info->type) {
+        case SSS_DP_USER:
+            entry_type = BE_REQ_USER;
+            break;
+        case SSS_DP_GROUP:
+            entry_type = BE_REQ_GROUP;
+            break;
+        case SSS_DP_USER_AND_GROUP:
+            entry_type = BE_REQ_USER_AND_GROUP;
+            break;
+        default:
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unsupported lookup type %X for this request\n", info->type);
+            return NULL;
+    }
+
+    filter = talloc_asprintf(info, "idnumber=%u", info->opt_id);
+    if (!filter) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
+        return NULL;
+    }
+
+    msg = dbus_message_new_method_call(NULL,
+                                       DP_PATH,
+                                       IFACE_DP,
+                                       IFACE_DP_GETACCOUNTDOMAIN);
+    if (msg == NULL) {
+        talloc_free(filter);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
+        return NULL;
+    }
+
+    /* create the message */
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Creating request for [%s][%#x][%s][%s:-]\n",
+          info->dom->name, entry_type, be_req2str(entry_type), filter);
+
+    dbret = dbus_message_append_args(msg,
+                                     DBUS_TYPE_UINT32, &entry_type,
+                                     DBUS_TYPE_STRING, &filter,
+                                     DBUS_TYPE_INVALID);
+    talloc_free(filter);
+    if (!dbret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
+        dbus_message_unref(msg);
+        return NULL;
+    }
+
+    return msg;
+}
+
+errno_t sss_dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       char **_domain)
+{
+    errno_t ret;
+    dbus_uint16_t err_maj;
+    dbus_uint32_t err_min;
+    char *msg;
+
+    ret = sss_dp_req_recv(mem_ctx, req, &err_maj, &err_min, &msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not get account info [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    if (err_maj != DP_ERR_OK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Data Provider Error: %u, %u\n",
+              (unsigned int)err_maj, (unsigned int)err_min);
+        talloc_free(msg);
+        return err_min ? err_min : EIO;
+    }
+
+    *_domain = msg;
+    return EOK;
+}
