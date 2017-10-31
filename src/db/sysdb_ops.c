@@ -3399,12 +3399,7 @@ int sysdb_store_custom(struct sss_domain_info *domain,
                        struct sysdb_attrs *attrs)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *search_attrs[] = { "*", NULL };
-    size_t resp_count = 0;
-    struct ldb_message **resp;
     struct ldb_message *msg;
-    struct ldb_message_element *el;
-    bool add_object = false;
     int ret;
     int i;
 
@@ -3423,15 +3418,10 @@ int sysdb_store_custom(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_search_custom_by_name(tmp_ctx, domain,
-                                      object_name, subtree_name,
-                                      search_attrs, &resp_count, &resp);
-    if (ret != EOK && ret != ENOENT) {
+    /* Always add a new object. */
+    ret = sysdb_delete_custom(domain, object_name, subtree_name);
+    if (ret != EOK) {
         goto done;
-    }
-
-    if (ret == ENOENT) {
-       add_object = true;
     }
 
     msg = ldb_msg_new(tmp_ctx);
@@ -3455,24 +3445,11 @@ int sysdb_store_custom(struct sss_domain_info *domain,
 
     for (i = 0; i < attrs->num; i++) {
         msg->elements[i] = attrs->a[i];
-        if (add_object) {
-            msg->elements[i].flags = LDB_FLAG_MOD_ADD;
-        } else {
-            el = ldb_msg_find_element(resp[0], attrs->a[i].name);
-            if (el == NULL) {
-                msg->elements[i].flags = LDB_FLAG_MOD_ADD;
-            } else {
-                msg->elements[i].flags = LDB_FLAG_MOD_REPLACE;
-            }
-        }
+        msg->elements[i].flags = LDB_FLAG_MOD_ADD;
     }
     msg->num_elements = attrs->num;
 
-    if (add_object) {
-        ret = ldb_add(domain->sysdb->ldb, msg);
-    } else {
-        ret = ldb_modify(domain->sysdb->ldb, msg);
-    }
+    ret = ldb_add(domain->sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to store custom entry: %s(%d)[%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(domain->sysdb->ldb));
