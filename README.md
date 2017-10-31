@@ -27,6 +27,8 @@ Please see the [our developer documentation](https://docs.pagure.org/SSSD.sssd/d
 ## Documentation
 The most up-to-date documentation can be found at https://docs.pagure.org/SSSD.sssd/
 
+Its source code is hosted at https://pagure.io/SSSD/docs
+
 ## Submitting bugs
 Please file an issue in the [SSSD pagure instance](https://pagure.io/SSSD/sssd/issues).
 Make sure to follow the [guide on reporting SSSD bugs](https://docs.pagure.org/SSSD.sssd/users/reporting_bugs.html)
