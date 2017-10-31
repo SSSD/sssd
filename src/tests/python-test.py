@@ -27,14 +27,9 @@ import unittest
 import subprocess
 import errno
 
-# module under test
-import pysss
 
 class LocalTest(unittest.TestCase):
     local_path = "/var/lib/sss/db/sssd.ldb"
-
-    def setUp(self):
-        self.local = pysss.local()
 
     def _run_and_check(self, runme):
         (status, output) = subprocess.call(runme, shell=True)
@@ -140,8 +135,6 @@ class LocalTest(unittest.TestCase):
 class SanityTest(unittest.TestCase):
     def testInstantiate(self):
         "Test that the local backed binding can be instantiated"
-        local = pysss.local()
-        self.assert_(local.__class__, "<type 'sss.local'>")
 
 class UseraddTest(LocalTest):
     def tearDown(self):
@@ -282,7 +275,6 @@ class UserdelTest(LocalTest):
 
 class UsermodTest(LocalTest):
     def setUp(self):
-        self.local = pysss.local()
         self.username = "UsermodTest"
         self.add_user_not_home(self.username)
 
@@ -409,7 +401,6 @@ class GroupdelTest(LocalTest):
 
 class GroupmodTest(LocalTest):
     def setUp(self):
-        self.local = pysss.local()
         self.groupname = "GroupmodTest"
         self.add_group(self.groupname)
 
