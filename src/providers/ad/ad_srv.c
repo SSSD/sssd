@@ -34,6 +34,7 @@
 #include "providers/fail_over_srv.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async.h"
+#include "db/sysdb.h"
 
 #define AD_SITE_DOMAIN_FMT "%s._sites.%s"
 
@@ -475,6 +476,7 @@ int ad_get_client_site_recv(TALLOC_CTX *mem_ctx,
 }
 
 struct ad_srv_plugin_ctx {
+    struct be_ctx *be_ctx;
     struct be_resolv_ctx *be_res;
     enum host_database *host_dbs;
     struct sdap_options *opts;
@@ -486,6 +488,7 @@ struct ad_srv_plugin_ctx {
 
 struct ad_srv_plugin_ctx *
 ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
+                       struct be_ctx *be_ctx,
                        struct be_resolv_ctx *be_res,
                        enum host_database *host_dbs,
                        struct sdap_options *opts,
@@ -494,12 +497,14 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
                        const char *ad_site_override)
 {
     struct ad_srv_plugin_ctx *ctx = NULL;
+    errno_t ret;
 
     ctx = talloc_zero(mem_ctx, struct ad_srv_plugin_ctx);
     if (ctx == NULL) {
         return NULL;
     }
 
+    ctx->be_ctx = be_ctx;
     ctx->be_res = be_res;
     ctx->host_dbs = host_dbs;
     ctx->opts = opts;
@@ -523,6 +528,15 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
         ctx->current_site = talloc_strdup(ctx, ad_site_override);
         if (ctx->current_site == NULL) {
             goto fail;
+        }
+    } else {
+        ret = sysdb_get_site(ctx, be_ctx->domain, &ctx->current_site);
+        if (ret != EOK) {
+            /* Not fatal. */
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Unable to get current site from cache [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            ctx->current_site = NULL;
         }
     }
 
@@ -555,6 +569,13 @@ ad_srv_plugin_ctx_switch_site(struct ad_srv_plugin_ctx *ctx,
 
     talloc_zfree(ctx->current_site);
     ctx->current_site = site;
+
+    ret = sysdb_set_site(ctx->be_ctx->domain, ctx->current_site);
+    if (ret != EOK) {
+        /* Not fatal. */
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to store site information "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+    }
 
     return EOK;
 }

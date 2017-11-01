@@ -199,7 +199,7 @@ static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
         return EOK;
     }
 
-    srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx->be_res,
+    srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx, be_ctx->be_res,
                                      default_host_dbs, ad_options->id,
                                      hostname, ad_domain,
                                      ad_site_override);
