@@ -253,17 +253,12 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
     const char *password = NULL;
     errno_t ret;
 
-    if (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Delayed authentication is only available for password "
-              "authentication (single factor).\n");
-        return;
-    }
-
     ret = sss_authtok_get_password(pd->authtok, &password, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get password [%d] %s\n", ret, strerror(ret));
+              "Failed to get password [%d] %s. Delayed authentication is only "
+              "available for password authentication (single factor).\n",
+              ret, strerror(ret));
         *pam_status = PAM_SYSTEM_ERR;
         *dp_err = DP_ERR_OK;
         return;
@@ -1138,7 +1133,9 @@ static void krb5_auth_done(struct tevent_req *subreq)
 
     if (kr->is_offline) {
         if (dp_opt_get_bool(kr->krb5_ctx->opts,
-                            KRB5_STORE_PASSWORD_IF_OFFLINE)) {
+                            KRB5_STORE_PASSWORD_IF_OFFLINE)
+                && sss_authtok_get_type(pd->authtok)
+                            == SSS_AUTHTOK_TYPE_PASSWORD) {
             krb5_auth_cache_creds(state->kr->krb5_ctx,
                                   state->domain,
                                   state->be_ctx->cdb,
