@@ -25,6 +25,7 @@ struct ad_srv_plugin_ctx;
 
 struct ad_srv_plugin_ctx *
 ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
+                       struct be_ctx *be_ctx,
                        struct be_resolv_ctx *be_res,
                        enum host_database *host_dbs,
                        struct sdap_options *opts,

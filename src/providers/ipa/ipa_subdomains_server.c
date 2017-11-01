@@ -305,7 +305,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
 
     /* use AD plugin */
-    srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx->be_res,
+    srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx, be_ctx->be_res,
                                      default_host_dbs,
                                      ad_id_ctx->ad_options->id,
                                      id_ctx->server_mode->hostname,

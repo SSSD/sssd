@@ -1291,7 +1291,7 @@ sysdb_get_site(TALLOC_CTX *mem_ctx,
                const char **_site)
 {
     TALLOC_CTX *tmp_ctx;
-    struct ldb_res *res;
+    struct ldb_result *res;
     struct ldb_dn *dn;
     const char *attrs[] = { SYSDB_SITE, NULL };
     errno_t ret;
