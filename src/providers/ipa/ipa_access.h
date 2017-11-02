@@ -63,4 +63,14 @@ ipa_pam_access_handler_recv(TALLOC_CTX *mem_ctx,
                              struct tevent_req *req,
                              struct pam_data **_data);
 
+struct tevent_req *
+ipa_refresh_access_rules_send(TALLOC_CTX *mem_ctx,
+                              struct ipa_access_ctx *access_ctx,
+                              void *no_input_data,
+                              struct dp_req_params *params);
+
+errno_t ipa_refresh_access_rules_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      void **_no_output_data);
+
 #endif /* _IPA_ACCESS_H_ */
