@@ -76,4 +76,8 @@ errno_t dp_failover_list_servers(struct sbus_request *sbus_req,
                                  void *dp_cli,
                                  const char *service_name);
 
+/* org.freedesktop.sssd.DataProvider.AccessControl */
+errno_t dp_access_control_refresh_rules_handler(struct sbus_request *sbus_req,
+                                                void *dp_cli);
+
 #endif /* DP_IFACE_H_ */

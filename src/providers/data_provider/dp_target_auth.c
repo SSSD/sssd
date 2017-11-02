@@ -306,3 +306,17 @@ void dp_pam_handler_selinux_done(struct tevent_req *req)
     dp_pam_reply(state->sbus_req, state->request_name, pd);
     return;
 }
+
+errno_t dp_access_control_refresh_rules_handler(struct sbus_request *sbus_req,
+                                                void *dp_cli)
+{
+    const char *key;
+
+    key = "RefreshRules";
+
+    dp_req_with_reply(dp_cli, NULL, "Refresh Access Control Rules", key,
+                      sbus_req, DPT_ACCESS, DPM_REFRESH_ACCESS_RULES, 0, NULL,
+                      dp_req_reply_default, void *);
+
+    return EOK;
+}

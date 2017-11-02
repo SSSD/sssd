@@ -187,6 +187,33 @@ const struct sbus_interface_meta iface_dp_failover_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+int iface_dp_access_control_RefreshRules_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.DataProvider.AccessControl */
+const struct sbus_method_meta iface_dp_access_control__methods[] = {
+    {
+        "RefreshRules", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_dp_access_control, RefreshRules),
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.DataProvider.AccessControl */
+const struct sbus_interface_meta iface_dp_access_control_meta = {
+    "org.freedesktop.sssd.DataProvider.AccessControl", /* name */
+    iface_dp_access_control__methods,
+    NULL, /* no signals */
+    NULL, /* no properties */
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* arguments for org.freedesktop.sssd.dataprovider.autofsHandler */
 const struct sbus_arg_meta iface_dp_autofsHandler__in[] = {
     { "dp_flags", "u" },
