@@ -57,6 +57,7 @@
 #define IFACE_IFP_DOMAINS_DOMAIN_LISTSERVICES "ListServices"
 #define IFACE_IFP_DOMAINS_DOMAIN_ACTIVESERVER "ActiveServer"
 #define IFACE_IFP_DOMAINS_DOMAIN_LISTSERVERS "ListServers"
+#define IFACE_IFP_DOMAINS_DOMAIN_REFRESHACCESSRULES "RefreshAccessRules"
 
 /* constants for org.freedesktop.sssd.infopipe.Cache */
 #define IFACE_IFP_CACHE "org.freedesktop.sssd.infopipe.Cache"
@@ -209,6 +210,7 @@ struct iface_ifp_domains_domain {
     int (*ListServices)(struct sbus_request *req, void *data);
     int (*ActiveServer)(struct sbus_request *req, void *data, const char *arg_service);
     int (*ListServers)(struct sbus_request *req, void *data, const char *arg_service_name);
+    int (*RefreshAccessRules)(struct sbus_request *req, void *data);
 };
 
 /* finish function for IsOnline */
@@ -222,6 +224,9 @@ int iface_ifp_domains_domain_ActiveServer_finish(struct sbus_request *req, const
 
 /* finish function for ListServers */
 int iface_ifp_domains_domain_ListServers_finish(struct sbus_request *req, const char *arg_servers[], int len_servers);
+
+/* finish function for RefreshAccessRules */
+int iface_ifp_domains_domain_RefreshAccessRules_finish(struct sbus_request *req);
 
 /* vtable for org.freedesktop.sssd.infopipe.Cache */
 struct iface_ifp_cache {

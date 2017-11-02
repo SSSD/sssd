@@ -79,7 +79,8 @@ struct iface_ifp_domains_domain iface_ifp_domains_domain = {
     .IsOnline = ifp_domains_domain_is_online,
     .ListServices = ifp_domains_domain_list_services,
     .ActiveServer = ifp_domains_domain_active_server,
-    .ListServers = ifp_domains_domain_list_servers
+    .ListServers = ifp_domains_domain_list_servers,
+    .RefreshAccessRules = ifp_domains_domain_refresh_access_rules
 };
 
 struct iface_ifp_users iface_ifp_users = {
