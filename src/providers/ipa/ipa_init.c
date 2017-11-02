@@ -831,6 +831,10 @@ errno_t sssm_ipa_access_init(TALLOC_CTX *mem_ctx,
                   ipa_pam_access_handler_send, ipa_pam_access_handler_recv, access_ctx,
                   struct ipa_access_ctx, struct pam_data, struct pam_data *);
 
+    dp_set_method(dp_methods, DPM_REFRESH_ACCESS_RULES,
+                      ipa_refresh_access_rules_send, ipa_refresh_access_rules_recv, access_ctx,
+                      struct ipa_access_ctx, void, void *);
+
     ret = EOK;
 
 done:

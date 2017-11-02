@@ -682,8 +682,8 @@ done:
 
 errno_t
 ipa_pam_access_handler_recv(TALLOC_CTX *mem_ctx,
-                             struct tevent_req *req,
-                             struct pam_data **_data)
+                            struct tevent_req *req,
+                            struct pam_data **_data)
 {
     struct ipa_pam_access_handler_state *state = NULL;
 
@@ -692,6 +692,70 @@ ipa_pam_access_handler_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *_data = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
+}
+
+struct ipa_refresh_access_rules_state {
+    int dummy;
+};
+
+static void ipa_refresh_access_rules_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ipa_refresh_access_rules_send(TALLOC_CTX *mem_ctx,
+                              struct ipa_access_ctx *access_ctx,
+                              void *no_input_data,
+                              struct dp_req_params *params)
+{
+    struct ipa_refresh_access_rules_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Refreshing HBAC rules\n");
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_refresh_access_rules_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    subreq = ipa_fetch_hbac_send(state, params->ev, params->be_ctx, access_ctx);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        tevent_req_post(req, params->ev);
+        return req;
+    }
+
+    tevent_req_set_callback(subreq, ipa_refresh_access_rules_done, req);
+
+    return req;
+}
+
+static void ipa_refresh_access_rules_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = ipa_fetch_hbac_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t ipa_refresh_access_rules_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      void **_no_output_data)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
