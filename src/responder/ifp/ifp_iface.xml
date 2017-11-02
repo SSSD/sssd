@@ -112,6 +112,9 @@
             <arg name="service_name" type="s" direction="in" />
             <arg name="servers" type="as" direction="out" />
         </method>
+
+        <method name="RefreshAccessRules">
+        </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Cache">

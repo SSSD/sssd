@@ -108,4 +108,7 @@ int ifp_domains_domain_list_servers(struct sbus_request *sbus_req,
                                     void *data,
                                     const char *service);
 
+int ifp_domains_domain_refresh_access_rules(struct sbus_request *sbus_req,
+                                            void *data);
+
 #endif /* IFP_DOMAINS_H_ */

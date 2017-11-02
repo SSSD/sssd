@@ -552,6 +552,12 @@ int iface_ifp_domains_domain_ListServers_finish(struct sbus_request *req, const 
                                          DBUS_TYPE_INVALID);
 }
 
+int iface_ifp_domains_domain_RefreshAccessRules_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
 /* methods for org.freedesktop.sssd.infopipe.Domains.Domain */
 const struct sbus_method_meta iface_ifp_domains_domain__methods[] = {
     {
@@ -581,6 +587,13 @@ const struct sbus_method_meta iface_ifp_domains_domain__methods[] = {
         iface_ifp_domains_domain_ListServers__out,
         offsetof(struct iface_ifp_domains_domain, ListServers),
         invoke_s_method,
+    },
+    {
+        "RefreshAccessRules", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_ifp_domains_domain, RefreshAccessRules),
+        NULL, /* no invoker */
     },
     { NULL, }
 };
