@@ -48,10 +48,16 @@ struct iface_dp_failover iface_dp_failover = {
     .ListServers = dp_failover_list_servers
 };
 
+struct iface_dp_access_control iface_dp_access_control = {
+    { &iface_dp_access_control_meta, 0 },
+    .RefreshRules = dp_access_control_refresh_rules_handler
+};
+
 static struct sbus_iface_map dp_map[] = {
     { DP_PATH, &iface_dp.vtable },
     { DP_PATH, &iface_dp_backend.vtable },
     { DP_PATH, &iface_dp_failover.vtable },
+    { DP_PATH, &iface_dp_access_control.vtable },
     { NULL, NULL }
 };
 

@@ -26,6 +26,10 @@
 #define IFACE_DP_FAILOVER_ACTIVESERVER "ActiveServer"
 #define IFACE_DP_FAILOVER_LISTSERVERS "ListServers"
 
+/* constants for org.freedesktop.sssd.DataProvider.AccessControl */
+#define IFACE_DP_ACCESS_CONTROL "org.freedesktop.sssd.DataProvider.AccessControl"
+#define IFACE_DP_ACCESS_CONTROL_REFRESHRULES "RefreshRules"
+
 /* constants for org.freedesktop.sssd.dataprovider */
 #define IFACE_DP "org.freedesktop.sssd.dataprovider"
 #define IFACE_DP_PAMHANDLER "pamHandler"
@@ -88,6 +92,15 @@ int iface_dp_failover_ActiveServer_finish(struct sbus_request *req, const char *
 /* finish function for ListServers */
 int iface_dp_failover_ListServers_finish(struct sbus_request *req, const char *arg_servers[], int len_servers);
 
+/* vtable for org.freedesktop.sssd.DataProvider.AccessControl */
+struct iface_dp_access_control {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*RefreshRules)(struct sbus_request *req, void *data);
+};
+
+/* finish function for RefreshRules */
+int iface_dp_access_control_RefreshRules_finish(struct sbus_request *req);
+
 /* vtable for org.freedesktop.sssd.dataprovider */
 struct iface_dp {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
@@ -129,6 +142,9 @@ extern const struct sbus_interface_meta iface_dp_backend_meta;
 
 /* interface info for org.freedesktop.sssd.DataProvider.Failover */
 extern const struct sbus_interface_meta iface_dp_failover_meta;
+
+/* interface info for org.freedesktop.sssd.DataProvider.AccessControl */
+extern const struct sbus_interface_meta iface_dp_access_control_meta;
 
 /* interface info for org.freedesktop.sssd.dataprovider */
 extern const struct sbus_interface_meta iface_dp_meta;

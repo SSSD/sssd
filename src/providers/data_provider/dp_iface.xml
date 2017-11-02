@@ -32,6 +32,12 @@
         </method>
     </interface>
 
+    <interface name="org.freedesktop.sssd.DataProvider.AccessControl">
+        <annotation value="iface_dp_access_control" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <method name="RefreshRules">
+        </method>
+    </interface>
+
     <interface name="org.freedesktop.sssd.dataprovider">
         <annotation value="iface_dp" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="pamHandler">
