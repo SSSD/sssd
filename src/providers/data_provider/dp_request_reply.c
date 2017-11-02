@@ -31,7 +31,7 @@
 
 void dp_req_reply_default(const char *req_name,
                           struct sbus_request *sbus_req,
-                          void *data)
+                          void **data)
 {
     DP_REQ_DEBUG(SSSDBG_TRACE_FUNC, req_name, "Replying with empty message");
 

@@ -136,7 +136,7 @@ typedef void (*dp_req_reply_fn)(const char *req_name,
 
 void dp_req_reply_default(const char *req_name,
                           struct sbus_request *sbus_req,
-                          void *data);
+                          void **data);
 
 /* Data provider request table. */
 
