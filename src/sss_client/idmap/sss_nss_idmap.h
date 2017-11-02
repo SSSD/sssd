@@ -303,5 +303,129 @@ int sss_nss_getgrgid_timeout(gid_t gid, struct group *grp,
 int sss_nss_getgrouplist_timeout(const char *name, gid_t group,
                                  gid_t *groups, int *ngroups,
                                  uint32_t flags, unsigned int timeout);
+/**
+ * @brief Find SID by fully qualified name with timeout
+ *
+ * @param[in] fq_name  Fully qualified name of a user or a group
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] sid     String representation of the SID of the requested user
+ *                     or group, must be freed by the caller
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - 0 (EOK): success, sid contains the requested SID
+ *  - ENOENT: requested object was not found in the domain extracted from the given name
+ *  - ENETUNREACH: SSSD does not know how to handle the domain extracted from the given name
+ *  - ENOSYS: this call is not supported by the configured provider
+ *  - EINVAL: input cannot be parsed
+ *  - EIO: remote servers cannot be reached
+ *  - EFAULT: any other error
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getsidbyname_timeout(const char *fq_name, unsigned int timeout,
+                                 char **sid, enum sss_id_type *type);
+
+/**
+ * @brief Find SID by a POSIX UID or GID with timeout
+ *
+ * @param[in] id       POSIX UID or GID
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] sid     String representation of the SID of the requested user
+ *                     or group, must be freed by the caller
+ * @param[out] type    Type of the object related to the given ID
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getsidbyid_timeout(uint32_t id, unsigned int timeout,
+                               char **sid, enum sss_id_type *type);
+
+/**
+ * @brief Return the fully qualified name for the given SID with timeout
+ *
+ * @param[in] sid      String representation of the SID
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] fq_name Fully qualified name of a user or a group,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the SID
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getnamebysid_timeout(const char *sid, unsigned int timeout,
+                                 char **fq_name, enum sss_id_type *type);
+
+/**
+ * @brief Return the POSIX ID for the given SID with timeout
+ *
+ * @param[in] sid      String representation of the SID
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] id      POSIX ID related to the SID
+ * @param[out] id_type Type of the object related to the SID
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getidbysid_timeout(const char *sid, unsigned int timeout,
+                               uint32_t *id, enum sss_id_type *id_type);
+
+/**
+ * @brief Find original data by fully qualified name with timeout
+ *
+ * @param[in] fq_name  Fully qualified name of a user or a group
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] kv_list A NULL terminate list of key-value pairs where the key
+ *                     is the attribute name in the cache of SSSD,
+ *                     must be freed by the caller with sss_nss_free_kv()
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - 0 (EOK): success, sid contains the requested SID
+ *  - ENOENT: requested object was not found in the domain extracted from the given name
+ *  - ENETUNREACH: SSSD does not know how to handle the domain extracted from the given name
+ *  - ENOSYS: this call is not supported by the configured provider
+ *  - EINVAL: input cannot be parsed
+ *  - EIO: remote servers cannot be reached
+ *  - EFAULT: any other error
+ *  - ETIME:     request timed out but was send to SSSD
+ *  - ETIMEDOUT: request timed out but was not send to SSSD
+ */
+int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
+                                  struct sss_nss_kv **kv_list,
+                                  enum sss_id_type *type);
+
+/**
+ * @brief Return the fully qualified name for the given base64 encoded
+ * X.509 certificate in DER format with timeout
+ *
+ * @param[in] cert     base64 encoded certificate
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] fq_name Fully qualified name of a user or a group,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the cert
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getnamebycert_timeout(const char *cert, unsigned int timeout,
+                                  char **fq_name, enum sss_id_type *type);
+
+/**
+ * @brief Return a list of fully qualified names for the given base64 encoded
+ * X.509 certificate in DER format with timeout
+ *
+ * @param[in] cert     base64 encoded certificate
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] fq_name List of fully qualified name of users or groups,
+ *                     must be freed by the caller
+ * @param[out] type    List of types of the objects related to the cert
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getlistbycert_timeout(const char *cert, unsigned int timeout,
+                                  char ***fq_name, enum sss_id_type **type);
+
 #endif /* IPA_389DS_PLUGIN_HELPER_CALLS */
 #endif /* SSS_NSS_IDMAP_H_ */

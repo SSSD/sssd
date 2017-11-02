@@ -2,5 +2,5 @@
 UNIT_TEST_ONLY {
     # should not be part of installed library
     global:
-        sss_nss_make_request;
+        sss_nss_make_request_timeout;
 };

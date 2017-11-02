@@ -61,10 +61,11 @@ uint8_t buf_orig1[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0
  #error "unknow endianess"
 #endif
 
-enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
-                      struct sss_cli_req_data *rd,
-                      uint8_t **repbuf, size_t *replen,
-                      int *errnop)
+enum nss_status sss_nss_make_request_timeout(enum sss_cli_command cmd,
+                                             struct sss_cli_req_data *rd,
+                                             int timeout,
+                                             uint8_t **repbuf, size_t *replen,
+                                             int *errnop)
 {
     struct sss_nss_make_request_test_data *d;
 
@@ -114,7 +115,7 @@ void test_getsidbyname(void **state)
     sid = NULL;
 
     for (c = 0; d[c].d.repbuf != NULL; c++) {
-        will_return(sss_nss_make_request, &d[0].d);
+        will_return(sss_nss_make_request_timeout, &d[0].d);
 
         ret = sss_nss_getsidbyname("test", &sid, &type);
         assert_int_equal(ret, d[0].ret);
@@ -134,7 +135,7 @@ void test_getorigbyname(void **state)
     enum sss_id_type type;
     struct sss_nss_make_request_test_data d = {buf_orig1, sizeof(buf_orig1), 0, NSS_STATUS_SUCCESS};
 
-    will_return(sss_nss_make_request, &d);
+    will_return(sss_nss_make_request_timeout, &d);
     ret = sss_nss_getorigbyname("test", &kv_list, &type);
     assert_int_equal(ret, EOK);
     assert_int_equal(type, SSS_ID_TYPE_UID);

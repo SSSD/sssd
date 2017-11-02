@@ -2974,7 +2974,6 @@ test_sysdb_domain_resolution_order_LDADD = \
 
 test_wbc_calls_SOURCES = \
     src/tests/cmocka/test_wbc_calls.c \
-    src/sss_client/idmap/sss_nss_idmap.c \
     src/sss_client/libwbclient/wbc_sid_sssd.c \
     src/sss_client/libwbclient/wbclient_common.c \
     src/sss_client/libwbclient/wbc_sid_common.c \
@@ -2993,6 +2992,7 @@ test_wbc_calls_LDADD = \
     $(TALLOC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
+    libsss_nss_idmap.la \
     $(NULL)
 
 test_be_ptask_SOURCES = \
