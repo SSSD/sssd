@@ -15,11 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <security/pam_appl.h>
-
 #include "util/util.h"
 #include "tools/common/sss_tools.h"
 #include "tools/sssctl/sssctl.h"
+#include "sbus/sssd_dbus.h"
+#include "responder/ifp/ifp_iface.h"
 
 /*
  * We're searching the cache directly..
@@ -27,57 +27,8 @@
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ipa/ipa_rules_common.h"
 
-#ifdef HAVE_SECURITY_PAM_MISC_H
-# include <security/pam_misc.h>
-#elif defined(HAVE_SECURITY_OPENPAM_H)
-# include <security/openpam.h>
-#endif
-
-#ifdef HAVE_SECURITY_PAM_MISC_H
-static struct pam_conv conv = {
-    misc_conv,
-    NULL
-};
-#elif defined(HAVE_SECURITY_OPENPAM_H)
-static struct pam_conv conv = {
-    openpam_ttyconv,
-    NULL
-};
-#else
-# error "Missing text based pam conversation function"
-#endif
-
-#ifndef DEFAULT_SERVICE
-#define DEFAULT_SERVICE "system-auth"
-#endif /* DEFAULT_SERVICE */
-
-#ifndef DEFAULT_USER
-#define DEFAULT_USER "admin"
-#endif /* DEFAULT_USER */
-
 typedef errno_t (*sssctl_dom_access_reporter_fn)(struct sss_tool_ctx *tool_ctx,
-                                                 const char *user,
-                                                 const char *service,
                                                  struct sss_domain_info *domain);
-
-static errno_t run_pam_acct(struct sss_tool_ctx *tool_ctx,
-                            const char *user,
-                            const char *service,
-                            struct sss_domain_info *domain)
-{
-    errno_t ret;
-    pam_handle_t *pamh;
-
-    ret = pam_start(service, user, &conv, &pamh);
-    if (ret != PAM_SUCCESS) {
-        ERROR("pam_start failed: %s\n", pam_strerror(pamh, ret));
-        return EIO;
-    }
-
-    ret = pam_acct_mgmt(pamh, 0);
-    pam_end(pamh, ret);
-    return ret;
-}
 
 static errno_t get_rdn_value(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *dom,
@@ -315,9 +266,58 @@ static void print_ipa_hbac_rule(struct sss_domain_info *domain,
     PRINT("\n");
 }
 
+static errno_t refresh_hbac_rules(struct sss_tool_ctx *tool_ctx,
+                                  struct sss_domain_info *domain)
+{
+    TALLOC_CTX *tmp_ctx;
+    sss_sifp_error error;
+    sss_sifp_ctx *sifp;
+    DBusMessage *reply;
+    const char *path;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    path = sbus_opath_compose(tmp_ctx, IFP_PATH_DOMAINS, domain->name);
+    if (path == NULL) {
+        printf(_("Out of memory!\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    error = sssctl_sifp_init(tool_ctx, &sifp);
+    if (error != SSS_SIFP_OK) {
+        sssctl_sifp_error(sifp, error, "Unable to connect to the InfoPipe");
+        ret = EIO;
+        goto done;
+    }
+
+    error = sssctl_sifp_send(tmp_ctx, sifp, &reply, path,
+                             IFACE_IFP_DOMAINS_DOMAIN,
+                             IFACE_IFP_DOMAINS_DOMAIN_REFRESHACCESSRULES);
+    if (error != SSS_SIFP_OK) {
+        sssctl_sifp_error(sifp, error, "Unable to refresh HBAC rules");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = sbus_parse_reply(reply);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static errno_t sssctl_ipa_access_report(struct sss_tool_ctx *tool_ctx,
-                                        const char *user,
-                                        const char *service,
                                         struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -338,9 +338,9 @@ static errno_t sssctl_ipa_access_report(struct sss_tool_ctx *tool_ctx,
     struct ldb_message **msgs = NULL;
 
     /* Run the pam account phase to make sure the rules are fetched by SSSD */
-    ret = run_pam_acct(tool_ctx, user, service, domain);
-    if (ret != PAM_SUCCESS && ret != PAM_PERM_DENIED) {
-        ERROR("Cannot run the PAM account phase, reporting stale rules\n");
+    ret = refresh_hbac_rules(tool_ctx, domain);
+    if (ret != EOK) {
+        ERROR("Unable to refresh HBAC rules, using cached content\n");
         /* Non-fatal */
     }
 
@@ -398,19 +398,8 @@ errno_t sssctl_access_report(struct sss_cmdline *cmdline,
     const char *domname = NULL;
     sssctl_dom_access_reporter_fn reporter;
     struct sss_domain_info *dom;
-    const char *user = DEFAULT_USER;
-    const char *service = DEFAULT_SERVICE;
 
-    /* Parse command line. */
-    struct poptOption options[] = {
-        { "user", 'u', POPT_ARG_STRING, &user, 0,
-          _("PAM user, default: " DEFAULT_USER), NULL },
-        { "service", 's', POPT_ARG_STRING, &service, 0,
-          _("PAM service, default: " DEFAULT_SERVICE), NULL },
-        POPT_TABLEEND
-    };
-
-    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+    ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
                            NULL, NULL, "DOMAIN", _("Specify domain name."),
                            &domname, NULL);
     if (ret != EOK) {
@@ -431,5 +420,5 @@ errno_t sssctl_access_report(struct sss_cmdline *cmdline,
         return ret;
     }
 
-    return reporter(tool_ctx, user, service, dom);
+    return reporter(tool_ctx, dom);
 }
