@@ -103,13 +103,62 @@ errno_t sss_nss_mc_get(struct nss_input *inp)
     }
 }
 
-static int check_flags(uint32_t flags)
+static int check_flags(struct nss_input *inp, uint32_t flags,
+                       bool *skip_mc, bool *skip_data)
 {
+    bool no_data = false;
+
     /* SSS_NSS_EX_FLAG_NO_CACHE and SSS_NSS_EX_FLAG_INVALIDATE_CACHE are
      * mutually exclusive */
     if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0
             && (flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
         return EINVAL;
+    }
+
+    *skip_mc = false;
+    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0
+            || (flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
+        *skip_mc = true;
+    }
+
+    switch(inp->cmd) {
+    case SSS_NSS_GETPWNAM:
+    case SSS_NSS_GETPWNAM_EX:
+    case SSS_NSS_GETPWUID:
+    case SSS_NSS_GETPWUID_EX:
+        if (inp->result.pwrep.buffer == NULL
+                || inp->result.pwrep.buflen == 0) {
+            no_data = true;
+        }
+        break;
+    case SSS_NSS_GETGRNAM:
+    case SSS_NSS_GETGRNAM_EX:
+    case SSS_NSS_GETGRGID:
+    case SSS_NSS_GETGRGID_EX:
+        if (inp->result.grrep.buffer == NULL
+                || inp->result.grrep.buflen == 0) {
+            no_data = true;
+        }
+        break;
+    case SSS_NSS_INITGR:
+    case SSS_NSS_INITGR_EX:
+        if (inp->result.initgrrep.ngroups == 0
+                || inp->result.initgrrep.groups == NULL) {
+            return EINVAL;
+        }
+        break;
+    default:
+        return EINVAL;
+    }
+
+    *skip_data = false;
+    /* Allow empty buffer with SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
+    if (no_data) {
+        if ((flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
+            *skip_data = true;
+        } else {
+            return ERANGE;
+        }
     }
 
     return 0;
@@ -128,18 +177,14 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
     gid_t *new_groups;
     size_t idx;
     bool skip_mc = false;
+    bool skip_data = false;
 
-    ret = check_flags(flags);
+    ret = check_flags(inp, flags, &skip_mc, &skip_data);
     if (ret != 0) {
         return ret;
     }
 
-    if ((flags & SSS_NSS_EX_FLAG_NO_CACHE) != 0
-            || (flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
-        skip_mc = true;
-    }
-
-    if (!skip_mc) {
+    if (!skip_mc && !skip_data) {
         ret = sss_nss_mc_get(inp);
         switch (ret) {
         case 0:
@@ -159,7 +204,7 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
 
     sss_nss_timedlock(timeout, &time_left);
 
-    if (!skip_mc) {
+    if (!skip_mc && !skip_data) {
         /* previous thread might already initialize entry in mmap cache */
         ret = sss_nss_mc_get(inp);
         switch (ret) {
@@ -193,6 +238,12 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
     /* no results if not found */
     if (num_results == 0) {
         ret = ENOENT;
+        goto out;
+    }
+
+    if (skip_data) {
+        /* No data requested, just return the return code */
+        ret = 0;
         goto out;
     }
 
@@ -311,10 +362,6 @@ int sss_nss_getpwnam_timeout(const char *name, struct passwd *pwd,
         .result.pwrep.buffer = buffer,
         .result.pwrep.buflen = buflen};
 
-    if (buffer == NULL || buflen == 0) {
-        return ERANGE;
-    }
-
     ret = make_name_flag_req_data(name, flags, &inp.rd);
     if (ret != 0) {
         return ret;
@@ -346,10 +393,6 @@ int sss_nss_getpwuid_timeout(uid_t uid, struct passwd *pwd,
         .result.pwrep.buffer = buffer,
         .result.pwrep.buflen = buflen};
 
-    if (buffer == NULL || buflen == 0) {
-        return ERANGE;
-    }
-
     SAFEALIGN_COPY_UINT32(&req_data[0], &uid, NULL);
     SAFEALIGN_COPY_UINT32(&req_data[1], &flags, NULL);
     *result = NULL;
@@ -372,10 +415,6 @@ int sss_nss_getgrnam_timeout(const char *name, struct group *grp,
         .result.grrep.result = grp,
         .result.grrep.buffer = buffer,
         .result.grrep.buflen = buflen};
-
-    if (buffer == NULL || buflen == 0) {
-        return ERANGE;
-    }
 
     ret = make_name_flag_req_data(name, flags, &inp.rd);
     if (ret != 0) {
@@ -407,10 +446,6 @@ int sss_nss_getgrgid_timeout(gid_t gid, struct group *grp,
         .result.grrep.buffer = buffer,
         .result.grrep.buflen = buflen};
 
-    if (buffer == NULL || buflen == 0) {
-        return ERANGE;
-    }
-
     SAFEALIGN_COPY_UINT32(&req_data[0], &gid, NULL);
     SAFEALIGN_COPY_UINT32(&req_data[1], &flags, NULL);
     *result = NULL;
@@ -433,10 +468,6 @@ int sss_nss_getgrouplist_timeout(const char *name, gid_t group,
     struct nss_input inp = {
         .input.name = name,
         .cmd = SSS_NSS_INITGR_EX};
-
-    if (groups == NULL || ngroups == NULL || *ngroups == 0) {
-        return EINVAL;
-    }
 
     ret = make_name_flag_req_data(name, flags, &inp.rd);
     if (ret != 0) {
