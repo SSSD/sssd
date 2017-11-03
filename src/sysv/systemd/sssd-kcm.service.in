@@ -1,6 +1,8 @@
 [Unit]
 Description=SSSD Kerberos Cache Manager
 Documentation=man:sssd-kcm(5)
+Requires=sssd-kcm.socket
+After=sssd-kcm.socket
 
 [Install]
 Also=sssd-kcm.socket
