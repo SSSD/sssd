@@ -236,6 +236,8 @@ nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
     struct sized_string gecos;
     struct sized_string homedir;
     struct sized_string shell;
+    struct sized_string inputname;
+    struct sized_data extra_data = { 0 };
     uint32_t gid;
     uint32_t uid;
     uint32_t num_results;
@@ -272,11 +274,22 @@ nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
             continue;
         }
 
+        if (!cmd_ctx->enumeration) {
+            ret = get_extra_data(tmp_ctx, result->domain,
+                                 nss_ctx->rctx->override_space, msg,
+                                 &extra_data);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_extra_data failed.\n");
+                continue;
+            }
+        }
+
         /* Adjust packet size: uid, gid + string fields. */
 
         ret = sss_packet_grow(packet, 2 * sizeof(uint32_t)
                                           + name->len + gecos.len + homedir.len
-                                          + shell.len + pwfield.len);
+                                          + shell.len + pwfield.len
+                                          + extra_data.len);
         if (ret != EOK) {
             goto done;
         }
@@ -292,17 +305,34 @@ nss_protocol_fill_pwent(struct nss_ctx *nss_ctx,
         SAFEALIGN_SET_STRING(&body[rp], gecos.str, gecos.len, &rp);
         SAFEALIGN_SET_STRING(&body[rp], homedir.str, homedir.len, &rp);
         SAFEALIGN_SET_STRING(&body[rp], shell.str, shell.len, &rp);
+        SAFEALIGN_SET_STRING(&body[rp], extra_data.data, extra_data.len, &rp);
 
         num_results++;
 
         /* Do not store entry in memory cache during enumeration. */
         if (!cmd_ctx->enumeration) {
             ret = sss_mmap_cache_pw_store(&nss_ctx->pwd_mc_ctx, name, &pwfield,
-                                          uid, gid, &gecos, &homedir, &shell);
+                                          uid, gid, &gecos, &homedir, &shell,
+                                          &extra_data);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Failed to store user %s (%s) in mmap cache [%d]: %s!\n",
                       name->str, result->domain->name, ret, sss_strerror(ret));
+            }
+
+            if (cmd_ctx->rawname != NULL
+                    && strcmp(name->str, cmd_ctx->rawname) != 0) {
+                inputname.str = cmd_ctx->rawname;
+                inputname.len = strlen(inputname.str) + 1;
+                ret = sss_mmap_cache_link_store(&nss_ctx->pwd_mc_ctx, name,
+                                                &inputname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "Failed to store link %s to user %s (%s) "
+                          "in mmap cache [%d]: %s!\n", cmd_ctx->rawname,
+                          name->str, result->domain->name, ret,
+                          sss_strerror(ret));
+                }
             }
         }
     }

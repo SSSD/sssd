@@ -159,4 +159,12 @@ int sss_nss_getlistbycert(const char *cert, char ***fq_name,
  * @param[in] kv_list Key-value list returned by sss_nss_getorigbyname().
  */
 void sss_nss_free_kv(struct sss_nss_kv *kv_list);
+
+enum extra_data_item {
+    EX_DATA_SHORT_NAME = 0,
+    EX_DATA_DOMAIN_NAME,
+    EX_DATA_SHORT_DOMAIN_NAME,
+    EX_DATA_SID_STR,
+    EX_DATA_END
+};
 #endif /* SSS_NSS_IDMAP_H_ */

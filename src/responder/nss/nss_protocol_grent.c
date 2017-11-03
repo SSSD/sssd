@@ -201,6 +201,8 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
     struct ldb_message *msg;
     struct sized_string *name;
     struct sized_string pwfield;
+    struct sized_string inputname;
+    struct sized_data extra_data = { 0 };
     uint32_t gid;
     uint32_t num_results;
     uint32_t num_members;
@@ -208,6 +210,7 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
     size_t members_size;
     size_t rp;
     size_t rp_members;
+    size_t rp_members_end;
     size_t rp_num_members;
     size_t body_len;
     uint8_t *body;
@@ -241,10 +244,21 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
             continue;
         }
 
+        if (!cmd_ctx->enumeration) {
+            ret = get_extra_data(tmp_ctx, result->domain,
+                                 nss_ctx->rctx->override_space, msg,
+                                 &extra_data);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_extra_data failed.\n");
+                continue;
+            }
+        }
+
         /* Adjust packet size: gid, num_members + string fields. */
 
         ret = sss_packet_grow(packet, 2 * sizeof(uint32_t)
-                                          + name->len + pwfield.len);
+                                          + name->len + pwfield.len
+                                          + extra_data.len);
         if (ret != EOK) {
             goto done;
         }
@@ -268,6 +282,8 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         if (ret != EOK) {
             goto done;
         }
+        rp_members_end = rp;
+        SAFEALIGN_SET_STRING(&body[rp], extra_data.data, extra_data.len, &rp);
 
         sss_packet_get_body(packet, &body, &body_len);
         SAFEALIGN_SET_UINT32(&body[rp_num_members], num_members, NULL);
@@ -277,14 +293,29 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         /* Do not store entry in memory cache during enumeration. */
         if (!cmd_ctx->enumeration) {
             members = (char *)&body[rp_members];
-            members_size = body_len - rp_members;
+            members_size = rp_members_end - rp_members;
             ret = sss_mmap_cache_gr_store(&nss_ctx->grp_mc_ctx, name, &pwfield,
                                           gid, num_members, members,
-                                          members_size);
+                                          members_size, &extra_data);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Failed to store group %s (%s) in mem-cache [%d]: %s!\n",
                       name->str, result->domain->name, ret, sss_strerror(ret));
+            }
+
+            if (cmd_ctx->rawname != NULL
+                    && strcmp(name->str, cmd_ctx->rawname) != 0) {
+                inputname.str = cmd_ctx->rawname;
+                inputname.len = strlen(inputname.str) + 1;
+                ret = sss_mmap_cache_link_store(&nss_ctx->grp_mc_ctx, name,
+                                                &inputname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "Failed to store link %s to group %s (%s) "
+                          "in mmap cache [%d]: %s!\n", cmd_ctx->rawname,
+                          name->str, result->domain->name, ret,
+                          sss_strerror(ret));
+                }
             }
         }
     }

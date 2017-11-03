@@ -315,8 +315,11 @@ static void sss_mc_invalidate_rec(struct sss_mc_ctx *mcc,
     rec->expire = MC_INVALID_VAL64;
     rec->next1 = MC_INVALID_VAL32;
     rec->next2 = MC_INVALID_VAL32;
+    rec->next3 = MC_INVALID_VAL32;
     rec->hash1 = MC_INVALID_VAL32;
     rec->hash2 = MC_INVALID_VAL32;
+    rec->hash3 = MC_INVALID_VAL32;
+    rec->type = MC_INVALID_VAL32;
     MC_LOWER_BARRIER(rec);
 }
 
@@ -621,7 +624,8 @@ static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
     rec->len = rec_len;
     rec->next1 = MC_INVALID_VAL;
     rec->next2 = MC_INVALID_VAL;
-    rec->padding = MC_INVALID_VAL;
+    rec->next3 = MC_INVALID_VAL;
+    rec->type = MC_INVALID_VAL;
     MC_LOWER_BARRIER(rec);
 
     /* and now mark slots as used */
@@ -641,8 +645,24 @@ static inline void sss_mmap_set_rec_header(struct sss_mc_ctx *mcc,
 {
     rec->len = len;
     rec->expire = time(NULL) + ttl;
+    rec->type = SSS_MC_REC_TYPE_DATA;
     rec->hash1 = sss_mc_hash(mcc, key1, key1_len);
     rec->hash2 = sss_mc_hash(mcc, key2, key2_len);
+    rec->hash3 = MC_INVALID_VAL;
+}
+
+static inline void sss_mmap_set_link_rec_header(struct sss_mc_ctx *mcc,
+                                                struct sss_mc_rec *rec,
+                                                size_t len, int ttl,
+                                                const char *key1,
+                                                size_t key1_len)
+{
+    rec->len = len;
+    rec->expire = time(NULL) + ttl;
+    rec->type = SSS_MC_REC_TYPE_LINK;
+    rec->hash1 = sss_mc_hash(mcc, key1, key1_len);
+    rec->hash2 = MC_INVALID_VAL;
+    rec->hash3 = MC_INVALID_VAL;
 }
 
 static inline void sss_mmap_chain_in_rec(struct sss_mc_ctx *mcc,
@@ -683,13 +703,61 @@ static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
  * passwd map
  ***************************************************************************/
 
+errno_t sss_mmap_cache_link_store(struct sss_mc_ctx **_mcc,
+                                  struct sized_string *canonical_name,
+                                  struct sized_string *name)
+{
+    struct sss_mc_ctx *mcc = *_mcc;
+    struct sss_mc_rec *rec;
+    size_t rec_len;
+    int ret;
+    struct sss_mc_link_data *data;
+
+    if (mcc == NULL) {
+        /* cache not initialized ? */
+        return EINVAL;
+    }
+
+    rec_len = sizeof(struct sss_mc_rec) + sizeof(struct sss_mc_link_data)
+                                        + name->len;
+
+    if (rec_len > mcc->dt_size) {
+        return ENOMEM;
+    }
+
+    ret = sss_mc_get_record(_mcc, rec_len, name, &rec);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    data = (struct sss_mc_link_data *) rec->data;
+
+    MC_RAISE_BARRIER(rec);
+
+    /* header */
+    sss_mmap_set_link_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
+                                 name->str, name->len);
+
+    data->name = MC_PTR_DIFF(data->strs, data);
+    data->hash = sss_mc_hash(mcc, canonical_name->str, canonical_name->len);
+    memcpy(&data->strs[0], name->str, name->len);
+
+    MC_LOWER_BARRIER(rec);
+
+    /* finally chain the rec in the hash table */
+    sss_mc_add_rec_to_chain(mcc, rec, rec->hash1);
+
+    return EOK;
+}
+
 errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
                                 struct sized_string *name,
                                 struct sized_string *pw,
                                 uid_t uid, gid_t gid,
                                 struct sized_string *gecos,
                                 struct sized_string *homedir,
-                                struct sized_string *shell)
+                                struct sized_string *shell,
+                                struct sized_data *extra_data)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -712,7 +780,8 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     }
     to_sized_string(&uidkey, uidstr);
 
-    data_len = name->len + pw->len + gecos->len + homedir->len + shell->len;
+    data_len = name->len + pw->len + gecos->len + homedir->len + shell->len
+                         + extra_data->len;
     rec_len = sizeof(struct sss_mc_rec) +
               sizeof(struct sss_mc_pwd_data) +
               data_len;
@@ -749,6 +818,8 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     pos += homedir->len;
     memcpy(&data->strs[pos], shell->str, shell->len);
     pos += shell->len;
+    memcpy(&data->strs[pos], extra_data->data, extra_data->len);
+    pos += extra_data->len;
 
     MC_LOWER_BARRIER(rec);
 
@@ -832,7 +903,8 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
                             struct sized_string *name,
                             struct sized_string *pw,
                             gid_t gid, size_t memnum,
-                            char *membuf, size_t memsize)
+                            char *membuf, size_t memsize,
+                            struct sized_data *extra_data)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -855,7 +927,7 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     }
     to_sized_string(&gidkey, gidstr);
 
-    data_len = name->len + pw->len + memsize;
+    data_len = name->len + pw->len + memsize + extra_data->len;
     rec_len = sizeof(struct sss_mc_rec) +
               sizeof(struct sss_mc_grp_data) +
               data_len;
@@ -888,6 +960,8 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     pos += pw->len;
     memcpy(&data->strs[pos], membuf, memsize);
     pos += memsize;
+    memcpy(&data->strs[pos], extra_data->data, extra_data->len);
+    pos += extra_data->len;
 
     MC_LOWER_BARRIER(rec);
 

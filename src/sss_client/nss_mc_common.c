@@ -381,3 +381,52 @@ uint32_t sss_nss_mc_next_slot_with_hash(struct sss_mc_rec *rec,
     }
 
 }
+
+errno_t sss_nss_mc_find_rec_by_hash(struct sss_cli_mc_ctx *ctx,
+                                           uint32_t hash,
+                                           struct sss_mc_rec **_rec)
+{
+    uint32_t slot;
+    int ret;
+    struct sss_mc_rec *rec = NULL;
+
+    slot = ctx->hash_table[hash];
+
+    /* If slot is not within the bounds of mmaped region and
+     * it's value is not MC_INVALID_VAL, then the cache is
+     * probbably corrupted. */
+    while (MC_SLOT_WITHIN_BOUNDS(slot, ctx->dt_size)) {
+        /* free record from previous iteration */
+        free(rec);
+        rec = NULL;
+
+        ret = sss_nss_mc_get_record(ctx, slot, &rec);
+        if (ret) {
+            goto done;
+        }
+
+        /* check record matches what we are searching for */
+        if (hash == rec->hash1) {
+            break;
+        }
+
+        slot = sss_nss_mc_next_slot_with_hash(rec, hash);
+    }
+
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, ctx->dt_size)) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_rec = rec;
+
+    ret = 0;
+
+done:
+    if (ret) {
+        free(rec);
+    }
+
+    return ret;
+}
+

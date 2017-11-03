@@ -68,22 +68,45 @@ errno_t sss_nss_str_ptr_from_buffer(char **str, void **cookie,
                                     char *buf, size_t len);
 uint32_t sss_nss_mc_next_slot_with_hash(struct sss_mc_rec *rec,
                                         uint32_t hash);
+errno_t sss_nss_mc_find_rec_by_hash(struct sss_cli_mc_ctx *ctx,
+                                           uint32_t hash,
+                                           struct sss_mc_rec **_rec);
 
 /* passwd db */
 errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
                             struct passwd *result,
                             char *buffer, size_t buflen);
+errno_t sss_nss_mc_getpwnam_with_extra(const char *name, size_t name_len,
+                                       struct passwd *result,
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       uint32_t *extra_data_len);
 errno_t sss_nss_mc_getpwuid(uid_t uid,
                             struct passwd *result,
                             char *buffer, size_t buflen);
+errno_t sss_nss_mc_getpwuid_with_extra(uid_t uid,
+                                       struct passwd *result,
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       uint32_t *extra_data_len);
 
 /* group db */
 errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
                             struct group *result,
                             char *buffer, size_t buflen);
+errno_t sss_nss_mc_getgrnam_with_extra(const char *name, size_t name_len,
+                                       struct group *result,
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       uint32_t *extra_data_len);
 errno_t sss_nss_mc_getgrgid(gid_t gid,
                             struct group *result,
                             char *buffer, size_t buflen);
+errno_t sss_nss_mc_getgrgid_with_extra(gid_t gid,
+                                       struct group *result,
+                                       char *buffer, size_t buflen,
+                                       char **extra_data,
+                                       uint32_t *extra_data_len);
 
 /* initgroups db */
 errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,

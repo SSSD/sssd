@@ -138,4 +138,10 @@ const char *
 nss_get_pwfield(struct nss_ctx *nctx,
                 struct sss_domain_info *dom);
 
+errno_t get_extra_data(TALLOC_CTX *mem_ctx,
+                       struct sss_domain_info *domain,
+                       const char override_space,
+                       struct ldb_message *msg,
+                       struct sized_data *extra_data);
+
 #endif /* _NSS_PRIVATE_H_ */
