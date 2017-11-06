@@ -287,6 +287,9 @@ struct pam_ctx *mock_pctx(TALLOC_CTX *mem_ctx)
         return NULL;
     }
 
+    ret = p11_refresh_certmap_ctx(pctx, NULL);
+    assert_int_equal(ret, 0);
+
     return pctx;
 }
 

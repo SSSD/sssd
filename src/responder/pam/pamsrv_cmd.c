@@ -1336,7 +1336,8 @@ static errno_t check_cert(TALLOC_CTX *mctx,
 
     req = pam_check_cert_send(mctx, ev, pctx->p11_child_debug_fd,
                               pctx->nss_db, p11_child_timeout,
-                              cert_verification_opts, pd);
+                              cert_verification_opts, pctx->sss_certmap_ctx,
+                              pd);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
         return ENOMEM;
@@ -1747,6 +1748,13 @@ static void pam_forwarder_cb(struct tevent_req *req)
     talloc_free(req);
     if (ret != EOK) {
         goto done;
+    }
+
+    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains->certmaps);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "p11_refresh_certmap_ctx failed, "
+              "certificate matching might not work as expected");
     }
 
     pd = preq->pd;

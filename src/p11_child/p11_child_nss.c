@@ -264,22 +264,6 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         }
     }
 
-    rv = CERT_FilterCertListByUsage(cert_list, certUsageSSLClient, PR_FALSE);
-    if (rv != SECSuccess) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_FilterCertListByUsage failed: [%d][%s].\n",
-              PR_GetError(), PORT_ErrorToString(PR_GetError()));
-        return EIO;
-    }
-
-    rv = CERT_FilterCertListForUserCerts(cert_list);
-    if (rv != SECSuccess) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "CERT_FilterCertListForUserCerts failed: [%d][%s].\n",
-              PR_GetError(), PORT_ErrorToString(PR_GetError()));
-        return EIO;
-    }
-
-
     handle = CERT_GetDefaultCertDB();
     if (handle == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "CERT_GetDefaultCertDB failed: [%d][%s].\n",
@@ -344,7 +328,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         if (cert_verify_opts->do_verification) {
             rv = CERT_VerifyCertificateNow(handle, cert_list_node->cert,
                                            PR_TRUE,
-                                           certificateUsageSSLClient,
+                                           certificateUsageCheckAllUsages,
                                            NULL, NULL);
             if (rv != SECSuccess) {
                 DEBUG(SSSDBG_OP_FAILURE,

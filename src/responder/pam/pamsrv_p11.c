@@ -36,6 +36,7 @@
 
 #define P11_CHILD_LOG_FILE "p11_child"
 #define P11_CHILD_PATH SSSD_LIBEXEC_PATH"/p11_child"
+#define CERT_AUTH_DEFAULT_MATCHING_RULE "KRB5:<EKU>clientAuth"
 
 struct cert_auth_info {
     char *cert;
@@ -116,8 +117,110 @@ void sss_cai_check_users(struct cert_auth_info **list, size_t *_cert_count,
     return;
 }
 
+struct priv_sss_debug {
+    int level;
+};
+
+static void ext_debug(void *private, const char *file, long line,
+                      const char *function, const char *format, ...)
+{
+    va_list ap;
+    struct priv_sss_debug *data = private;
+    int level = SSSDBG_OP_FAILURE;
+
+    if (data != NULL) {
+        level = data->level;
+    }
+
+    if (DEBUG_IS_SET(level)) {
+        va_start(ap, format);
+        sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
+                      format, ap);
+        va_end(ap);
+    }
+}
+
+errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
+                                struct certmap_info **certmap_list)
+{
+    int ret;
+    struct sss_certmap_ctx *sss_certmap_ctx = NULL;
+    size_t c;
+
+    ret = sss_certmap_init(pctx, ext_debug, NULL, &sss_certmap_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_init failed.\n");
+        goto done;
+    }
+
+    if (certmap_list == NULL || *certmap_list == NULL) {
+        /* Try to add default matching rule */
+        ret = sss_certmap_add_rule(sss_certmap_ctx, SSS_CERTMAP_MIN_PRIO,
+                                   CERT_AUTH_DEFAULT_MATCHING_RULE, NULL, NULL);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to add default matching rule.\n");
+        }
+
+        goto done;
+    }
+
+    for (c = 0; certmap_list[c] != NULL; c++) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Trying to add rule [%s][%d][%s][%s].\n",
+              certmap_list[c]->name, certmap_list[c]->priority,
+              certmap_list[c]->match_rule, certmap_list[c]->map_rule);
+
+        ret = sss_certmap_add_rule(sss_certmap_ctx, certmap_list[c]->priority,
+                                   certmap_list[c]->match_rule,
+                                   certmap_list[c]->map_rule,
+                                   certmap_list[c]->domains);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_certmap_add_rule failed for rule [%s] "
+                  "with error [%d][%s], skipping. "
+                  "Please check for typos and if rule syntax is supported.\n",
+                  certmap_list[c]->name, ret, sss_strerror(ret));
+            continue;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        sss_certmap_free_ctx(pctx->sss_certmap_ctx);
+        pctx->sss_certmap_ctx = sss_certmap_ctx;
+    } else {
+        sss_certmap_free_ctx(sss_certmap_ctx);
+    }
+
+    return ret;
+}
+
 errno_t p11_child_init(struct pam_ctx *pctx)
 {
+    int ret;
+    struct certmap_info **certmaps;
+    bool user_name_hint;
+    struct sss_domain_info *dom = pctx->rctx->domains;
+
+    ret = sysdb_get_certmap(dom, dom->sysdb, &certmaps, &user_name_hint);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_certmap failed.\n");
+        return ret;
+    }
+
+    dom->user_name_hint = user_name_hint;
+    talloc_free(dom->certmaps);
+    dom->certmaps = certmaps;
+
+    ret = p11_refresh_certmap_ctx(pctx, dom->certmaps);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_refresh_certmap_ctx failed.\n");
+        return ret;
+    }
+
     return child_debug_init(P11_CHILD_LOG_FILE, &pctx->p11_child_debug_fd);
 }
 
@@ -214,6 +317,7 @@ static errno_t get_p11_child_write_buffer(TALLOC_CTX *mem_ctx,
 
 static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
                                         ssize_t buf_len,
+                                        struct sss_certmap_ctx *sss_certmap_ctx,
                                         struct cert_auth_info **_cert_list)
 {
     int ret;
@@ -222,6 +326,8 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
     uint8_t *pn;
     struct cert_auth_info *cert_list = NULL;
     struct cert_auth_info *cert_auth_info;
+    unsigned char *der = NULL;
+    size_t der_size;
 
     if (buf_len < 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -347,7 +453,22 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
         }
         DEBUG(SSSDBG_TRACE_ALL, "Found cert [%s].\n", cert_auth_info->cert);
 
-        DLIST_ADD(cert_list, cert_auth_info);
+        der = sss_base64_decode(tmp_ctx, cert_auth_info->cert, &der_size);
+        if (der == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+            ret = EIO;
+            goto done;
+        }
+
+        ret = sss_certmap_match_cert(sss_certmap_ctx, der, der_size);
+        if (ret == 0) {
+            DLIST_ADD(cert_list, cert_auth_info);
+        } else {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "Cert [%s] does not match matching rules and is ignored.\n",
+                  cert_auth_info->cert);
+            talloc_free(cert_auth_info);
+        }
 
         p = ++pn;
     } while ((pn - buf) < buf_len);
@@ -373,6 +494,7 @@ struct pam_check_cert_state {
     struct sss_child_ctx_old *child_ctx;
     struct tevent_timer *timeout_handler;
     struct tevent_context *ev;
+    struct sss_certmap_ctx *sss_certmap_ctx;
 
     struct child_io_fds *io;
 
@@ -391,6 +513,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        const char *nss_db,
                                        time_t timeout,
                                        const char *verify_opts,
+                                       struct sss_certmap_ctx *sss_certmap_ctx,
                                        struct pam_data *pd)
 {
     errno_t ret;
@@ -416,6 +539,12 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
 
     if (nss_db == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing NSS DB.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (sss_certmap_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing certificate matching context.\n");
         ret = EINVAL;
         goto done;
     }
@@ -476,6 +605,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
+    state->sss_certmap_ctx = sss_certmap_ctx;
     state->child_status = EFAULT;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
@@ -639,7 +769,8 @@ static void p11_child_done(struct tevent_req *subreq)
 
     PIPE_FD_CLOSE(state->io->read_from_child_fd);
 
-    ret = parse_p11_child_response(state, buf, buf_len, &state->cert_list);
+    ret = parse_p11_child_response(state, buf, buf_len, state->sss_certmap_ctx,
+                                   &state->cert_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "parse_p11_child_response failed.\n");
         tevent_req_error(req, ret);
