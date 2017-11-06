@@ -147,3 +147,20 @@ done:
     talloc_free(err_msg);
     return bret;
 }
+
+errno_t
+cache_reg_common_get_acct_domain_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *subreq,
+                                      struct cache_req *cr,
+                                      char **_domain)
+{
+    errno_t ret;
+
+    ret = sss_dp_get_account_domain_recv(mem_ctx, subreq, _domain);
+    if (ret != EOK) {
+        CACHE_REQ_DEBUG(SSSDBG_MINOR_FAILURE, cr,
+                        "Could not get account domain [%d]: %s\n",
+                        ret, sss_strerror(ret));
+    }
+    return ret;
+}
