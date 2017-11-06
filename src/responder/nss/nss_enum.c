@@ -283,7 +283,7 @@ nss_setnetgrent_set_timeout(struct tevent_context *ev,
     timeout = enum_ctx->result[0]->domain->netgroup_timeout;
 
     tv = tevent_timeval_current_ofs(timeout, 0);
-    te = tevent_add_timer(ev, nss_ctx, tv, nss_setnetgrent_timeout, enum_ctx);
+    te = tevent_add_timer(ev, enum_ctx, tv, nss_setnetgrent_timeout, enum_ctx);
     if (te == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not set up life timer for enumeration object.\n");
