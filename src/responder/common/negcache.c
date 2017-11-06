@@ -37,6 +37,8 @@
 #define NC_GID_PREFIX NC_ENTRY_PREFIX"GID"
 #define NC_SID_PREFIX NC_ENTRY_PREFIX"SID"
 #define NC_CERT_PREFIX NC_ENTRY_PREFIX"CERT"
+#define NC_DOMAIN_ACCT_LOCATE_PREFIX NC_ENTRY_PREFIX"DOM_LOCATE"
+#define NC_DOMAIN_ACCT_LOCATE_TYPE_PREFIX NC_ENTRY_PREFIX"DOM_LOCATE_TYPE"
 
 struct sss_nc_ctx {
     struct tdb_context *tdb;
@@ -661,6 +663,159 @@ int sss_ncache_set_cert(struct sss_nc_ctx *ctx, bool permanent,
 
     ret = sss_ncache_set_str(ctx, str, permanent, false);
 
+    talloc_free(str);
+    return ret;
+}
+
+static char *domain_lookup_type_str(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *dom,
+                                    const char *lookup_type)
+{
+    return talloc_asprintf(mem_ctx,
+                           "%s/%s/%s",
+                           NC_DOMAIN_ACCT_LOCATE_TYPE_PREFIX,
+                           dom->name,
+                           lookup_type);
+}
+
+int sss_ncache_set_domain_locate_type(struct sss_nc_ctx *ctx,
+                                      struct sss_domain_info *dom,
+                                      const char *lookup_type)
+{
+    char *str;
+    int ret;
+
+    str = domain_lookup_type_str(ctx, dom, lookup_type);
+    if (!str) return ENOMEM;
+
+    /* Permanent cache is always used here, because whether the lookup
+     * type (getgrgid, getpwuid, ..) supports locating an entry's domain
+     * doesn't change
+     */
+    ret = sss_ncache_set_str(ctx, str, true, false);
+    talloc_free(str);
+    return ret;
+}
+
+int sss_ncache_check_domain_locate_type(struct sss_nc_ctx *ctx,
+                                        struct sss_domain_info *dom,
+                                        const char *lookup_type)
+{
+    char *str;
+    int ret;
+
+    str = domain_lookup_type_str(ctx, dom, lookup_type);
+    if (!str) return ENOMEM;
+
+    ret = sss_ncache_check_str(ctx, str);
+    talloc_free(str);
+    return ret;
+}
+
+static char *locate_gid_str(TALLOC_CTX *mem_ctx,
+                            struct sss_domain_info *dom,
+                            gid_t gid)
+{
+    return talloc_asprintf(mem_ctx,
+                           "%s/%s/%s/%"SPRIgid,
+                           NC_DOMAIN_ACCT_LOCATE_PREFIX,
+                           NC_GID_PREFIX,
+                           dom->name,
+                           gid);
+}
+
+int sss_ncache_set_locate_gid(struct sss_nc_ctx *ctx,
+                              struct sss_domain_info *dom,
+                              gid_t gid)
+{
+    char *str;
+    int ret;
+
+    if (dom == NULL) {
+        return EINVAL;
+    }
+
+    str = locate_gid_str(ctx, dom, gid);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_set_str(ctx, str, false, false);
+    talloc_free(str);
+    return ret;
+}
+
+int sss_ncache_check_locate_gid(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom,
+                                gid_t gid)
+{
+    char *str;
+    int ret;
+
+    if (dom == NULL) {
+        return EINVAL;
+    }
+
+    str = locate_gid_str(ctx, dom, gid);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_check_str(ctx, str);
+    talloc_free(str);
+    return ret;
+}
+
+static char *locate_uid_str(struct sss_nc_ctx *ctx,
+                            struct sss_domain_info *dom,
+                            uid_t uid)
+{
+    return talloc_asprintf(ctx,
+                           "%s/%s/%s/%"SPRIuid,
+                           NC_DOMAIN_ACCT_LOCATE_PREFIX,
+                           NC_UID_PREFIX,
+                           dom->name,
+                           uid);
+}
+
+int sss_ncache_set_locate_uid(struct sss_nc_ctx *ctx,
+                              struct sss_domain_info *dom,
+                              uid_t uid)
+{
+    char *str;
+    int ret;
+
+    if (dom == NULL) {
+        return EINVAL;
+    }
+
+    str = locate_uid_str(ctx, dom, uid);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_set_str(ctx, str, false, false);
+    talloc_free(str);
+    return ret;
+}
+
+int sss_ncache_check_locate_uid(struct sss_nc_ctx *ctx,
+                                struct sss_domain_info *dom,
+                                uid_t uid)
+{
+    char *str;
+    int ret;
+
+    if (dom == NULL) {
+        return EINVAL;
+    }
+
+    str = locate_uid_str(ctx, dom, uid);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_ncache_check_str(ctx, str);
     talloc_free(str);
     return ret;
 }

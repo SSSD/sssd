@@ -883,6 +883,77 @@ static void test_sss_ncache_reset(void **state)
     assert_int_equal(ret, ENOENT);
 }
 
+static void test_sss_ncache_locate_uid_gid(void **state)
+{
+    uid_t uid;
+    gid_t gid;
+    int ret;
+    struct test_state *ts;
+    struct sss_domain_info *dom;
+    struct sss_domain_info *dom2;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    uid = getuid();
+    gid = getgid();
+
+    dom = talloc(ts, struct sss_domain_info);
+    assert_non_null(dom);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
+
+    dom2 = talloc(ts, struct sss_domain_info);
+    assert_non_null(dom2);
+    dom2->name = discard_const_p(char, TEST_DOM_NAME"2");
+
+    ret = sss_ncache_check_locate_gid(ts->ctx, dom, gid);
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_locate_uid(ts->ctx, dom, uid);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sss_ncache_set_locate_gid(ts->ctx, dom, gid);
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_set_locate_uid(ts->ctx, dom, uid);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_locate_gid(ts->ctx, dom, gid);
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_locate_uid(ts->ctx, dom, uid);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_locate_gid(ts->ctx, dom2, gid);
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_locate_uid(ts->ctx, dom2, uid);
+    assert_int_equal(ret, ENOENT);
+}
+
+static void test_sss_ncache_domain_locate_type(void **state)
+{
+    int ret;
+    struct test_state *ts;
+    struct sss_domain_info *dom;
+    struct sss_domain_info *dom2;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    dom = talloc(ts, struct sss_domain_info);
+    assert_non_null(dom);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
+
+    dom2 = talloc(ts, struct sss_domain_info);
+    assert_non_null(dom2);
+    dom2->name = discard_const_p(char, TEST_DOM_NAME"2");
+
+    ret = sss_ncache_check_domain_locate_type(ts->ctx, dom, "foo");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_set_domain_locate_type(ts->ctx, dom, "foo");
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_check_domain_locate_type(ts->ctx, dom, "foo");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_domain_locate_type(ts->ctx, dom2, "foo");
+    assert_int_equal(ret, ENOENT);
+}
+
 int main(void)
 {
     int rv;
@@ -908,6 +979,10 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset_prepopulate,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_locate_uid_gid,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_domain_locate_type,
                                         setup, teardown),
     };
 
