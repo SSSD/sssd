@@ -27,6 +27,7 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
+#include "lib/certmap/sss_certmap.h"
 
 struct pam_auth_req;
 
@@ -49,6 +50,7 @@ struct pam_ctx {
     bool cert_auth;
     int p11_child_debug_fd;
     char *nss_db;
+    struct sss_certmap_ctx *sss_certmap_ctx;
 };
 
 struct pam_auth_dp_req {
@@ -104,6 +106,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        const char *nss_db,
                                        time_t timeout,
                                        const char *verify_opts,
+                                       struct sss_certmap_ctx *sss_certmap_ctx,
                                        struct pam_data *pd);
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                             struct cert_auth_info **cert_list);
@@ -113,6 +116,9 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
                               enum response_type type);
 
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd);
+
+errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
+                                struct certmap_info **certmap_list);
 
 errno_t
 pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,

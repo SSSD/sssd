@@ -1401,6 +1401,7 @@ sssd_pam_LDADD = \
     $(PAM_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_certmap.la \
     $(NULL)
 
 if BUILD_SUDO
@@ -2423,6 +2424,7 @@ pam_srv_tests_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
+    libsss_certmap.la \
     $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \
