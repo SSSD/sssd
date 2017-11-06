@@ -84,6 +84,26 @@ cache_req_object_by_id_global_ncache_add(struct sss_nc_ctx *ncache,
 }
 
 static errno_t
+cache_req_object_by_id_ncache_add(struct sss_nc_ctx *ncache,
+                                  struct sss_domain_info *domain,
+                                  struct cache_req_data *data)
+{
+    errno_t ret;
+
+    ret = sss_ncache_set_uid(ncache, false, domain, data->id);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sss_ncache_set_gid(ncache, false, domain, data->id);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t
 cache_req_object_by_id_lookup(TALLOC_CTX *mem_ctx,
                               struct cache_req *cr,
                               struct cache_req_data *data,
@@ -106,6 +126,55 @@ cache_req_object_by_id_dp_send(TALLOC_CTX *mem_ctx,
                                    cr->data->id, NULL);
 }
 
+static bool
+cache_req_object_by_id_get_domain_check(struct resp_ctx *rctx,
+                                        struct sss_domain_info *domain,
+                                        struct cache_req_data *data)
+{
+    int nret;
+
+    nret = sss_ncache_check_locate_uid(rctx->ncache, domain, data->id);
+    if (nret == EEXIST) {
+        nret = sss_ncache_check_locate_gid(rctx->ncache, domain, data->id);
+        if (nret == EEXIST) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static struct tevent_req *
+cache_req_object_by_id_get_domain_send(TALLOC_CTX *mem_ctx,
+                                       struct resp_ctx *rctx,
+                                       struct sss_domain_info *domain,
+                                       struct cache_req_data *data)
+{
+    int nret;
+
+    nret = sss_ncache_set_locate_uid(rctx->ncache, domain, data->id);
+    if (nret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set negative cache, this might result in "
+              "performance degradation\n");
+        /* Not fatal */
+    }
+
+    nret = sss_ncache_set_locate_gid(rctx->ncache, domain, data->id);
+    if (nret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set negative cache, this might result in "
+              "performance degradation\n");
+        /* Not fatal */
+    }
+
+    return sss_dp_get_account_domain_send(mem_ctx,
+                                          rctx,
+                                          domain,
+                                          SSS_DP_USER_AND_GROUP,
+                                          data->id);
+}
+
 const struct cache_req_plugin cache_req_object_by_id = {
     .name = "Object by ID",
     .attr_expiration = SYSDB_CACHE_EXPIRE,
@@ -125,14 +194,14 @@ const struct cache_req_plugin cache_req_object_by_id = {
     .create_debug_name_fn = cache_req_object_by_id_create_debug_name,
     .global_ncache_add_fn = cache_req_object_by_id_global_ncache_add,
     .ncache_check_fn = cache_req_object_by_id_ncache_check,
-    .ncache_add_fn = NULL,
+    .ncache_add_fn = cache_req_object_by_id_ncache_add,
     .ncache_filter_fn = cache_req_object_by_id_ncache_filter,
     .lookup_fn = cache_req_object_by_id_lookup,
     .dp_send_fn = cache_req_object_by_id_dp_send,
     .dp_recv_fn = cache_req_common_dp_recv,
-    .dp_get_domain_check_fn = NULL,
-    .dp_get_domain_send_fn = NULL,
-    .dp_get_domain_recv_fn = NULL,
+    .dp_get_domain_check_fn = cache_req_object_by_id_get_domain_check,
+    .dp_get_domain_send_fn = cache_req_object_by_id_get_domain_send,
+    .dp_get_domain_recv_fn = cache_reg_common_get_acct_domain_recv,
 };
 
 struct tevent_req *
