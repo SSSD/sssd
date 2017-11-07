@@ -53,7 +53,7 @@
 #define TEST_TOKEN_NAME "SSSD Test Token"
 #define TEST_MODULE_NAME "NSS-Internal"
 #define TEST_KEY_ID "A5EF7DEE625CA5996C8D1BA7D036708161FD49E7"
-#define TEST_SUBJECT_DN "CN=ipa-devel.ipa.devel,O=IPA.DEVEL"
+#define TEST_PROMPT "Server-Cert\nCN=ipa-devel.ipa.devel,O=IPA.DEVEL"
 #define TEST_TOKEN_CERT \
 "MIIECTCCAvGgAwIBAgIBCTANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
 "REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNjA1MjMx" \
@@ -79,7 +79,7 @@
 "XyQBwOYRORlnfGyu+Yc9c3E0Wx8Tlznz0lqPR9g="
 
 #define TEST2_KEY_ID "C8D60E009EB195D01A7083EE1D5419251AA87C2C"
-#define TEST2_SUBJECT_DN "CN=IPA RA,O=IPA.DEVEL"
+#define TEST2_PROMPT "ipaCert\nCN=IPA RA,O=IPA.DEVEL"
 #define TEST_TOKEN_2ND_CERT \
 "MIIDazCCAlOgAwIBAgIBBzANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
 "REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNjA1MjMx" \
@@ -837,7 +837,7 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
                                 + sizeof(TEST_TOKEN_NAME)
                                 + sizeof(TEST_MODULE_NAME)
                                 + sizeof(TEST_KEY_ID)
-                                + sizeof(TEST_SUBJECT_DN)));
+                                + sizeof(TEST_PROMPT)));
 
     assert_int_equal(*(body + rp + sizeof("pamuser@"TEST_DOM_NAME) - 1), 0);
     assert_string_equal(body + rp, "pamuser@"TEST_DOM_NAME);
@@ -855,9 +855,9 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     assert_string_equal(body + rp, TEST_KEY_ID);
     rp += sizeof(TEST_KEY_ID);
 
-    assert_int_equal(*(body + rp + sizeof(TEST_SUBJECT_DN) - 1), 0);
-    assert_string_equal(body + rp, TEST_SUBJECT_DN);
-    rp += sizeof(TEST_SUBJECT_DN);
+    assert_int_equal(*(body + rp + sizeof(TEST_PROMPT) - 1), 0);
+    assert_string_equal(body + rp, TEST_PROMPT);
+    rp += sizeof(TEST_PROMPT);
 
     assert_int_equal(rp, blen);
     return EOK;
@@ -904,7 +904,7 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                 + sizeof(TEST_TOKEN_NAME)
                                 + sizeof(TEST_MODULE_NAME)
                                 + sizeof(TEST_KEY_ID)
-                                + sizeof(TEST_SUBJECT_DN)));
+                                + sizeof(TEST_PROMPT)));
 
     assert_int_equal(*(body + rp + strlen(name)), 0);
     assert_string_equal(body + rp, name);
@@ -922,9 +922,9 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
     assert_string_equal(body + rp, TEST_KEY_ID);
     rp += sizeof(TEST_KEY_ID);
 
-    assert_int_equal(*(body + rp + sizeof(TEST_SUBJECT_DN) - 1), 0);
-    assert_string_equal(body + rp, TEST_SUBJECT_DN);
-    rp += sizeof(TEST_SUBJECT_DN);
+    assert_int_equal(*(body + rp + sizeof(TEST_PROMPT) - 1), 0);
+    assert_string_equal(body + rp, TEST_PROMPT);
+    rp += sizeof(TEST_PROMPT);
 
     if (name2 != NULL && *name2 != '\0') {
         SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
@@ -935,7 +935,7 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                     + sizeof(TEST_TOKEN_NAME)
                                     + sizeof(TEST_MODULE_NAME)
                                     + sizeof(TEST2_KEY_ID)
-                                    + sizeof(TEST2_SUBJECT_DN)));
+                                    + sizeof(TEST2_PROMPT)));
 
         assert_int_equal(*(body + rp + strlen(name)), 0);
         assert_string_equal(body + rp, name);
@@ -953,9 +953,9 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
         assert_string_equal(body + rp, TEST2_KEY_ID);
         rp += sizeof(TEST2_KEY_ID);
 
-        assert_int_equal(*(body + rp + sizeof(TEST2_SUBJECT_DN) - 1), 0);
-        assert_string_equal(body + rp, TEST2_SUBJECT_DN);
-        rp += sizeof(TEST2_SUBJECT_DN);
+        assert_int_equal(*(body + rp + sizeof(TEST2_PROMPT) - 1), 0);
+        assert_string_equal(body + rp, TEST2_PROMPT);
+        rp += sizeof(TEST2_PROMPT);
     }
 
     assert_int_equal(rp, blen);

@@ -93,6 +93,7 @@ const char *sss_cai_get_cert(struct cert_auth_info *i);
 const char *sss_cai_get_token_name(struct cert_auth_info *i);
 const char *sss_cai_get_module_name(struct cert_auth_info *i);
 const char *sss_cai_get_key_id(struct cert_auth_info *i);
+const char *sss_cai_get_label(struct cert_auth_info *i);
 struct cert_auth_info *sss_cai_get_next(struct cert_auth_info *i);
 struct ldb_result *sss_cai_get_cert_user_objs(struct cert_auth_info *i);
 void sss_cai_set_cert_user_objs(struct cert_auth_info *i,
