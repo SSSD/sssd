@@ -27,6 +27,7 @@
 #include "providers/ad/ad_pac.h"
 #include "providers/ldap/sdap_async_enum.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ldap/sdap_async.h"
 
 static void
 disable_gc(struct ad_options *ad_options)
@@ -1076,3 +1077,471 @@ ad_enumeration_recv(struct tevent_req *req)
     return EOK;
 }
 
+static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req);
+static errno_t ad_get_account_domain_connect_retry(struct tevent_req *req);
+static void ad_get_account_domain_connect_done(struct tevent_req *subreq);
+static void ad_get_account_domain_posix_check_done(struct tevent_req *subreq);
+static void ad_get_account_domain_search(struct tevent_req *req);
+static void ad_get_account_domain_search_done(struct tevent_req *subreq);
+static void ad_get_account_domain_evaluate(struct tevent_req *req);
+
+struct ad_get_account_domain_state {
+    struct tevent_context *ev;
+    struct ad_id_ctx *id_ctx;
+    struct sdap_id_ctx *sdap_id_ctx;
+    struct sdap_domain *sdom;
+    uint32_t entry_type;
+    uint32_t filter_type;
+    char *clean_filter;
+
+    bool twopass;
+
+    struct sdap_search_base **search_bases;
+    size_t base_iter;
+    const char *base_filter;
+    char *filter;
+    const char **attrs;
+    int dp_error;
+    struct dp_reply_std reply;
+    struct sdap_id_op *op;
+    struct sysdb_attrs **objects;
+    size_t count;
+
+    const char *found_domain_name;
+};
+
+struct tevent_req *
+ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
+                           struct ad_id_ctx *id_ctx,
+                           struct dp_get_acct_domain_data *data,
+                           struct dp_req_params *params)
+{
+    struct ad_get_account_domain_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+    bool use_id_mapping;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_get_account_domain_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+    state->ev = params->ev;
+    state->id_ctx = id_ctx;
+    state->sdap_id_ctx = id_ctx->sdap_id_ctx;
+    state->entry_type = data->entry_type & BE_REQ_TYPE_MASK;
+    state->filter_type = data->filter_type;
+    state->attrs = talloc_array(state, const char *, 2);
+    if (state->attrs == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    state->attrs[0] = "objectclass";
+    state->attrs[1] = NULL;
+
+    if (params->be_ctx->domain->mpg == true
+            || state->entry_type == BE_REQ_USER_AND_GROUP) {
+        state->twopass = true;
+        if (state->entry_type == BE_REQ_USER_AND_GROUP) {
+            state->entry_type = BE_REQ_GROUP;
+        }
+    }
+
+    /* The get-account-domain request only works with GC */
+    if (dp_opt_get_bool(id_ctx->ad_options->basic, AD_ENABLE_GC) == false) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Global catalog support is not enabled, "
+              "cannot locate the account domain\n");
+        ret = ERR_GET_ACCT_DOM_NOT_SUPPORTED;
+        goto immediately;
+    }
+
+    state->sdom = sdap_domain_get(id_ctx->sdap_id_ctx->opts,
+                                  params->be_ctx->domain);
+    if (state->sdom == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find sdap_domain\n");
+        ret = EIO;
+        goto immediately;
+    }
+
+    /* Currently we only support locating the account domain
+     * if ID mapping is disabled. With ID mapping enabled, we can
+     * already shortcut the 'real' ID request
+     */
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                        state->sdap_id_ctx->opts->idmap_ctx,
+                                        state->sdom->dom->name,
+                                        state->sdom->dom->domain_id);
+    if (use_id_mapping == true) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "No point in locating domain with GC if ID-mapping "
+              "is enabled\n");
+        ret = ERR_GET_ACCT_DOM_NOT_SUPPORTED;
+        goto immediately;
+    }
+
+    ret = sss_filter_sanitize(state, data->filter_value, &state->clean_filter);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot sanitize filter [%d]: %s\n", ret, sss_strerror(ret));
+        goto immediately;
+    }
+
+    ret = ad_get_account_domain_prepare_search(req);
+    if (ret != EOK) {
+        goto immediately;
+    }
+
+    /* FIXME - should gc_ctx always default to ignore_offline on creation
+     * time rather than setting the flag on first use?
+     */
+    id_ctx->gc_ctx->ignore_mark_offline = true;
+    state->op = sdap_id_op_create(state, id_ctx->gc_ctx->conn_cache);
+    if (state->op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    ret = ad_get_account_domain_connect_retry(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Connection error");
+        goto immediately;
+    }
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req)
+{
+    struct ad_get_account_domain_state *state = tevent_req_data(req,
+                                          struct ad_get_account_domain_state);
+    const char *attr_name = NULL;
+    const char *objectclass = NULL;
+
+    switch (state->entry_type) {
+    case BE_REQ_USER:
+        state->search_bases = state->sdom->user_search_bases;
+        attr_name = state->sdap_id_ctx->opts->user_map[SDAP_AT_USER_UID].name;
+        objectclass = state->sdap_id_ctx->opts->user_map[SDAP_OC_USER].name;
+        break;
+    case BE_REQ_GROUP:
+        state->search_bases = state->sdom->group_search_bases;
+        attr_name = state->sdap_id_ctx->opts->group_map[SDAP_AT_GROUP_GID].name;
+        objectclass = state->sdap_id_ctx->opts->group_map[SDAP_OC_GROUP].name;
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unsupported request type %X\n",
+              state->entry_type & BE_REQ_TYPE_MASK);
+        return EINVAL;
+    }
+
+    switch (state->filter_type) {
+    case BE_FILTER_IDNUM:
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unsupported filter type %X\n", state->filter_type);
+        return EINVAL;
+    }
+
+    talloc_zfree(state->base_filter);
+    state->base_filter = talloc_asprintf(state,
+                                         "(&(%s=%s)(objectclass=%s))",
+                                         attr_name,
+                                         state->clean_filter,
+                                         objectclass);
+    if (state->base_filter == NULL) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+static errno_t ad_get_account_domain_connect_retry(struct tevent_req *req)
+{
+    struct ad_get_account_domain_state *state = tevent_req_data(req,
+                                          struct ad_get_account_domain_state);
+    struct tevent_req *subreq;
+    errno_t ret;
+
+    subreq = sdap_id_op_connect_send(state->op, state, &ret);
+    if (subreq == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, ad_get_account_domain_connect_done, req);
+    return ret;
+}
+
+static void ad_get_account_domain_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ad_get_account_domain_state *state = tevent_req_data(req,
+                                          struct ad_get_account_domain_state);
+    int dp_error = DP_ERR_FATAL;
+    errno_t ret;
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        state->dp_error = dp_error;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* If POSIX attributes have been requested with an AD server and we
+     * have no idea about POSIX attributes support, run a one-time check
+     */
+    if (state->sdap_id_ctx->srv_opts &&
+        state->sdap_id_ctx->srv_opts->posix_checked == false) {
+        subreq = sdap_gc_posix_check_send(state,
+                                          state->ev,
+                                          state->sdap_id_ctx->opts,
+                                          sdap_id_op_handle(state->op),
+                                          dp_opt_get_int(
+                                              state->sdap_id_ctx->opts->basic,
+                                              SDAP_SEARCH_TIMEOUT));
+        if (subreq == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, ad_get_account_domain_posix_check_done, req);
+        return;
+    }
+
+    ad_get_account_domain_search(req);
+}
+
+static void ad_get_account_domain_posix_check_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ad_get_account_domain_state *state = tevent_req_data(req,
+                                          struct ad_get_account_domain_state);
+    int dp_error = DP_ERR_FATAL;
+    bool has_posix;
+    errno_t ret;
+    errno_t ret2;
+
+    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        /* We can only finish the id_op on error as the connection
+         * is re-used by the real search
+         */
+        ret2 = sdap_id_op_done(state->op, ret, &dp_error);
+        if (dp_error == DP_ERR_OK && ret2 != EOK) {
+            /* retry */
+            ret = ad_get_account_domain_connect_retry(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        }
+
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->sdap_id_ctx->srv_opts->posix_checked = true;
+
+    /*
+     * If the GC has no POSIX attributes, there is nothing we can do.
+     * Return an error and let the responders disable the functionality
+     * from now on.
+     */
+    if (has_posix == false) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "The Global Catalog has no POSIX attributes\n");
+
+        disable_gc(state->id_ctx->ad_options);
+        dp_reply_std_set(&state->reply,
+                         DP_ERR_DECIDE, ERR_GET_ACCT_DOM_NOT_SUPPORTED,
+                         NULL);
+        tevent_req_done(req);
+        return;
+    }
+
+    ad_get_account_domain_search(req);
+}
+
+static void ad_get_account_domain_search(struct tevent_req *req)
+{
+    struct ad_get_account_domain_state *state = tevent_req_data(req,
+                                          struct ad_get_account_domain_state);
+    struct tevent_req *subreq;
+
+    talloc_zfree(state->filter);
+    state->filter = sdap_combine_filters(state, state->base_filter,
+                        state->search_bases[state->base_iter]->filter);
+    if (state->filter == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    subreq = sdap_get_generic_send(state, state->ev, state->sdap_id_ctx->opts,
+                                   sdap_id_op_handle(state->op),
+                                   "",
+                                   LDAP_SCOPE_SUBTREE,
+                                   state->filter,
+                                   state->attrs, NULL, 0,
+                                   dp_opt_get_int(state->sdap_id_ctx->opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
+
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, ad_get_account_domain_search_done, req);
+}
+
+static void ad_get_account_domain_search_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ad_get_account_domain_state *state = tevent_req_data(req,
+                                          struct ad_get_account_domain_state);
+    size_t count;
+    struct sysdb_attrs **objects;
+    errno_t ret;
+
+    ret = sdap_get_generic_recv(subreq, state,
+                                &count, &objects);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Search returned %zu results.\n", count);
+
+    if (count > 0) {
+        size_t copied;
+
+        state->objects =
+                talloc_realloc(state,
+                               state->objects,
+                               struct sysdb_attrs *,
+                               state->count + count + 1);
+        if (!state->objects) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        copied = sdap_steal_objects_in_dom(state->sdap_id_ctx->opts,
+                                           state->objects,
+                                           state->count,
+                                           NULL,
+                                           objects, count,
+                                           false);
+
+        state->count += copied;
+        state->objects[state->count] = NULL;
+    }
+
+    /* Even though we search with an empty search base (=across all domains)
+     * the reason we iterate over search bases is that the search bases can
+     * also contain a filter which might restrict the IDs we find
+     */
+    state->base_iter++;
+    if (state->search_bases[state->base_iter]) {
+        /* There are more search bases to try */
+        ad_get_account_domain_search(req);
+        return;
+    }
+
+    /* No more searches, evaluate results */
+    ad_get_account_domain_evaluate(req);
+}
+
+static void ad_get_account_domain_evaluate(struct tevent_req *req)
+{
+    struct ad_get_account_domain_state *state = tevent_req_data(req,
+                                          struct ad_get_account_domain_state);
+    struct sss_domain_info *obj_dom;
+    errno_t ret;
+
+    if (state->count == 0) {
+        if (state->twopass
+                && state->entry_type != BE_REQ_USER) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Retrying search\n");
+
+            state->entry_type = BE_REQ_USER;
+            state->base_iter = 0;
+            ret = ad_get_account_domain_prepare_search(req);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Cannot retry search\n");
+                tevent_req_error(req, ret);
+                return;
+            }
+
+            ad_get_account_domain_search(req);
+            return;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Not found\n");
+        dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_NOT_FOUND, NULL);
+        tevent_req_done(req);
+        return;
+    } else if (state->count > 1) {
+        /* FIXME: If more than one entry was found, return error for now
+         * as the account requsts have no way of returning multiple
+         * messages back until we switch to the rdp_* requests
+         * from the responder side
+         */
+        DEBUG(SSSDBG_OP_FAILURE, "Multiple entries found, error!\n");
+        dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERANGE, NULL);
+        tevent_req_done(req);
+        return;
+    }
+
+    /* Exactly one entry was found */
+    obj_dom = sdap_get_object_domain(state->sdap_id_ctx->opts,
+                                     state->objects[0],
+                                     state->sdom->dom);
+    if (obj_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not match entry with domain!\n");
+        dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ERR_NOT_FOUND, NULL);
+        tevent_req_done(req);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Found object in domain %s\n", obj_dom->name);
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, obj_dom->name);
+    tevent_req_done(req);
+}
+
+errno_t ad_get_account_domain_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   struct dp_reply_std *data)
+{
+    struct ad_get_account_domain_state *state = NULL;
+
+    state = tevent_req_data(req, struct ad_get_account_domain_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
+
+    return EOK;
+}

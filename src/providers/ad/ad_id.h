@@ -54,4 +54,14 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
 errno_t
 ad_enumeration_recv(struct tevent_req *req);
 
+struct tevent_req *
+ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
+                           struct ad_id_ctx *id_ctx,
+                           struct dp_get_acct_domain_data *data,
+                           struct dp_req_params *params);
+
+errno_t ad_get_account_domain_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   struct dp_reply_std *data);
+
 #endif /* AD_ID_H_ */
