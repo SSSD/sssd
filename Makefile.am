@@ -1491,7 +1491,7 @@ EXTRA_DIST += \
     src/responder/ifp/org.freedesktop.sssd.infopipe.service.in \
     $(NULL)
 
-ifp_edit_cmd = $(SED) \
+ifp_edit_cmd = $(edit_cmd) \
         -e 's|@ifp_exec_cmd[@]|$(ifp_exec_cmd)|g' \
         -e 's|@ifp_systemdservice[@]|$(ifp_systemdservice)|g' \
         -e 's|@ifp_restart[@]|$(ifp_restart)|g'
