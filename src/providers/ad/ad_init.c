@@ -511,8 +511,8 @@ errno_t sssm_ad_id_init(TALLOC_CTX *mem_ctx,
                   struct sdap_id_ctx, void, struct dp_reply_std);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
-                  default_account_domain_send, default_account_domain_recv, NULL,
-                  void, struct dp_get_acct_domain_data, struct dp_reply_std);
+                  ad_get_account_domain_send, ad_get_account_domain_recv, id_ctx,
+                  struct ad_id_ctx, struct dp_get_acct_domain_data, struct dp_reply_std);
 
     return EOK;
 }
