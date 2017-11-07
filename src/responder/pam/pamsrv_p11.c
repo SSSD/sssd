@@ -43,6 +43,7 @@ struct cert_auth_info {
     char *token_name;
     char *module_name;
     char *key_id;
+    char *label;
     struct ldb_result *cert_user_objs;
     struct cert_auth_info *prev;
     struct cert_auth_info *next;
@@ -66,6 +67,11 @@ const char *sss_cai_get_module_name(struct cert_auth_info *i)
 const char *sss_cai_get_key_id(struct cert_auth_info *i)
 {
     return i != NULL ? i->key_id : NULL;
+}
+
+const char *sss_cai_get_label(struct cert_auth_info *i)
+{
+    return i != NULL ? i->label : NULL;
 }
 
 struct cert_auth_info *sss_cai_get_next(struct cert_auth_info *i)
@@ -428,6 +434,31 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
             goto done;
         }
         DEBUG(SSSDBG_TRACE_ALL, "Found key id [%s].\n", cert_auth_info->key_id);
+
+        p = ++pn;
+        pn = memchr(p, '\n', buf_len - (p - buf));
+        if (pn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing new-line in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (pn == p) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing label in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        cert_auth_info->label = talloc_strndup(cert_auth_info, (char *) p,
+                                               (pn - p));
+        if (cert_auth_info->label == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Found label [%s].\n", cert_auth_info->label);
 
         p = ++pn;
         pn = memchr(p, '\n', buf_len - (p - buf));
@@ -816,7 +847,8 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static char *get_cert_prompt(TALLOC_CTX *mem_ctx, const char *cert)
+static char *get_cert_prompt(TALLOC_CTX *mem_ctx,
+                             struct cert_auth_info *cert_info)
 {
     int ret;
     struct sss_certmap_ctx *ctx = NULL;
@@ -839,7 +871,7 @@ static char *get_cert_prompt(TALLOC_CTX *mem_ctx, const char *cert)
         goto done;
     }
 
-    der = sss_base64_decode(mem_ctx, cert, &der_size);
+    der = sss_base64_decode(mem_ctx, sss_cai_get_cert(cert_info), &der_size);
     if (der == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
         goto done;
@@ -851,7 +883,8 @@ static char *get_cert_prompt(TALLOC_CTX *mem_ctx, const char *cert)
         goto done;
     }
 
-    prompt = talloc_strdup(mem_ctx, filter);
+    prompt = talloc_asprintf(mem_ctx, "%s\n%s", sss_cai_get_label(cert_info),
+                                                filter);
     if (prompt == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
     }
@@ -885,7 +918,7 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
         username = sysdb_username;
     }
 
-    prompt = get_cert_prompt(mem_ctx, sss_cai_get_cert(cert_info));
+    prompt = get_cert_prompt(mem_ctx, cert_info);
     if (prompt == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "get_cert_prompt failed.\n");
         return EIO;

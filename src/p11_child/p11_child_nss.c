@@ -130,7 +130,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
     CERTCertificate *found_cert = NULL;
     PK11SlotList *list = NULL;
     PK11SlotListElement *le;
-    SECItem *key_id = NULL;
+    const char *label;
     char *key_id_str = NULL;
     CERTCertList *valid_certs = NULL;
     char *cert_b64 = NULL;
@@ -505,6 +505,17 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
             goto done;
         }
 
+        /* The NSS nickname is typically token_name:label, so the label starts
+         * after the ':'. */
+        if (found_cert->nickname != NULL) {
+            if ((label = strchr(found_cert->nickname, ':')) == NULL) {
+                label = found_cert->nickname;
+            } else {
+                label++;
+            }
+        } else {
+            label = "- no label found -";
+        }
         talloc_free(cert_b64);
         cert_b64 = sss_base64_encode(mem_ctx, found_cert->derCert.data,
                                      found_cert->derCert.len);
@@ -517,9 +528,9 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n",
               key_id_str);
 
-        multi = talloc_asprintf_append(multi, "%s\n%s\n%s\n%s\n",
+        multi = talloc_asprintf_append(multi, "%s\n%s\n%s\n%s\n%s\n",
                                        token_name, module_name, key_id_str,
-                                       cert_b64);
+                                       label, cert_b64);
     }
     *_multi = multi;
 
@@ -546,7 +557,6 @@ done:
         CERT_DestroyCertList(cert_list);
     }
 
-    SECITEM_FreeItem(key_id, PR_TRUE);
     PORT_Free(key_id_str);
 
     PORT_Free(signed_random_value.data);
