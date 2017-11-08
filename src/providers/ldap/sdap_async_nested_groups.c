@@ -1686,7 +1686,7 @@ static errno_t sdap_nested_group_get_ipa_user(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_attrs_add_string(user, SYSDB_OBJECTCLASS, SYSDB_USER_CLASS);
+    ret = sysdb_attrs_add_string(user, SYSDB_OBJECTCATEGORY, SYSDB_USER_CLASS);
     if (ret != EOK) {
         goto done;
     }

@@ -888,7 +888,7 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     struct ldb_message_element *msg_el = NULL;
     size_t c;
 
-    msg_el = ldb_msg_find_element(msg, SYSDB_OBJECTCLASS);
+    msg_el = ldb_msg_find_element(msg, SYSDB_OBJECTCATEGORY);
     if (msg_el == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_find_element failed.\n");
         ret = ENOENT;

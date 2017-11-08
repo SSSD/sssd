@@ -455,6 +455,8 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
         tevent_req_callback_data(req, struct trust_test_ctx);
     errno_t ret;
     struct sss_domain_info *child_dom;
+    struct ipa_ad_server_ctx *s_trust;
+    struct ipa_ad_server_ctx *c_trust;
 
     ret = ipa_server_create_trusts_recv(req);
     talloc_zfree(req);
@@ -462,9 +464,18 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
 
     /* Trust object should be around now */
     assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
+    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
 
+    if (strcmp(test_ctx->ipa_ctx->server_mode->trusts->dom->name,
+               SUBDOM_NAME) == 0) {
+        s_trust = test_ctx->ipa_ctx->server_mode->trusts;
+        c_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
+    } else {
+        s_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
+        c_trust = test_ctx->ipa_ctx->server_mode->trusts;
+    }
     /* Two-way trusts should use the system realm */
-    assert_trust_object(test_ctx->ipa_ctx->server_mode->trusts,
+    assert_trust_object(c_trust,
                         CHILD_NAME,
                         DOM_REALM,
                         CHILD_SID,
@@ -472,9 +483,8 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
                         TEST_AUTHID,
                         DOM_REALM);
 
-    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
 
-    assert_trust_object(test_ctx->ipa_ctx->server_mode->trusts->next,
+    assert_trust_object(s_trust,
                         SUBDOM_NAME,
                         DOM_REALM,
                         SUBDOM_SID,
@@ -523,6 +533,8 @@ static void test_ipa_server_trust_init(void **state)
     errno_t ret;
     struct tevent_timer *timeout_handler;
     struct timeval tv;
+    struct ipa_ad_server_ctx *s_trust;
+    struct ipa_ad_server_ctx *c_trust;
 
     add_test_2way_subdomains(test_ctx);
 
@@ -537,13 +549,21 @@ static void test_ipa_server_trust_init(void **state)
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ERR_OK);
 
-    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
-
     /* Trust object should be around now */
     assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
+    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
+
+    if (strcmp(test_ctx->ipa_ctx->server_mode->trusts->dom->name,
+               SUBDOM_NAME) == 0) {
+        s_trust = test_ctx->ipa_ctx->server_mode->trusts;
+        c_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
+    } else {
+        s_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
+        c_trust = test_ctx->ipa_ctx->server_mode->trusts;
+    }
 
     /* Two-way trusts should use the system realm */
-    assert_trust_object(test_ctx->ipa_ctx->server_mode->trusts,
+    assert_trust_object(c_trust,
                         CHILD_NAME,
                         DOM_REALM,
                         CHILD_SID,
@@ -551,9 +571,7 @@ static void test_ipa_server_trust_init(void **state)
                         TEST_AUTHID,
                         DOM_REALM);
 
-    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
-
-    assert_trust_object(test_ctx->ipa_ctx->server_mode->trusts->next,
+    assert_trust_object(s_trust,
                         SUBDOM_NAME,
                         DOM_REALM,
                         SUBDOM_SID,
@@ -708,6 +726,8 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
     struct trust_test_ctx *test_ctx = \
         tevent_req_callback_data(req, struct trust_test_ctx);
     errno_t ret;
+    struct ipa_ad_server_ctx *s_trust;
+    struct ipa_ad_server_ctx *c_trust;
 
     ret = ipa_server_create_trusts_recv(req);
     talloc_zfree(req);
@@ -720,9 +740,19 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
 
     /* Trust object should be around now */
     assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
+    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
+
+    if (strcmp(test_ctx->ipa_ctx->server_mode->trusts->dom->name,
+               SUBDOM_NAME) == 0) {
+        s_trust = test_ctx->ipa_ctx->server_mode->trusts;
+        c_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
+    } else {
+        s_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
+        c_trust = test_ctx->ipa_ctx->server_mode->trusts;
+    }
 
     assert_trust_object(
-        test_ctx->ipa_ctx->server_mode->trusts,
+        c_trust,
         CHILD_NAME,    /* AD domain name */
         CHILD_REALM,   /* AD realm can be child if SDAP realm is parent's */
         CHILD_SID,
@@ -730,10 +760,8 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
         ONEWAY_PRINC,     /* Principal shared with parent AD dom */
         SUBDOM_REALM); /* SDAP realm must be AD root domain */
 
-    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
-
     /* Here all properties point to the AD domain */
-    assert_trust_object(test_ctx->ipa_ctx->server_mode->trusts->next,
+    assert_trust_object(s_trust,
                         SUBDOM_NAME,
                         SUBDOM_REALM,
                         SUBDOM_SID,

@@ -336,7 +336,7 @@ static void test_ad_get_pac_data_from_user_entry(void **state)
 
     ret = ldb_msg_add_string(user_msg, SYSDB_NAME, "username");
     assert_int_equal(ret, EOK);
-    ret = ldb_msg_add_string(user_msg, SYSDB_OBJECTCLASS, "user");
+    ret = ldb_msg_add_string(user_msg, SYSDB_OBJECTCATEGORY, SYSDB_USER_CLASS);
     assert_int_equal(ret, EOK);
     ret = ldb_msg_add_string(user_msg, SYSDB_PAC_BLOB_EXPIRE, "12345");
     assert_int_equal(ret, EOK);

@@ -1148,7 +1148,7 @@ static errno_t nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
     errno_t ret;
     struct nss_ctx *nss_ctx;
     const char **attrs;
-    static const char *defattrs[] = { SYSDB_NAME, SYSDB_OBJECTCLASS,
+    static const char *defattrs[] = { SYSDB_NAME, SYSDB_OBJECTCATEGORY,
                                       SYSDB_SID_STR,
                                       ORIGINALAD_PREFIX SYSDB_NAME,
                                       ORIGINALAD_PREFIX SYSDB_UIDNUM,

@@ -940,7 +940,7 @@ search_user_or_group_by_sid_str(TALLOC_CTX *mem_ctx,
     const char *attrs[] = { SYSDB_NAME,
                             SYSDB_SID_STR,
                             SYSDB_ORIG_DN,
-                            SYSDB_OBJECTCLASS,
+                            SYSDB_OBJECTCATEGORY,
                             SYSDB_CACHE_EXPIRE,
                             NULL };
     TALLOC_CTX *tmp_ctx = NULL;

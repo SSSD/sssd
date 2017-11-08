@@ -39,7 +39,7 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
                                      bool *_is_group)
 {
     TALLOC_CTX *tmpctx;
-    const char *attrs[] = {SYSDB_OBJECTCLASS,  NULL};
+    const char *attrs[] = {SYSDB_OBJECTCLASS, SYSDB_OBJECTCATEGORY, NULL};
     struct ldb_dn *base_dn;
     char *filter;
     struct ldb_message **msgs;
@@ -90,11 +90,11 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
     }
 
     if (_is_group != NULL) {
-        objectclass = ldb_msg_find_attr_as_string(msgs[0], SYSDB_OBJECTCLASS,
+        objectclass = ldb_msg_find_attr_as_string(msgs[0], SYSDB_OBJECTCATEGORY,
                                                   NULL);
         if (objectclass == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "An antry without a %s?\n",
-                  SYSDB_OBJECTCLASS);
+            DEBUG(SSSDBG_OP_FAILURE, "An entry without a %s?\n",
+                  SYSDB_OBJECTCATEGORY);
             ret = EINVAL;
             goto done;
         }

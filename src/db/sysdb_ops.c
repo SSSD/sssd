@@ -958,7 +958,7 @@ static struct sysdb_attrs *ts_obj_attrs(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS, oc);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCATEGORY, oc);
     if (ret != EOK) {
         talloc_free(attrs);
         return NULL;
@@ -1667,7 +1667,7 @@ int sysdb_add_basic_user(struct sss_domain_info *domain,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_USER_CLASS);
+    ret = sysdb_add_string(msg, SYSDB_OBJECTCATEGORY, SYSDB_USER_CLASS);
     if (ret) goto done;
 
     ret = sysdb_add_string(msg, SYSDB_NAME, name);
@@ -2120,7 +2120,7 @@ int sysdb_add_basic_group(struct sss_domain_info *domain,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    ret = sysdb_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS);
+    ret = sysdb_add_string(msg, SYSDB_OBJECTCATEGORY, SYSDB_GROUP_CLASS);
     if (ret) goto done;
 
     ret = sysdb_add_string(msg, SYSDB_NAME, name);

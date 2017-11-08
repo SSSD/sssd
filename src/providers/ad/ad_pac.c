@@ -31,7 +31,7 @@ static errno_t find_user_entry(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
                                struct dp_id_data *ar,
                                struct ldb_message **_msg)
 {
-    const char *user_attrs[] = { SYSDB_NAME, SYSDB_OBJECTCLASS,
+    const char *user_attrs[] = { SYSDB_NAME, SYSDB_OBJECTCATEGORY,
                                  SYSDB_PAC_BLOB, SYSDB_PAC_BLOB_EXPIRE,
                                  NULL };
     struct ldb_message *msg;

@@ -114,10 +114,11 @@ static errno_t merge_msg_ts_attrs(struct sysdb_ctx *sysdb,
         return EIO;
     }
 
-    /* Deliberately start from 1 in order to not merge objectclass and avoid
-     * breaking MPGs where the OC might be made up
+    /* Deliberately start from 2 in order to not merge
+     * objectclass/objectcategory and avoid breaking MPGs where the OC might
+     * be made up
      */
-    for (size_t c = 1; sysdb_ts_cache_attrs[c]; c++) {
+    for (size_t c = 2; sysdb_ts_cache_attrs[c]; c++) {
         ret = merge_ts_attr(ts_msgs[0], sysdb_msg,
                             sysdb_ts_cache_attrs[c], attrs);
         if (ret != EOK) {
@@ -751,7 +752,7 @@ static int mpg_convert(struct ldb_message *msg)
     struct ldb_val *val = NULL;
     int i;
 
-    el = ldb_msg_find_element(msg, "objectClass");
+    el = ldb_msg_find_element(msg, SYSDB_OBJECTCATEGORY);
     if (!el) return EINVAL;
 
     /* see if this is a user to convert to a group */
@@ -2088,7 +2089,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
     }
 
     member_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(%s=%s))",
-                                    SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS,
+                                    SYSDB_OBJECTCATEGORY, SYSDB_GROUP_CLASS,
                                     SYSDB_MEMBER, sanitized_dn);
     if (!member_filter) {
         ret = ENOMEM;

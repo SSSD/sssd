@@ -2341,7 +2341,7 @@ static errno_t rfc2307bis_nested_groups_step(struct tevent_req *req)
     }
 
     ret = sysdb_attrs_get_string(state->groups[state->group_iter],
-                                 SYSDB_OBJECTCLASS, &class);
+                                 SYSDB_OBJECTCATEGORY, &class);
     if (ret == EOK) {
         /* If there is a objectClass attribute the object is coming from the
          * cache and the name attribute of the object already has the primary

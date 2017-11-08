@@ -30,9 +30,9 @@ find_sss_id_type(struct ldb_message *msg,
     struct ldb_message_element *el;
     struct ldb_val *val = NULL;
 
-    el = ldb_msg_find_element(msg, SYSDB_OBJECTCLASS);
+    el = ldb_msg_find_element(msg, SYSDB_OBJECTCATEGORY);
     if (el == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Objectclass attribute not found.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Objectcategory attribute not found.\n");
         return EINVAL;
     }
 

@@ -385,8 +385,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
-    const char *ccache_filter = "(&("SYSDB_CCACHE_FILE"=*)" \
-                                  "("SYSDB_OBJECTCLASS"="SYSDB_USER_CLASS"))";
+    const char *ccache_filter = "(&("SYSDB_CCACHE_FILE"=*)("SYSDB_UC"))";
     const char *ccache_attrs[] = { SYSDB_CCACHE_FILE, SYSDB_UPN, SYSDB_NAME,
                                    SYSDB_CANONICAL_UPN, NULL };
     size_t msgs_count = 0;

@@ -31,11 +31,12 @@
 #define LDB_MODULES_PATH "LDB_MODULES_PATH"
 
 /* If an entry differs only in these attributes, they are written to
- * the timestamp cache only. In addition, objectclass is added so that
- * we can distinguish between users and groups.
+ * the timestamp cache only. In addition, objectclass/objectcategory is added
+ * so that we can distinguish between users and groups.
  */
 const char *sysdb_ts_cache_attrs[] = {
     SYSDB_OBJECTCLASS,
+    SYSDB_OBJECTCATEGORY,
     SYSDB_LAST_UPDATE,
     SYSDB_CACHE_EXPIRE,
     SYSDB_ORIG_MODSTAMP,
