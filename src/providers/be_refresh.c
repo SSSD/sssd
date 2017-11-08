@@ -32,7 +32,6 @@
 static errno_t be_refresh_get_values_ex(TALLOC_CTX *mem_ctx,
                                         struct sss_domain_info *domain,
                                         time_t period,
-                                        const char *objectclass,
                                         struct ldb_dn *base_dn,
                                         const char *attr,
                                         char ***_values)
@@ -96,21 +95,17 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
                                      char ***_values)
 {
     struct ldb_dn *base_dn = NULL;
-    const char *class = NULL;
     errno_t ret;
 
     switch (type) {
     case BE_REFRESH_TYPE_USERS:
         base_dn = sysdb_user_base_dn(mem_ctx, domain);
-        class = SYSDB_USER_CLASS;
         break;
     case BE_REFRESH_TYPE_GROUPS:
         base_dn = sysdb_group_base_dn(mem_ctx, domain);
-        class = SYSDB_GROUP_CLASS;
         break;
     case BE_REFRESH_TYPE_NETGROUPS:
         base_dn = sysdb_netgroup_base_dn(mem_ctx, domain);
-        class = SYSDB_NETGROUP_CLASS;
         break;
     case BE_REFRESH_TYPE_SENTINEL:
         return ERR_INTERNAL;
@@ -121,7 +116,7 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = be_refresh_get_values_ex(mem_ctx, domain, period, class,
+    ret = be_refresh_get_values_ex(mem_ctx, domain, period,
                                    base_dn, SYSDB_NAME, _values);
 
     talloc_free(base_dn);
