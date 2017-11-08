@@ -537,7 +537,7 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int debug_fd = -1;
-    char *opt_logger = NULL;
+    const char *opt_logger = NULL;
     errno_t ret;
     TALLOC_CTX *main_ctx = NULL;
     char *cert;
@@ -673,7 +673,9 @@ int main(int argc, const char *argv[])
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
+        opt_logger = sss_logger_str[FILES_LOGGER];
     }
+
     sss_set_logger(opt_logger);
 
     DEBUG(SSSDBG_TRACE_FUNC, "p11_child started.\n");
