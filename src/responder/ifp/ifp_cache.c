@@ -100,7 +100,7 @@ ifp_cache_get_cached_objects(TALLOC_CTX *mem_ctx,
     errno_t ret;
     int ldb_ret;
     int i;
-    const char *attrs[] = {SYSDB_OBJECTCLASS, SYSDB_UIDNUM,
+    const char *attrs[] = {SYSDB_OBJECTCATEGORY, SYSDB_UIDNUM,
                            SYSDB_GIDNUM, NULL};
 
     tmp_ctx = talloc_new(NULL);
@@ -117,7 +117,7 @@ ifp_cache_get_cached_objects(TALLOC_CTX *mem_ctx,
 
     ldb_ret = ldb_search(sysdb_ctx_get_ldb(domain->sysdb), tmp_ctx, &result,
                          base_dn, LDB_SCOPE_SUBTREE, attrs,
-                         "(&(objectClass=%s)(%s=TRUE))", class,
+                         "(&(%s=%s)(%s=TRUE))", SYSDB_OBJECTCATEGORY, class,
                          SYSDB_IFP_CACHED);
     if (ldb_ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to search the cache\n");

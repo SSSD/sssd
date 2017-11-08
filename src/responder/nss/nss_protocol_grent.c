@@ -33,7 +33,7 @@ nss_get_grent(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     /* Check object class. */
-    if (!ldb_msg_check_string_attribute(msg, "objectClass",
+    if (!ldb_msg_check_string_attribute(msg, SYSDB_OBJECTCATEGORY,
                                         SYSDB_GROUP_CLASS)) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Wrong object (%s) found on stack!\n",
               ldb_dn_get_linearized(msg->dn));

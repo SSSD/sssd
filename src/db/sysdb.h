@@ -192,9 +192,10 @@
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
-#define SYSDB_UC "objectclass="SYSDB_USER_CLASS
-#define SYSDB_GC "objectclass="SYSDB_GROUP_CLASS
-#define SYSDB_NC "objectclass="SYSDB_NETGROUP_CLASS
+#define SYSDB_OBJECTCATEGORY "objectCategory"
+#define SYSDB_UC SYSDB_OBJECTCATEGORY"="SYSDB_USER_CLASS
+#define SYSDB_GC SYSDB_OBJECTCATEGORY"="SYSDB_GROUP_CLASS
+#define SYSDB_NC SYSDB_OBJECTCLASS"="SYSDB_NETGROUP_CLASS
 #define SYSDB_MPGC "|("SYSDB_UC")("SYSDB_GC")"
 
 #define SYSDB_PWNAM_FILTER "(&("SYSDB_UC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
@@ -227,7 +228,8 @@
 #define SYSDB_DEFAULT_ATTRS SYSDB_LAST_UPDATE, \
                             SYSDB_CACHE_EXPIRE, \
                             SYSDB_INITGR_EXPIRE, \
-                            SYSDB_OBJECTCLASS
+                            SYSDB_OBJECTCLASS, \
+                            SYSDB_OBJECTCATEGORY
 
 #define SYSDB_PW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
                         SYSDB_GIDNUM, SYSDB_GECOS, \

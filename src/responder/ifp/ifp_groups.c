@@ -841,7 +841,7 @@ ifp_groups_group_get_members(TALLOC_CTX *mem_ctx,
     int num_groups;
     int i;
     errno_t ret;
-    const char *attrs[] = {SYSDB_OBJECTCLASS, SYSDB_UIDNUM,
+    const char *attrs[] = {SYSDB_OBJECTCATEGORY, SYSDB_UIDNUM,
                            SYSDB_GIDNUM, NULL};
 
     tmp_ctx = talloc_new(NULL);
@@ -888,7 +888,7 @@ ifp_groups_group_get_members(TALLOC_CTX *mem_ctx,
     num_users = 0;
     num_groups = 0;
     for (i = 0; i < num_members; i++) {
-        class = ldb_msg_find_attr_as_string(members[i], SYSDB_OBJECTCLASS,
+        class = ldb_msg_find_attr_as_string(members[i], SYSDB_OBJECTCATEGORY,
                                             NULL);
         if (class == NULL) {
             ret = ERR_INTERNAL;

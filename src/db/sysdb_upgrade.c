@@ -149,6 +149,7 @@ int sysdb_upgrade_01(struct ldb_context *ldb, const char **ver)
     struct ldb_dn *mem_dn;
     struct ldb_message *msg;
     const struct ldb_val *val;
+    /* No change needed because this version has objectclass group */
     const char *filter = "(&(memberUid=*)(objectclass=group))";
     const char *attrs[] = { "memberUid", NULL };
     const char *mdn;
@@ -1041,6 +1042,7 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
     struct ldb_message_element *memberof_el;
     const char *name;
     struct ldb_dn *basedn;
+    /* No change needed because version 10 has objectclass user */
     const char *filter = "(&(objectClass=user)(!(uidNumber=*))(memberOf=*))";
     const char *attrs[] = { "name", "memberof", NULL };
     struct upgrade_ctx *ctx;
@@ -2082,6 +2084,7 @@ static void qualify_users(struct upgrade_ctx *ctx,
                           struct sss_names_ctx *names,
                           struct ldb_dn *base_dn)
 {
+    /* No change needed because this version has objectclass user */
     const char *user_filter = "objectclass=user";
     const char *user_name_attrs[] = { SYSDB_NAME,
                                       SYSDB_NAME_ALIAS,
@@ -2107,6 +2110,7 @@ static void qualify_groups(struct upgrade_ctx *ctx,
                            struct sss_names_ctx *names,
                            struct ldb_dn *base_dn)
 {
+    /* No change needed because this version has objectclass group */
     const char *group_filter = "objectclass=group";
     const char *group_name_attrs[] = { SYSDB_NAME,
                                        SYSDB_NAME_ALIAS,

@@ -438,7 +438,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
              */
             gid = (gid_t) ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
             subfilter = talloc_asprintf(tmpctx, "(&(%s=%s)(|(%s=%s)(%s=%lu)))",
-                                        SYSDB_OBJECTCLASS, SYSDB_USER_CLASS,
+                                        SYSDB_OBJECTCATEGORY, SYSDB_USER_CLASS,
                                         SYSDB_MEMBEROF, sanitized_dn,
                                         SYSDB_GIDNUM, (long unsigned) gid);
         } else {

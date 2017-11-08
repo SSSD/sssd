@@ -335,7 +335,8 @@ static const char *sssctl_create_filter(TALLOC_CTX *mem_ctx,
         talloc_free(filter_value_old);
     }
 
-    filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(|(%s=%s)(%s=%s)))",
+    filter = talloc_asprintf(mem_ctx, "(&(%s=%s)(|(%s=%s)(%s=%s)))",
+                             obj_type == CACHED_NETGROUP ? SYSDB_OBJECTCLASS : SYSDB_OBJECTCATEGORY,
                              class, attr_name, filter_value,
                              SYSDB_NAME_ALIAS, filter_value);
 

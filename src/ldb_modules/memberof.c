@@ -31,7 +31,7 @@
 #define DB_USER_CLASS "user"
 #define DB_GROUP_CLASS "group"
 #define DB_CACHE_EXPIRE "dataExpireTimestamp"
-#define DB_OC "objectClass"
+#define DB_OC "objectCategory"
 
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -3928,7 +3928,7 @@ static int memberof_recompute_task(struct ldb_module *module,
 {
     struct ldb_context *ldb = ldb_module_get_ctx(module);
     static const char *attrs[] = { DB_NAME, DB_MEMBEROF, NULL };
-    static const char *filter = "(objectclass=user)";
+    static const char *filter = "("DB_OC"="DB_USER_CLASS")";
     struct mbof_rcmp_context *ctx;
     struct ldb_request *src_req;
     int ret;
@@ -4035,7 +4035,7 @@ static int mbof_rcmp_search_groups(struct mbof_rcmp_context *ctx)
     struct ldb_context *ldb = ldb_module_get_ctx(ctx->module);
     static const char *attrs[] = { DB_MEMBEROF, DB_MEMBERUID,
                                    DB_NAME, DB_MEMBER, NULL };
-    static const char *filter = "(objectclass=group)";
+    static const char *filter = "("DB_OC"="DB_GROUP_CLASS")";
     struct ldb_request *req;
     int ret;
 

@@ -53,7 +53,7 @@ cache_req_well_known_sid_msg(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ldberr = ldb_msg_add_string(msg, SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS);
+    ldberr = ldb_msg_add_string(msg, SYSDB_OBJECTCATEGORY, SYSDB_GROUP_CLASS);
     if (ldberr != LDB_SUCCESS) {
         goto done;
     }

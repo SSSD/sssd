@@ -503,7 +503,7 @@ static int test_search_all_users(struct test_data *data)
     }
 
     ret = sysdb_search_entry(data, data->ctx->sysdb, base_dn,
-                             LDB_SCOPE_SUBTREE, "objectClass=user",
+                             LDB_SCOPE_SUBTREE, SYSDB_UC,
                              data->attrlist, &data->msgs_count, &data->msgs);
     return ret;
 }
@@ -2219,6 +2219,7 @@ START_TEST (test_sysdb_search_all_users)
     struct test_data *data;
     int ret;
     int i;
+    int j;
     char *uid_str;
 
     /* Setup */
@@ -2253,8 +2254,15 @@ START_TEST (test_sysdb_search_all_users)
                     "wrong number of values, found [%d] expected [1]",
                     data->msgs[i]->elements[0].num_values);
 
-        uid_str = talloc_asprintf(data, "%d", 27010 + i);
-        fail_unless(uid_str != NULL, "talloc_asprintf failed.");
+        for (j = 0; j < data->msgs_count; j++) {
+            uid_str = talloc_asprintf(data, "%d", 27010 + j);
+            fail_unless(uid_str != NULL, "talloc_asprintf failed.");
+            if (strncmp(uid_str,
+                        (char *) data->msgs[i]->elements[0].values[0].data,
+                        data->msgs[i]->elements[0].values[0].length)  == 0) {
+                break;
+            }
+        }
         fail_unless(strncmp(uid_str,
                             (char *) data->msgs[i]->elements[0].values[0].data,
                             data->msgs[i]->elements[0].values[0].length)  == 0,
@@ -4411,7 +4419,7 @@ START_TEST(test_SSS_LDB_SEARCH)
 
     /* Non-empty filter */
     SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
-                   LDB_SCOPE_BASE, NULL, "objectClass=group");
+                   LDB_SCOPE_BASE, NULL, SYSDB_GC);
 
     fail_unless(ret == EOK, "SSS_LDB_SEARCH error [%d][%s]",
                 ret, strerror(ret));
@@ -5203,7 +5211,7 @@ START_TEST (test_sysdb_search_return_ENOENT)
 
     ret = sysdb_search_entry(test_ctx, test_ctx->sysdb,
                              user_dn, LDB_SCOPE_SUBTREE,
-                             "objectClass=user", NULL,
+                             SYSDB_UC, NULL,
                              &count, &msgs);
     fail_unless(ret == ENOENT, "sysdb_search_entry failed: %d, %s",
                                ret, strerror(ret));
@@ -5215,7 +5223,7 @@ START_TEST (test_sysdb_search_return_ENOENT)
                             data->username);
     fail_if(user_dn == NULL, "sysdb_user_dn failed");
     SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, user_dn,
-                   LDB_SCOPE_BASE, NULL, "objectClass=user");
+                   LDB_SCOPE_BASE, NULL, SYSDB_UC);
 
     fail_unless(ret == ENOENT, "SSS_LDB_SEARCH failed: %d, %s",
                                ret, strerror(ret));

@@ -431,7 +431,8 @@ static errno_t ipa_id_get_group_uuids(TALLOC_CTX *mem_ctx,
     }
 
     filter = talloc_asprintf(tmp_ctx,
-                             "(&(objectclass=%s)(!(%s=*))(%s=*))",
+                             "(&(%s=%s)(!(%s=*))(%s=*))",
+                             SYSDB_OBJECTCATEGORY,
                              SYSDB_GROUP_CLASS, SYSDB_OVERRIDE_DN,
                              SYSDB_UUID);
     if (filter == NULL) {
@@ -733,7 +734,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
     const char *attrs[] = { SYSDB_NAME,
                             SYSDB_UIDNUM,
                             SYSDB_SID_STR,
-                            SYSDB_OBJECTCLASS,
+                            SYSDB_OBJECTCATEGORY,
                             SYSDB_UUID,
                             SYSDB_GHOST,
                             SYSDB_HOMEDIR,
@@ -819,7 +820,7 @@ static int ipa_id_get_account_info_post_proc_step(struct tevent_req *req)
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
 
-    class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCLASS,
+    class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCATEGORY,
                                         NULL);
     if (class == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find an objectclass.\n");
@@ -957,7 +958,7 @@ static void ipa_id_get_account_info_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCLASS,
+    class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCATEGORY,
                                         NULL);
     if (class == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find an objectclass.\n");
