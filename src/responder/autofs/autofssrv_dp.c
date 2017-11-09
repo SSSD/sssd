@@ -65,6 +65,10 @@ sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
     }
 
     info = talloc_zero(state, struct sss_dp_get_autofs_info);
+    if (info == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
     info->fast_reply = fast_reply;
     info->type = type;
     info->name = name;
