@@ -72,6 +72,10 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
     }
 
     info = talloc_zero(state, struct sss_dp_get_sudoers_info);
+    if (info == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
     info->fast_reply = fast_reply;
     info->type = type;
     info->name = name;
