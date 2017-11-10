@@ -206,7 +206,7 @@ int main(int argc, const char *argv[])
     struct response *resp = NULL;
     ssize_t written;
     bool needs_update;
-    char *opt_logger = NULL;
+    const char *opt_logger = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -254,6 +254,7 @@ int main(int argc, const char *argv[])
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
+        opt_logger = sss_logger_str[FILES_LOGGER];
     }
 
     sss_set_logger(opt_logger);

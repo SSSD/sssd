@@ -630,14 +630,11 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     }
 
     /* Save the current state in case an interrupt changes it */
-    bool child_debug_to_file = debug_to_file;
     bool child_debug_timestamps = debug_timestamps;
     bool child_debug_microseconds = debug_microseconds;
-    bool child_debug_stderr = debug_to_stderr;
 
     if (!extra_args_only) {
-        if (child_debug_to_file) argc++;
-        if (child_debug_stderr) argc++;
+        argc++;
     }
 
     if (extra_argv) {
@@ -675,17 +672,16 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        if (child_debug_stderr) {
-            argv[--argc] = talloc_strdup(argv, "--logger=stderr");
+        if (sss_logger == FILES_LOGGER) {
+            argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
+                                           child_debug_fd);
             if (argv[argc] == NULL) {
                 ret = ENOMEM;
                 goto fail;
             }
-        }
-
-        if (child_debug_to_file) {
-            argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
-                                           child_debug_fd);
+        } else {
+            argv[--argc] = talloc_asprintf(argv, "--logger=%s",
+                                           sss_logger_str[sss_logger]);
             if (argv[argc] == NULL) {
                 ret = ENOMEM;
                 goto fail;
@@ -816,7 +812,7 @@ errno_t child_debug_init(const char *logfile, int *debug_fd)
         return EOK;
     }
 
-    if (debug_to_file != 0 && *debug_fd == -1) {
+    if (sss_logger == FILES_LOGGER && *debug_fd == -1) {
         ret = open_debug_file_ex(logfile, &debug_filep, false);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) [%s]\n",
