@@ -2573,7 +2573,6 @@ int sdap_asq_search_recv(struct tevent_req *req,
 }
 
 /* ==Posix attribute presence test================================= */
-static errno_t sdap_posix_check_next(struct tevent_req *req);
 static void sdap_posix_check_done(struct tevent_req *subreq);
 static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
                                       struct sdap_msg *msg,
@@ -2583,12 +2582,10 @@ struct sdap_posix_check_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
-    struct sdap_search_base **search_bases;
     int timeout;
 
     const char **attrs;
     const char *filter;
-    size_t base_iter;
 
     bool has_posix;
 };
@@ -2596,10 +2593,10 @@ struct sdap_posix_check_state {
 struct tevent_req *
 sdap_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                       struct sdap_options *opts, struct sdap_handle *sh,
-                      struct sdap_search_base **search_bases,
                       int timeout)
 {
     struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
     struct sdap_posix_check_state *state;
     errno_t ret;
 
@@ -2610,7 +2607,6 @@ sdap_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     state->ev = ev;
     state->sh = sh;
     state->opts = opts;
-    state->search_bases = search_bases;
     state->timeout = timeout;
 
     state->attrs = talloc_array(state, const char *, 4);
@@ -2634,10 +2630,20 @@ sdap_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
         goto fail;
     }
 
-    ret = sdap_posix_check_next(req);
-    if (ret != EOK) {
+    subreq = sdap_get_generic_ext_send(state, state->ev, state->opts,
+                                 state->sh,
+                                 "",
+                                 LDAP_SCOPE_SUBTREE, state->filter,
+                                 state->attrs,
+                                 NULL, NULL, 1, state->timeout,
+                                 sdap_posix_check_parse, state,
+                                 SDAP_SRCH_FLG_SIZELIMIT_SILENT);
+    if (subreq == NULL) {
+        ret = ENOMEM;
         goto fail;
     }
+    tevent_req_set_callback(subreq, sdap_posix_check_done, req);
+
 
     return req;
 
@@ -2645,32 +2651,6 @@ fail:
     tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
-}
-
-static errno_t sdap_posix_check_next(struct tevent_req *req)
-{
-    struct tevent_req *subreq = NULL;
-    struct sdap_posix_check_state *state =
-        tevent_req_data(req, struct sdap_posix_check_state);
-
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Searching for POSIX attributes with base [%s]\n",
-           state->search_bases[state->base_iter]->basedn);
-
-    subreq = sdap_get_generic_ext_send(state, state->ev, state->opts,
-                                 state->sh,
-                                 state->search_bases[state->base_iter]->basedn,
-                                 LDAP_SCOPE_SUBTREE, state->filter,
-                                 state->attrs,
-                                 NULL, NULL, 1, state->timeout,
-                                 sdap_posix_check_parse, state,
-                                 SDAP_SRCH_FLG_SIZELIMIT_SILENT);
-    if (subreq == NULL) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(subreq, sdap_posix_check_done, req);
-
-    return EOK;
 }
 
 static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
@@ -2743,16 +2723,6 @@ static void sdap_posix_check_done(struct tevent_req *subreq)
     if (state->has_posix == true) {
         DEBUG(SSSDBG_FUNC_DATA, "Server has POSIX attributes\n");
         tevent_req_done(req);
-        return;
-    }
-
-    state->base_iter++;
-    if (state->search_bases[state->base_iter]) {
-        /* There are more search bases to try */
-        ret = sdap_posix_check_next(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-        }
         return;
     }
 

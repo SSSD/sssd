@@ -202,7 +202,6 @@ static void sdap_dom_enum_ex_get_users(struct tevent_req *subreq)
                                true)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
                                        sdap_id_op_handle(state->user_op),
-                                       state->sdom->user_search_bases,
                                        dp_opt_get_int(state->ctx->opts->basic,
                                                       SDAP_SEARCH_TIMEOUT));
         if (subreq == NULL) {

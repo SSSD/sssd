@@ -417,7 +417,6 @@ static void users_get_connect_done(struct tevent_req *subreq)
                                !state->non_posix)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
                                        sdap_id_op_handle(state->op),
-                                       state->sdom->user_search_bases,
                                        dp_opt_get_int(state->ctx->opts->basic,
                                                       SDAP_SEARCH_TIMEOUT));
         if (subreq == NULL) {
@@ -963,7 +962,6 @@ static void groups_get_connect_done(struct tevent_req *subreq)
                                !state->non_posix)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
                                        sdap_id_op_handle(state->op),
-                                       state->sdom->user_search_bases,
                                        dp_opt_get_int(state->ctx->opts->basic,
                                                       SDAP_SEARCH_TIMEOUT));
         if (subreq == NULL) {
