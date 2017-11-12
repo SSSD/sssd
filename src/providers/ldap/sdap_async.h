@@ -269,7 +269,6 @@ int sdap_deref_search_recv(struct tevent_req *req,
 struct tevent_req *
 sdap_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                       struct sdap_options *opts, struct sdap_handle *sh,
-                      struct sdap_search_base **search_bases,
                       int timeout);
 
 int sdap_posix_check_recv(struct tevent_req *req,
