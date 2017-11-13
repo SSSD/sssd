@@ -4874,7 +4874,7 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
     }
 
     ret = sss_filter_sanitize(NULL, str, &sanitized);
-    if (ret != EOK || sanitized == NULL) {
+    if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize failed.\n");
         goto done;
     }
