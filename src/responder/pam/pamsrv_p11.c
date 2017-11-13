@@ -26,6 +26,8 @@
 #include "util/child_common.h"
 #include "util/strtonum.h"
 #include "responder/pam/pamsrv.h"
+#include "lib/certmap/sss_certmap.h"
+#include "util/crypto/sss_crypto.h"
 
 
 #ifndef SSSD_LIBEXEC_PATH
@@ -34,9 +36,198 @@
 
 #define P11_CHILD_LOG_FILE "p11_child"
 #define P11_CHILD_PATH SSSD_LIBEXEC_PATH"/p11_child"
+#define CERT_AUTH_DEFAULT_MATCHING_RULE "KRB5:<EKU>clientAuth"
+
+struct cert_auth_info {
+    char *cert;
+    char *token_name;
+    char *module_name;
+    char *key_id;
+    char *label;
+    struct ldb_result *cert_user_objs;
+    struct cert_auth_info *prev;
+    struct cert_auth_info *next;
+};
+
+const char *sss_cai_get_cert(struct cert_auth_info *i)
+{
+    return i != NULL ? i->cert : NULL;
+}
+
+const char *sss_cai_get_token_name(struct cert_auth_info *i)
+{
+    return i != NULL ? i->token_name : NULL;
+}
+
+const char *sss_cai_get_module_name(struct cert_auth_info *i)
+{
+    return i != NULL ? i->module_name : NULL;
+}
+
+const char *sss_cai_get_key_id(struct cert_auth_info *i)
+{
+    return i != NULL ? i->key_id : NULL;
+}
+
+const char *sss_cai_get_label(struct cert_auth_info *i)
+{
+    return i != NULL ? i->label : NULL;
+}
+
+struct cert_auth_info *sss_cai_get_next(struct cert_auth_info *i)
+{
+    return i != NULL ? i->next : NULL;
+}
+
+struct ldb_result *sss_cai_get_cert_user_objs(struct cert_auth_info *i)
+{
+    return i != NULL ? i->cert_user_objs : NULL;
+}
+
+void sss_cai_set_cert_user_objs(struct cert_auth_info *i,
+                                struct ldb_result *cert_user_objs)
+{
+    if (i->cert_user_objs != NULL) {
+        talloc_free(i->cert_user_objs);
+    }
+    i->cert_user_objs = talloc_steal(i, cert_user_objs);
+}
+
+void sss_cai_check_users(struct cert_auth_info **list, size_t *_cert_count,
+                         size_t *_cert_user_count)
+{
+    struct cert_auth_info *c;
+    struct cert_auth_info *tmp;
+    size_t cert_count = 0;
+    size_t cert_user_count = 0;
+    struct ldb_result *user_objs;
+
+    DLIST_FOR_EACH_SAFE(c, tmp, *list) {
+        user_objs = sss_cai_get_cert_user_objs(c);
+        if (user_objs != NULL) {
+            cert_count++;
+            cert_user_count += user_objs->count;
+        } else {
+            DLIST_REMOVE(*list, c);
+        }
+    }
+
+    if (_cert_count != NULL) {
+        *_cert_count = cert_count;
+    }
+
+    if (_cert_user_count != NULL) {
+        *_cert_user_count = cert_user_count;
+    }
+
+    return;
+}
+
+struct priv_sss_debug {
+    int level;
+};
+
+static void ext_debug(void *private, const char *file, long line,
+                      const char *function, const char *format, ...)
+{
+    va_list ap;
+    struct priv_sss_debug *data = private;
+    int level = SSSDBG_OP_FAILURE;
+
+    if (data != NULL) {
+        level = data->level;
+    }
+
+    if (DEBUG_IS_SET(level)) {
+        va_start(ap, format);
+        sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
+                      format, ap);
+        va_end(ap);
+    }
+}
+
+errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
+                                struct certmap_info **certmap_list)
+{
+    int ret;
+    struct sss_certmap_ctx *sss_certmap_ctx = NULL;
+    size_t c;
+
+    ret = sss_certmap_init(pctx, ext_debug, NULL, &sss_certmap_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_init failed.\n");
+        goto done;
+    }
+
+    if (certmap_list == NULL || *certmap_list == NULL) {
+        /* Try to add default matching rule */
+        ret = sss_certmap_add_rule(sss_certmap_ctx, SSS_CERTMAP_MIN_PRIO,
+                                   CERT_AUTH_DEFAULT_MATCHING_RULE, NULL, NULL);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to add default matching rule.\n");
+        }
+
+        goto done;
+    }
+
+    for (c = 0; certmap_list[c] != NULL; c++) {
+        DEBUG(SSSDBG_TRACE_ALL, "Trying to add rule [%s][%d][%s][%s].\n",
+                                certmap_list[c]->name,
+                                certmap_list[c]->priority,
+                                certmap_list[c]->match_rule,
+                                certmap_list[c]->map_rule);
+
+        ret = sss_certmap_add_rule(sss_certmap_ctx, certmap_list[c]->priority,
+                                   certmap_list[c]->match_rule,
+                                   certmap_list[c]->map_rule,
+                                   certmap_list[c]->domains);
+        if (ret != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_certmap_add_rule failed for rule [%s] "
+                  "with error [%d][%s], skipping. "
+                  "Please check for typos and if rule syntax is supported.\n",
+                  certmap_list[c]->name, ret, sss_strerror(ret));
+            continue;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        sss_certmap_free_ctx(pctx->sss_certmap_ctx);
+        pctx->sss_certmap_ctx = sss_certmap_ctx;
+    } else {
+        sss_certmap_free_ctx(sss_certmap_ctx);
+    }
+
+    return ret;
+}
 
 errno_t p11_child_init(struct pam_ctx *pctx)
 {
+    int ret;
+    struct certmap_info **certmaps;
+    bool user_name_hint;
+    struct sss_domain_info *dom = pctx->rctx->domains;
+
+    ret = sysdb_get_certmap(dom, dom->sysdb, &certmaps, &user_name_hint);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_certmap failed.\n");
+        return ret;
+    }
+
+    dom->user_name_hint = user_name_hint;
+    talloc_free(dom->certmaps);
+    dom->certmaps = certmaps;
+
+    ret = p11_refresh_certmap_ctx(pctx, dom->certmaps);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_refresh_certmap_ctx failed.\n");
+        return ret;
+    }
+
     return child_debug_init(P11_CHILD_LOG_FILE, &pctx->p11_child_debug_fd);
 }
 
@@ -132,18 +323,19 @@ static errno_t get_p11_child_write_buffer(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
-                                        ssize_t buf_len, char **_cert,
-                                        char **_token_name, char **_module_name,
-                                        char **_key_id)
+                                        ssize_t buf_len,
+                                        struct sss_certmap_ctx *sss_certmap_ctx,
+                                        struct cert_auth_info **_cert_list)
 {
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
     uint8_t *p;
     uint8_t *pn;
-    char *cert = NULL;
-    char *token_name = NULL;
-    char *module_name = NULL;
-    char *key_id = NULL;
+    struct cert_auth_info *cert_list = NULL;
+    struct cert_auth_info *cert_auth_info;
+    unsigned char *der = NULL;
+    size_t der_size;
+
 
     if (buf_len < 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -157,108 +349,172 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
         goto done;
     }
 
-    p = memchr(buf, '\n', buf_len);
-    if (p == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing new-line in p11_child response.\n");
-        return EINVAL;
-    }
-    if (p == buf) {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing counter in p11_child response.\n");
-        return EINVAL;
-    }
-
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
-    token_name = talloc_strndup(tmp_ctx, (char*) buf, (p - buf));
-    if (token_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
+    p = buf;
 
-    p++;
-    pn = memchr(p, '\n', buf_len - (p - buf));
-    if (pn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Missing new-line in p11_child response.\n");
-        ret = EINVAL;
-        goto done;
-    }
+    do {
+        cert_auth_info = talloc_zero(tmp_ctx, struct cert_auth_info);
+        if (cert_auth_info == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+            return ENOMEM;
+        }
 
-    if (pn == p) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Missing module name in p11_child response.\n");
-        ret = EINVAL;
-        goto done;
-    }
+        pn = memchr(p, '\n', buf_len - (p - buf));
+        if (pn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing new-line in p11_child response.\n");
+            return EINVAL;
+        }
+        if (pn == p) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing counter in p11_child response.\n");
+            return EINVAL;
+        }
 
-    module_name = talloc_strndup(tmp_ctx, (char *) p, (pn - p));
-    if (module_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_ALL, "Found module name [%s].\n", module_name);
+        cert_auth_info->token_name = talloc_strndup(cert_auth_info, (char*) p,
+                                                    (pn - p));
+        if (cert_auth_info->token_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Found token name [%s].\n",
+              cert_auth_info->token_name);
 
-    p = ++pn;
-    pn = memchr(p, '\n', buf_len - (p - buf));
-    if (pn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Missing new-line in p11_child response.\n");
-        ret = EINVAL;
-        goto done;
-    }
+        p = ++pn;
+        pn = memchr(p, '\n', buf_len - (p - buf));
+        if (pn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing new-line in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
 
-    if (pn == p) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Missing key id in p11_child response.\n");
-        ret = EINVAL;
-        goto done;
-    }
+        if (pn == p) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing module name in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
 
-    key_id = talloc_strndup(tmp_ctx, (char *) p, (pn - p));
-    if (key_id == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_ALL, "Found key id [%s].\n", key_id);
+        cert_auth_info->module_name = talloc_strndup(cert_auth_info, (char *) p,
+                                                     (pn - p));
+        if (cert_auth_info->module_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Found module name [%s].\n",
+              cert_auth_info->module_name);
 
-    p = pn + 1;
-    pn = memchr(p, '\n', buf_len - (p - buf));
-    if (pn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Missing new-line in p11_child response.\n");
-        ret = EINVAL;
-        goto done;
-    }
+        p = ++pn;
+        pn = memchr(p, '\n', buf_len - (p - buf));
+        if (pn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing new-line in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
 
-    if (pn == p) {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing cert in p11_child response.\n");
-        ret = EINVAL;
-        goto done;
-    }
+        if (pn == p) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing key id in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
 
-    cert = talloc_strndup(tmp_ctx, (char *) p, (pn - p));
-    if(cert == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_ALL, "Found cert [%s].\n", cert);
+        cert_auth_info->key_id = talloc_strndup(cert_auth_info, (char *) p,
+                                                (pn - p));
+        if (cert_auth_info->key_id == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Found key id [%s].\n", cert_auth_info->key_id);
+
+        p = ++pn;
+        pn = memchr(p, '\n', buf_len - (p - buf));
+        if (pn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing new-line in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (pn == p) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing label in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        cert_auth_info->label = talloc_strndup(cert_auth_info, (char *) p,
+                                               (pn - p));
+        if (cert_auth_info->label == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Found label [%s].\n", cert_auth_info->label);
+
+        p = ++pn;
+        pn = memchr(p, '\n', buf_len - (p - buf));
+        if (pn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Missing new-line in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (pn == p) {
+            DEBUG(SSSDBG_OP_FAILURE, "Missing cert in p11_child response.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        cert_auth_info->cert = talloc_strndup(cert_auth_info, (char *) p,
+                                              (pn - p));
+        if(cert_auth_info->cert == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Found cert [%s].\n", cert_auth_info->cert);
+
+        der = sss_base64_decode(tmp_ctx, cert_auth_info->cert, &der_size);
+        if (der == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+            ret = EIO;
+            goto done;
+        }
+
+        ret = sss_certmap_match_cert(sss_certmap_ctx, der, der_size);
+        if (ret == 0) {
+            DLIST_ADD(cert_list, cert_auth_info);
+        } else {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "Cert [%s] does not match matching rules and is ignored.\n",
+                  cert_auth_info->cert);
+            talloc_free(cert_auth_info);
+        }
+
+        p = ++pn;
+    } while ((pn - buf) < buf_len);
 
     ret = EOK;
 
 done:
     if (ret == EOK) {
-        *_token_name = talloc_steal(mem_ctx, token_name);
-        *_cert = talloc_steal(mem_ctx, cert);
-        *_module_name = talloc_steal(mem_ctx, module_name);
-        *_key_id = talloc_steal(mem_ctx, key_id);
+        DLIST_FOR_EACH(cert_auth_info, cert_list) {
+            talloc_steal(mem_ctx, cert_auth_info);
+        }
+
+        *_cert_list = cert_list;
     }
 
     talloc_free(tmp_ctx);
@@ -271,12 +527,11 @@ struct pam_check_cert_state {
     struct sss_child_ctx_old *child_ctx;
     struct tevent_timer *timeout_handler;
     struct tevent_context *ev;
+    struct sss_certmap_ctx *sss_certmap_ctx;
 
     struct child_io_fds *io;
-    char *cert;
-    char *token_name;
-    char *module_name;
-    char *key_id;
+
+    struct cert_auth_info *cert_list;
 };
 
 static void p11_child_write_done(struct tevent_req *subreq);
@@ -291,6 +546,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        const char *nss_db,
                                        time_t timeout,
                                        const char *verify_opts,
+                                       struct sss_certmap_ctx *sss_certmap_ctx,
                                        struct pam_data *pd)
 {
     errno_t ret;
@@ -301,10 +557,13 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct timeval tv;
     int pipefd_to_child[2] = PIPE_INIT;
     int pipefd_from_child[2] = PIPE_INIT;
-    const char *extra_args[7] = { NULL };
+    const char *extra_args[13] = { NULL };
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
     size_t arg_c;
+    const char *module_name = NULL;
+    const char *token_name = NULL;
+    const char *key_id = NULL;
 
     req = tevent_req_create(mem_ctx, &state, struct pam_check_cert_state);
     if (req == NULL) {
@@ -317,6 +576,12 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (sss_certmap_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing certificate matching context.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     /* extra_args are added in revers order */
     arg_c = 0;
     extra_args[arg_c++] = nss_db;
@@ -325,6 +590,32 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         extra_args[arg_c++] = verify_opts;
         extra_args[arg_c++] = "--verify";
     }
+
+    if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_SC_PIN
+                || sss_authtok_get_type(pd->authtok)
+                                          == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+        ret = sss_authtok_get_sc(pd->authtok, NULL, NULL, &token_name, NULL,
+                                                          &module_name, NULL,
+                                                          &key_id, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
+            goto done;
+        }
+
+        if (module_name != NULL && *module_name != '\0') {
+            extra_args[arg_c++] = module_name;
+            extra_args[arg_c++] = "--module_name";
+        }
+        if (token_name != NULL && *token_name != '\0') {
+            extra_args[arg_c++] = token_name;
+            extra_args[arg_c++] = "--token_name";
+        }
+        if (key_id != NULL && *key_id != '\0') {
+            extra_args[arg_c++] = key_id;
+            extra_args[arg_c++] = "--key_id";
+        }
+    }
+
     if (pd->cmd == SSS_PAM_AUTHENTICATE) {
         extra_args[arg_c++] = "--auth";
         switch (sss_authtok_get_type(pd->authtok)) {
@@ -339,6 +630,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
             ret = EINVAL;
             goto done;
         }
+
     } else if (pd->cmd == SSS_PAM_PREAUTH) {
         extra_args[arg_c++] = "--pre";
     } else {
@@ -348,10 +640,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
+    state->sss_certmap_ctx = sss_certmap_ctx;
     state->child_status = EFAULT;
-    state->cert = NULL;
-    state->token_name = NULL;
-    state->module_name = NULL;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
@@ -514,11 +804,10 @@ static void p11_child_done(struct tevent_req *subreq)
 
     PIPE_FD_CLOSE(state->io->read_from_child_fd);
 
-    ret = parse_p11_child_response(state, buf, buf_len, &state->cert,
-                                   &state->token_name, &state->module_name,
-                                   &state->key_id);
+    ret = parse_p11_child_response(state, buf, buf_len, state->sss_certmap_ctx,
+                                   &state->cert_list);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "parse_p11_child_respose failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "parse_p11_child_response failed.\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -543,28 +832,134 @@ static void p11_child_timeout(struct tevent_context *ev,
 }
 
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                            char **cert, char **token_name, char **module_name,
-                            char **key_id)
+                            struct cert_auth_info **cert_list)
 {
+    struct cert_auth_info *tmp_cert_auth_info;
     struct pam_check_cert_state *state =
                               tevent_req_data(req, struct pam_check_cert_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (cert != NULL) {
-        *cert = talloc_steal(mem_ctx, state->cert);
+    if (cert_list != NULL) {
+        DLIST_FOR_EACH(tmp_cert_auth_info, state->cert_list) {
+            talloc_steal(mem_ctx, tmp_cert_auth_info);
+        }
+
+        *cert_list = state->cert_list;
     }
 
-    if (token_name != NULL) {
-        *token_name = talloc_steal(mem_ctx, state->token_name);
+    return EOK;
+}
+
+static char *get_cert_prompt(TALLOC_CTX *mem_ctx,
+                             struct cert_auth_info *cert_info)
+{
+    int ret;
+    struct sss_certmap_ctx *ctx = NULL;
+    unsigned char *der = NULL;
+    size_t der_size;
+    char *prompt = NULL;
+    char *filter = NULL;
+    char **domains = NULL;
+
+    ret = sss_certmap_init(mem_ctx, NULL, NULL, &ctx);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_init failed.\n");
+        return NULL;
     }
 
-    if (module_name != NULL) {
-        *module_name = talloc_steal(mem_ctx, state->module_name);
+    ret = sss_certmap_add_rule(ctx, 10, "KRB5:<ISSUER>.*",
+                               "LDAP:{subject_dn!nss}", NULL);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_add_rule failed.\n");
+        goto done;
     }
 
-    if (key_id != NULL) {
-        *key_id = talloc_steal(mem_ctx, state->key_id);
+    der = sss_base64_decode(mem_ctx, sss_cai_get_cert(cert_info), &der_size);
+    if (der == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+        goto done;
+    }
+
+    ret = sss_certmap_get_search_filter(ctx, der, der_size, &filter, &domains);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_get_search_filter failed.\n");
+        goto done;
+    }
+
+    prompt = talloc_asprintf(mem_ctx, "%s\n%s", sss_cai_get_label(cert_info),
+                                                filter);
+    if (prompt == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+    }
+
+done:
+    sss_certmap_free_filter_and_domains(filter, domains);
+    sss_certmap_free_ctx(ctx);
+    talloc_free(der);
+
+    return prompt;
+}
+
+static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
+                              struct cert_auth_info *cert_info,
+                              uint8_t **_msg, size_t *_msg_len)
+{
+    uint8_t *msg = NULL;
+    size_t msg_len;
+    const char *token_name;
+    const char *module_name;
+    const char *key_id;
+    char *prompt;
+    size_t user_len;
+    size_t token_len;
+    size_t module_len;
+    size_t key_id_len;
+    size_t prompt_len;
+    const char *username = "";
+
+    if (sysdb_username != NULL) {
+        username = sysdb_username;
+    }
+
+    prompt = get_cert_prompt(mem_ctx, cert_info);
+    if (prompt == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_cert_prompt failed.\n");
+        return EIO;
+    }
+
+    token_name = sss_cai_get_token_name(cert_info);
+    module_name = sss_cai_get_module_name(cert_info);
+    key_id = sss_cai_get_key_id(cert_info);
+
+    user_len = strlen(username) + 1;
+    token_len = strlen(token_name) + 1;
+    module_len = strlen(module_name) + 1;
+    key_id_len = strlen(key_id) + 1;
+    prompt_len = strlen(prompt) + 1;
+    msg_len = user_len + token_len + module_len + key_id_len + prompt_len;
+
+    msg = talloc_zero_size(mem_ctx, msg_len);
+    if (msg == NULL) {
+        talloc_free(prompt);
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
+        return ENOMEM;
+    }
+
+    memcpy(msg, username, user_len);
+    memcpy(msg + user_len, token_name, token_len);
+    memcpy(msg + user_len + token_len, module_name, module_len);
+    memcpy(msg + user_len + token_len + module_len, key_id, key_id_len);
+    memcpy(msg + user_len + token_len + module_len + key_id_len,
+           prompt, prompt_len);
+    talloc_free(prompt);
+
+    if (_msg != NULL) {
+        *_msg = msg;
+    }
+
+    if (_msg_len != NULL) {
+        *_msg_len = msg_len;
     }
 
     return EOK;
@@ -579,18 +974,13 @@ errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 #define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
 
 errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
-                              const char *token_name, const char *module_name,
-                              const char *key_id, enum response_type type)
+                              struct cert_auth_info *cert_info,
+                              enum response_type type)
 {
     uint8_t *msg = NULL;
     char *env = NULL;
-    size_t user_len;
     size_t msg_len;
-    size_t slot_len;
-    size_t module_len;
-    size_t key_id_len;
     int ret;
-    const char *username = "";
 
     if (type != SSS_PAM_CERT_INFO && type != SSS_PAM_CERT_INFO_WITH_HINT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid response type [%d].\n", type);
@@ -598,24 +988,12 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
     }
 
     if ((type == SSS_PAM_CERT_INFO && sysdb_username == NULL)
-            || token_name == NULL || module_name == NULL || key_id == NULL) {
+            || cert_info == NULL
+            || sss_cai_get_token_name(cert_info) == NULL
+            || sss_cai_get_module_name(cert_info) == NULL
+            || sss_cai_get_key_id(cert_info) == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing mandatory user or slot name.\n");
         return EINVAL;
-    }
-
-    if (sysdb_username != NULL) {
-        username = sysdb_username;
-    }
-    user_len = strlen(username) + 1;
-    slot_len = strlen(token_name) + 1;
-    module_len = strlen(module_name) + 1;
-    key_id_len = strlen(key_id) + 1;
-    msg_len = user_len + slot_len + module_len + key_id_len;
-
-    msg = talloc_zero_size(pd, msg_len);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
-        return ENOMEM;
     }
 
     /* sysdb_username is a fully-qualified name which is used by pam_sss when
@@ -625,10 +1003,12 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
      * re_expression config option was set in a way that user@domain cannot be
      * handled anymore some more logic has to be added here. But for the time
      * being I think using sysdb_username is fine. */
-    memcpy(msg, username, user_len);
-    memcpy(msg + user_len, token_name, slot_len);
-    memcpy(msg + user_len + slot_len, module_name, module_len);
-    memcpy(msg + user_len + slot_len + module_len, key_id, key_id_len);
+
+    ret = pack_cert_data(pd, sysdb_username, cert_info, &msg, &msg_len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "pack_cert_data failed.\n");
+        return ret;
+    }
 
     ret = pam_add_response(pd, type, msg_len, msg);
     talloc_free(msg);
@@ -640,7 +1020,7 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
 
     if (strcmp(pd->service, "gdm-smartcard") == 0) {
         env = talloc_asprintf(pd, "%s=%s", PKCS11_LOGIN_TOKEN_ENV_NAME,
-                              token_name);
+                              sss_cai_get_token_name(cert_info));
         if (env == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
             return ENOMEM;

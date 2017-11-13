@@ -481,6 +481,8 @@ dist_noinst_DATA = \
     contrib/ci/sssd.supp \
     src/tests/cmocka/p11_nssdb/cert9.db \
     src/tests/cmocka/p11_nssdb/key4.db \
+    src/tests/cmocka/p11_nssdb_2certs/cert9.db \
+    src/tests/cmocka/p11_nssdb_2certs/key4.db \
     $(SYSTEMTAP_PROBES) \
     $(NULL)
 
@@ -1399,6 +1401,7 @@ sssd_pam_LDADD = \
     $(PAM_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_certmap.la \
     $(NULL)
 
 if BUILD_SUDO
@@ -2421,6 +2424,7 @@ pam_srv_tests_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
+    libsss_certmap.la \
     $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \

@@ -27,6 +27,7 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
+#include "lib/certmap/sss_certmap.h"
 
 struct pam_auth_req;
 
@@ -49,6 +50,7 @@ struct pam_ctx {
     bool cert_auth;
     int p11_child_debug_fd;
     char *nss_db;
+    struct sss_certmap_ctx *sss_certmap_ctx;
 };
 
 struct pam_auth_dp_req {
@@ -73,10 +75,8 @@ struct pam_auth_req {
     struct pam_auth_dp_req *dpreq_spy;
 
     struct ldb_message *user_obj;
-    struct ldb_result *cert_user_objs;
-    char *token_name;
-    char *module_name;
-    char *key_id;
+    struct cert_auth_info *cert_list;
+    struct cert_auth_info *current_cert;
     bool cert_auth_local;
 };
 
@@ -88,22 +88,38 @@ int LOCAL_pam_handler(struct pam_auth_req *preq);
 
 errno_t p11_child_init(struct pam_ctx *pctx);
 
+struct cert_auth_info;
+const char *sss_cai_get_cert(struct cert_auth_info *i);
+const char *sss_cai_get_token_name(struct cert_auth_info *i);
+const char *sss_cai_get_module_name(struct cert_auth_info *i);
+const char *sss_cai_get_key_id(struct cert_auth_info *i);
+const char *sss_cai_get_label(struct cert_auth_info *i);
+struct cert_auth_info *sss_cai_get_next(struct cert_auth_info *i);
+struct ldb_result *sss_cai_get_cert_user_objs(struct cert_auth_info *i);
+void sss_cai_set_cert_user_objs(struct cert_auth_info *i,
+                                struct ldb_result *cert_user_objs);
+void sss_cai_check_users(struct cert_auth_info **list, size_t *_cert_count,
+                         size_t *_cert_user_count);
+
 struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
                                        int child_debug_fd,
                                        const char *nss_db,
                                        time_t timeout,
                                        const char *verify_opts,
+                                       struct sss_certmap_ctx *sss_certmap_ctx,
                                        struct pam_data *pd);
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                            char **cert, char **token_name, char **module_name,
-                            char **key_id);
+                            struct cert_auth_info **cert_list);
 
 errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
-                              const char *token_name, const char *module_name,
-                              const char *key_id, enum response_type type);
+                              struct cert_auth_info *cert_info,
+                              enum response_type type);
 
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd);
+
+errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
+                                struct certmap_info **certmap_list);
 
 errno_t
 pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,
