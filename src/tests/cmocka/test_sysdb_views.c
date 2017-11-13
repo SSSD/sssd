@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
@@ -588,6 +589,31 @@ static int test_enum_users_setup(void **state)
     return 0;
 }
 
+static int cmp_func(const void *a, const void *b)
+{
+    const char *str1;
+    const char *str2;
+    struct ldb_message *msg1 = *(struct ldb_message **)discard_const(a);
+    struct ldb_message *msg2 = *(struct ldb_message **)discard_const(b);
+
+    str1 = ldb_msg_find_attr_as_string(msg1, SYSDB_NAME, NULL);
+    str2 = ldb_msg_find_attr_as_string(msg2, SYSDB_NAME, NULL);
+
+    return strcmp(str1, str2);
+}
+
+/* Make the order of ldb results deterministic */
+static void order_ldb_res_msgs(struct ldb_result *res)
+{
+    if (res == NULL || res->count < 2) {
+        /* Nothing to do */
+        return;
+    }
+
+    qsort(res->msgs, res->count, sizeof(struct ldb_message *), cmp_func);
+    return;
+}
+
 static void assert_user_attrs(struct ldb_message *msg,
                               const char *name,
                               bool has_views)
@@ -627,8 +653,10 @@ static void check_enumpwent(int ret, struct ldb_result *res, bool views)
 {
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, N_ELEMENTS(users)-1);
-    assert_user_attrs(res->msgs[0], "barney", views);
-    assert_user_attrs(res->msgs[1], "alice", views);
+
+    order_ldb_res_msgs(res);
+    assert_user_attrs(res->msgs[0], "alice", views);
+    assert_user_attrs(res->msgs[1], "barney", views);
     assert_user_attrs(res->msgs[2], "bob", views);
 }
 
@@ -670,6 +698,7 @@ static void test_sysdb_enumpwent_filter(void **state)
     ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "b*", 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 2);
+    order_ldb_res_msgs(res);
     assert_user_attrs(res->msgs[0], "barney", false);
     assert_user_attrs(res->msgs[1], "bob", false);
 
@@ -716,6 +745,7 @@ static void test_sysdb_enumpwent_filter_views(void **state)
                                             "b*", NULL, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 2);
+    order_ldb_res_msgs(res);
     assert_user_attrs(res->msgs[0], "barney", true);
     assert_user_attrs(res->msgs[1], "bob", true);
 
@@ -854,8 +884,9 @@ static void check_enumgrent(int ret, struct ldb_result *res, bool views)
 {
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, N_ELEMENTS(groups)-1);
-    assert_group_attrs(res->msgs[0], "three", views ? TEST_GID_OVERRIDE_BASE + 2 : 0);
-    assert_group_attrs(res->msgs[1], "one", views ? TEST_GID_OVERRIDE_BASE : 0);
+    order_ldb_res_msgs(res);
+    assert_group_attrs(res->msgs[0], "one", views ? TEST_GID_OVERRIDE_BASE : 0);
+    assert_group_attrs(res->msgs[1], "three", views ? TEST_GID_OVERRIDE_BASE + 2 : 0);
     assert_group_attrs(res->msgs[2], "two", views ? TEST_GID_OVERRIDE_BASE + 1 : 0);
 }
 
@@ -897,6 +928,7 @@ static void test_sysdb_enumgrent_filter(void **state)
     ret = sysdb_enumgrent_filter(test_ctx, test_ctx->domain, "t*", 0, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 2);
+    order_ldb_res_msgs(res);
     assert_group_attrs(res->msgs[0], "three", 0);
     assert_group_attrs(res->msgs[1], "two", 0);
 
@@ -942,6 +974,7 @@ static void test_sysdb_enumgrent_filter_views(void **state)
                                             "t*", NULL, &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 2);
+    order_ldb_res_msgs(res);
     assert_group_attrs(res->msgs[0], "three", TEST_GID_OVERRIDE_BASE + 2);
     assert_group_attrs(res->msgs[1], "two", TEST_GID_OVERRIDE_BASE + 1);
 
