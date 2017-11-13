@@ -585,6 +585,25 @@ static errno_t delete_group(struct nss_test_ctx *ctx,
     return ret;
 }
 
+static int cmp_func(const void *a, const void *b)
+{
+    char *str1 = *(char **)discard_const(a);
+    char *str2 = *(char **)discard_const(b);
+
+    return strcmp(str1, str2);
+}
+
+static void order_string_array(char **_list, int size)
+{
+    if (size < 2 || _list == NULL || *_list == NULL) {
+        /* Nothing to do */
+        return;
+    }
+
+    qsort(_list, size, sizeof(char *), cmp_func);
+    return;
+}
+
 static void assert_groups_equal(struct group *expected,
                                 struct group *gr, const int nmem)
 {
@@ -593,6 +612,9 @@ static void assert_groups_equal(struct group *expected,
     assert_int_equal(gr->gr_gid, expected->gr_gid);
     assert_string_equal(gr->gr_name, expected->gr_name);
     assert_string_equal(gr->gr_passwd, expected->gr_passwd);
+
+    order_string_array(gr->gr_mem, nmem);
+    order_string_array(expected->gr_mem, nmem);
 
     for (i = 0; i < nmem; i++) {
         assert_string_equal(gr->gr_mem[i], expected->gr_mem[i]);
