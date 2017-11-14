@@ -359,8 +359,48 @@ static errno_t sysdb_ts_cache_upgrade(TALLOC_CTX *mem_ctx,
                                       const char *cur_version,
                                       const char **_new_version)
 {
-    /* Currently the sysdb cache only has one version */
-    return EFAULT;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    const char *version;
+    struct ldb_context *save_ldb;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* The upgrade process depends on having ldb around, yet the upgrade
+     * function shouldn't set the ldb pointer, only the connect function
+     * should after it's successful. To avoid hard refactoring, save the
+     * ldb pointer here and restore in the 'done' handler
+     */
+    save_ldb = sysdb->ldb;
+    sysdb->ldb = ldb;
+
+    version = talloc_strdup(tmp_ctx, cur_version);
+    if (version == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Upgrading timstamp cache of DB [%s] from version: %s\n",
+          domain->name, version);
+
+    if (strcmp(version, SYSDB_TS_VERSION_0_1) == 0) {
+        ret = sysdb_ts_upgrade_01(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    sysdb->ldb = save_ldb;
+    *_new_version = version;
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
@@ -510,6 +550,14 @@ static errno_t sysdb_domain_cache_upgrade(TALLOC_CTX *mem_ctx,
             goto done;
         }
     }
+
+    if (strcmp(version, SYSDB_VERSION_0_19) == 0) {
+        ret = sysdb_upgrade_19(sysdb, &version);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
 
     ret = EOK;
 done:
