@@ -338,7 +338,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         goto done;
     }
     ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
-                     basedn, LDB_SCOPE_ONELEVEL,
+                     basedn, LDB_SCOPE_SUBTREE,
                      attrs, "objectclass=%s", SYSDB_SUBDOMAIN_CLASS);
     if (ret != LDB_SUCCESS) {
         ret = EIO;

@@ -384,7 +384,7 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, mapdn, LDB_SCOPE_ONELEVEL,
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, mapdn, LDB_SCOPE_SUBTREE,
                              filter, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb search failed: %d\n", ret);

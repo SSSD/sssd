@@ -1449,7 +1449,7 @@ void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
     }
 
     ret = sysdb_search_entry(sbus_req, domain->sysdb, basedn,
-                             LDB_SCOPE_ONELEVEL, filter,
+                             LDB_SCOPE_SUBTREE, filter,
                              extra, &count, &user);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lookup user [%d]: %s\n",
