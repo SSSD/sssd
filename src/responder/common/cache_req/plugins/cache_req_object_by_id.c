@@ -31,7 +31,7 @@ cache_req_object_by_id_create_debug_name(TALLOC_CTX *mem_ctx,
                                          struct cache_req_data *data,
                                          struct sss_domain_info *domain)
 {
-    return talloc_asprintf(mem_ctx, "ID:%d@%s", data->id, domain->name);
+    return talloc_asprintf(mem_ctx, "ID:%"PRIu32"@%s", data->id, domain->name);
 }
 
 static errno_t
