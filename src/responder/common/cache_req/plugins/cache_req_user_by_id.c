@@ -64,6 +64,7 @@ cache_req_user_by_id_lookup(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info *domain,
                             struct ldb_result **_result)
 {
+    cache_req_idminmax_check(data, domain);
     return sysdb_getpwuid_with_views(mem_ctx, domain, data->id, _result);
 }
 
