@@ -4909,7 +4909,6 @@ errno_t sysdb_search_object_by_id(TALLOC_CTX *mem_ctx,
     if (filter == NULL) {
         return ENOMEM;
     }
-
     ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, true, res);
 
     talloc_free(filter);

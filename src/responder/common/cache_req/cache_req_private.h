@@ -177,4 +177,6 @@ bool
 cache_req_common_dp_recv(struct tevent_req *subreq,
                          struct cache_req *cr);
 
+errno_t cache_req_idminmax_check(struct cache_req_data *data,
+                                 struct sss_domain_info *domain);
 #endif /* _CACHE_REQ_PRIVATE_H_ */

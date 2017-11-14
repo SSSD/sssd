@@ -202,6 +202,11 @@ static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
                         "Object [%s] was not found in cache\n",
                         cr->debugobj);
         break;
+    case ERR_UID_OUTSIDE_RANGE:
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+			"gid exceeds domain->minID "
+			"domain->maxID boundaries exceeded\n");
+        break;
     default:
         CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                         "Unable to lookup [%s] in cache [%d]: %s\n",
