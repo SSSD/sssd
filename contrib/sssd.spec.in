@@ -240,7 +240,7 @@ BuildRequires: jansson-devel
 BuildRequires: libcurl-devel
 %endif
 %if (0%{?with_gdm_pam_extensions} == 1)
-BuildRequires: gdm-devel
+BuildRequires: gdm-pam-extensions-devel
 %endif
 
 %description
