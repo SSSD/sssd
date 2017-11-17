@@ -953,7 +953,9 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
 
         ret = sysdb_attrs_get_string(state->netgroups[i], SYSDB_NETGROUP_DOMAIN,
                                      &domain);
-        if (ret != EOK) {
+        if (ret == ENOENT) {
+            domain = NULL;
+        } else if (ret != EOK) {
             goto done;
         }
 
@@ -974,7 +976,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
                 for (k = 0; k < hosts_count; k++) {
                     triple = talloc_asprintf(state, "(%s,%s,%s)",
                                              hosts[k], uids[j],
-                                             domain);
+                                             domain ? domain : "");
                     if (triple == NULL) {
                         ret = ENOMEM;
                         goto done;
