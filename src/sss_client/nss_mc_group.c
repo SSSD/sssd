@@ -148,20 +148,20 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
         }
 
         data = (struct sss_mc_grp_data *)rec->data;
+        rec_name = (char *)data + data->name;
         /* Integrity check
-         * - name_len cannot be longer than all strings
          * - data->name cannot point outside strings
          * - all strings must be within copy of record
-         * - size of record must be lower that data table size */
-        if (name_len > data->strs_len
-            || (data->name + name_len) > (strs_offset + data->strs_len)
+         * - record must not end outside data table
+         * - rec_name is a zero-terminated string */
+        if (data->name < strs_offset
+            || data->name >= strs_offset + data->strs_len
             || data->strs_len > rec->len
-            || rec->len > data_size) {
+            || (uint8_t *) rec + rec->len > gr_mc_ctx.data_table + data_size) {
             ret = ENOENT;
             goto done;
         }
 
-        rec_name = (char *)data + data->name;
         if (strcmp(name, rec_name) == 0) {
             break;
         }
