@@ -363,6 +363,53 @@ static void cache_req_global_ncache_add(struct cache_req *cr)
     return;
 }
 
+static bool cache_req_check_acct_domain_lookup_type(struct cache_req *cr,
+                                                    struct sss_domain_info *dom)
+{
+    struct sss_domain_info *head;
+    int nret;
+
+    head = get_domains_head(dom);
+    if (head == NULL) {
+        return false;
+    }
+
+    nret = sss_ncache_check_domain_locate_type(cr->rctx->ncache,
+                                               head,
+                                               cr->plugin->name);
+    if (nret == ENOENT) {
+        return true;
+    }
+    return false;
+}
+
+static errno_t cache_req_set_acct_domain_lookup_type(struct cache_req *cr,
+                                                     struct sss_domain_info *dom)
+{
+    struct sss_domain_info *head;
+
+    head = get_domains_head(dom);
+    if (head == NULL) {
+        return EINVAL;
+    }
+
+    return sss_ncache_set_domain_locate_type(cr->rctx->ncache,
+                                             head,
+                                             cr->plugin->name);
+}
+
+static void cache_req_domain_set_locate_flag(struct cache_req_domain *domains,
+                                             struct cache_req *cr)
+{
+    struct cache_req_domain *crd_iter;
+
+    DLIST_FOR_EACH(crd_iter, domains) {
+        if (cache_req_check_acct_domain_lookup_type(cr, crd_iter->domain)) {
+            crd_iter->locate_domain = true;
+        }
+    }
+}
+
 static bool
 cache_req_assume_upn(struct cache_req *cr)
 {
@@ -391,6 +438,227 @@ cache_req_assume_upn(struct cache_req *cr)
     return true;
 }
 
+struct cache_req_locate_dom_state {
+    /* input data */
+    struct tevent_context *ev;
+    struct cache_req *cr;
+    struct cache_req_domain *req_domains;
+
+    /* Return values in case the first cache lookup succeeds */
+    struct ldb_result *result;
+    bool dp_success;
+};
+
+static void cache_req_locate_dom_cache_done(struct tevent_req *subreq);
+static void cache_req_locate_dom_done(struct tevent_req *subreq);
+static void cache_req_locate_dom_mark_neg_all(
+                                struct cache_req_locate_dom_state *state);
+static void cache_req_locate_dom_mark_neg_domains(
+                                struct cache_req_locate_dom_state *state,
+                                const char *found_domain_name);
+
+static struct tevent_req *cache_req_locate_dom_send(TALLOC_CTX *mem_ctx,
+                                                    struct tevent_context *ev,
+                                                    struct cache_req *cr,
+                                                    struct cache_req_domain *req_domains)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct cache_req_locate_dom_state *state = NULL;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct cache_req_locate_dom_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+    state->ev = ev;
+    state->cr = cr;
+    state->req_domains = req_domains;
+
+    /* It is wasteful to run the domain locator request if the results are
+     * present in the cache, because the domain locator always contacts
+     * the DP. Therefore, first run a cache-only search and only if the
+     * requested data is not available, run the locator
+     *
+     * FIXME - this could be optimized further if we are running the
+     * second iteration with cache_first, then we don't need to search
+     * again
+     */
+    subreq = cache_req_search_send(state,
+                                   state->ev,
+                                   state->cr,
+                                   false,       /* Don't bypass cache */
+                                   true);       /* Do bypass DP */
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    tevent_req_set_callback(subreq, cache_req_locate_dom_cache_done, req);
+
+    return req;
+
+immediately:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void cache_req_locate_dom_cache_done(struct tevent_req *subreq)
+{
+    struct cache_req_locate_dom_state *state = NULL;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct cache_req_locate_dom_state);
+
+    ret = cache_req_search_recv(state, subreq, &state->result, &state->dp_success);
+    talloc_zfree(subreq);
+
+    switch (ret) {
+    case EOK:
+        /* Just finish the request and let the caller handle the result */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Result found in the cache\n");
+        tevent_req_done(req);
+        return;
+    case ENOENT:
+        /* Not cached and locator was requested, run the locator
+         * DP request plugin
+         */
+        subreq = cache_req_locate_domain_send(state,
+                                              state->ev,
+                                              state->cr);
+        if (subreq == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, cache_req_locate_dom_done, req);
+        return;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE,
+              "cache_req_search_recv returned [%d]: %s\n", ret, sss_strerror(ret));
+        break;
+    }
+
+    tevent_req_error(req, ret);
+    return;
+}
+
+static void cache_req_locate_dom_done(struct tevent_req *subreq)
+{
+    struct cache_req_locate_dom_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+    char *found_domain_name;
+    int nret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct cache_req_locate_dom_state);
+
+    ret = cache_req_locate_domain_recv(state, subreq, &found_domain_name);
+    talloc_zfree(subreq);
+    switch (ret) {
+    case ERR_GET_ACCT_DOM_NOT_SUPPORTED:
+        nret = cache_req_set_acct_domain_lookup_type(state->cr,
+                                                     state->cr->domain);
+        if (nret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to disable domain locating functionality for %s\n",
+                  state->cr->plugin->name);
+        }
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Disabled domain locating functionality for %s\n",
+              state->cr->plugin->name);
+        break;
+    case ERR_NOT_FOUND:
+        cache_req_locate_dom_mark_neg_all(state);
+        break;
+    case EOK:
+        cache_req_locate_dom_mark_neg_domains(state, found_domain_name);
+        break;
+    default:
+        /* We explicitly ignore errors here */
+        break;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+static void cache_req_locate_dom_mark_neg_all(
+                                struct cache_req_locate_dom_state *state)
+{
+    struct cache_req_domain *iter;
+
+    DLIST_FOR_EACH(iter, state->req_domains) {
+        if (get_domains_head(state->cr->domain) != get_domains_head(iter->domain)) {
+            /* Only add to negative cache for domains from the same "main"
+             * domain" */
+            continue;
+        }
+        cache_req_search_ncache_add_to_domain(state->cr, iter->domain);
+    }
+}
+
+static void cache_req_locate_dom_mark_neg_domains(
+                                struct cache_req_locate_dom_state *state,
+                                const char *found_domain_name)
+{
+    struct sss_domain_info *found_domain;
+    struct cache_req_domain *iter;
+
+    found_domain = find_domain_by_name(get_domains_head(state->cr->domain),
+                                       found_domain_name,
+                                       true);
+    if (found_domain == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+                "Cannot find domain %s\n", found_domain_name);
+        return;
+    }
+
+    /* Set negcache in all subdomains of the one being examined
+     * except the found one */
+    DLIST_FOR_EACH(iter, state->req_domains) {
+        if (strcasecmp(found_domain_name,
+                       iter->domain->name) == 0) {
+            continue;
+        }
+
+        if (get_domains_head(found_domain) != get_domains_head(iter->domain)) {
+            /* Don't set negative cache for domains outside the main
+             * domain/subdomain tree b/c the locator request is not
+             * authoritative for them
+             */
+            continue;
+        }
+        cache_req_search_ncache_add_to_domain(state->cr, iter->domain);
+    }
+}
+
+static errno_t cache_req_locate_dom_cache_recv(TALLOC_CTX *mem_ctx,
+                                               struct tevent_req *req,
+                                               struct ldb_result **_result,
+                                               bool *_dp_success)
+{
+    struct cache_req_locate_dom_state *state;
+
+    state = tevent_req_data(req, struct cache_req_locate_dom_state);
+
+    if (_dp_success != NULL) {
+        *_dp_success = state->dp_success;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_result != NULL) {
+        *_result = talloc_steal(mem_ctx, state->result);
+    }
+
+    return EOK;
+}
+
 struct cache_req_search_domains_state {
     /* input data */
     struct tevent_context *ev;
@@ -398,6 +666,7 @@ struct cache_req_search_domains_state {
 
     /* work data */
     struct cache_req_domain *cr_domain;
+    struct cache_req_domain *req_domains;
     struct sss_domain_info *selected_domain;
     struct cache_req_result **results;
     size_t num_results;
@@ -408,6 +677,10 @@ struct cache_req_search_domains_state {
 };
 
 static errno_t cache_req_search_domains_next(struct tevent_req *req);
+static errno_t cache_req_handle_result(struct tevent_req *req,
+                                       struct ldb_result *result);
+
+static void cache_req_search_domains_locate_done(struct tevent_req *subreq);
 
 static void cache_req_search_domains_done(struct tevent_req *subreq);
 
@@ -417,6 +690,7 @@ cache_req_search_domains_send(TALLOC_CTX *mem_ctx,
                               struct cache_req *cr,
                               struct cache_req_domain *cr_domain,
                               bool check_next,
+                              bool first_iteration,
                               bool bypass_cache,
                               bool bypass_dp)
 {
@@ -435,10 +709,22 @@ cache_req_search_domains_send(TALLOC_CTX *mem_ctx,
     state->cr = cr;
 
     state->cr_domain = cr_domain;
+    state->req_domains = cr_domain;
     state->check_next = check_next;
     state->dp_success = true;
     state->bypass_cache = bypass_cache;
     state->bypass_dp = bypass_dp;
+
+    if (cr->plugin->dp_get_domain_send_fn != NULL
+            && ((state->check_next && cr_domain->next != NULL)
+                || (state->bypass_cache && !first_iteration))) {
+        /* If the request is not qualified with a domain name AND
+         * there are multiple domains to search OR if this is the second
+         * pass during the "check-cache-first" schema, it makes sense
+         * to try to run the domain-locator plugin
+         */
+        cache_req_domain_set_locate_flag(cr_domain, cr);
+    }
 
     ret = cache_req_search_domains_next(req);
     if (ret == EAGAIN) {
@@ -510,12 +796,23 @@ static errno_t cache_req_search_domains_next(struct tevent_req *req)
             return ret;
         }
 
+        if (state->cr_domain->locate_domain) {
+            subreq = cache_req_locate_dom_send(state,
+                                               state->ev,
+                                               cr,
+                                               state->req_domains);
+            if (subreq == NULL) {
+                return ENOMEM;
+            }
+            tevent_req_set_callback(subreq, cache_req_search_domains_locate_done, req);
+            return EAGAIN;
+        }
+
         subreq = cache_req_search_send(state, state->ev, cr,
                                        state->bypass_cache, state->bypass_dp);
         if (subreq == NULL) {
             return ENOMEM;
         }
-
         tevent_req_set_callback(subreq, cache_req_search_domains_done, req);
 
         /* we will continue with the following domain the next time */
@@ -549,6 +846,89 @@ static errno_t cache_req_search_domains_next(struct tevent_req *req)
     return ENOENT;
 }
 
+static void cache_req_search_domains_locate_done(struct tevent_req *subreq)
+{
+    struct cache_req_search_domains_state *state;
+    struct ldb_result *result = NULL;
+    struct tevent_req *req;
+    bool dp_success;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct cache_req_search_domains_state);
+
+    ret = cache_req_locate_dom_cache_recv(state, subreq, &result, &dp_success);
+    talloc_zfree(subreq);
+
+    /* Remember if any DP request fails, but here it shouldn't matter
+     * as the only DP request that should realistically happen is midpoint
+     * refresh */
+    state->dp_success = !dp_success ? false : state->dp_success;
+
+    /* Don't locate the domain again */
+    state->cr_domain->locate_domain = false;
+
+    switch (ret) {
+    case EOK:
+        if (result != NULL) {
+            /* Handle result as normally */
+            ret = cache_req_handle_result(req, result);
+            if (ret != EAGAIN) {
+                goto done;
+            }
+        }
+        break;
+    default:
+        /* Some serious error has happened. Finish. */
+        goto done;
+    }
+
+    /* This is a domain less search, continue with the next domain. */
+    ret = cache_req_search_domains_next(req);
+
+done:
+    switch (ret) {
+    case EOK:
+        tevent_req_done(req);
+        break;
+    case EAGAIN:
+        break;
+    default:
+        tevent_req_error(req, ret);
+        break;
+    }
+    return;
+}
+
+static errno_t cache_req_handle_result(struct tevent_req *req,
+                                       struct ldb_result *result)
+{
+    struct cache_req_search_domains_state *state;
+    errno_t ret;
+
+    state = tevent_req_data(req, struct cache_req_search_domains_state);
+
+    /* We got some data from this search. Save it. */
+    ret = cache_req_create_and_add_result(state,
+                                          state->cr,
+                                          state->selected_domain,
+                                          result,
+                                          state->cr->data->name.lookup,
+                                          &state->results,
+                                          &state->num_results);
+    if (ret != EOK) {
+        /* We were unable to save data. */
+        return ret;
+    }
+
+    if (!state->check_next || !state->cr->plugin->search_all_domains) {
+        /* We are not interested in more results. */
+        return EOK;
+    }
+
+    return EAGAIN;
+}
+
 static void cache_req_search_domains_done(struct tevent_req *subreq)
 {
     struct cache_req_search_domains_state *state;
@@ -568,25 +948,10 @@ static void cache_req_search_domains_done(struct tevent_req *subreq)
 
     switch (ret) {
     case EOK:
-        /* We got some data from this search. Save it. */
-        ret = cache_req_create_and_add_result(state,
-                                              state->cr,
-                                              state->selected_domain,
-                                              result,
-                                              state->cr->data->name.lookup,
-                                              &state->results,
-                                              &state->num_results);
-        if (ret != EOK) {
-            /* We were unable to save data. */
+        ret = cache_req_handle_result(req, result);
+        if (ret != EAGAIN) {
             goto done;
         }
-
-        if (!state->check_next || !state->cr->plugin->search_all_domains) {
-            /* We are not interested in more results. */
-            ret = EOK;
-            goto done;
-        }
-
         break;
     case ENOENT:
         if (state->check_next == false) {
@@ -1030,6 +1395,7 @@ cache_req_search_domains(struct tevent_req *req,
 
     subreq = cache_req_search_domains_send(state, state->ev, state->cr,
                                            cr_domain, check_next,
+                                           state->first_iteration,
                                            bypass_cache, bypass_dp);
     if (subreq == NULL) {
         return ENOMEM;
