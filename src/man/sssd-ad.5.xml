@@ -84,9 +84,16 @@
             <programlisting>
 ldap_id_mapping = False
             </programlisting>
-            In order to retrieve users and groups using POSIX attributes from trusted
-            domains, the AD administrator must make sure that the POSIX attributes
-            are replicated to the Global Catalog.
+            If POSIX attributes should be used, it is recommended for
+            performance reasons that the attributes are also replicated
+            to the Global Catalog. If POSIX attributes are replicated,
+            SSSD will attempt to locate the domain of a requested
+            numerical ID with the help of the Global Catalog and only
+            search that domain. In contrast, if POSIX attributes are not
+            replicated to the Global Catalog, SSSD must search all the
+            domains in the forest sequentially. Please note that that the
+            <quote>cache_first</quote> option might be also helpful in
+            speeding up domainless searches.
         </para>
         <para>
             Users, groups and other entities served by SSSD are always treated as
