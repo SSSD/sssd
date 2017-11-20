@@ -2185,10 +2185,9 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     struct ldb_result *res;
     enum sysdb_member_type type;
     char **sysdb_grouplist;
-    char **add_groups;
     char **add_groups_dns;
-    char **del_groups;
     char **del_groups_dns;
+    char **groups_dns;
     bool in_transaction = false;
     int tret;
     struct sysdb_attrs *gid_override_attrs = NULL;
@@ -2514,30 +2513,24 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             }
 
             if (attrs->response_type == RESP_USER_GROUPLIST) {
-                ret = get_sysdb_grouplist(tmp_ctx, dom->sysdb, dom, name,
-                                          &sysdb_grouplist);
+                ret = get_sysdb_grouplist_dn(tmp_ctx, dom->sysdb, dom, name,
+                                             &sysdb_grouplist);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "get_sysdb_grouplist failed.\n");
                     goto done;
                 }
 
-                ret = diff_string_lists(tmp_ctx, attrs->groups,
-                                        sysdb_grouplist, &add_groups,
-                                        &del_groups, NULL);
+                ret = get_groups_dns(tmp_ctx, dom, attrs->groups, &groups_dns);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "get_groups_dns failed.\n");
+                    goto done;
+                }
+
+                ret = diff_string_lists(tmp_ctx, groups_dns,
+                                        sysdb_grouplist, &add_groups_dns,
+                                        &del_groups_dns, NULL);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "diff_string_lists failed.\n");
-                    goto done;
-                }
-
-                ret = get_groups_dns(tmp_ctx, dom, add_groups, &add_groups_dns);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "get_groups_dns failed.\n");
-                    goto done;
-                }
-
-                ret = get_groups_dns(tmp_ctx, dom, del_groups, &del_groups_dns);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "get_groups_dns failed.\n");
                     goto done;
                 }
 
