@@ -63,6 +63,8 @@ struct ipa_resolve_user_list_state {
     struct ipa_id_ctx *ipa_ctx;
     struct ldb_message_element *users;
     const char *domain_name;
+    struct sss_domain_info *domain;
+    struct sss_domain_info *user_domain;
     size_t user_idx;
 
     int dp_error;
@@ -91,6 +93,8 @@ ipa_resolve_user_list_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     state->ev = ev;
     state->ipa_ctx = ipa_ctx;
     state->domain_name = domain_name;
+    state->domain = find_domain_by_name(state->ipa_ctx->sdap_id_ctx->be->domain,
+                                        state->domain_name, true);
     state->users = users;
     state->user_idx = 0;
     state->dp_error = DP_ERR_FATAL;
@@ -132,8 +136,17 @@ static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req)
 
     DEBUG(SSSDBG_TRACE_ALL, "Trying to resolve user [%s].\n", ar->filter_value);
 
-    if (strcasecmp(state->domain_name,
-                   state->ipa_ctx->sdap_id_ctx->be->domain->name) != 0) {
+    state->user_domain = find_domain_by_object_name_ex(
+                                        state->ipa_ctx->sdap_id_ctx->be->domain,
+                                        ar->filter_value, true);
+    /* Use provided domain as as fallback is no known domain was found in the
+     * user name. */
+    if (state->user_domain == NULL) {
+        state->user_domain = state->domain;
+    }
+    ar->domain = state->user_domain->name;
+
+    if (state->user_domain != state->ipa_ctx->sdap_id_ctx->be->domain) {
         subreq = ipa_subdomain_account_send(state, state->ev, state->ipa_ctx,
                                             ar);
     } else {
@@ -158,8 +171,7 @@ static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq)
                                             struct ipa_resolve_user_list_state);
     int ret;
 
-    if (strcasecmp(state->domain_name,
-                   state->ipa_ctx->sdap_id_ctx->be->domain->name) != 0) {
+    if (state->user_domain != state->ipa_ctx->sdap_id_ctx->be->domain) {
         ret = ipa_subdomain_account_recv(subreq, &state->dp_error);
     } else {
         ret = ipa_id_get_account_info_recv(subreq, &state->dp_error);
