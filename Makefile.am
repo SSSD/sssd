@@ -237,6 +237,7 @@ endif # HAVE_CHECK
 
 if HAVE_CMOCKA
     non_interactive_cmocka_based_tests = \
+        nss-srv-tests \
         test-find-uid \
         test-io \
         test-negcache \
@@ -259,6 +260,7 @@ if HAVE_CMOCKA
         test_sdap_certmap \
         sdap-tests \
         test_sysdb_ts_cache \
+        test_sysdb_views \
         test_sysdb_subdomains \
         test_sysdb_certmap \
         test_sysdb_sudo \
