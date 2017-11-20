@@ -174,8 +174,8 @@ sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,
 }
 
 struct sss_domain_info *
-find_domain_by_object_name(struct sss_domain_info *domain,
-                           const char *object_name)
+find_domain_by_object_name_ex(struct sss_domain_info *domain,
+                              const char *object_name, bool strict)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom = NULL;
@@ -197,7 +197,11 @@ find_domain_by_object_name(struct sss_domain_info *domain,
     }
 
     if (domainname == NULL) {
-        dom = domain;
+        if (strict) {
+            dom = NULL;
+        } else {
+            dom = domain;
+        }
     } else {
         dom = find_domain_by_name(domain, domainname, true);
     }
@@ -205,6 +209,13 @@ find_domain_by_object_name(struct sss_domain_info *domain,
 done:
     talloc_free(tmp_ctx);
     return dom;
+}
+
+struct sss_domain_info *
+find_domain_by_object_name(struct sss_domain_info *domain,
+                           const char *object_name)
+{
+    return find_domain_by_object_name_ex(domain, object_name, false);
 }
 
 errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
