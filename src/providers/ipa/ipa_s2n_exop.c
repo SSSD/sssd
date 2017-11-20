@@ -2038,6 +2038,7 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     int c;
     struct sss_domain_info *root_domain;
     char **dn_list;
+    struct ldb_message *msg;
 
     if (name_list == NULL) {
         *_dn_list = NULL;
@@ -2082,15 +2083,25 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
             goto done;
         }
 
-        /* This might fail if some unexpected cases are used. But current
-         * sysdb code which handles group membership constructs DNs this way
-         * as well, IPA names are lowercased and AD names by default will be
-         * lowercased as well. If there are really use-cases which cause an
-         * issue here, sysdb_group_strdn() has to be replaced by a proper
-         * search. */
-        dn_list[c] = sysdb_group_strdn(dn_list, dom->name, name_list[c]);
+        /* If the group name is overridden in the default view we have to
+         * search for the name and cannot construct it because the extdom
+         * plugin will return the overridden name but the DN of the related
+         * group object in the cache will contain the original name. */
+
+        ret = sysdb_search_group_by_name(tmp_ctx, dom, name_list[c], NULL,
+                                         &msg);
+        if (ret == EOK) {
+            dn_list[c] = ldb_dn_alloc_linearized(dn_list, msg->dn);
+        } else {
+            /* best effort, try to construct the DN */
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "sysdb_search_group_by_name failed with [%d], "
+                  "generating DN for [%s] in domain [%s].\n",
+                  ret, name_list[c], dom->name);
+            dn_list[c] = sysdb_group_strdn(dn_list, dom->name, name_list[c]);
+        }
         if (dn_list[c] == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_group_strdn failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_alloc_linearized failed.\n");
             ret = ENOMEM;
             goto done;
         }
