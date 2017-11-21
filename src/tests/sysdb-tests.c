@@ -157,6 +157,17 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
     }
     test_ctx->sysdb = test_ctx->domain->sysdb;
 
+    ret = sss_names_init_from_args(test_ctx->domain,
+                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
+                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   "%1$s@%2$s", &test_ctx->domain->names);
+    if (ret != EOK) {
+        fail("Could not initialize names (%d)", ret);
+        talloc_free(test_ctx);
+        return ret;
+    }
+
     test_ctx->null_pointer_size = talloc_total_size(NULL);
 
     *ctx = test_ctx;

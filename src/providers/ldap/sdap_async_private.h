@@ -157,4 +157,30 @@ errno_t sdap_check_ad_group_type(struct sss_domain_info *dom,
                                  struct sysdb_attrs *group_attrs,
                                  const char *group_name,
                                  bool *_need_filter);
+
+struct tevent_req *rfc2307bis_nested_groups_send(
+        TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+        struct sdap_options *opts, struct sysdb_ctx *sysdb,
+        struct sss_domain_info *dom, struct sdap_handle *sh,
+        struct sdap_search_base **search_bases,
+        struct sysdb_attrs **groups, size_t num_groups,
+        hash_table_t *group_hash, size_t nesting);
+errno_t rfc2307bis_nested_groups_recv(struct tevent_req *req);
+
+errno_t sdap_nested_groups_store(struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
+                                 struct sdap_options *opts,
+                                 struct sysdb_attrs **groups,
+                                 unsigned long count);
+
+struct tevent_req *
+sdap_ad_get_domain_local_groups_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sdap_domain *local_sdom,
+                                     struct sdap_options *opts,
+                                     struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *dom,
+                                     struct sysdb_attrs **groups,
+                                     size_t num_groups);
+errno_t sdap_ad_get_domain_local_groups_recv(struct tevent_req *req);
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */

@@ -2190,15 +2190,21 @@ sysdb_group_membership_mod(struct sss_domain_info *domain,
     struct ldb_dn *group_dn;
     struct ldb_dn *member_dn;
     int ret;
+    struct sss_domain_info *member_dom;
+
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
+    member_dom = find_domain_by_object_name(get_domains_head(domain), member);
+    if (member_dom == NULL) {
+        member_dom = domain;
+    }
     if (type == SYSDB_MEMBER_USER) {
-        member_dn = sysdb_user_dn(tmp_ctx, domain, member);
+        member_dn = sysdb_user_dn(tmp_ctx, member_dom, member);
     } else if (type == SYSDB_MEMBER_GROUP) {
-        member_dn = sysdb_group_dn(tmp_ctx, domain, member);
+        member_dn = sysdb_group_dn(tmp_ctx, member_dom, member);
     } else {
         ret = EINVAL;
         goto done;
