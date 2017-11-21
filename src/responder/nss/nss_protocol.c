@@ -160,6 +160,13 @@ nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
     }
 
     p = memchr(body, '\0', blen);
+    /* Although body for sure is null terminated, let's add this check here
+     * so static analyzers are happier. */
+    if (p == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "memchr() returned NULL, body is not null terminated!\n");
+        return EINVAL;
+    }
 
     /* If the body isn't valid UTF-8, fail */
     if (!sss_utf8_check(body, (p - body))) {
