@@ -548,17 +548,25 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
         }
 
         safealign_memcpy(&name_ptr, rec->data, sizeof(rel_ptr_t), NULL);
-        if (key->len > strs_len
-            || (name_ptr + key->len) > (strs_offset + strs_len)
-            || (uint8_t *)rec->data + strs_offset + strs_len > max_addr) {
+        t_key = (char *)rec->data + name_ptr;
+        /* name_ptr must point to some data in the strs/gids area of the data
+         * payload. Since it is a pointer relative to rec->data it must larger
+         * equal strs_offset and must be smaller then strs_offset + strs_len.
+         * Additionally the area must not end outside of the data table and
+         * t_key must be a zero-terminates string. */
+        if (name_ptr < strs_offset
+                || name_ptr >= strs_offset + strs_len
+                || (uint8_t *)rec->data + strs_offset + strs_len > max_addr
+                || memchr(t_key, '\0',
+                          (strs_offset + strs_len) - name_ptr) == NULL ) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Corrupted fastcache. name_ptr value is %u.\n", name_ptr);
+                  "Corrupted fastcache entry at slot %u. "
+                  "name_ptr value is %u.\n", slot, name_ptr);
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             return NULL;
         }
 
-        t_key = (char *)rec->data + name_ptr;
         if (strcmp(key->str, t_key) == 0) {
             break;
         }
