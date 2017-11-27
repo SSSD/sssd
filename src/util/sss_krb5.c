@@ -111,7 +111,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    kerr = krb5_init_context(&krb_ctx);
+    kerr = sss_krb5_init_context(&krb_ctx);
     if (kerr) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to init kerberos context\n");
         ret = EFAULT;
@@ -1094,9 +1094,9 @@ bool sss_krb5_realm_has_proxy(const char *realm)
         return false;
     }
 
-    kerr = krb5_init_context(&context);
+    kerr = sss_krb5_init_context(&context);
     if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "krb5_init_context failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sss_krb5_init_context failed.\n");
         return false;
     }
 
@@ -1134,4 +1134,23 @@ done:
     krb5_free_context(context);
 
     return res;
+}
+
+krb5_error_code sss_krb5_init_context(krb5_context *context)
+{
+    krb5_error_code kerr;
+    const char *msg;
+
+    kerr = krb5_init_context(context);
+    if (kerr != 0) {
+        /* It is safe to call (sss_)krb5_get_error_message() with NULL as first
+         * argument. */
+        msg = sss_krb5_get_error_message(NULL, kerr);
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to init kerberos context [%s]\n", msg);
+        sss_log(SSS_LOG_CRIT, "Failed to init kerberos context [%s]\n", msg);
+        sss_krb5_free_error_message(NULL, msg);
+    }
+
+    return kerr;
 }
