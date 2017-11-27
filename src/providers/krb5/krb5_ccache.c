@@ -299,7 +299,7 @@ static errno_t sss_open_ccache_as_user(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    kerr = krb5_init_context(&cc->context);
+    kerr = sss_krb5_init_context(&cc->context);
     if (kerr) {
         ret = EIO;
         goto done;
@@ -565,9 +565,9 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
     const char *realm_name;
     int realm_length;
 
-    kerr = krb5_init_context(&ctx);
+    kerr = sss_krb5_init_context(&ctx);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_init_context failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_krb5_init_context failed.\n");
         goto done;
     }
 
