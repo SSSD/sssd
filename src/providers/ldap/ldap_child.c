@@ -581,7 +581,7 @@ static krb5_error_code privileged_krb5_setup(struct input_buffer *ibuf)
     krb5_error_code kerr;
     char *keytab_name;
 
-    kerr = krb5_init_context(&ibuf->context);
+    kerr = sss_krb5_init_context(&ibuf->context);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to init kerberos context\n");
         return kerr;

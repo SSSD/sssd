@@ -368,7 +368,7 @@ sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
     krb5_error_code krberr;
     krb5_context context = NULL;
 
-    krberr = krb5_init_context(&context);
+    krberr = sss_krb5_init_context(&context);
     if (krberr) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to init kerberos context\n");
         goto done;
