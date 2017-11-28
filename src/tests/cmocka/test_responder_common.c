@@ -316,6 +316,23 @@ void test_schedule_get_domains_task(void **state)
     talloc_free(dummy_ncache_ptr);
 }
 
+void test_sss_output_fqname(void **state)
+{
+    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
+                                                   struct parse_inp_test_ctx);
+    errno_t ret;
+    struct sized_string *res = NULL;
+
+    ret = sized_output_name(parse_inp_ctx, parse_inp_ctx->rctx, "dummy",
+                            parse_inp_ctx->tctx->dom, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    assert_string_equal("dummy", res->str);
+    assert_int_equal(6, res->len);
+
+    talloc_zfree(res);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -344,6 +361,9 @@ int main(int argc, const char *argv[])
                                         parse_inp_test_setup,
                                         parse_inp_test_teardown),
         cmocka_unit_test_setup_teardown(test_schedule_get_domains_task,
+                                        parse_inp_test_setup,
+                                        parse_inp_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_output_fqname,
                                         parse_inp_test_setup,
                                         parse_inp_test_teardown),
     };
