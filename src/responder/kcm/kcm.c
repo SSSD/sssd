@@ -28,6 +28,7 @@
 #include "responder/kcm/kcmsrv_pvt.h"
 #include "responder/common/responder.h"
 #include "util/util.h"
+#include "util/sss_krb5.h"
 
 #define DEFAULT_KCM_FD_LIMIT 2048
 
@@ -183,7 +184,7 @@ static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    kret = krb5_init_context(&kcm_data->k5c);
+    kret = sss_krb5_init_context(&kcm_data->k5c);
     if (kret != EOK) {
         talloc_free(kcm_data);
         return NULL;

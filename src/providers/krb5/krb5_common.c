@@ -106,7 +106,7 @@ static errno_t sss_get_system_ccname_template(TALLOC_CTX *mem_ctx,
 
     *ccname = NULL;
 
-    ret = krb5_init_context(&ctx);
+    ret = sss_krb5_init_context(&ctx);
     if (ret) return ret;
 
     ret = krb5_get_profile(ctx, &p);

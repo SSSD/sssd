@@ -195,4 +195,6 @@ krb5_error_code sss_krb5_unmarshal_princ(TALLOC_CTX *mem_ctx,
                                          struct sss_iobuf *iobuf,
                                          krb5_principal *_princ);
 
+krb5_error_code sss_krb5_init_context(krb5_context *context);
+
 #endif /* __SSS_KRB5_H__ */
