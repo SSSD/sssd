@@ -1815,7 +1815,7 @@ int sized_output_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_output_fqname(mem_ctx, name_dom, orig_name,
+    ret = sss_output_fqname(name, name_dom, orig_name,
                             rctx->override_space, &name_str);
     if (ret != EOK) {
         goto done;
