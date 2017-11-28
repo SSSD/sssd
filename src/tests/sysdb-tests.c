@@ -2220,7 +2220,7 @@ START_TEST (test_sysdb_search_all_users)
     int ret;
     int i;
     int j;
-    char *uid_str;
+    char *uid_str = NULL;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
