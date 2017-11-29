@@ -167,6 +167,9 @@ def no_files_domain(request):
 
         [domain/local]
         id_provider = local
+
+        [domain/disabled.files]
+        id_provider = files
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
