@@ -1718,15 +1718,39 @@ done:
     return ret;
 }
 
+static bool need_implicit_files_domain(TALLOC_CTX *tmp_ctx,
+                                       struct ldb_result *doms)
+{
+    const char *id_provider = NULL;
+    unsigned int i;
+
+    for (i = 0; i < doms->count; i++) {
+        id_provider = ldb_msg_find_attr_as_string(doms->msgs[i],
+                                                  CONFDB_DOMAIN_ID_PROVIDER,
+                                                  NULL);
+        if (id_provider == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The object [%s] doesn't have a id_provider\n",
+                  ldb_dn_get_linearized(doms->msgs[i]->dn));
+            continue;
+        }
+
+        if (strcasecmp(id_provider, "files") == 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static int confdb_has_files_domain(struct confdb_ctx *cdb)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_dn *dn = NULL;
     struct ldb_result *res = NULL;
     static const char *attrs[] = { CONFDB_DOMAIN_ID_PROVIDER, NULL };
-    const char *id_provider = NULL;
     int ret;
-    unsigned int i;
+    bool need_files_dom;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1746,24 +1770,9 @@ static int confdb_has_files_domain(struct confdb_ctx *cdb)
         goto done;
     }
 
-    for (i = 0; i < res->count; i++) {
-        id_provider = ldb_msg_find_attr_as_string(res->msgs[i],
-                                                  CONFDB_DOMAIN_ID_PROVIDER,
-                                                  NULL);
-        if (id_provider == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "The object [%s] doesn't have a id_provider\n",
-                  ldb_dn_get_linearized(res->msgs[i]->dn));
-            ret = EINVAL;
-            goto done;
-        }
+    need_files_dom = need_implicit_files_domain(tmp_ctx, res);
 
-        if (strcasecmp(id_provider, "files") == 0) {
-            break;
-        }
-    }
-
-    ret = i < res->count ? EOK : ENOENT;
+    ret = need_files_dom ? ENOENT : EOK;
 done:
     talloc_free(tmp_ctx);
     return ret;
