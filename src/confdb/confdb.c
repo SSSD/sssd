@@ -1719,12 +1719,43 @@ done:
 }
 
 static bool need_implicit_files_domain(TALLOC_CTX *tmp_ctx,
+                                       struct confdb_ctx *cdb,
                                        struct ldb_result *doms)
 {
     const char *id_provider = NULL;
     unsigned int i;
+    errno_t ret;
+    char **domlist;
+    const char *val;
+
+    ret = confdb_get_string_as_list(cdb, tmp_ctx,
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
+                                    &domlist);
+    if (ret == ENOENT) {
+        return true;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot get active domains %d[%s]\n",
+              ret, sss_strerror(ret));
+        return false;
+    }
 
     for (i = 0; i < doms->count; i++) {
+        val = ldb_msg_find_attr_as_string(doms->msgs[i], CONFDB_DOMAIN_ATTR,
+                                          NULL);
+        if (val == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "The object [%s] doesn't have a name\n",
+                  ldb_dn_get_linearized(doms->msgs[i]->dn));
+            continue;
+        }
+
+        /* skip disabled domain */
+        if (!string_in_list(val, domlist, false)) {
+            continue;
+        }
+
         id_provider = ldb_msg_find_attr_as_string(doms->msgs[i],
                                                   CONFDB_DOMAIN_ID_PROVIDER,
                                                   NULL);
@@ -1748,7 +1779,8 @@ static int confdb_has_files_domain(struct confdb_ctx *cdb)
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_dn *dn = NULL;
     struct ldb_result *res = NULL;
-    static const char *attrs[] = { CONFDB_DOMAIN_ID_PROVIDER, NULL };
+    static const char *attrs[] = { CONFDB_DOMAIN_ID_PROVIDER,
+                                   CONFDB_DOMAIN_ATTR, NULL };
     int ret;
     bool need_files_dom;
 
@@ -1770,7 +1802,7 @@ static int confdb_has_files_domain(struct confdb_ctx *cdb)
         goto done;
     }
 
-    need_files_dom = need_implicit_files_domain(tmp_ctx, res);
+    need_files_dom = need_implicit_files_domain(tmp_ctx, cdb, res);
 
     ret = need_files_dom ? ENOENT : EOK;
 done:
