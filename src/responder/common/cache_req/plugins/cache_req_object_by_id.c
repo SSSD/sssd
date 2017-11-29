@@ -90,6 +90,7 @@ cache_req_object_by_id_lookup(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *domain,
                               struct ldb_result **_result)
 {
+    cache_req_idminmax_check(data, domain);
     return sysdb_search_object_by_id(mem_ctx, domain, data->id,
                                      data->attrs, _result);
 }

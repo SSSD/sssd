@@ -375,7 +375,6 @@ errno_t sysdb_getpwuid_with_views(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
-
     /* If there are views we first have to search the overrides for matches */
     if (DOM_HAS_VIEWS(domain)) {
         ret = sysdb_search_user_override_by_uid(tmp_ctx, domain, uid,
