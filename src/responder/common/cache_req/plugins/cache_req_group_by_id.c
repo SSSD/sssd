@@ -81,6 +81,12 @@ cache_req_group_by_id_lookup(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
                              struct ldb_result **_result)
 {
+    errno_t ret;
+
+    ret = cache_req_idminmax_check(data, domain);
+    if (ret != EOK) {
+	return ret;
+    }
     return sysdb_getgrgid_with_views(mem_ctx, domain, data->id, _result);
 }
 

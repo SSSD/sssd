@@ -203,6 +203,11 @@ static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
 
         *_result = result;
         break;
+    case ERR_ID_OUTSIDE_RANGE:
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                        "ID [%s] was filtered out\n",
+                        cr->debugobj);
+        break;
     case ENOENT:
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                         "Object [%s] was not found in cache\n",
