@@ -197,6 +197,7 @@ static void sdap_dom_enum_ex_get_users(struct tevent_req *subreq)
      * have no idea about POSIX attributes support, run a one-time check
      */
     if (should_run_posix_check(state->ctx,
+                               state->user_conn,
                                use_id_mapping,
                                true)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,

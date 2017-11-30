@@ -305,6 +305,7 @@ char *get_enterprise_principal_string_filter(TALLOC_CTX *mem_ctx,
                                              struct dp_option *sdap_basic_opts);
 
 bool should_run_posix_check(struct sdap_id_ctx *ctx,
+                            struct sdap_id_conn_ctx *conn,
                             bool id_mapping,
                             bool posix_request);
 
