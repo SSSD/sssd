@@ -196,10 +196,9 @@ static void sdap_dom_enum_ex_get_users(struct tevent_req *subreq)
     /* If POSIX attributes have been requested with an AD server and we
      * have no idea about POSIX attributes support, run a one-time check
      */
-    if (use_id_mapping == false &&
-            state->ctx->opts->schema_type == SDAP_SCHEMA_AD &&
-            state->ctx->srv_opts &&
-            state->ctx->srv_opts->posix_checked == false) {
+    if (should_run_posix_check(state->ctx,
+                               use_id_mapping,
+                               true)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
                                        sdap_id_op_handle(state->user_op),
                                        state->sdom->user_search_bases,
