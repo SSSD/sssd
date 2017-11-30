@@ -522,7 +522,10 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+	*errnop = ERANGE;
+	return NSS_STATUS_TRYAGAIN;
+    }
 
     ret = sss_nss_mc_getgrgid(gid, result, buffer, buflen);
     switch (ret) {
@@ -655,7 +658,10 @@ static enum nss_status internal_getgrent_r(struct group *result,
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+	*errnop = ERANGE;
+	return NSS_STATUS_TRYAGAIN;
+    }
 
     /* if there are leftovers return the next one */
     if (sss_nss_getgrent_data.data != NULL &&

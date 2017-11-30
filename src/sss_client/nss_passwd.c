@@ -251,7 +251,10 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+	*errnop = ERANGE;
+	return NSS_STATUS_TRYAGAIN;
+    }
 
     ret = sss_nss_mc_getpwuid(uid, result, buffer, buflen);
     switch (ret) {
@@ -376,7 +379,10 @@ static enum nss_status internal_getpwent_r(struct passwd *result,
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+	*errnop = ERANGE;
+	return NSS_STATUS_TRYAGAIN;
+    }
 
     /* if there are leftovers return the next one */
     if (sss_nss_getpwent_data.data != NULL &&
