@@ -59,6 +59,11 @@ struct test_group {
                                     test_single_domain_setup, \
                                     test_single_domain_teardown)
 
+#define new_single_domain_id_limit_test(test) \
+    cmocka_unit_test_setup_teardown(test_ ## test, \
+                                    test_single_domain_id_limits_setup, \
+                                    test_single_domain_teardown)
+
 #define new_multi_domain_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
                                     test_multi_domain_setup, \
@@ -521,7 +526,8 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     return test_req_succeed_send(mem_ctx, rctx->ev);
 }
 
-static int test_single_domain_setup(void **state)
+static int test_single_domain_setup_common(void **state,
+                                           struct sss_test_conf_param *params)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     errno_t ret;
@@ -535,7 +541,7 @@ static int test_single_domain_setup(void **state)
     *state = test_ctx;
 
     test_ctx->tctx = create_dom_test_ctx(test_ctx, TESTS_PATH, TEST_CONF_DB,
-                                         TEST_DOM_NAME, TEST_ID_PROVIDER, NULL);
+                                         TEST_DOM_NAME, TEST_ID_PROVIDER, params);
     assert_non_null(test_ctx->tctx);
 
     test_ctx->rctx = mock_rctx(test_ctx, test_ctx->tctx->ev,
@@ -548,6 +554,11 @@ static int test_single_domain_setup(void **state)
     check_leaks_push(test_ctx);
 
     return 0;
+}
+
+static int test_single_domain_setup(void **state)
+{
+    return test_single_domain_setup_common(state, NULL);
 }
 
 static int test_single_domain_teardown(void **state)
@@ -563,6 +574,16 @@ static int test_single_domain_teardown(void **state)
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     assert_true(leak_check_teardown());
     return 0;
+}
+
+static int test_single_domain_id_limits_setup(void **state)
+{
+    struct sss_test_conf_param params[] = {
+        { "min_id", "100" },
+        { "max_id", "10000" },
+        { NULL, NULL },             /* Sentinel */
+    };
+    return test_single_domain_setup_common(state, params);
 }
 
 static int test_multi_domain_setup(void **state)
@@ -594,6 +615,32 @@ static int test_multi_domain_setup(void **state)
     check_leaks_push(test_ctx);
 
     return 0;
+}
+
+void test_user_by_id_below_id_range(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Test. */
+    run_cache_req(test_ctx, cache_req_user_by_id_send,
+                  cache_req_user_by_id_test_done, test_ctx->tctx->dom,
+                  0, 10, ENOENT);
+    assert_false(test_ctx->dp_called);
+}
+
+void test_user_by_id_above_id_range(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Test. */
+    run_cache_req(test_ctx, cache_req_user_by_id_send,
+                  cache_req_user_by_id_test_done, test_ctx->tctx->dom,
+                  0, 100000, ENOENT);
+    assert_false(test_ctx->dp_called);
 }
 
 static int test_multi_domain_teardown(void **state)
@@ -1330,6 +1377,32 @@ void test_user_by_id_sub_domains_locator_missing_found(void **state)
     check_user(test_ctx, &users[0], domain);
 
     talloc_free(tmp_ctx);
+}
+
+void test_group_by_id_below_id_range(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Test. */
+    run_cache_req(test_ctx, cache_req_group_by_id_send,
+                  cache_req_group_by_id_test_done, test_ctx->tctx->dom,
+                  0, 10, ENOENT);
+    assert_false(test_ctx->dp_called);
+}
+
+void test_group_by_id_above_id_range(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Test. */
+    run_cache_req(test_ctx, cache_req_group_by_id_send,
+                  cache_req_group_by_id_test_done, test_ctx->tctx->dom,
+                  0, 100000, ENOENT);
+    assert_false(test_ctx->dp_called);
 }
 
 void test_user_by_id_sub_domains_locator_missing_notfound(void **state)
@@ -3874,6 +3947,8 @@ int main(int argc, const char *argv[])
         new_single_domain_test(user_by_id_missing_notfound),
         new_multi_domain_test(user_by_id_multiple_domains_found),
         new_multi_domain_test(user_by_id_multiple_domains_notfound),
+        new_single_domain_id_limit_test(user_by_id_below_id_range),
+        new_single_domain_id_limit_test(user_by_id_above_id_range),
 
         new_single_domain_test(group_by_name_cache_valid),
         new_single_domain_test(group_by_name_cache_expired),
@@ -3884,6 +3959,8 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(group_by_name_multiple_domains_found),
         new_multi_domain_test(group_by_name_multiple_domains_notfound),
         new_multi_domain_test(group_by_name_multiple_domains_parse),
+        new_single_domain_id_limit_test(group_by_id_below_id_range),
+        new_single_domain_id_limit_test(group_by_id_above_id_range),
 
         new_single_domain_test(group_by_id_cache_valid),
         new_single_domain_test(group_by_id_cache_expired),

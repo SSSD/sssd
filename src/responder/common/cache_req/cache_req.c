@@ -953,6 +953,7 @@ static void cache_req_search_domains_done(struct tevent_req *subreq)
             goto done;
         }
         break;
+    case ERR_ID_OUTSIDE_RANGE:
     case ENOENT:
         if (state->check_next == false) {
             /* Not found. */

@@ -192,4 +192,7 @@ cache_reg_common_get_acct_domain_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *subreq,
                                       struct cache_req *cr,
                                       char **_domain);
+
+errno_t cache_req_idminmax_check(struct cache_req_data *data,
+                                 struct sss_domain_info *domain);
 #endif /* _CACHE_REQ_PRIVATE_H_ */
