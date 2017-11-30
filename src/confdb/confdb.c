@@ -1769,6 +1769,25 @@ static bool need_implicit_files_domain(TALLOC_CTX *tmp_ctx,
         if (strcasecmp(id_provider, "files") == 0) {
             return false;
         }
+
+        if (strcasecmp(id_provider, "proxy") == 0) {
+            val = ldb_msg_find_attr_as_string(doms->msgs[i],
+                                              CONFDB_PROXY_LIBNAME, NULL);
+            if (val == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "The object [%s] doesn't have proxy_lib_name with "
+                      "id_provider proxy\n",
+                      ldb_dn_get_linearized(doms->msgs[i]->dn));
+                continue;
+            }
+
+            /* id_provider = proxy + proxy_lib_name = files is equivalent
+             * to id_provider = files
+             */
+            if (strcmp(val, "files") == 0) {
+                return false;
+            }
+        }
     }
 
     return true;
@@ -1780,7 +1799,8 @@ static int confdb_has_files_domain(struct confdb_ctx *cdb)
     struct ldb_dn *dn = NULL;
     struct ldb_result *res = NULL;
     static const char *attrs[] = { CONFDB_DOMAIN_ID_PROVIDER,
-                                   CONFDB_DOMAIN_ATTR, NULL };
+                                   CONFDB_DOMAIN_ATTR,
+                                   CONFDB_PROXY_LIBNAME, NULL };
     int ret;
     bool need_files_dom;
 
