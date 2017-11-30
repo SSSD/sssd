@@ -231,7 +231,10 @@ static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+	*errnop = ERANGE;
+	return NSS_STATUS_TRYAGAIN;
+    }
 
     /* If we're already processing result data, continue to
      * return it.

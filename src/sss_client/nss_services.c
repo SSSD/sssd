@@ -177,7 +177,10 @@ _nss_sss_getservbyname_r(const char *name,
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+	*errnop = ERANGE;
+	return NSS_STATUS_TRYAGAIN;
+    }
 
     ret = sss_strnlen(name, SSS_NAME_MAX, &name_len);
     if (ret != 0) {
@@ -278,7 +281,10 @@ _nss_sss_getservbyport_r(int port, const char *protocol,
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+	*errnop = ERANGE;
+	return NSS_STATUS_TRYAGAIN;
+    }
 
     if (protocol) {
         ret = sss_strnlen(protocol, SSS_NAME_MAX, &proto_len);
@@ -411,7 +417,10 @@ static enum nss_status internal_getservent_r(struct servent *result,
     int ret;
 
     /* Caught once glibc passing in buffer == 0x0 */
-    if (!buffer || !buflen) return ERANGE;
+    if (!buffer || !buflen) {
+	*errnop = ERANGE;
+	return NSS_STATUS_TRYAGAIN;
+    }
 
     /* if there are leftovers return the next one */
     if (sss_nss_getservent_data.data != NULL &&
