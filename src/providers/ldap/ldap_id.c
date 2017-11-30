@@ -412,6 +412,7 @@ static void users_get_connect_done(struct tevent_req *subreq)
      * have no idea about POSIX attributes support, run a one-time check
      */
     if (should_run_posix_check(state->ctx,
+                               state->conn,
                                state->use_id_mapping,
                                !state->non_posix)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
@@ -957,6 +958,7 @@ static void groups_get_connect_done(struct tevent_req *subreq)
      * have no idea about POSIX attributes support, run a one-time check
      */
     if (should_run_posix_check(state->ctx,
+                               state->conn,
                                state->use_id_mapping,
                                !state->non_posix)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
