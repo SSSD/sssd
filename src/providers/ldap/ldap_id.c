@@ -411,11 +411,9 @@ static void users_get_connect_done(struct tevent_req *subreq)
     /* If POSIX attributes have been requested with an AD server and we
      * have no idea about POSIX attributes support, run a one-time check
      */
-    if (state->use_id_mapping == false &&
-            state->non_posix == false &&
-            state->ctx->opts->schema_type == SDAP_SCHEMA_AD &&
-            state->ctx->srv_opts &&
-            state->ctx->srv_opts->posix_checked == false) {
+    if (should_run_posix_check(state->ctx,
+                               state->use_id_mapping,
+                               !state->non_posix)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
                                        sdap_id_op_handle(state->op),
                                        state->sdom->user_search_bases,
@@ -958,10 +956,9 @@ static void groups_get_connect_done(struct tevent_req *subreq)
     /* If POSIX attributes have been requested with an AD server and we
      * have no idea about POSIX attributes support, run a one-time check
      */
-    if (state->use_id_mapping == false &&
-            state->ctx->opts->schema_type == SDAP_SCHEMA_AD &&
-            state->ctx->srv_opts &&
-            state->ctx->srv_opts->posix_checked == false) {
+    if (should_run_posix_check(state->ctx,
+                               state->use_id_mapping,
+                               !state->non_posix)) {
         subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
                                        sdap_id_op_handle(state->op),
                                        state->sdom->user_search_bases,
