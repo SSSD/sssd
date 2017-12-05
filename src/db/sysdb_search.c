@@ -893,25 +893,14 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     const char *fmt_filter;
     char *sanitized_name;
     struct ldb_dn *base_dn;
-    struct ldb_result *res;
+    struct ldb_result *res = NULL;
     char *lc_sanitized_name;
+    const char *originalad_sanitized_name;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
-    }
-
-    if (domain->mpg) {
-        fmt_filter = SYSDB_GRNAM_MPG_FILTER;
-        base_dn = sysdb_domain_dn(tmp_ctx, domain);
-    } else {
-        fmt_filter = SYSDB_GRNAM_FILTER;
-        base_dn = sysdb_group_base_dn(tmp_ctx, domain);
-    }
-    if (!base_dn) {
-        ret = ENOMEM;
-        goto done;
     }
 
     ret = sss_filter_sanitize_for_dom(tmp_ctx, name, domain,
@@ -920,12 +909,61 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, fmt_filter,
-                     lc_sanitized_name, sanitized_name, sanitized_name);
-    if (ret) {
-        ret = sysdb_error_to_errno(ret);
+    if (domain->mpg) {
+        /* In case the domain supports magic private groups we *must*
+         * check whether the searched name is the very same as the
+         * originalADname attribute.
+         *
+         * In case those are not the same, we're dealing with an
+         * override and in order to return the proper overridden group
+         * we must use the very same search used by a non-mpg domain
+         */
+        fmt_filter = SYSDB_GRNAM_MPG_FILTER;
+        base_dn = sysdb_domain_dn(tmp_ctx, domain);
+        if (base_dn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
+                         LDB_SCOPE_SUBTREE, attrs, fmt_filter,
+                         lc_sanitized_name, sanitized_name, sanitized_name);
+        if (ret != EOK) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        if (res->count > 0) {
+            originalad_sanitized_name = ldb_msg_find_attr_as_string(
+                    res->msgs[0], ORIGINALAD_PREFIX SYSDB_NAME, NULL);
+
+            if (originalad_sanitized_name != NULL
+                    && strcmp(originalad_sanitized_name, sanitized_name) != 0) {
+                fmt_filter = SYSDB_GRNAM_FILTER;
+                base_dn = sysdb_group_base_dn(tmp_ctx, domain);
+                res = NULL;
+            }
+        }
+    } else {
+        fmt_filter = SYSDB_GRNAM_FILTER;
+        base_dn = sysdb_group_base_dn(tmp_ctx, domain);
+    }
+    if (base_dn == NULL) {
+        ret = ENOMEM;
         goto done;
+    }
+
+    /* We just do the ldb_search here in case domain is *not* a MPG *or*
+     * it's a MPG and we're dealing with a overriden group, which has to
+     * use the very same filter as a non MPG domain. */
+    if (res == NULL) {
+        ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
+                         LDB_SCOPE_SUBTREE, attrs, fmt_filter,
+                         lc_sanitized_name, sanitized_name, sanitized_name);
+        if (ret != EOK) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
     }
 
     ret = mpg_res_convert(res);
@@ -1045,10 +1083,11 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     unsigned long int ul_gid = gid;
+    unsigned long int ul_originalad_gid;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
     const char *fmt_filter;
     struct ldb_dn *base_dn;
-    struct ldb_result *res;
+    struct ldb_result *res = NULL;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -1057,22 +1096,57 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
     }
 
     if (domain->mpg) {
+        /* In case the domain supports magic private groups we *must*
+         * check whether the searched gid is the very same as the
+         * originalADgidNumber attribute.
+         *
+         * In case those are not the same, we're dealing with an
+         * override and in order to return the proper overridden group
+         * we must use the very same search used by a non-mpg domain
+         */
         fmt_filter = SYSDB_GRGID_MPG_FILTER;
         base_dn = sysdb_domain_dn(tmp_ctx, domain);
+        if (base_dn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
+                         LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid);
+        if (ret != EOK) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        if (res->count > 0) {
+            ul_originalad_gid = ldb_msg_find_attr_as_uint64(
+                    res->msgs[0], ORIGINALAD_PREFIX SYSDB_GIDNUM, 0);
+
+            if (ul_originalad_gid != 0 && ul_originalad_gid != ul_gid) {
+                fmt_filter = SYSDB_GRGID_FILTER;
+                base_dn = sysdb_group_base_dn(tmp_ctx, domain);
+                res = NULL;
+            }
+        }
     } else {
         fmt_filter = SYSDB_GRGID_FILTER;
         base_dn = sysdb_group_base_dn(tmp_ctx, domain);
     }
-    if (!base_dn) {
+    if (base_dn == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid);
-    if (ret) {
-        ret = sysdb_error_to_errno(ret);
-        goto done;
+    /* We just do the ldb_search here in case domain is *not* a MPG *or*
+     * it's a MPG and we're dealing with a overriden group, which has to
+     * use the very same filter as a non MPG domain. */
+    if (res == NULL) {
+        ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
+                         LDB_SCOPE_SUBTREE, attrs, fmt_filter, ul_gid);
+        if (ret != EOK) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
     }
 
     ret = mpg_res_convert(res);
