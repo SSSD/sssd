@@ -754,6 +754,10 @@ errno_t sssm_ipa_id_init(TALLOC_CTX *mem_ctx,
                   sdap_online_check_handler_send, sdap_online_check_handler_recv, id_ctx->sdap_id_ctx,
                   struct sdap_id_ctx, void, struct dp_reply_std);
 
+    dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
+                  default_account_domain_send, default_account_domain_recv, NULL,
+                  void, struct dp_get_acct_domain_data, struct dp_reply_std);
+
     return EOK;
 }
 

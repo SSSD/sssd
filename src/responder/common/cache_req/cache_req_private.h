@@ -106,6 +106,13 @@ errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
                               struct ldb_result **_result,
                               bool *_dp_success);
 
+struct tevent_req *cache_req_locate_domain_send(TALLOC_CTX *mem_ctx,
+                                                struct tevent_context *ev,
+                                                struct cache_req *cr);
+errno_t cache_req_locate_domain_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req,
+                                     char **_found_domain);
+
 struct tevent_req *
 cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               struct tevent_context *ev,
@@ -115,6 +122,9 @@ cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
                               enum cache_req_dom_type req_dom_type,
                               const char *domain,
                               struct cache_req_data *data);
+
+void cache_req_search_ncache_add_to_domain(struct cache_req *cr,
+                                           struct sss_domain_info *domain);
 
 errno_t
 cache_req_add_result(TALLOC_CTX *mem_ctx,
@@ -177,4 +187,9 @@ bool
 cache_req_common_dp_recv(struct tevent_req *subreq,
                          struct cache_req *cr);
 
+errno_t
+cache_reg_common_get_acct_domain_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *subreq,
+                                      struct cache_req *cr,
+                                      char **_domain);
 #endif /* _CACHE_REQ_PRIVATE_H_ */

@@ -196,15 +196,14 @@ static void sdap_dom_enum_ex_get_users(struct tevent_req *subreq)
     /* If POSIX attributes have been requested with an AD server and we
      * have no idea about POSIX attributes support, run a one-time check
      */
-    if (use_id_mapping == false &&
-            state->ctx->opts->schema_type == SDAP_SCHEMA_AD &&
-            state->ctx->srv_opts &&
-            state->ctx->srv_opts->posix_checked == false) {
-        subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
-                                       sdap_id_op_handle(state->user_op),
-                                       state->sdom->user_search_bases,
-                                       dp_opt_get_int(state->ctx->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT));
+    if (should_run_posix_check(state->ctx,
+                               state->user_conn,
+                               use_id_mapping,
+                               true)) {
+        subreq = sdap_gc_posix_check_send(state, state->ev, state->ctx->opts,
+                                          sdap_id_op_handle(state->user_op),
+                                          dp_opt_get_int(state->ctx->opts->basic,
+                                                         SDAP_SEARCH_TIMEOUT));
         if (subreq == NULL) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -234,7 +233,7 @@ static void sdap_dom_enum_ex_posix_check_done(struct tevent_req *subreq)
     struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
                                                 struct sdap_dom_enum_ex_state);
 
-    ret = sdap_posix_check_recv(subreq, &has_posix);
+    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
     talloc_zfree(subreq);
     if (ret != EOK && ret != ERR_NO_POSIX) {
         /* We can only finish the id_op on error as the connection

@@ -99,7 +99,10 @@ const struct cache_req_plugin cache_req_host_by_name = {
     .ncache_filter_fn = NULL,
     .lookup_fn = cache_req_host_by_name_lookup,
     .dp_send_fn = cache_req_host_by_name_dp_send,
-    .dp_recv_fn = cache_req_common_dp_recv
+    .dp_recv_fn = cache_req_common_dp_recv,
+    .dp_get_domain_check_fn = NULL,
+    .dp_get_domain_send_fn = NULL,
+    .dp_get_domain_recv_fn = NULL,
 };
 
 struct tevent_req *

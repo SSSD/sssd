@@ -1673,9 +1673,9 @@ char *sdap_make_oc_list(TALLOC_CTX *mem_ctx, struct sdap_attr_map *map)
     }
 }
 
-bool sdap_object_in_domain(struct sdap_options *opts,
-                           struct sysdb_attrs *obj,
-                           struct sss_domain_info *dom)
+struct sss_domain_info *sdap_get_object_domain(struct sdap_options *opts,
+                                               struct sysdb_attrs *obj,
+                                               struct sss_domain_info *dom)
 {
     errno_t ret;
     const char *original_dn = NULL;
@@ -1685,7 +1685,7 @@ bool sdap_object_in_domain(struct sdap_options *opts,
     if (ret) {
         DEBUG(SSSDBG_FUNC_DATA,
               "The group has no original DN, assuming our domain\n");
-        return true;
+        return dom;
     }
 
     sdmatch = sdap_domain_get_by_dn(opts, original_dn);
@@ -1693,10 +1693,25 @@ bool sdap_object_in_domain(struct sdap_options *opts,
         DEBUG(SSSDBG_FUNC_DATA,
               "The original DN of the group cannot "
               "be related to any search base\n");
-        return true;
+        return dom;
     }
 
-    return (sdmatch->dom == dom);
+
+    return sdmatch->dom;
+}
+
+bool sdap_object_in_domain(struct sdap_options *opts,
+                           struct sysdb_attrs *obj,
+                           struct sss_domain_info *dom)
+{
+    struct sss_domain_info *obj_dom;
+
+    obj_dom = sdap_get_object_domain(opts, obj, dom);
+    if (obj_dom == NULL) {
+        return false;
+    }
+
+    return (obj_dom == dom);
 }
 
 size_t sdap_steal_objects_in_dom(struct sdap_options *opts,

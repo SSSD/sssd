@@ -43,6 +43,12 @@ struct dp_subdomains_data {
     const char *domain_hint;
 };
 
+struct dp_get_acct_domain_data {
+    uint32_t entry_type;
+    uint32_t filter_type;
+    const char *filter_value;
+};
+
 struct dp_id_data {
     uint32_t entry_type;
     uint32_t filter_type;

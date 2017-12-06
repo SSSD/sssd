@@ -82,6 +82,7 @@ enum dp_methods {
     DPM_HOSTID_HANDLER,
     DPM_DOMAINS_HANDLER,
     DPM_SESSION_HANDLER,
+    DPM_ACCT_DOMAIN_HANDLER,
 
     DPM_REFRESH_ACCESS_RULES,
 
@@ -178,5 +179,24 @@ void dp_sbus_reset_groups_ncache(struct data_provider *provider,
 void dp_sbus_reset_users_memcache(struct data_provider *provider);
 void dp_sbus_reset_groups_memcache(struct data_provider *provider);
 void dp_sbus_reset_initgr_memcache(struct data_provider *provider);
+
+/*
+ * A dummy handler for DPM_ACCT_DOMAIN_HANDLER.
+ *
+ * Its purpose is to always return ERR_GET_ACCT_DOM_NOT_SUPPORTED
+ * which the responder should evaluate as "this back end does not
+ * support locating entries' domain" and never call
+ * DPM_ACCT_DOMAIN_HANDLER again
+ *
+ * This request cannot fail, except for critical errors like OOM.
+ */
+struct tevent_req *
+default_account_domain_send(TALLOC_CTX *mem_ctx,
+                            void *unused_ctx,
+                            struct dp_get_acct_domain_data *data,
+                            struct dp_req_params *params);
+errno_t default_account_domain_recv(TALLOC_CTX *mem_ctx,
+                                    struct tevent_req *req,
+                                    struct dp_reply_std *data);
 
 #endif /* _DP_H_ */

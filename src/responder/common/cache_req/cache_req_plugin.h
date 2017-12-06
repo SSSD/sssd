@@ -153,6 +153,72 @@ typedef bool
 (*cache_req_dp_recv_fn)(struct tevent_req *subreq,
                         struct cache_req *cr);
 
+/**
+ * Check whether the results of the domain locator can still
+ * be considered valid or whether it is time to call the request
+ * again.
+ *
+ * @param   resp_ctx        The responder context
+ * @param   domain          The domain to check. This should be the domain-head,
+ *                          because the locator works across a domain and its
+ *                          subdomains.
+ * @param   data            The cache req data that contain primarily the key
+ *                          to look for.
+ *
+ * @return True if the locator plugin should be ran again, false if
+ * @return False false ifthe lookup should just proceed with the
+ * data that is already in the negative cache.
+ */
+typedef bool
+(*cache_req_dp_get_domain_check_fn)(struct resp_ctx *rctx,
+                                    struct sss_domain_info *domain,
+                                    struct cache_req_data *data);
+/**
+ * Send Data Provider request to locate the domain
+ * of an entry
+ *
+ * @param   resp_ctx        The responder context
+ * @param   domain          The domain to check. This should be the domain-head,
+ *                          because the locator works across a domain and its
+ *                          subdomains.
+ * @param   data            The cache req data that contain primarily the key
+ *                          to look for.
+ *
+ *
+ * @return Tevent request on success.
+ * @return NULL on error.
+ */
+typedef struct tevent_req *
+(*cache_req_dp_get_domain_send_fn)(TALLOC_CTX *mem_ctx,
+                                   struct resp_ctx *rctx,
+                                   struct sss_domain_info *domain,
+                                   struct cache_req_data *data);
+
+/**
+ * Process result of Data Provider find-domain request.
+ *
+ * Do not free subreq! It will be freed in the caller.
+ *
+ * @param       mem_ctx         The memory context that owns the _found_domain
+ *                              result parameter
+ * @param       subreq          The request to finish
+ * @param       cr              The cache_req being processed
+ * @param       _found_domain   The domain the request account belongs to. This
+ *                              parameter can be NULL even on success, in that
+ *                              case the account was not found and no lookups are
+ *                              needed, all domains can be skipped in this case.
+ *
+ * @return EOK if the request did not encounter any error. In this
+ * case, the _found_domain parameter can be considered authoritative,
+ * regarless of its value
+ * @return errno on error. _found_domain should be NULL in this case.
+ */
+typedef errno_t
+(*cache_req_dp_get_domain_recv_fn)(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *subreq,
+                                   struct cache_req *cr,
+                                   char **_found_domain);
+
 struct cache_req_plugin {
     /**
      * Plugin name.
@@ -223,6 +289,9 @@ struct cache_req_plugin {
     cache_req_lookup_fn lookup_fn;
     cache_req_dp_send_fn dp_send_fn;
     cache_req_dp_recv_fn dp_recv_fn;
+    cache_req_dp_get_domain_check_fn dp_get_domain_check_fn;
+    cache_req_dp_get_domain_send_fn dp_get_domain_send_fn;
+    cache_req_dp_get_domain_recv_fn dp_get_domain_recv_fn;
 };
 
 extern const struct cache_req_plugin cache_req_user_by_name;
