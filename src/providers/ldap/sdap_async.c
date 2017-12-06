@@ -2573,12 +2573,12 @@ int sdap_asq_search_recv(struct tevent_req *req,
 }
 
 /* ==Posix attribute presence test================================= */
-static void sdap_posix_check_done(struct tevent_req *subreq);
-static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
-                                      struct sdap_msg *msg,
-                                      void *pvt);
+static void sdap_gc_posix_check_done(struct tevent_req *subreq);
+static errno_t sdap_gc_posix_check_parse(struct sdap_handle *sh,
+                                         struct sdap_msg *msg,
+                                         void *pvt);
 
-struct sdap_posix_check_state {
+struct sdap_gc_posix_check_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
@@ -2591,16 +2591,16 @@ struct sdap_posix_check_state {
 };
 
 struct tevent_req *
-sdap_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
-                      struct sdap_options *opts, struct sdap_handle *sh,
-                      int timeout)
+sdap_gc_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                         struct sdap_options *opts, struct sdap_handle *sh,
+                         int timeout)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
-    struct sdap_posix_check_state *state;
+    struct sdap_gc_posix_check_state *state;
     errno_t ret;
 
-    req = tevent_req_create(memctx, &state, struct sdap_posix_check_state);
+    req = tevent_req_create(memctx, &state, struct sdap_gc_posix_check_state);
     if (req == NULL) {
         return NULL;
     }
@@ -2636,13 +2636,13 @@ sdap_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                                  LDAP_SCOPE_SUBTREE, state->filter,
                                  state->attrs,
                                  NULL, NULL, 1, state->timeout,
-                                 sdap_posix_check_parse, state,
+                                 sdap_gc_posix_check_parse, state,
                                  SDAP_SRCH_FLG_SIZELIMIT_SILENT);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(subreq, sdap_posix_check_done, req);
+    tevent_req_set_callback(subreq, sdap_gc_posix_check_done, req);
 
     return req;
 
@@ -2652,13 +2652,13 @@ fail:
     return req;
 }
 
-static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
-                                      struct sdap_msg *msg,
-                                      void *pvt)
+static errno_t sdap_gc_posix_check_parse(struct sdap_handle *sh,
+                                         struct sdap_msg *msg,
+                                         void *pvt)
 {
     struct berval **vals = NULL;
-    struct sdap_posix_check_state *state =
-        talloc_get_type(pvt, struct sdap_posix_check_state);
+    struct sdap_gc_posix_check_state *state =
+        talloc_get_type(pvt, struct sdap_gc_posix_check_state);
     char *dn;
     char *endptr;
 
@@ -2700,12 +2700,12 @@ done:
     return EOK;
 }
 
-static void sdap_posix_check_done(struct tevent_req *subreq)
+static void sdap_gc_posix_check_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_posix_check_state *state =
-        tevent_req_data(req, struct sdap_posix_check_state);
+    struct sdap_gc_posix_check_state *state =
+        tevent_req_data(req, struct sdap_gc_posix_check_state);
     errno_t ret;
 
     ret = sdap_get_generic_ext_recv(subreq, NULL, NULL, NULL);
@@ -2730,11 +2730,11 @@ static void sdap_posix_check_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int sdap_posix_check_recv(struct tevent_req *req,
-                          bool *_has_posix)
+int sdap_gc_posix_check_recv(struct tevent_req *req,
+                             bool *_has_posix)
 {
-    struct sdap_posix_check_state *state = tevent_req_data(req,
-                                            struct sdap_posix_check_state);
+    struct sdap_gc_posix_check_state *state = tevent_req_data(req,
+                                            struct sdap_gc_posix_check_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

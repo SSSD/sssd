@@ -415,10 +415,10 @@ static void users_get_connect_done(struct tevent_req *subreq)
                                state->conn,
                                state->use_id_mapping,
                                !state->non_posix)) {
-        subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
-                                       sdap_id_op_handle(state->op),
-                                       dp_opt_get_int(state->ctx->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT));
+        subreq = sdap_gc_posix_check_send(state, state->ev, state->ctx->opts,
+                                          sdap_id_op_handle(state->op),
+                                          dp_opt_get_int(state->ctx->opts->basic,
+                                                         SDAP_SEARCH_TIMEOUT));
         if (subreq == NULL) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -441,7 +441,7 @@ static void users_get_posix_check_done(struct tevent_req *subreq)
     struct users_get_state *state = tevent_req_data(req,
                                                     struct users_get_state);
 
-    ret = sdap_posix_check_recv(subreq, &has_posix);
+    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
     talloc_zfree(subreq);
     if (ret != EOK) {
         /* We can only finish the id_op on error as the connection
@@ -960,10 +960,10 @@ static void groups_get_connect_done(struct tevent_req *subreq)
                                state->conn,
                                state->use_id_mapping,
                                !state->non_posix)) {
-        subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
-                                       sdap_id_op_handle(state->op),
-                                       dp_opt_get_int(state->ctx->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT));
+        subreq = sdap_gc_posix_check_send(state, state->ev, state->ctx->opts,
+                                          sdap_id_op_handle(state->op),
+                                          dp_opt_get_int(state->ctx->opts->basic,
+                                                         SDAP_SEARCH_TIMEOUT));
         if (subreq == NULL) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -985,7 +985,7 @@ static void groups_get_posix_check_done(struct tevent_req *subreq)
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
 
-    ret = sdap_posix_check_recv(subreq, &has_posix);
+    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
     talloc_zfree(subreq);
     if (ret != EOK) {
         /* We can only finish the id_op on error as the connection
