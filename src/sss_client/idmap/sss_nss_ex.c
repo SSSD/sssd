@@ -367,13 +367,17 @@ int sss_nss_getpwnam_timeout(const char *name, struct passwd *pwd,
         return ret;
     }
 
-    *result = NULL;
-
     ret = sss_get_ex(&inp, flags, timeout);
     free(discard_const(inp.rd.data));
-    if (ret == 0) {
-        *result = inp.result.pwrep.result;
+
+    if (result != NULL) {
+        if (ret == 0) {
+            *result = inp.result.pwrep.result;
+        } else {
+            *result = NULL;
+        }
     }
+
     return ret;
 }
 
@@ -395,12 +399,17 @@ int sss_nss_getpwuid_timeout(uid_t uid, struct passwd *pwd,
 
     SAFEALIGN_COPY_UINT32(&req_data[0], &uid, NULL);
     SAFEALIGN_COPY_UINT32(&req_data[1], &flags, NULL);
-    *result = NULL;
 
     ret = sss_get_ex(&inp, flags, timeout);
-    if (ret == 0) {
-        *result = inp.result.pwrep.result;
+
+    if (result != NULL) {
+        if (ret == 0) {
+            *result = inp.result.pwrep.result;
+        } else {
+            *result = NULL;
+        }
     }
+
     return ret;
 }
 
@@ -421,13 +430,17 @@ int sss_nss_getgrnam_timeout(const char *name, struct group *grp,
         return ret;
     }
 
-    *result = NULL;
-
     ret = sss_get_ex(&inp, flags, timeout);
     free(discard_const(inp.rd.data));
-    if (ret == 0) {
-        *result = inp.result.grrep.result;
+
+    if (result != NULL) {
+        if (ret == 0) {
+            *result = inp.result.grrep.result;
+        } else {
+            *result = NULL;
+        }
     }
+
     return ret;
 }
 
@@ -448,12 +461,17 @@ int sss_nss_getgrgid_timeout(gid_t gid, struct group *grp,
 
     SAFEALIGN_COPY_UINT32(&req_data[0], &gid, NULL);
     SAFEALIGN_COPY_UINT32(&req_data[1], &flags, NULL);
-    *result = NULL;
 
     ret = sss_get_ex(&inp, flags, timeout);
-    if (ret == 0) {
-        *result = inp.result.grrep.result;
+
+    if (result != NULL) {
+        if (ret == 0) {
+            *result = inp.result.grrep.result;
+        } else {
+            *result = NULL;
+        }
     }
+
     return ret;
 }
 
