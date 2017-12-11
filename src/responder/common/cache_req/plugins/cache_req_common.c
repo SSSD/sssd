@@ -160,7 +160,7 @@ done:
 }
 
 errno_t
-cache_reg_common_get_acct_domain_recv(TALLOC_CTX *mem_ctx,
+cache_req_common_get_acct_domain_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *subreq,
                                       struct cache_req *cr,
                                       char **_domain)

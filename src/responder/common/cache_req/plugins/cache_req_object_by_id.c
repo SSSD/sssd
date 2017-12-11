@@ -207,7 +207,7 @@ const struct cache_req_plugin cache_req_object_by_id = {
     .dp_recv_fn = cache_req_common_dp_recv,
     .dp_get_domain_check_fn = cache_req_object_by_id_get_domain_check,
     .dp_get_domain_send_fn = cache_req_object_by_id_get_domain_send,
-    .dp_get_domain_recv_fn = cache_reg_common_get_acct_domain_recv,
+    .dp_get_domain_recv_fn = cache_req_common_get_acct_domain_recv,
 };
 
 struct tevent_req *
