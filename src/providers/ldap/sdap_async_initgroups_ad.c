@@ -1608,12 +1608,12 @@ sdap_ad_get_domain_local_groups_parse_parents(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_attrs_get_string(gr->group, SYSDB_OBJECTCATEGORY, &class);
     if (ret != EOK) {
-        /* If objectclass is missing gr->group is a nested parent found during
+        /* If objectcategory is missing gr->group is a nested parent found during
          * the nested group lookup. It might not already stored in the cache.
          */
         DEBUG(SSSDBG_TRACE_LIBS,
-              "sysdb_attrs_get_string failed to get SYSDB_OBJECTCLASS "
-              "for [%s], assuming group.\n", sysdb_name);
+              "sysdb_attrs_get_string failed to get %s for [%s], assuming "
+              "group.\n", SYSDB_OBJECTCATEGORY, sysdb_name);
 
         /* make sure group exists in cache */
         groups[0]= gr->group;
