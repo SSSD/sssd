@@ -45,6 +45,15 @@
 #include "util/crypto/sss_crypto.h"
 #include "util/cert.h"
 
+#define EXP_USAGES (  certificateUsageSSLClient \
+                    | certificateUsageSSLServer \
+                    | certificateUsageSSLServerWithStepUp \
+                    | certificateUsageEmailSigner \
+                    | certificateUsageEmailRecipient \
+                    | certificateUsageObjectSigner \
+                    | certificateUsageStatusResponder \
+                    | certificateUsageSSLCA )
+
 enum op_mode {
     OP_NONE,
     OP_AUTH,
@@ -136,6 +145,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
     char *cert_b64 = NULL;
     char *multi = NULL;
     PRCList *node;
+    SECCertificateUsage returned_usage = 0;
 
     nss_ctx = NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters, flags);
     if (nss_ctx == NULL) {
@@ -329,8 +339,8 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
             rv = CERT_VerifyCertificateNow(handle, cert_list_node->cert,
                                            PR_TRUE,
                                            certificateUsageCheckAllUsages,
-                                           NULL, NULL);
-            if (rv != SECSuccess) {
+                                           NULL, &returned_usage);
+            if (rv != SECSuccess || ((returned_usage & EXP_USAGES) == 0)) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Certificate [%s][%s] not valid [%d][%s], skipping.\n",
                       cert_list_node->cert->nickname,
