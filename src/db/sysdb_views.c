@@ -750,6 +750,8 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                     SYSDB_USER_CERT,
                                     NULL };
     bool override_attrs_found = false;
+    struct ldb_message_element el_del = { 0, SYSDB_SSH_PUBKEY, 0, NULL };
+    struct sysdb_attrs del_attrs = { 1, &el_del };
 
     if (override_attrs == NULL) {
         /* nothing to do */
@@ -819,7 +821,17 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                           el->values[d].data, ldb_dn_get_linearized(obj_dn));
                 }
             }
-        } else if (ret != ENOENT) {
+        } else if (ret == ENOENT) {
+            if (strcmp(allowed_attrs[c], SYSDB_SSH_PUBKEY) == 0) {
+                ret = sysdb_set_entry_attr(domain->sysdb, obj_dn, &del_attrs,
+                                           SYSDB_MOD_DEL);
+                if (ret != EOK && ret != ENOENT) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_set_entry_attr failed.\n");
+                    goto done;
+                }
+            }
+        } else {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el_ext failed.\n");
             goto done;
         }
