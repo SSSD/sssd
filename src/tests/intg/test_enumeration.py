@@ -406,7 +406,7 @@ def user_and_groups_rfc2307_bis(request, ldap_conn):
     return None
 
 
-def _test_add_remove_user(ldap_conn, blank_rfc2307):
+def test_add_remove_user(ldap_conn, blank_rfc2307):
     """Test user addition and removal are reflected by SSSD"""
     e = ldap_ent.user(ldap_conn.ds_inst.base_dn, "user", 2001, 2000)
     time.sleep(INTERACTIVE_TIMEOUT/2)
@@ -421,7 +421,7 @@ def _test_add_remove_user(ldap_conn, blank_rfc2307):
     ent.assert_passwd(ent.contains_only())
 
 
-def _test_add_remove_group_rfc2307(ldap_conn, blank_rfc2307):
+def test_add_remove_group_rfc2307(ldap_conn, blank_rfc2307):
     """Test RFC2307 group addition and removal are reflected by SSSD"""
     e = ldap_ent.group(ldap_conn.ds_inst.base_dn, "group", 2001)
     time.sleep(INTERACTIVE_TIMEOUT/2)
@@ -436,7 +436,7 @@ def _test_add_remove_group_rfc2307(ldap_conn, blank_rfc2307):
     ent.assert_group(ent.contains_only())
 
 
-def _test_add_remove_group_rfc2307_bis(ldap_conn, blank_rfc2307_bis):
+def test_add_remove_group_rfc2307_bis(ldap_conn, blank_rfc2307_bis):
     """Test RFC2307bis group addition and removal are reflected by SSSD"""
     e = ldap_ent.group_bis(ldap_conn.ds_inst.base_dn, "group", 2001)
     time.sleep(INTERACTIVE_TIMEOUT/2)
@@ -451,7 +451,7 @@ def _test_add_remove_group_rfc2307_bis(ldap_conn, blank_rfc2307_bis):
     ent.assert_group(ent.contains_only())
 
 
-def _test_add_remove_membership_rfc2307(ldap_conn, user_and_group_rfc2307):
+def test_add_remove_membership_rfc2307(ldap_conn, user_and_group_rfc2307):
     """Test user membership addition and removal are reflected by SSSD"""
     time.sleep(INTERACTIVE_TIMEOUT/2)
     # Add user to group
@@ -467,7 +467,7 @@ def _test_add_remove_membership_rfc2307(ldap_conn, user_and_group_rfc2307):
     ent.assert_group_by_name("group", dict(mem=ent.contains_only()))
 
 
-def _test_add_remove_membership_rfc2307_bis(ldap_conn,
+def test_add_remove_membership_rfc2307_bis(ldap_conn,
                                            user_and_groups_rfc2307_bis):
     """
     Test user and group membership addition and removal are reflected by SSSD,
