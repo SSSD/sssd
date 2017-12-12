@@ -338,23 +338,6 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
                       PR_GetError(), PORT_ErrorToString(PR_GetError()));
                 continue;
             }
-
-            /* with 'certificateUsageCheckAllUsages' set
-             * CERT_VerifyCertificateNow() does not do OCSP so it must be done
-             * explicitly */
-            if (cert_verify_opts->do_ocsp) {
-                rv = CERT_CheckOCSPStatus(handle, cert_list_node->cert,
-                                          PR_Now(), NULL);
-                if (rv != SECSuccess) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "Certificate [%s][%s] failed OCSP check [%d][%s], "
-                          "skipping.\n",
-                          cert_list_node->cert->nickname,
-                          cert_list_node->cert->subjectName,
-                          PR_GetError(), PORT_ErrorToString(PR_GetError()));
-                    continue;
-                }
-            }
         }
 
         if (key_id_in != NULL) {
