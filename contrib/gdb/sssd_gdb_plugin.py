@@ -15,7 +15,8 @@ def gdb_printer_decorator(fn):
 
 
 def indent_string(s, indent):
-    return '\n'.join(["%s%s" % ("\t" * indent, part) for part in s.split('\n')])
+    return '\n'.join(["%s%s" % ("\t" * indent, part)
+                     for part in s.split('\n')])
 
 
 class StringPrinter(object):
@@ -31,7 +32,8 @@ class LdbDnPrinter(StringPrinter):
     " print an ldb dn "
 
     def as_string(self, indent=0):
-        ret = "{ <%s>\tlinearized:%s }" % (self.val.type, self.val['linearized'])
+        ret = "{ <%s>\tlinearized:%s }" % (self.val.type,
+                                           self.val['linearized'])
         return indent_string(ret, indent)
 
 
@@ -47,7 +49,8 @@ class LdbMessageElementPrinter(StringPrinter):
     " print a ldb message element "
 
     def as_string(self, indent=0):
-        ret = "flags = %(flags)s, name = %(name)s, num_values = %(num_values)s" % self.val
+        ret = "flags = %(flags)s, name = %(name)s, " \
+                "num_values = %(num_values)s" % self.val
         try:
             nvals = int(self.val['num_values'])
         except ValueError:
@@ -70,7 +73,8 @@ class LdbMessagePrinter(StringPrinter):
             return "num_elements is not numeric?"
 
         dn = LdbDnPrinter(self.val['dn'])
-        ret = "num_elements:\t%s\ndn:\t%s\nelements:\t" % (nels, dn.as_string(indent))
+        dn_str = dn.as_string(indent)
+        ret = "num_elements:\t%s\ndn:\t%s\nelements:\t" % (nels, dn_str)
 
         for i in range(nels):
             el = LdbMessageElementPrinter(self.val['elements'][i])
@@ -83,7 +87,8 @@ class LdbResultPrinter(StringPrinter):
     " print a ldb message element "
 
     def as_string(self, indent=0):
-        ret = "count = %(count)s, extended = %(extended)s, controls = %(controls)s, refs = %(refs)s" % self.val
+        ret = "count = %(count)s, extended = %(extended)s, " \
+                "controls = %(controls)s, refs = %(refs)s" % self.val
         try:
             count = int(self.val['count'])
         except ValueError:
@@ -192,5 +197,6 @@ class TeventBreak(gdb.Command):
             return
 
         b = gdb.Breakpoint("*%s" % fnaddr)
+
 
 TeventBreak()

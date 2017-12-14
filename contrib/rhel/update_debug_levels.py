@@ -29,14 +29,17 @@ by default""")
                       help="Be verbose")
     (options, args) = parser.parse_args()
     if len(args) > 0:
-        print("Stray arguments: %s" % ' '.join([a for a in args]), file=sys.stderr)
+        print("Stray arguments: %s" % ' '.join([a for a in args]),
+              file=sys.stderr)
         return None
 
     return options
 
+
 def verbose(msg, verbosity):
     if verbosity:
         print(msg)
+
 
 def main():
     options = parse_options()
@@ -57,7 +60,7 @@ def main():
     # Check the [sssd] section for debug_level
     sssd_service = sssdconfig.get_service('sssd')
 
-    if not 'debug_level' in sssd_service.options.keys():
+    if 'debug_level' not in sssd_service.options.keys():
         # Nothing to do, just return success
         verbose("No changes required, no backup necessary",
                 options.verbose)
@@ -70,7 +73,7 @@ def main():
     # Loop through services
     for service in sssdconfig.list_services():
         svc = sssdconfig.get_service(service)
-        if not 'debug_level' in svc.options.keys():
+        if 'debug_level' not in svc.options.keys():
             # Not explicitly set, so add it
             svc.set_option('debug_level', debug_level)
             sssdconfig.save_service(svc)
@@ -78,7 +81,7 @@ def main():
     # Loop through domains (active AND inactive)
     for domain in sssdconfig.list_domains():
         dom = sssdconfig.get_domain(domain)
-        if not 'debug_level' in dom.options.keys():
+        if 'debug_level' not in dom.options.keys():
             # Not explicitly set, so add it
             dom.set_option('debug_level', debug_level)
             sssdconfig.save_domain(dom)
@@ -94,6 +97,7 @@ def main():
 
     # Save the changes
     sssdconfig.write()
+
 
 if __name__ == "__main__":
     ret = main()

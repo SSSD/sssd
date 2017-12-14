@@ -39,6 +39,19 @@ declare -r COVERAGE_MIN_LINES=15
 # Minimum percentage of code functions covered by tests
 declare -r COVERAGE_MIN_FUNCS=0
 
+# Those values are a sum up of the default warnings in all our
+# supported distros in our CI.
+# debian_testing: E121,E123,E126,E226,E24,E704,W503
+# fedora22:
+# fedora23:
+# fedora24: E121,E123,E126,E226,E24,E704
+# fedora25: E121,E123,E126,E226,E24,E704
+# fedora26: E121,E123,E126,E226,E24,E704
+# fedora27: E121,E123,E126,E226,E24,E704
+# fedora_rawhide: E121,E123,E126,E226,E24,E704
+# rhel6:
+# rhel7:
+declare PEP8_IGNORE="--ignore=E121,E123,E126,E226,E24,E704,W503"
 declare BASE_PFX=""
 declare DEPS=true
 declare BASE_DIR=`pwd`
@@ -379,6 +392,13 @@ export V=1
 if "$DEPS"; then
     stage install-deps  deps_install
 fi
+if [[ "$DISTRO_BRANCH" != redhat-* ]]; then
+    # Ignore "E722 do not use bare except" exceptions
+    # that are only raised on debian_testing machines.
+    PEP8_IGNORE+=",E722"
+fi
+stage pep8          find . -path ./src/config -prune -o \
+                           -name \*.py -exec pep8 $PEP8_IGNORE {} +
 stage autoreconf    autoreconf --install --force
 run_build debug     build_debug
 if "$RIGOROUS"; then

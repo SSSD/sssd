@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#coding=utf-8
+# coding=utf-8
 
 # Authors:
 #   Jakub Hrozek <jhrozek@redhat.com>
@@ -30,6 +30,7 @@ import errno
 # module under test
 import pysss
 
+
 class LocalTest(unittest.TestCase):
     local_path = "/var/lib/sss/db/sssd.ldb"
 
@@ -43,14 +44,15 @@ class LocalTest(unittest.TestCase):
     def _get_object_info(self, name, subtree, domain):
         search_dn = "dn=name=%s,cn=%s,cn=%s,cn=sysdb" % (name, subtree, domain)
         try:
-            output = subprocess.check_call("ldbsearch -H %s %s" % (self.local_path,search_dn),
-                                           shell=True)
+            cmd = "ldbsearch -H %s %s" % (self.local_path, search_dn)
+            output = subprocess.check_call(cmd, shell=True)
             output = output.decode('utf-8')
         except subprocess.CalledProcessError:
             return {}
 
         kw = {}
-        for key, value in [ l.split(':') for l in output.split('\n') if ":" in l ]:
+        for key, value in \
+                [l.split(':') for l in output.split('\n') if ":" in l]:
             kw[key] = value.strip()
 
         del kw['asq']
@@ -63,15 +65,19 @@ class LocalTest(unittest.TestCase):
         return self._get_object_info(name, "groups", domain)
 
     def _validate_object(self, kw, name, **kwargs):
-        if kw == {}: self.fail("Could not get %s info" % name)
+        if kw == {}:
+            self.fail("Could not get %s info" % name)
         for key in kwargs.keys():
-            self.assert_(str(kwargs[key]) == str(kw[key]), "%s %s != %s %s" % (key, kwargs[key], key, kw[key]))
+            self.assert_(str(kwargs[key]) == str(kw[key]),
+                         "%s %s != %s %s" % (key, kwargs[key], key, kw[key]))
 
     def validate_user(self, username, **kwargs):
-        return self._validate_object(self.get_user_info(username), "user", **kwargs)
+        return self._validate_object(self.get_user_info(username), "user",
+                                     **kwargs)
 
     def validate_group(self, groupname, **kwargs):
-        return self._validate_object(self.get_group_info(groupname), "group", **kwargs)
+        return self._validate_object(self.get_group_info(groupname), "group",
+                                     **kwargs)
 
     def _validate_no_object(self, kw, name):
         if kw != {}:
@@ -81,18 +87,21 @@ class LocalTest(unittest.TestCase):
         return self._validate_no_object(self.get_user_info(username), "user")
 
     def validate_no_group(self, groupname):
-        return self._validate_no_object(self.get_group_info(groupname), "group")
+        return self._validate_no_object(self.get_group_info(groupname),
+                                        "group")
 
     def _get_object_membership(self, name, subtree, domain):
         search_dn = "dn=name=%s,cn=%s,cn=%s,cn=sysdb" % (name, subtree, domain)
         try:
-            output = subprocess.check_call("ldbsearch -H %s %s" % (self.local_path,search_dn),
-                                           shell=True)
+            cmd = "ldbsearch -H %s %s" % (self.local_path, search_dn)
+            output = subprocess.check_call(cmd, shell=True)
             output = output.decode('utf-8')
         except subprocess.CalledProcessError:
             return []
 
-        members = [ value.strip() for key, value in [ l.split(':') for l in output.split('\n') if ":" in l ] if key == "memberof" ]
+        members = [value.strip() for key, value in
+                   [l.split(':') for l in output.split('\n') if ":" in l]
+                   if key == "memberof"]
         return members
 
     def _assertMembership(self, name, group_list, subtree, domain):
@@ -137,11 +146,13 @@ class LocalTest(unittest.TestCase):
     def remove_user_not_home(self, username):
         self._run_and_check("sss_userdel -R %s" % (username))
 
+
 class SanityTest(unittest.TestCase):
     def testInstantiate(self):
         "Test that the local backed binding can be instantiated"
         local = pysss.local()
         self.assert_(local.__class__, "<type 'sss.local'>")
+
 
 class UseraddTest(LocalTest):
     def tearDown(self):
@@ -173,12 +184,13 @@ class UseraddTest(LocalTest):
     def testUseraddNoHomedir(self):
         "Test adding a local user without creating his home dir"
         self.username = "testUseraddNoHomedir"
-        self.local.useradd(self.username, create_home = False)
+        self.local.useradd(self.username, create_home=False)
         self.validate_user(self.username)
         # check home directory was not created
-        self.assertEquals(os.access("/home/%s" % self.username, os.F_OK), False)
-        self.local.userdel(self.username, remove = False)
-        self.username = None # fool tearDown into not removing the user
+        username_path = "/home/%s" % self.username
+        self.assertEquals(os.access(username_path, os.F_OK), False)
+        self.local.userdel(self.username, remove=False)
+        self.username = None  # fool tearDown into not removing the user
 
     def testUseraddAlternateSkeldir(self):
         "Test adding a local user and init his homedir from a custom location"
@@ -193,9 +205,10 @@ class UseraddTest(LocalTest):
         filename = os.path.basename(path)
 
         try:
-            self.local.useradd(self.username, skel = skeldir)
+            self.local.useradd(self.username, skel=skeldir)
             self.validate_user(self.username)
-            self.assertEquals(os.access("/home/%s/%s"%(self.username,filename), os.F_OK), True)
+            path = "/home/%s/%s" % (self.username, filename)
+            self.assertEquals(os.access(path, os.F_OK), True)
         finally:
             shutil.rmtree(skeldir)
 
@@ -206,9 +219,9 @@ class UseraddTest(LocalTest):
         self.add_group("gr2")
         try:
             self.local.useradd(self.username,
-                               groups=["gr1","gr2"])
+                               groups=["gr1", "gr2"])
             self.assertUserMembership(self.username,
-                                      ["gr1","gr2"])
+                                      ["gr1", "gr2"])
         finally:
             self.remove_group("gr1")
             self.remove_group("gr2")
@@ -220,6 +233,7 @@ class UseraddTest(LocalTest):
                            uid=1024)
         self.validate_user(self.username,
                            uidNumber=1024)
+
 
 class UseraddTestNegative(LocalTest):
     def testUseraddNoParams(self):
@@ -252,6 +266,7 @@ class UseraddTestNegative(LocalTest):
         finally:
             self.remove_user(self.username)
 
+
 class UserdelTest(LocalTest):
     def testUserdel(self):
         self.add_user("testUserdel")
@@ -279,6 +294,7 @@ class UserdelTest(LocalTest):
             self.assertEquals(e.errno, errno.ENOENT)
         else:
             fail("Was expecting exception")
+
 
 class UsermodTest(LocalTest):
     def setUp(self):
@@ -314,9 +330,9 @@ class UsermodTest(LocalTest):
 
         try:
             self.local.usermod(self.username,
-                               addgroups=["gr1","gr2"])
+                               addgroups=["gr1", "gr2"])
             self.assertUserMembership(self.username,
-                                      ["gr1","gr2"])
+                                      ["gr1", "gr2"])
             self.local.usermod(self.username,
                                rmgroups=["gr2"])
             self.assertUserMembership(self.username,
@@ -340,6 +356,7 @@ class UsermodTest(LocalTest):
         self.validate_user(self.username,
                            disabled="false")
 
+
 class GroupaddTest(LocalTest):
     def tearDown(self):
         if self.groupname:
@@ -355,9 +372,10 @@ class GroupaddTest(LocalTest):
         "Test adding a local group with a custom GID"
         self.groupname = "testUseraddWithGID"
         self.local.groupadd(self.groupname,
-                           gid=1024)
+                            gid=1024)
         self.validate_group(self.groupname,
-                           gidNumber=1024)
+                            gidNumber=1024)
+
 
 class GroupaddTestNegative(LocalTest):
     def testGroupaddNoParams(self):
@@ -390,6 +408,7 @@ class GroupaddTestNegative(LocalTest):
         finally:
             self.remove_group(self.groupname)
 
+
 class GroupdelTest(LocalTest):
     def testGroupdel(self):
         self.add_group("testGroupdel")
@@ -419,9 +438,9 @@ class GroupmodTest(LocalTest):
     def testGroupmodGID(self):
         "Test modifying UID"
         self.local.groupmod(self.groupname,
-                           gid=1024)
+                            gid=1024)
         self.validate_group(self.groupname,
-                           gidNumber=1024)
+                            gidNumber=1024)
 
     def testGroupmodGroupMembership(self):
         "Test adding to groups"
@@ -429,9 +448,9 @@ class GroupmodTest(LocalTest):
         self.add_group("gr2")
         try:
             self.local.groupmod(self.groupname,
-                                addgroups=["gr1","gr2"])
+                                addgroups=["gr1", "gr2"])
             self.assertGroupMembership(self.groupname,
-                                       ["gr1","gr2"])
+                                       ["gr1", "gr2"])
             self.local.groupmod(self.groupname,
                                 rmgroups=["gr2"])
             self.assertGroupMembership(self.groupname,
@@ -444,7 +463,7 @@ class GroupmodTest(LocalTest):
             self.remove_group("gr1")
             self.remove_group("gr2")
 
+
 # -------------- run the test suite -------------- #
 if __name__ == "__main__":
     unittest.main()
-
