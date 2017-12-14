@@ -239,6 +239,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
         /* non-fatal */
+        ret = EOK;
     }
 
     *_res = talloc_steal(mem_ctx, res);
@@ -351,6 +352,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
         /* non-fatal */
+        ret = EOK;
     }
 
     *_res = talloc_steal(mem_ctx, res);
@@ -672,6 +674,7 @@ int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
         /* non-fatal */
+        ret = EOK;
     }
 
     res = sss_merge_ldb_results(res, ts_cache_res);
@@ -1188,6 +1191,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
         /* non-fatal */
+        ret = EOK;
     }
 
     res = sss_merge_ldb_results(res, ts_cache_res);
@@ -1591,6 +1595,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot merge timestamp cache values\n");
         /* non-fatal */
+        ret = EOK;
     }
 
     *_res = talloc_steal(mem_ctx, res);
