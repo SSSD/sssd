@@ -237,6 +237,7 @@ def sanity_rfc2307(request, ldap_conn):
     create_sssd_fixture(request)
     return None
 
+
 def populate_rfc2307bis(request, ldap_conn):
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001)
