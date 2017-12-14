@@ -921,12 +921,12 @@ class ADOperations(object):
 
 
 class SSHClient(paramiko.SSHClient):
-    """ This class Inherits paramiko.SSHClient and implements client.exec_commands
-    channel.exec_command """
+    """ This class Inherits paramiko.SSHClient and implements
+    client.exec_commands channel.exec_command """
 
     def __init__(self, hostname=None, port=None, username=None, password=None):
-        """ Initialize connection to Remote Host using Paramiko SSHClient. Can be
-        initialized with hostname, port, username and password.
+        """ Initialize connection to Remote Host using Paramiko SSHClient.
+        Can be initialized with hostname, port, username and password.
         """
         self.hostname = hostname
         self.username = username
