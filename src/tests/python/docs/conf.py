@@ -40,6 +40,7 @@ def skip(app, what, name, obj, skip, options):
 def setup(app):
     app.connect("autodoc-skip-member", skip)
 
+
 # extensions = [
 #    'sphinx.ext.todo',
 #    'sphinx.ext.viewcode',
