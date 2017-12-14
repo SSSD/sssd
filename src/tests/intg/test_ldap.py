@@ -1219,8 +1219,9 @@ def test_ldap_auto_private_groups_direct(ldap_conn, mpg_setup):
     ent.assert_group_by_gid(2001, dict(name="group1", mem=ent.contains_only()))
 
     # The user's secondary groups list must be correct as well
-    # Note that the original GID is listed as well -- this is correct and expected
-    # because we save the original GID in the SYSDB_PRIMARY_GROUP_GIDNUM attribute
+    # Note that the original GID is listed as well -- this is correct and
+    # expected because we save the original GID in the
+    # SYSDB_PRIMARY_GROUP_GIDNUM attribute
     user1_expected_gids = [1001, 2001, 2012, 2015]
     (res, errno, gids) = sssd_id.call_sssd_initgroups("user1", 1001)
     assert res == sssd_id.NssReturnCode.SUCCESS
@@ -1232,8 +1233,8 @@ def test_ldap_auto_private_groups_direct(ldap_conn, mpg_setup):
         )
 
     # Request user2's private group by GID without resolving the user first.
-    # This must trigger user resolution through by-GID resolution, since the GID
-    # doesn't exist on its own in LDAP
+    # This must trigger user resolution through by-GID resolution, since the
+    # GID doesn't exist on its own in LDAP
     ent.assert_group_by_gid(1002, dict(name="user2", mem=ent.contains_only()))
 
     # Test supplementary groups for user2 as well
