@@ -76,6 +76,12 @@
             is required on the client side.
         </para>
         <para>
+            If <quote>auth_provider=ad</quote> or
+            <quote>access_provider=ad</quote> is configured
+            in sssd.conf then the id_provider must also be set to
+            <quote>ad</quote>.
+        </para>
+        <para>
             By default, the AD provider will map UID and GID values from the
             objectSID parameter in Active Directory. For details on this, see
             the <quote>ID MAPPING</quote> section below. If you want to
