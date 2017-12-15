@@ -537,6 +537,29 @@
                             it will ask an IPA server.
                         </para>
                         <para>
+                            NOTE: There are currently some assumptions that
+                            must be met when SSSD is running on an IPA server.
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        The <quote>ipa_server</quote> option
+                                        must be configured to point to the
+                                        IPA server itself. This is already
+                                        the default set by the IPA installer,
+                                        so no manual change is required.
+                                    </para> 
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        The <quote>full_name_format</quote>
+                                        option must not be tweaked to only
+                                        print short names for users from
+                                        trusted domains.
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
                             Default: false
                         </para>
                     </listitem>
