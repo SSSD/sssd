@@ -372,7 +372,9 @@ struct ifp_list_ctx *ifp_list_ctx_new(struct sbus_request *sbus_req,
     list_ctx->ctx = ctx;
     list_ctx->dom = ctx->rctx->domains;
     list_ctx->filter = filter;
-    list_ctx->paths = talloc_zero_array(list_ctx, const char *, 1);
+    list_ctx->paths_max = 1;
+    list_ctx->paths = talloc_zero_array(list_ctx, const char *,
+                                        list_ctx->paths_max);
     if (list_ctx->paths == NULL) {
         talloc_free(list_ctx);
         return NULL;
@@ -387,6 +389,7 @@ errno_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
 {
     size_t capacity = list_ctx->limit - list_ctx->path_count;
     errno_t ret;
+    size_t c;
 
     if (list_ctx->limit == 0) {
         capacity = entries;
@@ -396,18 +399,23 @@ errno_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
     if (capacity < entries) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "IFP list request has limit of %"PRIu32" entries but back end "
-              "returned %zu entries\n", list_ctx->limit, entries);
+              "returned %zu entries\n", list_ctx->limit,
+                                        list_ctx->path_count + entries);
     } else {
         capacity = entries;
     }
 
 immediately:
-    talloc_zfree(list_ctx->paths);
-    list_ctx->paths = talloc_zero_array(list_ctx, const char *, capacity);
+    list_ctx->paths_max = list_ctx->path_count + capacity;
+    list_ctx->paths = talloc_realloc(list_ctx, list_ctx->paths, const char *,
+                                     list_ctx->paths_max);
     if (list_ctx->paths == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
         ret = ENOMEM;
         goto done;
+    }
+    for (c = list_ctx->path_count; c < list_ctx->paths_max; c++) {
+        list_ctx->paths[c] = NULL;
     }
 
     *_capacity = capacity;

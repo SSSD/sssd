@@ -93,6 +93,7 @@ struct ifp_list_ctx {
     struct ifp_ctx *ctx;
 
     const char **paths;
+    size_t paths_max;
     size_t path_count;
 };
 
