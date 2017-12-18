@@ -446,6 +446,23 @@ if test x"$sss_cv_attribute_warn_unused_result" = xyes ; then
              [whether compiler supports __attribute__((warn_unused_result))])
 fi
 
+AC_CACHE_CHECK([whether compiler supports __attribute__((noreturn))],
+               sss_cv_attribute_noreturn,
+               [AC_COMPILE_IFELSE(
+                    [AC_LANG_SOURCE(
+                        [ char _check_leaks(int bytes) __attribute__ ((noreturn)); ]
+                    )],
+                    [sss_cv_attribute_noreturn=yes],
+                    [
+                        AC_MSG_RESULT([no])
+                        AC_MSG_WARN([compiler does NOT support __attribute__((noreturn))])
+                    ])
+               ])
+if test x"$sss_cv_attribute_noreturn" = xyes ; then
+   AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_NORETURN, 1,
+             [whether compiler supports __attribute__((noreturn))])
+fi
+
 SAFE_CFLAGS=$CFLAGS
 CFLAGS="-Werror"
 AC_CACHE_CHECK(

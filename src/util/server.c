@@ -244,6 +244,9 @@ int pidfile(const char *path, const char *name)
     return 0;
 }
 
+#if HAVE_FUNCTION_ATTRIBUTE_NORETURN
+__attribute__((__noreturn__))
+#endif
 void orderly_shutdown(int status)
 {
 #if HAVE_GETPGRP
