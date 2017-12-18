@@ -1744,7 +1744,11 @@ pam_account_locked_message = Account locked, please contact help desk.
                     <term>enumerate (bool)</term>
                     <listitem>
                         <para>
-                            Determines if a domain can be enumerated. This
+                            Determines if a domain can be enumerated,
+                            that is, whether the domain can list all the
+                            users and group it contains. Note that it is
+                            not required to enable enumeration in order
+                            for secondary groups to be displayed. This
                             parameter can have one of the following values:
                         </para>
                         <para>
@@ -1757,6 +1761,11 @@ pam_account_locked_message = Account locked, please contact help desk.
                             Default: FALSE
                         </para>
                         <para>
+                            Enumerating a domain requires SSSD to download
+                            and store ALL user and group entries from the
+                            remote server.
+                        </para>
+                        <para>
                             Note: Enabling enumeration has a moderate
                             performance impact on SSSD while enumeration
                             is running. It may take up to several minutes
@@ -1767,7 +1776,9 @@ pam_account_locked_message = Account locked, please contact help desk.
                             processing. Saving a large number of entries
                             to cache after the enumeration completes might
                             also be CPU intensive as the memberships have
-                            to be recomputed.
+                            to be recomputed. This can lead to the
+                            <quote>sssd_be</quote> process becoming unresponsive
+                            or even restarted by the internal watchdog.
                         </para>
                         <para>
                             While the first enumeration is running, requests
