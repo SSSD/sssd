@@ -207,7 +207,7 @@
                                 <phrase condition="have_systemd">
                                     The services' list is optional on platforms
                                     where systemd is supported, as they will either
-                                    be socket or dbus activated when needed.
+                                    be socket or D-Bus activated when needed.
                                 </phrase>
                             </para>
                             <para>
@@ -703,7 +703,7 @@
 
                             This option only has effect when SSSD is built with
                             systemd support and when services are either socket
-                            or dbus activated.
+                            or D-Bus activated.
                         </para>
                         <para>
                             Default: 300
@@ -2841,7 +2841,7 @@ subdomain_inherit = ldap_purge_cache_timeout
                         </para>
                         <para>
                             NOTE: Because the GID number and the user private group
-                            are inferred frm the UID number, it is not supported
+                            are inferred from the UID number, it is not supported
                             to have multiple entries with the same UID or GID number
                             with this option. In other words, enabling this option
                             enforces uniqueness across the ID space.
