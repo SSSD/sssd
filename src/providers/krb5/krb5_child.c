@@ -1532,9 +1532,11 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                         password_or_responder(password),
                                         sss_krb5_prompter, kr, 0,
                                         NULL, kr->options);
-    if (kr->pd->cmd == SSS_PAM_PREAUTH) {
-        /* Any errors are ignored during pre-auth, only data is collected to
-         * be send back to the client.*/
+    if (kr->pd->cmd == SSS_PAM_PREAUTH && kerr != KRB5KDC_ERR_KEY_EXP) {
+        /* Any errors except KRB5KDC_ERR_KEY_EXP are ignored during pre-auth,
+         * only data is collected to be send back to the client.
+         * KRB5KDC_ERR_KEY_EXP must be handled separately to figure out the
+         * possible authentication methods to update the password. */
         DEBUG(SSSDBG_TRACE_FUNC,
               "krb5_get_init_creds_password returned [%d] during pre-auth.\n",
               kerr);
@@ -1731,12 +1733,14 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
     DEBUG(SSSDBG_TRACE_LIBS, "Password change operation\n");
 
-    ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to fetch current password [%d] %s.\n",
-                  ret, strerror(ret));
-        return ERR_NO_CREDS;
+    if (sss_authtok_get_type(kr->pd->authtok) == SSS_AUTHTOK_TYPE_PASSWORD) {
+        ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to fetch current password [%d] %s.\n",
+                      ret, strerror(ret));
+            return ERR_NO_CREDS;
+        }
     }
 
     if (!prelim) {
@@ -1893,6 +1897,40 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     return map_krb5_error(kerr);
 }
 
+static errno_t pam_add_prompting(struct krb5_req *kr)
+{
+    int ret;
+
+    /* add OTP tokeninfo messge if available */
+    if (kr->otp) {
+        ret = k5c_attach_otp_info_msg(kr);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "k5c_attach_otp_info_msg failed.\n");
+            return ret;
+        }
+    }
+
+    if (kr->password_prompting) {
+        ret = pam_add_response(kr->pd, SSS_PASSWORD_PROMPTING, 0, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+            return ret;
+        }
+    }
+
+    if (kr->pkinit_prompting) {
+        ret = pam_add_response(kr->pd, SSS_CERT_AUTH_PROMPTING, 0,
+                               NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 static errno_t tgt_req_child(struct krb5_req *kr)
 {
     const char *password = NULL;
@@ -1928,31 +1966,10 @@ static errno_t tgt_req_child(struct krb5_req *kr)
 
     if (kerr != KRB5KDC_ERR_KEY_EXP) {
         if (kr->pd->cmd == SSS_PAM_PREAUTH) {
-            /* add OTP tokeninfo messge if available */
-            if (kr->otp) {
-                ret = k5c_attach_otp_info_msg(kr);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "k5c_attach_otp_info_msg failed.\n");
-                    goto done;
-                }
-            }
-
-            if (kr->password_prompting) {
-                ret = pam_add_response(kr->pd, SSS_PASSWORD_PROMPTING, 0, NULL);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
-                    goto done;
-                }
-            }
-
-            if (kr->pkinit_prompting) {
-                ret = pam_add_response(kr->pd, SSS_CERT_AUTH_PROMPTING, 0,
-                                       NULL);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
-                    goto done;
-                }
+            ret = pam_add_prompting(kr);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_prompting failed.\n");
+                goto done;
             }
         } else {
             if (kerr == 0) {
@@ -1985,6 +2002,23 @@ static errno_t tgt_req_child(struct krb5_req *kr)
                                         kr->options);
 
     krb5_free_cred_contents(kr->ctx, kr->creds);
+
+    if (kr->pd->cmd == SSS_PAM_PREAUTH) {
+        /* Any errors are ignored during pre-auth, only data is collected to
+         * be send back to the client. Even if the password is expired we
+         * should now know which authentication methods are available to
+         * update the password. */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "krb5_get_init_creds_password returned [%d] during pre-auth, "
+              "ignored.\n", kerr);
+        ret = pam_add_prompting(kr);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_prompting failed.\n");
+            goto done;
+        }
+        goto done;
+    }
+
     if (kerr == 0) {
         ret = ERR_CREDS_EXPIRED;
 
