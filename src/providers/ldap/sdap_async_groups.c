@@ -880,6 +880,8 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     int ret;
     const char *remove_attrs[] = {SYSDB_MEMBER, SYSDB_ORIG_MEMBER, SYSDB_GHOST,
                                   NULL};
+    const char *check_dom;
+    const char *check_name;
 
     if (dom->ignore_group_members) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -905,6 +907,15 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         group_dom = sss_get_domain_by_sid_ldap_fallback(get_domains_head(dom),
                                                         group_sid);
         if (group_dom == NULL) {
+            ret = well_known_sid_to_name(group_sid, &check_dom, &check_name);
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "Skipping group with SID [%s][%s\\%s] which is "
+                      "currently not handled by SSSD.\n",
+                      group_sid, check_dom, check_name);
+                return EOK;
+            }
+
             DEBUG(SSSDBG_TRACE_FUNC, "SID [%s] does not belong to any known "
                                      "domain, using [%s].\n", group_sid,
                                                               dom->name);
