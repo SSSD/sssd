@@ -92,7 +92,7 @@ static errno_t sssctl_backup(bool force)
     }
 
     if (sssctl_backup_exist(files) && !force) {
-        prompt = sssctl_prompt(_("SSSD backup of local data already exist, "
+        prompt = sssctl_prompt(_("SSSD backup of local data already exists, "
                                  "override?"), SSSCTL_PROMPT_NO);
         switch (prompt) {
         case SSSCTL_PROMPT_YES:

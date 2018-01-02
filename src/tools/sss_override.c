@@ -267,7 +267,7 @@ errno_t prepare_view_msg(struct sss_domain_info *domain)
 
     ret = prepare_view(domain);
     if (ret == EEXIST) {
-        fprintf(stderr, _("Other than " LOCALVIEW " view already exist "
+        fprintf(stderr, _("Other than " LOCALVIEW " view already exists "
                 "in domain %s.\n"), domain->name);
     } else if (ret != EOK) {
         fprintf(stderr, _("Unable to prepare " LOCALVIEW
