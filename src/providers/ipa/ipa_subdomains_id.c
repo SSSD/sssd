@@ -60,6 +60,8 @@ struct ipa_subdomain_account_state {
     const char *filter;
     int filter_type;
     struct sysdb_attrs *override_attrs;
+    struct sysdb_attrs *mapped_attrs;
+    char *object_sid;
 
     int dp_error;
 };
@@ -110,6 +112,7 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
     state->ipa_server_mode = dp_opt_get_bool(state->ipa_ctx->ipa_options->basic,
                                              IPA_SERVER_MODE);
     state->override_attrs = NULL;
+    state->mapped_attrs = NULL;
 
     /* With views we cannot got directly to the look up the AD objects but
      * have to check first if the request matches an override in the given
@@ -209,8 +212,34 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
         goto fail;
     }
 
+    if (state->ar->filter_type == BE_FILTER_CERT
+            && is_default_view(state->ipa_ctx->view_name)) {
+        /* The override data was found with a lookup by certificate. for the
+         * default view the certificate will be added to
+         * SYSDB_USER_MAPPED_CERT so that cache lookups will find the same
+         * user. If no override data was found the mapping (if any) should be
+         * removed. For other view this is not needed because the override
+         * certificate is store in the cached override object in this case. */
+        state->mapped_attrs = sysdb_new_attrs(state);
+        if (state->mapped_attrs == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_new_attrs failed, ignored.\n");
+        } else {
+            ret = sysdb_attrs_add_base64_blob(state->mapped_attrs,
+                                              SYSDB_USER_MAPPED_CERT,
+                                              state->ar->filter_value);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_attrs_add_base64_blob failed, ignored.\n");
+                talloc_free(state->mapped_attrs);
+                state->mapped_attrs = NULL;
+            }
+        }
+    }
+
     if (state->override_attrs != NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "Processing override.\n");
+
         ret = sysdb_attrs_get_string(state->override_attrs,
                                      SYSDB_OVERRIDE_ANCHOR_UUID,
                                      &anchor);
@@ -230,6 +259,18 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
                 goto fail;
             }
 
+            if (state->mapped_attrs != NULL) {
+                /* save the SID so that SYSDB_USER_MAPPED_CERT can be added
+                 * later to the object */
+                state->object_sid = talloc_strdup(state, ar->filter_value);
+                if (state->object_sid == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "talloc_strdup failed, ignored.\n");
+                    talloc_free(state->mapped_attrs);
+                    state->mapped_attrs = NULL;
+                }
+            }
+
             if (state->ipa_server_mode
                     && (state->ar->entry_type & BE_REQ_TYPE_MASK)
                                                          == BE_REQ_INITGROUPS) {
@@ -245,6 +286,17 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
             goto fail;
         }
     } else {
+        if (state->mapped_attrs != NULL) {
+            /* remove certifcate (if any) if no matching override was found */
+            ret = sysdb_remove_mapped_data(state->domain, state->mapped_attrs);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_remove_mapped_data failed, "
+                                         "some cached entries might contain "
+                                         "invalid mapping data.\n");
+            }
+            talloc_free(state->mapped_attrs);
+            state->mapped_attrs = NULL;
+        }
         ar = state->ar;
     }
 
@@ -297,6 +349,8 @@ static void ipa_subdomain_account_done(struct tevent_req *subreq)
                                             struct ipa_subdomain_account_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
+    struct ldb_result *res;
+    struct sss_domain_info *object_dom;
 
     if (state->ipa_server_mode) {
         ret = ipa_srv_ad_acct_recv(subreq, &dp_error);
@@ -310,6 +364,30 @@ static void ipa_subdomain_account_done(struct tevent_req *subreq)
         state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
+    }
+
+    if (state->mapped_attrs != NULL) {
+        object_dom = sss_get_domain_by_sid_ldap_fallback(state->domain,
+                                                         state->object_sid);
+        ret = sysdb_search_object_by_sid(state,
+                                         object_dom != NULL ? object_dom
+                                                            : state->domain,
+                                         state->object_sid, NULL, &res);
+        if (ret == EOK) {
+            ret = sysdb_set_entry_attr(state->domain->sysdb, res->msgs[0]->dn,
+                                       state->mapped_attrs, SYSDB_MOD_ADD);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_set_entry_attr failed, ignoring.\n");
+            }
+        } else if (ret == ENOENT) {
+            DEBUG(SSSDBG_TRACE_ALL, "No cached object found, cannot add "
+                                    "mapped attribute, ignoring.\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_search_object_by_sid failed, cannot add mapped "
+                  "attribute, ignoring.\n");
+        }
     }
 
     state->dp_error = DP_ERR_OK;
