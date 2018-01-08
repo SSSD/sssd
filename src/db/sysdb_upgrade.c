@@ -2475,6 +2475,18 @@ int sysdb_upgrade_19(struct sysdb_ctx *sysdb, const char **ver)
         goto done;
     }
 
+    ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "@IDXATTR", SYSDB_USER_MAPPED_CERT);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);

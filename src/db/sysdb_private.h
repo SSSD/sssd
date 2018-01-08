@@ -78,6 +78,7 @@
      "@IDXATTR: canonicalUserPrincipalName\n" \
      "@IDXATTR: uniqueID\n" \
      "@IDXATTR: mail\n" \
+     "@IDXATTR: userMappedCertificate\n" \
      "\n" \
      "dn: @MODULES\n" \
      "@LIST: asq,memberof\n" \
