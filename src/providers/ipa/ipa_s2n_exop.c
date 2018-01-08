@@ -2193,12 +2193,14 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     struct sysdb_attrs *gid_override_attrs = NULL;
     struct ldb_message *msg;
     struct ldb_message_element *el = NULL;
+
     /* The list of elements that might be missing are:
      * - SYSDB_ORIG_MEMBEROF
      * - SYSDB_SSH_PUBKEY
+     * - SYSDB_USER_CERT
      * Note that the list includes the trailing NULL at the end. */
     size_t missing_count = 0;
-    const char *missing[] = {NULL, NULL, NULL};
+    const char *missing[] = {NULL, NULL, NULL, NULL};
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -2447,6 +2449,12 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                          SYSDB_SSH_PUBKEY, false, &el);
             if (ret == ENOENT) {
                 missing[missing_count++] = SYSDB_SSH_PUBKEY;
+            }
+
+            ret = sysdb_attrs_get_el_ext(attrs->sysdb_attrs,
+                                         SYSDB_USER_CERT, false, &el);
+            if (ret == ENOENT) {
+                missing[missing_count++] = SYSDB_USER_CERT;
             }
 
             ret = sysdb_transaction_start(dom->sysdb);
