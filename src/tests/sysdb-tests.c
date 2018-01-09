@@ -216,6 +216,48 @@ struct test_data {
     struct ldb_message **msgs;
 };
 
+static struct test_data *test_data_new(struct sysdb_test_ctx *test_ctx)
+{
+    struct test_data *data;
+
+    data = talloc_zero(test_ctx, struct test_data);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    data->attrs = sysdb_new_attrs(data);
+    if (data->attrs == NULL) {
+        talloc_free(data);
+        return NULL;
+    }
+
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+
+    return data;
+}
+
+static struct test_data *test_data_new_user(struct sysdb_test_ctx *test_ctx,
+                                            uid_t uid)
+{
+    struct test_data *data;
+
+    data = test_data_new(test_ctx);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    data->uid = uid;
+    data->gid = uid;
+    data->username = talloc_asprintf(data, "testuser%d", uid);
+    if (data->username == NULL) {
+        talloc_free(data);
+        return NULL;
+    }
+
+    return data;
+}
+
 static int test_add_user(struct test_data *data)
 {
     char *homedir;
@@ -961,6 +1003,37 @@ START_TEST (test_sysdb_getpwnam)
 
 done:
     talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_user_group_by_name)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct ldb_message *msg;
+    int ret;
+    const char *groupname;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
+
+    ret = sysdb_search_group_by_name(data,
+                                     data->ctx->domain,
+                                     data->username, /* we're searching for the private group */
+                                     NULL,
+                                     &msg);
+    fail_if(ret != EOK);
+    fail_if(msg == NULL);
+
+    groupname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    ck_assert_str_eq(groupname, data->username);
 }
 END_TEST
 
@@ -6409,6 +6482,11 @@ Suite *create_sysdb_suite(void)
 
     /* Verify the users were added */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getpwnam, 27000, 27010);
+
+    /* Since this is a local (mpg) domain, verify the user groups
+     * can be found. Regression test for ticket #3615
+     */
+    tcase_add_loop_test(tc_sysdb, test_user_group_by_name, 27000, 27010);
 
     /* Create a new group */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_group, 28000, 28010);
