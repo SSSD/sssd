@@ -426,7 +426,6 @@ static int sysdb_search_by_name(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     const char *def_attrs[] = { SYSDB_NAME, NULL, NULL };
-    const char *base_tmpl = NULL;
     const char *filter_tmpl = NULL;
     struct ldb_message **msgs = NULL;
     struct ldb_dn *basedn;
@@ -436,28 +435,36 @@ static int sysdb_search_by_name(TALLOC_CTX *mem_ctx,
     char *filter;
     int ret;
 
-    switch (type) {
-    case SYSDB_USER:
-        def_attrs[1] = SYSDB_UIDNUM;
-        base_tmpl = SYSDB_TMPL_USER_BASE;
-        filter_tmpl = SYSDB_PWNAM_FILTER;
-        break;
-    case SYSDB_GROUP:
-        def_attrs[1] = SYSDB_GIDNUM;
-        base_tmpl = SYSDB_TMPL_GROUP_BASE;
-        filter_tmpl = SYSDB_GRNAM_FILTER;
-        break;
-    default:
-        return EINVAL;
-    }
-
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            base_tmpl, domain->name);
+    switch (type) {
+    case SYSDB_USER:
+        def_attrs[1] = SYSDB_UIDNUM;
+        filter_tmpl = SYSDB_PWNAM_FILTER;
+        basedn = sysdb_user_base_dn(tmp_ctx, domain);
+        break;
+    case SYSDB_GROUP:
+        def_attrs[1] = SYSDB_GIDNUM;
+        if (domain->mpg) {
+            /* When searching a group by name in a MPG domain, we also
+             * need to search the user space in order to be able to match
+             * a user private group/
+             */
+            filter_tmpl = SYSDB_GRNAM_MPG_FILTER;
+            basedn = sysdb_domain_dn(tmp_ctx, domain);
+        } else {
+            filter_tmpl = SYSDB_GRNAM_FILTER;
+            basedn = sysdb_group_base_dn(tmp_ctx, domain);
+        }
+        break;
+    default:
+        ret = EINVAL;
+        goto done;
+    }
+
     if (!basedn) {
         ret = ENOMEM;
         goto done;
