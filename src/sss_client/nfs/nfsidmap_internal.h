@@ -75,4 +75,4 @@ extern nfs4_idmap_log_function_t idmap_log_func;
  * Copyright (c) 1998, 1999, 2001 Niklas Hallqvist.  All rights reserved.
  * Copyright (c) 2000, 2003 H�kan Olsson.  All rights reserved.
  */
-extern char    *conf_get_str(char *, char *);
+extern const char    *conf_get_str(const char *, const char *);

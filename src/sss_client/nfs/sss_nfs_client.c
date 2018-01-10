@@ -20,7 +20,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define _GNU_SOURCE
+#include "config.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -29,7 +29,13 @@
 #include <string.h>
 
 #include <nfsidmap.h>
+
+#ifdef HAVE_NFSIDMAP_PLUGIN_H
+#include <nfsidmap_plugin.h>
+#else /* fallback to internal header file with older version of libnfsidmap */
 #include "nfsidmap_internal.h"
+#define nfsidmap_config_get conf_get_str
+#endif
 
 #include "sss_client/sss_cli.h"
 #include "sss_client/nss_mc.h"
@@ -382,13 +388,13 @@ static bool str_equal(const char *s1, const char *s2)
     return res;
 }
 
-static int nfs_conf_get_bool(char *sect, char *attr, int def)
+static int nfs_conf_get_bool(const char *sect, const char *attr, int def)
 {
     int res;
-    char *val;
+    const char *val;
 
     res = def;
-    val = conf_get_str(sect, attr);
+    val = nfsidmap_config_get(sect, attr);
     if (val) {
         res = (str_equal("1", val) ||
                str_equal("yes", val) ||
