@@ -99,7 +99,7 @@ static int local_encrypt(struct local_context *lctx, TALLOC_CTX *mem_ctx,
     }
 
     if (strcmp(enctype, "masterkey") != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Uknown encryption type '%s'\n", enctype);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown encryption type '%s'\n", enctype);
         return EINVAL;
     }
 
@@ -734,7 +734,7 @@ static int local_db_delete(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "ldb_delete returned %d: %s\n", ret, ldb_strerror(ret));
-        /* fallthrough */
+        /* fall through */
     }
     ret = sysdb_error_to_errno(ret);
 
@@ -937,7 +937,7 @@ static struct tevent_req *local_secret_req(TALLOC_CTX *mem_ctx,
         body_is_json = false;
         content_type = "application/octet-stream";
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, "No or uknown Content-Type\n");
+        DEBUG(SSSDBG_OP_FAILURE, "No or unknown Content-Type\n");
         ret = EINVAL;
         goto done;
     }

@@ -83,7 +83,7 @@ static void pac_dp_reconnect_init(struct sbus_connection *conn,
     DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
               be_conn->domain->name);
 
-    /* FIXME: kill the frontend and let the monitor restart it ? */
+    /* FIXME: kill the frontend and let the monitor restart it? */
     /* nss_shutdown(rctx); */
 }
 
@@ -244,7 +244,7 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    /* set up things like debug, signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_pac";
 
     sss_set_logger(opt_logger);

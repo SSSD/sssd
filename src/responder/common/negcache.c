@@ -688,8 +688,8 @@ int sss_ncache_set_domain_locate_type(struct sss_nc_ctx *ctx,
     str = domain_lookup_type_str(ctx, dom, lookup_type);
     if (!str) return ENOMEM;
 
-    /* Permanent cache is always used here, because whether the lookup
-     * type (getgrgid, getpwuid, ..) supports locating an entry's domain
+    /* Permanent cache is always used here, because the lookup
+     * type's (getgrgid, getpwuid, ..) support locating an entry's domain
      * doesn't change
      */
     ret = sss_ncache_set_str(ctx, str, true, false);

@@ -91,7 +91,7 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
         for (i = 0; i < res->count; i++) {
             id = ldb_msg_find_attr_as_uint(res->msgs[i], SYSDB_GIDNUM, 0);
             if (id == 0) {
-                /* probably non-posix group, skip */
+                /* probably non-POSIX group, skip */
                 continue;
             }
             for (j = 0; j < gnum; j++) {

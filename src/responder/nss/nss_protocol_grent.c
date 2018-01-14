@@ -384,7 +384,7 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
     }
 
     if (orig_gid == 0) {
-        /* Initialize allocated memory to be safe and make valgrind happy. */
+        /* Initialize allocated memory to be safe and make Valgrind happy. */
         SAFEALIGN_SET_UINT32(&body[rp], 0, &rp);
     } else {
         /* Insert original primary group into the result. */

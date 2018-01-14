@@ -105,7 +105,7 @@ static void do_failed_login(struct LOCAL_request *lreq)
 
     pd = lreq->preq->pd;
     pd->pam_status = PAM_AUTH_ERR;
-/* TODO: maybe add more inteligent delay calculation */
+/* TODO: maybe add more intelligent delay calculation */
     pd->response_delay = 3;
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
@@ -166,7 +166,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
 
     ret = sss_authtok_get_password(pd->newauthtok, &password, NULL);
     if (ret) {
-        /* TODO: should we allow null passwords via a config option ? */
+        /* TODO: should we allow null passwords via a config option? */
         if (ret == ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Empty passwords are not allowed!\n");
         }
@@ -288,7 +288,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
             if ((pd->cmd == SSS_PAM_CHAUTHTOK ||
                  pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
                 lreq->preq->cctx->priv == 1) {
-/* TODO: maybe this is a candiate for an explicit audit message. */
+/* TODO: maybe this is a candidate for an explicit audit message. */
                 DEBUG(SSSDBG_CONF_SETTINGS,
                       "allowing root to reset a password.\n");
                 break;

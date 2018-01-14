@@ -2055,7 +2055,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
             cert_user_objs = sss_cai_get_cert_user_objs(preq->current_cert);
             if (cert_user_objs == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "Unexpteced missing certificate user, "
+                      "Unexpected missing certificate user, "
                       "trying next certificate.\n");
                 continue;
             }

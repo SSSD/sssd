@@ -185,7 +185,7 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
               "Severe error. A reply callback was called but no reply "
                "was received and no timeout occurred\n");
 
-        /* FIXME: Destroy this connection ? */
+        /* FIXME: Destroy this connection? */
         err = EIO;
         goto done;
     }
@@ -200,7 +200,7 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
                                     DBUS_TYPE_INVALID);
         if (!ret) {
             DEBUG(SSSDBG_CRIT_FAILURE,"Failed to parse message\n");
-            /* FIXME: Destroy this connection ? */
+            /* FIXME: Destroy this connection? */
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             err = EIO;
             goto done;
@@ -240,7 +240,7 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
          * We'll destroy it now.
          */
 
-        /* FIXME: Destroy this connection ? */
+        /* FIXME: Destroy this connection? */
         err = EIO;
     }
 
@@ -351,7 +351,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
         tevent_req_set_callback(sidereq, sss_dp_req_done, NULL);
 
         /* add timeout handling so we do not hang forever should something
-         * go worng in the provider. Use 2 sec less than the idle timeout to
+         * go wrong in the provider. Use 2 sec less than the idle timeout to
          * give it a chance to reply to the client before closing the
          * connection. */
         tv = tevent_timeval_current_ofs(rctx->client_idle_timeout - 2, 0);

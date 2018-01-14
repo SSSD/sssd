@@ -220,7 +220,7 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    /* set up things like debug, signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_autofs";
 
     sss_set_logger(opt_logger);

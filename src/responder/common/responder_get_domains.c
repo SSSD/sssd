@@ -643,7 +643,7 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return state->error;
 }
 
-/* ========== Get domain of an ccount ================= */
+/* ========== Get domain of an account ================= */
 struct sss_dp_get_account_domain_info {
     struct sss_domain_info *dom;
     enum sss_dp_acct_type type;

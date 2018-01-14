@@ -86,11 +86,11 @@ int sss_ncache_set_service_port(struct sss_nc_ctx *ctx, bool permanent,
  * subsequent calls to the locator for configurations that do not
  * support the locator plugin.
  *
- * @param ctx   The negative cache
+ * @param ctx   The negative cache.
  * @param dom   The top-level domain. It is expected that the caller
  *              would use the top-level domain head here, because
  *              this negative cache is "per-request-type" which is the
- *              same for all subdomains of a domain
+ *              same for all subdomains of a domain.
  * @param lookup_type   Lookup type, e.g. getpwuid, getgrnam.
  *
  * @return EOK on success, errno on failure.
@@ -101,11 +101,11 @@ int sss_ncache_set_domain_locate_type(struct sss_nc_ctx *ctx,
 /*
  * Check if the lookup_type supports the domain locator request.
  *
- * @param ctx   The negative cache
+ * @param ctx   The negative cache.
  * @param dom   The top-level domain. It is expected that the caller
  *              would use the top-level domain head here, because
  *              this negative cache is "per-request-type" which is the
- *              same for all subdomains of a domain
+ *              same for all subdomains of a domain.
  * @param lookup_type   Lookup type, e.g. getpwuid, getgrnam.
  *
  * @return      ENOENT if the request supports the locator (or we
@@ -125,7 +125,7 @@ int sss_ncache_check_domain_locate_type(struct sss_nc_ctx *ctx,
  *
  * While this negative cache entry is valid, it is expected that
  * the negatively cached entries in the domain's GID negative
- * cache (if any) are valid
+ * cache (if any) are valid.
  *
  * The sss_ncache_set_locate_gid() is called by the locator request
  * when it finishes, the sss_ncache_check_locate_gid() is called

@@ -192,7 +192,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     umask(DFL_RSP_UMASK);
@@ -212,7 +212,7 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    /* set up things like debug, signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_ssh";
 
     sss_set_logger(opt_logger);

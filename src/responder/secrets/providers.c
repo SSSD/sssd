@@ -147,7 +147,7 @@ int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
 
     provider = def_provider;
 
-    // TODO order by length ?
+    // TODO order by length?
     for (int i = 0; i < num_sections; i++) {
         int slen;
 
@@ -619,7 +619,7 @@ int sec_array_to_json(TALLOC_CTX *mem_ctx,
     }
 
     for (int i = 0; i < count; i++) {
-        // FIXME: json_string mem leak ?
+        // FIXME: json_string mem leak?
         // FIXME: Error checking
         json_array_append_new(root, json_string(array[i]));
     }

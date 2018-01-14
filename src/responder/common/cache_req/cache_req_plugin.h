@@ -158,15 +158,15 @@ typedef bool
  * be considered valid or whether it is time to call the request
  * again.
  *
- * @param   resp_ctx        The responder context
+ * @param   resp_ctx        The responder context.
  * @param   domain          The domain to check. This should be the domain-head,
  *                          because the locator works across a domain and its
  *                          subdomains.
- * @param   data            The cache req data that contain primarily the key
+ * @param   data            The cache request data that contains primarily the key
  *                          to look for.
  *
- * @return True if the locator plugin should be ran again, false if
- * @return False false ifthe lookup should just proceed with the
+ * @return True if the locator plugin should be ran again.
+ * @return False if the lookup should just proceed with the
  * data that is already in the negative cache.
  */
 typedef bool
@@ -177,11 +177,11 @@ typedef bool
  * Send Data Provider request to locate the domain
  * of an entry
  *
- * @param   resp_ctx        The responder context
+ * @param   resp_ctx        The responder context.
  * @param   domain          The domain to check. This should be the domain-head,
  *                          because the locator works across a domain and its
  *                          subdomains.
- * @param   data            The cache req data that contain primarily the key
+ * @param   data            The cache request data that contains primarily the key
  *                          to look for.
  *
  *
@@ -200,9 +200,9 @@ typedef struct tevent_req *
  * Do not free subreq! It will be freed in the caller.
  *
  * @param       mem_ctx         The memory context that owns the _found_domain
- *                              result parameter
- * @param       subreq          The request to finish
- * @param       cr              The cache_req being processed
+ *                              result parameter.
+ * @param       subreq          The request to finish.
+ * @param       cr              The cache_req being processed.
  * @param       _found_domain   The domain the request account belongs to. This
  *                              parameter can be NULL even on success, in that
  *                              case the account was not found and no lookups are

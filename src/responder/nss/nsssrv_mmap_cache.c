@@ -376,7 +376,7 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
 
 /* FIXME: This is a very simplistic, inefficient, memory allocator,
  * it will just free the oldest entries regardless of expiration if it
- * cycled the whole freebits map and found no empty slot */
+ * cycled the whole free bits map and found no empty slot */
 static errno_t sss_mc_find_free_slots(struct sss_mc_ctx *mcc,
                                       int num_slots, uint32_t *free_slot)
 {
@@ -390,8 +390,8 @@ static errno_t sss_mc_find_free_slots(struct sss_mc_ctx *mcc,
     tot_slots = mcc->ft_size * 8;
 
     /* Try to find a free slot w/o removing anything first */
-    /* FIXME: is it really worth it ? May be it is easier to
-     * just recycle the next set of slots ? */
+    /* FIXME: Is it really worth it? Maybe it is easier to
+     * just recycle the next set of slots? */
     if ((mcc->next_slot + num_slots) > tot_slots) {
         cur = 0;
     } else {
@@ -448,7 +448,7 @@ static errno_t sss_mc_find_free_slots(struct sss_mc_ctx *mcc,
              * carefully check it is a valid header and hardfail if not */
             rec = MC_SLOT_TO_PTR(mcc->data_table, cur + i, struct sss_mc_rec);
             if (!sss_mc_is_valid_rec(mcc, rec)) {
-                /* this is a fatal error, the caller should probaly just
+                /* this is a fatal error, the caller should probably just
                  * invalidate the whole cache */
                 return EFAULT;
             }
@@ -556,10 +556,10 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
         safealign_memcpy(&name_ptr, rec->data, sizeof(rel_ptr_t), NULL);
         t_key = (char *)rec->data + name_ptr;
         /* name_ptr must point to some data in the strs/gids area of the data
-         * payload. Since it is a pointer relative to rec->data it must larger
-         * equal strs_offset and must be smaller then strs_offset + strs_len.
+         * payload. Since it is a pointer relative to rec->data it must be
+         * larger/equal to strs_offset and must be smaller then strs_offset + strs_len.
          * Additionally the area must not end outside of the data table and
-         * t_key must be a zero-terminates string. */
+         * t_key must be a zero-terminated string. */
         if (name_ptr < strs_offset
                 || name_ptr >= strs_offset + strs_len
                 || (uint8_t *)rec->data > max_addr
@@ -678,7 +678,7 @@ static errno_t sss_mmap_cache_invalidate(struct sss_mc_ctx *mcc,
     struct sss_mc_rec *rec;
 
     if (mcc == NULL) {
-        /* cache not initialized ? */
+        /* cache not initialized? */
         return EINVAL;
     }
 
@@ -716,7 +716,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     int ret;
 
     if (mcc == NULL) {
-        /* cache not initialized ? */
+        /* cache not initialized? */
         return EINVAL;
     }
 
@@ -788,7 +788,7 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
     errno_t ret;
 
     if (mcc == NULL) {
-        /* cache not initialized ? */
+        /* cache not initialized? */
         return EINVAL;
     }
 
@@ -859,7 +859,7 @@ int sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
     int ret;
 
     if (mcc == NULL) {
-        /* cache not initialized ? */
+        /* cache not initialized? */
         return EINVAL;
     }
 
@@ -927,7 +927,7 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
     errno_t ret;
 
     if (mcc == NULL) {
-        /* cache not initialized ? */
+        /* cache not initialized? */
         return EINVAL;
     }
 
@@ -992,7 +992,7 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
     int ret;
 
     if (mcc == NULL) {
-        /* cache not initialized ? */
+        /* cache not initialized? */
         return EINVAL;
     }
 
@@ -1015,7 +1015,7 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
 
     MC_RAISE_BARRIER(rec);
 
-    /* We cannot use two keys for searching in intgroups cache.
+    /* We cannot use two keys for searching in initgroups cache.
      * Use the first key twice.
      */
     sss_mmap_set_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
@@ -1069,7 +1069,7 @@ static errno_t sss_mc_set_recycled(int fd)
 
     pos = lseek(fd, offset, SEEK_SET);
     if (pos == -1) {
-        /* What do we do now ? */
+        /* What do we do now? */
         return errno;
     }
 
@@ -1089,8 +1089,8 @@ static errno_t sss_mc_set_recycled(int fd)
 
 /*
  * When we (re)create a new file we must mark the current file as recycled
- * so active clients will abandon its use asap.
- * We unlink the current file and make a new one
+ * so active clients will abandon its use ASAP.
+ * We unlink the current file and make a new one.
  */
 static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
 {
@@ -1333,7 +1333,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
 done:
     if (ret) {
-        /* Closing the file descriptor and ummaping the file
+        /* Closing the file descriptor and unmapping the file
          * from memory is done in the mc_ctx_destructor. */
         if (mc_ctx && mc_ctx->file && mc_ctx->fd != -1) {
             dret = unlink(mc_ctx->file);
@@ -1417,7 +1417,7 @@ void sss_mmap_cache_reset(struct sss_mc_ctx *mc_ctx)
 
     sss_mc_header_update(mc_ctx, SSS_MC_HEADER_UNINIT);
 
-    /* Reset the mmaped area */
+    /* Reset the mmapped area */
     memset(mc_ctx->data_table, 0xff, mc_ctx->dt_size);
     memset(mc_ctx->free_table, 0x00, mc_ctx->ft_size);
     memset(mc_ctx->hash_table, 0xff, mc_ctx->ht_size);

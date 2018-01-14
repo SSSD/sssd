@@ -47,8 +47,8 @@
 
 #define DEFAULT_PAM_FD_LIMIT 8192
 #define ALL_UIDS_ALLOWED "all"
-#define ALL_DOMAIMS_ARE_PUBLIC "all"
-#define NO_DOMAIMS_ARE_PUBLIC "none"
+#define ALL_DOMAINS_ARE_PUBLIC "all"
+#define NO_DOMAINS_ARE_PUBLIC "none"
 #define DEFAULT_ALLOWED_UIDS ALL_UIDS_ALLOWED
 #define DEFAULT_PAM_CERT_AUTH false
 #define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/pki/nssdb"
@@ -86,7 +86,7 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
     DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
               be_conn->domain->name);
 
-    /* FIXME: kill the frontend and let the monitor restart it ? */
+    /* FIXME: kill the frontend and let the monitor restart it? */
     /* pam_shutdown(rctx); */
 }
 
@@ -129,13 +129,13 @@ static errno_t get_public_domains(struct pam_ctx *pctx)
 
     ret = confdb_get_string(pctx->rctx->cdb, pctx->rctx,
                             CONFDB_PAM_CONF_ENTRY, CONFDB_PAM_PUBLIC_DOMAINS,
-                            NO_DOMAIMS_ARE_PUBLIC, &domains_str);
+                            NO_DOMAINS_ARE_PUBLIC, &domains_str);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get allowed UIDs.\n");
         goto done;
     }
 
-    if (strcmp(domains_str, ALL_DOMAIMS_ARE_PUBLIC) == 0) { /* all */
+    if (strcmp(domains_str, ALL_DOMAINS_ARE_PUBLIC) == 0) { /* all */
         /* copy all domains */
         ret = get_dom_names(pctx,
                             pctx->rctx->domains,
@@ -145,7 +145,7 @@ static errno_t get_public_domains(struct pam_ctx *pctx)
             DEBUG(SSSDBG_FATAL_FAILURE, "get_dom_names failed.\n");
             goto done;
         }
-    } else if (strcmp(domains_str, NO_DOMAIMS_ARE_PUBLIC) == 0) { /* none */
+    } else if (strcmp(domains_str, NO_DOMAINS_ARE_PUBLIC) == 0) { /* none */
         pctx->public_domains = NULL;
         pctx->public_domains_count = 0;
     } else {
@@ -372,7 +372,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     umask(DFL_RSP_UMASK);
@@ -392,13 +392,13 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    /* set up things like debug, signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = "sssd_pam";
 
     sss_set_logger(opt_logger);
 
     if (!is_socket_activated()) {
-        /* Crate pipe file descriptors here before privileges are dropped
+        /* Create pipe file descriptors here before privileges are dropped
          * in server_setup() */
         ret = create_pipe_fd(SSS_PAM_SOCKET_NAME, &pipe_fd, SCKT_RSP_UMASK);
         if (ret != EOK) {
@@ -412,7 +412,7 @@ int main(int argc, const char *argv[])
                              DFL_RSP_UMASK);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "create_pipe_fd failed (priviledged pipe) [%d]: %s.\n",
+                  "create_pipe_fd failed (privileged pipe) [%d]: %s.\n",
                   ret, sss_strerror(ret));
             return 2;
         }

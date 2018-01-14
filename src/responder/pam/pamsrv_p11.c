@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   PAM Responder - certificate realted requests
+   PAM Responder - certificate related requests
 
    Copyright (C) Sumit Bose <sbose@redhat.com> 2015
 
