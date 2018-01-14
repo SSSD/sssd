@@ -1,18 +1,18 @@
 Examples of using libkrb5 module from sssd.testlib.common
-===========================================================
-* sssd-testlib provides module libkrb5 which creates kerberos server instance
+=========================================================
+* sssd-testlib provides module libkrb5 which creates a Kerberos server instance
 
 
 Design
 ------
-* libkb5 module consists of class krb5Srv.
+* libkb5 module consists of class krb5Srv
 
-* krb5srv class consits of methods to create kerberos server
+* krb5srv class consists of methods to create a Kerberos server
 
-* Below are some of the examples of setting up kerberos server on RHEL7
+* below are some of the examples of setting up a Kerberos server on RHEL7
 
-Example-1: Setup kerberos Instance on single Host
---------------------------------------------------
+Example-1: Setup a Kerberos instance on a single host
+-----------------------------------------------------
 * create a multihost config file mhc.yaml as below::
 
       root_password: 'redhat'
@@ -35,7 +35,7 @@ Example-1: Setup kerberos Instance on single Host
          return {'num_masters': 1, 'num_ad':0, 'num_atomic': 0,
                   'num_replicas': 0, 'num_clients':1, 'num_others': 0}
 
-* Add a fixture specifed below in conftest.py::
+* add a fixture specified below in conftest.py::
 
       import subprocess
 
@@ -47,7 +47,7 @@ Example-1: Setup kerberos Instance on single Host
            try:
               krb.krb_setup_new()
            except subprocess.CalledProcessError:
-              print("fail to setup kerberos")
+              print("fail to setup Kerberos")
               assert False
 
 * session_multihost is the session fixture which gets activated when
@@ -57,12 +57,11 @@ Example-1: Setup kerberos Instance on single Host
   defined in multihost config file. In the above example client[0] is
   the multihost handle for host `server1.example.test`
 
-* Importing the krb5srv module we are creating instance of
+* importing the krb5srv module we are creating instance of
   krb5srv by passing the multihost session handle of master[0] to
-  the krb5srv object.
+  the krb5srv object
 
-
-* The fixture created setup_krb5 is of scope class which can be called in test file as below::
+* the fixture created by setup_krb5 is of scope class which can be called in a test file as below::
 
      class TestCase(object):
 

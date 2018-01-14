@@ -1,4 +1,4 @@
-Examples of using Multihost Plugin with Fixture for sssd
+Examples of using Multihost Plugin with Fixture for SSSD
 ========================================================
 * pytest multihost plugin uses paramiko/OpenSSHTransport to connect to hosts and provides methods to
   run commands and copy files.
@@ -6,21 +6,21 @@ Examples of using Multihost Plugin with Fixture for sssd
 Namespace hook
 --------------
 * With pytest multihost plugin we define the hosts under which the actual commands will be
-  running in a yaml/json file. This file is then read by multihost plugin. Each of the
-  host specified in the yaml file have a role, username/password, ip-address.
+  running in a YAML/JSON file. This file is then read by multihost plugin. Each of the
+  host specified in the YAML file have a role, username/password, IP address.
 
-* pytest multihost provides modules and functions which takes this description of hosts in
-  yaml file , connect to the hosts and provides some common functions to run commands, copy/get
-  files etc. The main modules provided by multihost plugin are config, Domain, Host. To use
-  these modules we have to subclass them and change the behaviour to suite to our needs.
+* pytest multihost provides modules and functions which takes the description of hosts in the
+  YAML file, connect to the hosts and provides some common functions to run commands, copy/get
+  files etc. The main modules provided by multihost plugin are config, domain, host. To use
+  these modules we have to subclass them and change their behaviour to suite our needs.
 
-* For sssd qe we have subclass the config, domain and Host functions to suite our needs and
-  can be explanded. This is available through
+* For SSSD QE we created subclasses of the config, domain and host functions to suite our needs and
+  expanded them. This is available through
   `qe_class.py <http://git.app.eng.bos.redhat.com/git/sssd-qe-tests.git/plain/python/sssd/testlib/common/qe_class.py>`_.
 
 * qe_class.py also provides a global fixture called session_multihost which provides a session
-  scope fixture. This fixture can read the yaml file and provide a global multihost fixture
-  to all the tests. This fixture assumes that yaml file has hosts defined with any of these roles:
+  scope fixture. This fixture can read the YAML file and provide a global multihost fixture
+  to all the tests. This fixture assumes that the YAML file has hosts defined with any of these roles:
 
   - master
   - client
@@ -32,7 +32,7 @@ Namespace hook
 
 * Below are the examples of using namespace hook:
 
-  - Single Host:
+  - Single host:
 
       * create a multihost config file mhc.yaml as below::
 
@@ -46,14 +46,15 @@ Namespace hook
                      ip: 10.65.223.16
                      role: client
 
-      * Since we have 1 host with role client. we can create a namespace hook in conftest.py
-        to access the host as list
+      * since we have 1 host with role client we can create a namespace hook in conftest.py
+        to access the host as a list
 
       * create a conftest.py as below::
 
             def pytest_namespace():
                 return { 'num_masters': 0, 'num_ad':0, 'num_atomic': 0, 'num_replicas': 0, 'num_clients':1,  'num_others': 0}
-      * In the actual testcase it can be accessed as below::
+
+      * in the actual testcase it can be accessed as below::
 
             from sssd.testlib.common.qe_class import session_multihost
             class TestCase:
@@ -76,18 +77,19 @@ Namespace hook
                       ip: 10.65.223.16
                       role: client
                     - name: client2
-                      external_hostname: client2.examplet.test
+                      external_hostname: client2.example.test
                       ip: 10.65.223.17
-                      role: cient
+                      role: client
 
-      * Since we have 2 hosts with with role client. we can create a namespace hook in conftest.py
-        to access the hosts as list.
+      * since we have 2 hosts with role client we can create a namespace hook in conftest.py
+        to access the hosts as a list
 
       * create a conftest.py as below::
 
             def pytest_namespace():
                 return { 'num_masters': 0, 'num_ad':0, 'num_atomic': 0, 'num_replicas': 0, 'num_clients':2,  'num_others': 0}
-      * In the actual testcase it can be accessed as below::
+
+      * in the actual testcase it can be accessed as below::
 
             from sssd.testlib.common.qe_class import session_multihost
             class TestCase:
@@ -100,7 +102,7 @@ Namespace hook
 
   - Multiple hosts of different roles:
 
-      *  Create a multihost config file where we have 2 clients and 1 server::
+      * create a multihost config file where we have 2 clients and 1 server::
 
             root_password: 'redhat'
             domains:
@@ -112,7 +114,7 @@ Namespace hook
                       ip: 10.65.223.16
                       role: client
                     - name: client2
-                      external_hostname: client2.examplet.test
+                      external_hostname: client2.example.test
                       ip: 10.65.223.17
                       role: client
                     - name: server1
@@ -120,13 +122,14 @@ Namespace hook
                       ip: 10.65.223.18
                       role: master
 
-      * Since we have 2 hosts with with role client and 1 host with role master we can create a namespace hook in conftest.py  to access the hosts as list.
+      * since we have 2 hosts with with role client and 1 host with role master we can create a namespace hook in conftest.py to access the hosts as a list
 
       * create a conftest.py as below::
 
             def pytest_namespace():
                 return { 'num_masters': 1, 'num_ad':0, 'num_atomic': 0, 'num_replicas': 0, 'num_clients':2,  'num_others': 0}
-      * In the actual testcase it can be accessed as below::
+
+      * in the actual testcase it can be accessed as below::
 
             from sssd.testlib.common.qe_class import session_multihost
             class TestCase:
@@ -137,8 +140,8 @@ Namespace hook
                     session_multihost.master[0].<method>
 
 Example-1: Single host tests
------------------------------
-* create a multihost config file mhc.yaml with let's say 1 host::
+----------------------------
+* create a multihost config file mhc.yaml with 1 host as below::
 
     root_password: 'redhat'
     domains:
@@ -155,13 +158,14 @@ Example-1: Single host tests
             def pytest_namespace():
                 return { 'num_masters': 0, 'num_ad':0, 'num_atomic': 0, 'num_replicas': 0, 'num_clients':1, 'num_others':0 }
 
-* create file called test1.py which contains testcases ::
+* create file called test1.py which contains testcases::
 
             from sssd.testlib.common.qe_class import session_multihost
             class TestCase:
                 def test1(self, session_multihost):
                     session_multihost.client[0].run_command(['ls', '-l'])
-* Running the test::
+
+* running the test::
 
             $ py.test --multihost-config=mhc.yaml test1.py -s -v
 
@@ -188,7 +192,7 @@ Example-2: Multiple hosts tests
             def pytest_namespace():
                 return { 'num_masters': 1, 'num_ad':0, 'num_atomic': 0, 'num_replicas': 0, 'num_clients':1, 'num_others':0 }
 
-* create file called test1.py which contains testcases ::
+* create file called test1.py which contains testcases::
 
             from sssd.testlib.common.qe_class import session_multihost
             class TestCase:
@@ -197,7 +201,8 @@ Example-2: Multiple hosts tests
 
                 def test2(self, session_multihost):
                     session_multihost.master[0].run_command(['ls', '-l'])
-* Running the test::
+
+* running the test::
 
             $ py.test --multihost-config=mhc.yaml test1.py -s -v
 
@@ -232,7 +237,7 @@ Example-3: Multiple hosts test with setup and teardown
                    request.addfinalizer(lambda: request.cls().class_teardown(session_multihost))
                 return session_multihost
 
-* create file called test1.py which contains testcases ::
+* create file called test1.py which contains testcases::
 
             class TestCase:
                 def class_setup(self, session_multihost):
@@ -245,13 +250,13 @@ Example-3: Multiple hosts test with setup and teardown
                 def class_teardown(self, session_multihost):
                     session_multihost.master[0].run_command(['userdel', 'foobar'])
 
-* Running the test::
+* running the test::
 
             $ py.test --multihost-config=mhc.yaml test1.py -s -v
 
 Example-4: Copying files to hosts using multihost plugin
 --------------------------------------------------------
-* scenario: Create a sssd.conf with specific configuration parameters. We create a local file on
+* scenario: Create an sssd.conf file with specific configuration parameters. We create a local file on the
   system from which we are running py.test command (jslave/laptop/testsystem) and copy it
   to the actual hosts using transport.put_file method
 
@@ -289,7 +294,6 @@ Example-5: Creating a fixture and calling a fixture
 ---------------------------------------------------
 * scenario: We want to configure sssd.conf before our test runs. we can create a
   function which configures sssd.conf and we call this function before our test runs
-
 
 * create a file called conftest.py with below contents::
 
@@ -340,17 +344,15 @@ Example-5: Creating a fixture and calling a fixture
                     cmd = session_multihost.client[0].run_command(['service', 'sssd', 'stop'])
                     assert cmd.returncode == 0
 
-
-Example-6: Connecting to Windows system  and running AD Specific commands
--------------------------------------------------------------------------
-
+Example-6: Connecting to Windows system and running AD specific commands
+------------------------------------------------------------------------
 * scenario: If the test requirement requires running any specific native commands on
   windows which cannot be fulfilled by adcli.
 
   Note: Connecting to Windows using multihost plugin requires ssh be running on Windows system.
-  for this multihost plugin has been tested only with OpenSSH provided using CYGWIN. So before
-  using multihost plugin please install CYGWIN and OpenSSH package. Configure OpenSSH on windows
-  and make sure firewall is allowing ssh port.
+  For this multihost plugin has been tested only with OpenSSH provided using CYGWIN. So before
+  using multihost plugin please install CYGWIN and OpenSSH package. Configure OpenSSH on Windows
+  and make sure its firewall is allowing ssh port.
 
 * create a multihost config file mhc.yaml with 2 hosts with roles master and client::
 
@@ -375,7 +377,7 @@ Example-6: Connecting to Windows system  and running AD Specific commands
             def pytest_namespace():
                 return { 'num_masters': 0, 'num_ad':1, 'num_atomic': 0, 'num_replicas': 0, 'num_clients':1, 'num_others':0 }
 
-* create file called test1.py which contains testcases ::
+* create file called test1.py which contains testcases::
 
             from sssd.testlib.common.qe_class import session_multihost
             class TestCase:

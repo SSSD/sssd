@@ -7,35 +7,34 @@ Design
 ------
 * libdirsrv module consists of 2 classes the base class DirSrv and wrapper class DirSrvWrap.
 
-* DirSrv class consits of methods to create DS config file, Setup Directory Server , Enable SSL
-  in Directory server and Remove DS Instances. This class is very generic and all the details like
-  instance name, hostname, suffix, ldap and tls ports should be provided.
+* DirSrv class consists of methods to create DS config file, setup Directory Server, enable SSL
+  in Directory server and remove DS instances. This class is very generic and all the details like
+  instance name, hostname, suffix, LDAP and TLS ports should be provided.
 
-* DirSrvWrap is a wrapper class of DirSrv , It sets up some default values like ldap and tls ports,
-  suffix , set selinux label ldap_t on ldap and tls ports etc.
+* DirSrvWrap is a wrapper class of DirSrv, it sets up some default values like LDAP and TLS ports,
+  suffix, set SELinux label ldap_t on LDAP and TLS ports etc.
 
-* The wrapper classes allows to create multiple instances without worring about what ports to be used
-  for each instance. port for unencrypted ldap  ports are choosen from the below list:
+* The wrapper class allows to create multiple instances without worrying about what ports to be used
+  for each instance. Port for unencrypted LDAP ports are chosen from the below list:
   `[389, 1389, 2389, 3389, 4389, 30389, 31389, 32389, 33389, 34389, 35389, 36389, 37389, 38389, 39389]`
 
-  and tls ports are choosen from below list:
+  and TLS ports are chosen from below list:
   `[636, 1636, 2636, 3636, 4636, 30636, 31636, 32636, 33636, 34636, 35636, 36636, 37636, 38636, 39636]`
 
-* Though ports can be passed manully but verifying if those ports are available have to be done by the user.
+* Though ports can be passed manually but user must verify if those ports are available.
 
 * The default suffix is 'dc=example,dc=org'
 
-* To Enable ssl for Directory Server instance, A Directory containing the CA and Server certs(created on the
-  host where DS Instance) should be passed. To create these certs, PkiTools module can be used. PkiTools has
-  method `createselfsignedcerts` which creates a self-signed certs (CA and server-cert for each host). These
+* To enable SSL for a Directory Server instance a directory containing the CA and server certs (created on the
+  host with DS instance) should be passed. To create these certs, PkiTools module can be used. PkiTools has
+  method `createselfsignedcerts` which creates self-signed certs (CA and server-cert for each host). These
   certs are copied to host on which Directory server instance should be created
   and `setup_certs` method of DirSrv class adds these certs to NSS DB of that
-  specific instance and Enables
-  TLS on Directory Server.
+  specific instance and enables TLS on Directory Server.
 
-* Below are some of the examples of setting up DS instance in pytest
+* below are some of the examples of setting up DS instance in pytest
 
-Example-1: Setup DS Instance on single Host
+Example-1: Setup DS instance on single host
 -------------------------------------------
 * create a multihost config file mhc.yaml as below::
 
@@ -59,7 +58,7 @@ Example-1: Setup DS Instance on single Host
          return {'num_masters': 0, 'num_ad':0, 'num_atomic': 0,
                  'num_replicas': 0, 'num_clients':1, 'num_others': 0}
 
-* Add a fixture specifed below in conftest.py::
+* add a fixture specified as below in conftest.py::
 
       @pytest.fixture(scope="class")
       def setup_ldap(session_multihost):
@@ -69,7 +68,7 @@ Example-1: Setup DS Instance on single Host
 * session_multihost is the session fixture which gets activated when
   py.test is run with --multihost-config=mhc.yaml parameter. This
   parameter connects to systems mentioned in mhc.yaml using paramiko
-  module and this session of each host is available through roles
+  module and the session of each host is available through roles
   defined in multihost config file. In the above example client[0] is
   the multihost handle for host `client1.example.test`
 
@@ -77,8 +76,7 @@ Example-1: Setup DS Instance on single Host
   DirSrvWrap by passing the multihost session handle of client[0] to
   the DirSrvWrap object.
 
-
-* The fixture created 389_ds is of scope class which can be called in test file as below::
+* the fixture created by 389_ds is of scope class which can be called in a test file as below::
 
      class TestCase(object):
 
@@ -92,7 +90,7 @@ Example-1: Setup DS Instance on single Host
             def test3(self, session_multihost):
                 pass
 
-Example-2: Setup DS Instance with SSL on single Host:
+Example-2: Setup DS instance with SSL on single host:
 -----------------------------------------------------
 * create a multihost config file mhc.yaml as below::
 
@@ -132,7 +130,7 @@ Example-2: Setup DS Instance with SSL on single Host:
         else:
             return certdb
 
-* Add another fixture to create a instance of `DirSrvWrap` passing the certdb
+* add another fixture to create an instance of `DirSrvWrap` passing the certdb
   returned from above fixture::
 
      @pytest.fixture(scope="class")
@@ -140,7 +138,7 @@ Example-2: Setup DS Instance with SSL on single Host:
          ds_obj = DirSrvWrap(session_multihost.client[0], ssl=True, ssldb=nssdir)
          return ds_obj
 
-* call the fixture setup_ldap from the test functions as show below::
+* call the fixture setup_ldap from the test functions as below::
 
      class TestCase(object):
 
@@ -154,7 +152,7 @@ Example-2: Setup DS Instance with SSL on single Host:
         def test3(self):
              pass
 
-* To override the default suffix::
+* to override the default suffix::
 
       class TestCase(object):
 
@@ -168,10 +166,8 @@ Example-2: Setup DS Instance with SSL on single Host:
         def test3(self):
              pass
 
-
-Example-3: Setup DS Instance with on multiple hosts(2)
---------------------------------------------------------
-
+Example-3: Setup DS instance on multiple hosts(2)
+-------------------------------------------------
 * create a multihost config file mhc.yaml as below::
 
     root_password: 'redhat'
@@ -215,7 +211,7 @@ Example-3: Setup DS Instance with on multiple hosts(2)
         else:
             return certdb
 
-* Add another fixture to create a instance of `DirSrvWrap` passing the certdb
+* add another fixture to create an instance of `DirSrvWrap` passing the certdb
   returned from above fixture::
 
     @pytest.fixture(scope="class")
@@ -227,7 +223,7 @@ Example-3: Setup DS Instance with on multiple hosts(2)
         return (client_ds_obj, master_ds_obj)
 
 
-* call the fixture setup_ldap from the test functions as show below::
+* call the fixture setup_ldap from the test functions as below::
 
      class TestCase(object):
 
@@ -245,10 +241,8 @@ Example-3: Setup DS Instance with on multiple hosts(2)
          def test3(self):
              pass
 
-
-Example-4: Creating and Removing DS instance using setup/teardown methods
+Example-4: Creating and removing DS instance using setup/teardown methods
 -------------------------------------------------------------------------
-
 * create a multihost config file mhc.yaml as below::
 
     root_password: 'redhat'
@@ -275,11 +269,11 @@ Example-4: Creating and Removing DS instance using setup/teardown methods
        return {'num_masters': 1, 'num_ad':0, 'num_atomic': 0,
                 'num_replicas': 0, 'num_clients':1, 'num_others': 0}
 
-* Create a fixture of scope class to have a setup and teardown methods in class
+* Create a fixture of scope class to have setup and teardown methods in class
   and these functions are run before and after tests are executed. In our test
   class we define a **setup_class** method which will be run before our tests run
   where we do all our setup required for tests and also define **class_teardown**
-  method at the end in **Testclass** which teardown all the setup done in
+  method at the end in **Testclass** which will teardown all the setup done in
   **class_setup**. To these functions we pass our fixtures setup_ldap::
 
     @pytest.fixture(scope="class")
@@ -289,7 +283,7 @@ Example-4: Creating and Removing DS instance using setup/teardown methods
             request.addfinalizer(lambda:request.cls().class_teardown(session_multihost, setup_ldap))
         return session_multihost
 
-* create a fixture to create CA and server-cert for each host in conftest.py::
+* create a fixture to create a CA and server-cert for each host in conftest.py::
 
     from sssd.testlib.common.exceptions import PkiLibException
     from sssd.testlib.common.utils import PkiTools
@@ -306,7 +300,7 @@ Example-4: Creating and Removing DS instance using setup/teardown methods
         else:
             return certdb
 
-* Add another fixture to create a instance of `DirSrvWrap` passing the certdb
+* add another fixture to create an instance of `DirSrvWrap` passing the certdb
   returned from above fixture::
 
      @pytest.fixture(scope="class")
@@ -318,7 +312,7 @@ Example-4: Creating and Removing DS instance using setup/teardown methods
          return (client_ds_obj, master_ds_obj)
 
 
-* call the fixture setup_ldap from the test functions as show below::
+* call the fixture setup_ldap from the test functions as below::
 
      class TestCase(object):
 
@@ -340,9 +334,8 @@ Example-4: Creating and Removing DS instance using setup/teardown methods
              client_ds_obj.remove_ds_instance('example1')
              master_ds_obj.remove_ds_instance('example1')
 
-Example-5: Creating and add Posix Users and Groups
----------------------------------------------------
-
+Example-5: Creating and add POSIX Users and Groups
+--------------------------------------------------
 * create a multihost config file mhc.yaml as below::
 
     root_password: 'redhat'
@@ -365,11 +358,11 @@ Example-5: Creating and add Posix Users and Groups
        return {'num_masters': 1, 'num_ad':0, 'num_atomic': 0,
                 'num_replicas': 0, 'num_clients':0, 'num_others': 0}
 
-* Create a fixture of scope class to have a setup and teardown methods in class
+* Create a fixture of scope class to have setup and teardown methods in class
   and these functions are run before and after tests are executed. In our test
   class we define a **setup_class** method which will be run before our tests run
   where we do all our setup required for tests and also define **class_teardown**
-  method at the end in **Testclass** which teardown all the setup done in
+  method at the end in **Testclass** which will teardown all the setup done in
   **class_setup**. To these functions we pass our fixtures setup_ldap::
 
     @pytest.fixture(scope="class")
@@ -395,7 +388,7 @@ Example-5: Creating and add Posix Users and Groups
         else:
             return certdb
 
-* Add another fixture to create a instance of `DirSrvWrap` passing the certdb
+* Add another fixture to create an instance of `DirSrvWrap` passing the certdb
   returned from above fixture. With autouse=True, one doesn't have to
   explicitly state the fixture in the test functions::
 
@@ -411,7 +404,7 @@ Example-5: Creating and add Posix Users and Groups
 
 * Create another fixture to create posix users/groups here we create 10 users
   with dn uid=foo{1..10},ou=People,dc=example,dc=test, and a group called
-  ldapusers , where all the foo{1..10} are members of that group. The method
+  ldapusers, where all the foo{1..10} are members of that group. The method
   use for adding all the members to a group is we first add one user to the
   group while creating the group and then use ldap modify method to add other
   users to the group::
@@ -447,7 +440,7 @@ Example-5: Creating and add Posix Users and Groups
              assert ret == 'Success'
 
 
-* call the fixture setup_ldap from the test functions as show below::
+* call the fixture setup_ldap from the test functions as below::
 
      class TestCase(object):
         def class_setup(multihost, setup_ldap, create_posix_usersgroups)

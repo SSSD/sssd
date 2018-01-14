@@ -18,7 +18,7 @@
 Name:      %{name}
 Version:   %{version}
 Release:   %{release}%{?dist}
-Summary:   System Services Security Daemon(sssd) PyTest Framework
+Summary:   System Services Security Daemon (SSSD) PyTest Framework
 License:   GPLv3+
 Source0:   %{name}.tar.gz
 
@@ -59,7 +59,7 @@ Requires: ipa-python
 %endif
 
 %description
-An python framework for System Services Security Daemon(sssd) PyTest Framework.
+A python framework for System Services Security Daemon (SSSD) PyTest Framework.
 
 %prep
 %setup -qn %{project}
@@ -112,7 +112,7 @@ install -m 644 sssd/testlib/etc/* %{buildroot}/etc/sssd_testlib/
 * Fri Jul  7 2017 Niranjan MR <mrniranjan@redhat.com> - 0.1-11
 - pylint fixes
 * Sat Apr 19 2017 Niranjan MR <mrniranjan@redhat.com> - 0.1-10
-- Add functions to create posix users/groups
+- Add functions to create POSIX users/groups
 - Add libkrb5 module to create kerberos server
 - Use paramiko to test ssh logins for non-root users
 - Update documentation
@@ -125,7 +125,7 @@ install -m 644 sssd/testlib/etc/* %{buildroot}/etc/sssd_testlib/
 - updated docs on setting up DS instances using multihost
 * Wed Nov 30 2016 Niranjan MR <mrniranjan@redhat.com> - 0.1-6
 - Add functions related to configuring Directory Server,
-- Add functions related to adding,  removing, modifying AD users,
+- Add functions related to adding, removing, modifying AD users,
   and adding UNIX attributes to Windows AD Users
 * Fri Oct 21 2016 Niranjan MR <mrniranjan@redhat.com> - 0.1-5
 - Add functions to connect AD and move common fixtures
@@ -139,6 +139,6 @@ install -m 644 sssd/testlib/etc/* %{buildroot}/etc/sssd_testlib/
 - Use systemctl instead of service command for systemd based versions
 * Fri Jul 15 2016 Niranjan MR <mrnirnajan@redhat.com> - 0.1-2
 - Modified qe_class.py to make Windows AD details to be in separate domain
-- Added ipa-python as as Runtime dependency
+- Added ipa-python as a Runtime dependency
 * Thu Jun 30 2016 Niranjan MR <mrniranjan@redhat.com> - 0.1-1
 - initial version-

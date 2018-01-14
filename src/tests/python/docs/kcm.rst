@@ -1,11 +1,11 @@
-Examples of for testing KCM
-===========================
+Examples of testing KCM
+=======================
 
 
 Design
 ------
-* For testing KCM ccache, minimal requirements is to have a kerberos
-  server. sssd-testlib provides `libkrb5` module to setup kerberos servier.
+* For testing KCM ccache, minimal requirements is to have a Kerberos
+  server. sssd-testlib provides `libkrb5` module to setup Kerberos server.
 
 * `sssd-testlib` now contains `utils` module which now contains functions to
   enable `sssd-kcm`
@@ -13,16 +13,16 @@ Design
 * Below are some of the examples of using it in pytest
 
 
-Example1: Using Single Host to test sssd-kcm
----------------------------------------------
-* Create a single host running Directory Server, krb5 server and configure
-  client to authenticate to ldap and kerberos server using sssd and enable KCM
+Example1: Using single host to test sssd-kcm
+--------------------------------------------
+* create a single host running Directory Server, krb5 server and configure
+  client to authenticate to LDAP and Kerberos server using SSSD and enable KCM
 
   * create a multihost config file mhc.yaml as below::
 
          root_password: 'redhat'
          domains:
-         - name: testrelm.test
+         - name: testrealm.test
            type: sssd
            hosts:
              - name: idm1.example.test
@@ -39,12 +39,12 @@ Example1: Using Single Host to test sssd-kcm
              return { 'num_masters': 0, 'num_ad':0, 'num_atomic': 0,
              num_replicas': 0, 'num_clients':1, 'num_others': 0}
 
-  * Create fixture to run Authconfig to authenticate to sssd::
+  * create fixture to run Authconfig to authenticate to SSSD::
 
          @pytest.fixture(scope="session")
          def config_authconfig(session_multihost, request):
-              """ Run authconfig to configure kerberos and
-                  sssd auth on remote host
+              """ Run authconfig to configure Kerberos and
+                  SSSD auth on remote host
               """
               authconfig = RedHatAuthConfig(session_multihost.master[0])
               session_multihost.master[0].log.info("Take backup of current authconfig")
@@ -64,8 +64,7 @@ Example1: Using Single Host to test sssd-kcm
 
           request.addfinalizer(restore_authconfig)
 
-
-  * Add a fixture to configure Directory Serverr::
+  * add a fixture to configure Directory Server::
 
         from sssd.testlib.common.libdirsrv import DirSrvWrap
         from sssd.testlib.common.utils import sssdTools, PkiTools
@@ -88,7 +87,7 @@ Example1: Using Single Host to test sssd-kcm
                  ds_obj.remove_ds_instance('example1')
              request.addfinalizer(remove_ldap)
 
-  * Add a fixture to configure kerberos server::
+  * add a fixture to configure Kerberos server::
 
        @pytest.fixture(scope='class')
        def setup_kerberos(session_multihost, request):
@@ -101,7 +100,7 @@ Example1: Using Single Host to test sssd-kcm
                krb.destroy_krb5serer()
            request.addfinalizer(remove_kerberos)
 
-  * Add a fixture to setup sssd conf::
+  * add a fixture to setup SSSD conf::
 
        @pytest.fixture(scope='class', autouse=True)
        def setup_sssd(session_multihost, request):
@@ -147,8 +146,7 @@ Example1: Using Single Host to test sssd-kcm
                session_multihost.master[0].run_command(journalctl_cmd)
                assert False
 
-
-  * Add fixture to create some posix users and also create kerberos users with
+  * add fixture to create some POSIX users and also create Kerberos users with
     same names::
 
             @pytest.fixture(scope='class', autouse=True)
@@ -183,8 +181,8 @@ Example1: Using Single Host to test sssd-kcm
                    (ret, return_value) = ldap_inst.modify_ldap(group_dn, add_member)
                    assert ret == 'Success'
 
-  * Create a session fixture which calls config_authconfig, setup_ldap,
-    setup_kerber, fixture::
+  * create a session fixture which calls config_authconfig, setup_ldap,
+    setup_kerberos::
 
        @pytest.fixture(scope="session", autouse=True)
        def setup_session(request, session_multihost,
@@ -196,9 +194,8 @@ Example1: Using Single Host to test sssd-kcm
                print("\n............Session teardown...............")
             request.addfinalizer(teardown)
 
-
-  * Create a test suite file called test1.py, To test kcm as user, or
-    to check if the kerbeors user can ssh to the system, we can use
+  * create a test suite file called test1.py, to test KCM as user, or
+    to check if the Kerberos user can ssh to the system, we can use
     `SSHClient` module from `sssd.testlib.common.utils` module::
 
         from sssd.testlib.common.utils import SSHClient
@@ -206,7 +203,7 @@ Example1: Using Single Host to test sssd-kcm
 
         class TestBasicSSSD:
 
-            def test_kcm_sock(self, mulithost):
+            def test_kcm_sock(self, multihost):
                 tools = sssdTools(session_multihost.master[0])
                 tools.enable_kcm()
                 multihost.master[0].run_command(['systemctl', 'start',
@@ -217,7 +214,7 @@ Example1: Using Single Host to test sssd-kcm
                 assert cmd.returncode == 0
 
             def test_ssh_user_login(self, multihost):
-               """ Check ssh login as ldap user with kerberos credentials """
+               """ Check ssh login as LDAP user with Kerberos credentials """
                ssh = SSHClient(multihost.master[0].sys_hostname,
                                username='foo1', password='Secret123')
                assert ssh.connstatus
