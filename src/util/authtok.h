@@ -24,7 +24,7 @@
 #include "util/authtok-utils.h"
 #include "sss_client/sss_cli.h"
 
-/* Use sss_authtok_* accesor functions instead of struct sss_auth_token
+/* Use sss_authtok_* accessor functions instead of struct sss_auth_token
  */
 struct sss_auth_token;
 
@@ -33,7 +33,7 @@ struct sss_auth_token;
  *
  * @param tok    A pointer to an sss_auth_token
  *
- * @return       A sss_authtok_type (empty, password, ...)
+ * @return       An sss_authtok_type (empty, password, ...)
  */
 enum sss_authtok_type sss_authtok_get_type(struct sss_auth_token *tok);
 
@@ -72,9 +72,9 @@ errno_t sss_authtok_get_password(struct sss_auth_token *tok,
                                  const char **pwd, size_t *len);
 
 /**
- * @brief Set a password into a an auth token, replacing any previous data
+ * @brief Set a password into an auth token, replacing any previous data
  *
- * @param tok        A pointer to a sss_auth_token structure to change, also
+ * @param tok        A pointer to an sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
  * @param password   A string
  * @param len        The length of the string or, if 0 is passed,
@@ -103,9 +103,9 @@ errno_t sss_authtok_get_ccfile(struct sss_auth_token *tok,
                                const char **ccfile, size_t *len);
 
 /**
- * @brief Set a cc file name into a an auth token, replacing any previous data
+ * @brief Set a cc file name into an auth token, replacing any previous data
  *
- * @param tok        A pointer to a sss_auth_token structure to change, also
+ * @param tok        A pointer to an sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
  * @param ccfile     A null terminated string
  * @param len    The length of the string
@@ -119,7 +119,7 @@ errno_t sss_authtok_set_ccfile(struct sss_auth_token *tok,
 /**
  * @brief Resets an auth token to the empty status
  *
- * @param tok    A pointer to a sss_auth_token structure to reset
+ * @param tok    A pointer to an sss_auth_token structure to reset
  *
  * NOTE: This function uses safezero() on the payload if the type
  * is SSS_AUTHTOK_TYPE_PASSWORD
@@ -129,7 +129,7 @@ void sss_authtok_set_empty(struct sss_auth_token *tok);
 /**
  * @brief Set an auth token by type, replacing any previous data
  *
- * @param tok        A pointer to a sss_auth_token structure to change, also
+ * @param tok        A pointer to an sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
  * @param type       A valid authtok type
  * @param data       A data pointer
@@ -159,10 +159,10 @@ errno_t sss_authtok_copy(struct sss_auth_token *src,
  * @brief Uses safezero to wipe the password from memory if the
  *        authtoken contains a password, otherwise does nothing.
  *
- * @param tok       A pointer to a sss_auth_token structure to change
+ * @param tok       A pointer to an sss_auth_token structure to change
  *
  * NOTE: This function should only be used in destructors or similar
- * functions where freing the actual string is unsafe and where it can
+ * functions where freeing the actual string is unsafe and where it can
  * be guaranteed that the auth token will not be used anymore.
  * Use sss_authtok_set_empty() in normal circumstances.
  */
@@ -183,7 +183,7 @@ struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx);
 /**
  * @brief Set authtoken with 2FA data
  *
- * @param tok            A pointer to a sss_auth_token structure to change, also
+ * @param tok            A pointer to an sss_auth_token structure to change, also
  *                       used as a memory context to allocate the internal data.
  * @param[in]  fa1       First authentication factor, null terminated
  * @param[in]  fa1_len   Length of the first authentication factor, if 0
@@ -203,7 +203,7 @@ errno_t sss_authtok_set_2fa(struct sss_auth_token *tok,
 /**
  * @brief Get 2FA factors from authtoken
  *
- * @param tok            A pointer to a sss_auth_token structure to change, also
+ * @param tok            A pointer to an sss_auth_token structure to change, also
  *                       used as a memory context to allocate the internal data.
  * @param[out] fa1       A pointer to a const char *, that will point to a
  *                       null terminated string holding the first
@@ -225,9 +225,9 @@ errno_t sss_authtok_get_2fa(struct sss_auth_token *tok,
                             const char **fa2, size_t *fa2_len);
 
 /**
- * @brief Set a Smart Card pin into a an auth token, replacing any previous data
+ * @brief Set a Smart Card PIN into an auth token, replacing any previous data
  *
- * @param tok        A pointer to a sss_auth_token structure to change, also
+ * @param tok        A pointer to an sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
  * @param pin        A string
  * @param len        The length of the string or, if 0 is passed,
@@ -240,7 +240,7 @@ errno_t sss_authtok_set_sc_pin(struct sss_auth_token *tok, const char *pin,
                                size_t len);
 
 /**
- * @brief Returns a Smart Card pin as const string if the auth token is of
+ * @brief Returns a Smart Card PIN as const string if the auth token is of
  *        type SSS_AUTHTOK_TYPE_SC_PIN, otherwise it returns an error
  *
  * @param tok    A pointer to an sss_auth_token
@@ -250,7 +250,7 @@ errno_t sss_authtok_set_sc_pin(struct sss_auth_token *tok, const char *pin,
  *
  * @return       EOK on success
  *               ENOENT if the token is empty
- *               EACCESS if the token is not a Smart Card pin token
+ *               EACCESS if the token is not a Smart Card PIN token
  */
 errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **pin,
                                size_t *len);
@@ -259,7 +259,7 @@ errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **pin,
  * @brief Sets an auth token to type SSS_AUTHTOK_TYPE_SC_KEYPAD, replacing any
  *        previous data
  *
- * @param tok        A pointer to a sss_auth_token structure to change, also
+ * @param tok        A pointer to an sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
  */
 void sss_authtok_set_sc_keypad(struct sss_auth_token *tok);
@@ -272,7 +272,7 @@ void sss_authtok_set_sc_keypad(struct sss_auth_token *tok);
  * @param type            Authentication token type, may be
  *                        SSS_AUTHTOK_TYPE_SC_PIN or SSS_AUTHTOK_TYPE_SC_KEYPAD
  * @param pin             A pointer to a const char *, that will point to a null
- *                        terminated string containing the pin
+ *                        terminated string containing the PIN
  * @param pin_len         The length of the pin string, if set to 0 it will be
  *                        calculated
  * @param token_name      A pointer to a const char *, that will point to a null
@@ -301,7 +301,7 @@ errno_t sss_authtok_set_sc(struct sss_auth_token *tok,
 /**
  * @brief Set a Smart Card authentication data, replacing any previous data
  *
- * @param tok    A pointer to a sss_auth_token structure to change, also
+ * @param tok    A pointer to an sss_auth_token structure to change, also
  *               used as a memory context to allocate the internal data.
  * @param data   Smart Card authentication data blob
  * @param len    The length of the blob
@@ -316,11 +316,11 @@ errno_t sss_authtok_set_sc_from_blob(struct sss_auth_token *tok,
 /**
  * @brief Get complete Smart Card authtoken data
  *
- * @param tok                   A pointer to a sss_auth_token structure
+ * @param tok                   A pointer to an sss_auth_token structure
  * @param[out] _pin             A pointer to a const char *, that will point to
- *                              a null terminated string holding the pin,
+ *                              a null terminated string holding the PIN,
  *                              may not be modified or freed
- * @param[out] _pin__len        Length of the pin
+ * @param[out] _pin__len        Length of the PIN
  * @param[out] _token_name      A pointer to a const char *, that will point to
  *                              a null terminated string holding the PKCS#11
  *                              token name, may not be modified or freed

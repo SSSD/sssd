@@ -698,7 +698,7 @@ static int mbof_next_add_callback(struct ldb_request *req,
             ldb_debug(ldb, LDB_DEBUG_TRACE,
                            "Found multiple entries for (%s)",
                            ldb_dn_get_linearized(addop->entry_dn));
-            /* more than one entry per dn ?? db corrupted ? */
+            /* more than one entry per DN!? DB corrupted? */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_OPERATIONS_ERROR);
         }
@@ -1425,7 +1425,7 @@ static int mbof_del_search_callback(struct ldb_request *req,
         if (ldb_dn_compare(msg->dn, ctx->req->op.del.dn) == 0) {
 
             if (first->entry != NULL) {
-                /* more than one entry per dn ?? db corrupted ? */
+                /* more than one entry per DN!? DB corrupted? */
                 return ldb_module_done(ctx->req, NULL, NULL,
                                        LDB_ERR_OPERATIONS_ERROR);
             }
@@ -1843,7 +1843,7 @@ static int mbof_del_exop_search_callback(struct ldb_request *req,
                 ldb_debug(ldb, LDB_DEBUG_TRACE,
                                "Found multiple entries for (%s)",
                                ldb_dn_get_linearized(delop->entry_dn));
-                /* more than one entry per dn ?? db corrupted ? */
+                /* more than one entry per DN!? DB corrupted? */
                 return ldb_module_done(ctx->req, NULL, NULL,
                                        LDB_ERR_OPERATIONS_ERROR);
             }
@@ -1920,7 +1920,7 @@ static int mbof_del_execute_cont(struct mbof_del_operation *delop)
     delop->anc_ctx->new_list = new_list;
     delop->anc_ctx->num_direct = new_list->num;
 
-    /* do we have any direct parent at all ? */
+    /* do we have any direct parent at all? */
     if (new_list->num == 0) {
         /* no entries at all, entry ended up being orphaned */
         /* skip to directly set the new memberof list for this entry */
@@ -1940,7 +1940,7 @@ static int mbof_del_execute_cont(struct mbof_del_operation *delop)
     }
 
     /* before proceeding we also need to fetch the ancestors (anew as some may
-     * have changed by preceeding operations) */
+     * have changed by preceding operations) */
     return mbof_del_ancestors(delop);
 }
 
@@ -2013,7 +2013,7 @@ static int mbof_del_anc_callback(struct ldb_request *req,
             ldb_debug(ldb, LDB_DEBUG_TRACE,
                            "Found multiple entries for (%s)",
                            ldb_dn_get_linearized(anc_ctx->entry->dn));
-            /* more than one entry per dn ?? db corrupted ? */
+            /* more than one entry per DN!? DB corrupted? */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_OPERATIONS_ERROR);
         }
@@ -2283,7 +2283,7 @@ static int mbof_del_mod_callback(struct ldb_request *req,
 
     switch (ares->type) {
     case LDB_REPLY_ENTRY:
-        ldb_debug(ldb, LDB_DEBUG_TRACE, "Got an entry on a non search op ?!");
+        ldb_debug(ldb, LDB_DEBUG_TRACE, "Got an entry on a non search op?!");
         /* shouldn't happen */
         talloc_zfree(ares);
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -2970,7 +2970,7 @@ static int mbof_mod_callback(struct ldb_request *req,
             ldb_debug(ldb, LDB_DEBUG_TRACE,
                            "Found multiple entries for (%s)",
                            ldb_dn_get_linearized(mod_ctx->msg->dn));
-            /* more than one entry per dn ?? db corrupted ? */
+            /* more than one entry per DN!? DB corrupted? */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_OPERATIONS_ERROR);
         }
@@ -3401,13 +3401,13 @@ static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
     }
 
     /* Process the operations */
-    /* if we have something to remove do it first */
+    /* if we have something to remove, do it first */
     if ((mod_ctx->mb_remove && mod_ctx->mb_remove->num) ||
         (mod_ctx->gh_remove && mod_ctx->gh_remove->num)) {
         return mbof_mod_delete(mod_ctx, mod_ctx->mb_remove, mod_ctx->gh_remove);
     }
 
-    /* if there is nothing to remove and we have stuff to add
+    /* if there is nothing to remove and we have stuff to add,
      * do it right away */
     if ((mod_ctx->mb_add && mod_ctx->mb_add->num) ||
         (mod_ctx->gh_add && mod_ctx->gh_add->num)) {
@@ -4140,7 +4140,7 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
         talloc_zfree(ares);
 
         if (!ctx->group_list) {
-            /* no groups ? */
+            /* no groups? */
             return ldb_module_done(ctx->req, NULL, NULL, LDB_SUCCESS);
         }
 
@@ -4183,8 +4183,8 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
                         }
                     }
                     if (ret == HASH_ERROR_KEY_NOT_FOUND) {
-                        /* not a known user, nor a known group ?
-                           give a warning an continue */
+                        /* not a known user, nor a known group!?
+                           give a warning and continue */
                         ldb_debug(ldb, LDB_DEBUG_ERROR,
                                   "member attribute [%s] has no corresponding"
                                   " entry!", key.str);
@@ -4528,7 +4528,7 @@ static int mbof_rcmp_mod_callback(struct ldb_request *req,
 
     switch (ares->type) {
     case LDB_REPLY_ENTRY:
-        ldb_debug(ldb, LDB_DEBUG_TRACE, "Got an entry on a non search op ?!");
+        ldb_debug(ldb, LDB_DEBUG_TRACE, "Got an entry on a non search op?!");
         /* shouldn't happen */
         talloc_zfree(ares);
         return ldb_module_done(ctx->req, NULL, NULL,

@@ -155,7 +155,7 @@ AC_DEFUN([WITH_SYSLOG],
      test x"$with_syslog" = xjournald; then
         syslog=$with_syslog
   else
-      AC_MSG_ERROR([Uknown syslog type, supported types are syslog and journald])
+      AC_MSG_ERROR([Unknown syslog type, supported types are syslog and journald])
   fi
 
   AM_CONDITIONAL([WITH_JOURNALD], [test x"$syslog" = xjournald])
@@ -263,7 +263,7 @@ AC_DEFUN([WITH_XML_CATALOG],
 AC_DEFUN([WITH_KRB5_PLUGIN_PATH],
   [ AC_ARG_WITH([krb5-plugin-path],
                 [AC_HELP_STRING([--with-krb5-plugin-path=PATH],
-                                [Path to kerberos plugin store [/usr/lib/krb5/plugins/libkrb5]]
+                                [Path to Kerberos plugin store [/usr/lib/krb5/plugins/libkrb5]]
                                )
                 ]
                )
@@ -350,7 +350,7 @@ AC_DEFUN([WITH_DEFAULT_CCNAME_TEMPLATE],
 AC_DEFUN([WITH_KRB5AUTHDATA_PLUGIN_PATH],
   [ AC_ARG_WITH([krb5authdata-plugin-path],
                 [AC_HELP_STRING([--with-krb5authdata-plugin-path=PATH],
-                                [Path to kerberos authdata plugin store [/usr/lib/krb5/plugins/authdata]]
+                                [Path to Kerberos authdata plugin store [/usr/lib/krb5/plugins/authdata]]
                                )
                 ]
                )
@@ -618,7 +618,7 @@ AC_ARG_ENABLE([all-experimental-features],
 AC_DEFUN([WITH_UNICODE_LIB],
   [ AC_ARG_WITH([unicode-lib],
                 [AC_HELP_STRING([--with-unicode-lib=<library>],
-                                [Which library to use for unicode processing (libunistring, glib2) [glib2]]
+                                [Which library to use for Unicode processing (libunistring, glib2) [glib2]]
                                )
                 ]
                )
@@ -628,7 +628,7 @@ AC_DEFUN([WITH_UNICODE_LIB],
     fi
 
     if test x"$unicode_lib" != x"libunistring" -a x"$unicode_lib" != x"glib2"; then
-		AC_MSG_ERROR([Unsupported unicode library])
+		AC_MSG_ERROR([Unsupported Unicode library])
     fi
 
     AM_CONDITIONAL([WITH_LIBUNISTRING], test x"$unicode_lib" = x"libunistring")
@@ -807,7 +807,7 @@ AC_DEFUN([WITH_NFS],
 AC_DEFUN([WITH_NFS_LIB_PATH],
   [ AC_ARG_WITH([nfs-lib-path],
                 [AC_HELP_STRING([--with-nfs-lib-path=<path>],
-                                [Path to the nfs library [${libdir}]]
+                                [Path to the NFS library [${libdir}]]
                                )
                 ]
                )

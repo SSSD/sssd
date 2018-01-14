@@ -103,7 +103,7 @@ enum {
 /*
  * This represents vtable of interface handlers for methods and
  * properties and so on. The actual vtable structs derive from this struct
- * (ie: have this struct as their first member).
+ * (i.e.: have this struct as their first member).
  *
  * The offsets for matching vtable function pointers are in sbus_method_meta
  * These are used to dynamically dispatch the method invocations.
@@ -275,7 +275,7 @@ int sbus_conn_send(struct sbus_connection *conn,
 void sbus_conn_send_reply(struct sbus_connection *conn,
                           DBusMessage *reply);
 
-/* Set up D-BUS access control. If there is a SSSD user, we must allow
+/* Set up D-BUS access control. If there is an SSSD user, we must allow
  * him to connect. root is always allowed */
 void sbus_allow_uid(struct sbus_connection *conn, uid_t *uid);
 

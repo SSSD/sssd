@@ -115,7 +115,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
 
     kerr = sss_krb5_init_context(&krb_ctx);
     if (kerr) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to init kerberos context\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to init Kerberos context\n");
         ret = EFAULT;
         goto done;
     }
@@ -269,7 +269,7 @@ enum matching_mode {MODE_NORMAL, MODE_PREFIX, MODE_POSTFIX};
  * We only have primary and instances stored separately, we need to
  * join them to one string and compare that string.
  *
- * @param ctx kerberos context
+ * @param ctx Kerberos context
  * @param principal principal we want to match
  * @param pattern_primary primary part of the principal we want to
  *        perform matching against. It is possible to use * wildcard
@@ -1342,8 +1342,8 @@ krb5_error_code sss_krb5_init_context(krb5_context *context)
          * argument. */
         msg = sss_krb5_get_error_message(NULL, kerr);
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to init kerberos context [%s]\n", msg);
-        sss_log(SSS_LOG_CRIT, "Failed to init kerberos context [%s]\n", msg);
+              "Failed to init Kerberos context [%s]\n", msg);
+        sss_log(SSS_LOG_CRIT, "Failed to init Kerberos context [%s]\n", msg);
         sss_krb5_free_error_message(NULL, msg);
     }
 

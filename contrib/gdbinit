@@ -1,2 +1,2 @@
-# When attaching to a sssd process, cancel the watchdog
+# When attaching to an SSSD process, cancel the watchdog
 p teardown_watchdog()

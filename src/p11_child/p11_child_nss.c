@@ -249,7 +249,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
             }
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Login required but no pin available, continue.\n");
+                  "Login required but no PIN available, continue.\n");
         }
     } else {
         DEBUG(SSSDBG_TRACE_ALL, "Login NOT required.\n");
@@ -441,7 +441,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         if (priv_key == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "PK11_FindPrivateKeyFromCert failed [%d][%s]."
-                  "Maybe pin is missing.\n",
+                  "Maybe PIN is missing.\n",
                   PR_GetError(), PORT_ErrorToString(PR_GetError()));
             ret = EIO;
             goto done;
@@ -747,7 +747,7 @@ int main(int argc, const char *argv[])
         poptPrintUsage(pc, stderr, 0);
         _exit(-1);
     } else if (mode == OP_AUTH && pin_mode == PIN_NONE) {
-        fprintf(stderr, "\nMissing pin mode for authentication, " \
+        fprintf(stderr, "\nMissing PIN mode for authentication, " \
                         "either --pin or --keypad must be specified.\n");
         poptPrintUsage(pc, stderr, 0);
         _exit(-1);
@@ -798,7 +798,7 @@ int main(int argc, const char *argv[])
     if (mode == OP_AUTH && (module_name == NULL || token_name == NULL
                                 || key_id == NULL)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "--module_name, --token_name and --key_id must be for "
+              "--module_name, --token_name and --key_id must be given for "
               "authentication");
         ret = EINVAL;
         goto fail;
@@ -813,7 +813,7 @@ int main(int argc, const char *argv[])
     if (mode == OP_AUTH && pin_mode == PIN_STDIN) {
         ret = p11c_recv_data(main_ctx, STDIN_FILENO, &pin);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read pin.\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read PIN.\n");
             goto fail;
         }
     }

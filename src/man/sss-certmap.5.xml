@@ -575,7 +575,7 @@
                     <listitem>
                     <para>
                         This template will add the OID which is stored in the
-                        registeredID component of the SAN as as dotted-decimal
+                        registeredID component of the SAN as a dotted-decimal
                         string.
                     </para>
                     <para>

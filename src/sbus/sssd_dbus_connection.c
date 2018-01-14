@@ -238,7 +238,7 @@ static int sbus_conn_set_fns(struct sbus_connection *conn)
     if (!dbret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Error setting up D-BUS server timeout functions\n");
-        /* FIXME: free resources ? */
+        /* FIXME: free resources? */
         return EIO;
     }
 

@@ -60,11 +60,11 @@
 #define SYSFS_IFACE_PATH_MAX (16+IFNAMSIZ)
 
 #define PHY_80211_SUBDIR   "phy80211"
-/* 9 = strlen(PHY_80211_SUBDIR)+1, 1 = path delimeter */
+/* 9 = strlen(PHY_80211_SUBDIR)+1, 1 = path delimiter */
 #define SYSFS_SUBDIR_PATH_MAX (SYSFS_IFACE_PATH_MAX+9+1)
 
 #define TYPE_FILE "type"
-/* 5 = strlen(TYPE_FILE)+1, 1 = path delimeter */
+/* 5 = strlen(TYPE_FILE)+1, 1 = path delimiter */
 #define SYSFS_TYPE_PATH_MAX (SYSFS_IFACE_PATH_MAX+5+1)
 
 #define BUFSIZE 8

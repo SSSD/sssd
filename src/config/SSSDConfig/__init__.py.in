@@ -269,7 +269,7 @@ option_strings = {
     'krb5_fast_principal' : _("Selects the principal to use for FAST"),
     'krb5_canonicalize' : _("Enables principal canonicalization"),
     'krb5_use_enterprise_principal' : _("Enables enterprise principals"),
-    'krb5_map_user' : _('A mapping from user names to kerberos principal names'),
+    'krb5_map_user' : _('A mapping from user names to Kerberos principal names'),
 
     # [provider/krb5/chpass]
     'krb5_kpasswd' : _('Server where the change password service is running if not on the KDC'),
@@ -381,7 +381,7 @@ option_strings = {
     'ldap_group_type' : _('Type of the group and other flags'),
     'ldap_group_external_member' : _('The LDAP group external member attribute'),
     #replaced by ldap_entry_usn# 'ldap_group_entry_usn' : _('entryUSN attribute'),
-    'ldap_group_nesting_level' : _('Maximum nesting level SSSd will follow'),
+    'ldap_group_nesting_level' : _('Maximum nesting level SSSD will follow'),
 
     'ldap_netgroup_search_base' : _('Base DN for netgroup lookups'),
     'ldap_netgroup_object_class' : _('Objectclass for netgroups'),
@@ -693,7 +693,7 @@ class SSSDConfigObject(object):
 
     def get_name(self):
         """
-        Return the name of the this object
+        Return the name of the object
 
         === Returns ===
         The domain name
@@ -1397,7 +1397,7 @@ class SSSDConfig(SSSDChangeConf):
         are not passed, it will use the system defaults.
 
         schemafile:
-          The path to the api schema config file. Usually
+          The path to the API schema config file. Usually
           @datadir@/sssd/sssd.api.conf
         schemaplugindir:
           The path the directory containing the provider schema config files.

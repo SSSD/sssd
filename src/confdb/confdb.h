@@ -636,7 +636,7 @@ int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
  * @param[in] section The ConfDB section to look for.
  *                    All sections should start with 'config/'.
  *                    Subsections are separated by slashes.
- * @param[out] sections Names of the subsections realtive to the section
+ * @param[out] sections Names of the subsections relative to the section
  *                      requested. If "a/b" is requested then "c/d" is
  *                      returned for the section named [a/b/c/d]
  * @param[out] num_sections Number of section names returned

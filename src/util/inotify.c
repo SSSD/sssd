@@ -86,7 +86,7 @@ struct snotify_ctx {
     struct timeval delay;
     /* We keep the structure that actually does the work
      * separately to be able to reinitialize it when the
-     * file is recrated or moved to the directory
+     * file is recreated or moved to the directory
      */
     struct snotify_watch_ctx *wctx;
 };
@@ -342,7 +342,7 @@ static void snotify_internal_cb(struct tevent_context *ev,
                 }
             } else {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      "Uknown watch %d\n", in_event->wd);
+                      "Unknown watch %d\n", in_event->wd);
                 ret = EOK;
             }
         }

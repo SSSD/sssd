@@ -64,7 +64,7 @@
 %endif
 
 # on Fedora and RHEL7 p11_child needs a polkit config snippet to be allowed to
-# talk to pcscd if SSSD runs as unpriviledged user
+# talk to pcscd if SSSD runs as unprivileged user
 %if (%{with sssd_user} && (0%{?fedora} || 0%{?rhel} >= 7))
     %global install_pcscd_polkit_rule 1
 %else

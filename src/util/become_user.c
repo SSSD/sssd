@@ -40,7 +40,7 @@ errno_t become_user(uid_t uid, gid_t gid)
         return EOK;
     }
 
-    /* drop supplmentary groups first */
+    /* drop supplementary groups first */
     ret = setgroups(0, NULL);
     if (ret == -1) {
         ret = errno;
@@ -49,7 +49,7 @@ errno_t become_user(uid_t uid, gid_t gid)
         return ret;
     }
 
-    /* change gid so that root cannot be regained (changes saved gid too) */
+    /* change GID so that root cannot be regained (changes saved GID too) */
     ret = setresgid(gid, gid, gid);
     if (ret == -1) {
         ret = errno;
@@ -58,7 +58,7 @@ errno_t become_user(uid_t uid, gid_t gid)
         return ret;
     }
 
-    /* change uid so that root cannot be regained (changes saved uid too) */
+    /* change UID so that root cannot be regained (changes saved UID too) */
     /* this call also takes care of dropping CAP_SETUID, so this is a PNR */
     ret = setresuid(uid, uid, uid);
     if (ret == -1) {
@@ -133,8 +133,8 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
         ssc->gid = mygid;
     }
 
-    /* if we are regaining root set euid first so that we have CAP_SETUID back,
-     * ane the other calls work too, otherwise call it last so that we can
+    /* if we are regaining root, set EUID first so that we have CAP_SETUID back,
+     * and the other calls work too, otherwise call it last so that we can
      * change groups before we loose CAP_SETUID */
     if (uid == 0) {
         ret = setresuid(0, 0, 0);
@@ -146,7 +146,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* TODO: use libcap-ng if we need to get/set capabilities too ? */
+    /* TODO: use libcap-ng if we need to get/set capabilities too? */
 
     if (myuid == uid && mygid == gid) {
         DEBUG(SSSDBG_FUNC_DATA, "Already user [%"SPRIuid"].\n", uid);
@@ -156,7 +156,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
 
     /* try to setgroups first should always work if CAP_SETUID is set,
      * otherwise it will always fail, failure is not critical though as
-     * generally we only really care about uid and at mot primary gid */
+     * generally we only really care about UID and at most primary GID */
     ret = setgroups(num_gids, gids);
     if (ret == -1) {
         ret = errno;
@@ -164,7 +164,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
               "setgroups failed [%d][%s].\n", ret, strerror(ret));
     }
 
-    /* change gid now, (leaves saved gid to current, so we can restore) */
+    /* change GID now, (leaves saved GID to current, so we can restore) */
     ret = setresgid(-1, gid, -1);
     if (ret == -1) {
         ret = errno;
@@ -174,7 +174,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
     }
 
     if (uid != 0) {
-        /* change uid, (leaves saved uid to current, so we can restore) */
+        /* change UID, (leaves saved UID to current, so we can restore) */
         ret = setresuid(-1, uid, -1);
         if (ret == -1) {
             ret = errno;

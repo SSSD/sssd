@@ -47,7 +47,7 @@ static errno_t sss_mc_set_recycled(int fd)
 
     pos = lseek(fd, offset, SEEK_SET);
     if (pos == -1) {
-        /* What do we do now ? */
+        /* What do we do now? */
         return errno;
     }
 
@@ -170,7 +170,7 @@ static errno_t wait_till_nss_responder_invalidate_cache(void)
 {
     struct stat stat_buf = { 0 };
     const time_t max_wait = 1000000; /* 1 second */
-    const time_t step_time = 5000; /* 5 miliseconds */
+    const time_t step_time = 5000; /* 5 milliseconds */
     const size_t steps_count = max_wait / step_time;
     int ret;
 

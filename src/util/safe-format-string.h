@@ -25,11 +25,11 @@
  * format strings.
  *
  * Not only are the normal printf functions not safe to use on user-provided
- * input (ie: can crash, be abused, etc), they're also very brittle with
+ * input (i.e.: can crash, be abused, etc.), they're also very brittle with
  * regards to positional arguments: one must consume them all or printf will
  * just abort(). This is because arguments of different sizes are accepted
  * in the varargs. So obviously the positional code cannot know the offset
- * of the relevant varargs if some are not consumed (ie: tagged with a
+ * of the relevant varargs if some are not consumed (i.e.: tagged with a
  * field type).
  *
  * Thus the only accepted field type here is 's'. It's all we need.

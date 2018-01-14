@@ -58,7 +58,7 @@ static int confdb_test(struct confdb_ctx *cdb)
     }
 
     if (values[1] != NULL) {
-        /* more than 1 value ?? */
+        /* more than 1 value?? */
         talloc_free(values);
         return EIO;
     }
@@ -165,7 +165,7 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
     ret = sss_ini_get_mtime(init_data, sizeof(timestr), timestr);
     if (ret <= 0 || ret >= (int)sizeof(timestr)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to convert time_t to string ??\n");
+              "Failed to convert time_t to string??\n");
         ret = errno ? errno : EFAULT;
         return ret;
     }

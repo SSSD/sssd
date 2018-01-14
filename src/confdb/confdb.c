@@ -989,7 +989,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     /* Determine if this domain can be enumerated */
 
     /* TEMP: test if the old bitfield conf value is used and warn it has been
-     * superceeded. */
+     * superseded. */
     val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_DOMAIN_ENUMERATE, 0);
     if (val > 0) { /* ok there was a number in here */
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -1029,7 +1029,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                             &default_domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannnot get the default domain [%d]: %s\n",
+              "Cannot get the default domain [%d]: %s\n",
                ret, strerror(ret));
         goto done;
     }
@@ -1761,7 +1761,7 @@ static bool need_implicit_files_domain(TALLOC_CTX *tmp_ctx,
                                                   NULL);
         if (id_provider == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "The object [%s] doesn't have a id_provider\n",
+                  "The object [%s] doesn't have an id_provider\n",
                   ldb_dn_get_linearized(doms->msgs[i]->dn));
             continue;
         }
@@ -1781,7 +1781,7 @@ static bool need_implicit_files_domain(TALLOC_CTX *tmp_ctx,
                 continue;
             }
 
-            /* id_provider = proxy + proxy_lib_name = files is equivalent
+            /* id_provider = proxy + proxy_lib_name = files are equivalent
              * to id_provider = files
              */
             if (strcmp(val, "files") == 0) {

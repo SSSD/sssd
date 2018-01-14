@@ -29,14 +29,14 @@ typedef int errno_t;
 /*
  * We define a specific number space so that we do not overlap with other
  * generic errors returned by various libraries. This will make it easy
- * to have functions that double check that what was returned was a SSSD
+ * to have functions that double check that what was returned was an SSSD
  * specific error where it matters. For example we may want to ensure some
- * particularly sensitive paths only return SSSD sepcific errors as that
- * will insure all error conditions have been explicitly dealt with,
+ * particularly sensitive paths only return SSSD-specific errors as that
+ * will ensure all error conditions have been explicitly dealt with,
  * and are not the result of assigning the wrong return result.
  *
  * Basic system errno errors can still be used, but when an error condition
- * does not properly map to a system error we should use a SSSD specific one
+ * does not properly map to a system error we should use an SSSD specific one
  */
 
 #define ERR_BASE    0x555D0000
@@ -44,7 +44,7 @@ typedef int errno_t;
 
 /* never use ERR_INVALID, it is used for catching and returning
  * information on invalid error numbers */
-/* never use ERR_LAST, this represent the maximum error value available
+/* never use ERR_LAST, this represents the maximum error value available
  * and is used to validate error codes */
 enum sssd_errors {
     ERR_INVALID = ERR_BASE + 0,
@@ -155,9 +155,9 @@ enum sssd_errors {
 #endif
 
 /**
- * @brief return a string descriing the error number like strerror()
+ * @brief return a string describing the error number like strerror()
  *
- * @param error     An errno_t number, can be a SSSD error or a system error
+ * @param error     An errno_t number, can be an SSSD error or a system error
  *
  * @return A statically allocated string.
  */

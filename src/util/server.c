@@ -39,7 +39,7 @@
 #endif
 
 /*******************************************************************
- Close the low 3 fd's and open dev/null in their place.
+ Close the low 3 FDs and open dev/null in their place.
 ********************************************************************/
 static void close_low_fds(void)
 {
@@ -52,7 +52,7 @@ static void close_low_fds(void)
     close(2);
 
     /* try and use up these file descriptors, so silly
-       library routines writing to stdout etc won't cause havoc */
+       library routines writing to stdout etc. won't cause havoc */
     for (i = 0; i < 3; i++) {
         fd = open("/dev/null", O_RDWR, 0);
         if (fd < 0)
@@ -88,7 +88,7 @@ void become_daemon(bool Fork)
         pid = fork();
         if (pid != 0) {
             /* Terminate parent process on demand so we can hold systemd
-             * or initd from starting next service until sssd is initialized.
+             * or initd from starting next service until SSSD is initialized.
              * We use signals directly here because we don't have a tevent
              * context yet. */
             CatchSignal(SIGTERM, daemon_parent_sigterm);
@@ -136,7 +136,7 @@ void become_daemon(bool Fork)
         return;
     }
 
-    /* Close fd's 0,1,2. Needed if started by rsh */
+    /* Close FDs 0,1,2. Needed if started by rsh */
     close_low_fds();
 }
 
@@ -501,7 +501,7 @@ int server_setup(const char *name, int flags,
     ret = unsetenv(SSS_DOM_ENV);
     if (ret != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Unsetting "SSS_DOM_ENV" failed, journald "
-              "logging mightnot work as expected\n");
+              "logging might not work as expected\n");
     }
 
     setup_signals();
@@ -538,7 +538,7 @@ int server_setup(const char *name, int flags,
     event_ctx = tevent_context_init(talloc_autofree_context());
     if (event_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "The event context initialiaziton failed\n");
+              "The event context initialization failed\n");
         return 1;
     }
 

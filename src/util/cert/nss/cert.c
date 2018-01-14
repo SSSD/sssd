@@ -253,7 +253,7 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
      * the trusted issuer cert. Only NSS_InitContext will really open the DB
      * in this case. I'm not sure about how long validation might need e.g. if
      * CRLs or OSCP is enabled, maybe it would be better to run validation in
-     * p11_child ? */
+     * p11_child? */
     nss_ctx = NSS_InitContext(ca_db, "", "", SECMOD_DB, &parameters,
                               NSS_INIT_READONLY);
     if (nss_ctx == NULL) {
@@ -345,7 +345,7 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
         goto done;
     }
 
-    /* Looks like nss drops the leading 00 which afaik is added to make sure
+    /* Looks like nss drops the leading 00 which AFAIK is added to make sure
      * the bigint is handled as positive number if the leading bit is set. */
     exponent_prefix_len = 0;
     if (cert_pub_key->u.rsa.publicExponent.data[0] & 0x80) {

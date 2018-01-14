@@ -1,5 +1,5 @@
 /*
-   SSSD - certificate handling utils - openssl version
+   SSSD - certificate handling utils - OpenSSL version
 
    Copyright (C) Sumit Bose <sbose@redhat.com> 2015
 
@@ -254,7 +254,7 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     SAFEALIGN_SET_UINT32(&buf[c], htobe32(exponent_len), &c);
     safealign_memcpy(&buf[c], exponent, exponent_len, &c);
 
-    /* Adding missing 00 which afaik is added to make sure
+    /* Adding missing 00 which AFAIK is added to make sure
      * the bigint is handled as positive number */
     /* TODO: make a better check if 00 must be added or not, e.g. ... & 0x80)
      */

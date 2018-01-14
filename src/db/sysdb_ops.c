@@ -3155,7 +3155,7 @@ int sysdb_cache_password_ex(struct sss_domain_info *domain,
         if (ret) goto fail;
     }
 
-    /* FIXME: should we use a different attribute for chache passwords ?? */
+    /* FIXME: should we use a different attribute for cache passwords?? */
     ret = sysdb_attrs_add_long(attrs, "lastCachedPasswordChange",
                                (long)time(NULL));
     if (ret) goto fail;
@@ -5151,7 +5151,7 @@ errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Get sid_str attribute of all elemets pointed to by group members */
+    /* Get sid_str attribute of all elements pointed to by group members */
     ret = sysdb_asq_search(tmp_ctx, dom, msg->dn, NULL, SYSDB_MEMBER, attrs,
                            &m_count, &members);
     if (ret != EOK) {

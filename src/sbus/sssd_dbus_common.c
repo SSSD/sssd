@@ -208,7 +208,7 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
     if (!watch) {
         DEBUG(SSSDBG_OP_FAILURE,
               "[%p] does not carry watch context?!\n", dbus_watch);
-        /* abort ? */
+        /* abort? */
         return;
     }
 

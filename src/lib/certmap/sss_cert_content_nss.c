@@ -39,7 +39,7 @@
 
 
 /* The following two functions are copied from NSS's lib/certdb/secname.c
- * becasue CERT_AddAVA is not exported. I just renamed it and made it static
+ * because CERT_AddAVA is not exported. I just renamed it and made it static
  * to avoid issues if the call gets exported some time in future. */
 
 static void **
@@ -127,7 +127,7 @@ static int get_extended_key_usage_oids(TALLOC_CTX *mem_ctx,
 
     for (c = 0; (oids != NULL && oids[c] != NULL); c++) {
         tmp_str = CERT_GetOidString(oids[c]);
-        /* is it expexted that NSS OID strings start with "OID." but we
+        /* it is expected that NSS OID strings start with "OID." but we
          * prefer the plain dotted-decimal version so the prefix is skipped */
         if (tmp_str == NULL || strncmp(tmp_str, "OID.", 4) != 0) {
             PR_smprintf_free(tmp_str);
@@ -176,7 +176,7 @@ static int get_rdn_str(TALLOC_CTX *mem_ctx, CERTAVA **avas,
     }
 
 
-    /* Multiple AVAs should be avoided becasue there is no general ordering
+    /* Multiple AVAs should be avoided because there is no general ordering
      * rule and the RDN strings are not reproducible */
     for (c = 0; avas[c] != NULL; c++) {
         rv = sss_CERT_AddAVA(arena, &rdn, avas[c]);
@@ -375,7 +375,7 @@ static int add_string_other_name_to_san_list(TALLOC_CTX *mem_ctx,
     char *tmp_str;
 
     tmp_str = CERT_GetOidString(&(current->name.OthName.oid));
-    /* is it expexted that NSS OID strings start with "OID." but we
+    /* it is expected that NSS OID strings start with "OID." but we
      * prefer the plain dotted-decimal version so the prefix is skipped */
     if (tmp_str == NULL || strncmp(tmp_str, "OID.", 4) != 0) {
         PR_smprintf_free(tmp_str);
@@ -552,7 +552,7 @@ static int add_oid_to_san_list(TALLOC_CTX *mem_ctx,
     char *tmp_str;
 
     tmp_str = CERT_GetOidString(&oid);
-    /* is it expexted that NSS OID strings start with "OID." but we
+    /* it is expected that NSS OID strings start with "OID." but we
      * prefer the plain dotted-decimal version so the prefix is skipped */
     if (tmp_str == NULL || strncmp(tmp_str, "OID.", 4) != 0) {
         PR_smprintf_free(tmp_str);

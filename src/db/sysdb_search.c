@@ -123,7 +123,7 @@ static errno_t merge_msg_ts_attrs(struct sysdb_ctx *sysdb,
                             sysdb_ts_cache_attrs[c], attrs);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Canot merge ts attr %s\n", sysdb_ts_cache_attrs[c]);
+                  "Cannot merge ts attr %s\n", sysdb_ts_cache_attrs[c]);
             goto done;
         }
     }

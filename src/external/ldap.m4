@@ -1,6 +1,6 @@
 dnl AC_SUBST(LDAP_LIBS)
 dnl
-dnl AC_CHECK_HEADERS(lber.h ldap.h, , AC_MSG_ERROR("could not locate ldap header files please install devel package"))
+dnl AC_CHECK_HEADERS(lber.h ldap.h, , AC_MSG_ERROR("could not locate LDAP header files please install devel package"))
 dnl
 dnl AC_CHECK_LIB(lber, main, LDAP_LIBS="-llber $LDAP_LIBS")
 dnl AC_CHECK_LIB(ldap, main, LDAP_LIBS="-lldap $LDAP_LIBS")
@@ -35,9 +35,9 @@ test "$with_ldap" != "yes" && { AC_CHECK_LIB(ldap, ldap_open, [with_ldap=yes wit
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
 dnl Recently, we need -lber even though the main routines are elsewhere,
-dnl because otherwise be get link errors w.r.t. ber_pvt_opt_on.  So just
+dnl because otherwise we get link errors w.r.t. ber_pvt_opt_on. So just
 dnl check for that (it's a variable not a fun but that doesn't seem to
-dnl matter in these checks)  and stick in -lber if so.  Can't hurt (even to
+dnl matter in these checks) and stick in -lber if so. Can't hurt (even to
 dnl stick it in always shouldn't hurt, I don't think) ... #### Someone who
 dnl #### understands LDAP needs to fix this properly.
 test "$with_ldap_lber" != "yes" && { AC_CHECK_LIB(lber, ber_pvt_opt_on, with_ldap_lber=yes) }

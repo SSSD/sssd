@@ -38,7 +38,7 @@
             joined to the AD domain and a keytab is available. Back end
             communication occurs over a GSSAPI-encrypted channel, SSL/TLS
             options should not be used with the AD provider and will be
-            superceded by Kerberos usage.
+            superseded by Kerberos usage.
         </para>
         <para>
             The AD provider supports connecting to Active Directory 2008 R2
@@ -97,7 +97,7 @@ ldap_id_mapping = False
             numerical ID with the help of the Global Catalog and only
             search that domain. In contrast, if POSIX attributes are not
             replicated to the Global Catalog, SSSD must search all the
-            domains in the forest sequentially. Please note that that the
+            domains in the forest sequentially. Please note that the
             <quote>cache_first</quote> option might be also helpful in
             speeding up domainless searches.
         </para>

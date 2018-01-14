@@ -65,7 +65,7 @@ static void id_callback(DBusPendingCall *pending, void *ptr)
               "Severe error. A reply callback was called but no"
                   " reply was received and no timeout occurred\n");
 
-        /* FIXME: Destroy this connection ? */
+        /* FIXME: Destroy this connection? */
         goto done;
     }
 
@@ -78,7 +78,7 @@ static void id_callback(DBusPendingCall *pending, void *ptr)
         if (!ret) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse message\n");
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-            /* FIXME: Destroy this connection ? */
+            /* FIXME: Destroy this connection? */
             goto done;
         }
 
@@ -100,7 +100,7 @@ static void id_callback(DBusPendingCall *pending, void *ptr)
          * We'll destroy it now.
          */
 
-        /* FIXME: Destroy this connection ? */
+        /* FIXME: Destroy this connection? */
         break;
     }
 
