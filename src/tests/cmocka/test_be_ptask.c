@@ -1000,7 +1000,7 @@ int main(int argc, const char *argv[])
         new_test(be_ptask_sync_reschedule_backoff)
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

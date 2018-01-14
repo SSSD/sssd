@@ -341,7 +341,7 @@ void test_pam_setup(struct sss_test_conf_param dom_params[],
     pam_test_ctx->pam_cmds = get_pam_cmds();
     assert_non_null(pam_test_ctx->pam_cmds);
 
-    /* FIXME - perhaps this should be folded into sssd_domain_init or stricty
+    /* FIXME - perhaps this should be folded into sssd_domain_init or strictly
      * used together
      */
     ret = sss_names_init(pam_test_ctx, pam_test_ctx->tctx->confdb,
@@ -2873,7 +2873,7 @@ int main(int argc, const char *argv[])
                                         pam_test_teardown),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -2891,7 +2891,7 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     /* Even though normally the tests should clean up after themselves
-     * they might not after a failed run. Remove the old db to be sure */
+     * they might not after a failed run. Remove the old DB to be sure */
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
@@ -2910,7 +2910,7 @@ int main(int argc, const char *argv[])
     }
 
 #ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make valgrund happy. */
+    /* Cleanup NSS and NSPR to make Valgrind happy. */
     nspr_nss_cleanup();
 #endif
 

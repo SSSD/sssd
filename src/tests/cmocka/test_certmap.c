@@ -954,7 +954,7 @@ static void test_sss_certmap_match_cert(void **state)
         {"KRB5:<SAN:otherName>dHUxQGFkLmRldmVs", 0}, /* "tu1@ad.devel" */
         {"KRB5:<SAN:1.3.6.1.4.1.311.20.2.3>test", ENOENT},
         {"KRB5:<SAN:1.3.6.1.4.1.311.20.2.3>tu1@ad", 0},
-        /* Fails becasue the NT principal SAN starts with binary values */
+        /* Fails because the NT principal SAN starts with binary values */
         {"KRB5:<SAN:1.3.6.1.4.1.311.20.2.3>^tu1@ad.devel$", ENOENT},
         {NULL, 0}
     };
@@ -1524,7 +1524,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_sss_certmap_get_search_filter),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -1549,12 +1549,12 @@ int main(int argc, const char *argv[])
     rv = cmocka_run_group_tests(tests, NULL, NULL);
 
 #ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make valgrind happy. */
+    /* Cleanup NSS and NSPR to make Valgrind happy. */
     nspr_nss_cleanup();
 #endif
 
 #ifdef HAVE_LIBCRYPTO
-    CRYPTO_cleanup_all_ex_data(); /* to make valgrind happy */
+    CRYPTO_cleanup_all_ex_data(); /* to make Valgrind happy */
 #endif
 
     return rv;

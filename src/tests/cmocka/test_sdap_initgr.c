@@ -507,7 +507,7 @@ int main(int argc, const char *argv[])
                                         test_sdap_initgr_teardown),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -525,7 +525,7 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     /* Even though normally the tests should clean up after themselves
-     * they might not after a failed run. Remove the old db to be sure */
+     * they might not after a failed run. Remove the old DB to be sure */
     tests_set_cwd();
 
     test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);

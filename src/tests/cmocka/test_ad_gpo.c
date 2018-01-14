@@ -66,7 +66,7 @@ struct som_list_result {
 };
 
 /*
- * Test parsing target dn into som components
+ * Test parsing target DN into som components
  */
 static void test_populate_som_list(const char *target_dn,
                                    struct som_list_result *expected)
@@ -264,7 +264,7 @@ void test_populate_gplink_list_malformed(void **state)
 }
 
 /*
- * Test sid-matching logic
+ * Test SID-matching logic
  */
 static void test_ad_gpo_ace_includes_client_sid(const char *user_sid,
                                                 const char **group_sids,
@@ -366,7 +366,7 @@ int main(int argc, const char *argv[])
                                         ad_gpo_test_teardown),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

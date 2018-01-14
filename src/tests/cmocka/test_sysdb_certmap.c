@@ -1,7 +1,7 @@
 /*
     SSSD
 
-    sysdb_certmap - Tests for sysdb certmap realted calls
+    sysdb_certmap - Tests for sysdb certmap related calls
 
     Authors:
         Jakub Hrozek <jhrozek@redhat.com>
@@ -232,7 +232,7 @@ int main(int argc, const char *argv[])
                                         test_sysdb_teardown),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

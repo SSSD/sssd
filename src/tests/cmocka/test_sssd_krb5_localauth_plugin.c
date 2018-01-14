@@ -102,7 +102,7 @@ void test_sss_userok(void **state)
         {{ 1234, NULL, NSS_STATUS_SUCCESS},  { 1234, NULL, NSS_STATUS_SUCCESS},
                                                                              0},
         /* second _nss_sss_getpwnam_r() is never called because the first one
-         * alread returned an error */
+         * already returned an error */
         {{ 1234, NULL, NSS_STATUS_NOTFOUND}, { 0, NULL, 0},
                                                          KRB5_PLUGIN_NO_HANDLE},
         {{ 1234, NULL, NSS_STATUS_SUCCESS},  { 1234, NULL, NSS_STATUS_NOTFOUND},
@@ -110,7 +110,7 @@ void test_sss_userok(void **state)
         {{ 1234, NULL, NSS_STATUS_SUCCESS},  { 4321, NULL, NSS_STATUS_SUCCESS},
                                                          KRB5_PLUGIN_NO_HANDLE},
         /* second _nss_sss_getpwnam_r() is never called because the first one
-         * alread returned an error */
+         * already returned an error */
         {{ 1234, NULL, NSS_STATUS_UNAVAIL},  { 0, NULL, 0},
                                                          KRB5_PLUGIN_NO_HANDLE},
         {{ 1234, NULL, NSS_STATUS_SUCCESS},  { 1234, NULL, NSS_STATUS_TRYAGAIN},

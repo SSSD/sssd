@@ -2008,7 +2008,7 @@ void test_sss_sifp_list_domains(void **state)
     sss_sifp_free_string_array(ctx, &out);
     assert_null(out);
 
-    /* messages are unrefed in the library */
+    /* messages are unreferenced in the library */
 }
 
 void test_sss_sifp_fetch_domain_by_name(void **state)
@@ -2115,7 +2115,7 @@ void test_sss_sifp_fetch_domain_by_name(void **state)
     sss_sifp_free_object(ctx, &out);
     assert_null(out);
 
-    /* messages are unrefed in the library */
+    /* messages are unreferenced in the library */
 }
 
 int main(int argc, const char *argv[])
@@ -2227,7 +2227,7 @@ int main(int argc, const char *argv[])
                                         test_setup, test_teardown_api),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

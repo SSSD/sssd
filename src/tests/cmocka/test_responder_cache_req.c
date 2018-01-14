@@ -2361,7 +2361,7 @@ void test_users_by_filter_filter_old(void **state)
     test_ctx->create_user1 = true;
     test_ctx->create_user2 = false;
 
-    /* This user was updated in distant past, so it wont't be reported by
+    /* This user was updated in distant past, so it won't be reported by
      * the filter search */
     prepare_user(test_ctx->tctx->dom, &users[1], 1000, 1);
 
@@ -3015,7 +3015,7 @@ void test_object_by_id_user_ncache(void **state)
 
     /* Setup user. We explicitly add the UID into BOTH UID and GID
      * namespaces, because otherwise the cache_req plugin would
-     * search the Data Provider anyway, becase it can't be sure
+     * search the Data Provider anyway, because it can't be sure
      * the object can be of the other type or not
      */
     ret = sss_ncache_set_uid(test_ctx->ncache,
@@ -3180,7 +3180,7 @@ void test_object_by_id_group_ncache(void **state)
 
     /* Setup group. We explicitly add the UID into BOTH UID and GID
      * namespaces, because otherwise the cache_req plugin would
-     * search the Data Provider anyway, becase it can't be sure
+     * search the Data Provider anyway, because it can't be sure
      * the object can be of the other type or not
      */
     ret = sss_ncache_set_uid(test_ctx->ncache,
@@ -4055,7 +4055,7 @@ int main(int argc, const char *argv[])
         new_subdomain_test(object_by_id_group_sub_domains_locator_cache_expired_two_calls),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -4073,7 +4073,7 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     /* Even though normally the tests should clean up after themselves
-     * they might not after a failed run. Remove the old db to be sure */
+     * they might not after a failed run. Remove the old DB to be sure */
     tests_set_cwd();
     test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);

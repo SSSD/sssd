@@ -745,7 +745,7 @@ void test_nss_getpwnam(void **state)
     assert_int_equal(ret, EOK);
 }
 
-/* Test that searching for a nonexistant user yields ENOENT.
+/* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
 void test_nss_getpwnam_neg(void **state)
@@ -1101,7 +1101,7 @@ void test_nss_getpwnam_space_sub_query(void **state)
 
 /*
  * Check that FQDN processing is able to handle arbitrarily sized
- * delimeter
+ * delimiter
  */
 struct passwd getpwnam_fancy_fqdn = {
     .pw_name = discard_const("testuser_fqdn_fancy"),
@@ -1417,7 +1417,7 @@ void test_nss_setup(struct sss_test_conf_param params[],
     nss_test_ctx->nss_cmds = get_nss_cmds();
     assert_non_null(nss_test_ctx->nss_cmds);
 
-    /* FIXME - perhaps this should be folded into sssd_domain_init or stricty
+    /* FIXME - perhaps this should be folded into sssd_domain_init or strictly
      * used together
      */
     ret = sss_names_init(nss_test_ctx, nss_test_ctx->tctx->confdb,
@@ -1447,7 +1447,7 @@ void test_nss_setup(struct sss_test_conf_param params[],
     nss_connection_setup(nss_test_ctx->cctx);
     assert_non_null(nss_test_ctx->cctx->state_ctx);
 
-    /* do after previous setup as the former nulls procotol_ctx */
+    /* do after previous setup as the former nulls protocol_ctx */
     nss_test_ctx->cctx->protocol_ctx = mock_prctx(nss_test_ctx->cctx);
     assert_non_null(nss_test_ctx->cctx->protocol_ctx);
 }
@@ -2870,7 +2870,7 @@ void test_nss_getpwnam_upn_same_domain(void **state)
     assert_int_equal(ret, EOK);
 }
 
-/* Test that searching for a nonexistant user yields ENOENT.
+/* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
 void test_nss_getpwnam_upn_neg(void **state)
@@ -3003,7 +3003,7 @@ void test_nss_initgroups(void **state)
     assert_int_equal(ret, EOK);
 }
 
-/* Test that searching for a nonexistant user yields ENOENT.
+/* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
 void test_initgr_neg_by_name(const char *name, bool is_upn)
@@ -3417,7 +3417,7 @@ void test_nss_initgroups_upn(void **state)
     assert_int_equal(ret, EOK);
 }
 
-/* Test that searching for a nonexistant user yields ENOENT.
+/* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
 void test_nss_initgr_neg_upn(void **state)
@@ -3658,7 +3658,7 @@ static void test_nss_getnamebysid(void **state)
     assert_int_equal(ret, EOK);
 }
 
-/* Test that searching for a nonexistant user yields ENOENT.
+/* Test that searching for a nonexistent user yields ENOENT.
  * Account callback will be called
  */
 void test_nss_getnamebysid_neg(void **state)
@@ -4851,7 +4851,7 @@ int main(int argc, const char *argv[])
                                         nss_test_setup, nss_test_teardown),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -4869,7 +4869,7 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     /* Even though normally the tests should clean up after themselves
-     * they might not after a failed run. Remove the old db to be sure */
+     * they might not after a failed run. Remove the old DB to be sure */
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
@@ -4880,7 +4880,7 @@ int main(int argc, const char *argv[])
     }
 
 #ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make valgrind happy. */
+    /* Cleanup NSS and NSPR to make Valgrind happy. */
     nspr_nss_cleanup();
 #endif
 

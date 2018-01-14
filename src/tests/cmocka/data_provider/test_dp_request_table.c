@@ -159,7 +159,7 @@ static void test_mult_req(void **state)
 
     key = get_req_key(test_ctx);
 
-    /* Add 1st requset */
+    /* Add 1st request */
     is_present = dp_req_table_has_key(table, key);
     assert_false(is_present);
 
@@ -333,7 +333,7 @@ int main(int argc, const char *argv[])
                                         test_teardown),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

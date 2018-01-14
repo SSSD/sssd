@@ -62,7 +62,7 @@ static ssize_t dns_header(unsigned char **buf, size_t ancount)
     h.id = res_randomid();     /* random query ID */
     h.qr = 1;                  /* response flag */
     h.rd = 1;                  /* recursion desired */
-    h.ra = 1;                  /* resursion available */
+    h.ra = 1;                  /* recursion available */
 
     h.qdcount = htons(1);          /* no. of questions */
     h.ancount = htons(ancount);    /* no. of answers */
@@ -375,7 +375,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_resolv_is_address),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -393,7 +393,7 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     /* Even though normally the tests should clean up after themselves
-     * they might not after a failed run. Remove the old db to be sure */
+     * they might not after a failed run. Remove the old DB to be sure */
     tests_set_cwd();
 
     rv = cmocka_run_group_tests(tests, NULL, NULL);

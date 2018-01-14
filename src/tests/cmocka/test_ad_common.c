@@ -917,7 +917,7 @@ int main(int argc, const char *argv[])
                                         test_ad_common_teardown),
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -939,7 +939,7 @@ int main(int argc, const char *argv[])
     ret = cmocka_run_group_tests(tests, NULL, NULL);
 
 #ifdef HAVE_NSS
-    /* Cleanup NSS and NSPR to make valgrind happy. */
+    /* Cleanup NSS and NSPR to make Valgrind happy. */
     nspr_nss_cleanup();
 #endif
 
