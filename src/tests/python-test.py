@@ -227,7 +227,7 @@ class UseraddTestNegative(LocalTest):
         self.assertRaises(TypeError, self.local.useradd)
 
     def testUseraddUserAlreadyExists(self):
-        "Test adding a local with a duplicite name"
+        "Test adding a local with a duplicate name"
         self.username = "testUseraddUserAlreadyExists"
         self.local.useradd(self.username)
         try:
@@ -240,7 +240,7 @@ class UseraddTestNegative(LocalTest):
             self.remove_user(self.username)
 
     def testUseraddUIDAlreadyExists(self):
-        "Test adding a local with a duplicite user ID"
+        "Test adding a local with a duplicate user ID"
         self.username = "testUseraddUIDAlreadyExists1"
         self.local.useradd(self.username, uid=1025)
         try:
@@ -365,7 +365,7 @@ class GroupaddTestNegative(LocalTest):
         self.assertRaises(TypeError, self.local.groupadd)
 
     def testGroupaddUserAlreadyExists(self):
-        "Test adding a local with a duplicite name"
+        "Test adding a local with a duplicate name"
         self.groupname = "testGroupaddUserAlreadyExists"
         self.local.groupadd(self.groupname)
         try:
@@ -378,7 +378,7 @@ class GroupaddTestNegative(LocalTest):
             self.remove_group(self.groupname)
 
     def testGroupaddGIDAlreadyExists(self):
-        "Test adding a local with a duplicite group ID"
+        "Test adding a local with a duplicate group ID"
         self.groupname = "testGroupaddGIDAlreadyExists1"
         self.local.groupadd(self.groupname, gid=1025)
         try:

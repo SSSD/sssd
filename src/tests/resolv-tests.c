@@ -871,7 +871,7 @@ START_TEST(test_resolv_free_req)
     gettimeofday(&free_tv, NULL);
     free_tv.tv_sec += 1;
     free_tv.tv_usec = 0;
-    /* Give enought time for c-ares request to terminate */
+    /* Give enough time for c-ares request to terminate */
     terminate_tv.tv_sec  = free_tv.tv_sec + 6;
     terminate_tv.tv_usec = 0;
 
@@ -1007,7 +1007,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

@@ -443,7 +443,7 @@ def test_group_overriden(add_group_with_canary, files_domain_only):
 
 def test_getpwnam_neg(files_domain_only):
     """
-    Test that a nonexistant user cannot be resolved by name
+    Test that a nonexistent user cannot be resolved by name
     """
     res, _ = call_sssd_getpwnam("nosuchuser")
     assert res == NssReturnCode.NOTFOUND
@@ -451,7 +451,7 @@ def test_getpwnam_neg(files_domain_only):
 
 def test_getpwuid_neg(files_domain_only):
     """
-    Test that a nonexistant user cannot be resolved by UID
+    Test that a nonexistent user cannot be resolved by UID
     """
     res, _ = call_sssd_getpwuid(12345)
     assert res == NssReturnCode.NOTFOUND
@@ -617,7 +617,7 @@ def test_getgrgid_after_start(add_group_with_canary, files_domain_only):
 
 def test_getgrnam_neg(files_domain_only):
     """
-    Test that a nonexistant group cannot be resolved
+    Test that a nonexistent group cannot be resolved
     """
     res, user = sssd_getgrnam_sync("nosuchgroup")
     assert res == NssReturnCode.NOTFOUND
@@ -625,7 +625,7 @@ def test_getgrnam_neg(files_domain_only):
 
 def test_getgrgid_neg(files_domain_only):
     """
-    Test that a nonexistant group cannot be resolved
+    Test that a nonexistent group cannot be resolved
     """
     res, user = sssd_getgrgid_sync(123456)
     assert res == NssReturnCode.NOTFOUND

@@ -216,7 +216,7 @@ def test_kcm_sec_init_list_destroy(setup_for_kcm_sec,
 
 def kcm_overwrite(testenv):
     """
-    That that reusing a ccache reinitializes the cache and doesn't
+    Test that reusing a ccache reinitializes the cache and doesn't
     add the same principal twice
     """
     testenv.k5kdc.add_principal("kcmtest", "Secret123")

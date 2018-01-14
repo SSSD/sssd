@@ -110,7 +110,7 @@ class NetgroupRetriever(object):
         @return (int, int, List[(string, string, string])
                 (err, errno, netgroups)
             if err is NssReturnCode.SUCCESS netgroups will contain list of
-            touples. Each touple will consist of 3 elemets either string or
+            touples. Each touple will consist of 3 elements either string or
         """
         func = nss_sss_ctypes_loader('_nss_sss_getnetgrent_r')
         func.restype = c_int
@@ -155,7 +155,7 @@ class NetgroupRetriever(object):
         @return (int, int, List[(string, string, string])
                 (err, errno, netgroups)
             if err is NssReturnCode.SUCCESS netgroups will contain list of
-            touples. Each touple will consist of 3 elemets either string or
+            touples. Each touple will consist of 3 elements either string or
             None (host, user, domain).
         """
         res, errno, result = self._flat_fetch_netgroups(self.name)
@@ -187,7 +187,7 @@ class NetgroupRetriever(object):
         @return (int, int, List[(string, string, string])
                 (err, errno, netgroups)
             if err is NssReturnCode.SUCCESS netgroups will contain list of
-            touples. Each touple will consist of 3 elemets either string or
+            touples. Each touple will consist of 3 elements either string or
             None (host, user, domain).
         """
         buff_len = 1024 * 1024
@@ -234,7 +234,7 @@ def get_sssd_netgroups(name):
 
     @return (int, int, List[(string, string, string]) (err, errno, netgroups)
         if err is NssReturnCode.SUCCESS netgroups will contain list of touples.
-        Each touple will consist of 3 elemets either string or None
+        Each touple will consist of 3 elements either string or None
         (host, user, domain).
     """
 

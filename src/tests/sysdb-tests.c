@@ -1759,7 +1759,7 @@ START_TEST (test_sysdb_search_custom_by_name)
     fail_if(ret != EOK, "Could not search custom object");
 
     fail_unless(data->msgs_count == 1,
-                "Wrong number of objects, exptected [1] got [%d]",
+                "Wrong number of objects, expected [1] got [%d]",
                 data->msgs_count);
     fail_unless(data->msgs[0]->num_elements == 1,
                 "Wrong number of results, expected [1] got [%d]",
@@ -1861,7 +1861,7 @@ START_TEST (test_sysdb_search_custom_update)
     fail_if(ret != EOK, "Could not search custom object");
 
     fail_unless(data->msgs_count == 1,
-                "Wrong number of objects, exptected [1] got [%d]",
+                "Wrong number of objects, expected [1] got [%d]",
                 data->msgs_count);
     fail_unless(data->msgs[0]->num_elements == 2,
                 "Wrong number of results, expected [2] got [%d]",
@@ -1924,7 +1924,7 @@ START_TEST (test_sysdb_search_custom)
     fail_if(ret != EOK, "Could not search custom object");
 
     fail_unless(data->msgs_count == 10,
-                "Wrong number of objects, exptected [10] got [%d]",
+                "Wrong number of objects, expected [10] got [%d]",
                 data->msgs_count);
 
     talloc_free(test_ctx);
@@ -3373,8 +3373,8 @@ START_TEST (test_sysdb_memberof_check_convert)
     struct ldb_message_element *members;
     int exp_mem, exp_gh;
 
-    /* Eplicitly disable enumeration during setup as converting the ghost
-     * users into real ones work only when enumeration is disabled
+    /* Explicitly disable enumeration during setup as converting the ghost
+     * users into real ones works only when enumeration is disabled
      */
     ret = _setup_sysdb_tests(&test_ctx, false);
     if (ret != EOK) {
@@ -4456,7 +4456,7 @@ START_TEST(test_SSS_LDB_SEARCH)
                 ret, strerror(ret));
     talloc_zfree(res);
 
-    /* Filter yeilding no results */
+    /* Filter yielding no results */
     SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
                    LDB_SCOPE_BASE, NULL,
                    "objectClass=nonExistingObjectClass");
@@ -5983,7 +5983,7 @@ START_TEST(test_sysdb_subdomain_store_user)
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[3],
                               false, false, NULL, NULL, 0, NULL);
-    fail_unless(subdomain != NULL, "Failed to create new subdomin.");
+    fail_unless(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
                                 false, false, NULL, 0, NULL);
@@ -6022,7 +6022,7 @@ START_TEST(test_sysdb_subdomain_store_user)
                                      "expected [%d], got [%d]",
                                      1, results->count);
     fail_unless(ldb_dn_compare(results->msgs[0]->dn, check_dn) == 0,
-                "Unexpedted DN returned");
+                "Unexpected DN returned");
 
     /* Subdomains are case-insensitive. Test that the lowercased name
      * can be found, too */
@@ -6062,7 +6062,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[3],
                               false, false, NULL, NULL, 0, NULL);
-    fail_unless(subdomain != NULL, "Failed to create new subdomin.");
+    fail_unless(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
                                 false, false, NULL, 0, NULL);
@@ -6093,7 +6093,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_unless(ret == EOK, "sysdb_search_user_by_name failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
-                "Unexpedted DN returned");
+                "Unexpected DN returned");
 
     name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     fail_if(name == NULL);
@@ -6107,7 +6107,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
     fail_unless(ret == EOK, "sysdb_search_domuser_by_uid failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
-                "Unexpedted DN returned");
+                "Unexpected DN returned");
 
     ret = sysdb_delete_user(subdomain, data->username, data->uid);
     fail_unless(ret == EOK, "sysdb_delete_domuser failed with [%d][%s].",
@@ -6135,7 +6135,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[3],
                               false, false, NULL, NULL, 0, NULL);
-    fail_unless(subdomain != NULL, "Failed to create new subdomin.");
+    fail_unless(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
                                 false, false, NULL, 0, NULL);
@@ -6191,7 +6191,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
     fail_unless(ret == EOK, "sysdb_search_group_by_gid failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
-                "Unexpedted DN returned");
+                "Unexpected DN returned");
 
     ret = sysdb_delete_group(subdomain, data->groupname, data->gid);
     fail_unless(ret == EOK, "sysdb_delete_group failed with [%d][%s].",
@@ -7481,7 +7481,7 @@ int main(int argc, const char *argv[]) {
         POPT_TABLEEND
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

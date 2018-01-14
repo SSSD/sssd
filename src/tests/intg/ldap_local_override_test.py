@@ -34,8 +34,8 @@ from util import unindent
 try:
     from subprocess import check_output
 except ImportError:
-    # In python 2.6 , the module subprocess does not have the function
-    # check_output. This is a falback implementation
+    # In Python 2.6, the module subprocess does not have the function
+    # check_output. This is a fallback implementation.
     def check_output(*popenargs, **kwargs):
         if 'stdout' in kwargs:
             raise ValueError('stdout argument not allowed, it will be '
