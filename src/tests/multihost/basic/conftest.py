@@ -28,7 +28,7 @@ def multihost(session_multihost, request):
 
 @pytest.fixture(scope="session")
 def config_authconfig(session_multihost, request):
-    """ Run authconfig to configure kerberos and sssd auth on remote host """
+    """ Run authconfig to configure Kerberos and SSSD auth on remote host """
     authconfig = RedHatAuthConfig(session_multihost.master[0])
     session_multihost.master[0].log.info("Take backup of current authconfig")
     authconfig.backup('/root/authconfig_backup')

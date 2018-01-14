@@ -8,7 +8,7 @@ import time
 class Test_basic_sssd(object):
 
     def test_ssh_user_login(self, multihost):
-        """ Check ssh login as ldap user with kerberos credentials """
+        """ Check ssh login as LDAP user with Kerberos credentials """
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
                             username='foo1', password='Secret123')

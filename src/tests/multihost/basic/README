@@ -3,7 +3,7 @@ pytest using pytest-multihost plugin
 
 Following are the test cases:
 
-1. Check ssh login as ldap user with kerberos credentials
+1. Check ssh login as LDAP user with Kerberos credentials
 2. Run kinit after user login
 3. Run kinit with KRB5CCNAME=KCM:
 4. Test Offline ssh login
