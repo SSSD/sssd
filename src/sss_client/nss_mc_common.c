@@ -37,8 +37,8 @@
 /* FIXME: hook up to library destructor to avoid leaks */
 /* FIXME: temporarily open passwd file on our own, later we will probably
  * use socket passing from the main process */
-/* FIXME: handle name upper/lower casing ? Maybe a flag passed down by
- * sssd or a flag in sss_mc_header ? per domain ? */
+/* FIXME: handle name upper/lower casing? Maybe a flag passed down by
+ * SSSD or a flag in sss_mc_header? per domain? */
 
 #define MEMCPY_WITH_BARRIERS(res, dest, src, len) \
 do { \
@@ -325,7 +325,7 @@ done:
 }
 
 /*
- * returns strings froma a buffer.
+ * returns strings from a buffer.
  *
  * Call first time with *cookie set to null, then call again
  * with the returned cookie.

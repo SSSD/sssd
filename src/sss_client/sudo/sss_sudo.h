@@ -38,7 +38,7 @@
 #define SSS_SUDO_ERROR_OK   0
 
 /**
- * Component of a sss_rule structure. The component
+ * Component of an sss_rule structure. The component
  * has exactly one name and one or more values.
  *
  */
@@ -162,7 +162,7 @@ int sss_sudo_send_recv_defaults(uid_t uid,
 void sss_sudo_free_result(struct sss_sudo_result *result);
 
 /**
- * @brief Get all values for a given attribute in a sss_rule
+ * @brief Get all values for a given attribute in an sss_rule
  *
  * @param[in] e           The sss_rule to get values from
  * @param[in] attrname    The name of the attribute to query from the rule

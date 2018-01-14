@@ -163,7 +163,7 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }
@@ -189,7 +189,7 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }
@@ -269,7 +269,7 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }
@@ -296,7 +296,7 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }

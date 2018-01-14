@@ -108,9 +108,9 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
     hash = sss_nss_mc_hash(&initgr_mc_ctx, name, name_len + 1);
     slot = initgr_mc_ctx.hash_table[hash];
 
-    /* If slot is not within the bounds of mmaped region and
+    /* If slot is not within the bounds of mmapped region and
      * it's value is not MC_INVALID_VAL, then the cache is
-     * probbably corrupted. */
+     * probably corrupted. */
     while (MC_SLOT_WITHIN_BOUNDS(slot, data_size)) {
         /* free record from previous iteration */
         free(rec);

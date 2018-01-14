@@ -196,7 +196,7 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
              * if no entry is found */
             break;
         default:
-            /* if using the mmaped cache failed,
+            /* if using the mmapped cache failed,
              * fall back to socket based comms */
             break;
         }
@@ -222,7 +222,7 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
              * if no entry is found */
             break;
         default:
-            /* if using the mmaped cache failed,
+            /* if using the mmapped cache failed,
              * fall back to socket based comms */
             break;
         }

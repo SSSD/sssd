@@ -85,7 +85,7 @@ static void *pac_client(void *arg)
     for (c = 0; c < 1000; c++) {
         /* sss_pac_make_request() does not protect the client's file
          * descriptor to the PAC responder. With this one thread will miss a
-         * reply for a SSS_GET_VERSION request and will wait until
+         * reply for an SSS_GET_VERSION request and will wait until
          * SSS_CLI_SOCKET_TIMEOUT is passed.
 
         ret = sss_pac_make_request(SSS_PAC_ADD_PAC_USER, &sss_data,
@@ -96,9 +96,9 @@ static void *pac_client(void *arg)
         if (ret != NSS_STATUS_SUCCESS
                 && !(ret == NSS_STATUS_UNAVAIL && errnop != ECONNREFUSED)) {
                 /* NSS_STATUS_UNAVAIL is returned if the PAC responder rejects
-                 * the request which is ok becasue the client is waiting for a
+                 * the request which is ok because the client is waiting for a
                  * response here as well. Only errnop == ECONNREFUSED should
-                 * be treated as error becasue this means that the PAC
+                 * be treated as error because this means that the PAC
                  * responder is not running. */
             fprintf(stderr, "pac: [%s][%d][%d]\n", (char *)arg, ret, errnop);
             return ((void *)((uintptr_t)("X")));

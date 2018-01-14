@@ -1,5 +1,5 @@
 /*
-   Unix SMB/CIFS implementation.
+   UNIX SMB/CIFS implementation.
 
    Winbind client API - SSSD version
 
@@ -129,8 +129,8 @@ wbcErr wbcLookupSid(const struct wbcDomainSid *sid,
         }
     }
 
-    /* TODO: it would be nice to have a sss_nss_getnamebysid() call which
-    * return name and domain separately. */
+    /* TODO: it would be nice to have an sss_nss_getnamebysid() call which
+    * returns name and domain separately. */
     p = strchr(fq_name, '@');
     if (p == NULL) {
         wbc_status = WBC_ERR_UNKNOWN_FAILURE;

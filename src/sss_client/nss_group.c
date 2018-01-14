@@ -184,12 +184,12 @@ done:
  *
  * 0-3: 32bit unsigned number of results
  * 4-7: 32bit unsigned (reserved/padding)
- *  For each result (64bit padded ?):
+ *  For each result (64bit padded?):
  *  0-3: 32bit number gid
  *  4-7: 32bit unsigned number of members
  *  8-X: sequence of 0 terminated strings (name, passwd, mem..)
  *
- *  FIXME: do we need to pad so that each result is 32 bit aligned ?
+ *  FIXME: do we need to pad so that each result is 32 bit aligned?
  */
 
 int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
@@ -302,7 +302,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }
@@ -329,7 +329,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }
@@ -426,7 +426,7 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }
@@ -452,7 +452,7 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }
@@ -540,7 +540,7 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }
@@ -567,7 +567,7 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
          * if no entry is found */
         break;
     default:
-        /* if using the mmaped cache failed,
+        /* if using the mmapped cache failed,
          * fall back to socket based comms */
         break;
     }

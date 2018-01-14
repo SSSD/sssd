@@ -136,7 +136,7 @@ static enum sss_status sss_cli_send_req(enum sss_cli_command cmd,
                 *errnop = EBUSY;
             }
             break;
-        default: /* more than one avail ?? */
+        default: /* more than one available!? */
             *errnop = EBADF;
             break;
         }
@@ -201,7 +201,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
     int len;
     int ret;
 
-    header[0] = SSS_NSS_HEADER_SIZE; /* unitl we know the real length */
+    header[0] = SSS_NSS_HEADER_SIZE; /* until we know the real length */
     header[1] = 0;
     header[2] = 0;
     header[3] = 0;
@@ -248,7 +248,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
                 *errnop = EBUSY;
             }
             break;
-        default: /* more than one avail ?? */
+        default: /* more than one available!? */
             *errnop = EBADF;
             break;
         }
@@ -434,7 +434,7 @@ static bool sss_cli_check_version(const char *socket_name, int timeout)
     return (obtained_version == expected_version);
 }
 
-/* this 2 functions are adapted from samba3 winbinbd's wb_common.c */
+/* this 2 functions are adapted from samba3 winbind's wb_common.c */
 
 /* Make sure socket handle isn't stdin (0), stdout(1) or stderr(2) by setting
  * the limit to 3 */
@@ -685,7 +685,7 @@ static enum sss_status sss_cli_check_socket(int *errnop,
                 *errnop = EBUSY;
             }
             break;
-        default: /* more than one avail ?? */
+        default: /* more than one available!? */
             *errnop = EBADF;
             break;
         }
