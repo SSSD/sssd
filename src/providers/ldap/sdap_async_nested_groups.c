@@ -76,7 +76,7 @@ struct sdap_nested_group_ctx {
     hash_table_t *groups;
     hash_table_t *missing_external;
     bool try_deref;
-    int deref_treshold;
+    int deref_threshold;
     int max_nesting_level;
 };
 
@@ -293,14 +293,14 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
         DEBUG(SSSDBG_TRACE_ALL,
              "The group's gid was %s\n", ret == ENOENT ? "missing" : "zero");
         DEBUG(SSSDBG_TRACE_INTERNAL,
-             "Marking group as non-posix and setting GID=0!\n");
+             "Marking group as non-POSIX and setting GID=0!\n");
 
         if (ret == ENOENT || !posix_group) {
             ret = sysdb_attrs_add_uint32(group,
                                          map[SDAP_AT_GROUP_GID].sys_name, 0);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to add a GID to non-posix group!\n");
+                      "Failed to add a GID to non-POSIX group!\n");
                 return ret;
             }
         }
@@ -308,7 +308,7 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
         ret = sysdb_attrs_add_bool(group, SYSDB_POSIX, false);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "Error: Failed to mark group as non-posix!\n");
+                  "Error: Failed to mark group as non-POSIX!\n");
             return ret;
         }
     } else if (ret != EOK) {
@@ -828,7 +828,7 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     }
 
     state->group_ctx->try_deref = true;
-    state->group_ctx->deref_treshold = dp_opt_get_int(opts->basic,
+    state->group_ctx->deref_threshold = dp_opt_get_int(opts->basic,
                                                       SDAP_DEREF_THRESHOLD);
     state->group_ctx->max_nesting_level = dp_opt_get_int(opts->basic,
                                                          SDAP_NESTING_LEVEL);
@@ -840,7 +840,7 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     state->group_ctx->try_deref = sdap_has_deref_support(sh, opts);
 
     /* disable deref if threshold <= 0 */
-    if (state->group_ctx->deref_treshold <= 0) {
+    if (state->group_ctx->deref_threshold <= 0) {
         state->group_ctx->try_deref = false;
     }
 
@@ -1053,7 +1053,7 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
     }
 
     split_threshold = state->group_ctx->try_deref ? \
-                            state->group_ctx->deref_treshold : \
+                            state->group_ctx->deref_threshold : \
                             -1;
 
     /* get members that need to be refreshed */
@@ -1103,7 +1103,7 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
 
     /* process members */
     if (group_ctx->try_deref
-            && state->num_missing_total > group_ctx->deref_treshold) {
+            && state->num_missing_total > group_ctx->deref_threshold) {
         DEBUG(SSSDBG_TRACE_INTERNAL, "Dereferencing members of group [%s]\n",
                                       orig_dn);
         state->deref = true;

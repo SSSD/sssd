@@ -28,7 +28,7 @@
 /* Returns EOK and populates groupname if
  * the group_dn is actually a group.
  * Returns ENOENT if group_dn does not point
- * at a a group.
+ * at a group.
  * Returns EINVAL if there is a parsing error.
  * Returns ENOMEM as appropriate
  */

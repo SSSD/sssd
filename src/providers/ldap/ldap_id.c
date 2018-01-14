@@ -1478,7 +1478,7 @@ int groups_by_user_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret
 /* =Get-Account-Info-Call================================================= */
 
 /* FIXME: embed this function in sssd_be and only call out
- * specific functions from modules ? */
+ * specific functions from modules? */
 
 static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
                                                   struct tevent_context *ev,
@@ -1721,9 +1721,9 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
         ret = services_get_recv(subreq, &state->dp_error, &state->sdap_ret);
         break;
     case BE_REQ_BY_SECID:
-        /* Fallthrough */
+        /* Fall through */
     case BE_REQ_BY_UUID:
-        /* Fallthrough */
+        /* Fall through */
     case BE_REQ_USER_AND_GROUP:
         err = "Lookup by SID failed";
         ret = sdap_get_user_and_group_recv(subreq, &state->dp_error,
@@ -1733,7 +1733,7 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
         err = "User lookup by certificate failed";
         ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
         break;
-    default: /*fail*/
+    default: /* fail */
         ret = EINVAL;
         break;
     }

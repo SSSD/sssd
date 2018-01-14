@@ -48,7 +48,7 @@ static int sdap_msg_attach(TALLOC_CTX *memctx, LDAPMessage *msg)
     return EOK;
 }
 
-/* ==sdap-hanlde-utility-functions======================================== */
+/* ==sdap-handle-utility-functions======================================== */
 
 static inline void sdap_handle_release(struct sdap_handle *sh);
 static int sdap_handle_destructor(void *mem);
@@ -184,7 +184,7 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
      * important: we must do this before actually processing the message
      * because the message processing might even free the sdap_handler
      * so it must be the last operation.
-     * FIXME: use tevent_immediate/tevent_queues, when avilable */
+     * FIXME: use tevent_immediate/tevent_queues, when available */
     memset(&no_timeout, 0, sizeof(struct timeval));
 
     te = tevent_add_timer(ev, sh, no_timeout, sdap_ldap_next_result, sh);
@@ -252,10 +252,10 @@ static const char *sdap_ldap_result_str(int msgtype)
     return "Unknown result type!";
 }
 
-/* process a messgae calling the right operation callback.
- * msg is completely taken care of (including freeeing it)
+/* process a message calling the right operation callback.
+ * msg is completely taken care of (including freeing it)
  * NOTE: this function may even end up freeing the sdap_handle
- * so sdap_hanbdle must not be used after this function is called
+ * so sdap_handle must not be used after this function is called
  */
 static void sdap_process_message(struct tevent_context *ev,
                                  struct sdap_handle *sh, LDAPMessage *msg)
@@ -318,7 +318,7 @@ static void sdap_process_message(struct tevent_context *ev,
         break;
 
     default:
-        /* unkwon msg type ?? */
+        /* unknown msg type?? */
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Couldn't figure out the msg type! [%0x]\n", msgtype);
         ldap_msgfree(msg);
@@ -930,7 +930,7 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
 
     if (num_results > 1) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Multiple replies when searching for RootDSE ??\n");
+              "Multiple replies when searching for RootDSE??\n");
         tevent_req_error(req, EIO);
         return;
     }
@@ -940,7 +940,7 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Got rootdse\n");
 
-    /* Auto-detect the ldap matching rule if requested */
+    /* Auto-detect the LDAP matching rule if requested */
     if ((!dp_opt_get_bool(state->opts->basic,
                           SDAP_AD_MATCHING_RULE_INITGROUPS))
             && !dp_opt_get_bool(state->opts->basic,
@@ -1537,7 +1537,7 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
             }
         } else if (result == LDAP_INAPPROPRIATE_MATCHING) {
             /* This error should only occur when we're testing for
-             * specialized functionality like the ldap matching rule
+             * specialized functionality like the LDAP matching rule
              * filter for Active Directory. Warn at a higher log
              * level and return EIO.
              */
@@ -2572,7 +2572,7 @@ int sdap_asq_search_recv(struct tevent_req *req,
     return EOK;
 }
 
-/* ==Posix attribute presence test================================= */
+/* ==POSIX attribute presence test================================= */
 static void sdap_gc_posix_check_done(struct tevent_req *subreq);
 static errno_t sdap_gc_posix_check_parse(struct sdap_handle *sh,
                                          struct sdap_msg *msg,
@@ -2718,7 +2718,7 @@ static void sdap_gc_posix_check_done(struct tevent_req *subreq)
         return;
     }
 
-    /* Positive hit is definitve, no need to search other bases */
+    /* Positive hit is definitive, no need to search other bases */
     if (state->has_posix == true) {
         DEBUG(SSSDBG_FUNC_DATA, "Server has POSIX attributes\n");
         tevent_req_done(req);

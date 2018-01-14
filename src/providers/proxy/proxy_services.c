@@ -269,7 +269,7 @@ enum_services(struct proxy_id_ctx *ctx,
 
         switch (status) {
             case NSS_STATUS_TRYAGAIN:
-                /* buffer too small ? */
+                /* buffer too small? */
                 if (buflen < MAX_BUF_SIZE) {
                     buflen *= 2;
                 }

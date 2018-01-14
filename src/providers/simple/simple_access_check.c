@@ -85,7 +85,7 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
          * unless a deny rule disables us below.
          */
         DEBUG(SSSDBG_TRACE_LIBS,
-              "No allow rule, assumuing allow unless explicitly denied\n");
+              "No allow rule, assuming allow unless explicitly denied\n");
         *access_granted = true;
     }
 
@@ -596,7 +596,7 @@ simple_check_process_group(struct simple_check_groups_state *state,
             return EINVAL;
         }
 
-        /* Non-posix group with a name. Still can be used for access
+        /* Non-POSIX group with a name. Still can be used for access
          * control as the name should point to the real name, no SID
          */
         state->group_names[state->num_names] = talloc_strdup(state->group_names,
@@ -636,7 +636,7 @@ simple_check_process_group(struct simple_check_groups_state *state,
         }
     }
 
-    /* It is a non-posix group with a GID. Needs resolving */
+    /* It is a non-POSIX group with a GID. Needs resolving */
     state->lookup_groups[state->num_groups].domain = domain;
     state->lookup_groups[state->num_groups].gid = gid;
     DEBUG(SSSDBG_TRACE_INTERNAL, "Adding GID %"SPRIgid"\n", gid);

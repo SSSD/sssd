@@ -447,7 +447,7 @@ static void get_tgt_sigkill_handler(struct tevent_context *ev,
     int ret;
 
     DEBUG(SSSDBG_TRACE_ALL,
-          "timeout for sending SIGKILL to tgt child [%d] reached.\n",
+          "timeout for sending SIGKILL to TGT child [%d] reached.\n",
           state->child->pid);
 
     ret = kill(state->child->pid, SIGKILL);
@@ -469,7 +469,7 @@ static void get_tgt_timeout_handler(struct tevent_context *ev,
     int ret;
 
     DEBUG(SSSDBG_TRACE_ALL,
-          "timeout for sending SIGTERM to tgt child [%d] reached.\n",
+          "timeout for sending SIGTERM to TGT child [%d] reached.\n",
           state->child->pid);
 
     ret = kill(state->child->pid, SIGTERM);
@@ -480,7 +480,7 @@ static void get_tgt_timeout_handler(struct tevent_context *ev,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Setting %d seconds timeout for sending SIGKILL to tgt child\n",
+          "Setting %d seconds timeout for sending SIGKILL to TGT child\n",
           SIGTERM_TO_SIGKILL_TIME);
 
     tv = tevent_timeval_current_ofs(SIGTERM_TO_SIGKILL_TIME, 0);
@@ -500,7 +500,7 @@ static errno_t set_tgt_child_timeout(struct tevent_req *req,
     struct timeval tv;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Setting %d seconds timeout for tgt child\n", timeout);
+          "Setting %d seconds timeout for TGT child\n", timeout);
 
     tv = tevent_timeval_current_ofs(timeout, 0);
 

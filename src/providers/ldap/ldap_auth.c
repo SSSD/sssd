@@ -718,7 +718,7 @@ static void auth_connect_done(struct tevent_req *subreq)
     if (ret != EOK) {
         /* As sdap_cli_connect_recv() returns EIO in case all the servers are
          * down and we have to go offline, let's treat it accordingly here and
-         * allow the PAM responder to with to offline authentication.
+         * allow the PAM responder to switch to offline authentication.
          *
          * Unfortunately, there's not much pattern within our code and the way
          * to indicate we're going down in this part of the code is returning

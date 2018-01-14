@@ -139,7 +139,7 @@ static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req)
     state->user_domain = find_domain_by_object_name_ex(
                                         state->ipa_ctx->sdap_id_ctx->be->domain,
                                         ar->filter_value, true);
-    /* Use provided domain as as fallback is no known domain was found in the
+    /* Use provided domain as fallback because no known domain was found in the
      * user name. */
     if (state->user_domain == NULL) {
         state->user_domain = state->domain;

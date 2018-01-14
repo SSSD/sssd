@@ -256,7 +256,7 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
     } else {
         /* No result was found */
         DEBUG(SSSDBG_TRACE_FUNC,
-              "No IPs usable for DNS was found for interface: %s.\n", ifname);
+              "No IP usable for DNS was found for interface: %s.\n", ifname);
         ret = ENOENT;
     }
 
@@ -1235,7 +1235,7 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
     } else if (strcasecmp(strauth, "none") == 0) {
         ctx->auth_type = BE_NSUPDATE_AUTH_NONE;
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, "Uknown dyndns auth type %s\n", strauth);
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown dyndns auth type %s\n", strauth);
         return EINVAL;
     }
 

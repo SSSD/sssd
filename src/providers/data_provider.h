@@ -101,7 +101,7 @@
  *
  * @retval DBUS_TYPE_UINT32 PAM return value, PAM_AUTHINFO_UNAVAIL is used to
  * indicate that the provider is offline and that the PAM responder should try
- * a chached authentication, for all other return value see the man pages for
+ * a cached authentication, for all other return value see the man pages for
  * the corresponding PAM service functions
  * @retval DBUS_TYPE_ARRAY__(STRUCT) Zero or more additional getAccountInfo
  * messages, here the DBUS_TYPE_STRUCT is build of a DBUS_TYPE_UINT32 holding
@@ -130,7 +130,7 @@
 
 #define DP_SEC_ID "secid"
 #define DP_CERT "cert"
-/* sizeof() counts the trailing \0 so we must substract 1 for the string
+/* sizeof() counts the trailing \0 so we must subtract 1 for the string
  * length */
 #define DP_SEC_ID_LEN (sizeof(DP_SEC_ID) - 1)
 #define DP_CERT_LEN (sizeof(DP_CERT) - 1)

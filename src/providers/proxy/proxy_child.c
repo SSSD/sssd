@@ -527,7 +527,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -559,7 +559,7 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    /* set up things like debug , signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = talloc_asprintf(NULL, "proxy_child_%s", domain);
     if (!debug_log_file) return 2;
 

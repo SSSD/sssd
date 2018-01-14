@@ -302,7 +302,7 @@ struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
                           method, dp_flags, request_data, req, &dp_req);
 
     if (dp_req == NULL) {
-        /* An error ocurred before request could be created. */
+        /* An error occurred before request could be created. */
         if (_request_name != NULL) {
             *_request_name = "Request Not Yet Created";
         }

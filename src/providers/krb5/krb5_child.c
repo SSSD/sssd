@@ -272,8 +272,8 @@ static void sss_krb5_expire_callback_func(krb5_context context, void *data,
  *
  *   1. tokeninfo selection
  *   2. challenge
- *   3. discreet token/pin prompting
- *   4. interactive otp format correction
+ *   3. discreet token/PIN prompting
+ *   4. interactive OTP format correction
  *   5. nextOTP
  *
  */
@@ -414,7 +414,7 @@ static krb5_error_code tokeninfo_matches_pwd(TALLOC_CTX *mem_ctx,
         talloc_set_destructor(token, token_pin_destructor);
 
         if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_COLLECT_PIN) {
-            /* If the server desires a separate pin, we will split it.
+            /* If the server desires a separate PIN, we will split it.
              * ASSUMPTION: Format of authtok is PIN+TokenValue. */
             if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_SEPARATE_PIN) {
                 if (ti->length < 1) {
@@ -589,7 +589,7 @@ static krb5_error_code answer_otp(krb5_context ctx,
     }
 
     if (chl->tokeninfo[i]->flags & KRB5_RESPONDER_OTP_FLAGS_COLLECT_TOKEN) {
-        /* Don't let SSSD cache the OTP authtok since it is single-use. */
+        /* Don't let SSSD cache the OTP authtoken since it is single-use. */
         ret = pam_add_response(kr->pd, SSS_OTP, 0, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
@@ -799,7 +799,7 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
 static char *password_or_responder(const char *password)
 {
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_RESPONDER
-    /* If the new responder interface is available we will handle even simple
+    /* If the new responder interface is available, we will handle even simple
      * passwords in the responder. */
     return NULL;
 #else
@@ -954,7 +954,7 @@ static krb5_error_code create_ccache(char *ccname, krb5_creds *creds)
     umask(SSS_DFL_UMASK);
 
     /* we create a new context here as the main process one may have been
-     * opened as root and contain possibly references (even open handles ?)
+     * opened as root and contain possibly references (even open handles?)
      * to resources we do not have or do not want to have access to */
     kerr = krb5_init_context(&kctx);
     if (kerr) {
@@ -1032,7 +1032,7 @@ static krb5_error_code create_ccache(char *ccname, krb5_creds *creds)
     DEBUG(SSSDBG_TRACE_ALL, "returning: %d\n", kerr);
 done:
     if (kcc) {
-        /* FIXME: should we krb5_cc_destroy in case of error ? */
+        /* FIXME: should we krb5_cc_destroy in case of error? */
         krb5_cc_close(kctx, kcc);
     }
     return kerr;
@@ -1354,7 +1354,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
                  "in keytab. Using the last entry.\n");
     }
 
-    /* Close the keytab here.  Even though we're using cursors, the file
+    /* Close the keytab here. Even though we're using cursors, the file
      * handle is stored in the krb5_keytab structure, and it gets
      * overwritten when the verify_init_creds() call below creates its own
      * cursor, creating a leak. */
@@ -1705,7 +1705,7 @@ static errno_t map_krb5_error(krb5_error_code kerr)
      * SSSD should behave differently this has to be detected by different
      * means, e.g. by evaluation error messages, and then the error code
      * should be changed to a more suitable KRB5* error code or immediately to
-     * a SSSD ERR_* error code to avoid the default handling here. */
+     * an SSSD ERR_* error code to avoid the default handling here. */
     case KRB5KRB_ERR_GENERIC:
     default:
         return ERR_INTERNAL;
@@ -1876,7 +1876,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
         return map_krb5_error(kerr);
     }
 
-    /* We changed some of the gic options for the password change, now we have
+    /* We changed some of the GIC options for the password change, now we have
      * to change them back to get a fresh TGT. */
     revert_changepw_options(kr->cli_opts, kr->options);
 
@@ -1901,7 +1901,7 @@ static errno_t pam_add_prompting(struct krb5_req *kr)
 {
     int ret;
 
-    /* add OTP tokeninfo messge if available */
+    /* add OTP tokeninfo message if available */
     if (kr->otp) {
         ret = k5c_attach_otp_info_msg(kr);
         if (ret != EOK) {
@@ -1980,7 +1980,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
         goto done;
     }
 
-    /* If the password is expired the KDC will always return
+    /* If the password is expired, the KDC will always return
        KRB5KDC_ERR_KEY_EXP regardless if the supplied password is correct or
        not. In general the password can still be used to get a changepw ticket.
        So we validate the password by trying to get a changepw ticket. */
@@ -2022,7 +2022,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
     if (kerr == 0) {
         ret = ERR_CREDS_EXPIRED;
 
-        /* If the password is expired we can safely remove the ccache from the
+        /* If the password is expired, we can safely remove the ccache from the
          * cache and disk if it is not actively used anymore. This will allow
          * to create a new random ccache if sshd with privilege separation is
          * used. */
@@ -2146,7 +2146,7 @@ done:
         DEBUG(SSSDBG_TRACE_LIBS,
               "Attempted to renew an expired TGT, changing the error code "
               "to expired creds internally\n");
-        /* map_krb5_error() won't touch the sssd-internal code */
+        /* map_krb5_error() won't touch the SSSD-internal code */
         kerr = ERR_CREDS_EXPIRED;
     }
 
@@ -2739,7 +2739,7 @@ static errno_t old_ccache_valid(struct krb5_req *kr, bool *_valid)
                   "Saved ccache %s doesn't exist, ignoring\n", kr->old_ccname);
             break;
         case EINVAL:
-            /* cache found but no tgt or expired */
+            /* cache found but no TGT or expired */
         case EOK:
             valid = true;
             break;
@@ -2793,7 +2793,7 @@ static int k5c_precreate_ccache(struct krb5_req *kr, uint32_t offline)
      * request
      * (offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)
      * - the backend is offline and the current cache file not used and
-     * it does not contain a valid tgt
+     * it does not contain a valid TGT
      * (offline && !kr->old_cc_active && !kr->valid_tgt)
      */
     if (kr->old_ccname == NULL ||
@@ -2852,7 +2852,6 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     if (offline || (kr->fast_val == K5C_FAST_NEVER && kr->validate == false)) {
         /* If krb5_child was started as setuid, but we don't need to
          * perform either validation or FAST, just drop privileges to
-         * the user who is logging in. The same applies to the offline case
          * the user who is logging in. The same applies to the offline case.
          */
         kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
@@ -2923,7 +2922,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CHANGE_PASSWORD_PROMPT
     /* A prompter is used to catch messages about when a password will
-     * expired. The library shall not use the prompter to ask for a new password
+     * expire. The library shall not use the prompter to ask for a new password
      * but shall return KRB5KDC_ERR_KEY_EXP. */
     krb5_get_init_creds_opt_set_change_password_prompt(kr->options, 0);
 #endif
@@ -3164,7 +3163,7 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    /* pkinit need access to pcscd */
+    /* pkinit needs access to pcscd */
     if ((sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_SC_PIN
             && sss_authtok_get_type(kr->pd->authtok)
                                         != SSS_AUTHTOK_TYPE_SC_KEYPAD)) {

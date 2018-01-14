@@ -122,7 +122,7 @@ sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx,
     errno_t ret;
     char **localdn;
 
-    /* Don't search if the group is non-posix */
+    /* Don't search if the group is non-POSIX */
     if (!gid) return EOK;
 
     filter = talloc_asprintf(mem_ctx, "(%s=%llu)", SYSDB_GIDNUM,
@@ -177,7 +177,7 @@ sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
                                    opts->group_map[SDAP_AT_GROUP_GID].sys_name,
                                    &gid);
     if (ret == ENOENT) {
-        /* Non-posix AD group. Skip. */
+        /* Non-POSIX AD group. Skip. */
         *_dn_list = NULL;
         *_count = 0;
         return EOK;
@@ -200,7 +200,7 @@ static bool has_member(struct ldb_message_element *member_el,
     val.data = (uint8_t *) member;
     val.length = strlen(member);
 
-    /* This is bad complexity, but the this loop should only be invoked in
+    /* This is bad complexity, but this loop should only be invoked in
      * the very rare scenario of AD POSIX group that is primary group of
      * some users but has user member attributes at the same time
      */
@@ -352,7 +352,7 @@ sdap_store_group_with_gid(struct sss_domain_info *domain,
 {
     errno_t ret;
 
-    /* make sure that non-posix (empty or explicit gid=0) groups have the
+    /* make sure that non-POSIX (empty or explicit gid=0) groups have the
      * gidNumber set to zero even if updating existing group */
     if (!posix_group) {
         ret = sysdb_attrs_add_uint32(group_attrs, SYSDB_GIDNUM, 0);
@@ -592,7 +592,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         ret = sysdb_attrs_add_bool(group_attrs, SYSDB_POSIX, false);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "Error: Failed to mark group as non-posix!\n");
+                  "Error: Failed to mark group as non-POSIX!\n");
             goto done;
         }
     }
@@ -857,9 +857,9 @@ done:
     return ret;
 }
 
-/* ==Save-Group-Memebrs=================================================== */
+/* ==Save-Group-Members=================================================== */
 
-    /* FIXME: support non legacy */
+    /* FIXME: support non-legacy */
     /* FIXME: support storing additional attributes */
 
 static int sdap_save_grpmem(TALLOC_CTX *memctx,
@@ -1608,7 +1608,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
         if (member_attr_val[0] == '\0') continue;
 
         /* RFC2307 stores members as plain usernames in the member attribute.
-         * Internally, we use fqdns in the cache..
+         * Internally, we use FQDNs in the cache.
          */
         member_name = sss_create_internal_fqname(state, member_attr_val,
                                                  state->dom->name);
@@ -1726,7 +1726,7 @@ next:
                ret, strerror(ret));
         state->count--;
     }
-    /* Are there more searches for uncached users to submit ? */
+    /* Are there more searches for uncached users to submit? */
     if (state->queued_members && state->queued_members[state->queue_idx]) {
         subreq = sdap_get_generic_send(state,
                                        state->ev, state->opts, state->sh,

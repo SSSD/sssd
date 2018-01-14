@@ -54,7 +54,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     bool use_id_mapping;
     bool need_filter;
 
-    /* There are no groups in LDAP but we should add user to groups ?? */
+    /* There are no groups in LDAP but we should add user to groups?? */
     if (ldap_groups_count == 0) return EOK;
 
     tmp_ctx = talloc_new(NULL);
@@ -169,7 +169,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                         DEBUG(SSSDBG_TRACE_LIBS, "The group %s gid was %s\n",
                               groupname, ret == ENOENT ? "missing" : "zero");
                         DEBUG(SSSDBG_TRACE_FUNC,
-                              "Marking group %s as non-posix and setting GID=0!\n",
+                              "Marking group %s as non-POSIX and setting GID=0!\n",
                               groupname);
                         gid = 0;
                         posix = false;
@@ -3391,7 +3391,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
               "sdap_ad_check_domain_local_groups failed, "
-              "meberships to domain local groups might be missing.\n");
+              "memberships to domain local groups might be missing.\n");
         /* do not let the request fail completely because we already have at
          * least "some" groups */
         ret = EOK;
@@ -3431,7 +3431,7 @@ static void sdap_get_initgr_pgid(struct tevent_req *subreq)
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
               "sdap_ad_check_domain_local_groups failed, "
-              "meberships to domain local groups might be missing.\n");
+              "memberships to domain local groups might be missing.\n");
         /* do not let the request fail completely because we already have at
          * least "some" groups */
     }

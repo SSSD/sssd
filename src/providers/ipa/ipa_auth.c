@@ -206,7 +206,7 @@ ipa_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
                                      state->pd->domain,
                                      true);
     if (state->dom == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Uknown domain %s\n", state->pd->domain);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain %s\n", state->pd->domain);
         pd->pam_status = PAM_SYSTEM_ERR;
         goto immediately;
     }
@@ -404,7 +404,7 @@ static void ipa_pam_auth_handler_auth_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "LDAP authentication succeded, "
+    DEBUG(SSSDBG_TRACE_FUNC, "LDAP authentication succeeded, "
           "trying Kerberos authentication again.\n");
 
     subreq = krb5_auth_queue_send(state, state->ev, state->be_ctx, state->pd,

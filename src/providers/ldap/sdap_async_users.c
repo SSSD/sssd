@@ -122,14 +122,14 @@ static errno_t sdap_set_non_posix_flag(struct sysdb_attrs *attrs,
     ret = sysdb_attrs_add_uint32(attrs, pkey, 0);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to add a zero ID to a non-posix object!\n");
+              "Failed to add a zero ID to a non-POSIX object!\n");
         return ret;
     }
 
     ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Error: Failed to mark objects as non-posix!\n");
+              "Error: Failed to mark objects as non-POSIX!\n");
         return ret;
     }
 
@@ -354,7 +354,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                        &uid);
         if (ret == ENOENT && dom->type == DOM_TYPE_APPLICATION) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  "Marking object as non-posix and setting ID=0!\n");
+                  "Marking object as non-POSIX and setting ID=0!\n");
             ret = sdap_set_non_posix_flag(user_attrs,
                     opts->user_map[SDAP_AT_USER_UID].sys_name);
             if (ret != EOK) {
@@ -393,8 +393,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
             /* For subdomain users, only create the private group as
              * the subdomain is an MPG domain.
              * But we have to save the GID of the original primary group
-             * becasuse otherwise this information might be lost because
-             * typically (Unix and AD) the user is not listed in his primary
+             * because otherwise this information might be lost because
+             * typically (UNIX and AD) the user is not listed in his primary
              * group as a member.
              */
             ret = sdap_user_set_mpg(user_attrs, &gid);
@@ -452,7 +452,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                        &gid);
         if (ret == ENOENT && dom->type == DOM_TYPE_APPLICATION) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  "Marking object as non-posix and setting ID=0!\n");
+                  "Marking object as non-POSIX and setting ID=0!\n");
             ret = sdap_set_non_posix_flag(attrs,
                     opts->user_map[SDAP_AT_USER_GID].sys_name);
             if (ret != EOK) {

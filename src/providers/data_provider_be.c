@@ -450,7 +450,7 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
                             &str);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannnot get the space substitution character [%d]: %s\n",
+              "Cannot get the space substitution character [%d]: %s\n",
                ret, strerror(ret));
         goto done;
     }
@@ -556,7 +556,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    /* Set debug level to invalid value so we can decide if -d 0 was used. */
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -580,7 +580,7 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    /* set up things like debug , signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc. */
     debug_log_file = talloc_asprintf(NULL, "sssd_%s", be_domain);
     if (!debug_log_file) return 2;
 
@@ -601,7 +601,7 @@ int main(int argc, const char *argv[])
     ret = setenv(SSS_DOM_ENV, be_domain, 1);
     if (ret != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Setting "SSS_DOM_ENV" failed, journald "
-              "logging mightnot work as expected\n");
+              "logging might not work as expected\n");
     }
 
     ret = die_if_parent_died();

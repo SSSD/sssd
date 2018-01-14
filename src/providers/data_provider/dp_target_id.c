@@ -141,7 +141,7 @@ static struct dp_initgr_ctx *create_initgr_ctx(
         for (ctx->gnum = 0, i = 0; i < res->count; i++) {
             ctx->groups[ctx->gnum] = ldb_msg_find_attr_as_uint(res->msgs[i],
                                                                SYSDB_GIDNUM, 0);
-            /* If 0 it may be a non-posix group, so we skip it. */
+            /* If 0 it may be a non-POSIX group, so we skip it. */
             if (ctx->groups[ctx->gnum] != 0) {
                 ctx->gnum++;
             }

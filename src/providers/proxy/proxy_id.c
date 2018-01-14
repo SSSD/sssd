@@ -85,7 +85,7 @@ static int get_pw_name(struct proxy_id_ctx *ctx,
     }
 
     /* FIXME: should we move this call outside the transaction to keep the
-     * transaction as short as possible ? */
+     * transaction as short as possible? */
     status = ctx->ops.getpwnam_r(shortname_or_alias, pwd, buffer, buflen, &ret);
     ret = handle_getpw_result(status, pwd, dom, &del_user);
     if (ret) {
@@ -238,7 +238,7 @@ prepare_attrs_for_saving_ops(TALLOC_CTX *mem_ctx,
         if (*attrs == NULL) {
             *attrs = sysdb_new_attrs(mem_ctx);
             if (*attrs == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error?!\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -465,7 +465,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
 
         switch (status) {
             case NSS_STATUS_TRYAGAIN:
-                /* buffer too small ? */
+                /* buffer too small? */
                 if (buflen < MAX_BUF_SIZE) {
                     buflen *= 2;
                 }
@@ -575,7 +575,7 @@ done:
     } while(0)
 
 
-static errno_t remove_duplicit_group_members(TALLOC_CTX *mem_ctx,
+static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
                                              struct group *orig_grp,
                                              struct group **_grp)
 {
@@ -735,9 +735,9 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         return ENOMEM;
     }
 
-    ret = remove_duplicit_group_members(tmp_ctx, grp, &ngroup);
+    ret = remove_duplicate_group_members(tmp_ctx, grp, &ngroup);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to remove duplicit group members\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to remove duplicate group members\n");
         goto done;
     }
 
@@ -753,7 +753,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     if (ngroup->gr_mem && ngroup->gr_mem[0]) {
         attrs = sysdb_new_attrs(tmp_ctx);
         if (!attrs) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error?!\n");
             ret = ENOMEM;
             goto done;
         }
@@ -1242,7 +1242,7 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
 
         switch (status) {
             case NSS_STATUS_TRYAGAIN:
-                /* buffer too small ? */
+                /* buffer too small? */
                 if (buflen < MAX_BUF_SIZE) {
                     buflen *= 2;
                 }
@@ -1390,7 +1390,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     in_transaction = true;
 
     /* FIXME: should we move this call outside the transaction to keep the
-     * transaction as short as possible ? */
+     * transaction as short as possible? */
     status = ctx->ops.getpwnam_r(shortname_or_alias, pwd,
                                  buffer, buflen, &ret);
     ret = handle_getpw_result(status, pwd, dom, &del_user);
@@ -1519,13 +1519,13 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
     num_gids++;
 
     /* FIXME: should we move this call outside the transaction to keep the
-     * transaction as short as possible ? */
+     * transaction as short as possible? */
     do {
         status = ctx->ops.initgroups_dyn(pwd->pw_name, pwd->pw_gid, &num_gids,
                 &num, &gids, limit, &ret);
 
         if (status == NSS_STATUS_TRYAGAIN) {
-            /* buffer too small ? */
+            /* buffer too small? */
             if (size < MAX_BUF_SIZE) {
                 num *= 2;
                 size = num*sizeof(gid_t);
