@@ -6,13 +6,13 @@ import subprocess
 
 
 class krb5srv(object):
-    """ Base class to setup MIT kerberos server
-        Default Keberos Server realm is "EXAMPLE.TEST"
+    """ Base class to setup MIT Kerberos server
+        Default Kerberos Server realm is "EXAMPLE.TEST"
         Default Admin password is "Secret123"
     """
 
     def __init__(self, multihost, krb_realm=None):
-        """ Initialize realm, host, ports kerberos admin password """
+        """ Initialize realm, host, ports, Kerberos admin password """
         if krb_realm is None:
             self.krb_realm = 'EXAMPLE.TEST'
         else:
@@ -39,7 +39,7 @@ class krb5srv(object):
     def _config_krb5kdc(self):
         """ Configure kdc.conf and kadm5.acl
             :param: None
-            :return str: Return kerberos kdc.conf file path
+            :return str: Return Kerberos kdc.conf file path
         """
         realm_def = """ {
         acl_file = %s
@@ -67,7 +67,7 @@ class krb5srv(object):
         return krb_config_path
 
     def _krb_acl_config(self):
-        """ Create acl file
+        """ Create ACL file
             :param: None
             :return: Config file path
         """
@@ -79,7 +79,7 @@ class krb5srv(object):
         return acl_config_path
 
     def krb_setup_new(self):
-        """ Setup new kerberos REALM
+        """ Setup new Kerberos REALM
             :param: None
             :return: None
             :Exception: Raises subprocess.CalledProcessError
@@ -139,24 +139,24 @@ class krb5srv(object):
         except subprocess.CalledProcessError:
             raise
         else:
-            self.multihost.log.info("krb5kdc service start successfully")
+            self.multihost.log.info("krb5kdc service start successful")
         try:
             self.multihost.run_command(['systemctl', 'start', 'kadmin'])
         except subprocess.CalledProcessError:
             raise
         else:
-            self.multihost.log.info("kadmin service started successfull")
+            self.multihost.log.info("kadmin service started successfully")
 
     def add_principal(self, principal=None,
                       p_type='user',
                       password=None,
                       service=None,
                       service_name=None):
-        """ Add server/user principals to kerberos server
+        """ Add server/user principals to Kerberos server
             :param str principal: principal name (foobar)
             :param str p_type: principal type (user/admin/None)
-            :param str password:  password ('Secret123')
-            :param str service:  service principal (host/http/nfs)
+            :param str password: password ('Secret123')
+            :param str service: service principal (host/http/nfs)
             :param str service_name: Hostname where service is run
             :return bool: True if principal is added
             :Exception: Raise subprocess.CalledProcessError
@@ -189,11 +189,11 @@ class krb5srv(object):
             return True
 
     def destroy_krb5server(self):
-        """ Destroy kerberos database
+        """ Destroy Kerberos database
             :param: None
             :Exception: subprocess.CalledProcessError
         """
-        # stop the kerberos server
+        # stop the Kerberos server
         try:
             self.multihost.run_command(['systemctl', 'stop', 'krb5kdc'])
         except subprocess.CalledProcessError:
@@ -209,7 +209,7 @@ class krb5srv(object):
         else:
             self.multihost.log.info("stopped kadmin service")
 
-        # Destoy kerberos database
+        # destroy Kerberos database
         try:
             self.multihost.run_command(['kdb5_util', 'destroy', '-f',
                                         self.krb_realm])

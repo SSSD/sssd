@@ -86,7 +86,7 @@ class DirSrv(object):
              ds_config_file (str): ds_config_file: Configuration File path
 
         Returns:
-             bool: True if seutp-ds.pl ran successfully else False
+             bool: True if setup-ds.pl ran successfully else False
 
         Exceptions:
              subprocess.CalledProcessError:
@@ -134,9 +134,9 @@ class DirSrv(object):
         Exceptions:
             DirSrvException
         """
-        # we stop directory server before we copy files , this is required
+        # We stop directory server before we copy files. This is required
         # because it's seen that at times, if ns-slapd process is reading
-        # the db files, copying of files is successfull but not all data
+        # the db files, copying of files is successful but not all data
         # is written causing the files to go corrupt.
         stop_ds = ['systemctl', 'stop', 'dirsrv@%s' % (self.instance_name)]
         try:
@@ -165,12 +165,12 @@ class DirSrv(object):
             self.multihost.run_command(change_ownership)
         except subprocess.CalledProcessError:
             raise DirSrvException(
-                'fail to user change ownerhsip of pin.txt fail')
+                'fail to user change ownership of pin.txt fail')
         try:
             self.multihost.run_command(change_group)
         except subprocess.CalledProcessError:
             raise DirSrvException(
-                'fail to change group ownerhsip of pin.txt file')
+                'fail to change group ownership of pin.txt file')
         try:
             self.multihost.run_command(chmod_file)
         except subprocess.CalledProcessError:
@@ -189,11 +189,11 @@ class DirSrv(object):
         """sets TLS Port and enabled TLS on Directory Server.
 
         Args:
-            binduri (str): ldap uri to bind with
+            binduri (str): LDAP uri to bind with
             tls_port (str): TLS port to be setup
 
         Returns:
-            bool: True if successfully setup TLSPort
+            bool: True if successfully setup TLS port
 
         Exceptions:
             LdapException
@@ -249,14 +249,14 @@ class DirSrvWrap(object):
     """This is a wrapper class for DirSrv.
 
     This is a wrapper class of DirSrv class which validates
-    all the inpts sent to Dirsrv object. Specifies ports for
-    ldap and tls ports , specifies default suffix.
+    all the inputs sent to Dirsrv object. Specifies ports for
+    LDAP and TLS ports, specifies default suffix.
     """
     # pylint: disable=too-many-instance-attributes
     def __init__(self, multihost_obj, ssl=None, ssldb=None):
         """
         Create a DirSrv object for a specific Host. Specify the ports,
-        Instance details to the Dirsrv object
+        instance details to the Dirsrv object
 
         Args:
             multihost_obj (obj): Multihost object
@@ -297,11 +297,11 @@ class DirSrvWrap(object):
             instance_name (str): DS Instance Name
             instance_suffix (str): DS Instance Suffix
             root_dn_pwd (str): Directory Manager password
-            ldap_port (str): ldap port
+            ldap_port (str): LDAP port
             tls_port (str): TLS Port
 
         Returns:
-              A tuple containing 'Success' ,0 or Failed Message and 1
+              A tuple containing 'Success', 0 or Failed Message and 1
               for failure to setup ports
 
         Exceptions:
@@ -339,23 +339,23 @@ class DirSrvWrap(object):
         """return ports required to setup DS Instance.
 
         Idea behind this is when a directory server instance needs
-        to be created we need ports for ldap and ssl ports.
-        1. check if LdapPort and SSLPort is given
+        to be created we need ports for LDAP and SSL ports.
+        1. check if LDAP port and SSL port is given
         1.1 If given, verify if the ports are available(not used)
         1.1.1 Bind that port to ldap_port_t using semanage command
         1.1.2 Use the ports and add it to the self.UsedPorts list
         1.2 else raise exception
-        2. If LdapPort and SSLPort is not given
+        2. If LDAP port and SSL port is not given
         2.1 Check if the ports are available(not used)
         2.1.1 Bind the port to ldap_port_t using semanage command
         2.1.2 Use the ports and add it to self.ds_used_ports list
 
         Args:
-           u_port (str): unencrypted ldap port
+           u_port (str): unencrypted LDAP port
            e_port (str): Encrypted port to be used for TLS
 
         Returns:
-              sorted_available_ports[0] (list): ldap and tls ports
+              sorted_available_ports[0] (list): LDAP and TLS ports
         """
         ds_ports = [389, 1389, 2389, 3389, 4389, 30389, 31389, 32389, 33389,
                     34389, 35389, 36389, 37389, 38389, 39389]
@@ -389,7 +389,7 @@ class DirSrvWrap(object):
         """check if the port on the remote host is free.
 
         Args:
-            port (int): check if port is avaliable
+            port (int): check if port is available
 
         Returns:
             bool: True if port is free else False.
@@ -407,7 +407,7 @@ class DirSrvWrap(object):
             return True
 
     def _validate_options(self):
-        """verify if the instance directory alread exists.
+        """verify if the instance directory already exists.
 
         Args:
             None
@@ -437,7 +437,7 @@ class DirSrvWrap(object):
             inst_name (str): Instance Name
             inst_suffix (str): Instance suffix
             root_dn_pwd (str): Directory Manager password
-            ldap_port (str): ldap port to be used
+            ldap_port (str): LDAP port to be used
             tls_port (str): TLS port to be used
 
         Returns:
@@ -478,9 +478,9 @@ class DirSrvWrap(object):
             raise DirSrvException('fail to setup Directory Server instance')
 
     def enablessl(self):
-        """Enable ssl/tls on instance.
+        """Enable SSL/TLS on instance.
 
-        Enable by adding tls port to ldap_port_t selinux label and restart
+        Enable by adding TLS port to ldap_port_t SELinux label and restart
         Directory Server.
 
         Args:
@@ -492,7 +492,7 @@ class DirSrvWrap(object):
         Exceptions:
             None:
         """
-        # add tls port to ldap_port_t selinux label
+        # add TLS port to ldap_port_t SELinux label
 
         add_tls_port = ['semanage', 'port', '-a', '-t',
                         'ldap_port_t', '-p', 'tcp', str(self.ds_tls_port)]

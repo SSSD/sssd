@@ -55,7 +55,7 @@ class QeConfig(pytest_multihost.config.Config):
 
 
 class QeBaseHost(pytest_multihost.host.BaseHost):
-    """QeBaseHost subclass of multhost plugin BaseHost class."""
+    """QeBaseHost subclass of multihost plugin BaseHost class."""
     pass
 
 
@@ -147,7 +147,7 @@ class QeHost(QeBaseHost):
         return cmd.returncode
 
     def dnf_install(self, package):
-        """ Install packges through dnf
+        """ Install packages through dnf
 
             :param str package: Name of the package to be installed
             :return str: Returncode of the dnf command
@@ -188,7 +188,7 @@ class QeWinHost(QeBaseHost, pytest_multihost.host.WinHost):
 
     Attributes:
         domainname (str): Return domainname of the AD Machine
-        realm (str):  Return AD realm in uppper case
+        realm (str):  Return AD realm in upper case
      """
 
     @property
@@ -250,7 +250,7 @@ class QeDomain(pytest_multihost.config.Domain):
 
 @pytest.yield_fixture(scope="session", autouse=True)
 def session_multihost(request):
-    """Mulithost plugin fixture for session scope"""
+    """Multihost plugin fixture for session scope"""
     if pytest.num_ad > 0:
         mh = make_multihost_fixture(request, descriptions=[
             {

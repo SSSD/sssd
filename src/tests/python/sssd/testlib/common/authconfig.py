@@ -27,13 +27,13 @@ FILES_TO_NOT_BACKUP = ['passwd', 'group', 'shadow', 'gshadow']
 
 class RedHatAuthConfig(object):
     """
-    AuthConfig class implements system-independent interface to configure
+    AuthConfig class implements a system-independent interface to configure
     system authentication resources. In Red Hat systems this is done with
     authconfig(8) utility.
 
     AuthConfig class is nothing more than a tool to gather configuration
-    options and execute their processing. These options then converted by
-    an actual implementation to series of a system calls to appropriate
+    options and execute their processing. These options are then converted by
+    an actual implementation to a series of system calls to appropriate
     utilities performing real configuration.
 
     If you need to re-use existing AuthConfig instance for multiple runs,
@@ -73,7 +73,7 @@ class RedHatAuthConfig(object):
 
     def add_parameter(self, option, value):
         """
-        Add paramters
+        Add parameters
         :param str option: authconfig options
         :param str values: values
         """

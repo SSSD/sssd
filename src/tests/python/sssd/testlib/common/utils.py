@@ -35,7 +35,7 @@ class sssdTools(object):
         self.authbackup = "/root/authconfig_backup"
 
     def update_resolv_conf(self, ip_addr):
-        """ Update /etc/resolv.conf with Windows AD ipaddress
+        """ Update /etc/resolv.conf with Windows AD IP address
 
             :param str ip_addr: IP Address to be added in resolv.conf
             :return: None
@@ -46,7 +46,7 @@ class sssdTools(object):
                                              '/etc/resolv.conf.backup'],
                                             set_env=False, raiseonerr=False)
         if output.returncode == 0:
-            self.multihost.log.info("/etc/resolv.conf successfully backedup")
+            self.multihost.log.info("/etc/resolv.conf successfully backed up")
             self.multihost.log.info("Add ip addr %s in resolv.conf" % ip_addr)
             nameserver = 'nameserver %s\n' % ip_addr
             contents = self.multihost.get_file_contents('/etc/resolv.conf')
@@ -57,11 +57,11 @@ class sssdTools(object):
             raise Exception("Updating resolv.conf with ip %s failed" % ip_addr)
 
     def config_authconfig(self, hostname, domainname):
-        """ Run authconfig to configure kerberos and sssd auth on remote host
+        """ Run authconfig to configure Kerberos and SSSD auth on remote host
 
             :param str hostname: Hostname of server(AD) to
              which client is configured to auth
-            :param domainame: Domain name of ipa/AD
+            :param domainname: domain name of IPA/AD
             :return: None
             :Exceptions: None
         """
@@ -83,7 +83,7 @@ class sssdTools(object):
 
     def config_smb_net_ads_join(self, domainname):
         """ Configure smb.conf as Domain Member to Windows AD
-            :param str domainname: Domainname of AD/ipa
+            :param str domainname: domain name of AD/IPA
             :return: None
             :Exception: None
         """
@@ -109,12 +109,12 @@ class sssdTools(object):
                    server_software='active-directory',
                    membership_software='adcli'):
         """ Join system to AD/IPA Domain using realmOA
-            :param str domainame:  Domainname of AD/ipa
+            :param str domainname: domain name of AD/IPA
             :param str admin_password: Administrator password required to join
             :param str client_software: client software to be used (sssd/samba)
             :param str server_software: server software (active-directory/ipa)
             :param str membership_software: membership software (samba/adcli)
-            :return bool: True if successfully joined to AD/ipa
+            :return bool: True if successfully joined to AD/IPA
                           else raises Exception
             :Exception: Raises exception(builtin)
         """
@@ -137,8 +137,8 @@ class sssdTools(object):
     def realm_leave(self, domainname):
         """ Leave system from AD/IPA Domain
 
-            :param str domainame:  Domainname of AD/ipa
-            :return bool: True if successfully dis-joined to AD/ipa
+            :param str domainname: domain name of AD/IPA
+            :return bool: True if successfully dis-joined to AD/IPA
              else raises Exception
             :Exception: Raises exception(builtin)
         """
@@ -221,7 +221,7 @@ class sssdTools(object):
     def delete_sssd_domain_log(self, domainname):
         """ Remove the sssd domain log
 
-            :param str cache_path: Domainname from default configuration file
+            :param str cache_path: domain name from default configuration file
             :return bool: True if deletion is successful
             :Exception: Raises exception(builtin)
         """
@@ -490,7 +490,7 @@ class LdapOperations(object):
             return 'Success', True
 
     def posix_user(self, org_unit, basedn, user_attr):
-        """ Add Posix Users
+        """ Add POSIX Users
             :param str ou: Organizational unit (ou=Users)
             :param str basedn: Base dn ('dc=example,dc=test')
             :param dict user_attr: Entry attributes
@@ -545,7 +545,7 @@ class LdapOperations(object):
             raise Exception('Unable to add User to ldap')
 
     def posix_group(self, org_unit, basedn, group_attr):
-        """ Add posix group
+        """ Add POSIX group
             :param str ou: Organizational unit (ou=Groups)
             :param str basedn: Base dn ('dc=example,dc=test')
             :param dict group_attr: Entry attributes
@@ -620,7 +620,7 @@ nisMapName: auto.home""") % (basedn, basedn, basedn, basedn, basedn, basedn)
 class PkiTools(object):
     """
         PkiTools consists of functions related to creation of
-        certificate requests, updating profile xml with certificate
+        certificate requests, updating profile XML with certificate
         requests.
     """
 
@@ -870,7 +870,7 @@ class ADOperations(object):
         """ Delete AD user
 
         :param str user_group: User or Group Name to be deleted
-        :Return bool: True if delete is successfull else false
+        :Return bool: True if delete is successful else false
         :Exceptions: None
         """
 

@@ -25,7 +25,7 @@ class InvalidInput(StandardException):
 
 class DirSrvException(StandardException):
     """
-    Override StandardException, This exception s to be used for
+    Override StandardException, This exception is to be used for
     Directory Server related Errors
     """
 
@@ -52,5 +52,5 @@ class LdapException(StandardException):
 
 class RPMException(StandardException):
     """
-    Override StandardException, This exception is to be used for LDAP Errors
+    Override StandardException, This exception is to be used for RPM Errors
     """
