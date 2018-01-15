@@ -391,6 +391,13 @@ ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
     }
 
     mpg = sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, name, sid_str);
+    if (mpg == false) {
+        /* Domains that use the POSIX attributes set by the admin must
+         * inherit the MPG setting from the parent domain so that the
+         * auto_private_groups options works for trusted domains as well
+         */
+        mpg = domain->mpg;
+    }
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
                                 mpg, enumerate, domain->forest, 0, NULL);
