@@ -257,7 +257,10 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
     if (timeout == NO_TIMEOUT) {
         sss_nss_lock();
     } else {
-        sss_nss_timedlock(timeout, &time_left);
+        ret = sss_nss_timedlock(timeout, &time_left);
+        if (ret != 0) {
+            return ret;
+        }
     }
 
     nret = sss_nss_make_request_timeout(cmd, &rd, time_left, &repbuf, &replen,

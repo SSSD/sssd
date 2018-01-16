@@ -202,7 +202,10 @@ int sss_get_ex(struct nss_input *inp, uint32_t flags, unsigned int timeout)
         }
     }
 
-    sss_nss_timedlock(timeout, &time_left);
+    ret = sss_nss_timedlock(timeout, &time_left);
+    if (ret != 0) {
+        return ret;
+    }
 
     if (!skip_mc && !skip_data) {
         /* previous thread might already initialize entry in mmap cache */

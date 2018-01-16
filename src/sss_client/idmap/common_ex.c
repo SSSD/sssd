@@ -83,6 +83,7 @@ int sss_nss_timedlock(unsigned int timeout_ms, int *time_left_ms)
     if (ret == 0) {
         ret = clock_gettime(CLOCK_REALTIME, &endtime);
         if (ret != 0) {
+            sss_nss_unlock();
             return ret;
         }
 
@@ -92,6 +93,7 @@ int sss_nss_timedlock(unsigned int timeout_ms, int *time_left_ms)
             TIMESPECSUB(&endtime, &starttime, &diff);
             left = timeout_ms - TIMESPEC_TO_MS(&diff);
             if (left <= 0) {
+                sss_nss_unlock();
                 return EIO;
             } else if (left > SSS_CLI_SOCKET_TIMEOUT) {
                 *time_left_ms = SSS_CLI_SOCKET_TIMEOUT;
