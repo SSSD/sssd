@@ -57,6 +57,71 @@
 /* do not refresh more often than every 5 seconds for now */
 #define AD_SUBDOMAIN_REFRESH_LIMIT 5
 
+static struct sss_domain_info *
+ads_get_root_domain(struct be_ctx *be_ctx, struct sysdb_attrs *attrs)
+{
+    struct sss_domain_info *dom;
+    const char *name;
+    errno_t ret;
+
+    if (attrs == NULL) {
+        /* Clients joined to the forest root directly don't even discover
+         * the root domain, so the attrs are expected to be NULL in this
+         * case
+         */
+        return be_ctx->domain;
+    }
+
+    ret = sysdb_attrs_get_string(attrs, AD_AT_TRUST_PARTNER, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+        return NULL;
+    }
+
+    /* With a subsequent run, the root should already be known */
+    for (dom = be_ctx->domain; dom != NULL;
+         dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
+
+        if (strcasecmp(dom->name, name) == 0) {
+            /* The forest root is special, although it might be disabled for
+             * general lookups we still want to try to get the domains in the
+             * forest from a DC of the forest root */
+            if (sss_domain_get_state(dom) == DOM_DISABLED
+                    && !sss_domain_is_forest_root(dom)) {
+                return NULL;
+            }
+            return dom;
+        }
+    }
+
+    return NULL;
+}
+
+static struct sdap_domain *
+ads_get_root_sdap_domain(struct be_ctx *be_ctx,
+                         struct sdap_options *opts,
+                         struct sysdb_attrs *attrs)
+{
+    struct sdap_domain *root_sdom;
+    struct sss_domain_info *root_dom;
+
+    root_dom = ads_get_root_domain(be_ctx, attrs);
+    if (root_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ads_get_root_domain did not find the domain\n");
+        return NULL;
+    }
+
+    root_sdom = sdap_domain_get(opts, root_dom);
+    if (root_sdom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to find sdap_domain for the root domain\n");
+        return NULL;
+    }
+
+    return root_sdom;
+}
+
 static errno_t ad_get_enabled_domains(TALLOC_CTX *mem_ctx,
                                       struct ad_id_ctx *ad_id_ctx,
                                       const char *ad_domain,
@@ -755,6 +820,7 @@ struct ad_get_slave_domain_state {
     struct sdap_options *opts;
     struct sdap_idmap_ctx *idmap_ctx;
     struct sysdb_attrs *root_attrs;
+    struct sdap_domain *root_sdom;
     struct sdap_id_op *sdap_op;
 };
 
@@ -786,6 +852,13 @@ ad_get_slave_domain_send(TALLOC_CTX *mem_ctx,
     state->opts = root_id_ctx->sdap_id_ctx->opts;
     state->idmap_ctx = root_id_ctx->sdap_id_ctx->opts->idmap_ctx;
     state->root_attrs = root_attrs;
+    state->root_sdom = ads_get_root_sdap_domain(state->be_ctx,
+                                                state->opts,
+                                                state->root_attrs);
+    if (state->root_sdom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto immediately;
+    }
 
     state->sdap_op = sdap_id_op_create(state, root_id_ctx->ldap_ctx->conn_cache);
     if (state->sdap_op == NULL) {
@@ -861,7 +934,7 @@ static void ad_get_slave_domain_connect_done(struct tevent_req *subreq)
 
     subreq = sdap_search_bases_send(state, state->ev, state->opts,
                                     sdap_id_op_handle(state->sdap_op),
-                                    state->opts->sdom->search_bases,
+                                    state->root_sdom->search_bases,
                                     NULL, false, 0,
                                     SLAVE_DOMAIN_FILTER, attrs);
     if (subreq == NULL) {
@@ -963,38 +1036,6 @@ static errno_t ad_get_slave_domain_recv(struct tevent_req *req)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
-}
-
-static struct sss_domain_info *
-ads_get_root_domain(struct be_ctx *be_ctx, struct sysdb_attrs *attrs)
-{
-    struct sss_domain_info *dom;
-    const char *name;
-    errno_t ret;
-
-    ret = sysdb_attrs_get_string(attrs, AD_AT_TRUST_PARTNER, &name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-        return NULL;
-    }
-
-    /* With a subsequent run, the root should already be known */
-    for (dom = be_ctx->domain; dom != NULL;
-         dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
-
-        if (strcasecmp(dom->name, name) == 0) {
-            /* The forest root is special, although it might be disabled for
-             * general lookups we still want to try to get the domains in the
-             * forest from a DC of the forest root */
-            if (sss_domain_get_state(dom) == DOM_DISABLED
-                    && !sss_domain_is_forest_root(dom)) {
-                return NULL;
-            }
-            return dom;
-        }
-    }
-
-    return NULL;
 }
 
 static struct ad_id_ctx *
@@ -1416,6 +1457,9 @@ static void ad_subdomains_refresh_root_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_subdomains_refresh_state);
 
+    /* Note: For clients joined to the root domain, root_attrs is NULL,
+     * see ad_get_root_domain_send()
+     */
     ret = ad_get_root_domain_recv(state, subreq, &root_attrs, &root_id_ctx);
     talloc_zfree(subreq);
     if (ret != EOK) {
