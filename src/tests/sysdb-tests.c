@@ -1032,6 +1032,38 @@ START_TEST (test_sysdb_getpwnam)
 }
 END_TEST
 
+START_TEST(test_user_group_by_name)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct ldb_message *msg;
+    int ret;
+    const char *groupname;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
+
+    ret = sysdb_search_group_by_name(data,
+                                     data->ctx->domain,
+                                     data->username, /* we're searching for the private group */
+                                     NULL,
+                                     &msg);
+    fail_if(ret != EOK);
+    fail_if(msg == NULL);
+
+    groupname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    ck_assert_str_eq(groupname, data->username);
+}
+END_TEST
+
+
 START_TEST (test_sysdb_getgrnam)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -7012,6 +7044,11 @@ Suite *create_sysdb_suite(void)
 
     /* Verify the users were added */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getpwnam, 27000, 27010);
+
+    /* Since this is a local (mpg) domain, verify the user groups
+     * can be found. Regression test for ticket #3615
+     */
+    tcase_add_loop_test(tc_sysdb, test_user_group_by_name, 27000, 27010);
 
     /* Create a new group */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_group, 28000, 28010);
