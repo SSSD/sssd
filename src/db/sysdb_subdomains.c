@@ -556,8 +556,7 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_DOM_BASE, domain->name);
+    basedn = sysdb_domain_dn(tmp_ctx, domain);
     if (basedn == NULL) {
         ret = EIO;
         goto done;
@@ -758,8 +757,7 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
         goto done;
     }
 
-    msg->dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                             SYSDB_DOM_BASE, domain->name);
+    msg->dn = sysdb_domain_dn(tmp_ctx, domain);
     if (msg->dn == NULL) {
         ret = EIO;
         goto done;
@@ -1301,7 +1299,7 @@ sysdb_get_site(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, dom->sysdb->ldb, SYSDB_DOM_BASE, dom->name);
+    dn = sysdb_domain_dn(tmp_ctx, dom);
     if (dn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1349,7 +1347,7 @@ sysdb_set_site(struct sss_domain_info *dom,
         return ENOMEM;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, dom->sysdb->ldb, SYSDB_DOM_BASE, dom->name);
+    dn = sysdb_domain_dn(tmp_ctx, dom);
     if (dn == NULL) {
         ret = ENOMEM;
         goto done;

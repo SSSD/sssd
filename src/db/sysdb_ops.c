@@ -4811,8 +4811,7 @@ static errno_t sysdb_search_object_attr(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
-                            domain->name);
+    basedn = sysdb_domain_dn(tmp_ctx, domain);
     if (basedn == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt failed.\n");
         ret = ENOMEM;
