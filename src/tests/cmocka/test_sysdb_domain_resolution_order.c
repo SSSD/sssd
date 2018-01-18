@@ -85,8 +85,8 @@ static void test_sysdb_domain_resolution_order_ops(void **state)
     const char *domains_out = NULL;
     struct ldb_dn *dn;
 
-    dn = ldb_dn_new_fmt(test_ctx, test_ctx->tctx->dom->sysdb->ldb,
-                        SYSDB_DOM_BASE, test_ctx->tctx->dom->name);
+    dn = sysdb_domain_dn(test_ctx, test_ctx->tctx->dom);
+    assert_non_null(dn);
 
     /* Adding domainResolutionOrder for the first time */
     domains_in = "foo:bar:foobar";

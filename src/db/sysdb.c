@@ -1215,8 +1215,7 @@ errno_t sysdb_has_enumerated(struct sss_domain_info *domain,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
-                        domain->name);
+    dn = sysdb_domain_dn(tmp_ctx, domain);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -1243,8 +1242,7 @@ errno_t sysdb_set_enumerated(struct sss_domain_info *domain,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
-                        domain->name);
+    dn = sysdb_domain_dn(tmp_ctx, domain);
     if (!dn) {
         ret = ENOMEM;
         goto done;
