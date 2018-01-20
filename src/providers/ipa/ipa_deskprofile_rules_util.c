@@ -264,7 +264,11 @@ ipa_deskprofile_rules_create_user_dir(
         goto done;
     }
 
-    ret = sss_create_dir(domain_dir, shortname, 0600, uid, gid);
+    /* In order to read, create and traverse the directory, we need to have its
+     * permissions set as 'rwx------' (700). */
+    old_umask = umask(0077);
+    ret = sss_create_dir(domain_dir, shortname, 0700, uid, gid);
+    umask(old_umask);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
                "Failed to create the directory \"%s/%s/%s\" that would be used "
