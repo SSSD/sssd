@@ -229,6 +229,7 @@ ipa_deskprofile_rules_create_user_dir(
     char *domain;
     char *domain_dir;
     errno_t ret;
+    mode_t old_umask;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -243,8 +244,10 @@ ipa_deskprofile_rules_create_user_dir(
         goto done;
     }
 
-    ret = sss_create_dir(IPA_DESKPROFILE_RULES_USER_DIR, domain, 0755,
+    old_umask = umask(0026);
+    ret = sss_create_dir(IPA_DESKPROFILE_RULES_USER_DIR, domain, 0751,
                          getuid(), getgid());
+    umask(old_umask);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to create the directory \"%s/%s\" that would be used to "
