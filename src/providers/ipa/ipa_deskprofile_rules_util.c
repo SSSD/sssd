@@ -684,6 +684,8 @@ ipa_deskprofile_rules_save_rule_to_disk(
     TALLOC_CTX *tmp_ctx;
     const char *rule_name;
     const char *data;
+    const char *hostcat;
+    const char *usercat;
     char *shortname;
     char *domainname;
     char *base_dn;
@@ -722,6 +724,28 @@ ipa_deskprofile_rules_save_rule_to_disk(
         goto done;
     }
 
+    ret = sysdb_attrs_get_string(rule, IPA_HOST_CATEGORY, &hostcat);
+    if (ret == ENOENT) {
+        hostcat = NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Failed to get the Desktop Profile Rule host category for rule "
+              "\"%s\" [%d]: %s\n",
+              rule_name, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_string(rule, IPA_USER_CATEGORY, &usercat);
+    if (ret == ENOENT) {
+        usercat = NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Failed to get the Desktop Profile Rule user category for rule "
+              "\"%s\" [%d]: %s\n",
+              rule_name, ret, sss_strerror(ret));
+        goto done;
+    }
+
     rule_prio = talloc_asprintf(tmp_ctx, "%06d", prio);
     if (rule_prio == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate rule priority\n");
@@ -753,26 +777,66 @@ ipa_deskprofile_rules_save_rule_to_disk(
         goto done;
     }
 
-    ret = ipa_deskprofile_rule_check_memberuser(tmp_ctx, domain, rule,
-                                                rule_name, rule_prio,
-                                                base_dn, username,
-                                                &user_prio, &group_prio);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ipa_deskprofile_rule_check_memberuser() failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
+    if (usercat != NULL && strcasecmp(usercat, "all") == 0) {
+        user_prio = talloc_strdup(tmp_ctx, rule_prio);
+        if (user_prio == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to allocate the user priority "
+                  "when user category is \"all\"\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        group_prio = talloc_strdup(tmp_ctx, rule_prio);
+        if (group_prio == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to allocate the group priority "
+                  "when user category is \"all\"\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        ret = ipa_deskprofile_rule_check_memberuser(tmp_ctx, domain, rule,
+                                                    rule_name, rule_prio,
+                                                    base_dn, username,
+                                                    &user_prio, &group_prio);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ipa_deskprofile_rule_check_memberuser() failed [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
     }
 
-    ret = ipa_deskprofile_rule_check_memberhost(tmp_ctx, domain, rule,
-                                                rule_name, rule_prio,
-                                                base_dn, hostname,
-                                                &host_prio, &hostgroup_prio);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ipa_deskprofile_rule_check_memberhost() failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
+    if (hostcat != NULL && strcasecmp(hostcat, "all") == 0) {
+        host_prio = talloc_strdup(tmp_ctx, rule_prio);
+        if (host_prio == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to allocate the host priority "
+                  "when host category is \"all\"\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        hostgroup_prio = talloc_strdup(tmp_ctx, rule_prio);
+        if (hostgroup_prio == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to allocate the hostgroup priority "
+                  "when host category is \"all\"\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        ret = ipa_deskprofile_rule_check_memberhost(tmp_ctx, domain, rule,
+                                                    rule_name, rule_prio,
+                                                    base_dn, hostname,
+                                                    &host_prio, &hostgroup_prio);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ipa_deskprofile_rule_check_memberhost() failed [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
     }
 
     ret = ipa_deskprofile_get_normalized_rule_name(mem_ctx, rule_name,
