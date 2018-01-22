@@ -406,7 +406,11 @@ void dyndns_test_create_fwd_msg(void **state)
 
     assert_string_equal(msg,
                         "server Winterfell\n"
+#ifdef HAVE_NSUPDATE_REALM
                         "realm North\n"
+#else
+                        "\n"
+#endif
                         "update delete bran_stark. in A\n"
                         "update add bran_stark. 1234 in A 192.168.0.2\n"
                         "send\n"
@@ -423,7 +427,11 @@ void dyndns_test_create_fwd_msg(void **state)
     assert_int_equal(ret, EOK);
 
     assert_string_equal(msg,
+#ifdef HAVE_NSUPDATE_REALM
                         "realm North\n"
+#else
+                        "\n"
+#endif
                         "update delete bran_stark. in A\n"
                         "update add bran_stark. 1234 in A 192.168.0.2\n"
                         "send\n"
