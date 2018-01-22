@@ -706,12 +706,17 @@ ipa_deskprofile_rules_save_rule_to_disk(
     const char *extension = "json";
     uint32_t prio;
     int fd = -1;
+    gid_t orig_gid;
+    uid_t orig_uid;
     errno_t ret;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
+
+    orig_gid = getegid();
+    orig_uid = geteuid();
 
     ret = sysdb_attrs_get_string(rule, IPA_CN, &rule_name);
     if (ret != EOK) {
@@ -875,6 +880,26 @@ ipa_deskprofile_rules_save_rule_to_disk(
         goto done;
     }
 
+    ret = setegid(gid);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to set effective group id (%"PRIu32") of the domain's "
+              "process [%d]: %s\n",
+              gid, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = seteuid(uid);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to set effective user id (%"PRIu32") of the domain's "
+              "process [%d]: %s\n",
+              uid, ret, sss_strerror(ret));
+        goto done;
+    }
+
     fd = open(filename_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
     if (fd == -1) {
         ret = errno;
@@ -895,12 +920,23 @@ ipa_deskprofile_rules_save_rule_to_disk(
         goto done;
     }
 
-    ret = fchown(fd, uid, gid);
-    if (ret != EOK) {
+    ret = seteuid(orig_uid);
+    if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to own the Desktop Profile Rule file \"%s\" [%d]: %s\n",
-              filename_path, ret, sss_strerror(ret));
+              "Failed to set the effect user id (%"PRIu32") of the domain's "
+              "process [%d]: %s\n",
+              orig_uid, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = setegid(orig_gid);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set the effect group id (%"PRIu32") of the domain's "
+              "process [%d]: %s\n",
+              orig_gid, ret, sss_strerror(ret));
         goto done;
     }
 
@@ -909,6 +945,32 @@ ipa_deskprofile_rules_save_rule_to_disk(
 done:
     if (fd != -1) {
         close(fd);
+    }
+    if (geteuid() != orig_uid) {
+        ret = seteuid(orig_uid);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unable to set effective user id (%"PRIu32") of the "
+                  "domain's process [%d]: %s\n",
+                  orig_uid, ret, sss_strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Sending SIGUSR2 to the process: %d\n", getpid());
+            kill(getpid(), SIGUSR2);
+        }
+    }
+    if (getegid() != orig_gid) {
+        ret = setegid(orig_gid);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unable to set effective group id (%"PRIu32") of the "
+                  "domain's process. Let's have the process restartd!\n",
+                  orig_gid);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Sending SIGUSR2 to the process: %d\n", getpid());
+            kill(getpid(), SIGUSR2);
+        }
     }
     talloc_free(tmp_ctx);
     return ret;
