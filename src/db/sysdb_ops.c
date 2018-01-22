@@ -598,10 +598,17 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
     int ret;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UPN, SYSDB_CANONICAL_UPN,
                                 SYSDB_USER_EMAIL, NULL };
+    char *sanitized;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, upn, &sanitized);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize failed.\n");
         goto done;
     }
 
@@ -613,7 +620,7 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
                      base_dn, LDB_SCOPE_SUBTREE, attrs ? attrs : def_attrs,
-                     SYSDB_PWUPN_FILTER, upn, upn, upn);
+                     SYSDB_PWUPN_FILTER, sanitized, sanitized, sanitized);
     if (ret != EOK) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -4625,12 +4632,13 @@ done:
     return ret;
 }
 
-static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
-                                   struct sss_domain_info *domain,
-                                   const char *filter_tmpl,
-                                   const char *str,
-                                   const char **attrs,
-                                   struct ldb_result **_res)
+static errno_t sysdb_search_object_by_str_attr_ex(TALLOC_CTX *mem_ctx,
+                                                 struct sss_domain_info *domain,
+                                                 const char *filter_tmpl,
+                                                 const char *str,
+                                                 const char **attrs,
+                                                 bool sanitize_input,
+                                                 struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
@@ -4640,10 +4648,23 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
     struct ldb_dn *basedn;
     int ret;
     struct ldb_result *res = NULL;
+    char *sanitized = NULL;
+
+    if (str == NULL) {
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
+    }
+
+    if (sanitize_input) {
+        ret = sss_filter_sanitize(tmp_ctx, str, &sanitized);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize failed.\n");
+            goto done;
+        }
     }
 
     basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
@@ -4656,7 +4677,7 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
                      basedn, LDB_SCOPE_SUBTREE, attrs?attrs:def_attrs,
-                     filter_tmpl, str);
+                     filter_tmpl, sanitized == NULL ? str : sanitized);
     if (ret != EOK) {
         ret = sysdb_error_to_errno(ret);
         DEBUG(SSSDBG_OP_FAILURE, "ldb_search failed.\n");
@@ -4692,6 +4713,17 @@ done:
 
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *domain,
+                                   const char *filter_tmpl,
+                                   const char *str,
+                                   const char **attrs,
+                                   struct ldb_result **_res)
+{
+    return sysdb_search_object_by_str_attr_ex(mem_ctx, domain, filter_tmpl, str,
+                                              attrs, true, _res);
 }
 
 errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
@@ -4730,9 +4762,10 @@ errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sysdb_search_object_by_str_attr(mem_ctx, domain,
-                                          SYSDB_USER_CERT_FILTER,
-                                          user_filter, attrs, res);
+    ret = sysdb_search_object_by_str_attr_ex(mem_ctx, domain,
+                                             SYSDB_USER_CERT_FILTER,
+                                             user_filter, attrs, false, res);
+
     talloc_free(user_filter);
 
     return ret;
