@@ -1941,6 +1941,7 @@ libsss_ad_tests_la_SOURCES = $(libsss_ad_la_SOURCES)
 libsss_ad_tests_la_CFLAGS = $(libsss_ad_la_CFLAGS)
 libsss_ad_tests_la_LIBADD = \
     $(libsss_ad_la_LIBADD) \
+    libdlopen_test_providers.la \
     $(NULL)
 libsss_ad_tests_la_LDFLAGS = \
     -shared \
@@ -2735,7 +2736,6 @@ ad_access_filter_tests_LDADD = \
     libsss_ldap_common.la \
     libsss_ad_tests.la \
     libsss_test_common.la \
-    libdlopen_test_providers.la \
     $(NULL)
 
 ad_gpo_tests_SOURCES = \
