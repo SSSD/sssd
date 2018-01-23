@@ -63,6 +63,9 @@
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
 #define FD_DESTRUCTOR "pam_sss:fd_destructor"
+#define PAM_SSS_AUTHOK_TYPE "pam_sss:authtok_type"
+#define PAM_SSS_AUTHOK_SIZE "pam_sss:authtok_size"
+#define PAM_SSS_AUTHOK_DATA "pam_sss:authtok_data"
 
 #define PW_RESET_MSG_FILENAME_TEMPLATE SSSD_CONF_DIR"/customize/%s/pam_sss_pw_reset_message.%s"
 #define PW_RESET_MSG_MAX_SIZE 4096
@@ -2079,6 +2082,102 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
     return PAM_SUCCESS;
 }
 
+static int check_authtok_data(pam_handle_t *pamh, struct pam_items *pi)
+{
+    int pam_status;
+    int *authtok_type;
+    size_t *authtok_size;
+    char *authtok_data;
+
+    pam_status = pam_get_data(pamh, PAM_SSS_AUTHOK_TYPE,
+                              (const void **) &authtok_type);
+    if (pam_status != PAM_SUCCESS) {
+        D(("pam_get_data failed."));
+        return EIO;
+    }
+
+    pam_status = pam_get_data(pamh, PAM_SSS_AUTHOK_SIZE,
+                              (const void **) &authtok_size);
+    if (pam_status != PAM_SUCCESS) {
+        D(("pam_get_data failed."));
+        return EIO;
+    }
+
+    pam_status = pam_get_data(pamh, PAM_SSS_AUTHOK_DATA,
+                              (const void **) &authtok_data);
+    if (pam_status != PAM_SUCCESS) {
+        D(("pam_get_data failed."));
+        return EIO;
+    }
+
+    pi->pam_authtok = malloc(*authtok_size);
+    if (pi->pam_authtok == NULL) {
+        D(("malloc failed."));
+        return ENOMEM;
+    }
+    memcpy(pi->pam_authtok, authtok_data, *authtok_size);
+
+    pi->pam_authtok_type = *authtok_type;
+    pi->pam_authtok_size = *authtok_size;
+
+    return 0;
+}
+
+static int keep_authtok_data(pam_handle_t *pamh, struct pam_items *pi)
+{
+    int pam_status;
+    int *authtok_type;
+    size_t *authtok_size;
+    char *authtok_data;
+
+    authtok_type = malloc(sizeof(int));
+    if (authtok_type == NULL) {
+        D(("malloc failed."));
+        return ENOMEM;
+    }
+    *authtok_type = pi->pam_authtok_type;
+
+    pam_status = pam_set_data(pamh, PAM_SSS_AUTHOK_TYPE, authtok_type,
+                              free_exp_data);
+    if (pam_status != PAM_SUCCESS) {
+        free(authtok_type);
+        D(("pam_set_data failed."));
+        return EIO;
+    }
+
+    authtok_size = malloc(sizeof(size_t));
+    if (authtok_size == NULL) {
+        D(("malloc failed."));
+        return ENOMEM;
+    }
+    *authtok_size = pi->pam_authtok_size;
+
+    pam_status = pam_set_data(pamh, PAM_SSS_AUTHOK_SIZE, authtok_size,
+                              free_exp_data);
+    if (pam_status != PAM_SUCCESS) {
+        free(authtok_size);
+        D(("pam_set_data failed."));
+        return EIO;
+    }
+
+    authtok_data = malloc(pi->pam_authtok_size);
+    if (authtok_data == NULL) {
+        D(("malloc failed."));
+        return ENOMEM;
+    }
+    memcpy(authtok_data, pi->pam_authtok, pi->pam_authtok_size);
+
+    pam_status = pam_set_data(pamh, PAM_SSS_AUTHOK_DATA, authtok_data,
+                              free_exp_data);
+    if (pam_status != PAM_SUCCESS) {
+        free(authtok_data);
+        D(("pam_set_data failed."));
+        return EIO;
+    }
+
+    return 0;
+}
+
 static int get_authtok_for_password_change(pam_handle_t *pamh,
                                            struct pam_items *pi,
                                            uint32_t flags,
@@ -2086,16 +2185,31 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
 {
     int ret;
     const int *exp_data = NULL;
-    pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data);
+    ret = pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data);
+    if (ret != PAM_SUCCESS) {
+        exp_data = NULL;
+    }
 
     /* we query for the old password during PAM_PRELIM_CHECK to make
      * pam_sss work e.g. with pam_cracklib */
     if (pam_flags & PAM_PRELIM_CHECK) {
         if ( (getuid() != 0 || exp_data ) && !(flags & FLAGS_USE_FIRST_PASS)) {
-            ret = prompt_password(pamh, pi, _("Current Password: "));
-            if (ret != PAM_SUCCESS) {
-                D(("failed to get password from user"));
-                return ret;
+            if (flags & FLAGS_USE_2FA
+                    || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
+                            && pi->otp_challenge != NULL)) {
+                if (pi->password_prompting) {
+                    ret = prompt_2fa(pamh, pi, _("First Factor (Current Password): "),
+                                     _("Second Factor (optional): "));
+                } else {
+                    ret = prompt_2fa(pamh, pi, _("First Factor (Current Password): "),
+                                     _("Second Factor: "));
+                }
+            } else {
+                ret = prompt_password(pamh, pi, _("Current Password: "));
+                if (ret != PAM_SUCCESS) {
+                    D(("failed to get password from user"));
+                    return ret;
+                }
             }
 
             ret = pam_set_item(pamh, PAM_OLDAUTHTOK, pi->pam_authtok);
@@ -2105,28 +2219,38 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
                    pam_strerror(pamh,ret)));
                    return ret;
             }
+
+            if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_2FA) {
+                ret = keep_authtok_data(pamh, pi);
+                if (ret != 0) {
+                    D(("Failed to store authtok data to pam handle. Password "
+                       "change might fail."));
+                }
+            }
         }
 
         return PAM_SUCCESS;
     }
 
-    if (pi->pamstack_oldauthtok == NULL) {
-        if (getuid() != 0) {
-            D(("no password found for chauthtok"));
-            return PAM_BUF_ERR;
+    if (check_authtok_data(pamh, pi) != 0) {
+        if (pi->pamstack_oldauthtok == NULL) {
+            if (getuid() != 0) {
+                D(("no password found for chauthtok"));
+                return PAM_BUF_ERR;
+            } else {
+                pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+                pi->pam_authtok = NULL;
+                pi->pam_authtok_size = 0;
+            }
         } else {
-            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-            pi->pam_authtok = NULL;
-            pi->pam_authtok_size = 0;
+            pi->pam_authtok = strdup(pi->pamstack_oldauthtok);
+            if (pi->pam_authtok == NULL) {
+                D(("strdup failed"));
+                return PAM_BUF_ERR;
+            }
+            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+            pi->pam_authtok_size = strlen(pi->pam_authtok);
         }
-    } else {
-        pi->pam_authtok = strdup(pi->pamstack_oldauthtok);
-        if (pi->pam_authtok == NULL) {
-            D(("strdup failed"));
-            return PAM_BUF_ERR;
-        }
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-        pi->pam_authtok_size = strlen(pi->pam_authtok);
     }
 
     if (flags & FLAGS_USE_AUTHTOK) {
@@ -2306,6 +2430,41 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 }
                 break;
             case SSS_PAM_CHAUTHTOK:
+                /*
+                 * Even if we only want to change the (long term) password
+                 * there are cases where more than the password is needed to
+                 * get the needed privileges in a backend to change the
+                 * password.
+                 *
+                 * E.g. with mandatory 2-factor authentication we have to ask
+                 * not only for the current password but for the second
+                 * factor, e.g. the one-time token value, as well.
+                 *
+                 * The means the preauth step has to be done here as well but
+                 * only if
+                 * - PAM_PRELIM_CHECK is set
+                 * - FLAGS_USE_FIRST_PASS is not set
+                 * - no password is on the stack or FLAGS_PROMPT_ALWAYS is set
+                 * - preauth indicator file exists.
+                 */
+                if ( (pam_flags & PAM_PRELIM_CHECK)
+                        && !(flags & FLAGS_USE_FIRST_PASS)
+                        && (pi.pam_authtok == NULL
+                                || (flags & FLAGS_PROMPT_ALWAYS))
+                        && access(PAM_PREAUTH_INDICATOR, F_OK) == 0) {
+                    pam_status = send_and_receive(pamh, &pi, SSS_PAM_PREAUTH,
+                                                  quiet_mode);
+                    if (pam_status != PAM_SUCCESS) {
+                        D(("send_and_receive returned [%d] during pre-auth",
+                           pam_status));
+                        /*
+                         * Since we are only interested in the result message
+                         * and will always use password authentication
+                         * as a fallback, errors can be ignored here.
+                         */
+                    }
+                }
+
                 ret = get_authtok_for_password_change(pamh, &pi, flags, pam_flags);
                 if (ret != PAM_SUCCESS) {
                     D(("failed to get tokens for password change: %s",
@@ -2313,7 +2472,16 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                     overwrite_and_free_pam_items(&pi);
                     return ret;
                 }
+
                 if (pam_flags & PAM_PRELIM_CHECK) {
+                    if (pi.pam_authtok_type == SSS_AUTHTOK_TYPE_2FA) {
+                        /* We cannot validate the credentials with an OTP
+                         * token value during PAM_PRELIM_CHECK because it
+                         * would be invalid for the actual password change. So
+                         * we are done. */
+
+                        return PAM_SUCCESS;
+                    }
                     task = SSS_PAM_CHAUTHTOK_PRELIM;
                 }
                 break;
