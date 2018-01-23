@@ -1885,6 +1885,7 @@ libsss_test_common_la_LIBADD = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     $(LDB_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 
 if HAVE_CHECK
@@ -1910,10 +1911,12 @@ libdlopen_test_providers_la_CFLAGS = \
     $(CHECK_CFLAGS) \
     -DUNIT_TESTING
 libdlopen_test_providers_la_LIBADD = \
+    $(LIBADD_DL) \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
 if BUILD_SYSTEMTAP
 libdlopen_test_providers_la_LIBADD += stap_generated_probes.lo
 endif
@@ -1936,7 +1939,9 @@ dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.unit_tests
 
 libsss_ad_tests_la_SOURCES = $(libsss_ad_la_SOURCES)
 libsss_ad_tests_la_CFLAGS = $(libsss_ad_la_CFLAGS)
-libsss_ad_tests_la_LIBADD = $(libsss_ad_la_LIBADD)
+libsss_ad_tests_la_LIBADD = \
+    $(libsss_ad_la_LIBADD) \
+    $(NULL)
 libsss_ad_tests_la_LDFLAGS = \
     -shared \
     -rpath $(abs_top_builddir) \
@@ -3804,11 +3809,16 @@ libsss_ldap_common_la_CFLAGS = \
     $(KRB5_CFLAGS) \
     $(NULL)
 libsss_ldap_common_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(LDB_LIBS) \
     $(OPENLDAP_LIBS) \
+    $(DHASH_LIBS) \
     $(KRB5_LIBS) \
     libsss_krb5_common.la \
     libsss_idmap.la \
-    libsss_util.la \
+    libsss_certmap.la \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 libsss_ldap_common_la_LDFLAGS = \
     -avoid-version \
@@ -3852,9 +3862,14 @@ libsss_krb5_common_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_krb5_common_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(LDB_LIBS) \
     $(KEYUTILS_LIBS) \
     $(DHASH_LIBS) \
-    $(KRB5_LIBS)
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
 libsss_krb5_common_la_LDFLAGS = \
     -avoid-version
 
@@ -3865,6 +3880,8 @@ libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(OPENLDAP_CFLAGS)
 libsss_ldap_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
     $(OPENLDAP_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
@@ -3886,7 +3903,15 @@ libsss_proxy_la_SOURCES = \
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
-    $(PAM_LIBS)
+    $(LIBADD_DL) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(LDB_LIBS) \
+    $(PAM_LIBS) \
+    $(DHASH_LIBS) \
+    $(DBUS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -3901,7 +3926,11 @@ libsss_files_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 libsss_files_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(LDB_LIBS) \
     $(PAM_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 libsss_files_la_LDFLAGS = \
     -avoid-version \
@@ -3913,6 +3942,12 @@ libsss_simple_la_SOURCES = \
     src/providers/simple/simple_access.c
 libsss_simple_la_CFLAGS = \
     $(AM_CFLAGS)
+libsss_simple_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(LDB_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
 libsss_simple_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -3924,8 +3959,10 @@ libsss_krb5_la_CFLAGS = \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_krb5_la_LIBADD = \
+    $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
+    $(PCRE_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_krb5_common.la
 libsss_krb5_la_LDFLAGS = \
@@ -3987,6 +4024,8 @@ libsss_ipa_la_CFLAGS = \
     $(NDR_KRB5PAC_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
+    $(LDB_LIBS) \
+    $(DBUS_LIBS) \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(NDR_NBT_LIBS) \
@@ -4063,9 +4102,11 @@ libsss_ad_la_CFLAGS = \
     $(NDR_KRB5PAC_CFLAGS) \
     $(SMBCLIENT_CFLAGS)
 libsss_ad_la_LIBADD = \
+    $(LDB_LIBS) \
     $(OPENLDAP_LIBS) \
     $(SASL_LIBS) \
     $(DHASH_LIBS) \
+    $(INI_CONFIG_LIBS) \
     $(KRB5_LIBS) \
     $(NDR_NBT_LIBS) \
     $(NDR_KRB5PAC_LIBS) \
@@ -4225,6 +4266,7 @@ memberof_la_CFLAGS = \
     $(NULL)
 memberof_la_LIBADD = \
     libsss_debug.la \
+    $(TALLOC_LIBS) \
     $(LDB_LIBS) \
     $(DHASH_LIBS) \
     $(NULL)
