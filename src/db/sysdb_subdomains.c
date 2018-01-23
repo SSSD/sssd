@@ -321,7 +321,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                                              SYSDB_SUBDOMAIN_FOREST, NULL);
 
         upn_suffixes = NULL;
-        tmp_el = ldb_msg_find_element(res->msgs[0], SYSDB_UPN_SUFFIXES);
+        tmp_el = ldb_msg_find_element(res->msgs[i], SYSDB_UPN_SUFFIXES);
         if (tmp_el != NULL) {
             upn_suffixes = sss_ldb_el_to_string_list(tmp_ctx, tmp_el);
             if (upn_suffixes == NULL) {
