@@ -2720,7 +2720,11 @@ static void sdap_gc_posix_check_done(struct tevent_req *subreq)
 
     /* Positive hit is definitive, no need to search other bases */
     if (state->has_posix == true) {
-        DEBUG(SSSDBG_FUNC_DATA, "Server has POSIX attributes\n");
+        DEBUG(SSSDBG_FUNC_DATA, "Server has POSIX attributes. Global Catalog will "
+                                "be used for user and group lookups. Note that if "
+                                "only a subset of POSIX attributes is present "
+                                "in GC, the non-replicated attributes are "
+                                "currently not read from the LDAP port\n");
         tevent_req_done(req);
         return;
     }
