@@ -444,7 +444,6 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfigTest.py \
     src/config/SSSDConfigTest.py2.sh \
     src/config/SSSDConfigTest.py3.sh \
-    src/config/SSSDConfig/sssd_upgrade_config.py \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
     contrib/ci/clean \
@@ -4765,12 +4764,8 @@ if BUILD_PYTHON_BINDINGS
 $(abs_builddir)/src/config/SSSDConfig/ipachangeconf.py:
 	-cp $(srcdir)/src/config/SSSDConfig/ipachangeconf.py $(builddir)/src/config/SSSDConfig/
 
-$(abs_builddir)/src/config/SSSDConfig/sssd_upgrade_config.py:
-	-cp $(srcdir)/src/config/SSSDConfig/sssd_upgrade_config.py $(builddir)/src/config/SSSDConfig/
-
 SSSDCONFIG_MODULES = \
-    $(abs_builddir)/src/config/SSSDConfig/ipachangeconf.py \
-    $(abs_builddir)/src/config/SSSDConfig/sssd_upgrade_config.py
+    $(abs_builddir)/src/config/SSSDConfig/ipachangeconf.py
 else
 SSSSCONFIG_MODULES =
 endif
@@ -4891,10 +4886,6 @@ if BUILD_PYTHON2_BINDINGS
 		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
 	fi
 
-	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
-		rm -f $(builddir)/src/config/SSSDConfig/sssd_upgrade_config.py ; \
-	fi
-
 	rm -f $(builddir)/src/config/SSSDConfig/*.pyc
 
 	cd $(builddir)/src/config; $(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config clean --all
@@ -4902,10 +4893,6 @@ endif
 if BUILD_PYTHON3_BINDINGS
 	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
 		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
-	fi
-
-	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
-		rm -f $(builddir)/src/config/SSSDConfig/sssd_upgrade_config.py ; \
 	fi
 
 	rm -f $(builddir)/src/config/SSSDConfig/__pycache__/*.pyc
