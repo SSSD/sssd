@@ -141,9 +141,7 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
             || data->strs_len > data->data_len
             || data->data_len > rec->len
             || (uint8_t *) rec + rec->len
-                                       > initgr_mc_ctx.data_table + data_size
-            || memchr(rec_name, '\0',
-                      (data_offset + data->data_len) - data->name) == NULL) {
+                                      > initgr_mc_ctx.data_table + data_size) {
             ret = ENOENT;
             goto done;
         }
