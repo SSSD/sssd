@@ -445,7 +445,6 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfigTest.py2.sh \
     src/config/SSSDConfigTest.py3.sh \
     src/config/SSSDConfig/sssd_upgrade_config.py \
-    contrib/rhel/update_debug_levels.py \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
     contrib/ci/clean \
