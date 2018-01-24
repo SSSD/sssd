@@ -60,26 +60,53 @@ class PySssMurmurImport(unittest.TestCase):
             raise e
         self.assertEqual(pysss_murmur.__file__, MODPATH + "/pysss_murmur.so")
 
-class PySssMurmurTest(unittest.TestCase):
+
+class PySssMurmurTestNeg(unittest.TestCase):
+    def test_invalid_arguments(self):
+        self.assertRaises(ValueError, pysss_murmur.murmurhash3, 1, 2, 3)
+        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test", 2)
+        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test")
+        self.assertRaises(ValueError, pysss_murmur.murmurhash3)
+
+    def test_invalid_length(self):
+        seed = 12345
+
+        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "t", -1, seed)
+        # length is off by one
+        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test", 5,
+                          seed)
+        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test",
+                          0xffffffffff, seed)
+
+
+class PySssMurmurTestPos(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         os.unlink(MODPATH + "/pysss_murmur.so")
         os.rmdir(MODPATH)
 
     def testExpectedHash(self):
-        hash = pysss_murmur.murmurhash3("S-1-5-21-2153326666-2176343378-3404031434", 41, 0xdeadbeef)
-        self.assertEqual(hash, 93103853)
+        sid_str = "S-1-5-21-2153326666-2176343378-3404031434"
+        seed = 0xdeadbeef
 
-    def testInvalidArguments(self):
-        self.assertRaises(ValueError, pysss_murmur.murmurhash3, 1, 2, 3)
-        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test", 2)
-        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test")
-        self.assertRaises(ValueError, pysss_murmur.murmurhash3)
-        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test", -1, 3)
-        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test", 2,
-                          0xffffffffff)
-        self.assertRaises(ValueError, pysss_murmur.murmurhash3, "test",
-                          0xffffffffff, 3)
+        hash_val = pysss_murmur.murmurhash3(sid_str, 0, seed)
+        self.assertEqual(hash_val, 233162409)
+
+        hash_val = pysss_murmur.murmurhash3(sid_str, len(sid_str), seed)
+        self.assertEqual(hash_val, 93103853)
+
+    def test_memory_cache_usage(self):
+        seed = 0xbeefdead
+        input_str = "test_user1"
+        input_len = len(input_str)
+
+        val_bin = pysss_murmur.murmurhash3(input_str + '\0',
+                                           input_len + 1, seed)
+        self.assertEqual(val_bin, 1198610880)
+
+        val_bin = pysss_murmur.murmurhash3(input_str + '\0' * 5,
+                                           input_len + 5, seed)
+        self.assertEqual(val_bin, 2917868047)
 
 
 if __name__ == "__main__":
@@ -97,9 +124,14 @@ if __name__ == "__main__":
     sys.path.insert(0, MODPATH)
     import pysss_murmur
 
-    suite = unittest.TestLoader().loadTestsFromTestCase(PySssMurmurTest)
+    suite = unittest.TestLoader().loadTestsFromTestCase(PySssMurmurTestNeg)
     res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x2
+
+    suite = unittest.TestLoader().loadTestsFromTestCase(PySssMurmurTestPos)
+    res = unittest.TextTestRunner().run(suite)
+    if not res.wasSuccessful():
+        error |= 0x4
 
     sys.exit(error)
