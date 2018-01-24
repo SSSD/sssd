@@ -38,15 +38,16 @@ static PyObject * py_murmurhash3(PyObject *module, PyObject *args)
     long key_len;
     long long seed;
     uint32_t hash;
+    int input_len;
 
-    if (!PyArg_ParseTuple(args, sss_py_const_p(char, "slL"),
-                          &key, &key_len, &seed)) {
+    if (!PyArg_ParseTuple(args, sss_py_const_p(char, "z#lL"),
+                          &key, &input_len, &key_len, &seed)) {
         PyErr_Format(PyExc_ValueError, "Invalid argument\n");
         return NULL;
     }
 
     if (seed > UINT32_MAX || key_len > INT_MAX || key_len < 0 ||
-        (size_t)key_len > strlen(key)) {
+        (size_t)key_len > input_len) {
         PyErr_Format(PyExc_ValueError, "Invalid value\n");
         return NULL;
     }
