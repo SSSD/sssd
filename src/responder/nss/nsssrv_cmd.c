@@ -4386,7 +4386,11 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
                    name, dom->name);
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
-                dom = get_next_domain(dom, 0);
+                if (cmdctx->name_is_upn) {
+                    dom = get_next_domain(dom, SSS_GND_DESCEND);
+                } else {
+                    dom = get_next_domain(dom, 0);
+                }
                 continue;
             }
             /* There are no further domains or this was a
@@ -4471,7 +4475,11 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
-                dom = get_next_domain(dom, 0);
+                if (cmdctx->name_is_upn) {
+                    dom = get_next_domain(dom, SSS_GND_DESCEND);
+                } else {
+                    dom = get_next_domain(dom, 0);
+                }
                 if (dom) continue;
             }
 
