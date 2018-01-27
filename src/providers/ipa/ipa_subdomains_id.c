@@ -1584,7 +1584,7 @@ static void ipa_srv_ad_acct_lookup_done(struct tevent_req *subreq)
         state->retry = false;
 
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Sudomain lookup failed, will try to reset sudomain..\n");
+              "Subdomain lookup failed, will try to reset subdomain..\n");
         subreq = ipa_server_trusted_dom_setup_send(state, state->ev,
                                                    state->be_ctx,
                                                    state->ipa_ctx,
@@ -1628,7 +1628,7 @@ static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
         tevent_req_error(req, ret);
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Sudomain re-set, will retry lookup\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "Subdomain re-set, will retry lookup\n");
     be_fo_reset_svc(state->be_ctx, state->obj_dom->name);
 
     ret = ipa_srv_ad_acct_lookup_step(req);
