@@ -524,7 +524,9 @@ ipa_pam_session_handler_send(TALLOC_CTX *mem_ctx,
     /* As no proper merging mechanism has been implemented yet ...
      * let's just remove the user directory stored in the disk as it's
      * going to be created again in case there's any rule fetched. */
-    ret = ipa_deskprofile_rules_remove_user_dir(state->user_dir);
+    ret = ipa_deskprofile_rules_remove_user_dir(state->user_dir,
+                                                state->uid,
+                                                state->gid);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "ipa_deskprofile_rules_remove_user_dir() failed.\n");
