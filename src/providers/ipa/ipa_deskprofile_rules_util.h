@@ -45,7 +45,9 @@ ipa_deskprofile_rules_save_rule_to_disk(
                                     uid_t uid,
                                     gid_t gid);
 errno_t
-ipa_deskprofile_rules_remove_user_dir(const char *user_dir);
+ipa_deskprofile_rules_remove_user_dir(const char *user_dir,
+                                      uid_t uid,
+                                      gid_t gid);
 
 errno_t
 deskprofile_get_cached_priority(struct sss_domain_info *domain,

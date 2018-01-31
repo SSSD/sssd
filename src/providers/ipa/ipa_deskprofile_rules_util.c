@@ -977,21 +977,104 @@ done:
 }
 
 errno_t
-ipa_deskprofile_rules_remove_user_dir(const char *user_dir)
+ipa_deskprofile_rules_remove_user_dir(const char *user_dir,
+                                      uid_t uid,
+                                      gid_t gid)
 {
+    gid_t orig_gid;
+    uid_t orig_uid;
     errno_t ret;
+
+    orig_gid = getegid();
+    orig_uid = geteuid();
+
+    ret = setegid(gid);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to set effective group id (%"PRIu32") of the domain's "
+              "process [%d]: %s\n",
+              gid, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = seteuid(uid);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to set effective user id (%"PRIu32") of the domain's "
+              "process [%d]: %s\n",
+              uid, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sss_remove_subtree(user_dir);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot remove \"%s\" directory [%d]: %s\n",
+              user_dir, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = seteuid(orig_uid);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set the effect user id (%"PRIu32") of the domain's "
+              "process [%d]: %s\n",
+              orig_uid, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = setegid(orig_gid);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set the effect group id (%"PRIu32") of the domain's "
+              "process [%d]: %s\n",
+              orig_gid, ret, sss_strerror(ret));
+        goto done;
+    }
 
     ret = sss_remove_tree(user_dir);
     if (ret == ENOENT) {
-        return EOK;
+        ret = EOK;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot remove \"%s\" directory [%d]: %s\n",
               user_dir, ret, sss_strerror(ret));
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    if (geteuid() != orig_uid) {
+        ret = seteuid(orig_uid);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "unable to set effective user id (%"PRIu32") of the "
+                  "domain's process [%d]: %s\n",
+                  orig_uid, ret, sss_strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Sending SIGUSR2 to the process: %d\n", getpid());
+            kill(getpid(), SIGUSR2);
+        }
+    }
+    if (getegid() != orig_gid) {
+        ret = setegid(orig_gid);
+        if (ret == -1) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unable to set effective user id (%"PRIu32") of the "
+                  "domain's process [%d]: %s\n",
+                  orig_uid, ret, sss_strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Sending SIGUSR2 to the process: %d\n", getpid());
+            kill(getpid(), SIGUSR2);
+        }
+    }
+    return ret;
 }
 
 errno_t
