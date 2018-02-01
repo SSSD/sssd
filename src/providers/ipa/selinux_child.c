@@ -173,7 +173,7 @@ static bool seuser_needs_update(struct input_buffer *ibuf)
     char *db_mls_range = NULL;
     errno_t ret;
 
-    ret = getseuserbyname(ibuf->username, &db_seuser, &db_mls_range);
+    ret = sss_get_seuser(ibuf->username, &db_seuser, &db_mls_range);
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "getseuserbyname: ret: %d seuser: %s mls: %s\n",
           ret, db_seuser ? db_seuser : "unknown",
