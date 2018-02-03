@@ -24,6 +24,8 @@
 #include <talloc.h>
 #include <dhash.h>
 
+#include "util/util.h"
+
 /**
  * Create a new hash table with string key and talloc pointer value with
  * possible delete callback.
@@ -90,6 +92,19 @@ void *_sss_ptr_hash_lookup(hash_table_t *table,
  */
 #define sss_ptr_hash_lookup(table, key, type) \
     (type *)_sss_ptr_hash_lookup(table, key, #type)
+
+void *_sss_ptr_get_value(hash_value_t *table_value,
+                         const char *type);
+
+/**
+ * Obtain inserted talloc pointer from table value typed to @type.
+ * The type of the value must match with @type, otherwise NULL is returned.
+ *
+ * @return talloc_ptr If the value is found as type matches.
+ * @return NULL If the value is not found or if the type is invalid.
+ */
+#define sss_ptr_get_value(table_value, type) \
+    (type *)_sss_ptr_get_value(table_value, #type)
 
 /**
  * Delete @key from table. If @free_value is true then also the value
