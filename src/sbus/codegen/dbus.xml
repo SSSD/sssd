@@ -1,0 +1,100 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/freedesktop/sssd">
+  <interface name="org.freedesktop.DBus">
+    <annotation name="codegen.Name" value="DBus" />
+    <annotation name="codegen.Caller" value="false" />
+    <method name="Hello">
+      <annotation name="codegen.AsyncCaller" value="true" />
+      <arg type="s" name="name" direction="out" />
+    </method>
+    <method name="RequestName">
+      <annotation name="codegen.AsyncCaller" value="true" />
+      <arg type="s" name="name" direction="in" />
+      <arg type="u" name="flags" direction="in" />
+      <arg type="u" name="result" direction="out" />
+    </method>
+    <method name="ReleaseName">
+      <arg type="s" name="name" direction="in" />
+      <arg type="u" name="result" direction="out" />
+    </method>
+    <method name="NameHasOwner">
+      <arg type="s" name="name" direction="in" key="1" />
+      <arg type="b" name="result" direction="out" />
+    </method>
+    <method name="ListNames" key="True">
+      <arg type="as" name="names" direction="out" />
+    </method>
+    <method name="ListActivatableNames" key="True">
+      <arg type="as" name="names" direction="out" />
+    </method>
+    <method name="AddMatch">
+      <arg type="s" name="rule" direction="in" />
+    </method>
+    <method name="RemoveMatch">
+      <arg type="s" name="rule" direction="in" />
+    </method>
+    <method name="GetNameOwner">
+      <arg type="s" name="name" direction="in" key="1" />
+      <arg type="s" name="unique_name" direction="out" />
+    </method>
+    <method name="ListQueuedOwners">
+      <arg type="s" name="name" direction="in" key="1" />
+      <arg type="as" name="unique_names" direction="out" />
+    </method>
+    <method name="GetConnectionUnixUser">
+      <annotation name="codegen.AsyncCaller" value="true" />
+      <arg type="s" name="name" direction="in" key="1" />
+      <arg type="u" name="uid" direction="out" />
+    </method>
+    <method name="GetConnectionUnixProcessID">
+      <arg type="s" name="name" direction="in" key="1" />
+      <arg type="u" name="pid" direction="out" />
+    </method>
+    <method name="GetId" key="True">
+      <arg type="s" name="bus_name" direction="out" />
+    </method>
+    <method name="StartServiceByName">
+        <arg type="s" name="name" direction="in" key="1" />
+        <arg type="u" name="flags" direction="in" />
+        <arg type="u" name="result" direction="out" />
+    </method>
+    <signal name="NameOwnerChanged">
+      <arg type="s" name="name" />
+      <arg type="s" name="new_owner" />
+      <arg type="s" name="old_owner" />
+    </signal>
+    <signal name="NameAcquired">
+      <arg type="s" name="name" />
+    </signal>
+    <signal name="NameLost">
+      <arg type="s" name="name" />
+    </signal>
+  </interface>
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <annotation name="codegen.Caller" value="false" />
+    <method name="Introspect">
+      <arg type="s" name="introspection" direction="out" key="1" />
+    </method>
+  </interface>
+  <interface name="org.freedesktop.DBus.Properties">
+    <annotation name="codegen.Name" value="DBusProperties" />
+    <method name="Get">
+      <annotation name="codegen.CustomOutputHandler" value="true" />
+      <arg type="s" name="interface_name" direction="in" key="1" />
+      <arg type="s" name="property_name" direction="in" key="2" />
+      <arg type="v" name="property_value" direction="out" />
+    </method>
+    <method name="Set">
+    <annotation name="codegen.CustomInputHandler" value="true" />
+      <arg type="s" name="interface_name" direction="in" />
+      <arg type="s" name="property_name" direction="in" />
+      <arg type="v" name="new_value" direction="in" />
+    </method>
+    <method name="GetAll">
+      <annotation name="codegen.CustomOutputHandler" value="true" />
+      <arg type="s" name="interface_name" direction="in" key="1" />
+      <arg type="a{sv}" name="properties" direction="out" />
+    </method>
+  </interface>
+</node>
