@@ -263,6 +263,12 @@ sss_ptr_hash_lookup_internal(hash_table_t *table,
         return NULL;
     }
 
+    /* This may happen if we are in delete callback
+     * and we try to search the hash table. */
+    if (table_value.ptr == NULL) {
+        return NULL;
+    }
+
     if (!sss_ptr_hash_check_type(table_value.ptr, "struct sss_ptr_hash_value")) {
         return NULL;
     }
@@ -280,6 +286,31 @@ void *_sss_ptr_hash_lookup(hash_table_t *table,
     if (value == NULL || value->ptr == NULL) {
         return NULL;
     }
+
+    if (!sss_ptr_hash_check_type(value->ptr, type)) {
+        return NULL;
+    }
+
+    return value->ptr;
+}
+
+void *_sss_ptr_get_value(hash_value_t *table_value,
+                         const char *type)
+{
+    struct sss_ptr_hash_value *value;
+
+    /* Check value type. */
+    if (table_value->type != HASH_VALUE_PTR) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid value type found: %d\n",
+              table_value->type);
+        return NULL;
+    }
+
+    if (!sss_ptr_hash_check_type(table_value->ptr, "struct sss_ptr_hash_value")) {
+        return NULL;
+    }
+
+    value = table_value->ptr;
 
     if (!sss_ptr_hash_check_type(value->ptr, type)) {
         return NULL;
