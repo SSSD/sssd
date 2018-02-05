@@ -213,6 +213,7 @@ BuildRequires: nss_wrapper
 BuildRequires: libnl3-devel
 %if (0%{?use_systemd} == 1)
 BuildRequires: systemd-devel
+BuildRequires: systemd
 %endif
 %if (0%{?with_cifs_utils_plugin} == 1)
 BuildRequires: cifs-utils-devel
@@ -263,9 +264,7 @@ Requires: libsss_autofs%{?_isa} = %{version}-%{release}
 Requires: libsss_idmap = %{version}-%{release}
 Conflicts: sssd < %{version}-%{release}
 %if (0%{?use_systemd} == 1)
-Requires(post): systemd-units systemd-sysv
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+%{?systemd_requires}
 %else
 Requires(post): initscripts chkconfig
 Requires(preun):  initscripts chkconfig
@@ -611,6 +610,7 @@ Summary: The D-Bus responder of the SSSD
 Group: Applications/System
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
+%{?systemd_requires}
 
 %description dbus
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
@@ -710,6 +710,7 @@ Summary: An implementation of a Kerberos KCM server
 Group:  Applications/System
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
+%{?systemd_requires}
 
 %description kcm
 An implementation of a Kerberos KCM server. Use this package if you want to
