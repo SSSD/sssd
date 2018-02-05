@@ -961,8 +961,7 @@ PyDoc_STRVAR(py_sss_encrypt__doc__,
 ":param method: The obfuscation method\n\n");
 
 static PyObject *py_sss_encrypt(PySssPasswordObject *self,
-                                PyObject *args,
-                                PyObject *kwds)
+                                PyObject *args)
 {
     char *password = NULL;
     int plen; /* may contain NULL bytes */
