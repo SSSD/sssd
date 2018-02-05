@@ -900,7 +900,7 @@ ipa_deskprofile_rules_save_rule_to_disk(
         goto done;
     }
 
-    fd = open(filename_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    fd = open(filename_path, O_WRONLY | O_CREAT | O_TRUNC, 0400);
     if (fd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
