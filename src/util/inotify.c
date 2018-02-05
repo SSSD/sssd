@@ -385,10 +385,10 @@ static errno_t copy_filenames(struct snotify_ctx *snctx,
                               const char *filename)
 {
     char *p;
-    char fcopy[PATH_MAX];
+    char fcopy[PATH_MAX + 1];
 
-    strncpy(fcopy, filename, sizeof(fcopy));
-    fcopy[PATH_MAX-1] = '\0';
+    strncpy(fcopy, filename, sizeof(fcopy) - 1);
+    fcopy[PATH_MAX] = '\0';
 
     p = dirname(fcopy);
     if (p == NULL) {
@@ -400,8 +400,8 @@ static errno_t copy_filenames(struct snotify_ctx *snctx,
         return ENOMEM;
     }
 
-    strncpy(fcopy, filename, sizeof(fcopy));
-    fcopy[PATH_MAX-1] = '\0';
+    strncpy(fcopy, filename, sizeof(fcopy) - 1);
+    fcopy[PATH_MAX] = '\0';
 
     p = basename(fcopy);
     if (p == NULL) {
