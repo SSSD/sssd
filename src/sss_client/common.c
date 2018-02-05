@@ -539,10 +539,14 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
     int ret;
     int sd;
 
+    if (sizeof(nssaddr.sun_path) <= strlen(socket_name) + 1) {
+        *errnop = EINVAL;
+        return -1;
+    }
+
     memset(&nssaddr, 0, sizeof(struct sockaddr_un));
     nssaddr.sun_family = AF_UNIX;
-    strncpy(nssaddr.sun_path, socket_name,
-            strlen(socket_name) + 1);
+    strncpy(nssaddr.sun_path, socket_name, sizeof(nssaddr.sun_path));
 
     sd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sd == -1) {
