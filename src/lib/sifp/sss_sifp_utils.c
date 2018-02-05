@@ -59,7 +59,7 @@ char * sss_sifp_strdup(sss_sifp_ctx *ctx, const char *str)
         return NULL;
     }
 
-    strncpy(result, str, str_len);
+    memcpy(result, str, str_len);
 
     return result;
 }
