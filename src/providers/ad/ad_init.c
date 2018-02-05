@@ -113,8 +113,8 @@ static int ad_sasl_log(void *context, int level, const char *message)
 }
 
 static const sasl_callback_t ad_sasl_callbacks[] = {
-    { SASL_CB_GETOPT, (sss_sasl_gen_cb_fn)ad_sasl_getopt, NULL },
-    { SASL_CB_LOG, (sss_sasl_gen_cb_fn)ad_sasl_log, NULL },
+    { SASL_CB_GETOPT, (sss_sasl_gen_cb_fn)(void *)ad_sasl_getopt, NULL },
+    { SASL_CB_LOG, (sss_sasl_gen_cb_fn)(void *)ad_sasl_log, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
 
