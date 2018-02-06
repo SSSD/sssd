@@ -272,8 +272,8 @@ int sss_get_seuser(const char *linuxuser,
     return getseuserbyname(linuxuser, selinuxuser, level);
 }
 
-int set_seuser(const char *login_name, const char *seuser_name,
-               const char *mls)
+int sss_set_seuser(const char *login_name, const char *seuser_name,
+                   const char *mls)
 {
     semanage_handle_t *handle = NULL;
     semanage_seuser_key_t *key = NULL;
@@ -346,7 +346,7 @@ done:
     return ret;
 }
 
-int del_seuser(const char *login_name)
+int sss_del_seuser(const char *login_name)
 {
     semanage_handle_t *handle = NULL;
     semanage_seuser_key_t *key = NULL;
@@ -426,13 +426,13 @@ done:
     return ret;
 }
 #else /* HAVE_SEMANAGE */
-int set_seuser(const char *login_name, const char *seuser_name,
-               const char *mls)
+int sss_set_seuser(const char *login_name, const char *seuser_name,
+                   const char *mls)
 {
     return EOK;
 }
 
-int del_seuser(const char *login_name)
+int sss_del_seuser(const char *login_name)
 {
     return EOK;
 }
