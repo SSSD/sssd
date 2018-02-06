@@ -157,9 +157,9 @@ static int sc_set_seuser(const char *login_name, const char *seuser_name,
          * default. We need to remove the SELinux user from the DB
          * in that case
          */
-        ret = del_seuser(login_name);
+        ret = sss_del_seuser(login_name);
     } else {
-        ret = set_seuser(login_name, seuser_name, mls);
+        ret = sss_set_seuser(login_name, seuser_name, mls);
     }
     umask(old_mask);
     return ret;

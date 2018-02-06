@@ -254,7 +254,7 @@ int main(int argc, const char **argv)
 
     /* Set SELinux login context - must be done after transaction is done
      * b/c libselinux calls getpwnam */
-    ret = del_seuser(tctx->octx->name);
+    ret = sss_del_seuser(tctx->octx->name);
     if (ret != EOK) {
         ERROR("Cannot reset SELinux login context\n");
         ret = EXIT_FAILURE;
