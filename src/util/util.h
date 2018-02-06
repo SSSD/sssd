@@ -651,9 +651,12 @@ errno_t restore_creds(struct sss_creds *saved_creds);
  * certain permissions. Therefore the caller should make sure the umask is
  * not too restricted (especially when called from the daemon code).
  */
-int set_seuser(const char *login_name, const char *seuser_name,
-               const char *mlsrange);
-int del_seuser(const char *login_name);
+int sss_set_seuser(const char *login_name, const char *seuser_name,
+                   const char *mlsrange);
+int sss_del_seuser(const char *login_name);
+int sss_get_seuser(const char *linuxuser,
+                   char **selinuxuser,
+                   char **level);
 
 /* convert time from generalized form to unix time */
 errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *unix_time);

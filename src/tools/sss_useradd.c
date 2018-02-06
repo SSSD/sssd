@@ -205,7 +205,7 @@ int main(int argc, const char **argv)
 
     /* Set SELinux login context - must be done after transaction is done
      * b/c libselinux calls getpwnam */
-    ret = set_seuser(tctx->octx->name, pc_selinux_user, NULL);
+    ret = sss_set_seuser(tctx->octx->name, pc_selinux_user, NULL);
     if (ret != EOK) {
         ERROR("Cannot set SELinux login context\n");
         ret = EXIT_FAILURE;
