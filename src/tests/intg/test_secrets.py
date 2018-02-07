@@ -369,7 +369,7 @@ def get_fds(pid):
 def setup_for_cli_timeout_test(request):
     """
     Same as the generic setup, except a short client_idle_timeout so that
-    the test_idle_timeout() test closes the fd towards the client.
+    the test_cli_idle_timeout() test closes the fd towards the client.
     """
     conf = generate_sec_config() + \
         unindent("""
@@ -380,7 +380,7 @@ def setup_for_cli_timeout_test(request):
     return create_sssd_secrets_fixture(request)
 
 
-def test_idle_timeout(setup_for_cli_timeout_test):
+def test_cli_idle_timeout(setup_for_cli_timeout_test):
     """
     Test that idle file descriptors are reaped after the idle timeout
     passes
