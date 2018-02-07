@@ -26,6 +26,7 @@ import subprocess
 import time
 import socket
 import pytest
+import psutil
 from requests import HTTPError
 
 from util import unindent
@@ -41,7 +42,7 @@ def create_conf_fixture(request, contents):
     request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
 
 
-def create_sssd_secrets_fixture(request):
+def create_sssd_secrets_fixture(request, teardown=True):
     if subprocess.call(['sssd', "--genconf"]) != 0:
         raise Exception("failed to regenerate confdb")
 
@@ -72,13 +73,21 @@ def create_sssd_secrets_fixture(request):
 
         assert os.path.exists(sock_path)
 
+    def unlink_secdb():
+        for secdb_file in os.listdir(config.SECDB_PATH):
+            os.unlink(config.SECDB_PATH + "/" + secdb_file)
+
     def sec_teardown():
+        if teardown is False:
+            unlink_secdb()
+            return
+
         if secpid == 0:
             return
 
         os.kill(secpid, signal.SIGTERM)
-        for secdb_file in os.listdir(config.SECDB_PATH):
-            os.unlink(config.SECDB_PATH + "/" + secdb_file)
+        unlink_secdb()
+
     request.addfinalizer(sec_teardown)
     return secpid
 
@@ -602,3 +611,72 @@ def test_unlimited_quotas(setup_for_unlimited_quotas, secrets_cli):
     for i in range(DEFAULT_CONTAINERS_NEST_LEVEL):
         container += "%s/" % str(i)
         cli.create_container(container)
+
+
+@pytest.fixture
+def setup_for_resp_timeout_test(request):
+    """
+    Same as the generic setup, except a short responder_idle_timeout
+    so that the test_responder_idle_timeout() test verifies that the
+    responder has been shot down.
+    """
+    conf = generate_sec_config() + \
+        unindent("""
+        responder_idle_timeout = 60
+        """).format()
+
+    create_conf_fixture(request, conf)
+    return create_sssd_secrets_fixture(request, False)
+
+
+def test_resp_idle_timeout_shutdown(setup_for_resp_timeout_test):
+    """
+    Test that the responder is shutdown after the respoder_idle_timeout is
+    over
+    """
+    secpid = setup_for_resp_timeout_test
+    p = psutil.Process(secpid)
+
+    # With the responder_idle_timeout set to 60 seconds, we need to wait at
+    # least 90, because the internal timer ticks every timeout/2 seconds, so
+    # so it would tick at 30, 60 and 90 seconds and the responder_idle_timeout
+    # uses a greater-than comparison, so the 60-seconds tick wouldn't yet
+    # trigger the process' shutdown.
+    p.wait(timeout=90)
+    assert p.is_running() is False
+
+
+def test_resp_idle_timeout_postpone_shutdown(setup_for_resp_timeout_test,
+                                             secrets_cli):
+    """
+    Test that the responder's shutdown is postponed in case an activity
+    happens, but it's still shutdown after the responder_idle_timeout is
+    over
+    """
+    cli = secrets_cli
+
+    secpid = setup_for_resp_timeout_test
+    p = psutil.Process(secpid)
+
+    # Wait for 65 seconds and then fire a request to the responder, so its
+    # last_request_time gets updated and the process doesn't get shutdown.
+    time.sleep(65)
+    cli.set_secret("foo", "bar")
+    try:
+        # Wait for the process to finish for more 25 seconds, which is the
+        # time it'd be shutdown in case the last_request_time is not updated.
+        p.wait(timeout=25)
+    except psutil.TimeoutExpired:
+        # In case the timeout expired, we're fine, it just means that the
+        # last_request_time has been updated properly.
+        pass
+
+    # Assert that the process is still running after the 60s idle timeout has
+    # expired but some activity happened (thus,the last_request_time has been
+    # updated).
+    assert p.is_running() is True
+
+    # Wait more 60s in order to be sure that the process actually is shutdown
+    # when it should be.
+    p.wait(timeout=60)
+    assert p.is_running() is False
