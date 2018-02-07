@@ -612,29 +612,7 @@ static void kcm_fd_handler(struct tevent_context *ev,
                            struct tevent_fd *fde,
                            uint16_t flags, void *ptr)
 {
-    errno_t ret;
-    struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
-
-    /* Always reset the responder idle timer on any activity */
-    cctx->rctx->last_request_time = time(NULL);
-
-    /* Always reset the idle timer on any activity */
-    ret = reset_client_idle_timer(cctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not create idle timer for client. "
-              "This connection may not auto-terminate\n");
-        /* Non-fatal, continue */
-    }
-
-    if (flags & TEVENT_FD_READ) {
-        kcm_recv(cctx);
-        return;
-    }
-    if (flags & TEVENT_FD_WRITE) {
-        kcm_send(cctx);
-        return;
-    }
+    sss_client_fd_handler(ptr, kcm_recv, kcm_send, flags);
 }
 
 int kcm_connection_setup(struct cli_ctx *cctx)
