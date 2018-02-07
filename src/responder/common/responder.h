@@ -197,6 +197,11 @@ typedef int (*connection_setup_t)(struct cli_ctx *cctx);
 
 int sss_connection_setup(struct cli_ctx *cctx);
 
+void sss_client_fd_handler(void *ptr,
+                           void (*recv_fn) (struct cli_ctx *cctx),
+                           void (*send_fn) (struct cli_ctx *cctx),
+                           uint16_t flags);
+
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
