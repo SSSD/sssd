@@ -302,7 +302,7 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     ret = ldb_search(sysdb->ldb, tmp_ctx, &res, container_dn, LDB_SCOPE_BASE,
                      config_attrs, SYSDB_CERTMAP_USER_NAME_HINT"=*");
     if (ret != LDB_SUCCESS || res->count != 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_TRACE_INTERNAL,
               "Failed to read certmap config, skipping.\n");
     } else {
         hint = ldb_msg_find_attr_as_bool(res->msgs[0],
