@@ -190,7 +190,7 @@ BuildRequires: libxml2
 BuildRequires: docbook-style-xsl
 BuildRequires: krb5-devel
 BuildRequires: c-ares-devel
-BuildRequires: python-devel
+BuildRequires: python2-devel
 %if (0%{?with_python3} == 1)
 BuildRequires: python3-devel
 %endif
@@ -479,8 +479,8 @@ License: GPLv3+
 Conflicts: sssd < %{version}-%{release}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
-Requires: bind-utils
 Requires: sssd-common-pac = %{version}-%{release}
+Requires: bind-utils
 
 %description ad
 Provides the Active Directory back end that the SSSD can utilize to fetch
