@@ -17,17 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import os
-import ent
-import grp
-import pwd
 import subprocess
-import pytest
 import stat
-import time
-import signal
-import ds_openldap
-import ldap_ent
+import pytest
+
 import config
+import ds_openldap
+import ent
+import ldap_ent
+import services
 from util import unindent
 import sssd_netgroup
 
@@ -78,33 +76,15 @@ def create_conf_fixture(request, contents):
     request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
 
 
-def stop_sssd():
-    pid_file = open(config.PIDFILE_PATH, "r")
-    pid = int(pid_file.read())
-    os.kill(pid, signal.SIGTERM)
-    while True:
-        try:
-            os.kill(pid, signal.SIGCONT)
-        except:
-            break
-        time.sleep(1)
-
-
 def create_sssd_fixture(request):
-    """Start sssd and add teardown for stopping it and removing state"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
-        raise Exception("sssd start failed")
+    """Start SSSD and add teardown for stopping it and removing its state"""
+    request.sssd = services.SSSD()
+    request.sssd.start()
 
-    def teardown():
-        try:
-            stop_sssd()
-        except:
-            pass
-        for path in os.listdir(config.DB_PATH):
-            os.unlink(config.DB_PATH + "/" + path)
-        for path in os.listdir(config.MCACHE_PATH):
-            os.unlink(config.MCACHE_PATH + "/" + path)
-    request.addfinalizer(teardown)
+    def cleanup_sssd_process():
+        request.sssd.stop()
+        request.sssd.clean_cache()
+    request.addfinalizer(cleanup_sssd_process)
 
 
 @pytest.fixture

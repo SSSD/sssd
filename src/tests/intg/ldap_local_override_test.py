@@ -18,16 +18,16 @@
 #
 import os
 import stat
-import ent
-import grp
 import pwd
-import config
-import signal
 import subprocess
 import time
 import pytest
+
+import config
+import ent
 import ds_openldap
 import ldap_ent
+import services
 import sssd_id
 from util import unindent
 
@@ -96,44 +96,15 @@ def create_conf_fixture(request, contents):
     request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
 
 
-def stop_sssd():
-    pid_file = open(config.PIDFILE_PATH, "r")
-    pid = int(pid_file.read())
-    os.kill(pid, signal.SIGTERM)
-    while True:
-        try:
-            os.kill(pid, signal.SIGCONT)
-        except:
-            break
-        time.sleep(1)
-
-
-def start_sssd():
-    """Start sssd"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
-        raise Exception("sssd start failed")
-
-
-def restart_sssd():
-    stop_sssd()
-    start_sssd()
-
-
 def create_sssd_fixture(request):
-    """Start sssd and add teardown for stopping it and removing state"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
-        raise Exception("sssd start failed")
+    """Start SSSD and add teardown for stopping it and removing its state"""
+    request.sssd = services.SSSD()
+    request.sssd.start()
 
-    def teardown():
-        try:
-            stop_sssd()
-        except:
-            pass
-        for path in os.listdir(config.DB_PATH):
-            os.unlink(config.DB_PATH + "/" + path)
-        for path in os.listdir(config.MCACHE_PATH):
-            os.unlink(config.MCACHE_PATH + "/" + path)
-    request.addfinalizer(teardown)
+    def cleanup_sssd_process():
+        request.sssd.stop()
+        request.sssd.clean_cache()
+    request.addfinalizer(cleanup_sssd_process)
 
 
 OVERRIDE_FILENAME = "export_file"
@@ -269,10 +240,13 @@ def env_two_users_and_group(request, ldap_conn):
     # Assert entries are not overriden
     assert_user_default()
 
+    return request.sssd
+
 
 @pytest.fixture
 def env_two_users_and_group_overriden(request, ldap_conn,
                                       env_two_users_and_group):
+    sssd = env_two_users_and_group
 
     # Override
     subprocess.check_call(["sss_override", "user-add", "user1",
@@ -292,10 +266,12 @@ def env_two_users_and_group_overriden(request, ldap_conn,
                            "-s", "/bin/ov_user2_shell"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
     # Assert entries are overriden
     assert_user_overriden()
+
+    return sssd
 
 
 #
@@ -305,6 +281,7 @@ def env_two_users_and_group_overriden(request, ldap_conn,
 
 @pytest.fixture
 def env_simple_user_override(request, ldap_conn, env_two_users_and_group):
+    sssd = env_two_users_and_group
 
     # Override
     subprocess.check_call(["sss_override", "user-add", "user1",
@@ -324,7 +301,7 @@ def env_simple_user_override(request, ldap_conn, env_two_users_and_group):
                            "-s", "/bin/ov_user2_shell"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
 
 def test_simple_user_override(ldap_conn, env_simple_user_override):
@@ -340,6 +317,7 @@ def test_simple_user_override(ldap_conn, env_simple_user_override):
 
 @pytest.fixture
 def env_root_user_override(request, ldap_conn, env_two_users_and_group):
+    sssd = env_two_users_and_group
 
     # Assert entries are not overriden
     ent.assert_passwd_by_name(
@@ -366,7 +344,7 @@ def env_root_user_override(request, ldap_conn, env_two_users_and_group):
                            "-s", "/bin/ov_user2_shell"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
 
 def test_root_user_override(ldap_conn, env_root_user_override):
@@ -430,7 +408,7 @@ def env_replace_user_override(request, ldap_conn):
                            "-s", "/bin/ov_user1_shell"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    request.sssd.restart()
 
     # Assert entries are overriden
     ent.assert_passwd_by_name(
@@ -450,7 +428,7 @@ def env_replace_user_override(request, ldap_conn):
                            "-s", "/bin/ov2_user1_shell"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    request.sssd.restart()
 
 
 def test_replace_user_override(ldap_conn, env_replace_user_override):
@@ -500,6 +478,7 @@ def test_remove_user_override(ldap_conn, env_remove_user_override):
 @pytest.fixture
 def env_imp_exp_user_override(request, ldap_conn,
                               env_two_users_and_group_overriden):
+    sssd = env_two_users_and_group_overriden
 
     # Export overrides
     subprocess.check_call(["sss_override", "user-export", OVERRIDE_FILENAME])
@@ -517,7 +496,7 @@ def env_imp_exp_user_override(request, ldap_conn,
     # Import overrides
     subprocess.check_call(["sss_override", "user-import",
                            OVERRIDE_FILENAME])
-    restart_sssd()
+    sssd.restart()
 
 
 def test_imp_exp_user_override(ldap_conn, env_imp_exp_user_override):
@@ -530,6 +509,7 @@ def test_imp_exp_user_override(ldap_conn, env_imp_exp_user_override):
 
 def test_imp_exp_user_overrride_noname(ldap_conn,
                                        env_two_users_and_group):
+    sssd = env_two_users_and_group
 
     # Override
     subprocess.check_call(["sss_override", "user-add", "user1",
@@ -547,7 +527,7 @@ def test_imp_exp_user_overrride_noname(ldap_conn,
                            "-s", "/bin/ov_user2_shell"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
     # Assert entries are overriden
     assert_user_overriden(override_name=False)
@@ -568,7 +548,7 @@ def test_imp_exp_user_overrride_noname(ldap_conn,
     # Import overrides
     subprocess.check_call(["sss_override", "user-import",
                            OVERRIDE_FILENAME])
-    restart_sssd()
+    sssd.restart()
 
     assert_user_overriden(override_name=False)
 
@@ -720,9 +700,12 @@ def env_group_basic(request, ldap_conn):
     with pytest.raises(KeyError):
         pwd.getpwnam('ov_empty_group@LDAP')
 
+    return request.sssd
+
 
 @pytest.fixture
 def env_group_override(request, ldap_conn, env_group_basic):
+    sssd = env_group_basic
 
     # Override
     subprocess.check_call(["sss_override", "group-add", "group",
@@ -734,10 +717,12 @@ def env_group_override(request, ldap_conn, env_group_basic):
                            "--gid", "3002"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
     # Assert entries are overridden
     assert_group_overriden()
+
+    return sssd
 
 
 #
@@ -747,6 +732,7 @@ def env_group_override(request, ldap_conn, env_group_basic):
 
 @pytest.fixture
 def env_simple_group_override(request, ldap_conn, env_group_basic):
+    sssd = env_group_basic
 
     # Override
     subprocess.check_call(["sss_override", "group-add", "group",
@@ -758,7 +744,7 @@ def env_simple_group_override(request, ldap_conn, env_group_basic):
                            "--gid", "3002"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
 
 def test_simple_group_override(ldap_conn, env_simple_group_override):
@@ -774,6 +760,7 @@ def test_simple_group_override(ldap_conn, env_simple_group_override):
 
 @pytest.fixture
 def env_root_group_override(request, ldap_conn, env_group_basic):
+    sssd = env_group_basic
 
     # Override
     subprocess.check_call(["sss_override", "group-add", "group",
@@ -785,7 +772,7 @@ def env_root_group_override(request, ldap_conn, env_group_basic):
                            "--gid", "0"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
 
 def test_root_group_override(ldap_conn, env_root_group_override):
@@ -811,6 +798,7 @@ def test_root_group_override(ldap_conn, env_root_group_override):
 
 @pytest.fixture
 def env_replace_group_override(request, ldap_conn, env_group_override):
+    sssd = env_group_override
 
     # Override of override
     subprocess.check_call(["sss_override", "group-add", "group",
@@ -822,7 +810,7 @@ def env_replace_group_override(request, ldap_conn, env_group_override):
                            "--gid", "4002"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
 
 def test_replace_group_override(ldap_conn, env_replace_group_override):
@@ -880,6 +868,7 @@ def test_remove_group_override(ldap_conn, env_remove_group_override):
 
 @pytest.fixture
 def env_imp_exp_group_override(request, ldap_conn, env_group_override):
+    sssd = env_group_override
 
     # Export overrides
     subprocess.check_call(["sss_override", "group-export",
@@ -897,7 +886,7 @@ def env_imp_exp_group_override(request, ldap_conn, env_group_override):
     # Import overrides
     subprocess.check_call(["sss_override", "group-import",
                            OVERRIDE_FILENAME])
-    restart_sssd()
+    sssd.restart()
 
 
 def test_imp_exp_group_override(ldap_conn, env_imp_exp_group_override):
@@ -909,6 +898,7 @@ def test_imp_exp_group_override(ldap_conn, env_imp_exp_group_override):
 
 
 def test_imp_exp_group_override_noname(ldap_conn, env_group_basic):
+    sssd = env_group_basic
 
     # Override - do not use -n here)
     subprocess.check_call(["sss_override", "group-add", "group",
@@ -918,7 +908,7 @@ def test_imp_exp_group_override_noname(ldap_conn, env_group_basic):
                            "--gid", "3002"])
 
     # Restart SSSD so the override might take effect
-    restart_sssd()
+    sssd.restart()
 
     # Assert entries are overridden
     assert_group_overriden(override_name=False)
@@ -939,7 +929,7 @@ def test_imp_exp_group_override_noname(ldap_conn, env_group_basic):
     # Import overrides
     subprocess.check_call(["sss_override", "group-import",
                            OVERRIDE_FILENAME])
-    restart_sssd()
+    sssd.restart()
 
     assert_group_overriden(override_name=False)
 
@@ -986,7 +976,7 @@ def env_regr_2757_override(request, ldap_conn):
     # Override
     subprocess.check_call(["sss_override", "user-add", "user1@LDAP",
                            "-n", "alias1"])
-    restart_sssd()
+    request.sssd.restart()
 
 
 def test_regr_2757_override(ldap_conn, env_regr_2757_override):
@@ -1041,7 +1031,7 @@ def env_regr_2790_override(request, ldap_conn):
     subprocess.check_call(["sss_override", "user-add", "user2",
                            "-n", "alias2"])
 
-    restart_sssd()
+    request.sssd.restart()
 
 
 def test_regr_2790_override(ldap_conn, env_regr_2790_override):
@@ -1096,7 +1086,7 @@ def env_mix_cased_name_override(request, ldap_conn):
                            "-h", "/home/ov/user2",
                            "-s", "/bin/ov_user2_shell"])
 
-    restart_sssd()
+    request.sssd.restart()
 
 
 def test_mix_cased_name_override(ldap_conn, env_mix_cased_name_override):
