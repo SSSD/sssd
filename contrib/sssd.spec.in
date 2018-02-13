@@ -968,7 +968,7 @@ done
 %if (0%{?with_secrets} == 1)
 %attr(700,root,root) %dir %{secdbpath}
 %endif
-%attr(755,sssd,sssd) %dir %{deskprofilepath}
+%attr(751,sssd,sssd) %dir %{deskprofilepath}
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/passwd
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/initgroups
