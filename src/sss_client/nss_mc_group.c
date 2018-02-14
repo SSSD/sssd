@@ -157,9 +157,7 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
         if (data->name < strs_offset
             || data->name >= strs_offset + data->strs_len
             || data->strs_len > rec->len
-            || (uint8_t *) rec + rec->len > gr_mc_ctx.data_table + data_size
-            || memchr(rec_name, '\0',
-                      (strs_offset + data->strs_len) - data->name) == NULL) {
+            || (uint8_t *) rec + rec->len > gr_mc_ctx.data_table + data_size) {
             ret = ENOENT;
             goto done;
         }
