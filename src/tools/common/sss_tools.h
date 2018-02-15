@@ -29,6 +29,7 @@
 struct sss_tool_ctx {
     struct confdb_ctx *confdb;
 
+    bool print_help;
     errno_t init_err;
     char *default_domain;
     struct sss_domain_info *domains;

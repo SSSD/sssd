@@ -58,11 +58,14 @@ static void sss_tool_common_opts(struct sss_tool_ctx *tool_ctx,
     poptContext pc;
     int debug = SSSDBG_DEFAULT;
     int orig_argc = *argc;
+    int help = 0;
     int opt;
 
     struct poptOption options[] = {
         {"debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_STRIP, &debug,
             0, _("The debug level to run with"), NULL },
+        {"help", '?', POPT_ARG_VAL | POPT_ARGFLAG_DOC_HIDDEN, &help,
+            1, NULL, NULL },
         POPT_TABLEEND
     };
 
@@ -74,6 +77,7 @@ static void sss_tool_common_opts(struct sss_tool_ctx *tool_ctx,
     /* Strip common options from arguments. We will discard_const here,
      * since it is not worth the trouble to convert it back and forth. */
     *argc = poptStrippedArgv(pc, orig_argc, discard_const_p(char *, argv));
+    tool_ctx->print_help = help;
 
     DEBUG_CLI_INIT(debug);
 
@@ -187,7 +191,6 @@ errno_t sss_tool_init(TALLOC_CTX *mem_ctx,
     }
 
     sss_tool_common_opts(tool_ctx, argc, argv);
-
     *_tool_ctx = tool_ctx;
 
     return EOK;
@@ -341,12 +344,14 @@ errno_t sss_tool_route(int argc, const char **argv,
                 return tool_ctx->init_err;
             }
 
-            ret = tool_cmd_init(tool_ctx, &commands[i]);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_FATAL_FAILURE,
-                      "Command initialization failed [%d] %s\n",
-                      ret, sss_strerror(ret));
-                return ret;
+            if (!tool_ctx->print_help) {
+                ret = tool_cmd_init(tool_ctx, &commands[i]);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_FATAL_FAILURE,
+                          "Command initialization failed [%d] %s\n",
+                          ret, sss_strerror(ret));
+                    return ret;
+                }
             }
 
             return commands[i].fn(&cmdline, tool_ctx, pvt);
