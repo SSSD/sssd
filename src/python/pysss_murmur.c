@@ -47,7 +47,7 @@ static PyObject * py_murmurhash3(PyObject *module, PyObject *args)
     }
 
     if (seed > UINT32_MAX || key_len > INT_MAX || key_len < 0 ||
-        (size_t)key_len > input_len) {
+        key_len > input_len) {
         PyErr_Format(PyExc_ValueError, "Invalid value\n");
         return NULL;
     }
