@@ -199,12 +199,28 @@ int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
     return iface_nss_memorycache_UpdateInitgroups_finish(sbus_req);
 }
 
+int nss_memorycache_invalidate_group_by_id(struct sbus_request *sbus_req,
+                                           void *data,
+                                           gid_t gid)
+{
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Invalidating group %"PRIu32" from memory cache\n", gid);
+
+    sss_mmap_cache_gr_invalidate_gid(nctx->grp_mc_ctx, gid);
+
+    return iface_nss_memorycache_InvalidateGroupById_finish(sbus_req);
+}
+
 struct iface_nss_memorycache iface_nss_memorycache = {
     { &iface_nss_memorycache_meta, 0 },
     .UpdateInitgroups = nss_memorycache_update_initgroups,
     .InvalidateAllUsers = nss_memorycache_invalidate_users,
     .InvalidateAllGroups = nss_memorycache_invalidate_groups,
     .InvalidateAllInitgroups = nss_memorycache_invalidate_initgroups,
+    .InvalidateGroupById = nss_memorycache_invalidate_group_by_id,
 };
 
 static struct sbus_iface_map iface_map[] = {

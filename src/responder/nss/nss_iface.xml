@@ -14,5 +14,8 @@
         </method>
         <method name="InvalidateAllInitgroups">
         </method>
+        <method name="InvalidateGroupById">
+            <arg name="gid" type="u" direction="in" />
+        </method>
     </interface>
 </node>
