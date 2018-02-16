@@ -1402,13 +1402,14 @@ ad_ldap_conn_list(TALLOC_CTX *mem_ctx,
 }
 
 struct sdap_id_conn_ctx **
-ad_user_conn_list(struct ad_id_ctx *ad_ctx,
+ad_user_conn_list(TALLOC_CTX *mem_ctx,
+                  struct ad_id_ctx *ad_ctx,
                   struct sss_domain_info *dom)
 {
     struct sdap_id_conn_ctx **clist;
     int cindex = 0;
 
-    clist = talloc_zero_array(ad_ctx, struct sdap_id_conn_ctx *, 3);
+    clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 3);
     if (clist == NULL) {
         return NULL;
     }
