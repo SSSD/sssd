@@ -367,7 +367,7 @@ get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
 
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
-        clist = ad_user_conn_list(ad_ctx, dom);
+        clist = ad_user_conn_list(mem_ctx, ad_ctx, dom);
         break;
     case BE_REQ_BY_SECID:   /* by SID */
     case BE_REQ_USER_AND_GROUP: /* get SID */
