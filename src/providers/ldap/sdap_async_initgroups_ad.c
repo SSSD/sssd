@@ -372,7 +372,6 @@ immediately:
 
 static void sdap_get_ad_tokengroups_done(struct tevent_req *subreq)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
     struct sdap_get_ad_tokengroups_state *state = NULL;
     struct tevent_req *req = NULL;
     struct sysdb_attrs **users = NULL;
@@ -386,7 +385,7 @@ static void sdap_get_ad_tokengroups_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_get_ad_tokengroups_state);
 
-    ret = sdap_get_generic_recv(subreq, tmp_ctx, &num_users, &users);
+    ret = sdap_get_generic_recv(subreq, state, &num_users, &users);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -449,8 +448,6 @@ static void sdap_get_ad_tokengroups_done(struct tevent_req *subreq)
     ret = EOK;
 
 done:
-    talloc_free(tmp_ctx);
-
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
