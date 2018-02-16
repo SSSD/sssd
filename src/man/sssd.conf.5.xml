@@ -2461,6 +2461,11 @@ pam_account_locked_message = Account locked, please contact help desk.
                             Default: <quote>id_provider</quote> is used if it
                             is set and can perform session related tasks.
                         </para>
+                        <para>
+                            <emphasis>NOTE:</emphasis> In order to have this feature
+                            working as expected SSSD must be running as "root" and
+                            not as the unprivileged user.
+                        </para>
                     </listitem>
                 </varlistentry>
 
