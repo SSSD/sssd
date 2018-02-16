@@ -12,6 +12,9 @@
 /* invokes a handler with a 'ssau' DBus signature */
 static int invoke_ssau_method(struct sbus_request *dbus_req, void *function_ptr);
 
+/* invokes a handler with a 'u' DBus signature */
+static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr);
+
 /* arguments for org.freedesktop.sssd.nss.MemoryCache.UpdateInitgroups */
 const struct sbus_arg_meta iface_nss_memorycache_UpdateInitgroups__in[] = {
     { "user", "s" },
@@ -39,6 +42,18 @@ int iface_nss_memorycache_InvalidateAllGroups_finish(struct sbus_request *req)
 }
 
 int iface_nss_memorycache_InvalidateAllInitgroups_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.nss.MemoryCache.InvalidateGroupById */
+const struct sbus_arg_meta iface_nss_memorycache_InvalidateGroupById__in[] = {
+    { "gid", "u" },
+    { NULL, }
+};
+
+int iface_nss_memorycache_InvalidateGroupById_finish(struct sbus_request *req)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_INVALID);
@@ -74,6 +89,13 @@ const struct sbus_method_meta iface_nss_memorycache__methods[] = {
         offsetof(struct iface_nss_memorycache, InvalidateAllInitgroups),
         NULL, /* no invoker */
     },
+    {
+        "InvalidateGroupById", /* name */
+        iface_nss_memorycache_InvalidateGroupById__in,
+        NULL, /* no out_args */
+        offsetof(struct iface_nss_memorycache, InvalidateGroupById),
+        invoke_u_method,
+    },
     { NULL, }
 };
 
@@ -85,6 +107,22 @@ const struct sbus_interface_meta iface_nss_memorycache_meta = {
     NULL, /* no properties */
     sbus_invoke_get_all, /* GetAll invoker */
 };
+
+/* invokes a handler with a 'u' DBus signature */
+static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint32_t arg_0;
+    int (*handler)(struct sbus_request *, void *, uint32_t) = function_ptr;
+
+    if (!sbus_request_parse_or_finish(dbus_req,
+                               DBUS_TYPE_UINT32, &arg_0,
+                               DBUS_TYPE_INVALID)) {
+         return EOK; /* request handled */
+    }
+
+    return (handler)(dbus_req, dbus_req->intf->handler_data,
+                     arg_0);
+}
 
 /* invokes a handler with a 'ssau' DBus signature */
 static int invoke_ssau_method(struct sbus_request *dbus_req, void *function_ptr)
