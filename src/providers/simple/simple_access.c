@@ -288,11 +288,36 @@ errno_t sssm_simple_access_init(TALLOC_CTX *mem_ctx,
                                 struct dp_method *dp_methods)
 {
     struct simple_ctx *ctx;
+    int ret;
+    int i;
+    char *simple_list_values = NULL;
+    const char *simple_access_lists[] = {CONFDB_SIMPLE_ALLOW_USERS,
+                                         CONFDB_SIMPLE_DENY_USERS,
+                                         CONFDB_SIMPLE_ALLOW_GROUPS,
+                                         CONFDB_SIMPLE_DENY_GROUPS,
+                                         NULL};
 
     ctx = talloc_zero(mem_ctx, struct simple_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed.\n");
         return ENOMEM;
+    }
+
+    for (i = 0; simple_access_lists[i] != NULL; i++) {
+        ret = confdb_get_string(be_ctx->cdb, mem_ctx, be_ctx->conf_path,
+                                simple_access_lists[i], NULL,
+                                &simple_list_values);
+
+        if (simple_list_values == NULL) {
+            continue;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "confdb_get_string failed.\n");
+            return ret;
+        }
+
+        DEBUG(SSSDBG_CONF_SETTINGS, "%s values: [%s]\n",
+                                     simple_access_lists[i],
+                                     simple_list_values);
     }
 
     ctx->domain = be_ctx->domain;
