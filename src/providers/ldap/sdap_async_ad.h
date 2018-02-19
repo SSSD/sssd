@@ -25,6 +25,7 @@
 #define SDAP_ASYNC_AD_H_
 
 errno_t sdap_ad_save_group_membership_with_idmapping(const char *username,
+                                               struct sdap_options *opts,
                                                struct sss_domain_info *user_dom,
                                                struct sdap_idmap_ctx *idmap_ctx,
                                                size_t num_sids,
