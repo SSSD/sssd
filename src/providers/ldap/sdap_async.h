@@ -412,4 +412,15 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
 errno_t
 sdap_ad_tokengroups_initgroups_recv(struct tevent_req *req);
 
+errno_t
+sdap_handle_id_collision_for_incomplete_groups(struct data_provider *dp,
+                                               struct sss_domain_info *domain,
+                                               const char *name,
+                                               gid_t gid,
+                                               const char *original_dn,
+                                               const char *sid_str,
+                                               const char *uuid,
+                                               bool posix,
+                                               time_t now);
+
 #endif /* _SDAP_ASYNC_H_ */
