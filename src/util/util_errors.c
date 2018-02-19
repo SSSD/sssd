@@ -118,6 +118,7 @@ struct err_string error_to_str[] = {
     { "GetAccountDomain() not supported" }, /* ERR_GET_ACCT_DOM_NOT_SUPPORTED */
     { "The last GetAccountDomain() result is still valid" }, /* ERR_GET_ACCT_DOM_CACHED */
     { "ID is outside the allowed range" }, /* ERR_ID_OUTSIDE_RANGE */
+    { "Group ID is duplicated" }, /* ERR_GID_DUPLICATED */
     { "ERR_LAST" } /* ERR_LAST */
 };
 
