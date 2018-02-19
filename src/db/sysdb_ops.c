@@ -2377,10 +2377,32 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx;
     int ret;
     struct sysdb_attrs *attrs;
+    struct ldb_message *msg;
+    const char *previous = NULL;
+    const char *group_attrs[] = { SYSDB_SID_STR, SYSDB_UUID, SYSDB_ORIG_DN, NULL };
+    const char *values[] = { sid_str, uuid, original_dn, NULL };
+    bool same = false;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
+    }
+
+    ret = sysdb_search_group_by_gid(tmp_ctx, domain, gid, group_attrs, &msg);
+    if (ret == EOK) {
+        for (int i = 0; !same && group_attrs[i] != NULL; i++) {
+            previous = ldb_msg_find_attr_as_string(msg,
+                                                   group_attrs[i],
+                                                   NULL);
+            if (previous != NULL && values[i] != NULL) {
+                same = strcmp(previous, values[i]) == 0;
+            }
+        }
+    }
+
+    if (same) {
+        ret = ERR_GID_DUPLICATED;
+        goto done;
     }
 
     /* try to add the group */
