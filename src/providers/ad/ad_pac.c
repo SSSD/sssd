@@ -434,6 +434,7 @@ struct ad_handle_pac_initgr_state {
     const char *err;
     int dp_error;
     int sdap_ret;
+    struct sdap_options *opts;
 
     size_t num_missing_sids;
     char **missing_sids;
@@ -471,6 +472,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
     state->user_dom = sdom->dom;
+    state->opts = id_ctx->opts;
 
     /* The following variables are currently unused because no sub-request
      * returns any of them. But they are needed to allow the same signature as
@@ -514,6 +516,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_ALL, "Running PAC processing with id-mapping.\n");
 
         ret = sdap_ad_save_group_membership_with_idmapping(state->username,
+                                                        state->opts,
                                                         sdom->dom,
                                                         id_ctx->opts->idmap_ctx,
                                                         num_sids, group_sids);

@@ -225,6 +225,19 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                 ret = sysdb_add_incomplete_group(domain, groupname, gid,
                                                  original_dn, sid_str,
                                                  uuid, posix, now);
+                if (ret == ERR_GID_DUPLICATED) {
+                    /* In case o group id-collision, do:
+                     * - Delete the group from sysdb
+                     * - Add the new incomplete group
+                     * - Notify the NSS responder that the entry has also to be
+                     *   removed from the memory cache
+                     */
+                    ret = sdap_handle_id_collision_for_incomplete_groups(
+                                            opts->dp, domain, groupname, gid,
+                                            original_dn, sid_str, uuid, posix,
+                                            now);
+                }
+
                 if (ret != EOK) {
                     goto done;
                 }
