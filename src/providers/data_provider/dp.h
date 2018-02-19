@@ -179,6 +179,8 @@ void dp_sbus_reset_groups_ncache(struct data_provider *provider,
 void dp_sbus_reset_users_memcache(struct data_provider *provider);
 void dp_sbus_reset_groups_memcache(struct data_provider *provider);
 void dp_sbus_reset_initgr_memcache(struct data_provider *provider);
+void dp_sbus_invalidate_group_memcache(struct data_provider *provider,
+                                       gid_t gid);
 
 /*
  * A dummy handler for DPM_ACCT_DOMAIN_HANDLER.

@@ -189,3 +189,48 @@ void dp_sbus_reset_initgr_memcache(struct data_provider *provider)
     return dp_sbus_reset_memcache(provider,
                           IFACE_NSS_MEMORYCACHE_INVALIDATEALLINITGROUPS);
 }
+
+void dp_sbus_invalidate_group_memcache(struct data_provider *provider,
+                                       gid_t gid)
+{
+    struct dp_client *dp_cli;
+    DBusMessage *msg;
+    dbus_bool_t dbret;
+
+    if (provider == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
+        return;
+    }
+
+    dp_cli = provider->clients[DPC_NSS];
+    if (dp_cli == NULL) {
+        return;
+    }
+
+    msg = dbus_message_new_method_call(NULL,
+                                       NSS_MEMORYCACHE_PATH,
+                                       IFACE_NSS_MEMORYCACHE,
+                                       IFACE_NSS_MEMORYCACHE_INVALIDATEGROUPBYID);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
+        return;
+    }
+
+    dbret = dbus_message_append_args(msg,
+                                     DBUS_TYPE_UINT32, &gid,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
+        dbus_message_unref(msg);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Ordering NSS responder to invalidate the group %"PRIu32" \n",
+          gid);
+
+    sbus_conn_send_reply(dp_client_conn(dp_cli), msg);
+    dbus_message_unref(msg);
+
+    return;
+}
