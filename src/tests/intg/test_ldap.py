@@ -94,10 +94,11 @@ def create_ldap_cleanup(request, ldap_conn, ent_list=None):
     request.addfinalizer(lambda: cleanup_ldap_entries(ldap_conn, ent_list))
 
 
-def create_ldap_fixture(request, ldap_conn, ent_list=None):
+def create_ldap_fixture(request, ldap_conn, ent_list=None, cleanup=True):
     """Add LDAP entries and add teardown for removing them"""
     create_ldap_entries(ldap_conn, ent_list)
-    create_ldap_cleanup(request, ldap_conn, ent_list)
+    if cleanup:
+        create_ldap_cleanup(request, ldap_conn, ent_list)
 
 
 SCHEMA_RFC2307 = "rfc2307"
@@ -1437,3 +1438,147 @@ def test_ldap_auto_private_groups_direct_no_gid(ldap_conn, mpg_setup_no_gid):
             ", ".join(["%s" % s for s in sorted(gids)]),
             ", ".join(["%s" % s for s in sorted(user1_expected_gids)])
         )
+
+
+def rename_setup_no_cleanup(request, ldap_conn, cleanup_ent=None):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_group_bis("user1_private", 2001)
+
+    ent_list.add_user("user2", 1002, 2002)
+    ent_list.add_group_bis("user2_private", 2002)
+
+    ent_list.add_group_bis("group1", 2015, ["user1", "user2"])
+
+    if cleanup_ent is None:
+        create_ldap_fixture(request, ldap_conn, ent_list)
+    else:
+        # Since the entries were renamed, we need to clean up
+        # the renamed entries..
+        create_ldap_fixture(request, ldap_conn, ent_list, cleanup=False)
+        create_ldap_cleanup(request, ldap_conn, None)
+
+
+@pytest.fixture
+def rename_setup_cleanup(request, ldap_conn):
+    cleanup_ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    cleanup_ent_list.add_user("user1", 1001, 2001)
+    cleanup_ent_list.add_group_bis("new_user1_private", 2001)
+
+    cleanup_ent_list.add_user("user2", 1002, 2002)
+    cleanup_ent_list.add_group_bis("new_user2_private", 2002)
+
+    cleanup_ent_list.add_group_bis("new_group1", 2015, ["user1", "user2"])
+
+    rename_setup_no_cleanup(request, ldap_conn, cleanup_ent_list)
+
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def rename_setup_with_name(request, ldap_conn):
+    rename_setup_no_cleanup(request, ldap_conn)
+
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
+        unindent("""
+            [nss]
+            [domain/LDAP]
+            ldap_group_name                = name
+            timeout = 3000
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_rename_incomplete_group_same_dn(ldap_conn, rename_setup_with_name):
+    """
+    Test that if a group's name attribute changes, but the DN stays the same,
+    the incomplete group object will be renamed.
+
+    Because the RDN attribute must be present in the entry, we add another
+    attribute "name" that is purposefully different from the CN and make
+    sure the group names are reflected in name
+
+    Regression test for https://pagure.io/SSSD/sssd/issue/3282
+    """
+    pvt_dn1 = 'cn=user1_private,ou=Groups,' + ldap_conn.ds_inst.base_dn
+    pvt_dn2 = 'cn=user2_private,ou=Groups,' + ldap_conn.ds_inst.base_dn
+    group1_dn = 'cn=group1,ou=Groups,' + ldap_conn.ds_inst.base_dn
+
+    # Add the name we want for both private and secondary group
+    old = {'name': []}
+    new = {'name': [b"user1_group1"]}
+    ldif = ldap.modlist.modifyModlist(old, new)
+    ldap_conn.modify_s(group1_dn, ldif)
+
+    new = {'name': [b"pvt_user1"]}
+    ldif = ldap.modlist.modifyModlist(old, new)
+    ldap_conn.modify_s(pvt_dn1, ldif)
+
+    new = {'name': [b"pvt_user2"]}
+    ldif = ldap.modlist.modifyModlist(old, new)
+    ldap_conn.modify_s(pvt_dn2, ldif)
+
+    # Make sure the old name shows up in the id output
+    (res, errno, grp_list) = sssd_id.get_user_groups("user1")
+    assert res == sssd_id.NssReturnCode.SUCCESS, \
+        "Could not find groups for user1, %d" % errno
+
+    assert sorted(grp_list) == sorted(["pvt_user1", "user1_group1"])
+
+    # Rename the group by changing the cn attribute, but keep the DN the same
+    old = {'name': [b"user1_group1"]}
+    new = {'name': [b"new_user1_group1"]}
+    ldif = ldap.modlist.modifyModlist(old, new)
+    ldap_conn.modify_s(group1_dn, ldif)
+
+    (res, errno, grp_list) = sssd_id.get_user_groups("user2")
+    assert res == sssd_id.NssReturnCode.SUCCESS, \
+        "Could not find groups for user2, %d" % errno
+
+    assert sorted(grp_list) == sorted(["pvt_user2", "new_user1_group1"])
+
+    (res, errno, grp_list) = sssd_id.get_user_groups("user1")
+    assert res == sssd_id.NssReturnCode.SUCCESS, \
+        "Could not find groups for user1, %d" % errno
+
+    assert sorted(grp_list) == sorted(["pvt_user1", "new_user1_group1"])
+
+
+def test_rename_incomplete_group_rdn_changed(ldap_conn, rename_setup_cleanup):
+    """
+    Test that if a group's name attribute changes, and the DN changes with
+    the RDN. Then adding the second group will fail because we can't tell if
+    there are two duplicate groups in LDAP when saving the group or if the
+    group was renamed.
+
+    Please note that with many directories (AD, IPA), the code can rely on
+    other heuristics (SID, UUID) to find out the group is in fact the same.
+
+    Regression test for https://pagure.io/SSSD/sssd/issue/3282
+    """
+    pvt_dn = 'cn=user1_private,ou=Groups,' + ldap_conn.ds_inst.base_dn
+    group1_dn = 'cn=group1,ou=Groups,' + ldap_conn.ds_inst.base_dn
+
+    # Make sure the old name shows up in the id output
+    (res, errno, grp_list) = sssd_id.get_user_groups("user1")
+    assert res == sssd_id.NssReturnCode.SUCCESS, \
+        "Could not find groups for user1, %d" % errno
+
+    assert sorted(grp_list) == sorted(["user1_private", "group1"])
+
+    # Rename the groups, changing the RDN
+    ldap_conn.rename_s(group1_dn, "cn=new_group1")
+    ldap_conn.rename_s(pvt_dn, "cn=new_user1_private")
+
+    (res, errno, grp_list) = sssd_id.get_user_groups("user2")
+    assert res == sssd_id.NssReturnCode.SUCCESS, \
+        "Could not find groups for user2, %d" % errno
+
+    # The initgroups succeeds, but because saving the new group fails,
+    # SSSD will revert to the cache contents and return what's in the cache
+    assert sorted(grp_list) == sorted(["user2_private", "group1"])
