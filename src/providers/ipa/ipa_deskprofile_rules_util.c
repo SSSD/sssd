@@ -1065,6 +1065,7 @@ done:
     if (getegid() != orig_gid) {
         ret = setegid(orig_gid);
         if (ret == -1) {
+            ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unable to set effective user id (%"PRIu32") of the "
                   "domain's process [%d]: %s\n",
