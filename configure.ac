@@ -459,7 +459,7 @@ AC_CACHE_CHECK(
              sss_cv_attribute_fallthrough_val="__attribute__ ((fallthrough))"
          ],[
              sss_cv_attribute_fallthrough=no
-             sss_cv_attribute_fallthrough_val=
+             sss_cv_attribute_fallthrough_val="((void)0)"
          ])
     ])
 CFLAGS=$SAFE_CFLAGS
