@@ -399,8 +399,6 @@ dist_noinst_DATA = \
     contrib/ci/distro.sh \
     contrib/ci/misc.sh \
     contrib/ci/sssd.supp \
-    src/tests/cmocka/p11_nssdb/cert9.db \
-    src/tests/cmocka/p11_nssdb/key4.db \
     $(NULL)
 
 ###############################
