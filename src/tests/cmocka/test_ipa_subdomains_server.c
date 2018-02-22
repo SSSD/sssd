@@ -420,7 +420,7 @@ static void assert_trust_object(struct ipa_ad_server_ctx *trust,
         assert_null(s);
     }
 
-    /* the system keytab is always used with two-way trusts */
+    /* both one-way and two-way trust uses specialized keytab */
     s = dp_opt_get_string(trust->ad_id_ctx->ad_options->id->basic,
                           SDAP_KRB5_KEYTAB);
     if (keytab != NULL) {
@@ -474,23 +474,22 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
         s_trust = test_ctx->ipa_ctx->server_mode->trusts->next;
         c_trust = test_ctx->ipa_ctx->server_mode->trusts;
     }
-    /* Two-way trusts should use the system realm */
     assert_trust_object(c_trust,
                         CHILD_NAME,
-                        DOM_REALM,
+                        CHILD_REALM,
                         CHILD_SID,
-                        NULL,
-                        TEST_AUTHID,
-                        DOM_REALM);
+                        ONEWAY_KEYTAB,
+                        ONEWAY_PRINC,
+                        SUBDOM_REALM);
 
 
     assert_trust_object(s_trust,
                         SUBDOM_NAME,
-                        DOM_REALM,
+                        SUBDOM_REALM,
                         SUBDOM_SID,
-                        NULL,
-                        TEST_AUTHID,
-                        DOM_REALM);
+                        ONEWAY_KEYTAB,
+                        ONEWAY_PRINC,
+                        SUBDOM_REALM);
 
     /* No more trust objects */
     assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next);
@@ -505,11 +504,11 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
 
     assert_trust_object(test_ctx->ipa_ctx->server_mode->trusts,
                         SUBDOM_NAME,
-                        DOM_REALM,
+                        SUBDOM_REALM,
                         SUBDOM_SID,
-                        NULL,
-                        TEST_AUTHID,
-                        DOM_REALM);
+                        ONEWAY_KEYTAB,
+                        ONEWAY_PRINC,
+                        SUBDOM_REALM);
     assert_null(test_ctx->ipa_ctx->server_mode->trusts->next);
 
     test_ev_done(test_ctx->tctx, EOK);
@@ -562,22 +561,21 @@ static void test_ipa_server_trust_init(void **state)
         c_trust = test_ctx->ipa_ctx->server_mode->trusts;
     }
 
-    /* Two-way trusts should use the system realm */
     assert_trust_object(c_trust,
                         CHILD_NAME,
-                        DOM_REALM,
+                        CHILD_REALM,
                         CHILD_SID,
-                        NULL,
-                        TEST_AUTHID,
-                        DOM_REALM);
+                        ONEWAY_KEYTAB,
+                        ONEWAY_PRINC,
+                        SUBDOM_REALM);
 
     assert_trust_object(s_trust,
                         SUBDOM_NAME,
-                        DOM_REALM,
+                        SUBDOM_REALM,
                         SUBDOM_SID,
-                        NULL,
-                        TEST_AUTHID,
-                        DOM_REALM);
+                        ONEWAY_KEYTAB,
+                        ONEWAY_PRINC,
+                        SUBDOM_REALM);
 
     /* No more trust objects */
     assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next);
