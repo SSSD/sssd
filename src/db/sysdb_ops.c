@@ -494,10 +494,17 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
     int ret;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UPN, SYSDB_CANONICAL_UPN,
                                 NULL };
+    char *sanitized;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, upn, &sanitized);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize failed.\n");
         goto done;
     }
 
@@ -509,7 +516,7 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
 
     ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
                      base_dn, LDB_SCOPE_SUBTREE, attrs ? attrs : def_attrs,
-                     SYSDB_PWUPN_FILTER, upn, upn);
+                     SYSDB_PWUPN_FILTER, sanitized, sanitized);
     if (ret != EOK) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -3662,12 +3669,11 @@ done:
     return ret;
 }
 
-static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
-                                   struct sss_domain_info *domain,
-                                   const char *filter_tmpl,
-                                   const char *str,
-                                   const char **attrs,
-                                   struct ldb_result **_res)
+static errno_t sysdb_search_object_attr(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        const char *filter,
+                                        const char **attrs,
+                                        struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
@@ -3691,9 +3697,9 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
-                     basedn, LDB_SCOPE_SUBTREE, attrs?attrs:def_attrs,
-                     filter_tmpl, str);
+    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, basedn,
+                     LDB_SCOPE_SUBTREE, attrs ? attrs : def_attrs,
+                     "%s", filter);
     if (ret != EOK) {
         ret = sysdb_error_to_errno(ret);
         DEBUG(SSSDBG_OP_FAILURE, "ldb_search failed.\n");
@@ -3701,9 +3707,9 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
     }
 
     if (res->count > 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Search for [%s]  with filter [%s] " \
-                                   "returned more than one object.\n",
-                                   str, filter_tmpl);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Search with filter [%s] returned more than one object.\n",
+              filter);
         ret = EINVAL;
         goto done;
     } else if (res->count == 0) {
@@ -3721,6 +3727,98 @@ done:
     }
 
     talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
+                                               struct sss_domain_info *domain,
+                                               const char *filter_tmpl,
+                                               const char *str,
+                                               const char **attrs,
+                                               struct ldb_result **_res)
+{
+    char *filter = NULL;
+    errno_t ret;
+    char *sanitized = NULL;
+
+    if (str == NULL) {
+        return EINVAL;
+    }
+
+    ret = sss_filter_sanitize(NULL, str, &sanitized);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize failed.\n");
+        goto done;
+    }
+
+    filter = talloc_asprintf(NULL, filter_tmpl, sanitized);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, _res);
+
+done:
+    talloc_free(sanitized);
+    talloc_free(filter);
+    return ret;
+}
+
+errno_t sysdb_search_object_by_id(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  uint32_t id,
+                                  const char **attrs,
+                                  struct ldb_result **res)
+{
+    char *filter;
+    errno_t ret;
+
+    filter = talloc_asprintf(NULL, SYSDB_ID_FILTER, id, id);
+    if (filter == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, res);
+
+    talloc_free(filter);
+    return ret;
+}
+
+errno_t sysdb_search_object_by_name(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *name,
+                                    const char **attrs,
+                                    struct ldb_result **res)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *filter;
+    char *sanitized_name;
+    char *sanitized_alias_name;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, name, domain, &sanitized_name,
+                                      &sanitized_alias_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, SYSDB_NAME_FILTER, sanitized_alias_name,
+                             sanitized_name);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, res);
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -3751,7 +3849,8 @@ errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
                                     struct ldb_result **res)
 {
     int ret;
-    char *user_filter;
+    char *user_filter = NULL;
+    char *filter = NULL;
 
     ret = sss_cert_derb64_to_ldap_filter(mem_ctx, cert, SYSDB_USER_CERT,
                                          &user_filter);
@@ -3760,10 +3859,15 @@ errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sysdb_search_object_by_str_attr(mem_ctx, domain,
-                                          SYSDB_USER_CERT_FILTER,
-                                          user_filter, attrs, res);
+    filter = talloc_asprintf(NULL, SYSDB_USER_CERT_FILTER, user_filter);
     talloc_free(user_filter);
+    if (filter == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_object_attr(mem_ctx, domain, filter, attrs, res);
+
+    talloc_free(filter);
 
     return ret;
 }

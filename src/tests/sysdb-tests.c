@@ -258,6 +258,26 @@ static struct test_data *test_data_new_user(struct sysdb_test_ctx *test_ctx,
     return data;
 }
 
+static struct test_data *test_data_new_group(struct sysdb_test_ctx *test_ctx,
+                                             gid_t gid)
+{
+    struct test_data *data;
+
+    data = test_data_new(test_ctx);
+    if (data == NULL) {
+        return NULL;
+    }
+
+    data->gid = gid;
+    data->groupname = talloc_asprintf(data, "testgroup%d", gid);
+    if (data->groupname == NULL) {
+        talloc_free(data);
+        return NULL;
+    }
+
+    return data;
+}
+
 static int test_add_user(struct test_data *data)
 {
     char *homedir;
@@ -5339,6 +5359,127 @@ START_TEST(test_sysdb_search_sid_str)
 }
 END_TEST
 
+START_TEST(test_sysdb_search_object_by_id)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_result *res;
+    struct test_data *data;
+    const uint32_t id = 23456;
+    uint32_t returned_id;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    /* test for missing entry */
+    ret = sysdb_search_object_by_id(test_ctx, test_ctx->domain, 111, NULL,
+                                    &res);
+    fail_unless(ret == ENOENT, "sysdb_search_object_by_name failed with "
+                               "[%d][%s].", ret, strerror(ret));
+
+    /* test user search */
+    data = test_data_new_user(test_ctx, id);
+    fail_if(data == NULL);
+
+    ret = test_add_user(data);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_id(test_ctx, test_ctx->domain, id, NULL,
+                                    &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_id failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_id = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
+    fail_unless(id == returned_id,
+                "Unexpected object found, expected UID [%"PRIu32"], "
+                "got [%"PRIu32"].", id, returned_id);
+    talloc_free(res);
+
+    ret = test_remove_user(data);
+    fail_unless(ret == EOK,
+                "test_remove_user failed with [%d][%s].", ret, strerror(ret));
+
+    /* test group search */
+    data = test_data_new_group(test_ctx, id);
+    fail_if(data == NULL);
+
+    ret = test_add_group(data);
+    fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_id(test_ctx, test_ctx->domain, id, NULL,
+                                    &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_id failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_id = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
+    fail_unless(id == returned_id,
+                "Unexpected object found, expected GID [%"PRIu32"], "
+                "got [%"PRIu32"].", id, returned_id);
+    talloc_free(res);
+
+    ret = test_remove_group(data);
+    fail_unless(ret == EOK,
+                "test_remove_group failed with [%d][%s].", ret, strerror(ret));
+
+    /* test for bad search filter bug #3283 */
+    data = test_data_new_group(test_ctx, id);
+    fail_if(data == NULL);
+
+    ret = test_add_group(data);
+    fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
+                ret, strerror(ret));
+
+    test_ctx->domain->mpg = false;
+    ret = sysdb_add_user(test_ctx->domain, "user1", 4001, id,
+                         "User 1", "/home/user1", "/bin/bash",
+                         NULL, NULL, 0, 0);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_add_user(test_ctx->domain, "user2", 4002, id,
+                         "User 2", "/home/user2", "/bin/bash",
+                         NULL, NULL, 0, 0);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_id(test_ctx, test_ctx->domain, id, NULL,
+                                    &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_id failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_id = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
+    fail_unless(id == returned_id,
+                "Unexpected object found, expected GID [%"PRIu32"], "
+                "got [%"PRIu32"].", id, returned_id);
+    talloc_free(res);
+
+    data->uid = 4001;
+    ret = test_remove_user_by_uid(data);
+    fail_unless(ret == EOK);
+
+    data->uid = 4002;
+    ret = test_remove_user_by_uid(data);
+    fail_unless(ret == EOK);
+
+    ret = test_remove_group(data);
+    fail_unless(ret == EOK);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_sysdb_search_object_by_uuid)
 {
     errno_t ret;
@@ -5383,6 +5524,119 @@ START_TEST(test_sysdb_search_object_by_uuid)
                       "UUIDuser") == 0, "Unexpected object found, " \
                       "expected [%s], got [%s].", "UUIDuser",
                       ldb_msg_find_attr_as_string(res->msgs[0],SYSDB_NAME, ""));
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_search_object_by_name)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_result *res;
+    struct test_data *data;
+    const char *user_name = "John Doe";
+    const char *group_name = "Domain Users";
+    const char *lc_group_name = "domain users";
+    const char *returned_name;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    /* test for missing entry */
+    ret = sysdb_search_object_by_name(test_ctx, test_ctx->domain,
+                                      "nonexisting_name", NULL, &res);
+    fail_unless(ret == ENOENT, "sysdb_search_object_by_name failed with "
+                               "[%d][%s].", ret, strerror(ret));
+
+    /* test user search */
+    data = test_data_new_user(test_ctx, 23456);
+    fail_if(data == NULL);
+
+    data->username = user_name;
+
+    ret = test_add_user(data);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_name(test_ctx, test_ctx->domain,
+                                      user_name, NULL, &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_name failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, ""),
+    fail_unless(strcmp(returned_name, data->username) == 0,
+                "Unexpected object found, expected [%s], got [%s].",
+                user_name, returned_name);
+    talloc_free(res);
+
+    ret = test_remove_user(data);
+    fail_unless(ret == EOK,
+                "test_remove_user failed with [%d][%s].", ret, strerror(ret));
+
+    /* test group search */
+    data = test_data_new_group(test_ctx, 23456);
+    fail_if(data == NULL);
+
+    data->groupname = group_name;
+
+    ret = test_add_group(data);
+    fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_name(test_ctx, test_ctx->domain,
+                                      group_name, NULL, &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_name failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, ""),
+    fail_unless(strcmp(returned_name, data->groupname) == 0,
+                "Unexpected object found, expected [%s], got [%s].",
+                group_name, returned_name);
+    talloc_free(res);
+
+    ret = test_remove_group(data);
+    fail_unless(ret == EOK,
+                "test_remove_group failed with [%d][%s].", ret, strerror(ret));
+
+    /* test case insensitive search */
+    data = test_data_new_group(test_ctx, 23456);
+    fail_if(data == NULL);
+
+    data->groupname = group_name;
+    test_ctx->domain->case_sensitive = false;
+
+    data->attrs = sysdb_new_attrs(test_ctx);
+    fail_if(data->attrs == NULL);
+
+    ret = sysdb_attrs_add_lc_name_alias(data->attrs, group_name);
+    fail_unless(ret == EOK);
+
+    ret = test_add_group(data);
+    fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_name(test_ctx, test_ctx->domain,
+                                      lc_group_name, NULL, &res);
+    fail_unless(ret == EOK,
+                "sysdb_search_object_by_name failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, "
+                                 "expected [%u], get [%u].", 1, res->count);
+
+    returned_name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, ""),
+    fail_unless(strcmp(returned_name, data->groupname) == 0,
+                "Unexpected object found, expected [%s], got [%s].",
+                group_name, returned_name);
+
+    talloc_free(res);
+
     talloc_free(test_ctx);
 }
 END_TEST
@@ -6012,6 +6266,13 @@ START_TEST(test_upn_basic)
     fail_unless(strcmp(str, UPN_PRINC) == 0,
                 "Expected [%s], got [%s].", UPN_PRINC, str);
 
+    /* check if input is sanitized */
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   "abc@def.ghi)(name="UPN_USER_NAME")(abc=xyz",
+                                   NULL, &msg);
+    fail_unless(ret == ENOENT,
+                "sysdb_search_user_by_upn failed with un-sanitized input.");
+
     talloc_free(test_ctx);
 }
 END_TEST
@@ -6624,8 +6885,14 @@ Suite *create_sysdb_suite(void)
     /* Test SID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_sid_str);
 
+    /* Test object by ID searches */
+    tcase_add_test(tc_sysdb, test_sysdb_search_object_by_id);
+
     /* Test UUID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_object_by_uuid);
+
+    /* Test object by name */
+    tcase_add_test(tc_sysdb, test_sysdb_search_object_by_name);
 
     /* Test user by certificate searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_user_by_cert);
