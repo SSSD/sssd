@@ -4483,6 +4483,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
                 if (dom) continue;
             }
 
+
             DEBUG(SSSDBG_OP_FAILURE, "No results for initgroups call\n");
 
             return ENOENT;
