@@ -853,7 +853,7 @@ errno_t sssm_ipa_selinux_init(TALLOC_CTX *mem_ctx,
                               void *module_data,
                               struct dp_method *dp_methods)
 {
-#if defined HAVE_SELINUX && defined HAVE_SELINUX_LOGIN_DIR
+#if defined HAVE_SELINUX
     struct ipa_selinux_ctx *selinux_ctx;
     struct ipa_init_ctx *init_ctx;
     struct ipa_options *opts;

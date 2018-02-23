@@ -377,7 +377,6 @@ AM_PYTHON2_MODULE([ldap])
 
 if test x$HAVE_SELINUX != x; then
     AM_CHECK_SELINUX
-    AM_CHECK_SELINUX_LOGIN_DIR
 fi
 
 if test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x; then
