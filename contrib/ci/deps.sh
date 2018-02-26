@@ -129,6 +129,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         krb5-admin-server
         krb5-user
         uuid-dev
+        dbus
         python-dbus
     )
     DEPS_INTGCHECK_SATISFIED=true
