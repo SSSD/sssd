@@ -879,7 +879,7 @@ errno_t sssm_ipa_selinux_init(TALLOC_CTX *mem_ctx,
     return EOK;
 #else
     DEBUG(SSSDBG_MINOR_FAILURE, "SELinux init handler called but SSSD is "
-                                "built without SSH support, ignoring\n");
+                                "built without SELinux support, ignoring\n");
     return EOK;
 #endif
 }
