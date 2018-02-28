@@ -100,6 +100,91 @@ static char *get_key_id_str(PK11SlotInfo *slot, CERTCertificate *cert)
     return key_id_str;
 }
 
+int init_verification(struct cert_verify_opts *cert_verify_opts,
+                      CERTCertDBHandle **_hnd)
+{
+    SECStatus rv;
+    CERTCertDBHandle *handle;
+
+    handle = CERT_GetDefaultCertDB();
+    if (handle == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_GetDefaultCertDB failed: [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
+        return EIO;
+    }
+
+    if (cert_verify_opts->do_ocsp) {
+        rv = CERT_EnableOCSPChecking(handle);
+        if (rv != SECSuccess) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "CERT_EnableOCSPChecking failed: [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
+            return EIO;
+        }
+
+        if (cert_verify_opts->ocsp_default_responder != NULL
+            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL) {
+            rv = CERT_SetOCSPDefaultResponder(handle,
+                         cert_verify_opts->ocsp_default_responder,
+                         cert_verify_opts->ocsp_default_responder_signing_cert);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "CERT_SetOCSPDefaultResponder failed: [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
+                return EIO;
+            }
+
+            rv = CERT_EnableOCSPDefaultResponder(handle);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "CERT_EnableOCSPDefaultResponder failed: [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
+                return EIO;
+            }
+        }
+    }
+
+    *_hnd = handle;
+    return 0;
+}
+
+void shutdown_verification(CERTCertDBHandle *handle,
+                           struct cert_verify_opts *cert_verify_opts)
+{
+    SECStatus rv;
+
+    /* Disable OCSP default responder so that NSS can shutdown properly */
+    if (cert_verify_opts->do_ocsp
+            && cert_verify_opts->ocsp_default_responder != NULL
+            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL) {
+        rv = CERT_DisableOCSPDefaultResponder(handle);
+        if (rv != SECSuccess) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "CERT_DisableOCSPDefaultResponder failed: [%d][%s].\n",
+                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
+        }
+    }
+}
+
+bool do_verification(CERTCertDBHandle *handle, CERTCertificate *cert)
+{
+    SECStatus rv;
+    SECCertificateUsage returned_usage = 0;
+
+    rv = CERT_VerifyCertificateNow(handle, cert, PR_TRUE,
+                                   certificateUsageCheckAllUsages,
+                                   NULL, &returned_usage);
+    if (rv != SECSuccess || ((returned_usage & EXP_USAGES) == 0)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Certificate [%s][%s] not valid [%d][%s].\n",
+              cert->nickname, cert->subjectName,
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
+        return false;
+    }
+
+    return true;
+}
+
 int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
             enum op_mode mode, const char *pin,
             struct cert_verify_opts *cert_verify_opts,
@@ -145,7 +230,6 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
     char *cert_b64 = NULL;
     char *multi = NULL;
     PRCList *node;
-    SECCertificateUsage returned_usage = 0;
 
     nss_ctx = NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters, flags);
     if (nss_ctx == NULL) {
@@ -274,42 +358,10 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         }
     }
 
-    handle = CERT_GetDefaultCertDB();
-    if (handle == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_GetDefaultCertDB failed: [%d][%s].\n",
-              PR_GetError(), PORT_ErrorToString(PR_GetError()));
-        return EIO;
-    }
-
-    if (cert_verify_opts->do_ocsp) {
-        rv = CERT_EnableOCSPChecking(handle);
-        if (rv != SECSuccess) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "CERT_EnableOCSPChecking failed: [%d][%s].\n",
-                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
-            return EIO;
-        }
-
-        if (cert_verify_opts->ocsp_default_responder != NULL
-            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL) {
-            rv = CERT_SetOCSPDefaultResponder(handle,
-                         cert_verify_opts->ocsp_default_responder,
-                         cert_verify_opts->ocsp_default_responder_signing_cert);
-            if (rv != SECSuccess) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "CERT_SetOCSPDefaultResponder failed: [%d][%s].\n",
-                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
-                return EIO;
-            }
-
-            rv = CERT_EnableOCSPDefaultResponder(handle);
-            if (rv != SECSuccess) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "CERT_EnableOCSPDefaultResponder failed: [%d][%s].\n",
-                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
-                return EIO;
-            }
-        }
+    ret = init_verification(cert_verify_opts, &handle);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "init_verification failed.\n");
+        return ret;
     }
 
     found_cert = NULL;
@@ -336,16 +388,11 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
               cert_list_node->cert->subjectName);
 
         if (cert_verify_opts->do_verification) {
-            rv = CERT_VerifyCertificateNow(handle, cert_list_node->cert,
-                                           PR_TRUE,
-                                           certificateUsageCheckAllUsages,
-                                           NULL, &returned_usage);
-            if (rv != SECSuccess || ((returned_usage & EXP_USAGES) == 0)) {
+            if (!do_verification(handle, cert_list_node->cert)) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "Certificate [%s][%s] not valid [%d][%s], skipping.\n",
+                      "Certificate [%s][%s] not valid, skipping.\n",
                       cert_list_node->cert->nickname,
-                      cert_list_node->cert->subjectName,
-                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
+                      cert_list_node->cert->subjectName);
                 continue;
             }
         }
@@ -392,17 +439,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db,
         }
     }
 
-    /* Disable OCSP default responder so that NSS can shutdown properly */
-    if (cert_verify_opts->do_ocsp
-            && cert_verify_opts->ocsp_default_responder != NULL
-            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL) {
-        rv = CERT_DisableOCSPDefaultResponder(handle);
-        if (rv != SECSuccess) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "CERT_DisableOCSPDefaultResponder failed: [%d][%s].\n",
-                  PR_GetError(), PORT_ErrorToString(PR_GetError()));
-        }
-    }
+    shutdown_verification(handle, cert_verify_opts);
 
     if (CERT_LIST_EMPTY(valid_certs)) {
         DEBUG(SSSDBG_TRACE_ALL, "No certificate found.\n");
