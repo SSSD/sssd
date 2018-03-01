@@ -39,7 +39,11 @@ sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict)
     }
 
     if (doc != NULL) {
+#ifdef IS_PY3K
+        docobj = PyUnicode_FromString(doc);
+#else
         docobj = PyString_FromString(doc);
+#endif
         if (docobj == NULL)
             goto failure;
         result = PyDict_SetItemString(dict, "__doc__", docobj);
