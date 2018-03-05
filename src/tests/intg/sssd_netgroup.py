@@ -209,9 +209,12 @@ class NetgroupRetriever(object):
 
             if result_p[0].type == NetgroupType.TRIPLE_VAL:
                 triple = result_p[0].val.triple
-                result.append((triple.host.decode('utf-8'),
-                               triple.user.decode('utf-8'),
-                               triple.domain.decode('utf-8')))
+                result.append((triple.host and triple.host.decode('utf-8')
+                               or "",
+                               triple.user and triple.user.decode('utf-8')
+                               or "",
+                               triple.domain and triple.domain.decode('utf-8')
+                               or ""))
 
             res, errno, result_p = self._getnetgrent_r(result_p, buff,
                                                        buff_len)

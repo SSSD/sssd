@@ -106,6 +106,8 @@ def format_basic_conf(ldap_conn, schema):
         services            = nss
         disable_netlink     = true
 
+        [nss]
+
         [domain/LDAP]
         {schema_conf}
         id_provider         = ldap
@@ -222,6 +224,14 @@ def add_tripled_netgroup(request, ldap_conn):
     ent_list.add_netgroup("adv_tripled_netgroup", ["(host1,user1,domain1)",
                                                    "(host2,user2,domain2)"])
 
+    ent_list.add_netgroup("tripled_netgroup_no_domain", ["(host,user,)"])
+
+    ent_list.add_netgroup("tripled_netgroup_no_user", ["(host,,domain)"])
+
+    ent_list.add_netgroup("tripled_netgroup_no_host", ["(,user,domain)"])
+
+    ent_list.add_netgroup("tripled_netgroup_none", ["(,,)"])
+
     create_ldap_fixture(request, ldap_conn, ent_list)
     conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
     create_conf_fixture(request, conf)
@@ -242,6 +252,22 @@ def test_add_tripled_netgroup(add_tripled_netgroup):
     assert res == sssd_netgroup.NssReturnCode.SUCCESS
     assert sorted(netgrps) == sorted([("host1", "user1", "domain1"),
                                       ("host2", "user2", "domain2")])
+
+    res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup_no_domain")
+    assert res == sssd_netgroup.NssReturnCode.SUCCESS
+    assert netgrps == [("host", "user", "")]
+
+    res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup_no_user")
+    assert res == sssd_netgroup.NssReturnCode.SUCCESS
+    assert netgrps == [("host", "", "domain")]
+
+    res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup_no_host")
+    assert res == sssd_netgroup.NssReturnCode.SUCCESS
+    assert netgrps == [("", "user", "domain")]
+
+    res, _, netgrps = sssd_netgroup.get_sssd_netgroups("tripled_netgroup_none")
+    assert res == sssd_netgroup.NssReturnCode.SUCCESS
+    assert netgrps == [("", "", "")]
 
 
 @pytest.fixture
