@@ -98,7 +98,7 @@
         </para>
         <para>
             For LDAP-based providers, the resolve operation is performed
-            as part of an LDAP connection operation. Thefore, also the
+            as part of an LDAP connection operation. Therefore, also the
             <quote>ldap_opt_timeout></quote> timeout should be set to
             a larger value than <quote>dns_resolver_timeout</quote>
             which in turn should be set to a larger value than

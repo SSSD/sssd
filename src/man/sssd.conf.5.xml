@@ -579,7 +579,7 @@
                                 qualified input (while trying to reach a user
                                 which exists in multiple domains) might
                                 re-route the login attempt into the domain
-                                which users shortnames, making this workaround
+                                which uses shortnames, making this workaround
                                 totally not recommended in cases where
                                 usernames may overlap between domains.
                             </para>
