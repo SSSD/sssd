@@ -26,6 +26,7 @@ usage(){
     echo -e "\t-d, --debug        Enable debugging."
     echo -e "\t-c, --clean        Remove directory rpmbuild and exit."
     echo -e "\t-P, --patches      Requires list of patches for SRPM."
+    echo -e "\t-o, --output       Moves the created srpm to a specific output directory."
     echo -e "\t-h, --help         Print this help and exit."
     echo -e "\t-?, --usage"
 
@@ -84,6 +85,11 @@ case $i in
     -P|--patches)
     shift
     patches=("$@")
+    break
+    ;;
+    -o|--output)
+    shift
+    OUTPUT=("$@")
     break
     ;;
     -h|--help|-\?|--usage)
@@ -164,3 +170,8 @@ add_patches "$RPMBUILD/SPECS/$PACKAGE_NAME.spec" \
 cd $RPMBUILD
 rpmbuild --define "_topdir $RPMBUILD" \
          -bs SPECS/$PACKAGE_NAME.spec
+
+if [ -n "$OUTPUT" ]; then
+    mv "$RPMBUILD/SRPMS/"*.src.rpm "$OUTPUT/"
+    echo "Package has been moved to the folder: $OUTPUT"
+fi
