@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2017-10-20 16:16+0200\n"
+"POT-Creation-Date: 2018-03-09 12:31+0100\n"
 "PO-Revision-Date: 2014-12-14 11:50-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Chinese (Taiwan) (http://www.transifex.com/projects/p/sssd/"
@@ -492,12 +492,12 @@ msgid "Whether to automatically update the client's DNS entry"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:184
-#: src/config/SSSDConfig/__init__.py.in:205
+#: src/config/SSSDConfig/__init__.py.in:206
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:185
-#: src/config/SSSDConfig/__init__.py.in:206
+#: src/config/SSSDConfig/__init__.py.in:207
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 
@@ -541,1114 +541,1127 @@ msgstr ""
 msgid "How long can cached credentials be used for cached authentication"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:200
+#: src/config/SSSDConfig/__init__.py.in:198
+msgid "Whether to automatically create private groups for users"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:201
 msgid "IPA domain"
 msgstr "IPA 網域"
 
-#: src/config/SSSDConfig/__init__.py.in:201
+#: src/config/SSSDConfig/__init__.py.in:202
 msgid "IPA server address"
 msgstr "IPA 伺服器位址"
 
-#: src/config/SSSDConfig/__init__.py.in:202
+#: src/config/SSSDConfig/__init__.py.in:203
 msgid "Address of backup IPA server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:203
+#: src/config/SSSDConfig/__init__.py.in:204
 msgid "IPA client hostname"
 msgstr "IPA 客戶端主機名稱"
 
-#: src/config/SSSDConfig/__init__.py.in:204
+#: src/config/SSSDConfig/__init__.py.in:205
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:207
+#: src/config/SSSDConfig/__init__.py.in:208
 msgid "Search base for HBAC related objects"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:208
+#: src/config/SSSDConfig/__init__.py.in:209
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:209
+#: src/config/SSSDConfig/__init__.py.in:210
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:210
+#: src/config/SSSDConfig/__init__.py.in:211
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:211
+#: src/config/SSSDConfig/__init__.py.in:212
 msgid "The automounter location this IPA client is using"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:212
+#: src/config/SSSDConfig/__init__.py.in:213
 msgid "Search base for object containing info about IPA domain"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:213
+#: src/config/SSSDConfig/__init__.py.in:214
 msgid "Search base for objects containing info about ID ranges"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:214
-#: src/config/SSSDConfig/__init__.py.in:232
+#: src/config/SSSDConfig/__init__.py.in:215
+#: src/config/SSSDConfig/__init__.py.in:233
 msgid "Enable DNS sites - location based service discovery"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:215
+#: src/config/SSSDConfig/__init__.py.in:216
 msgid "Search base for view containers"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:216
+#: src/config/SSSDConfig/__init__.py.in:217
 msgid "Objectclass for view containers"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:217
+#: src/config/SSSDConfig/__init__.py.in:218
 msgid "Attribute with the name of the view"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:218
+#: src/config/SSSDConfig/__init__.py.in:219
 msgid "Objectclass for override objects"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:219
+#: src/config/SSSDConfig/__init__.py.in:220
 msgid "Attribute with the reference to the original object"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:220
+#: src/config/SSSDConfig/__init__.py.in:221
 msgid "Objectclass for user override objects"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:221
+#: src/config/SSSDConfig/__init__.py.in:222
 msgid "Objectclass for group override objects"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:222
+#: src/config/SSSDConfig/__init__.py.in:223
 msgid "Search base for Desktop Profile related objects"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:223
+#: src/config/SSSDConfig/__init__.py.in:224
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:224
+#: src/config/SSSDConfig/__init__.py.in:225
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:227
+#: src/config/SSSDConfig/__init__.py.in:228
 msgid "Active Directory domain"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:228
+#: src/config/SSSDConfig/__init__.py.in:229
 msgid "Enabled Active Directory domains"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:229
+#: src/config/SSSDConfig/__init__.py.in:230
 msgid "Active Directory server address"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:230
+#: src/config/SSSDConfig/__init__.py.in:231
 msgid "Active Directory backup server address"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:231
+#: src/config/SSSDConfig/__init__.py.in:232
 msgid "Active Directory client hostname"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:233
-#: src/config/SSSDConfig/__init__.py.in:419
+#: src/config/SSSDConfig/__init__.py.in:234
+#: src/config/SSSDConfig/__init__.py.in:420
 msgid "LDAP filter to determine access privileges"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:234
+#: src/config/SSSDConfig/__init__.py.in:235
 msgid "Whether to use the Global Catalog for lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:235
+#: src/config/SSSDConfig/__init__.py.in:236
 msgid "Operation mode for GPO-based access control"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:236
+#: src/config/SSSDConfig/__init__.py.in:237
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:237
+#: src/config/SSSDConfig/__init__.py.in:238
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:238
+#: src/config/SSSDConfig/__init__.py.in:239
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:239
+#: src/config/SSSDConfig/__init__.py.in:240
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:240
+#: src/config/SSSDConfig/__init__.py.in:241
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:241
+#: src/config/SSSDConfig/__init__.py.in:242
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:242
+#: src/config/SSSDConfig/__init__.py.in:243
 msgid "PAM service names for which GPO-based access is always granted"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:243
+#: src/config/SSSDConfig/__init__.py.in:244
 msgid "PAM service names for which GPO-based access is always denied"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:244
+#: src/config/SSSDConfig/__init__.py.in:245
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:245
+#: src/config/SSSDConfig/__init__.py.in:246
 msgid "a particular site to be used by the client"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:246
+#: src/config/SSSDConfig/__init__.py.in:247
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:247
+#: src/config/SSSDConfig/__init__.py.in:248
 msgid "Option for tuning the machine account renewal task"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:250
 #: src/config/SSSDConfig/__init__.py.in:251
+#: src/config/SSSDConfig/__init__.py.in:252
 msgid "Kerberos server address"
 msgstr "Kerberos 伺服器位址"
 
-#: src/config/SSSDConfig/__init__.py.in:252
+#: src/config/SSSDConfig/__init__.py.in:253
 msgid "Kerberos backup server address"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:253
+#: src/config/SSSDConfig/__init__.py.in:254
 msgid "Kerberos realm"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:254
+#: src/config/SSSDConfig/__init__.py.in:255
 msgid "Authentication timeout"
 msgstr "認證逾時"
 
-#: src/config/SSSDConfig/__init__.py.in:255
+#: src/config/SSSDConfig/__init__.py.in:256
 msgid "Whether to create kdcinfo files"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:256
+#: src/config/SSSDConfig/__init__.py.in:257
 msgid "Where to drop krb5 config snippets"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:259
+#: src/config/SSSDConfig/__init__.py.in:260
 msgid "Directory to store credential caches"
 msgstr "儲存憑證快取的目錄"
 
-#: src/config/SSSDConfig/__init__.py.in:260
+#: src/config/SSSDConfig/__init__.py.in:261
 msgid "Location of the user's credential cache"
 msgstr "使用者憑證快取的位置"
 
-#: src/config/SSSDConfig/__init__.py.in:261
+#: src/config/SSSDConfig/__init__.py.in:262
 msgid "Location of the keytab to validate credentials"
 msgstr "驗證憑證用的金鑰表格位置"
 
-#: src/config/SSSDConfig/__init__.py.in:262
+#: src/config/SSSDConfig/__init__.py.in:263
 msgid "Enable credential validation"
 msgstr "啟用憑證驗證"
 
-#: src/config/SSSDConfig/__init__.py.in:263
+#: src/config/SSSDConfig/__init__.py.in:264
 msgid "Store password if offline for later online authentication"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:264
+#: src/config/SSSDConfig/__init__.py.in:265
 msgid "Renewable lifetime of the TGT"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:265
+#: src/config/SSSDConfig/__init__.py.in:266
 msgid "Lifetime of the TGT"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:266
+#: src/config/SSSDConfig/__init__.py.in:267
 msgid "Time between two checks for renewal"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:267
+#: src/config/SSSDConfig/__init__.py.in:268
 msgid "Enables FAST"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:268
+#: src/config/SSSDConfig/__init__.py.in:269
 msgid "Selects the principal to use for FAST"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:269
+#: src/config/SSSDConfig/__init__.py.in:270
 msgid "Enables principal canonicalization"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:270
+#: src/config/SSSDConfig/__init__.py.in:271
 msgid "Enables enterprise principals"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:271
-msgid "A mapping from user names to kerberos principal names"
+#: src/config/SSSDConfig/__init__.py.in:272
+msgid "A mapping from user names to Kerberos principal names"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:274
 #: src/config/SSSDConfig/__init__.py.in:275
+#: src/config/SSSDConfig/__init__.py.in:276
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:278
+#: src/config/SSSDConfig/__init__.py.in:279
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:279
+#: src/config/SSSDConfig/__init__.py.in:280
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:280
+#: src/config/SSSDConfig/__init__.py.in:281
 msgid "The default base DN"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:281
+#: src/config/SSSDConfig/__init__.py.in:282
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:282
+#: src/config/SSSDConfig/__init__.py.in:283
 msgid "The default bind DN"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:283
+#: src/config/SSSDConfig/__init__.py.in:284
 msgid "The type of the authentication token of the default bind DN"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:284
+#: src/config/SSSDConfig/__init__.py.in:285
 msgid "The authentication token of the default bind DN"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:285
+#: src/config/SSSDConfig/__init__.py.in:286
 msgid "Length of time to attempt connection"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:286
+#: src/config/SSSDConfig/__init__.py.in:287
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:287
+#: src/config/SSSDConfig/__init__.py.in:288
 msgid "Length of time between attempts to reconnect while offline"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:288
+#: src/config/SSSDConfig/__init__.py.in:289
 msgid "Use only the upper case for realm names"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:289
+#: src/config/SSSDConfig/__init__.py.in:290
 msgid "File that contains CA certificates"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:290
+#: src/config/SSSDConfig/__init__.py.in:291
 msgid "Path to CA certificate directory"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:291
+#: src/config/SSSDConfig/__init__.py.in:292
 msgid "File that contains the client certificate"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:292
+#: src/config/SSSDConfig/__init__.py.in:293
 msgid "File that contains the client key"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:293
+#: src/config/SSSDConfig/__init__.py.in:294
 msgid "List of possible ciphers suites"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:294
+#: src/config/SSSDConfig/__init__.py.in:295
 msgid "Require TLS certificate verification"
 msgstr "需要 TLS 憑證驗證"
 
-#: src/config/SSSDConfig/__init__.py.in:295
+#: src/config/SSSDConfig/__init__.py.in:296
 msgid "Specify the sasl mechanism to use"
 msgstr "指定要使用的 sasl 機制"
 
-#: src/config/SSSDConfig/__init__.py.in:296
+#: src/config/SSSDConfig/__init__.py.in:297
 msgid "Specify the sasl authorization id to use"
 msgstr "指定要使用的 sasl 認證 id"
 
-#: src/config/SSSDConfig/__init__.py.in:297
+#: src/config/SSSDConfig/__init__.py.in:298
 msgid "Specify the sasl authorization realm to use"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:298
+#: src/config/SSSDConfig/__init__.py.in:299
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:299
+#: src/config/SSSDConfig/__init__.py.in:300
 msgid "Kerberos service keytab"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:300
+#: src/config/SSSDConfig/__init__.py.in:301
 msgid "Use Kerberos auth for LDAP connection"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:301
+#: src/config/SSSDConfig/__init__.py.in:302
 msgid "Follow LDAP referrals"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:302
+#: src/config/SSSDConfig/__init__.py.in:303
 msgid "Lifetime of TGT for LDAP connection"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:303
+#: src/config/SSSDConfig/__init__.py.in:304
 msgid "How to dereference aliases"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:304
+#: src/config/SSSDConfig/__init__.py.in:305
 msgid "Service name for DNS service lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:305
+#: src/config/SSSDConfig/__init__.py.in:306
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:306
+#: src/config/SSSDConfig/__init__.py.in:307
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:307
+#: src/config/SSSDConfig/__init__.py.in:308
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:309
+#: src/config/SSSDConfig/__init__.py.in:310
 msgid "entryUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:310
+#: src/config/SSSDConfig/__init__.py.in:311
 msgid "lastUSN attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:312
+#: src/config/SSSDConfig/__init__.py.in:313
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:315
 msgid "Disable the LDAP paging control"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:315
+#: src/config/SSSDConfig/__init__.py.in:316
 msgid "Disable Active Directory range retrieval"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:318
+#: src/config/SSSDConfig/__init__.py.in:319
 msgid "Length of time to wait for a search request"
 msgstr "搜尋請求的等候時間長度"
 
-#: src/config/SSSDConfig/__init__.py.in:319
+#: src/config/SSSDConfig/__init__.py.in:320
 msgid "Length of time to wait for a enumeration request"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:320
+#: src/config/SSSDConfig/__init__.py.in:321
 msgid "Length of time between enumeration updates"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:321
+#: src/config/SSSDConfig/__init__.py.in:322
 msgid "Length of time between cache cleanups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:322
+#: src/config/SSSDConfig/__init__.py.in:323
 msgid "Require TLS for ID lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:323
+#: src/config/SSSDConfig/__init__.py.in:324
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:324
+#: src/config/SSSDConfig/__init__.py.in:325
 msgid "Base DN for user lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:325
+#: src/config/SSSDConfig/__init__.py.in:326
 msgid "Scope of user lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:326
+#: src/config/SSSDConfig/__init__.py.in:327
 msgid "Filter for user lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:327
+#: src/config/SSSDConfig/__init__.py.in:328
 msgid "Objectclass for users"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:328
+#: src/config/SSSDConfig/__init__.py.in:329
 msgid "Username attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:330
+#: src/config/SSSDConfig/__init__.py.in:331
 msgid "UID attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:331
+#: src/config/SSSDConfig/__init__.py.in:332
 msgid "Primary GID attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:332
+#: src/config/SSSDConfig/__init__.py.in:333
 msgid "GECOS attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:333
+#: src/config/SSSDConfig/__init__.py.in:334
 msgid "Home directory attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:334
+#: src/config/SSSDConfig/__init__.py.in:335
 msgid "Shell attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:335
+#: src/config/SSSDConfig/__init__.py.in:336
 msgid "UUID attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:336
-#: src/config/SSSDConfig/__init__.py.in:378
+#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:379
 msgid "objectSID attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:338
 msgid "Active Directory primary group attribute for ID-mapping"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:338
+#: src/config/SSSDConfig/__init__.py.in:339
 msgid "User principal attribute (for Kerberos)"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:340
 msgid "Full Name"
 msgstr "全名"
 
-#: src/config/SSSDConfig/__init__.py.in:340
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "memberOf attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:341
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Modification time attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:344
 msgid "shadowLastChange attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "shadowMin attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:345
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid "shadowMax attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:347
 msgid "shadowWarning attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:347
+#: src/config/SSSDConfig/__init__.py.in:348
 msgid "shadowInactive attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:348
+#: src/config/SSSDConfig/__init__.py.in:349
 msgid "shadowExpire attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:349
+#: src/config/SSSDConfig/__init__.py.in:350
 msgid "shadowFlag attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:350
+#: src/config/SSSDConfig/__init__.py.in:351
 msgid "Attribute listing authorized PAM services"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:351
+#: src/config/SSSDConfig/__init__.py.in:352
 msgid "Attribute listing authorized server hosts"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:352
+#: src/config/SSSDConfig/__init__.py.in:353
 msgid "Attribute listing authorized server rhosts"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:353
+#: src/config/SSSDConfig/__init__.py.in:354
 msgid "krbLastPwdChange attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:354
+#: src/config/SSSDConfig/__init__.py.in:355
 msgid "krbPasswordExpiration attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:355
+#: src/config/SSSDConfig/__init__.py.in:356
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:356
+#: src/config/SSSDConfig/__init__.py.in:357
 msgid "accountExpires attribute of AD"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:357
+#: src/config/SSSDConfig/__init__.py.in:358
 msgid "userAccountControl attribute of AD"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:358
+#: src/config/SSSDConfig/__init__.py.in:359
 msgid "nsAccountLock attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:359
+#: src/config/SSSDConfig/__init__.py.in:360
 msgid "loginDisabled attribute of NDS"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:360
+#: src/config/SSSDConfig/__init__.py.in:361
 msgid "loginExpirationTime attribute of NDS"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:361
+#: src/config/SSSDConfig/__init__.py.in:362
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:362
+#: src/config/SSSDConfig/__init__.py.in:363
 msgid "SSH public key attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:363
+#: src/config/SSSDConfig/__init__.py.in:364
 msgid "attribute listing allowed authentication types for a user"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:364
+#: src/config/SSSDConfig/__init__.py.in:365
 msgid "attribute containing the X509 certificate of the user"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:365
+#: src/config/SSSDConfig/__init__.py.in:366
 msgid "attribute containing the email address of the user"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:367
+#: src/config/SSSDConfig/__init__.py.in:368
 msgid "A list of extra attributes to download along with the user entry"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:369
+#: src/config/SSSDConfig/__init__.py.in:370
 msgid "Base DN for group lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:372
+#: src/config/SSSDConfig/__init__.py.in:373
 msgid "Objectclass for groups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:373
+#: src/config/SSSDConfig/__init__.py.in:374
 msgid "Group name"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:374
+#: src/config/SSSDConfig/__init__.py.in:375
 msgid "Group password"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:375
+#: src/config/SSSDConfig/__init__.py.in:376
 msgid "GID attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:376
+#: src/config/SSSDConfig/__init__.py.in:377
 msgid "Group member attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:377
+#: src/config/SSSDConfig/__init__.py.in:378
 msgid "Group UUID attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:379
+#: src/config/SSSDConfig/__init__.py.in:380
 msgid "Modification time attribute for groups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:380
+#: src/config/SSSDConfig/__init__.py.in:381
 msgid "Type of the group and other flags"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:381
+#: src/config/SSSDConfig/__init__.py.in:382
 msgid "The LDAP group external member attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:383
-msgid "Maximum nesting level SSSd will follow"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:385
-msgid "Base DN for netgroup lookups"
+#: src/config/SSSDConfig/__init__.py.in:384
+msgid "Maximum nesting level SSSD will follow"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:386
-msgid "Objectclass for netgroups"
+msgid "Base DN for netgroup lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:387
-msgid "Netgroup name"
+msgid "Objectclass for netgroups"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:388
-msgid "Netgroups members attribute"
+msgid "Netgroup name"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:389
-msgid "Netgroup triple attribute"
+msgid "Netgroups members attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:390
+msgid "Netgroup triple attribute"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:391
 msgid "Modification time attribute for netgroups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:392
+#: src/config/SSSDConfig/__init__.py.in:393
 msgid "Base DN for service lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:393
+#: src/config/SSSDConfig/__init__.py.in:394
 msgid "Objectclass for services"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:394
+#: src/config/SSSDConfig/__init__.py.in:395
 msgid "Service name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:395
+#: src/config/SSSDConfig/__init__.py.in:396
 msgid "Service port attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:396
+#: src/config/SSSDConfig/__init__.py.in:397
 msgid "Service protocol attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:399
+#: src/config/SSSDConfig/__init__.py.in:400
 msgid "Lower bound for ID-mapping"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:400
+#: src/config/SSSDConfig/__init__.py.in:401
 msgid "Upper bound for ID-mapping"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:401
+#: src/config/SSSDConfig/__init__.py.in:402
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:402
+#: src/config/SSSDConfig/__init__.py.in:403
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:403
+#: src/config/SSSDConfig/__init__.py.in:404
 msgid "Name of the default domain for ID-mapping"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:404
+#: src/config/SSSDConfig/__init__.py.in:405
 msgid "SID of the default domain for ID-mapping"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:405
+#: src/config/SSSDConfig/__init__.py.in:406
 msgid "Number of secondary slices"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:407
+#: src/config/SSSDConfig/__init__.py.in:408
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:408
+#: src/config/SSSDConfig/__init__.py.in:409
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:409
+#: src/config/SSSDConfig/__init__.py.in:410
 msgid "Whether to use Token-Groups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:410
+#: src/config/SSSDConfig/__init__.py.in:411
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:411
+#: src/config/SSSDConfig/__init__.py.in:412
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:412
+#: src/config/SSSDConfig/__init__.py.in:413
 msgid "DN for ppolicy queries"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:413
+#: src/config/SSSDConfig/__init__.py.in:414
 msgid "How many maximum entries to fetch during a wildcard request"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:416
+#: src/config/SSSDConfig/__init__.py.in:417
 msgid "Policy to evaluate the password expiration"
 msgstr "評估密碼過期時效的策略"
 
-#: src/config/SSSDConfig/__init__.py.in:420
+#: src/config/SSSDConfig/__init__.py.in:421
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:421
+#: src/config/SSSDConfig/__init__.py.in:422
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:424
+#: src/config/SSSDConfig/__init__.py.in:425
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:425
+#: src/config/SSSDConfig/__init__.py.in:426
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:426
+#: src/config/SSSDConfig/__init__.py.in:427
 msgid "DNS service name for LDAP password change server"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:427
+#: src/config/SSSDConfig/__init__.py.in:428
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:430
+#: src/config/SSSDConfig/__init__.py.in:431
 msgid "Base DN for sudo rules lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:431
+#: src/config/SSSDConfig/__init__.py.in:432
 msgid "Automatic full refresh period"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:432
+#: src/config/SSSDConfig/__init__.py.in:433
 msgid "Automatic smart refresh period"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:433
+#: src/config/SSSDConfig/__init__.py.in:434
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:434
+#: src/config/SSSDConfig/__init__.py.in:435
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:435
+#: src/config/SSSDConfig/__init__.py.in:436
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:436
+#: src/config/SSSDConfig/__init__.py.in:437
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:437
+#: src/config/SSSDConfig/__init__.py.in:438
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:438
+#: src/config/SSSDConfig/__init__.py.in:439
 msgid "Object class for sudo rules"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:439
+#: src/config/SSSDConfig/__init__.py.in:440
 msgid "Sudo rule name"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:440
+#: src/config/SSSDConfig/__init__.py.in:441
 msgid "Sudo rule command attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:441
+#: src/config/SSSDConfig/__init__.py.in:442
 msgid "Sudo rule host attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:442
+#: src/config/SSSDConfig/__init__.py.in:443
 msgid "Sudo rule user attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:443
+#: src/config/SSSDConfig/__init__.py.in:444
 msgid "Sudo rule option attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:444
+#: src/config/SSSDConfig/__init__.py.in:445
 msgid "Sudo rule runas attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:445
+#: src/config/SSSDConfig/__init__.py.in:446
 msgid "Sudo rule runasuser attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:446
+#: src/config/SSSDConfig/__init__.py.in:447
 msgid "Sudo rule runasgroup attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:447
+#: src/config/SSSDConfig/__init__.py.in:448
 msgid "Sudo rule notbefore attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:448
+#: src/config/SSSDConfig/__init__.py.in:449
 msgid "Sudo rule notafter attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:449
+#: src/config/SSSDConfig/__init__.py.in:450
 msgid "Sudo rule order attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:452
+#: src/config/SSSDConfig/__init__.py.in:453
 msgid "Object class for automounter maps"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:453
+#: src/config/SSSDConfig/__init__.py.in:454
 msgid "Automounter map name attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:454
+#: src/config/SSSDConfig/__init__.py.in:455
 msgid "Object class for automounter map entries"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:455
+#: src/config/SSSDConfig/__init__.py.in:456
 msgid "Automounter map entry key attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:456
+#: src/config/SSSDConfig/__init__.py.in:457
 msgid "Automounter map entry value attribute"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:457
+#: src/config/SSSDConfig/__init__.py.in:458
 msgid "Base DN for automounter map lookups"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:460
+#: src/config/SSSDConfig/__init__.py.in:461
 msgid "Comma separated list of allowed users"
 msgstr "許可的使用者清單，請使用半形逗號作為分隔"
 
-#: src/config/SSSDConfig/__init__.py.in:461
+#: src/config/SSSDConfig/__init__.py.in:462
 msgid "Comma separated list of prohibited users"
 msgstr "被禁止的使用者清單，請使用半形逗號作為分隔"
 
-#: src/config/SSSDConfig/__init__.py.in:464
+#: src/config/SSSDConfig/__init__.py.in:465
 msgid "Default shell, /bin/bash"
 msgstr "預設 shell，/bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:465
+#: src/config/SSSDConfig/__init__.py.in:466
 msgid "Base for home directories"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:468
+#: src/config/SSSDConfig/__init__.py.in:469
 msgid "The number of preforked proxy children."
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:471
+#: src/config/SSSDConfig/__init__.py.in:472
 msgid "The name of the NSS library to use"
 msgstr "要使用的 NSS 函式庫名稱"
 
-#: src/config/SSSDConfig/__init__.py.in:472
+#: src/config/SSSDConfig/__init__.py.in:473
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:475
+#: src/config/SSSDConfig/__init__.py.in:476
 msgid "PAM stack to use"
 msgstr "要使用的 PAM 堆疊"
 
-#: src/monitor/monitor.c:2469
+#: src/monitor/monitor.c:2449
 msgid "Become a daemon (default)"
 msgstr "作為幕後程式 (預設)"
 
-#: src/monitor/monitor.c:2471
+#: src/monitor/monitor.c:2451
 msgid "Run interactive (not a daemon)"
 msgstr "以互動方式執行 (非幕後程式)"
 
-#: src/monitor/monitor.c:2474
+#: src/monitor/monitor.c:2454
 msgid "Disable netlink interface"
 msgstr ""
 
-#: src/monitor/monitor.c:2476 src/tools/sssctl/sssctl_logs.c:311
+#: src/monitor/monitor.c:2456 src/tools/sssctl/sssctl_logs.c:311
 msgid "Specify a non-default config file"
 msgstr "指定非預設的配置檔"
 
-#: src/monitor/monitor.c:2478
+#: src/monitor/monitor.c:2458
 msgid "Refresh the configuration database, then exit"
 msgstr ""
 
-#: src/monitor/monitor.c:2481
+#: src/monitor/monitor.c:2461
 msgid "Print version number and exit"
 msgstr ""
 
-#: src/monitor/monitor.c:2645
+#: src/monitor/monitor.c:2627
 msgid "SSSD is already running\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3032 src/providers/ldap/ldap_child.c:616
+#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:617
 msgid "Debug level"
 msgstr "除錯層級"
 
-#: src/providers/krb5/krb5_child.c:3034 src/providers/ldap/ldap_child.c:618
+#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:619
 msgid "Add debug timestamps"
 msgstr "加入除錯時間戳記"
 
-#: src/providers/krb5/krb5_child.c:3036 src/providers/ldap/ldap_child.c:620
+#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:621
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3038 src/providers/ldap/ldap_child.c:622
+#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:623
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3041 src/providers/ldap/ldap_child.c:624
+#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:625
 msgid "Send the debug output to stderr directly."
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3043
+#: src/providers/krb5/krb5_child.c:3228
 msgid "The user to create FAST ccache as"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3045
+#: src/providers/krb5/krb5_child.c:3230
 msgid "The group to create FAST ccache as"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3047
+#: src/providers/krb5/krb5_child.c:3232
 msgid "Kerberos realm to use"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3049
+#: src/providers/krb5/krb5_child.c:3234
 msgid "Requested lifetime of the ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3051
+#: src/providers/krb5/krb5_child.c:3236
 msgid "Requested renewable lifetime of the ticket"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3053
+#: src/providers/krb5/krb5_child.c:3238
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3056
+#: src/providers/krb5/krb5_child.c:3241
 msgid "Specifies the server principal to use for FAST"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3058
+#: src/providers/krb5/krb5_child.c:3243
 msgid "Requests canonicalization of the principal name"
 msgstr ""
 
-#: src/providers/data_provider_be.c:553
+#: src/providers/krb5/krb5_child.c:3245
+msgid "Use custom version of krb5_get_init_creds_password"
+msgstr ""
+
+#: src/providers/data_provider_be.c:555
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: src/sss_client/common.c:1061
+#: src/sss_client/common.c:1066
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:1064
+#: src/sss_client/common.c:1069
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: src/sss_client/common.c:1067
+#: src/sss_client/common.c:1072
 msgid "Unexpected format of the server credential message."
 msgstr ""
 
-#: src/sss_client/common.c:1070
+#: src/sss_client/common.c:1075
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: src/sss_client/common.c:1075
+#: src/sss_client/common.c:1080
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: src/sss_client/common.c:1081
+#: src/sss_client/common.c:1086
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:68
+#: src/sss_client/pam_sss.c:76
 msgid "Permission denied. "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:69 src/sss_client/pam_sss.c:746
-#: src/sss_client/pam_sss.c:757
+#: src/sss_client/pam_sss.c:77 src/sss_client/pam_sss.c:782
+#: src/sss_client/pam_sss.c:793
 msgid "Server message: "
 msgstr "伺服器訊息："
 
-#: src/sss_client/pam_sss.c:264
+#: src/sss_client/pam_sss.c:300
 msgid "Passwords do not match"
 msgstr "密碼不相符"
 
-#: src/sss_client/pam_sss.c:452
+#: src/sss_client/pam_sss.c:488
 msgid "Password reset by root is not supported."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:493
+#: src/sss_client/pam_sss.c:529
 msgid "Authenticated with cached credentials"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:494
+#: src/sss_client/pam_sss.c:530
 msgid ", your cached password will expire at: "
 msgstr "，您快取的密碼將在此刻過期："
 
-#: src/sss_client/pam_sss.c:524
+#: src/sss_client/pam_sss.c:560
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:570
+#: src/sss_client/pam_sss.c:606
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:619
+#: src/sss_client/pam_sss.c:655
 msgid "Authentication is denied until: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:640
+#: src/sss_client/pam_sss.c:676
 msgid "System is offline, password change not possible"
 msgstr "系統已離線，不可能作密碼變更"
 
-#: src/sss_client/pam_sss.c:655
+#: src/sss_client/pam_sss.c:691
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr ""
 
-#: src/sss_client/pam_sss.c:743 src/sss_client/pam_sss.c:756
+#: src/sss_client/pam_sss.c:779 src/sss_client/pam_sss.c:792
 msgid "Password change failed. "
 msgstr "密碼變更失敗。"
 
-#: src/sss_client/pam_sss.c:1670
+#: src/sss_client/pam_sss.c:1926
 msgid "New Password: "
 msgstr "新密碼："
 
-#: src/sss_client/pam_sss.c:1671
+#: src/sss_client/pam_sss.c:1927
 msgid "Reenter new Password: "
 msgstr "再次輸入新密碼："
 
-#: src/sss_client/pam_sss.c:1783 src/sss_client/pam_sss.c:1786
+#: src/sss_client/pam_sss.c:2039 src/sss_client/pam_sss.c:2042
 msgid "First Factor: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:1784
+#: src/sss_client/pam_sss.c:2040 src/sss_client/pam_sss.c:2202
 msgid "Second Factor (optional): "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:1787
+#: src/sss_client/pam_sss.c:2043 src/sss_client/pam_sss.c:2205
 msgid "Second Factor: "
 msgstr ""
 
-#: src/sss_client/pam_sss.c:1792
+#: src/sss_client/pam_sss.c:2058
 msgid "Password: "
 msgstr "密碼："
 
-#: src/sss_client/pam_sss.c:1832
+#: src/sss_client/pam_sss.c:2201 src/sss_client/pam_sss.c:2204
+#, fuzzy
+msgid "First Factor (Current Password): "
+msgstr "目前的密碼："
+
+#: src/sss_client/pam_sss.c:2208
 msgid "Current Password: "
 msgstr "目前的密碼："
 
-#: src/sss_client/pam_sss.c:2098
+#: src/sss_client/pam_sss.c:2536
 msgid "Password expired. Change your password now."
 msgstr "密碼已過期。請立刻變更您的密碼。"
 
@@ -2281,38 +2294,38 @@ msgstr ""
 msgid "Cached in InfoPipe"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:511
+#: src/tools/sssctl/sssctl_cache.c:512
 #, c-format
 msgid "Error: Unable to get object [%d]: %s\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:527
+#: src/tools/sssctl/sssctl_cache.c:528
 #, c-format
 msgid "%s: Unable to read value [%d]: %s\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:555
+#: src/tools/sssctl/sssctl_cache.c:556
 msgid "Specify name."
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:565
+#: src/tools/sssctl/sssctl_cache.c:566
 #, c-format
 msgid "Unable to parse name %s.\n"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:591 src/tools/sssctl/sssctl_cache.c:638
+#: src/tools/sssctl/sssctl_cache.c:592 src/tools/sssctl/sssctl_cache.c:639
 msgid "Search by SID"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:592
+#: src/tools/sssctl/sssctl_cache.c:593
 msgid "Search by user ID"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:601
+#: src/tools/sssctl/sssctl_cache.c:602
 msgid "Initgroups expiration time"
 msgstr ""
 
-#: src/tools/sssctl/sssctl_cache.c:639
+#: src/tools/sssctl/sssctl_cache.c:640
 msgid "Search by group ID"
 msgstr ""
 
@@ -2350,7 +2363,7 @@ msgid "Unable to create backup directory [%d]: %s"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:95
-msgid "SSSD backup of local data already exist, override?"
+msgid "SSSD backup of local data already exists, override?"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:111
