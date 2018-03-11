@@ -566,6 +566,11 @@ ad_gpo_map_remote_interactive = +my_pam_service, -sshd
                                         cockpit
                                     </para>
                                 </listitem>
+                                <listitem>
+                                    <para>
+                                        thinlinc
+                                    </para>
+                                </listitem>
                             </itemizedlist>
                         </para>
                     </listitem>
