@@ -129,23 +129,27 @@ struct kcm_reqbuf {
     struct kcm_iovec v_msg;
 };
 
+static uint32_t kcm_input_get_payload_len(struct kcm_iovec *v)
+{
+    size_t lc = 0;
+    uint32_t len_be = 0;
+
+    /* The first 4 bytes before the payload is message length */
+    SAFEALIGN_COPY_UINT32_CHECK(&len_be, v->kiov_base, v->kiov_len, &lc);
+
+    return be32toh(len_be);
+}
+
 static errno_t kcm_input_parse(struct kcm_reqbuf *reqbuf,
                                struct kcm_op_io *op_io)
 {
-    size_t lc = 0;
     size_t mc = 0;
     uint16_t opcode_be = 0;
-    uint32_t len_be = 0;
     uint32_t msglen;
     uint8_t proto_maj = 0;
     uint8_t proto_min = 0;
 
-    /* The first 4 bytes before the payload is message length */
-    SAFEALIGN_COPY_UINT32_CHECK(&len_be,
-                                reqbuf->v_len.kiov_base,
-                                reqbuf->v_len.kiov_len,
-                                &lc);
-    msglen = be32toh(len_be);
+    msglen = kcm_input_get_payload_len(&reqbuf->v_len);
     DEBUG(SSSDBG_TRACE_LIBS,
           "Received message with length %"PRIu32"\n", msglen);
 
