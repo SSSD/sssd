@@ -55,6 +55,9 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
     /* First, check whether the user is in the allowed users list */
     if (ctx->allow_users != NULL) {
         for(i = 0; ctx->allow_users[i] != NULL; i++) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Checking against allow list username [%s].\n",
+                  ctx->allow_users[i]);
             domain = find_domain_by_object_name(ctx->domain,
                                                 ctx->allow_users[i]);
             if (domain == NULL) {
@@ -92,6 +95,9 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
     /* Next check whether this user has been specifically denied */
     if (ctx->deny_users != NULL) {
         for(i = 0; ctx->deny_users[i] != NULL; i++) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Checking against deny list username [%s].\n",
+                  ctx->deny_users[i]);
             domain = find_domain_by_object_name(ctx->domain,
                                                 ctx->deny_users[i]);
             if (domain == NULL) {
@@ -133,6 +139,9 @@ simple_check_groups(struct simple_ctx *ctx, const char **group_names,
     if (ctx->allow_groups && !*access_granted) {
         matched = false;
         for (i = 0; ctx->allow_groups[i]; i++) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Checking against allow list group name [%s].\n",
+                  ctx->allow_groups[i]);
             domain = find_domain_by_object_name(ctx->domain,
                                                 ctx->allow_groups[i]);
             if (domain == NULL) {
@@ -169,6 +178,9 @@ simple_check_groups(struct simple_ctx *ctx, const char **group_names,
     if (ctx->deny_groups) {
         matched = false;
         for (i = 0; ctx->deny_groups[i]; i++) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Checking against deny list group name [%s].\n",
+                  ctx->deny_groups[i]);
             domain = find_domain_by_object_name(ctx->domain,
                                                 ctx->deny_groups[i]);
             if (domain == NULL) {
