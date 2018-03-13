@@ -423,8 +423,10 @@ static errno_t kcm_recv_data(int fd, struct kcm_reqbuf *reqbuf)
     return EOK;
 }
 
-static struct kcm_req_ctx *kcm_new_req(TALLOC_CTX *mem_ctx,
-                                       struct cli_ctx *cctx,
+/* Mind that kcm_new_req() does not take a mem_ctx argument on purpose as we
+ * really want the cctx to be the memory context here so that if the client
+ * disconnects, the request goes away. */
+static struct kcm_req_ctx *kcm_new_req(struct cli_ctx *cctx,
                                        struct kcm_ctx *kctx)
 {
     struct kcm_req_ctx *req;
@@ -467,8 +469,8 @@ static void kcm_recv(struct cli_ctx *cctx)
     kctx = talloc_get_type(cctx->rctx->pvt_ctx, struct kcm_ctx);
     req = talloc_get_type(cctx->state_ctx, struct kcm_req_ctx);
     if (req == NULL) {
-        /* A new request comes in, setup data structures */
-        req = kcm_new_req(cctx, cctx, kctx);
+        /* A new request comes in, setup data structures. */
+        req = kcm_new_req(cctx, kctx);
         if (req == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot set up client connection\n");
