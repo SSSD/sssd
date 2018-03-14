@@ -117,6 +117,14 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     errno_t ret;
 
+    ret = confdb_expand_app_domains(confdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to expand application domains [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
     ret = confdb_get_domains(confdb, &domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup domains [%d]: %s\n",
