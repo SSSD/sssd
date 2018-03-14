@@ -89,5 +89,6 @@ clean-local:
 
 serial: clean
 	touch index.txt
+	touch index.txt.attr
 	mkdir newcerts
 	echo -n 01 > serial
