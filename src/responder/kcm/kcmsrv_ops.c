@@ -31,7 +31,10 @@
 #include "responder/kcm/kcmsrv_ops.h"
 #include "responder/kcm/kcmsrv_ccache.h"
 
-#define KCM_REPLY_MAX 16384
+/* This limit comes from:
+ * https://github.com/krb5/krb5/blob/master/src/lib/krb5/ccache/cc_kcm.c#L53
+ */
+#define KCM_REPLY_MAX 10*1024*1024
 
 struct kcm_op_ctx {
     struct kcm_resp_ctx *kcm_data;
