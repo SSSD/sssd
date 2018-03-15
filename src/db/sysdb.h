@@ -1219,7 +1219,8 @@ errno_t sysdb_attrs_to_list(TALLOC_CTX *mem_ctx,
 
 errno_t sysdb_netgr_to_entries(TALLOC_CTX *mem_ctx,
                                struct ldb_result *res,
-                               struct sysdb_netgroup_ctx ***entries);
+                               struct sysdb_netgroup_ctx ***entries,
+                               size_t *netgroup_count);
 
 errno_t sysdb_dn_sanitize(TALLOC_CTX *mem_ctx, const char *input,
                           char **sanitized);
