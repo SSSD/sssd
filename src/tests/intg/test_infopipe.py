@@ -34,7 +34,7 @@ import dbus
 import config
 import ds_openldap
 import ldap_ent
-from util import unindent
+from util import unindent, get_call_output
 
 LDAP_BASE_DN = "dc=example,dc=com"
 INTERACTIVE_TIMEOUT = 4
@@ -194,7 +194,7 @@ def format_basic_conf(ldap_conn, schema):
     return unindent("""\
         [sssd]
         debug_level         = 0xffff
-        domains             = LDAP
+        domains             = LDAP, app
         services            = nss, ifp
         enable_files_domain = false
 
@@ -212,6 +212,9 @@ def format_basic_conf(ldap_conn, schema):
         id_provider         = ldap
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+
+        [application/app]
+        inherit_from = LDAP
     """).format(**locals())
 
 
@@ -532,3 +535,13 @@ def test_get_user_groups(dbus_system_bus, ldap_conn, sanity_rfc2307):
 
     assert len(res) == 2
     assert sorted(res) == ['single_user_group', 'two_user_group']
+
+
+def test_sssctl_domain_list_app_domain(dbus_system_bus,
+                                       ldap_conn,
+                                       sanity_rfc2307):
+    output = get_call_output(["sssctl", "domain-list"], subprocess.STDOUT)
+
+    assert "Error" not in output
+    assert output.find("LDAP") != -1
+    assert output.find("app") != -1
