@@ -144,7 +144,8 @@ static void nss_setent_internal_done(struct tevent_req *subreq)
             /* We need to expand the netgroup into triples and members. */
             ret = sysdb_netgr_to_entries(state->enum_ctx,
                                          result[0]->ldb_result,
-                                         &state->enum_ctx->netgroup);
+                                         &state->enum_ctx->netgroup,
+                                         &state->enum_ctx->netgroup_count);
             if (ret != EOK) {
                 goto done;
             }

@@ -126,6 +126,13 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
     idx = cmd_ctx->enum_index;
     entries = cmd_ctx->enum_ctx->netgroup;
 
+    if (idx->result > cmd_ctx->enum_ctx->netgroup_count) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unconsistent state while processing netgroups.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     /* First two fields (length and reserved), filled up later. */
     ret = sss_packet_grow(packet, 2 * sizeof(uint32_t));
     if (ret != EOK) {
