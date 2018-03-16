@@ -34,6 +34,13 @@
 #include "util/crypto/nss/nss_util.h"
 #include "util/crypto/sss_crypto.h"
 
+#ifdef HAVE_TEST_CA
+#include "tests/test_CA/SSSD_test_cert_pubsshkey_0001.h"
+#include "tests/test_CA/SSSD_test_cert_x509_0001.h"
+#else
+#define SSSD_TEST_CERT_0001 ""
+#define SSSD_TEST_CERT_SSH_KEY_0001 ""
+#endif
 
 /* TODO: create a certificate for this test */
 const uint8_t test_cert_der[] = {
@@ -309,32 +316,6 @@ void test_sss_cert_derb64_to_ldap_filter(void **state)
     talloc_free(filter);
 }
 
-#define SSH_TEST_CERT \
-"MIIECTCCAvGgAwIBAgIBCDANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
-"REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNjA1MjMx" \
-"NDEzNDlaFw0xODA1MjQxNDEzNDlaMDIxEjAQBgNVBAoMCUlQQS5ERVZFTDEcMBoG" \
-"A1UEAwwTaXBhLWRldmVsLmlwYS5kZXZlbDCCASIwDQYJKoZIhvcNAQEBBQADggEP" \
-"ADCCAQoCggEBALfEAE0IUlOAgDTdZQGcYA03IPooixNnkUQruh0eU3uw+KYGQoS1" \
-"YCdCHJzRc+IfuqdNntgtGDIpWADRwB4h963pBImpMSU5L1T4uiHNCpvl9eMt4ynk" \
-"xduOa+JmJUvqvwe7Gj9iDql4lWmJcXvq74/yOc3MBSPQCdg/pHZU65+NjSZmZzlN" \
-"eNV3tQKrhMe6tM00pai2igXilfUpzOU2v+AX69oOesrqTUl9i2eCUirGanR9l95d" \
-"yVCcmIDJd2P2NLIkhbHGRitfTC/tQZ4G+Edg9STw8Y+4ljp2rTHs59dWRBe2Gn8Z" \
-"Zt8zZ5WuNxARVF1THI9X6ydX/uoaz8R7pfkCAwEAAaOCASYwggEiMB8GA1UdIwQY" \
-"MBaAFPci/0Km5D/L5z7YqwEc7E1/GwgcMDsGCCsGAQUFBwEBBC8wLTArBggrBgEF" \
-"BQcwAYYfaHR0cDovL2lwYS1jYS5pcGEuZGV2ZWwvY2Evb2NzcDAOBgNVHQ8BAf8E" \
-"BAMCBPAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMHQGA1UdHwRtMGsw" \
-"aaAxoC+GLWh0dHA6Ly9pcGEtY2EuaXBhLmRldmVsL2lwYS9jcmwvTWFzdGVyQ1JM" \
-"LmJpbqI0pDIwMDEOMAwGA1UECgwFaXBhY2ExHjAcBgNVBAMMFUNlcnRpZmljYXRl" \
-"IEF1dGhvcml0eTAdBgNVHQ4EFgQUMydoshxYXhDXOMo/EETvrZaQuBwwDQYJKoZI" \
-"hvcNAQELBQADggEBADIrTFNvEdZGna7jD1xpiLGGUwCi11GQT+Txg5B7dydUn5U5" \
-"32zSBBZV6bsy0E+PiiAgehJObv9hBaOWnhp7ltNyQod1OLdI1t988ow2wxHvUEEi" \
-"MhRF0h2RJwdYIUIIF7XC01mKBOFj/84vvMOgLToZnGqVzArkzpr1aCaHI7EoTkpb" \
-"V16v+drZkXc47JuHg5CRjTHV/kFPm63gQ8Fstmw/dQZBzbCiVzmcG0Xm9r4jMOOf" \
-"YjVueMt/jk1LP4KoSCBY6kLMcpL5rQm53hO82rPAgV695rjdPlIUm09dvkCl28ZD" \
-"109Ju18eAaaVFewK82NDg9rsNraBKxMCBSgg0es="
-
-#define SSH_PUB_KEY "AAAAB3NzaC1yc2EAAAADAQABAAABAQC3xABNCFJTgIA03WUBnGANNyD6KIsTZ5FEK7odHlN7sPimBkKEtWAnQhyc0XPiH7qnTZ7YLRgyKVgA0cAeIfet6QSJqTElOS9U+LohzQqb5fXjLeMp5MXbjmviZiVL6r8Huxo/Yg6peJVpiXF76u+P8jnNzAUj0AnYP6R2VOufjY0mZmc5TXjVd7UCq4THurTNNKWotooF4pX1KczlNr/gF+vaDnrK6k1JfYtnglIqxmp0fZfeXclQnJiAyXdj9jSyJIWxxkYrX0wv7UGeBvhHYPUk8PGPuJY6dq0x7OfXVkQXthp/GWbfM2eVrjcQEVRdUxyPV+snV/7qGs/Ee6X5"
-
 void test_cert_to_ssh_key(void **state)
 {
     int ret;
@@ -350,13 +331,13 @@ void test_cert_to_ssh_key(void **state)
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     assert_non_null(ts);
 
-    der = sss_base64_decode(ts, SSH_TEST_CERT, &der_size);
+    der = sss_base64_decode(ts, SSSD_TEST_CERT_0001, &der_size);
     assert_non_null(der);
 
-    exp_key = sss_base64_decode(ts, SSH_PUB_KEY, &exp_key_size);
+    exp_key = sss_base64_decode(ts, SSSD_TEST_CERT_SSH_KEY_0001, &exp_key_size);
     assert_non_null(exp_key);
 
-    ret = cert_to_ssh_key(ts, "sql:" ABS_SRC_DIR "/src/tests/cmocka/p11_nssdb",
+    ret = cert_to_ssh_key(ts, "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
                           der, der_size, &cert_verify_opts, &key, &key_size);
     assert_int_equal(ret, EOK);
     assert_int_equal(key_size, exp_key_size);
@@ -391,8 +372,10 @@ int main(int argc, const char *argv[])
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_cert_derb64_to_ldap_filter,
                                         setup, teardown),
+#ifdef HAVE_TEST_CA
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_key,
                                         setup, teardown),
+#endif
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
