@@ -212,12 +212,17 @@ def get_attrs(ldb_conn, type, name, domain, attr_list):
     ts_attrs = dict()
 
     for attr in attr_list:
-        sysdb_attrs[attr] = ldb_conn.get_entry_attr(
-                                     sssd_ldb.CacheType.sysdb,
-                                     type, name, domain, attr)
-        ts_attrs[attr] = ldb_conn.get_entry_attr(
-                                     sssd_ldb.CacheType.timestamps,
-                                     type, name, domain, attr)
+        val = ldb_conn.get_entry_attr(sssd_ldb.CacheType.sysdb,
+                                      type, name, domain, attr)
+        if val:
+            val = val.decode('utf-8')
+        sysdb_attrs[attr] = val
+
+        val = ldb_conn.get_entry_attr(sssd_ldb.CacheType.timestamps,
+                                      type, name, domain, attr)
+        if val:
+            val = val.decode('utf-8')
+        ts_attrs[attr] = val
     return (sysdb_attrs, ts_attrs)
 
 
