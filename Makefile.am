@@ -21,7 +21,7 @@ if HAVE_MANPAGES
 SUBDIRS += src/man
 endif
 
-SUBDIRS += . src/tests/cwrap src/tests/intg
+SUBDIRS += . src/tests/cwrap src/tests/intg src/tests/test_CA
 
 # Some old versions of automake don't define builddir
 builddir ?= .
@@ -432,8 +432,6 @@ dist_noinst_DATA = \
     contrib/ci/distro.sh \
     contrib/ci/misc.sh \
     contrib/ci/sssd.supp \
-    src/tests/cmocka/p11_nssdb/cert9.db \
-    src/tests/cmocka/p11_nssdb/key4.db \
     $(SYSTEMTAP_PROBES) \
     $(NULL)
 
@@ -2172,6 +2170,7 @@ pam_srv_tests_SOURCES = \
     $(NULL)
 pam_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
+    -I$(abs_builddir)/src \
     $(AM_CFLAGS) \
     $(NULL)
 pam_srv_tests_LDFLAGS = \
@@ -2970,6 +2969,7 @@ test_cert_utils_SOURCES = \
     $(NULL)
 test_cert_utils_CFLAGS = \
     $(AM_CFLAGS) \
+    -I$(abs_builddir)/src \
     $(CRYPTO_CFLAGS) \
     $(NULL)
 test_cert_utils_LDADD = \
@@ -4251,6 +4251,17 @@ endif
 	rm -f $(builddir)/src/sysv/systemd/journal.conf
 
 CLEANFILES += *.X */*.X */*/*.X
+
+test_CA: test_CA.stamp
+
+test_CA.stamp: $(srcdir)/src/tests/test_CA/*
+	$(MAKE) -C src/tests/test_CA ca_all
+	touch $@
+
+if BUILD_TEST_CA
+BUILT_SOURCES += test_CA
+endif
+CLEANFILES += test_CA.stamp
 
 tests: all $(check_PROGRAMS)
 	(cd src/tests/cwrap && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
