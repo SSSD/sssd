@@ -78,3 +78,10 @@ def restore_envvar_file(name):
     path = os.environ[name]
     backup_path = path + ".bak"
     os.rename(backup_path, path)
+
+
+def get_call_output(cmd, stderr_output=subprocess.PIPE):
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                               stderr=stderr_output)
+    output, ret = process.communicate()
+    return output.decode('utf-8')

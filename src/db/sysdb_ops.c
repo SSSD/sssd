@@ -66,7 +66,9 @@ int sss_ldb_modify_permissive(struct ldb_context *ldb,
                               struct ldb_message *msg)
 {
     struct ldb_request *req;
-    int ret = EOK;
+    int ret;
+    int cancel_ret;
+    bool in_transaction = false;
 
     ret = ldb_build_mod_req(&req, ldb, ldb,
                             msg,
@@ -84,9 +86,44 @@ int sss_ldb_modify_permissive(struct ldb_context *ldb,
         return ret;
     }
 
+    ret = ldb_transaction_start(ldb);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to start ldb transaction [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    in_transaction = true;
+
     ret = ldb_request(ldb, req);
     if (ret == LDB_SUCCESS) {
         ret = ldb_wait(req->handle, LDB_WAIT_ALL);
+        if (ret != LDB_SUCCESS) {
+            goto done;
+        }
+    }
+
+    ret = ldb_transaction_commit(ldb);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to commit ldb transaction [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    in_transaction = false;
+
+    ret = LDB_SUCCESS;
+
+done:
+    if (in_transaction) {
+        cancel_ret = ldb_transaction_cancel(ldb);
+        if (cancel_ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to cancel ldb transaction [%d]: %s\n",
+                  cancel_ret, sss_strerror(cancel_ret));
+        }
     }
 
     talloc_free(req);
