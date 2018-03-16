@@ -28,7 +28,7 @@ import signal
 import ds_openldap
 import ldap_ent
 import config
-from util import unindent
+from util import unindent, get_call_output
 import sssd_netgroup
 
 LDAP_BASE_DN = "dc=example,dc=com"
@@ -201,13 +201,6 @@ def fqname_case_insensitive_rfc2307(request, ldap_conn):
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
-
-
-def get_call_output(cmd):
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-    output, ret = process.communicate()
-    return output.decode('utf-8')
 
 
 def test_user_show_basic_sanity(ldap_conn, sanity_rfc2307, portable_LC_ALL):
