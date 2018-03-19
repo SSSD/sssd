@@ -410,3 +410,116 @@ done:
 
     return ret;
 }
+
+errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
+                              uint8_t *der_blob, size_t der_size,
+                              uint8_t **key_blob, size_t *key_size)
+{
+    CERTCertDBHandle *handle;
+    CERTCertificate *cert = NULL;
+    SECItem der_item;
+    SECKEYPublicKey *cert_pub_key = NULL;
+    int ret;
+    size_t size;
+    uint8_t *buf = NULL;
+    size_t c;
+    size_t exponent_prefix_len;
+    size_t modulus_prefix_len;
+
+    if (der_blob == NULL || der_size == 0) {
+        return EINVAL;
+    }
+
+    /* initialize NSS if needed */
+    ret = nspr_nss_init();
+    if (ret != EOK) {
+        ret = EIO;
+        goto done;
+    }
+
+    handle = CERT_GetDefaultCertDB();
+
+    der_item.len = der_size;
+    der_item.data = discard_const(der_blob);
+
+    cert = CERT_NewTempCertificate(handle, &der_item, NULL, PR_FALSE, PR_TRUE);
+    if (cert == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_NewTempCertificate failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    cert_pub_key = CERT_ExtractPublicKey(cert);
+    if (cert_pub_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_ExtractPublicKey failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    if (cert_pub_key->keyType != rsaKey) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected RSA public key, found unsupported [%d].\n",
+              cert_pub_key->keyType);
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Looks like nss drops the leading 00 which AFAIK is added to make sure
+     * the bigint is handled as positive number if the leading bit is set. */
+    exponent_prefix_len = 0;
+    if (cert_pub_key->u.rsa.publicExponent.data[0] & 0x80) {
+        exponent_prefix_len = 1;
+    }
+
+    modulus_prefix_len = 0;
+    if (cert_pub_key->u.rsa.modulus.data[0] & 0x80) {
+        modulus_prefix_len = 1;
+    }
+    size = SSH_RSA_HEADER_LEN + 3 * sizeof(uint32_t)
+                + cert_pub_key->u.rsa.modulus.len
+                + cert_pub_key->u.rsa.publicExponent.len
+                + exponent_prefix_len + modulus_prefix_len;
+
+    buf = talloc_size(mem_ctx, size);
+    if (buf == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    c = 0;
+
+    SAFEALIGN_SET_UINT32(buf, htobe32(SSH_RSA_HEADER_LEN), &c);
+    safealign_memcpy(&buf[c], SSH_RSA_HEADER, SSH_RSA_HEADER_LEN, &c);
+    SAFEALIGN_SET_UINT32(&buf[c],
+                         htobe32(cert_pub_key->u.rsa.publicExponent.len
+                                    + exponent_prefix_len), &c);
+    if (exponent_prefix_len == 1) {
+        SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
+    }
+    safealign_memcpy(&buf[c], cert_pub_key->u.rsa.publicExponent.data,
+                     cert_pub_key->u.rsa.publicExponent.len, &c);
+
+    SAFEALIGN_SET_UINT32(&buf[c],
+                         htobe32(cert_pub_key->u.rsa.modulus.len
+                                    + modulus_prefix_len ), &c);
+    if (modulus_prefix_len == 1) {
+        SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
+    }
+    safealign_memcpy(&buf[c], cert_pub_key->u.rsa.modulus.data,
+                     cert_pub_key->u.rsa.modulus.len, &c);
+
+    *key_blob = buf;
+    *key_size = size;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK)  {
+        talloc_free(buf);
+    }
+    SECKEY_DestroyPublicKey(cert_pub_key);
+    CERT_DestroyCertificate(cert);
+
+    return ret;
+}
