@@ -276,3 +276,106 @@ done:
 
     return ret;
 }
+
+errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
+                              const uint8_t *der_blob, size_t der_size,
+                              uint8_t **key_blob, size_t *key_size)
+{
+    int ret;
+    size_t size;
+    const unsigned char *d;
+    uint8_t *buf = NULL;
+    size_t c;
+    X509 *cert = NULL;
+    EVP_PKEY *cert_pub_key = NULL;
+    const BIGNUM *n;
+    const BIGNUM *e;
+    int modulus_len;
+    unsigned char modulus[OPENSSL_RSA_MAX_MODULUS_BITS/8];
+    int exponent_len;
+    unsigned char exponent[OPENSSL_RSA_MAX_PUBEXP_BITS/8];
+
+    if (der_blob == NULL || der_size == 0) {
+        return EINVAL;
+    }
+
+    d = (const unsigned char *) der_blob;
+
+    cert = d2i_X509(NULL, &d, (int) der_size);
+    if (cert == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "d2i_X509 failed.\n");
+        return EINVAL;
+    }
+
+    cert_pub_key = X509_get_pubkey(cert);
+    if (cert_pub_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "X509_get_pubkey failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    if (EVP_PKEY_base_id(cert_pub_key) != EVP_PKEY_RSA) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected RSA public key, found unsupported [%d].\n",
+              EVP_PKEY_base_id(cert_pub_key));
+        ret = EINVAL;
+        goto done;
+    }
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    RSA *rsa_pub_key = NULL;
+    rsa_pub_key = EVP_PKEY_get0_RSA(cert_pub_key);
+    if (rsa_pub_key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    RSA_get0_key(rsa_pub_key, &n, &e, NULL);
+#else
+    n = cert_pub_key->pkey.rsa->n;
+    e = cert_pub_key->pkey.rsa->e;
+#endif
+    modulus_len = BN_bn2bin(n, modulus);
+    exponent_len = BN_bn2bin(e, exponent);
+
+    size = SSH_RSA_HEADER_LEN + 3 * sizeof(uint32_t)
+                + modulus_len
+                + exponent_len
+                + 1; /* see comment about missing 00 below */
+
+    buf = talloc_size(mem_ctx, size);
+    if (buf == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    c = 0;
+
+    SAFEALIGN_SET_UINT32(buf, htobe32(SSH_RSA_HEADER_LEN), &c);
+    safealign_memcpy(&buf[c], SSH_RSA_HEADER, SSH_RSA_HEADER_LEN, &c);
+    SAFEALIGN_SET_UINT32(&buf[c], htobe32(exponent_len), &c);
+    safealign_memcpy(&buf[c], exponent, exponent_len, &c);
+
+    /* Adding missing 00 which AFAIK is added to make sure
+     * the bigint is handled as positive number */
+    /* TODO: make a better check if 00 must be added or not, e.g. ... & 0x80)
+     */
+    SAFEALIGN_SET_UINT32(&buf[c], htobe32(modulus_len + 1), &c);
+    SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
+    safealign_memcpy(&buf[c], modulus, modulus_len, &c);
+
+    *key_blob = buf;
+    *key_size = size;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK)  {
+        talloc_free(buf);
+    }
+    EVP_PKEY_free(cert_pub_key);
+    X509_free(cert);
+
+    return ret;
+}
