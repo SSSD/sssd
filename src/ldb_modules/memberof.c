@@ -2055,11 +2055,7 @@ static int mbof_del_anc_callback(struct ldb_request *req,
                     talloc_free(valdn);
                     continue;
                 }
-                /* do not re-add the original deleted entry by mistake */
-                if (ldb_dn_compare(valdn, del_ctx->first->entry_dn) == 0) {
-                    talloc_free(valdn);
-                    continue;
-                }
+
                 new_list->dns = talloc_realloc(new_list,
                                                new_list->dns,
                                                struct ldb_dn *,
