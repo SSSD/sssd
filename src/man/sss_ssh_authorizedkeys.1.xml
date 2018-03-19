@@ -60,6 +60,63 @@
   AuthorizedKeysCommandUser nobody
 </programlisting>
         </para>
+
+    <refsect2 id='cert_keys'>
+        <title>KEYS FROM CERTIFICATES</title>
+        <para>
+            In addition to the public SSH keys for user
+            <replaceable>USER</replaceable>
+            <command>sss_ssh_authorizedkeys</command> can return public SSH keys
+            derived from the public key of a X.509 certificate as well.
+        </para>
+        <para>
+            To enable this the <quote>ssh_use_certificate_keys</quote> option
+            must be set to true (default) in the [ssh] section of
+            <filename>sssd.conf</filename>. If the user entry contains
+            certificates (see <quote>ldap_user_certificate</quote> in
+            <citerefentry><refentrytitle>sssd-ldap</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry>
+            for details) or there is a certificate in an override entry for the
+            user (see
+            <citerefentry><refentrytitle>sss_override</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry>
+            or <citerefentry><refentrytitle>sssd-ipa</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry>
+            for details) and the certificate is valid SSSD will extract the
+            public key from the certificate and convert it into the format
+            expected by sshd.
+        </para>
+        <para>
+            Besides <quote>ssh_use_certificate_keys</quote> the options
+            <itemizedlist>
+                <listitem><para>ca_db</para></listitem>
+                <listitem><para>p11_child_timeout</para></listitem>
+                <listitem><para>certificate_verification</para></listitem>
+            </itemizedlist>
+            can be used to control how the certificates are validated (see
+            <citerefentry><refentrytitle>sssd.conf</refentrytitle>
+                        <manvolnum>5</manvolnum></citerefentry> for details).
+        </para>
+        <para>
+            The validation is the benefit of using X.509 certificates instead of
+            SSH keys directly because e.g. it gives a better control of the
+            lifetime of the keys. When the ssh client is configured to use the
+            private keys from a Smartcard with the help of a PKCS#11 shared
+            library (see
+            <citerefentry><refentrytitle>ssh</refentrytitle>
+            <manvolnum>1</manvolnum></citerefentry>
+            for details) it might be irritating that authentication is still
+            working even if the related X.509 certificate on the Smartcard is
+            already expired because neither <command>ssh</command> nor
+            <command>sshd</command> will look at the certificate at all.
+        </para>
+        <para>
+            It has to be noted that the derived public SSH key can still be
+            added to the <filename>authorized_keys</filename> file of the user
+            to bypass the certificate validation if the <command>sshd</command>
+            configuration permits this.
+        </para>
+    </refsect2>
     </refsect1>
 
     <refsect1 id='options'>

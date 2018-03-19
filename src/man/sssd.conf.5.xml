@@ -1489,6 +1489,24 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>ssh_use_certificate_keys (bool)</term>
+                    <listitem>
+                        <para>
+                            If set to true the
+                            <command>sss_ssh_authorizedkeys</command> will
+                            return ssh keys derived from the public key of X.509
+                            certificates stored in the user entry as well. See
+                            <citerefentry>
+                                <refentrytitle>sss_ssh_authorizedkeys</refentrytitle>
+                                <manvolnum>1</manvolnum>
+                            </citerefentry> for details.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>ca_db (string)</term>
                     <listitem>
                         <para>
