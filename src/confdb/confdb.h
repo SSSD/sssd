@@ -154,6 +154,8 @@
 #define CONFDB_DEFAULT_SSH_KNOWN_HOSTS_TIMEOUT 180
 #define CONFDB_SSH_CA_DB "ca_db"
 #define CONFDB_DEFAULT_SSH_CA_DB SYSCONFDIR"/pki/nssdb"
+#define CONFDB_SSH_USE_CERT_KEYS "ssh_use_certificate_keys"
+#define CONFDB_DEFAULT_SSH_USE_CERT_KEYS true
 
 /* PAC */
 #define CONFDB_PAC_CONF_ENTRY "config/pac"
