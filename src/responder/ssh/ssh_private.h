@@ -56,10 +56,22 @@ void ssh_protocol_reply(struct cli_ctx *cli_ctx,
 errno_t
 ssh_protocol_done(struct cli_ctx *cli_ctx, errno_t error);
 
+struct tevent_req * ssh_get_output_keys_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        struct cli_ctx *cli_ctx,
+                                        struct sss_domain_info *domain,
+                                        struct ldb_message *msg);
+
+errno_t ssh_get_output_keys_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                                 struct sized_string *name,
+                                 struct ldb_message_element ***elements,
+                                 uint32_t *num_keys);
+
 errno_t
 ssh_protocol_build_reply(struct sss_packet *packet,
-                         struct ssh_ctx *ssh_ctx,
-                         struct cache_req_result *result);
+                         struct sized_string name,
+                         struct ldb_message_element **elements,
+                         uint32_t num_keys);
 
 errno_t
 ssh_update_known_hosts_file(struct sss_domain_info *domains,
