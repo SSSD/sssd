@@ -921,6 +921,7 @@ if HAVE_NSS
 
     SSS_CERT_SOURCES = \
         src/util/cert/cert_common.c \
+        src/util/cert/cert_common_p11_child.c \
         src/util/cert/nss/cert.c \
         $(NULL)
     SSS_CERT_CFLAGS = \
@@ -943,6 +944,7 @@ else
 
     SSS_CERT_SOURCES = \
         src/util/cert/cert_common.c \
+        src/util/cert/cert_common_p11_child.c \
         src/util/cert/libcrypto/cert.c \
         $(NULL)
     SSS_CERT_CFLAGS = \
@@ -980,6 +982,7 @@ libsss_cert_la_CFLAGS = \
 libsss_cert_la_LIBADD = \
     $(SSS_CERT_LIBS) \
     $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
     libsss_crypt.la \
     libsss_debug.la \
     libsss_certmap.la \
