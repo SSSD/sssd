@@ -3279,9 +3279,11 @@ test_krb5_wait_queue_LDADD = \
 
 test_cert_utils_SOURCES = \
     src/tests/cmocka/test_cert_utils.c \
+    src/util/cert/cert_common_p11_child.c \
     $(NULL)
 test_cert_utils_CFLAGS = \
     $(AM_CFLAGS) \
+    -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
     $(CRYPTO_CFLAGS) \
     $(NULL)
