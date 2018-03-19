@@ -72,15 +72,50 @@ done:
     return EOK;
 }
 
+static void got_ssh_keys(struct tevent_req *req);
 void ssh_protocol_reply(struct cli_ctx *cli_ctx,
                         struct cache_req_result *result)
 {
-    struct cli_protocol *pctx;
-    struct ssh_ctx *ssh_ctx;
     errno_t ret;
+    struct tevent_req *req;
 
+    /* Make sure we have the results around until the end of the request. To
+     * avoid copying and memory allocation the keys and certificates from the
+     * result will be referenced during the next requests, so they should not
+     * be freed too early. */
+    result = talloc_steal(cli_ctx, result);
+
+    req = ssh_get_output_keys_send(cli_ctx, cli_ctx->ev, cli_ctx,
+                                   result->domain, result->msgs[0]);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_get_output_keys_send failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(req, got_ssh_keys, cli_ctx);
+
+    return;
+
+done:
+    ssh_protocol_done(cli_ctx, ret);
+}
+
+static void got_ssh_keys(struct tevent_req *req)
+{
+    errno_t ret;
+    struct cli_ctx *cli_ctx = tevent_req_callback_data(req, struct cli_ctx);
+    struct cli_protocol *pctx;
     pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
-    ssh_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct ssh_ctx);
+    struct ldb_message_element **elements;
+    uint32_t num_keys;
+    struct sized_string name;
+
+    ret = ssh_get_output_keys_recv(req, cli_ctx, &name, &elements, &num_keys);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_get_output_keys_revc failed");
+        goto done;
+    }
 
     ret = sss_packet_new(pctx->creq, 0, sss_packet_get_cmd(pctx->creq->in),
                          &pctx->creq->out);
@@ -88,7 +123,7 @@ void ssh_protocol_reply(struct cli_ctx *cli_ctx,
         goto done;
     }
 
-    ret = ssh_protocol_build_reply(pctx->creq->out, ssh_ctx, result);
+    ret = ssh_protocol_build_reply(pctx->creq->out, name, elements, num_keys);
     if (ret != EOK) {
         goto done;
     }
