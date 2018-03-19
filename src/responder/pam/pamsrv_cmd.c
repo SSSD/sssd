@@ -1308,7 +1308,6 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                           struct pam_data *pd)
 {
     int p11_child_timeout;
-    const int P11_CHILD_TIMEOUT_DEFAULT = 10;
     char *cert_verification_opts;
     errno_t ret;
     struct tevent_req *req;
