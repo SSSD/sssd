@@ -52,4 +52,8 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
                         const uint8_t *der_blob, size_t der_size,
                         struct cert_verify_opts *cert_verify_opts,
                         uint8_t **key, size_t *key_size);
+
+errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
+                              uint8_t *der_blob, size_t der_size,
+                              uint8_t **key_blob, size_t *key_size);
 #endif /* __CERT_H__ */
