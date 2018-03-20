@@ -343,38 +343,6 @@ void test_sss_cert_derb64_to_ldap_filter(void **state)
     talloc_free(filter);
 }
 
-void test_cert_to_ssh_key(void **state)
-{
-    int ret;
-    uint8_t *key;
-    size_t key_size;
-    uint8_t *exp_key;
-    size_t exp_key_size;
-    uint8_t *der;
-    size_t der_size;
-    struct cert_verify_opts cert_verify_opts = { .do_ocsp = false,
-                                                 .do_verification = true };
-
-    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
-    assert_non_null(ts);
-
-    der = sss_base64_decode(ts, SSSD_TEST_CERT_0001, &der_size);
-    assert_non_null(der);
-
-    exp_key = sss_base64_decode(ts, SSSD_TEST_CERT_SSH_KEY_0001, &exp_key_size);
-    assert_non_null(exp_key);
-
-    ret = cert_to_ssh_key(ts, "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
-                          der, der_size, &cert_verify_opts, &key, &key_size);
-    assert_int_equal(ret, EOK);
-    assert_int_equal(key_size, exp_key_size);
-    assert_memory_equal(key, exp_key, exp_key_size);
-
-    talloc_free(der);
-    talloc_free(key);
-    talloc_free(exp_key);
-}
-
 void test_cert_to_ssh_key_done(struct tevent_req *req)
 {
     int ret;
@@ -610,8 +578,6 @@ int main(int argc, const char *argv[])
                                         setup, teardown),
 #ifdef HAVE_NSS
 #ifdef HAVE_TEST_CA
-        cmocka_unit_test_setup_teardown(test_cert_to_ssh_key,
-                                        setup, teardown),
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_key_send,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_send,
