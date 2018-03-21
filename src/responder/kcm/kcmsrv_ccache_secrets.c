@@ -231,6 +231,7 @@ static errno_t sec_list_parse(struct sss_iobuf *outbuf,
 {
     json_t *root;
     uint8_t *sec_http_list;
+    size_t sec_http_list_len;
     json_error_t error;
     json_t *element;
     errno_t ret;
@@ -244,8 +245,10 @@ static errno_t sec_list_parse(struct sss_iobuf *outbuf,
         DEBUG(SSSDBG_CRIT_FAILURE, "No data in output buffer?\n");
         return EINVAL;
     }
+    sec_http_list_len = sss_iobuf_get_len(outbuf);
 
-    root = json_loads((const char *) sec_http_list, 0, &error);
+    root = json_loadb((const char *) sec_http_list,
+                      sec_http_list_len, 0, &error);
     if (root == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
                 "Failed to parse JSON payload on line %d: %s\n",
