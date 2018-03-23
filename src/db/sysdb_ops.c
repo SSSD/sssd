@@ -5410,6 +5410,19 @@ errno_t sysdb_mark_entry_as_expired_ldb_dn(struct sss_domain_info *dom,
         goto done;
     }
 
+    ret = ldb_msg_add_empty(msg, SYSDB_ORIG_MODSTAMP,
+                            LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, SYSDB_ORIG_MODSTAMP, "1");
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
     ret = ldb_modify(dom->sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
