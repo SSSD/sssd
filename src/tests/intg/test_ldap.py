@@ -435,6 +435,60 @@ def test_refresh_after_cleanup_task(ldap_conn, refresh_after_cleanup_task):
 
 
 @pytest.fixture
+def update_ts_after_cleanup_task(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2001)
+
+    ent_list.add_group_bis("group1", 2001, ["user1", "user2"])
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS) + \
+        unindent("""
+            [domain/LDAP]
+            ldap_purge_cache_timeout = 3
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_update_ts_cache_after_cleanup_task(ldap_conn,
+                                            update_ts_after_cleanup_task):
+    """
+    Regression test for ticket:
+    https://fedorahosted.org/sssd/ticket/2676
+    """
+    ent.assert_group_by_name(
+        "group1",
+        dict(mem=ent.contains_only("user1", "user2")))
+
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    ent.assert_passwd_by_name(
+        'user2',
+        dict(name='user2', passwd='*', uid=1002, gid=2001,
+             gecos='1002', shell='/bin/bash'))
+
+    if subprocess.call(["sss_cache", "-u", "user1"]) != 0:
+        raise Exception("sssd_cache failed")
+
+    # The cleanup task runs every 3 seconds, so sleep for 6
+    # so that we know the cleanup task ran at least once
+    # even if we start sleeping during the first one
+    time.sleep(6)
+
+    ent.assert_group_by_name(
+        "group1",
+        dict(mem=ent.contains_only("user1", "user2")))
+
+
+@pytest.fixture
 def blank_rfc2307(request, ldap_conn):
     """Create blank RFC2307 directory fixture with interactive SSSD conf"""
     create_ldap_cleanup(request, ldap_conn)
