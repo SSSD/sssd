@@ -2007,7 +2007,7 @@ static void ccdb_sec_delete_list_done(struct tevent_req *subreq)
         return;
     }
 
-    if (sec_key_list == 0) {
+    if (state->sec_key_list_len == 0) {
         DEBUG(SSSDBG_MINOR_FAILURE, "No ccaches to delete\n");
         tevent_req_done(req);
         return;
