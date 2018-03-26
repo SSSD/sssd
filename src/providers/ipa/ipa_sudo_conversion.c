@@ -874,6 +874,15 @@ convert_user_fqdn(TALLOC_CTX *mem_ctx,
 }
 
 static const char *
+convert_ext_user(TALLOC_CTX *mem_ctx,
+                 struct ipa_sudo_conv *conv,
+                 const char *value,
+                 bool *skip_entry)
+{
+    return sss_create_internal_fqname(mem_ctx, value, conv->dom->name);
+}
+
+static const char *
 convert_group(TALLOC_CTX *mem_ctx,
               struct ipa_sudo_conv *conv,
               const char *value,
@@ -959,7 +968,7 @@ convert_attributes(struct ipa_sudo_conv *conv,
                  {SYSDB_IPA_SUDORULE_RUNASEXTUSER,       SYSDB_SUDO_CACHE_AT_RUNASUSER  , NULL},
                  {SYSDB_IPA_SUDORULE_RUNASEXTGROUP,      SYSDB_SUDO_CACHE_AT_RUNASGROUP , NULL},
                  {SYSDB_IPA_SUDORULE_RUNASEXTUSERGROUP,  SYSDB_SUDO_CACHE_AT_RUNASUSER  , convert_runasextusergroup},
-                 {SYSDB_IPA_SUDORULE_EXTUSER,            SYSDB_SUDO_CACHE_AT_USER       , NULL},
+                 {SYSDB_IPA_SUDORULE_EXTUSER,            SYSDB_SUDO_CACHE_AT_USER       , convert_ext_user},
                  {SYSDB_IPA_SUDORULE_ALLOWCMD,           SYSDB_IPA_SUDORULE_ORIGCMD     , NULL},
                  {SYSDB_IPA_SUDORULE_DENYCMD,            SYSDB_IPA_SUDORULE_ORIGCMD     , NULL},
                  {NULL, NULL, NULL}};
