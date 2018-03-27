@@ -275,6 +275,7 @@ if HAVE_CMOCKA
         test_sbus_opath \
         test_fo_srv \
         pam-srv-tests \
+        ssh-srv-tests \
         test_ipa_subdom_util \
         test_tools_colondb \
         test_krb5_wait_queue \
@@ -2429,6 +2430,41 @@ pam_srv_tests_LDADD = \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
+    $(NULL)
+
+EXTRA_ssh_srv_tests_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES) \
+    $(NULL)
+if HAVE_NSS
+EXTRA_ssh_srv_tests_DEPENDENCIES += p11_child
+endif
+ssh_srv_tests_SOURCES = \
+    $(TEST_MOCK_RESP_OBJ) \
+    src/tests/cmocka/test_ssh_srv.c \
+    src/responder/ssh/ssh_cmd.c \
+    src/responder/ssh/ssh_known_hosts.c \
+    src/responder/ssh/ssh_protocol.c \
+    src/responder/ssh/ssh_reply.c \
+    src/util/cert/cert_common_p11_child.c \
+    $(NULL)
+ssh_srv_tests_CFLAGS = \
+    -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
+    -I$(abs_builddir)/src \
+    $(AM_CFLAGS) \
+    $(NULL)
+ssh_srv_tests_LDFLAGS = \
+    -Wl,-wrap,sss_packet_get_body \
+    -Wl,-wrap,sss_packet_get_cmd \
+    -Wl,-wrap,sss_cmd_send_empty \
+    -Wl,-wrap,sss_cmd_done \
+    -Wl,-wrap,ssh_dp_send_req \
+    $(NULL)
+ssh_srv_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
+    libsss_test_common.la \
     $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \
