@@ -207,7 +207,6 @@ static void sec_list_done(struct tevent_req *subreq)
             return;
         }
     } else if (http_code == 200) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Found %zu items\n", state->sec_key_list_len);
         ret = sec_list_parse(outbuf, state,
                              &state->sec_key_list,
                              &state->sec_key_list_len);
@@ -215,6 +214,7 @@ static void sec_list_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Found %zu items\n", state->sec_key_list_len);
     } else {
         tevent_req_error(req, http2errno(http_code));
         return;
