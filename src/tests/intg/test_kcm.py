@@ -339,6 +339,21 @@ def collection_init_list_destroy(testenv):
     assert cc_coll['bob@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
     assert 'carol@KCMTEST' not in cc_coll
 
+    # Let's kinit a 3rd principal
+    out, _, _ = testenv.k5util.kinit("carol", "carolpw")
+    assert out == 0
+    cc_coll = testenv.k5util.list_all_princs()
+    assert len(cc_coll) == 3
+    assert cc_coll['alice@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
+    assert cc_coll['bob@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
+    assert cc_coll['carol@KCMTEST'] == ['krbtgt/KCMTEST@KCMTEST']
+
+    # Let's ensure `kdestroy -A` works with more than 2 principals
+    # https://pagure.io/SSSD/sssd/issue/3413
+    out = testenv.k5util.kdestroy(all_ccaches=True)
+    assert out == 0
+    assert testenv.k5util.num_princs() == 0
+
 
 def test_kcm_mem_collection_init_list_destroy(setup_for_kcm_mem):
     testenv = setup_for_kcm_mem
