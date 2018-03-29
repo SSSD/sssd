@@ -38,7 +38,7 @@
 /* The maximum length of a request or reply as defined by the RPC
  * protocol. This is the same constant size as MIT KRB5 uses
  */
-#define KCM_PACKET_MAX_SIZE 2048
+#define KCM_PACKET_MAX_SIZE 10*1024*1024
 
 /* KCM operation, its raw input and raw output and result */
 struct kcm_op_io {
@@ -125,27 +125,30 @@ struct kcm_reqbuf {
     struct kcm_iovec v_len;
 
     /* Includes the major, minor versions etc */
-    uint8_t msgbuf[KCM_PACKET_MAX_SIZE];
     struct kcm_iovec v_msg;
 };
+
+static uint32_t kcm_input_get_payload_len(struct kcm_iovec *v)
+{
+    size_t lc = 0;
+    uint32_t len_be = 0;
+
+    /* The first 4 bytes before the payload is message length */
+    SAFEALIGN_COPY_UINT32_CHECK(&len_be, v->kiov_base, v->kiov_len, &lc);
+
+    return be32toh(len_be);
+}
 
 static errno_t kcm_input_parse(struct kcm_reqbuf *reqbuf,
                                struct kcm_op_io *op_io)
 {
-    size_t lc = 0;
     size_t mc = 0;
     uint16_t opcode_be = 0;
-    uint32_t len_be = 0;
     uint32_t msglen;
     uint8_t proto_maj = 0;
     uint8_t proto_min = 0;
 
-    /* The first 4 bytes before the payload is message length */
-    SAFEALIGN_COPY_UINT32_CHECK(&len_be,
-                                reqbuf->v_len.kiov_base,
-                                reqbuf->v_len.kiov_len,
-                                &lc);
-    msglen = be32toh(len_be);
+    msglen = kcm_input_get_payload_len(&reqbuf->v_len);
     DEBUG(SSSDBG_TRACE_LIBS,
           "Received message with length %"PRIu32"\n", msglen);
 
@@ -234,7 +237,6 @@ struct kcm_repbuf {
     uint8_t rcbuf[KCM_RETCODE_SIZE];
     struct kcm_iovec v_rc;
 
-    uint8_t msgbuf[KCM_PACKET_MAX_SIZE];
     struct kcm_iovec v_msg;
 };
 
@@ -255,11 +257,13 @@ static errno_t kcm_failbuf_construct(errno_t ret,
 /* retcode is 0 if the operation at least ran, non-zero if there
  * was some kind of internal KCM error, like input couldn't be parsed
  */
-static errno_t kcm_output_construct(struct kcm_op_io *op_io,
+static errno_t kcm_output_construct(TALLOC_CTX *mem_ctx,
+                                    struct kcm_op_io *op_io,
                                     struct kcm_repbuf *repbuf)
 {
-    size_t c;
+    uint8_t *rep;
     size_t replen;
+    size_t c;
 
     replen = sss_iobuf_get_len(op_io->reply);
     if (replen > KCM_PACKET_MAX_SIZE) {
@@ -277,14 +281,22 @@ static errno_t kcm_output_construct(struct kcm_op_io *op_io,
     SAFEALIGN_SETMEM_UINT32(repbuf->rcbuf, 0, &c);
 
     if (replen > 0) {
+        rep = talloc_zero_array(mem_ctx, uint8_t, replen);
+        if (rep == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to allocate memory for the message\n");
+            return ENOMEM;
+        }
+
         c = 0;
-        SAFEALIGN_MEMCPY_CHECK(repbuf->msgbuf,
+        SAFEALIGN_MEMCPY_CHECK(rep,
                                sss_iobuf_get_data(op_io->reply),
                                replen,
-                               repbuf->v_msg.kiov_len,
+                               replen,
                                &c);
 
-        /* Length of the buffer to send to KCM client */
+        /* Set the buffer and its length to send to KCM client */
+        repbuf->v_msg.kiov_base = rep;
         repbuf->v_msg.kiov_len = replen;
     }
 
@@ -317,24 +329,6 @@ static void kcm_reply_error(struct cli_ctx *cctx,
     TEVENT_FD_WRITEABLE(cctx->cfde);
 }
 
-static void kcm_send_reply(struct cli_ctx *cctx,
-                           struct kcm_op_io *op_io,
-                           struct kcm_repbuf *repbuf)
-{
-    errno_t ret;
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Sending a reply\n");
-    ret = kcm_output_construct(op_io, repbuf);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot construct the reply buffer, terminating client\n");
-        kcm_reply_error(cctx, ret, repbuf);
-        return;
-    }
-
-    TEVENT_FD_WRITEABLE(cctx->cfde);
-}
-
 /**
  * Request-reply dispatcher
  */
@@ -351,6 +345,26 @@ struct kcm_req_ctx {
 
     struct kcm_op_io op_io;
 };
+
+static void kcm_send_reply(struct kcm_req_ctx *req_ctx)
+{
+    struct cli_ctx *cctx;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Sending a reply\n");
+
+    cctx = req_ctx->cctx;
+
+    ret = kcm_output_construct(cctx, &req_ctx->op_io, &req_ctx->repbuf);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot construct the reply buffer, terminating client\n");
+        kcm_reply_error(cctx, ret, &req_ctx->repbuf);
+        return;
+    }
+
+    TEVENT_FD_WRITEABLE(cctx->cfde);
+}
 
 static void kcm_cmd_request_done(struct tevent_req *req);
 
@@ -381,11 +395,9 @@ static errno_t kcm_cmd_dispatch(struct kcm_ctx *kctx,
 static void kcm_cmd_request_done(struct tevent_req *req)
 {
     struct kcm_req_ctx *req_ctx;
-    struct cli_ctx *cctx;
     errno_t ret;
 
     req_ctx = tevent_req_callback_data(req, struct kcm_req_ctx);
-    cctx = req_ctx->cctx;
 
     ret = kcm_cmd_recv(req_ctx, req,
                        &req_ctx->op_io.reply);
@@ -393,15 +405,19 @@ static void kcm_cmd_request_done(struct tevent_req *req)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "KCM operation failed [%d]: %s\n", ret, sss_strerror(ret));
-        kcm_reply_error(cctx, ret, &req_ctx->repbuf);
+        kcm_reply_error(req_ctx->cctx, ret, &req_ctx->repbuf);
         return;
     }
 
-    kcm_send_reply(cctx, &req_ctx->op_io, &req_ctx->repbuf);
+    kcm_send_reply(req_ctx);
 }
 
-static errno_t kcm_recv_data(int fd, struct kcm_reqbuf *reqbuf)
+static errno_t kcm_recv_data(TALLOC_CTX *mem_ctx,
+                             int fd,
+                             struct kcm_reqbuf *reqbuf)
 {
+    uint8_t *msg;
+    uint32_t msglen;
     errno_t ret;
 
     ret = kcm_read_iovec(fd, &reqbuf->v_len);
@@ -411,6 +427,24 @@ static errno_t kcm_recv_data(int fd, struct kcm_reqbuf *reqbuf)
          */
         return ret;
     }
+
+    msglen = kcm_input_get_payload_len(&reqbuf->v_len);
+    if (msglen > KCM_PACKET_MAX_SIZE) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Request exceeds the KCM protocol limit, aborting\n");
+        return E2BIG;
+    }
+
+    msg = talloc_zero_array(mem_ctx, uint8_t, msglen);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to allocate memory for the message\n");
+        return ENOMEM;
+    }
+
+    /* Set the buffer and its expected len to receive the data */
+    reqbuf->v_msg.kiov_base = msg;
+    reqbuf->v_msg.kiov_len = msglen;
 
     ret = kcm_read_iovec(fd, &reqbuf->v_msg);
     if (ret != EOK) {
@@ -423,8 +457,10 @@ static errno_t kcm_recv_data(int fd, struct kcm_reqbuf *reqbuf)
     return EOK;
 }
 
-static struct kcm_req_ctx *kcm_new_req(TALLOC_CTX *mem_ctx,
-                                       struct cli_ctx *cctx,
+/* Mind that kcm_new_req() does not take a mem_ctx argument on purpose as we
+ * really want the cctx to be the memory context here so that if the client
+ * disconnects, the request goes away. */
+static struct kcm_req_ctx *kcm_new_req(struct cli_ctx *cctx,
                                        struct kcm_ctx *kctx)
 {
     struct kcm_req_ctx *req;
@@ -437,20 +473,11 @@ static struct kcm_req_ctx *kcm_new_req(TALLOC_CTX *mem_ctx,
     req->reqbuf.v_len.kiov_base = req->reqbuf.lenbuf;
     req->reqbuf.v_len.kiov_len = KCM_MSG_LEN_SIZE;
 
-    req->reqbuf.v_msg.kiov_base = req->reqbuf.msgbuf;
-    req->reqbuf.v_msg.kiov_len = KCM_PACKET_MAX_SIZE;
-
     req->repbuf.v_len.kiov_base = req->repbuf.lenbuf;
     req->repbuf.v_len.kiov_len = KCM_MSG_LEN_SIZE;
 
     req->repbuf.v_rc.kiov_base = req->repbuf.rcbuf;
     req->repbuf.v_rc.kiov_len = KCM_RETCODE_SIZE;
-
-    req->repbuf.v_msg.kiov_base = req->repbuf.msgbuf;
-    /* Length of the msg iobuf will be adjusted later, so far use the full
-     * length so that constructing the reply can use that capacity
-     */
-    req->repbuf.v_msg.kiov_len = KCM_PACKET_MAX_SIZE;
 
     req->cctx = cctx;
     req->kctx = kctx;
@@ -467,8 +494,8 @@ static void kcm_recv(struct cli_ctx *cctx)
     kctx = talloc_get_type(cctx->rctx->pvt_ctx, struct kcm_ctx);
     req = talloc_get_type(cctx->state_ctx, struct kcm_req_ctx);
     if (req == NULL) {
-        /* A new request comes in, setup data structures */
-        req = kcm_new_req(cctx, cctx, kctx);
+        /* A new request comes in, setup data structures. */
+        req = kcm_new_req(cctx, kctx);
         if (req == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot set up client connection\n");
@@ -479,7 +506,7 @@ static void kcm_recv(struct cli_ctx *cctx)
         cctx->state_ctx = req;
     }
 
-    ret = kcm_recv_data(cctx->cfd, &req->reqbuf);
+    ret = kcm_recv_data(req, cctx->cfd, &req->reqbuf);
     switch (ret) {
     case ENODATA:
         DEBUG(SSSDBG_TRACE_ALL, "Client closed connection.\n");
