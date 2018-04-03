@@ -248,8 +248,12 @@ void orderly_shutdown(int status)
 {
 #if HAVE_GETPGRP
     static int sent_sigterm;
+    int debug;
+
     if (sent_sigterm == 0 && getpgrp() == getpid()) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "SIGTERM: killing children\n");
+        debug = is_socket_activated() ? SSSDBG_TRACE_INTERNAL
+                                      : SSSDBG_FATAL_FAILURE;
+        DEBUG(debug, "SIGTERM: killing children\n");
         sent_sigterm = 1;
         kill(-getpgrp(), SIGTERM);
     }
