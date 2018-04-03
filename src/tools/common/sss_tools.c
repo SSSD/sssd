@@ -346,7 +346,9 @@ errno_t sss_tool_route(int argc, const char **argv,
 
             if (!tool_ctx->print_help) {
                 ret = tool_cmd_init(tool_ctx, &commands[i]);
-                if (ret != EOK) {
+                if (ret == ERR_SYSDB_VERSION_TOO_OLD) {
+                    tool_ctx->init_err = ret;
+                } else if (ret != EOK) {
                     DEBUG(SSSDBG_FATAL_FAILURE,
                           "Command initialization failed [%d] %s\n",
                           ret, sss_strerror(ret));
@@ -516,9 +518,7 @@ int sss_tool_main(int argc, const char **argv,
     }
 
     ret = sss_tool_init(NULL, &argc, argv, &tool_ctx);
-    if (ret == ERR_SYSDB_VERSION_TOO_OLD) {
-        tool_ctx->init_err = ret;
-    } else if (ret != EOK) {
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tool context\n");
         return EXIT_FAILURE;
     }
