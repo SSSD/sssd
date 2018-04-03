@@ -583,14 +583,19 @@ static void ipa_get_ext_groups_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "[%zu] external groups found.\n",
                               state->reply_count);
 
-    ret = process_ext_groups(state->server_mode->ext_groups,
-                             state->reply_count, state->reply, &ext_group_hash);
+    ret = process_ext_groups(state,
+                             state->reply_count,
+                             state->reply,
+                             &ext_group_hash);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "process_ext_groups failed.\n");
         goto fail;
     }
 
-    state->server_mode->ext_groups->ext_groups = ext_group_hash;
+    talloc_free(state->server_mode->ext_groups->ext_groups);
+    state->server_mode->ext_groups->ext_groups = talloc_steal(
+            state->server_mode->ext_groups,
+            ext_group_hash);
     /* Do we have to make the update timeout configurable? */
     state->server_mode->ext_groups->next_update = time(NULL) + 10;
 
