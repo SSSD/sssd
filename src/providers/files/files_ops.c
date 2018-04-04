@@ -36,9 +36,6 @@
 #define GRP_MAXSIZE         2048
 
 struct files_ctx {
-    struct snotify_ctx *pwd_watch;
-    struct snotify_ctx *grp_watch;
-
     struct files_ops_ctx *ops;
 };
 
@@ -957,6 +954,7 @@ struct files_ctx *sf_init(TALLOC_CTX *mem_ctx,
     struct files_ctx *fctx;
     struct tevent_immediate *imm;
     int i;
+    struct snotify_ctx *snctx;
 
     fctx = talloc(mem_ctx, struct files_ctx);
     if (fctx == NULL) {
@@ -964,18 +962,31 @@ struct files_ctx *sf_init(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; passwd_files[i]; i++) {
-        fctx->pwd_watch = sf_setup_watch(fctx, ev, passwd_files[i],
-                                         sf_passwd_cb, id_ctx);
+        snctx = sf_setup_watch(fctx, ev, passwd_files[i],
+                               sf_passwd_cb, id_ctx);
+        if (snctx == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot set watch for passwd file %s\n", passwd_files[i]);
+            /* Rather than reporting incomplete or inconsistent information
+             * in case e.g. group memberships span multiple files, just abort
+             */
+            talloc_free(fctx);
+            return NULL;
         }
-
-    for (i = 0; group_files[i]; i++) {
-        fctx->grp_watch = sf_setup_watch(fctx, ev, group_files[i],
-                                         sf_group_cb, id_ctx);
     }
 
-    if (fctx->pwd_watch == NULL || fctx->grp_watch == NULL) {
-        talloc_free(fctx);
-        return NULL;
+    for (i = 0; group_files[i]; i++) {
+        snctx = sf_setup_watch(fctx, ev, group_files[i],
+                                sf_group_cb, id_ctx);
+        if (snctx == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot set watch for group file %s\n", group_files[i]);
+            /* Rather than reporting incomplete or inconsistent information
+             * in case e.g. group memberships span multiple files, just abort
+             */
+            talloc_free(fctx);
+            return NULL;
+        }
     }
 
     /* Enumerate users and groups on startup to process any changes when
