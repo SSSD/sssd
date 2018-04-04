@@ -2806,7 +2806,8 @@ ad_gpo_site_name_retrieval_done(struct tevent_req *subreq)
     struct tevent_req *req;
     struct ad_gpo_process_som_state *state;
     int ret;
-    char *site;
+    char *site = NULL;
+    char *site_override = NULL;
     const char *attrs[] = {AD_AT_CONFIG_NC, NULL};
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -2817,16 +2818,42 @@ ad_gpo_site_name_retrieval_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK || site == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve master domain info\n");
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Could not autodiscover AD site. This is not fatal if "
+              "ad_site option was set.\n");
+    }
+
+    site_override = dp_opt_get_string(state->ad_options, AD_SITE);
+    if (site_override != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Overriding autodiscovered AD site value '%s' with '%s' from "
+              "configuration.\n", site ? site : "none", site_override);
+    }
+
+    if (site == NULL && site_override == NULL) {
+        sss_log(SSS_LOG_WARNING,
+                "Could not autodiscover AD site value using DNS and ad_site "
+                "option was not set in configuration. GPO will not work. "
+                "To work around this issue you can use ad_site option in SSSD "
+                "configuration.");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not autodiscover AD site value using DNS and ad_site "
+              "option was not set in configuration. GPO will not work. "
+              "To work around this issue you can use ad_site option in SSSD "
+              "configuration.\n");
         tevent_req_error(req, ENOENT);
         return;
     }
 
-    state->site_name = talloc_asprintf(state, "cn=%s", site);
+    state->site_name = talloc_asprintf(state, "cn=%s",
+                                       site_override ? site_override
+                                                     : site);
     if (state->site_name == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Using AD site '%s'.\n", state->site_name);
 
     /*
      * note: the configNC attribute is being retrieved here from the rootDSE
