@@ -188,6 +188,40 @@ def files_multiple_sources(request):
 
 
 @pytest.fixture
+def files_multiple_sources_nocreate(request):
+    """
+    Sets up SSSD with multiple sources, but does not actually create
+    the files.
+    """
+    alt_passwd_path = tempfile.mktemp(prefix='altpasswd')
+    request.addfinalizer(lambda: os.unlink(alt_passwd_path))
+
+    alt_group_path = tempfile.mktemp(prefix='altgroup')
+    request.addfinalizer(lambda: os.unlink(alt_group_path))
+
+    passwd_list = ",".join([os.environ["NSS_WRAPPER_PASSWD"], alt_passwd_path])
+    group_list = ",".join([os.environ["NSS_WRAPPER_GROUP"], alt_group_path])
+
+    conf = unindent("""\
+        [sssd]
+        domains             = files
+        services            = nss
+
+        [nss]
+        debug_level = 10
+
+        [domain/files]
+        id_provider = files
+        passwd_files = {passwd_list}
+        group_files = {group_list}
+        debug_level = 10
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return alt_passwd_path, alt_group_path
+
+
+@pytest.fixture
 def proxy_to_files_domain_only(request):
     conf = unindent("""\
         [sssd]
@@ -1112,4 +1146,30 @@ def test_multiple_passwd_group_files(add_user_with_canary,
     check_user(ALT_USER1)
 
     check_group(GROUP1)
+    check_group(ALT_GROUP1)
+
+
+def test_multiple_files_created_after_startup(add_user_with_canary,
+                                              add_group_with_canary,
+                                              files_multiple_sources_nocreate):
+    """
+    Test that users and groups can be mirrored from multiple files,
+    but those files are not created when SSSD starts, only afterwards.
+    """
+    alt_passwd_path, alt_group_path = files_multiple_sources_nocreate
+
+    check_user(USER1)
+    check_group(GROUP1)
+
+    # touch the files
+    for fpath in (alt_passwd_path, alt_group_path):
+        with open(fpath, "w") as f:
+            pass
+
+    alt_pwops = PasswdOps(alt_passwd_path)
+    alt_grops = GroupOps(alt_group_path)
+    alt_pwops.useradd(**ALT_USER1)
+    alt_grops.groupadd(**ALT_GROUP1)
+
+    check_user(ALT_USER1)
     check_group(ALT_GROUP1)

@@ -734,8 +734,15 @@ static errno_t sf_enum_files(struct files_id_ctx *id_ctx,
         /* All users were deleted, therefore we need to enumerate each file again */
         for (size_t i = 0; id_ctx->passwd_files[i] != NULL; i++) {
             ret = sf_enum_users(id_ctx, id_ctx->passwd_files[i]);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate users\n");
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "The file %s does not exist (yet), skipping\n",
+                      id_ctx->passwd_files[i]);
+                continue;
+            } else if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Cannot enumerate users from %s, aborting\n",
+                      id_ctx->passwd_files[i]);
                 goto done;
             }
         }
@@ -750,8 +757,15 @@ static errno_t sf_enum_files(struct files_id_ctx *id_ctx,
         /* All groups were deleted, therefore we need to enumerate each file again */
         for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
             ret = sf_enum_groups(id_ctx, id_ctx->group_files[i]);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate groups\n");
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "The file %s does not exist (yet), skipping\n",
+                      id_ctx->group_files[i]);
+                continue;
+            } else if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Cannot enumerate groups from %s, aborting\n",
+                      id_ctx->group_files[i]);
                 goto done;
             }
         }
