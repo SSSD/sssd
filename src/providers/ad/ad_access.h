@@ -23,6 +23,8 @@
 #ifndef AD_ACCESS_H_
 #define AD_ACCESS_H_
 
+#include "providers/data_provider.h"
+
 struct ad_access_ctx {
     struct dp_option *ad_options;
     struct sdap_access_ctx *sdap_access_ctx;
