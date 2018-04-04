@@ -146,6 +146,7 @@ struct tevent_req *ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
                                            struct ldb_context *ldb_ctx,
                                            struct sdap_id_op *sdap_op,
                                            struct sdap_options *opts,
+                                           struct dp_option *ad_options,
                                            int timeout,
                                            const char *target_dn,
                                            const char *domain_name);
@@ -1975,6 +1976,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
                                      state->ldb_ctx,
                                      state->sdap_op,
                                      state->opts,
+                                     state->access_ctx->ad_options,
                                      state->timeout,
                                      state->target_dn,
                                      state->host_domain->name);
@@ -2701,6 +2703,7 @@ struct ad_gpo_process_som_state {
     struct tevent_context *ev;
     struct sdap_id_op *sdap_op;
     struct sdap_options *opts;
+    struct dp_option *ad_options;
     int timeout;
     bool allow_enforced_only;
     char *site_name;
@@ -2734,6 +2737,7 @@ ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
                         struct ldb_context *ldb_ctx,
                         struct sdap_id_op *sdap_op,
                         struct sdap_options *opts,
+                        struct dp_option *ad_options,
                         int timeout,
                         const char *target_dn,
                         const char *domain_name)
@@ -2752,6 +2756,7 @@ ad_gpo_process_som_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->sdap_op = sdap_op;
     state->opts = opts;
+    state->ad_options = ad_options;
     state->timeout = timeout;
     state->som_index = 0;
     state->allow_enforced_only = 0;
