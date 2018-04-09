@@ -449,6 +449,7 @@ static void test_ad_create_1way_trust_options(void **state)
                                                             test_ctx->ad_ctx,
                                                             NULL,
                                                             NULL,
+                                                            NULL,
                                                             test_ctx->subdom,
                                                             ONEWAY_HOST_NAME,
                                                             ONEWAY_KEYTAB_PATH,
@@ -513,6 +514,7 @@ static void test_ad_create_2way_trust_options(void **state)
 
     test_ctx->ad_ctx->ad_options = ad_create_2way_trust_options(
                                         test_ctx->ad_ctx,
+                                        NULL,
                                         NULL,
                                         NULL,
                                         REALMNAME,
@@ -583,6 +585,7 @@ test_ldap_conn_setup(void **state)
 
     test_ctx->ad_ctx->ad_options = ad_create_2way_trust_options(
                                         ad_ctx,
+                                        NULL,
                                         NULL,
                                         NULL,
                                         REALMNAME,

@@ -458,7 +458,8 @@ errno_t sssm_ldap_init(TALLOC_CTX *mem_ctx,
 
     /* Always initialize options since it is needed everywhere. */
     ret = ldap_get_options(init_ctx, be_ctx->domain, be_ctx->cdb,
-                           be_ctx->conf_path, &init_ctx->options);
+                           be_ctx->conf_path, be_ctx->provider,
+                           &init_ctx->options);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize LDAP options "
               "[%d]: %s\n", ret, sss_strerror(ret));

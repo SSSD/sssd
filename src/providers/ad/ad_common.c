@@ -35,7 +35,8 @@ static errno_t ad_set_sdap_options(struct ad_options *ad_opts,
                                    struct sdap_options *id_opts);
 
 static struct sdap_options *
-ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
+ad_create_default_sdap_options(TALLOC_CTX *mem_ctx,
+                               struct data_provider *dp)
 {
     struct sdap_options *id_opts;
     errno_t ret;
@@ -44,6 +45,7 @@ ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
     if (!id_opts) {
         return NULL;
     }
+    id_opts->dp = dp;
 
     ret = dp_copy_defaults(id_opts,
                            ad_def_ldap_opts,
@@ -112,6 +114,7 @@ static errno_t
 ad_create_sdap_options(TALLOC_CTX *mem_ctx,
                        struct confdb_ctx *cdb,
                        const char *conf_path,
+                       struct data_provider *dp,
                        struct sdap_options **_id_opts)
 {
     struct sdap_options *id_opts;
@@ -119,7 +122,7 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
 
     if (cdb == NULL || conf_path == NULL) {
         /* Fallback to defaults if there is no confdb */
-        id_opts = ad_create_default_sdap_options(mem_ctx);
+        id_opts = ad_create_default_sdap_options(mem_ctx, dp);
         if (id_opts == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to initialize default sdap options\n");
@@ -220,6 +223,7 @@ struct ad_options *
 ad_create_options(TALLOC_CTX *mem_ctx,
                   struct confdb_ctx *cdb,
                   const char *conf_path,
+                  struct data_provider *dp,
                   struct sss_domain_info *subdom)
 {
     struct ad_options *ad_options;
@@ -252,6 +256,7 @@ ad_create_options(TALLOC_CTX *mem_ctx,
     ret = ad_create_sdap_options(ad_options,
                                  cdb,
                                  conf_path,
+                                 dp,
                                  &ad_options->id);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD LDAP options\n");
@@ -304,6 +309,7 @@ struct ad_options *
 ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
                              struct confdb_ctx *cdb,
                              const char *conf_path,
+                             struct data_provider *dp,
                              const char *realm,
                              struct sss_domain_info *subdom,
                              const char *hostname,
@@ -315,7 +321,7 @@ ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "2way trust is defined to domain '%s'\n",
           subdom->name);
 
-    ad_options = ad_create_options(mem_ctx, cdb, conf_path, subdom);
+    ad_options = ad_create_options(mem_ctx, cdb, conf_path, dp, subdom);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ad_create_options failed\n");
         return NULL;
@@ -343,6 +349,7 @@ struct ad_options *
 ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
                              struct confdb_ctx *cdb,
                              const char *subdom_conf_path,
+                             struct data_provider *dp,
                              struct sss_domain_info *subdom,
                              const char *hostname,
                              const char *keytab,
@@ -355,7 +362,7 @@ ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "1way trust is defined to domain '%s'\n",
           subdom->name);
 
-    ad_options = ad_create_options(mem_ctx, cdb, subdom_conf_path, subdom);
+    ad_options = ad_create_options(mem_ctx, cdb, subdom_conf_path, dp, subdom);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ad_create_options failed\n");
         return NULL;
@@ -1056,12 +1063,13 @@ errno_t
 ad_get_id_options(struct ad_options *ad_opts,
                   struct confdb_ctx *cdb,
                   const char *conf_path,
+                  struct data_provider *dp,
                   struct sdap_options **_opts)
 {
     struct sdap_options *id_opts;
     errno_t ret;
 
-    ret = ad_create_sdap_options(ad_opts, cdb, conf_path, &id_opts);
+    ret = ad_create_sdap_options(ad_opts, cdb, conf_path, dp, &id_opts);
     if (ret != EOK) {
         return ENOMEM;
     }

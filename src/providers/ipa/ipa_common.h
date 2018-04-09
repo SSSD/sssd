@@ -235,6 +235,7 @@ int ipa_get_options(TALLOC_CTX *memctx,
 int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
                        const char *conf_path,
+                       struct data_provider *dp,
                        struct sdap_options **_opts);
 
 int ipa_get_auth_options(struct ipa_options *ipa_opts,

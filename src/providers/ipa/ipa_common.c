@@ -171,6 +171,7 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
 int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
                        const char *conf_path,
+                       struct data_provider *dp,
                        struct sdap_options **_opts)
 {
     TALLOC_CTX *tmpctx;
@@ -190,6 +191,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         ret = ENOMEM;
         goto done;
     }
+    ipa_opts->id->dp = dp;
 
     ret = sdap_domain_add(ipa_opts->id,
                           ipa_opts->id_ctx->sdap_id_ctx->be->domain,

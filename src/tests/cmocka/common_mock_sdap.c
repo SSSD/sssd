@@ -48,7 +48,7 @@ struct sdap_options *mock_sdap_options_ldap(TALLOC_CTX *mem_ctx,
     struct sdap_options *opts = NULL;
     errno_t ret;
 
-    ret = ldap_get_options(mem_ctx, domain, confdb_ctx, conf_path, &opts);
+    ret = ldap_get_options(mem_ctx, domain, confdb_ctx, conf_path, NULL, &opts);
     if (ret != EOK) {
         return NULL;
     }
