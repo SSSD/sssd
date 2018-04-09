@@ -161,7 +161,10 @@ static errno_t ipa_init_id_ctx(TALLOC_CTX *mem_ctx,
     ipa_id_ctx->sdap_id_ctx = sdap_id_ctx;
     ipa_options->id_ctx = ipa_id_ctx;
 
-    ret = ipa_get_id_options(ipa_options, be_ctx->cdb, be_ctx->conf_path,
+    ret = ipa_get_id_options(ipa_options,
+                             be_ctx->cdb,
+                             be_ctx->conf_path,
+                             be_ctx->provider,
                              &sdap_id_ctx->opts);
     if (ret != EOK) {
         goto done;

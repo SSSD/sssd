@@ -193,6 +193,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
                      struct sss_domain_info *dom,
                      struct confdb_ctx *cdb,
                      const char *conf_path,
+                     struct data_provider *dp,
                      struct sdap_options **_opts);
 
 int ldap_get_sudo_options(struct confdb_ctx *cdb,

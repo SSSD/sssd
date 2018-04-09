@@ -453,7 +453,10 @@ errno_t sssm_ad_init(TALLOC_CTX *mem_ctx,
 
     init_ctx->options->id_ctx = init_ctx->id_ctx;
 
-    ret = ad_get_id_options(init_ctx->options, be_ctx->cdb, be_ctx->conf_path,
+    ret = ad_get_id_options(init_ctx->options,
+                            be_ctx->cdb,
+                            be_ctx->conf_path,
+                            be_ctx->provider,
                             &init_ctx->id_ctx->sdap_id_ctx->opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to init AD id options\n");

@@ -465,6 +465,7 @@ struct sdap_certmap_ctx;
 
 struct sdap_options {
     struct dp_option *basic;
+    struct data_provider *dp;
     struct sdap_attr_map *gen_map;
     struct sdap_attr_map *user_map;
     size_t user_map_cnt;

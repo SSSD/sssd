@@ -27,6 +27,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
                      struct sss_domain_info *dom,
                      struct confdb_ctx *cdb,
                      const char *conf_path,
+                     struct data_provider *dp,
                      struct sdap_options **_opts)
 {
     struct sdap_attr_map *default_attr_map;
@@ -57,6 +58,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
 
     opts = talloc_zero(memctx, struct sdap_options);
     if (!opts) return ENOMEM;
+    opts->dp = dp;
 
     ret = sdap_domain_add(opts, dom, NULL);
     if (ret != EOK) {

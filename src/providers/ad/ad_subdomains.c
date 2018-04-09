@@ -265,8 +265,12 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ad_options = ad_create_2way_trust_options(id_ctx, be_ctx->cdb,
-                                              subdom_conf_path, realm, subdom,
+    ad_options = ad_create_2way_trust_options(id_ctx,
+                                              be_ctx->cdb,
+                                              subdom_conf_path,
+                                              be_ctx->provider,
+                                              realm,
+                                              subdom,
                                               hostname, keytab);
     talloc_free(subdom_conf_path);
     if (ad_options == NULL) {
