@@ -756,6 +756,9 @@ static errno_t nss_setnetgrent(struct cli_ctx *cli_ctx,
         goto done;
     }
 
+    state_ctx->netgrent.domain = 0;
+    state_ctx->netgrent.result = 0;
+
     talloc_zfree(state_ctx->netgroup);
     state_ctx->netgroup = talloc_strdup(state_ctx, netgroup);
     if (state_ctx->netgroup == NULL) {

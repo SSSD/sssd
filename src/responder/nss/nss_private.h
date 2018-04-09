@@ -41,6 +41,7 @@ struct nss_enum_index {
 struct nss_enum_ctx {
     struct cache_req_result **result;
     struct sysdb_netgroup_ctx **netgroup;
+    size_t netgroup_count;
 
     /* Ongoing cache request that is constructing enumeration result. */
     struct tevent_req *ongoing;
