@@ -584,7 +584,6 @@ static errno_t remove_ts_cache(struct sysdb_ctx *sysdb)
 }
 
 static errno_t sysdb_cache_connect_helper(TALLOC_CTX *mem_ctx,
-                                          struct sysdb_ctx *sysdb,
                                           struct sss_domain_info *domain,
                                           const char *ldb_file,
                                           int flags,
@@ -710,7 +709,7 @@ static errno_t sysdb_cache_connect(TALLOC_CTX *mem_ctx,
 
     ldb_file_exists = !(access(sysdb->ldb_file, F_OK) == -1 && errno == ENOENT);
 
-    ret = sysdb_cache_connect_helper(mem_ctx, sysdb, domain, sysdb->ldb_file,
+    ret = sysdb_cache_connect_helper(mem_ctx, domain, sysdb->ldb_file,
                                       0, SYSDB_VERSION, SYSDB_BASE_LDIF,
                                       &newly_created, ldb, version);
 
@@ -733,7 +732,7 @@ static errno_t sysdb_ts_cache_connect(TALLOC_CTX *mem_ctx,
                                       struct ldb_context **ldb,
                                       const char **version)
 {
-    return sysdb_cache_connect_helper(mem_ctx, sysdb, domain, sysdb->ldb_ts_file,
+    return sysdb_cache_connect_helper(mem_ctx, domain, sysdb->ldb_ts_file,
                                       LDB_FLG_NOSYNC, SYSDB_TS_VERSION,
                                       SYSDB_TS_BASE_LDIF, NULL,
                                       ldb, version);
