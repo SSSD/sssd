@@ -44,7 +44,9 @@
         <para>
             The rules are processed by priority while the number '0' (zero)
             indicates the highest priority. The higher the number the lower is
-            the priority. A missing value indicates the lowest priority.
+            the priority. A missing value indicates the lowest priority. The
+            rules processing is stopped when a matched rule is found and no
+            further rules are checked.
         </para>
         <para>
             Internally the priority is treated as unsigned 32bit integer, using
