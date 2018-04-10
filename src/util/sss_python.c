@@ -23,7 +23,7 @@
 PyObject *
 sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict)
 {
-#ifdef HAVE_PYERR_NEWEXCEPTIONWITHDOC
+#if PY_VERSION_HEX >= 0x02070000
     return PyErr_NewExceptionWithDoc(name, doc, base, dict);
 #else
     int result;
