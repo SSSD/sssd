@@ -729,6 +729,30 @@ dist_noinst_HEADERS = \
     src/sbus/sssd_dbus_invokers.h \
     src/sbus/sssd_dbus_errors.h \
     src/sbus/sssd_dbus_utils.h \
+    src/sbus/sbus_annotations.h \
+    src/sbus/sbus_declarations.h \
+    src/sbus/sbus_errors.h \
+    src/sbus/sbus.h \
+    src/sbus/sbus_interface_declarations.h \
+    src/sbus/sbus_interface.h \
+    src/sbus/sbus_message.h \
+    src/sbus/sbus_opath.h \
+    src/sbus/sbus_private.h \
+    src/sbus/sbus_request.h \
+    src/sbus/sbus_sync.h \
+    src/sbus/sbus_sync_private.h \
+    src/sbus/sbus_typeof.h \
+    src/sbus/connection/sbus_dbus_private.h \
+    src/sbus/interface_dbus/sbus_dbus_arguments.h \
+    src/sbus/interface_dbus/sbus_dbus_client_async.h \
+    src/sbus/interface_dbus/sbus_dbus_client_sync.h \
+    src/sbus/interface_dbus/sbus_dbus_interface.h \
+    src/sbus/interface_dbus/sbus_dbus_invokers.h \
+    src/sbus/interface_dbus/sbus_dbus_keygens.h \
+    src/sbus/interface_dbus/sbus_dbus_server.h \
+    src/sbus/interface_dbus/sbus_dbus_symbols.h \
+    src/sbus/interface/sbus_iterator_readers.h \
+    src/sbus/interface/sbus_iterator_writers.h \
     src/db/sysdb.h \
     src/db/sysdb_sudo.h \
     src/db/sysdb_autofs.h \
@@ -993,6 +1017,49 @@ libsss_cert_la_LDFLAGS = \
     -avoid-version \
     $(NULL)
 
+pkglib_LTLIBRARIES += libsss_sbus_old.la
+libsss_sbus_old_la_SOURCES = \
+    src/util/check_and_open.c \
+    src/util/debug.c \
+    src/util/sss_ptr_hash.c \
+    src/util/sss_ptr_list.c \
+    src/util/sss_utf8.c \
+    src/util/util.c \
+    src/util/util_errors.c \
+    src/util/util_ext.c \
+    src/sbus/sbus_client.c \
+    src/sbus/sssd_dbus_common.c \
+    src/sbus/sssd_dbus_connection.c \
+    src/sbus/sssd_dbus_meta.c \
+    src/sbus/sssd_dbus_interface.c \
+    src/sbus/sssd_dbus_introspect.c \
+    src/sbus/sssd_dbus_invokers.c \
+    src/sbus/sssd_dbus_properties.c \
+    src/sbus/sssd_dbus_request.c \
+    src/sbus/sssd_dbus_server.c \
+    src/sbus/sssd_dbus_signals.c \
+    src/sbus/sssd_dbus_common_signals.c \
+    src/sbus/sssd_dbus_utils.c \
+    src/monitor/monitor_sbus.c \
+    src/providers/data_provider/dp_sbus.c \
+    $(NULL)
+libsss_sbus_old_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    $(NULL)
+libsss_sbus_old_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_sbus_old_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
 pkglib_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
     src/confdb/confdb.c \
@@ -1011,23 +1078,8 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_gpo.c \
     src/db/sysdb_certmap.c \
     src/db/sysdb_domain_resolution_order.c \
-    src/monitor/monitor_sbus.c \
     src/providers/dp_auth_util.c \
     src/providers/dp_pam_data_util.c \
-    src/providers/data_provider/dp_sbus.c \
-    src/sbus/sbus_client.c \
-    src/sbus/sssd_dbus_common.c \
-    src/sbus/sssd_dbus_connection.c \
-    src/sbus/sssd_dbus_meta.c \
-    src/sbus/sssd_dbus_interface.c \
-    src/sbus/sssd_dbus_introspect.c \
-    src/sbus/sssd_dbus_invokers.c \
-    src/sbus/sssd_dbus_properties.c \
-    src/sbus/sssd_dbus_request.c \
-    src/sbus/sssd_dbus_server.c \
-    src/sbus/sssd_dbus_signals.c \
-    src/sbus/sssd_dbus_common_signals.c \
-    src/sbus/sssd_dbus_utils.c \
     src/util/util.c \
     src/util/util_ext.c \
     src/util/util_preauth.c \
@@ -1361,7 +1413,9 @@ sssd_LDADD = \
     $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
+    $(NULL)
 
 sssd_nss_SOURCES = \
     src/responder/nss/nsssrv.c \
@@ -1385,7 +1439,9 @@ sssd_nss_LDADD = \
     libsss_idmap.la \
     libsss_cert.la \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
+    $(NULL)
 
 sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
@@ -1403,6 +1459,7 @@ sssd_pam_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_certmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
     $(NULL)
 
 if BUILD_SUDO
@@ -1416,7 +1473,9 @@ sssd_sudo_SOURCES = \
 sssd_sudo_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
+    $(NULL)
 endif
 
 if BUILD_AUTOFS
@@ -1428,7 +1487,9 @@ sssd_autofs_SOURCES = \
 sssd_autofs_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
+    $(NULL)
 endif
 
 if BUILD_SSH
@@ -1445,6 +1506,7 @@ sssd_ssh_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_cert.la \
+    libsss_sbus_old.la \
     $(NULL)
 endif
 
@@ -1462,7 +1524,9 @@ sssd_pac_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_idmap.la \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
+    $(NULL)
 
 if BUILD_IFP
 sssd_ifp_SOURCES = \
@@ -1485,7 +1549,9 @@ sssd_ifp_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_cert.la \
+    libsss_sbus_old.la \
     $(NULL)
+
 dist_dbuspolicy_DATA = \
     src/responder/ifp/org.freedesktop.sssd.infopipe.conf
 dist_dbusservice_DATA = \
@@ -1532,6 +1598,7 @@ sssd_secrets_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(CURL_LIBS) \
+    libsss_sbus_old.la \
     $(NULL)
 endif
 
@@ -1566,6 +1633,7 @@ sssd_kcm_LDADD = \
     $(UUID_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
     $(NULL)
 endif
 
@@ -1607,7 +1675,9 @@ sssd_be_LDADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(PAM_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
+    $(NULL)
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -export-dynamic
@@ -1764,6 +1834,7 @@ sssctl_LDADD = \
     $(PAM_MISC_LIBS) \
     $(LIBADD_DL) \
     libsss_simpleifp.la \
+    libsss_sbus_old.la \
     $(NULL)
 sssctl_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1922,6 +1993,7 @@ libdlopen_test_providers_la_LIBADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la \
     $(NULL)
 if BUILD_SYSTEMTAP
 libdlopen_test_providers_la_LIBADD += stap_generated_probes.lo
@@ -2271,7 +2343,8 @@ responder_socket_access_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_sbus_old.la
 endif
 
 stress_tests_SOURCES = \
@@ -2332,7 +2405,8 @@ sbus_tests_CFLAGS = \
 sbus_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SSSD_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_sbus_old.la
 
 sbus_codegen_tests_SOURCES = \
     src/tests/common_dbus.c \
@@ -2345,7 +2419,8 @@ sbus_codegen_tests_CFLAGS = \
 sbus_codegen_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SSSD_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_sbus_old.la
 
 endif # BUILD_DBUS_TESTS
 
@@ -2415,7 +2490,8 @@ nss_srv_tests_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_cert.la \
-    libsss_idmap.la
+    libsss_idmap.la \
+    libsss_sbus_old.la
 
 EXTRA_pam_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
@@ -2452,6 +2528,7 @@ pam_srv_tests_LDADD = \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
+    libsss_sbus_old.la \
     $(NULL)
 
 EXTRA_ssh_srv_tests_DEPENDENCIES = \
@@ -2503,7 +2580,8 @@ responder_get_domains_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_sbus_old.la
 
 sbus_internal_tests_SOURCES = \
     src/tests/cmocka/sbus_internal_tests.c \
@@ -2524,7 +2602,8 @@ sbus_internal_tests_LDADD = \
     libsss_util.la \
     libsss_crypt.la \
     libsss_debug.la \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_sbus_old.la
 
 config_check_tests_SOURCES = \
     src/tests/cmocka/test_config_check.c \
@@ -2583,7 +2662,8 @@ test_negcache_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
-    libsss_idmap.la
+    libsss_idmap.la \
+    libsss_sbus_old.la
 
 test_authtok_SOURCES = \
     src/tests/cmocka/test_authtok.c \
@@ -2926,7 +3006,8 @@ ifp_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_sbus_old.la
 
 sss_sifp_tests_SOURCES = \
     src/tests/cmocka/test_sss_sifp.c \
@@ -3183,6 +3264,7 @@ responder_cache_req_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
+    libsss_sbus_old.la \
     $(NULL)
 
 test_sbus_opath_SOURCES = \
@@ -3195,7 +3277,8 @@ test_sbus_opath_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_debug.la \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_sbus_old.la
 
 if HAVE_LIBRESOLV
 test_resolv_fake_SOURCES = \
@@ -4332,7 +4415,8 @@ proxy_child_CFLAGS = \
 proxy_child_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_sbus_old.la
 
 p11_child_SOURCES = \
     src/p11_child/p11_child_common.c \
