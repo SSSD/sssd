@@ -17,9 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
 import sys
 import re
 import rpm
+
 
 def usage(file):
     file.write(("Usage: %s SPEC\n" +
@@ -32,4 +35,4 @@ if len(sys.argv) != 2:
 
 spec = rpm.spec(sys.argv[1])
 for d in rpm.ds(spec.sourceHeader, 'requires'):
-    print d.DNEVR()[2:]
+    print(d.DNEVR()[2:])
