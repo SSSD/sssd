@@ -329,7 +329,6 @@ them please use argument --without-python2-bindings when running configure.])])
     AM_PYTHON_CONFIG([python2])
     AM_CHECK_PYTHON_HEADERS([],
                             AC_MSG_ERROR([Could not find python2 headers]))
-    AM_CHECK_PYTHON_COMPAT
 
     AC_SUBST([py2execdir], [$pyexecdir])
     AC_SUBST([python2dir], [$pythondir])
@@ -356,7 +355,6 @@ them please use argument --without-python3-bindings when running configure.])])
     AM_PYTHON_CONFIG([python3])
     AM_CHECK_PYTHON_HEADERS([],
                             AC_MSG_ERROR([Could not find python3 headers]))
-    AM_CHECK_PYTHON_COMPAT
 
     AC_SUBST([py3execdir], [$pyexecdir])
     AC_SUBST([python3dir], [$pythondir])

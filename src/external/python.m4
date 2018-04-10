@@ -39,23 +39,6 @@ AC_DEFUN([AM_CHECK_PYTHON_HEADERS],
     CPPFLAGS="$save_CPPFLAGS"
 ])
 
-
-dnl Checks for a couple of functions we use that may not be defined
-dnl in some older python (< 2.6) versions used e.g. on RHEL6
-AC_DEFUN([AM_CHECK_PYTHON_COMPAT],
-[
-    AC_REQUIRE([AM_CHECK_PYTHON_HEADERS])
-    save_CPPFLAGS="$CPPFLAGS"
-    save_LIBS="$LIBS"
-    CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDES"
-    LIBS="$LIBS $PYTHON_LIBS"
-
-    AC_CHECK_FUNCS([PyErr_NewExceptionWithDoc])
-
-    CPPFLAGS="$save_CPPFLAGS"
-    LIBS="$save_LIBS"
-])
-
 dnl Clean variables after detection of python
 AC_DEFUN([SSS_CLEAN_PYTHON_VARIABLES],
 [
