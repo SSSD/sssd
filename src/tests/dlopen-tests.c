@@ -80,6 +80,7 @@ struct so {
     { "libsss_cert.so", { LIBPFX"libsss_util.so",
                           LIBPFX"libsss_cert.so", NULL } },
     { "libsss_util.so", { LIBPFX"libsss_util.so", NULL } },
+    { "libsss_sbus_old.so", {NULL} },
     { "libsss_simple.so", { LIBPFX"libdlopen_test_providers.so",
                             LIBPFX"libsss_simple.so", NULL } },
     { "libsss_files.so", { LIBPFX"libdlopen_test_providers.so",
