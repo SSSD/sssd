@@ -76,6 +76,8 @@
 #define SMB_STANDARD_URI "smb://"
 #define BUFSIZE 65536
 
+/* == cse-security constants =============================================== */
+
 #define RIGHTS_SECTION "Privilege Rights"
 #define ALLOW_LOGON_INTERACTIVE "SeInteractiveLogonRight"
 #define DENY_LOGON_INTERACTIVE "SeDenyInteractiveLogonRight"
@@ -1118,22 +1120,87 @@ ad_gpo_extract_policy_setting(TALLOC_CTX *mem_ctx,
 }
 
 /*
+ * This function retrieves the raw policy_setting_value for the input key from
+ * the GP result object in the sysdb cache. It then parses the raw value and
+ * uses the results to populate the output parameters with the sids_list and
+ * the size of the sids_list.
+ */
+errno_t
+parse_policy_setting_value(TALLOC_CTX *mem_ctx,
+                           struct sss_domain_info *domain,
+                           const char *cse_guid,
+                           const char *key,
+                           char ***_sids_list,
+                           int *_sids_list_size)
+{
+    int ret;
+    int i;
+    const char *value;
+    int sids_list_size;
+    char **sids_list = NULL;
+
+    ret = sysdb_gpo_get_gp_result_setting(mem_ctx,
+                                          domain, cse_guid,
+                                          key, &value);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No previous GP result\n");
+        value = NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot retrieve settings from sysdb for key: '%s' [%d][%s].\n",
+              key, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (value == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "No value for key [%s] found in gpo result\n", key);
+        sids_list_size = 0;
+    } else {
+        ret = split_on_separator(mem_ctx, value, ',', true, true,
+                                 &sids_list, &sids_list_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot parse list of sids %s: %d\n", value, ret);
+            ret = EINVAL;
+            goto done;
+        }
+
+        for (i = 0; i < sids_list_size; i++) {
+            /* remove the asterisk prefix found on sids */
+            sids_list[i]++;
+        }
+    }
+
+    *_sids_list = talloc_steal(mem_ctx, sids_list);
+    *_sids_list_size = sids_list_size;
+
+    ret = EOK;
+
+ done:
+    return ret;
+}
+
+/*
  * This function parses the cse-specific (GP_EXT_GUID_SECURITY) filename,
  * and stores the allow_key and deny_key of all of the gpo_map_types present
  * in the file (as part of the GPO Result object in the sysdb cache).
  */
 static errno_t
 ad_gpo_store_policy_settings(struct sss_domain_info *domain,
+                             const char *cse_guid,
                              const char *filename)
 {
     struct ini_cfgfile *file_ctx = NULL;
     struct ini_cfgobj *ini_config = NULL;
     int ret;
-    int i;
+    int i, j;
     char *allow_value = NULL;
     char *deny_value = NULL;
     const char *allow_key = NULL;
     const char *deny_key = NULL;
+    char **sids_list;
+    int sids_list_size;
     TALLOC_CTX *tmp_ctx = NULL;
 
     tmp_ctx = talloc_new(NULL);
@@ -1252,9 +1319,38 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                       allow_key, ret, sss_strerror(ret));
                 goto done;
             } else if (ret != ENOENT) {
-                ret = sysdb_gpo_store_gpo_result_setting(domain,
-                                                         allow_key,
-                                                         allow_value);
+                /* SIDs might already have been stored from other GPOs */
+                ret = parse_policy_setting_value(tmp_ctx,
+                                                 domain,
+                                                 cse_guid,
+                                                 allow_key,
+                                                 &sids_list,
+                                                 &sids_list_size);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "parse_policy_setting_value failed for key %s: [%d](%s)\n",
+                          allow_key, ret, sss_strerror(ret));
+                    ret = EINVAL;
+                    goto done;
+                }
+
+                if (sids_list != NULL) {
+                    for (j = 0; j < sids_list_size; j++) {
+                        if (strstr(allow_value, sids_list[j]) == NULL) {
+                            /* SID not in allowed SIDs list */
+                            allow_value = talloc_asprintf_append(allow_value,
+                                                                 ",*%s",
+                                                                 sids_list[j]);
+                        }
+                    }
+                    talloc_free(sids_list);
+                }
+                /* Store updated GP result object including allowed SIDs from
+                   this GPO */
+                ret = sysdb_gpo_store_gp_result_setting(domain,
+                                                        cse_guid,
+                                                        allow_key,
+                                                        allow_value);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "sysdb_gpo_store_gpo_result_setting failed for key:"
@@ -1278,9 +1374,37 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                       deny_key, ret, sss_strerror(ret));
                 goto done;
             } else if (ret != ENOENT) {
-                ret = sysdb_gpo_store_gpo_result_setting(domain,
-                                                         deny_key,
-                                                         deny_value);
+                /* SIDs might already have been stored from other GPOs */
+                ret = parse_policy_setting_value(tmp_ctx,
+                                                 domain,
+                                                 cse_guid,
+                                                 deny_key,
+                                                 &sids_list,
+                                                 &sids_list_size);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "parse_policy_setting_value failed for key %s: [%d](%s)\n",
+                          deny_key, ret, sss_strerror(ret));
+                    ret = EINVAL;
+                    goto done;
+                }
+
+                if (sids_list != NULL) {
+                    for (j = 0; j < sids_list_size; j++) {
+                        if (strstr(deny_value, sids_list[j]) == NULL) {
+                            /* SID not in denied SIDs list */
+                            deny_value = talloc_asprintf_append(deny_value,
+                                                                ",*%s",
+                                                                sids_list[j]);
+                        }
+                    }
+                }
+                /* Store updated GP result object including denied SIDs from
+                   this GPO */
+                ret = sysdb_gpo_store_gp_result_setting(domain,
+                                                        cse_guid,
+                                                        deny_key,
+                                                        deny_value);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "sysdb_gpo_store_gpo_result_setting failed for key:"
@@ -1428,65 +1552,6 @@ static errno_t gpo_child_init(void)
 }
 
 /*
- * This function retrieves the raw policy_setting_value for the input key from
- * the GPO_Result object in the sysdb cache. It then parses the raw value and
- * uses the results to populate the output parameters with the sids_list and
- * the size of the sids_list.
- */
-errno_t
-parse_policy_setting_value(TALLOC_CTX *mem_ctx,
-                           struct sss_domain_info *domain,
-                           const char *key,
-                           char ***_sids_list,
-                           int *_sids_list_size)
-{
-    int ret;
-    int i;
-    const char *value;
-    int sids_list_size;
-    char **sids_list = NULL;
-
-    ret = sysdb_gpo_get_gpo_result_setting(mem_ctx, domain, key, &value);
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No previous GPO result\n");
-        value = NULL;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot retrieve settings from sysdb for key: '%s' [%d][%s].\n",
-              key, ret, sss_strerror(ret));
-        goto done;
-    }
-
-    if (value == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "No value for key [%s] found in gpo result\n", key);
-        sids_list_size = 0;
-    } else {
-        ret = split_on_separator(mem_ctx, value, ',', true, true,
-                                 &sids_list, &sids_list_size);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Cannot parse list of sids %s: %d\n", value, ret);
-            ret = EINVAL;
-            goto done;
-        }
-
-        for (i = 0; i < sids_list_size; i++) {
-            /* remove the asterisk prefix found on sids */
-            sids_list[i]++;
-        }
-    }
-
-    *_sids_list = talloc_steal(mem_ctx, sids_list);
-    *_sids_list_size = sids_list_size;
-
-    ret = EOK;
-
- done:
-    return ret;
-}
-
-/*
  * This cse-specific function (GP_EXT_GUID_SECURITY) performs HBAC policy
  * processing and determines whether logon access is granted or denied for
  * the {user,domain} tuple specified in the inputs. This function returns EOK
@@ -1494,13 +1559,14 @@ parse_policy_setting_value(TALLOC_CTX *mem_ctx,
  * access is denied.
  *
  * Internally, this function retrieves the allow_value and deny_value for the
- * input gpo_map_type from the GPO Result object in the sysdb cache, parses
+ * input gpo_map_type from the GP result object in the sysdb cache, parses
  * the values into allow_sids and deny_sids, and executes the access control
  * algorithm which compares the allow_sids and deny_sids against the user_sid
  * and group_sids for the input user.
  */
 static errno_t
 ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
+                               const char *cse_guid,
                                enum gpo_access_control_mode gpo_mode,
                                enum gpo_map_type gpo_map_type,
                                const char *user,
@@ -1520,8 +1586,8 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
     deny_key = gpo_map_option_entries[gpo_map_type].deny_key;
     DEBUG(SSSDBG_TRACE_ALL, "deny_key: %s\n", deny_key);
 
-    ret = parse_policy_setting_value(mem_ctx, host_domain, allow_key,
-                                     &allow_sids, &allow_size);
+    ret = parse_policy_setting_value(mem_ctx, host_domain, cse_guid,
+                                     allow_key, &allow_sids, &allow_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "parse_policy_setting_value failed for key %s: [%d](%s)\n",
@@ -1530,8 +1596,8 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = parse_policy_setting_value(mem_ctx, host_domain, deny_key,
-                                     &deny_sids, &deny_size);
+    ret = parse_policy_setting_value(mem_ctx, host_domain, cse_guid,
+                                     deny_key, &deny_sids, &deny_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "parse_policy_setting_value failed for key %s: [%d](%s)\n",
@@ -1572,6 +1638,7 @@ struct ad_gpo_access_state {
     struct sss_domain_info *user_domain;
     struct sss_domain_info *host_domain;
     const char *user;
+    const char *cse_guid;
     int gpo_timeout_option;
     const char *ad_hostname;
     const char *target_dn;
@@ -1670,6 +1737,7 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     state->host_domain = get_domains_head(domain);
 
     state->gpo_map_type = gpo_map_type;
+    state->cse_guid = GP_EXT_GUID_SECURITY;
     state->dacl_filtered_gpos = NULL;
     state->num_dacl_filtered_gpos = 0;
     state->cse_filtered_gpos = NULL;
@@ -1717,6 +1785,7 @@ immediately:
 
 static errno_t
 process_offline_gpos(TALLOC_CTX *mem_ctx,
+                     const char *cse_guid,
                      const char *user,
                      enum gpo_access_control_mode gpo_mode,
                      struct sss_domain_info *user_domain,
@@ -1727,6 +1796,7 @@ process_offline_gpos(TALLOC_CTX *mem_ctx,
     errno_t ret;
 
     ret = ad_gpo_perform_hbac_processing(mem_ctx,
+                                         cse_guid,
                                          gpo_mode,
                                          gpo_map_type,
                                          user,
@@ -1775,6 +1845,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
+                                       state->cse_guid,
                                        state->user,
                                        state->gpo_mode,
                                        state->user_domain,
@@ -1897,6 +1968,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
         if (ret == EAGAIN && dp_error == DP_ERR_OFFLINE) {
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
+                                       state->cse_guid,
                                        state->user,
                                        state->gpo_mode,
                                        state->user_domain,
@@ -2087,7 +2159,9 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
          * Delete the result object list, since there are no
          * GPOs to include in it.
          */
-        ret = sysdb_gpo_delete_gpo_result_object(state, state->host_domain);
+        ret = sysdb_gpo_delete_gp_result_object(state,
+                                                state->host_domain,
+                                                state->cse_guid);
         if (ret != EOK) {
             switch (ret) {
             case ENOENT:
@@ -2126,7 +2200,9 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
          * Delete the result object list, since there are no
          * GPOs to include in it.
          */
-        ret = sysdb_gpo_delete_gpo_result_object(state, state->host_domain);
+        ret = sysdb_gpo_delete_gp_result_object(state,
+                                                state->host_domain,
+                                                state->cse_guid);
         if (ret != EOK) {
             switch (ret) {
             case ENOENT:
@@ -2150,7 +2226,7 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
     }
 
     ret = ad_gpo_filter_gpos_by_cse_guid(state,
-                                         GP_EXT_GUID_SECURITY,
+                                         state->cse_guid,
                                          state->dacl_filtered_gpos,
                                          state->num_dacl_filtered_gpos,
                                          &state->cse_filtered_gpos,
@@ -2199,7 +2275,9 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
      * subsequent functions will add the GPO Result object (and populate it
      * with resultant policy settings) for this policy application
      */
-    ret = sysdb_gpo_delete_gpo_result_object(state, state->host_domain);
+    ret = sysdb_gpo_delete_gp_result_object(state,
+                                            state->host_domain,
+                                            state->cse_guid);
     if (ret != EOK) {
         switch (ret) {
         case ENOENT:
@@ -2361,11 +2439,12 @@ ad_gpo_cse_done(struct tevent_req *subreq)
     }
 
     /*
-     * now that the policy file for this gpo have been downloaded to the
+     * now that the policy file for this cse has been downloaded to the
      * GPO CACHE, we store all of the supported keys present in the file
-     * (as part of the GPO Result object in the sysdb cache).
+     * (as part of the GP Result object in the sysdb cache).
      */
     ret = ad_gpo_store_policy_settings(state->host_domain,
+                                       state->cse_guid,
                                        cse_filtered_gpo->policy_filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -2380,6 +2459,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
     if (ret == EOK) {
         /* ret is EOK only after all GPO policy files have been downloaded */
         ret = ad_gpo_perform_hbac_processing(state,
+                                             state->cse_guid,
                                              state->gpo_mode,
                                              state->gpo_map_type,
                                              state->user,

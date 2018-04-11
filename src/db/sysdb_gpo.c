@@ -353,36 +353,37 @@ done:
     return ret;
 }
 
-/* GPO Result */
+/* Group Policy (GP) Result */
 
 static struct ldb_dn *
-sysdb_gpo_result_dn(TALLOC_CTX *mem_ctx,
-                    struct sss_domain_info *domain,
-                    const char *result_name)
+sysdb_gpo_gp_result_dn(TALLOC_CTX *mem_ctx,
+                       struct sss_domain_info *domain,
+                       const char *cse_guid)
 {
     errno_t ret;
-    char *clean_result_name;
+    char *clean_cse_guid;
     struct ldb_dn *dn;
 
-    ret = sysdb_dn_sanitize(NULL, result_name, &clean_result_name);
+    ret = sysdb_dn_sanitize(NULL, cse_guid, &clean_cse_guid);
     if (ret != EOK) {
         return NULL;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_GPO_RESULT"\n",
-          clean_result_name, domain->name);
+    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_GP_RESULT"\n",
+          clean_cse_guid, domain->name);
 
-    dn = ldb_dn_new_fmt(mem_ctx, domain->sysdb->ldb, SYSDB_TMPL_GPO_RESULT,
-                        clean_result_name, domain->name);
-    talloc_free(clean_result_name);
+    dn = ldb_dn_new_fmt(mem_ctx, domain->sysdb->ldb, SYSDB_TMPL_GP_RESULT,
+                        clean_cse_guid, domain->name);
+    talloc_free(clean_cse_guid);
 
     return dn;
 }
 
 errno_t
-sysdb_gpo_store_gpo_result_setting(struct sss_domain_info *domain,
-                                   const char *ini_key,
-                                   const char *ini_value)
+sysdb_gpo_store_gp_result_setting(struct sss_domain_info *domain,
+                                  const char *cse_guid,
+                                  const char *ini_key,
+                                  const char *ini_value)
 {
     errno_t ret, sret;
     int lret;
@@ -401,7 +402,7 @@ sysdb_gpo_store_gpo_result_setting(struct sss_domain_info *domain,
         goto done;
     }
 
-    update_msg->dn = sysdb_gpo_result_dn(update_msg, domain, "gpo_result");
+    update_msg->dn = sysdb_gpo_gp_result_dn(update_msg, domain, cse_guid);
     if (!update_msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -415,12 +416,12 @@ sysdb_gpo_store_gpo_result_setting(struct sss_domain_info *domain,
 
     in_transaction = true;
 
-    /* Check for an existing GPO Result object */
+    /* Check for an existing GP Result object */
     ret = sysdb_search_entry(tmp_ctx, domain->sysdb, update_msg->dn,
                              LDB_SCOPE_BASE, NULL, NULL, &count, &msgs);
 
     if (ret == ENOENT) {
-        /* Create new GPO Result object */
+        /* Create new GP Result object */
         DEBUG(SSSDBG_TRACE_FUNC, "Storing setting: key [%s] value [%s]\n",
               ini_key, ini_value);
 
@@ -434,7 +435,7 @@ sysdb_gpo_store_gpo_result_setting(struct sss_domain_info *domain,
         }
 
         lret = ldb_msg_add_string(update_msg, SYSDB_OBJECTCLASS,
-                                  SYSDB_GPO_RESULT_OC);
+                                  SYSDB_GP_RESULT_OC);
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
             goto done;
@@ -460,13 +461,13 @@ sysdb_gpo_store_gpo_result_setting(struct sss_domain_info *domain,
         lret = ldb_add(domain->sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Failed to add GPO Result: [%s]\n",
+                  "Failed to add GP Result: [%s]\n",
                    ldb_strerror(lret));
             ret = sysdb_error_to_errno(lret);
             goto done;
         }
     } else if (ret == EOK && count == 1) {
-        /* Update existing GPO Result object*/
+        /* Update existing GP Result object*/
         if (ini_value) {
             DEBUG(SSSDBG_TRACE_FUNC, "Updating setting: key [%s] value [%s]\n",
                   ini_key, ini_value);
@@ -501,7 +502,7 @@ sysdb_gpo_store_gpo_result_setting(struct sss_domain_info *domain,
         lret = ldb_modify(domain->sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Failed to modify GPO Result: [%s](%d)[%s]\n",
+                  "Failed to modify GP Result: [%s](%d)[%s]\n",
                   ldb_strerror(lret), lret, ldb_errstring(domain->sysdb->ldb));
             ret = sysdb_error_to_errno(lret);
             goto done;
@@ -531,10 +532,11 @@ done:
 }
 
 static errno_t
-sysdb_gpo_get_gpo_result_object(TALLOC_CTX *mem_ctx,
-                                struct sss_domain_info *domain,
-                                const char **attrs,
-                                struct ldb_result **_result)
+sysdb_gpo_get_gp_result_object(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               const char *cse_guid,
+                               const char **attrs,
+                               struct ldb_result **_result)
 {
     errno_t ret;
     int lret;
@@ -545,21 +547,21 @@ sysdb_gpo_get_gpo_result_object(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_GPO_RESULT_BASE"\n", domain->name);
+    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_GP_RESULT"\n", cse_guid, domain->name);
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                             SYSDB_TMPL_GPO_RESULT_BASE,
-                             domain->name);
+                             SYSDB_TMPL_GP_RESULT,
+                             cse_guid, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
     lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_SUBTREE, attrs, SYSDB_GPO_RESULT_FILTER);
+                      LDB_SCOPE_SUBTREE, attrs, SYSDB_GP_RESULT_FILTER);
     if (lret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not locate GPO Result object: [%s]\n",
+              "Could not locate GP Result object: [%s]\n",
               ldb_strerror(lret));
         ret = sysdb_error_to_errno(lret);
         goto done;
@@ -576,7 +578,7 @@ sysdb_gpo_get_gpo_result_object(TALLOC_CTX *mem_ctx,
 done:
 
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, "No GPO Result object.\n");
+        DEBUG(SSSDBG_TRACE_ALL, "No GP Result object in cache.\n");
     } else if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
     }
@@ -587,8 +589,9 @@ done:
 
 
 errno_t
-sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
+sysdb_gpo_get_gp_result_setting(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *domain,
+                                 const char *cse_guid,
                                  const char *ini_key,
                                  const char **_ini_value)
 {
@@ -602,7 +605,11 @@ sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = sysdb_gpo_get_gpo_result_object(tmp_ctx, domain, attrs, &res);
+    ret = sysdb_gpo_get_gp_result_object(tmp_ctx,
+                                         domain,
+                                         cse_guid,
+                                         attrs,
+                                         &res);
     if (ret != EOK) {
         goto done;
     }
@@ -634,8 +641,9 @@ done:
 }
 
 
-errno_t sysdb_gpo_delete_gpo_result_object(TALLOC_CTX *mem_ctx,
-                                           struct sss_domain_info *domain)
+errno_t sysdb_gpo_delete_gp_result_object(TALLOC_CTX *mem_ctx,
+                                          struct sss_domain_info *domain,
+                                          const char *cse_guid)
 {
     struct ldb_result *res;
     errno_t ret, sret;
@@ -649,18 +657,18 @@ errno_t sysdb_gpo_delete_gpo_result_object(TALLOC_CTX *mem_ctx,
 
     in_transaction = true;
 
-    ret = sysdb_gpo_get_gpo_result_object(mem_ctx, domain, NULL, &res);
+    ret = sysdb_gpo_get_gp_result_object(mem_ctx, domain, cse_guid, NULL, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Could not delete GPO result object: %d\n", ret);
+              "Could not delete GP result object: %d\n", ret);
         goto done;
     } else if (ret != ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Deleting GPO Result object\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Deleting GP Result object\n");
 
         ret = sysdb_delete_entry(domain->sysdb, res->msgs[0]->dn, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Could not delete GPO Result cache entry\n");
+                  "Could not delete GP Result cache entry\n");
             goto done;
         }
     }
