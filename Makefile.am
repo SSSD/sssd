@@ -746,6 +746,7 @@ dist_noinst_HEADERS = \
     src/sbus/interface_dbus/sbus_dbus_arguments.h \
     src/sbus/interface_dbus/sbus_dbus_client_async.h \
     src/sbus/interface_dbus/sbus_dbus_client_sync.h \
+    src/sbus/interface_dbus/sbus_dbus_client_properties.h \
     src/sbus/interface_dbus/sbus_dbus_interface.h \
     src/sbus/interface_dbus/sbus_dbus_invokers.h \
     src/sbus/interface_dbus/sbus_dbus_keygens.h \
@@ -1014,6 +1015,136 @@ libsss_cert_la_LIBADD = \
     libsss_certmap.la \
     $(NULL)
 libsss_cert_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
+generate-sbus-code:
+	$(srcdir)/sbus_generate.sh $(abs_srcdir)
+
+.PHONY: generate-sbus-code
+
+BUILT_SOURCES += generate-sbus-code
+
+EXTRA_DIST += \
+    sbus_generate.sh \
+    src/sbus/codegen/dbus.xml \
+    src/sbus/codegen/sbus_CodeGen.py \
+    src/sbus/codegen/sbus_DataType.py \
+    src/sbus/codegen/sbus_Generator.py \
+    src/sbus/codegen/sbus_Introspection.py \
+    src/sbus/codegen/sbus_Invoker.py \
+    src/sbus/codegen/sbus_Template.py \
+    src/sbus/codegen/templates/arguments.c.tpl \
+    src/sbus/codegen/templates/arguments.h.tpl \
+    src/sbus/codegen/templates/client_async.c.tpl \
+    src/sbus/codegen/templates/client_async.h.tpl \
+    src/sbus/codegen/templates/client_properties.h.tpl \
+    src/sbus/codegen/templates/client_sync.c.tpl \
+    src/sbus/codegen/templates/client_sync.h.tpl \
+    src/sbus/codegen/templates/interface.h.tpl \
+    src/sbus/codegen/templates/invokers.c.tpl \
+    src/sbus/codegen/templates/invokers.h.tpl \
+    src/sbus/codegen/templates/keygens.c.tpl \
+    src/sbus/codegen/templates/keygens.h.tpl \
+    src/sbus/codegen/templates/server.h.tpl \
+    src/sbus/codegen/templates/symbols.c.tpl \
+    src/sbus/codegen/templates/symbols.h.tpl \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libsss_sbus.la
+libsss_sbus_la_SOURCES = \
+    src/util/check_and_open.c \
+    src/util/debug.c \
+    src/util/sss_ptr_hash.c \
+    src/util/sss_ptr_list.c \
+    src/util/sss_utf8.c \
+    src/util/util.c \
+    src/util/util_errors.c \
+    src/util/util_ext.c \
+    src/util/strtonum.c \
+    src/sbus/sbus_errors.c \
+    src/sbus/sbus_opath.c \
+    src/sbus/connection/sbus_connection.c \
+    src/sbus/connection/sbus_connection_connect.c \
+    src/sbus/connection/sbus_dbus.c \
+    src/sbus/connection/sbus_dispatcher.c \
+    src/sbus/connection/sbus_reconnect.c \
+    src/sbus/connection/sbus_send.c \
+    src/sbus/connection/sbus_watch.c \
+    src/sbus/interface_dbus/sbus_dbus_arguments.c \
+    src/sbus/interface_dbus/sbus_dbus_client_async.c \
+    src/sbus/interface_dbus/sbus_dbus_invokers.c \
+    src/sbus/interface_dbus/sbus_dbus_keygens.c \
+    src/sbus/interface_dbus/sbus_dbus_symbols.c \
+    src/sbus/interface/sbus_interface.c \
+    src/sbus/interface/sbus_introspection.c \
+    src/sbus/interface/sbus_iterator_readers.c \
+    src/sbus/interface/sbus_iterator_writers.c \
+    src/sbus/interface/sbus_properties.c \
+    src/sbus/interface/sbus_properties_parser.c \
+    src/sbus/interface/sbus_std_signals.c \
+    src/sbus/request/sbus_message.c \
+    src/sbus/request/sbus_request.c \
+    src/sbus/request/sbus_request_call.c \
+    src/sbus/request/sbus_request_hash.c \
+    src/sbus/request/sbus_request_sender.c \
+    src/sbus/request/sbus_request_util.c \
+    src/sbus/router/sbus_router.c \
+    src/sbus/router/sbus_router_handler.c \
+    src/sbus/router/sbus_router_hash.c \
+    src/sbus/server/sbus_server_handler.c \
+    src/sbus/server/sbus_server_interface.c \
+    src/sbus/server/sbus_server_match.c \
+    src/sbus/server/sbus_server.c \
+    $(NULL)
+libsss_sbus_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    $(NULL)
+libsss_sbus_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_sbus_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libsss_sbus_sync.la
+libsss_sbus_sync_la_SOURCES = \
+    src/util/debug.c \
+    src/util/sss_utf8.c \
+    src/util/util.c \
+    src/util/util_errors.c \
+    src/util/strtonum.c \
+    src/sbus/sbus_errors.c \
+    src/sbus/sbus_opath.c \
+    src/sbus/connection/sbus_dbus.c \
+    src/sbus/interface_dbus/sbus_dbus_arguments.c \
+    src/sbus/interface_dbus/sbus_dbus_client_sync.c \
+    src/sbus/interface_dbus/sbus_dbus_keygens.c \
+    src/sbus/interface_dbus/sbus_dbus_symbols.c \
+    src/sbus/interface/sbus_iterator_readers.c \
+    src/sbus/interface/sbus_iterator_writers.c \
+    src/sbus/interface/sbus_properties_parser.c \
+    src/sbus/request/sbus_message.c \
+    src/sbus/sync/sbus_sync.c \
+    src/sbus/sync/sbus_sync_call.c \
+    $(NULL)
+libsss_sbus_sync_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(DBUS_LIBS) \
+    $(NULL)
+libsss_sbus_sync_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_sbus_sync_la_LDFLAGS = \
     -avoid-version \
     $(NULL)
 
