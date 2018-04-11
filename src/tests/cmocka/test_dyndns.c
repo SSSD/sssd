@@ -62,6 +62,9 @@ struct dyndns_test_ctx {
 
 static struct dyndns_test_ctx *dyndns_test_ctx;
 
+#if HAVE_FUNCTION_ATTRIBUTE_NORETURN
+__attribute__((__noreturn__))
+#endif
 void __wrap_execv(const char *path, char *const argv[])
 {
     int err;

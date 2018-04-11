@@ -723,6 +723,9 @@ fail:
     return ret;
 }
 
+#if HAVE_FUNCTION_ATTRIBUTE_NORETURN
+__attribute__((__noreturn__))
+#endif
 void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
                    const char *binary, int debug_fd,
@@ -765,6 +768,9 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
     exit(EXIT_FAILURE);
 }
 
+#if HAVE_FUNCTION_ATTRIBUTE_NORETURN
+__attribute__((__noreturn__))
+#endif
 void exec_child(TALLOC_CTX *mem_ctx,
                 int *pipefd_to_child, int *pipefd_from_child,
                 const char *binary, int debug_fd)
