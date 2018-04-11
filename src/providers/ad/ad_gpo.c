@@ -1132,6 +1132,7 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
     int i;
     char *allow_value = NULL;
     char *deny_value = NULL;
+    const char *empty_val = "NO_SID";
     const char *allow_key = NULL;
     const char *deny_key = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -1236,7 +1237,10 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
     }
 
     for (i = 0; i < GPO_MAP_NUM_OPTS; i++) {
-
+        /* The NO_SID val is used as special SID value for the case when
+         * no SIDs are found in the rule, but we need to store some
+         * value (SID) with the key (rule name) so that it is clear
+         * that the rule is defined on the server. */
         struct gpo_map_option_entry entry = gpo_map_option_entries[i];
 
         allow_key = entry.allow_key;
@@ -1252,9 +1256,10 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                       allow_key, ret, sss_strerror(ret));
                 goto done;
             } else if (ret != ENOENT) {
+                const char *value = allow_value ? allow_value : empty_val;
                 ret = sysdb_gpo_store_gpo_result_setting(domain,
                                                          allow_key,
-                                                         allow_value);
+                                                         value);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "sysdb_gpo_store_gpo_result_setting failed for key:"
@@ -1278,9 +1283,10 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                       deny_key, ret, sss_strerror(ret));
                 goto done;
             } else if (ret != ENOENT) {
+                const char *value = deny_value ? deny_value : empty_val;
                 ret = sysdb_gpo_store_gpo_result_setting(domain,
                                                          deny_key,
-                                                         deny_value);
+                                                         value);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "sysdb_gpo_store_gpo_result_setting failed for key:"
