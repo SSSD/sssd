@@ -115,12 +115,7 @@ if WANT_AUX_INFO
     AM_CFLAGS += -aux-info $@.X
 endif
 if HAVE_GCC
-    AM_CFLAGS += -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith \
-                 -Wcast-qual -Wcast-align -Wwrite-strings -Wundef \
-                 -Werror-implicit-function-declaration -Winit-self \
-                 -Wmissing-include-dirs \
-                 -fno-strict-aliasing \
-                 -std=gnu99
+    AM_CFLAGS += $(WARN_CFLAGS)
 endif
 
 pkgconfig_DATA =
