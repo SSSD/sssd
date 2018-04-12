@@ -1,0 +1,26 @@
+language: c
+compiler: gcc
+sudo: required
+dist: trusty
+
+services:
+  - docker
+
+addons:
+  apt:
+    packages:
+    - bash
+    - tar
+    - bzip2
+
+env:
+  global:
+    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+    # via the "travis encrypt" command using the project repo's public key
+      - secure: "gD4XB/tAquGTUFGvQ4+a+K9EbemQtyZs0Py+r7+HAEQ7h/B+fwwRX1h5bGzMUjyCUJ88u28wdRZ0TNxIiEVXuSi/0Ia9BOvdS9YurXdpZc7ha1OpYnJd1tYwxGrgozKW9qXB3R6XZmlcxVGzIHF3fwK9a1p+rNDUihWhasqeAPFFI3IhQhwDIIxO3paRGvHHO0UNlw0+lpgsiQLYIYFWYjHqq2voZ1UlV4Ga7LSP1Yh8F38hDSMk7ykSLedsV1kqxh3zky8p5fLSbDRI1y7PLNBYD63LagUCEk1o3nF+hF0l3nRfEApFJKUhBfccgNc2mdXbBdDxDCnwiArbTXQNxI2Iml85UJ/I5/CS3uE437A3H7ZdvL51w2592JGNMEwq9pxGK3vxcN8g/Yn2Xoo1F2KTVHBexT44LEnS0ADRj5K8AfDsyIUz/rB9+N05k5WXtqcDWblpC5gfD0nk3WQnpmc8hjeI2B9RTFTa3ydA4I5wfABkGfNARH39RxK10d+b176U8x3z05p/PgyraAYKi2kFpA3ha5fw9o1CIqcd5OpUcIWrIo5+FG8hYgtcIG+65PSOHz6gGVZkpZyR4vqIuHIfw4jdi68d6LfoophdhjuFSDTuwgXXGQNjdaYQSpeoZ5Gm9hvHbasabqIBpOfDo/Yjq6up20byvmDaGtoeojI="
+
+before_install:
+  - ./.travis/travis-docker-build.sh
+
+script:
+  - docker run -e COVERITY_SCAN_TOKEN=$COVERITY_SCAN_TOKEN --rm sssd/sssd
