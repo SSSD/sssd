@@ -100,6 +100,9 @@ ldap_id_mapping = False
             domains in the forest sequentially. Please note that the
             <quote>cache_first</quote> option might be also helpful in
             speeding up domainless searches.
+            Note that if only a subset of POSIX attributes is present in
+            the Global Catalog, the non-replicated attributes are currently
+            not read from the LDAP port.
         </para>
         <para>
             Users, groups and other entities served by SSSD are always treated as
