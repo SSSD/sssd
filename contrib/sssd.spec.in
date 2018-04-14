@@ -170,6 +170,7 @@ BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
 BuildRequires: m4
+BuildRequires: gcc
 BuildRequires: popt-devel
 BuildRequires: libtalloc-devel
 BuildRequires: libtevent-devel
