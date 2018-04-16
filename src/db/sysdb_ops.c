@@ -2398,10 +2398,17 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
                 same = strcmp(previous, values[i]) == 0;
             }
         }
-    }
 
-    if (same) {
-        ret = ERR_GID_DUPLICATED;
+        if (same == true) {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "The group with GID [%"SPRIgid"] was renamed\n", gid);
+            ret = ERR_GID_DUPLICATED;
+            goto done;
+        }
+
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Another group with GID [%"SPRIgid"] already exists\n", gid);
+        ret = EEXIST;
         goto done;
     }
 

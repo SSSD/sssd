@@ -989,6 +989,50 @@ START_TEST (test_sysdb_add_incomplete_group)
 }
 END_TEST
 
+START_TEST (test_sysdb_incomplete_group_rename)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group",
+                                     20000, NULL,
+                                     "S-1-5-21-123-456-789-111",
+                                     NULL, true, 0);
+    fail_unless(ret == EOK,
+                "sysdb_add_incomplete_group error [%d][%s]",
+                ret, strerror(ret));
+
+    /* Adding a group with the same GID and all the other characteristics uknown should fail */
+    ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
+                                     20000, NULL, NULL, NULL, true, 0);
+    fail_unless(ret == EEXIST, "Did not caught a duplicate\n");
+
+    /* A different SID should also trigger a failure */
+    ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
+                                     20000, NULL,
+                                     "S-1-5-21-123-456-789-222",
+                                     NULL, true, 0);
+    fail_unless(ret == EEXIST, "Did not caught a duplicate\n");
+
+    /* But if we know based on a SID that the group is in fact the same,
+     * let's just change its name
+     */
+    ret = sysdb_add_incomplete_group(test_ctx->domain, "incomplete_group_new",
+                                     20000, NULL,
+                                     "S-1-5-21-123-456-789-111",
+                                     NULL, true, 0);
+    fail_unless(ret == ERR_GID_DUPLICATED,
+                "Did not catch a legitimate rename",
+                ret, strerror(ret));
+}
+END_TEST
+
 START_TEST (test_sysdb_getpwnam)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -5526,7 +5570,7 @@ START_TEST(test_sysdb_search_sid_str)
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
 
-    data = test_data_new_group(test_ctx, 2900);
+    data = test_data_new_group(test_ctx, 2902);
     fail_if(data == NULL);
     data->sid_str = "S-1-2-3-4";
 
@@ -7166,6 +7210,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_sysdb,
                         test_sysdb_remove_local_group_by_gid,
                         28000, 28010);
+    tcase_add_test(tc_sysdb, test_sysdb_incomplete_group_rename);
 
     /* test custom operations */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_custom, 29010, 29020);
