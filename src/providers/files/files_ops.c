@@ -35,6 +35,10 @@
 #define PWD_MAXSIZE         1024
 #define GRP_MAXSIZE         2048
 
+#define SF_UPDATE_PASSWD    1<<0
+#define SF_UPDATE_GROUP     1<<1
+#define SF_UPDATE_BOTH      (SF_UPDATE_PASSWD | SF_UPDATE_GROUP)
+
 struct files_ctx {
     struct files_ops_ctx *ops;
 };
@@ -708,6 +712,70 @@ done:
     return ret;
 }
 
+static errno_t sf_enum_files(struct files_id_ctx *id_ctx,
+                             uint8_t flags)
+{
+    errno_t ret;
+    errno_t tret;
+    bool in_transaction = false;
+
+    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = true;
+
+    if (flags & SF_UPDATE_PASSWD) {
+        ret = delete_all_users(id_ctx->domain);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        /* All users were deleted, therefore we need to enumerate each file again */
+        for (size_t i = 0; id_ctx->passwd_files[i] != NULL; i++) {
+            ret = sf_enum_users(id_ctx, id_ctx->passwd_files[i]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate users\n");
+                goto done;
+            }
+        }
+    }
+
+    if (flags & SF_UPDATE_GROUP) {
+        ret = delete_all_groups(id_ctx->domain);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        /* All groups were deleted, therefore we need to enumerate each file again */
+        for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
+            ret = sf_enum_groups(id_ctx, id_ctx->group_files[i]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate groups\n");
+                goto done;
+            }
+        }
+    }
+
+    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
+        if (tret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot cancel transaction: %d\n", ret);
+        }
+    }
+
+    return ret;
+}
+
 static void sf_cb_done(struct files_id_ctx *id_ctx)
 {
     /* Only activate a domain when both callbacks are done */
@@ -722,8 +790,6 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
 {
     struct files_id_ctx *id_ctx;
     errno_t ret;
-    errno_t tret;
-    bool in_transaction = false;
 
     id_ctx = talloc_get_type(pvt, struct files_id_ctx);
     if (id_ctx == NULL) {
@@ -740,49 +806,17 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
     dp_sbus_reset_users_memcache(id_ctx->be->provider);
     dp_sbus_reset_initgr_memcache(id_ctx->be->provider);
 
-    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = true;
-
-    ret = delete_all_users(id_ctx->domain);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* All users were deleted, therefore we need to enumerate each file again */
-    for (size_t i = 0; id_ctx->passwd_files[i] != NULL; i++) {
-        ret = sf_enum_users(id_ctx, id_ctx->passwd_files[i]);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate users\n");
-            goto done;
-        }
-    }
-
-    /* Covers the case when someone edits /etc/group, adds a group member and
+    /* Using SF_UDPATE_BOTH here the case when someone edits /etc/group, adds a group member and
      * only then edits passwd and adds the user. The reverse is not needed,
      * because member/memberof links are established when groups are saved.
      */
-    ret = delete_all_groups(id_ctx->domain);
+    ret = sf_enum_files(id_ctx, SF_UPDATE_BOTH);
     if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not update files: [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
-
-    /* All groups were deleted, therefore we need to enumerate each file again */
-    for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
-        ret = sf_enum_groups(id_ctx, id_ctx->group_files[i]);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate groups\n");
-            goto done;
-        }
-    }
-
-    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = false;
 
     id_ctx->updating_passwd = false;
     sf_cb_done(id_ctx);
@@ -790,14 +824,6 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
 
     ret = EOK;
 done:
-    if (in_transaction) {
-        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
-        if (tret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot cancel transaction: %d\n", ret);
-        }
-    }
-
     return ret;
 }
 
@@ -805,8 +831,6 @@ static int sf_group_cb(const char *filename, uint32_t flags, void *pvt)
 {
     struct files_id_ctx *id_ctx;
     errno_t ret;
-    errno_t tret;
-    bool in_transaction = false;
 
     id_ctx = talloc_get_type(pvt, struct files_id_ctx);
     if (id_ctx == NULL) {
@@ -823,47 +847,20 @@ static int sf_group_cb(const char *filename, uint32_t flags, void *pvt)
     dp_sbus_reset_groups_memcache(id_ctx->be->provider);
     dp_sbus_reset_initgr_memcache(id_ctx->be->provider);
 
-    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
+    ret = sf_enum_files(id_ctx, SF_UPDATE_GROUP);
     if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not update files: [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
-    in_transaction = true;
-
-    ret = delete_all_groups(id_ctx->domain);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* All groups were deleted, therefore we need to enumerate each file again */
-    for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
-        ret = sf_enum_groups(id_ctx, id_ctx->group_files[i]);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot enumerate groups\n");
-            goto done;
-        }
-    }
-
-    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = false;
 
     id_ctx->updating_groups = false;
     sf_cb_done(id_ctx);
     files_account_info_finished(id_ctx, BE_REQ_GROUP, ret);
 
     ret = EOK;
-
 done:
-    if (in_transaction) {
-        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
-        if (tret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot cancel transaction: %d\n", ret);
-        }
-    }
-
     return ret;
 }
 
@@ -873,62 +870,14 @@ static void startup_enum_files(struct tevent_context *ev,
 {
     struct files_id_ctx *id_ctx = talloc_get_type(pvt, struct files_id_ctx);
     errno_t ret;
-    errno_t tret;
-    bool in_transaction = false;
 
     talloc_zfree(imm);
 
-    ret = sysdb_transaction_start(id_ctx->domain->sysdb);
+    ret = sf_enum_files(id_ctx, SF_UPDATE_BOTH);
     if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = true;
-
-    ret = delete_all_users(id_ctx->domain);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = delete_all_groups(id_ctx->domain);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    for (size_t i = 0; id_ctx->passwd_files[i] != NULL; i++) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Startup user enumeration of [%s]\n", id_ctx->passwd_files[i]);
-        ret = sf_enum_users(id_ctx, id_ctx->passwd_files[i]);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Enumerating users failed, data might be inconsistent!\n");
-            goto done;
-        }
-    }
-
-    for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Startup group enumeration of [%s]\n", id_ctx->group_files[i]);
-        ret = sf_enum_groups(id_ctx, id_ctx->group_files[i]);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Enumerating groups failed, data might be inconsistent!\n");
-            goto done;
-        }
-    }
-
-    ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
-    if (ret != EOK) {
-        goto done;
-    }
-    in_transaction = false;
-
-done:
-    if (in_transaction) {
-        tret = sysdb_transaction_cancel(id_ctx->domain->sysdb);
-        if (tret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot cancel transaction: %d\n", ret);
-        }
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not update files after startup: [%d]: %s\n",
+              ret, sss_strerror(ret));
     }
 }
 
