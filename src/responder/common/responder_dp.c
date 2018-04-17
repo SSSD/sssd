@@ -598,11 +598,11 @@ static int sss_dp_account_files_params(struct sss_domain_info *dom,
                                        enum sss_dp_acct_type *_type_out,
                                        const char **_opt_name_out)
 {
-#if 0
     if (sss_domain_get_state(dom) != DOM_INCONSISTENT) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "The entries in the files domain are up-to-date\n");
         return EOK;
     }
-#endif
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Domain files is not consistent, issuing update\n");
