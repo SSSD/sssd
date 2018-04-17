@@ -793,8 +793,7 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
 
     id_ctx = talloc_get_type(pvt, struct files_id_ctx);
     if (id_ctx == NULL) {
-        ret = EINVAL;
-        goto done;
+        return EINVAL;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "passwd notification\n");
@@ -818,12 +817,11 @@ static int sf_passwd_cb(const char *filename, uint32_t flags, void *pvt)
         goto done;
     }
 
+    ret = EOK;
+done:
     id_ctx->updating_passwd = false;
     sf_cb_done(id_ctx);
     files_account_info_finished(id_ctx, BE_REQ_USER, ret);
-
-    ret = EOK;
-done:
     return ret;
 }
 
@@ -834,8 +832,7 @@ static int sf_group_cb(const char *filename, uint32_t flags, void *pvt)
 
     id_ctx = talloc_get_type(pvt, struct files_id_ctx);
     if (id_ctx == NULL) {
-        ret = EINVAL;
-        goto done;
+        return EINVAL;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "group notification\n");
@@ -855,12 +852,11 @@ static int sf_group_cb(const char *filename, uint32_t flags, void *pvt)
         goto done;
     }
 
+    ret = EOK;
+done:
     id_ctx->updating_groups = false;
     sf_cb_done(id_ctx);
     files_account_info_finished(id_ctx, BE_REQ_GROUP, ret);
-
-    ret = EOK;
-done:
     return ret;
 }
 
