@@ -96,7 +96,9 @@ errno_t sss_nss_mc_get(struct nss_input *inp)
                                          inp->result.initgrrep.start,
                                          inp->result.initgrrep.ngroups,
                                          &(inp->result.initgrrep.groups),
-                                         *(inp->result.initgrrep.ngroups));
+                                         /* no limit so that needed size can
+                                          * be returned properly */
+                                         -1);
         break;
     default:
         return EINVAL;
