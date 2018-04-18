@@ -485,7 +485,6 @@ int sss_nss_getgrouplist_timeout(const char *name, gid_t group,
                                  uint32_t flags, unsigned int timeout)
 {
     int ret;
-    gid_t *new_groups;
     long int new_ngroups;
     long int start = 1;
     struct nss_input inp = {
@@ -498,27 +497,28 @@ int sss_nss_getgrouplist_timeout(const char *name, gid_t group,
     }
 
     new_ngroups = MAX(1, *ngroups);
-    new_groups = malloc(new_ngroups * sizeof(gid_t));
-    if (new_groups == NULL) {
+    inp.result.initgrrep.groups = malloc(new_ngroups * sizeof(gid_t));
+    if (inp.result.initgrrep.groups == NULL) {
         free(discard_const(inp.rd.data));
         return ENOMEM;
     }
-    new_groups[0] = group;
+    inp.result.initgrrep.groups[0] = group;
 
-    inp.result.initgrrep.groups = new_groups,
     inp.result.initgrrep.ngroups = &new_ngroups;
     inp.result.initgrrep.start = &start;
 
-
+    /* inp.result.initgrrep.groups, inp.result.initgrrep.ngroups and
+     * inp.result.initgrrep.start might be modified by sss_get_ex() */
     ret = sss_get_ex(&inp, flags, timeout);
     free(discard_const(inp.rd.data));
     if (ret != 0) {
-        free(new_groups);
+        free(inp.result.initgrrep.groups);
         return ret;
     }
 
-    memcpy(groups, new_groups, MIN(*ngroups, start) * sizeof(gid_t));
-    free(new_groups);
+    memcpy(groups, inp.result.initgrrep.groups,
+           MIN(*ngroups, start) * sizeof(gid_t));
+    free(inp.result.initgrrep.groups);
 
     if (start > *ngroups) {
         ret = ERANGE;
