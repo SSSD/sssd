@@ -1346,6 +1346,7 @@ errno_t sysdb_remove_mapped_data(struct sss_domain_info *domain,
 /* === Functions related to GPOs === */
 
 #define SYSDB_GPO_CONTAINER "cn=gpos,cn=ad,cn=custom"
+#define SYSDB_GP_RESULT_CONTAINER "cn=gp_results,"SYSDB_GPO_CONTAINER
 
 /* === Functions related to GPO entries === */
 
@@ -1381,25 +1382,32 @@ errno_t sysdb_gpo_get_gpos(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
                            struct ldb_result **_result);
 
-/* === Functions related to GPO Result object === */
+/* === Functions related to CSE entries === */
 
-#define SYSDB_GPO_RESULT_OC "gpo_result"
-#define SYSDB_GPO_RESULT_FILTER "(objectClass="SYSDB_GPO_RESULT_OC")"
+#define SYSDB_CSE_GUID_ATTR "cseGUID"
 
-#define SYSDB_TMPL_GPO_RESULT_BASE SYSDB_GPO_CONTAINER","SYSDB_DOM_BASE
-#define SYSDB_TMPL_GPO_RESULT "cn=%s,"SYSDB_TMPL_GPO_RESULT_BASE
+/* === Functions related to GP Result object === */
 
-errno_t sysdb_gpo_delete_gpo_result_object(TALLOC_CTX *mem_ctx,
-                                           struct sss_domain_info *domain);
+#define SYSDB_GP_RESULT_OC "gp_result"
+#define SYSDB_GP_RESULT_FILTER "(objectClass="SYSDB_GP_RESULT_OC")"
 
-errno_t sysdb_gpo_store_gpo_result_setting(struct sss_domain_info *domain,
-                                           const char *policy_setting_key,
-                                           const char *policy_setting_value);
+#define SYSDB_TMPL_GP_RESULT_BASE SYSDB_GP_RESULT_CONTAINER","SYSDB_DOM_BASE
+#define SYSDB_TMPL_GP_RESULT SYSDB_CSE_GUID_ATTR"=%s,"SYSDB_TMPL_GP_RESULT_BASE
 
-errno_t sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
-                                         struct sss_domain_info *domain,
-                                         const char *policy_setting_key,
-                                         const char **policy_setting_value);
+errno_t sysdb_gpo_delete_gp_result_object(TALLOC_CTX *mem_ctx,
+                                          struct sss_domain_info *domain,
+                                          const char *cse_guid);
+
+errno_t sysdb_gpo_store_gp_result_setting(struct sss_domain_info *domain,
+                                          const char *cse_guid,
+                                          const char *policy_setting_key,
+                                          const char *policy_setting_value);
+
+errno_t sysdb_gpo_get_gp_result_setting(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        const char *cse_guid,
+                                        const char *policy_setting_key,
+                                        const char **policy_setting_value);
 
 errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *dom,
