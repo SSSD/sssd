@@ -58,6 +58,22 @@
                     ldap_use_tokengroups = true
                 </para>
             </listitem>
+            <listitem>
+                <para>
+                    ldap_sasl_authid = sAMAccountName@REALM (typically SHORTNAME$@REALM)
+                </para>
+                <para>
+                    The AD provider looks for a different principal than the
+                    LDAP provider by default, because in an Active Directory
+                    environment the principals are divided into two groups
+                    - User Principals and Service Principals. Only User
+                    Principal can be used to obtain a TGT and by default,
+                    computer object's principal is constructed from
+                    its sAMAccountName and the AD realm. The well-known
+                    host/hostname@REALM principal is a Service Principal
+                    and thus cannot be used to get a TGT with.
+                </para>
+            </listitem>
         </itemizedlist>
     </refsect2>
 </refsect1>
