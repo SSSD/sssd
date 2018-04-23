@@ -34,80 +34,6 @@ errno_t ad_set_search_bases(struct sdap_options *id_opts,
 static errno_t ad_set_sdap_options(struct ad_options *ad_opts,
                                    struct sdap_options *id_opts);
 
-static struct sdap_options *
-ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
-{
-    struct sdap_options *id_opts;
-    errno_t ret;
-
-    id_opts = talloc_zero(mem_ctx, struct sdap_options);
-    if (!id_opts) {
-        return NULL;
-    }
-
-    ret = dp_copy_defaults(id_opts,
-                           ad_def_ldap_opts,
-                           SDAP_OPTS_BASIC,
-                           &id_opts->basic);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    /* Get sdap option maps */
-
-    /* General Attribute Map */
-    ret = sdap_copy_map(id_opts,
-                       ad_2008r2_attr_map,
-                       SDAP_AT_GENERAL,
-                       &id_opts->gen_map);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    /* User map */
-    ret = sdap_copy_map(id_opts,
-                       ad_2008r2_user_map,
-                       SDAP_OPTS_USER,
-                       &id_opts->user_map);
-    if (ret != EOK) {
-        goto fail;
-    }
-    id_opts->user_map_cnt = SDAP_OPTS_USER;
-
-    /* Group map */
-    ret = sdap_copy_map(id_opts,
-                       ad_2008r2_group_map,
-                       SDAP_OPTS_GROUP,
-                       &id_opts->group_map);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    /* Netgroup map */
-    ret = sdap_copy_map(id_opts,
-                       ad_netgroup_map,
-                       SDAP_OPTS_NETGROUP,
-                       &id_opts->netgroup_map);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    /* Services map */
-    ret = sdap_copy_map(id_opts,
-                       ad_service_map,
-                       SDAP_OPTS_SERVICES,
-                       &id_opts->service_map);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    return id_opts;
-
-fail:
-    talloc_free(id_opts);
-    return NULL;
-}
-
 static errno_t
 ad_create_sdap_options(TALLOC_CTX *mem_ctx,
                        struct confdb_ctx *cdb,
@@ -116,18 +42,6 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
 {
     struct sdap_options *id_opts;
     errno_t ret = EOK;
-
-    if (cdb == NULL || conf_path == NULL) {
-        /* Fallback to defaults if there is no confdb */
-        id_opts = ad_create_default_sdap_options(mem_ctx);
-        if (id_opts == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to initialize default sdap options\n");
-            ret = EIO;
-        }
-        /* Nothing to do without cdb */
-        goto done;
-    }
 
     id_opts = talloc_zero(mem_ctx, struct sdap_options);
     if (!id_opts) {
