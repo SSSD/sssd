@@ -493,12 +493,16 @@ static errno_t invalidate_cache(struct nss_cmd_ctx *cmd_ctx,
         return ret;
     }
 
-    memcache_delete_entry(cmd_ctx->nss_ctx, cmd_ctx->nss_ctx->rctx, NULL,
-                          output_name, 0, memcache_type);
     if (memcache_type == SSS_MC_INITGROUPS) {
+        memcache_delete_entry(cmd_ctx->nss_ctx, cmd_ctx->nss_ctx->rctx, NULL,
+                              result->lookup_name, 0, memcache_type);
+
         /* Invalidate the passwd data as well */
         memcache_delete_entry(cmd_ctx->nss_ctx, cmd_ctx->nss_ctx->rctx,
                               result->domain, output_name, 0, SSS_MC_PASSWD);
+    } else {
+        memcache_delete_entry(cmd_ctx->nss_ctx, cmd_ctx->nss_ctx->rctx, NULL,
+                              output_name, 0, memcache_type);
     }
     talloc_free(output_name);
 

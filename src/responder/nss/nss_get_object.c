@@ -109,12 +109,17 @@ memcache_delete_entry(struct nss_ctx *nss_ctx,
         }
 
         if (name != NULL) {
-            ret = sized_output_name(NULL, rctx, name, dom, &sized_name);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Unable to create sized name [%d]: %s\n",
-                      ret, sss_strerror(ret));
-                return ret;
+            if (type == SSS_MC_INITGROUPS) {
+                sized_name = talloc_zero(NULL, struct sized_string);
+                to_sized_string(sized_name, name);
+            } else {
+                ret = sized_output_name(NULL, rctx, name, dom, &sized_name);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                        "Unable to create sized name [%d]: %s\n",
+                        ret, sss_strerror(ret));
+                    return ret;
+                }
             }
 
             ret = memcache_delete_entry_by_name(nss_ctx, sized_name, type);
