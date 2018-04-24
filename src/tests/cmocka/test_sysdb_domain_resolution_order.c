@@ -126,7 +126,7 @@ static void test_sysdb_domain_resolution_order_ops(void **state)
                                             test_ctx->tctx->dom->sysdb, dn,
                                             &domains_out);
     assert_int_equal(ret, EOK);
-    assert_true(strcmp(domains_out, domains_out) == 0);
+    assert_true(strcmp(domains_in, domains_out) == 0);
 
     /* Removing the domainResolutionOrder attribute */
     domains_in = NULL;
