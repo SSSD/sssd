@@ -185,6 +185,9 @@ static errno_t sss_nss_mc_init_ctx(const char *name,
     ret = 0;
 
 done:
+    if (ctx->fd) {
+        close(ctx->fd);
+    }
     if (ret) {
         sss_nss_mc_destroy_ctx(ctx);
     }
