@@ -1112,6 +1112,32 @@ START_TEST(test_user_group_by_name)
 }
 END_TEST
 
+START_TEST(test_user_group_by_name_local)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct ldb_message *msg;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = test_data_new_user(test_ctx, _i);
+    fail_if(data == NULL);
+
+    ret = sysdb_search_group_by_name(data,
+                                     data->ctx->domain,
+                                     data->username, /* we're searching for the private group */
+                                     NULL,
+                                     &msg);
+    fail_if(ret != ENOENT);
+}
+END_TEST
+
 START_TEST (test_sysdb_getgrnam)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -7144,6 +7170,7 @@ Suite *create_sysdb_suite(void)
      * can be found. Regression test for ticket #3615
      */
     tcase_add_loop_test(tc_sysdb, test_user_group_by_name, 27000, 27010);
+    tcase_add_loop_test(tc_sysdb, test_user_group_by_name_local, 27000, 27010);
 
     /* Create a new group */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_group, 28000, 28010);
