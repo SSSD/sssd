@@ -1091,6 +1091,11 @@ START_TEST(test_user_group_by_name)
         return;
     }
 
+    /* setup_sysdb_tests creates local provider and we need to handle
+     * ldap provider differently with auto_private_groups.
+     */
+    test_ctx->domain->provider = discard_const_p(char, "ldap");
+
     data = test_data_new_user(test_ctx, _i);
     fail_if(data == NULL);
 
