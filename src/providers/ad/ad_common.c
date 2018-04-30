@@ -1000,6 +1000,7 @@ ad_set_sdap_options(struct ad_options *ad_opts,
     errno_t ret;
     char *krb5_realm;
     char *keytab_path;
+    const char *schema;
 
     /* We only support Kerberos password policy with AD, so
      * force that on.
@@ -1048,6 +1049,17 @@ ad_set_sdap_options(struct ad_options *ad_opts,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot set the SASL-related options\n");
         goto done;
+    }
+
+    /* Warn if the user is doing something silly like overriding the schema
+     * with the AD provider
+     */
+    schema = dp_opt_get_string(id_opts->basic, SDAP_SCHEMA);
+    if (schema != NULL && strcasecmp(schema, "ad") != 0) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "The AD provider only supports the AD LDAP schema. "
+              "SSSD will ignore the ldap_schema option value and proceed "
+              "with ldap_schema=ad\n");
     }
 
     /* fix schema to AD  */
