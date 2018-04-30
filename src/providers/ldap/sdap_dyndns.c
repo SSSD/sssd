@@ -79,6 +79,16 @@ static struct sss_iface_addr*
 sdap_get_address_to_delete(struct sss_iface_addr *address_it,
                            uint8_t remove_af);
 
+static bool should_retry(int child_status)
+{
+    if (WIFEXITED(child_status)
+            && WEXITSTATUS(child_status) != 0) {
+        return true;
+    }
+
+    return false;
+}
+
 struct tevent_req *
 sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
@@ -371,8 +381,7 @@ sdap_dyndns_update_done(struct tevent_req *subreq)
     if (ret != EOK) {
         /* If the update didn't succeed, we can retry using the server name */
         if (state->fallback_mode == false
-                && WIFEXITED(child_status)
-                && WEXITSTATUS(child_status) != 0) {
+                && should_retry(child_status)) {
             state->fallback_mode = true;
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "nsupdate failed, retrying.\n");
@@ -514,8 +523,7 @@ sdap_dyndns_update_ptr_done(struct tevent_req *subreq)
     if (ret != EOK) {
         /* If the update didn't succeed, we can retry using the server name */
         if (state->fallback_mode == false
-                && WIFEXITED(child_status)
-                && WEXITSTATUS(child_status) != 0) {
+                && should_retry(child_status)) {
             state->fallback_mode = true;
             DEBUG(SSSDBG_MINOR_FAILURE, "nsupdate failed, retrying\n");
             ret = sdap_dyndns_update_ptr_step(req);
