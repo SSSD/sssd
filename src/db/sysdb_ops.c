@@ -2388,28 +2388,30 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
         return ENOMEM;
     }
 
-    ret = sysdb_search_group_by_gid(tmp_ctx, domain, gid, group_attrs, &msg);
-    if (ret == EOK) {
-        for (int i = 0; !same && group_attrs[i] != NULL; i++) {
-            previous = ldb_msg_find_attr_as_string(msg,
-                                                   group_attrs[i],
-                                                   NULL);
-            if (previous != NULL && values[i] != NULL) {
-                same = strcmp(previous, values[i]) == 0;
+    if (posix) {
+        ret = sysdb_search_group_by_gid(tmp_ctx, domain, gid, group_attrs, &msg);
+        if (ret == EOK) {
+            for (int i = 0; !same && group_attrs[i] != NULL; i++) {
+                previous = ldb_msg_find_attr_as_string(msg,
+                                                       group_attrs[i],
+                                                       NULL);
+                if (previous != NULL && values[i] != NULL) {
+                    same = strcmp(previous, values[i]) == 0;
+                }
             }
-        }
 
-        if (same == true) {
-            DEBUG(SSSDBG_TRACE_LIBS,
-                  "The group with GID [%"SPRIgid"] was renamed\n", gid);
-            ret = ERR_GID_DUPLICATED;
+            if (same == true) {
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "The group with GID [%"SPRIgid"] was renamed\n", gid);
+                ret = ERR_GID_DUPLICATED;
+                goto done;
+            }
+
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Another group with GID [%"SPRIgid"] already exists\n", gid);
+            ret = EEXIST;
             goto done;
         }
-
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Another group with GID [%"SPRIgid"] already exists\n", gid);
-        ret = EEXIST;
-        goto done;
     }
 
     /* try to add the group */
