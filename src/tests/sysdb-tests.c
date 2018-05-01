@@ -1557,6 +1557,53 @@ START_TEST (test_sysdb_add_nonposix_user)
 }
 END_TEST
 
+static void add_nonposix_incomplete_group(struct sysdb_test_ctx *test_ctx,
+                                          const char *groupname)
+{
+    const char *get_attrs[] = { SYSDB_GIDNUM,
+                                SYSDB_POSIX,
+                                NULL };
+    struct ldb_message *msg;
+    const char *attrval;
+    const char *fq_name;
+    int ret;
+    uint64_t id;
+
+    /* Create group */
+    fq_name = sss_create_internal_fqname(test_ctx, groupname, test_ctx->domain->name);
+    fail_if(fq_name == NULL, "Failed to create fq name.");
+
+    ret = sysdb_add_incomplete_group(test_ctx->domain, fq_name, 0,
+                                     NULL, NULL, NULL, false, 0);
+    fail_if(ret != EOK, "sysdb_add_group failed.");
+
+    /* Test */
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain, fq_name, get_attrs, &msg);
+    fail_if(ret != EOK, "sysdb_search_group_by_name failed.");
+
+    attrval = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
+    fail_if(strcasecmp(attrval, "false") != 0, "Got bad attribute value.");
+
+    id = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 123);
+    fail_unless(id == 0, "Wrong GID value");
+}
+
+START_TEST (test_sysdb_add_nonposix_group)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    add_nonposix_incomplete_group(test_ctx, "nonposix1");
+    add_nonposix_incomplete_group(test_ctx, "nonposix2");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_add_group_member)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -7268,8 +7315,9 @@ Suite *create_sysdb_suite(void)
     /* Test GetUserAttr with subdomain user */
     tcase_add_test(tc_sysdb, test_sysdb_get_user_attr_subdomain);
 
-    /* Test adding a non-POSIX user */
+    /* Test adding a non-POSIX user and group */
     tcase_add_test(tc_sysdb, test_sysdb_add_nonposix_user);
+    tcase_add_test(tc_sysdb, test_sysdb_add_nonposix_group);
 
 /* ===== NETGROUP TESTS ===== */
 
