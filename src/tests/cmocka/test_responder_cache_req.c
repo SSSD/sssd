@@ -1827,6 +1827,37 @@ void test_group_by_id_multiple_domains_notfound(void **state)
     assert_true(test_ctx->dp_called);
 }
 
+void test_group_by_id_multiple_domains_outside_id_range(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    struct sss_domain_info *domain_a = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    domain_a = find_domain_by_name(test_ctx->tctx->dom,
+                                   "responder_cache_req_test_a", true);
+    assert_non_null(domain_a);
+    domain_a->id_min = 1;
+    domain_a->id_max = 100;
+
+    /* Setup group. */
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+    prepare_group(domain, &groups[0], 1000, time(NULL));
+
+    /* Mock values. */
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
+
+    /* Test. */
+    run_group_by_id(test_ctx, NULL, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_group(test_ctx, &groups[0], domain);
+}
+
 void test_group_by_id_multiple_domains_locator_cache_valid(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
@@ -3970,6 +4001,7 @@ int main(int argc, const char *argv[])
         new_single_domain_test(group_by_id_missing_notfound),
         new_multi_domain_test(group_by_id_multiple_domains_found),
         new_multi_domain_test(group_by_id_multiple_domains_notfound),
+        new_multi_domain_test(group_by_id_multiple_domains_outside_id_range),
 
         new_multi_domain_test(group_by_id_multiple_domains_locator_cache_valid),
         new_multi_domain_test(group_by_id_multiple_domains_locator_cache_expired),
