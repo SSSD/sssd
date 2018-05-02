@@ -135,6 +135,10 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         dbus
         python-dbus
         pep8
+        libssl-dev
+        gnutls-bin
+        softhsm2
+        libp11-kit-dev
     )
     DEPS_INTGCHECK_SATISFIED=true
 fi

@@ -78,6 +78,10 @@
     %global with_initscript --with-initscript=sysv
 %endif
 
+%if (0%{?fedora} > 28 || 0%{?rhel} > 7)
+    %global use_openssl 1
+%endif
+
 %global enable_experimental 1
 
 %if (0%{?enable_experimental} == 1)
@@ -228,8 +232,13 @@ BuildRequires: nss_wrapper
 # data needed for the p11_child Smartcard tests. Since p11_child only looks at
 # slots with are flagged as 'removable' softhsm version 2.1.0 or higher is
 # needed.
-# BuildRequires: gnutls-utils
-# BuildRequires: softhsm >= 2.1.0
+%if (0%{?use_openssl} == 1)
+BuildRequires: p11-kit-devel
+BuildRequires: openssl-devel
+BuildRequires: gnutls-utils
+BuildRequires: softhsm >= 2.1.0
+%endif
+
 BuildRequires: openssl
 BuildRequires: openssh
 BuildRequires: nss-tools
@@ -763,6 +772,9 @@ autoreconf -ivf
     --enable-pammoddir=/%{_lib}/security \
     --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
     --disable-static \
+%if (0%{?use_openssl} == 1)
+    --with-crypto=libcrypto \
+%endif
     --disable-rpath \
 %if %{with sssd_user}
     --with-sssd-user=sssd \
