@@ -175,13 +175,11 @@ endif
 if BUILD_SEMANAGE
 sssdlibexec_PROGRAMS += selinux_child
 endif
-if HAVE_NSS
 sssdlibexec_PROGRAMS += p11_child
 if SSSD_USER
 if HAVE_POLKIT_RULES_D
 polkit_rulesdir = $(polkitdir)
 dist_polkit_rules_DATA = contrib/sssd-pcsc.rules
-endif
 endif
 endif
 if BUILD_SECRETS
@@ -4270,24 +4268,50 @@ proxy_child_LDADD = \
 
 p11_child_SOURCES = \
     src/p11_child/p11_child_common.c \
-    src/p11_child/p11_child_nss.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
     $(NULL)
+if HAVE_NSS
+p11_child_SOURCES += src/p11_child/p11_child_nss.c
+else
+p11_child_SOURCES += src/p11_child/p11_child_openssl.c
+endif
+
 p11_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
+    $(NULL)
+if HAVE_NSS
+p11_child_CFLAGS += \
     $(NSS_CFLAGS) \
     $(NULL)
+else
+p11_child_CFLAGS += \
+    $(P11_KIT_CFLAGS) \
+    $(CRYPTO_CFLAGS) \
+    $(SSL_CFLAGS) \
+    $(NULL)
+endif
+
 p11_child_LDADD = \
     libsss_debug.la \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(POPT_LIBS) \
-    $(NSS_LIBS) \
     libsss_crypt.la \
     $(NULL)
+if HAVE_NSS
+p11_child_LDADD += \
+    $(NSS_LIBS) \
+    $(NULL)
+else
+p11_child_LDADD += \
+    $(P11_KIT_LIBS) \
+    $(CRYPTO_LIBS) \
+    $(SSL_LIBS) \
+    $(NULL)
+endif
 
 memberof_la_SOURCES = \
     src/ldb_modules/memberof.c \
@@ -4780,6 +4804,7 @@ SSSD_USER_DIRS = \
     $(DESTDIR)$(gpocachepath) \
     $(DESTDIR)$(sssdconfdir) \
     $(DESTDIR)$(sssdconfdir)/conf.d \
+    $(DESTDIR)$(sssdconfdir)/pki \
     $(DESTDIR)$(sssddefaultconfdir) \
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(deskprofilepath) \
@@ -4817,7 +4842,8 @@ endif
             $(DESTDIR)$(pubconfpath) \
             $(DESTDIR)$(pubconfpath)/krb5.include.d $(DESTDIR)$(gpocachepath)
 	$(INSTALL) -d -m 0711 $(DESTDIR)$(sssdconfdir) \
-                          $(DESTDIR)$(sssdconfdir)/conf.d
+                          $(DESTDIR)$(sssdconfdir)/conf.d \
+                          $(DESTDIR)$(sssdconfdir)/pki
 if BUILD_SECRETS
 	$(MKDIR_P) $(DESTDIR)$(secdbpath)
 endif

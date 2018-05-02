@@ -393,6 +393,7 @@ fi
 
 if test x$cryptolib = xlibcrypto; then
     AM_CHECK_LIBCRYPTO
+    m4_include([src/external/p11-kit.m4])
 fi
 
 AM_CHECK_INOTIFY
