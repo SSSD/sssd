@@ -387,7 +387,11 @@ void test_cert_to_ssh_key_send(void **state)
     assert_non_null(ev);
 
     req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+#ifdef HAVE_NSS
                             "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
+#else
+                            ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
+#endif
                             1, &val[0], NULL);
     assert_non_null(req);
 
@@ -457,7 +461,11 @@ void test_cert_to_ssh_2keys_send(void **state)
     assert_non_null(ev);
 
     req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+#ifdef HAVE_NSS
                             "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
+#else
+                            ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
+#endif
                             2, &val[0], NULL);
     assert_non_null(req);
 
@@ -536,7 +544,11 @@ void test_cert_to_ssh_2keys_invalid_send(void **state)
     assert_non_null(ev);
 
     req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+#ifdef HAVE_NSS
                             "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
+#else
+                            ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
+#endif
                             3, &val[0], NULL);
     assert_non_null(req);
 
@@ -576,7 +588,6 @@ int main(int argc, const char *argv[])
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_cert_derb64_to_ldap_filter,
                                         setup, teardown),
-#ifdef HAVE_NSS
 #ifdef HAVE_TEST_CA
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_key_send,
                                         setup, teardown),
@@ -584,7 +595,6 @@ int main(int argc, const char *argv[])
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_invalid_send,
                                         setup, teardown),
-#endif
 #endif
     };
 

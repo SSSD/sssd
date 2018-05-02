@@ -576,8 +576,13 @@ void test_ssh_user_pubkey_cert(void **state)
 
     /* Enable certificate support */
     ssh_test_ctx->ssh_ctx->use_cert_keys = true;
+#ifdef HAVE_NSS
     ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
                                                 "/src/tests/test_CA/p11_nssdb");
+#else
+    ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
+                                                "/src/tests/test_CA/SSSD_test_CA.pem");
+#endif
 
     set_cmd_cb(test_ssh_user_pubkey_cert_check);
     ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
@@ -611,10 +616,8 @@ int main(int argc, const char *argv[])
 #ifdef HAVE_TEST_CA
         cmocka_unit_test_setup_teardown(test_ssh_user_pubkey_cert_disabled,
                                         ssh_test_setup, ssh_test_teardown),
-#ifdef HAVE_NSS
         cmocka_unit_test_setup_teardown(test_ssh_user_pubkey_cert,
                                         ssh_test_setup, ssh_test_teardown),
-#endif
 #endif
     };
 

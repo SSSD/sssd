@@ -20,13 +20,15 @@ pubkeys_h = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
 if HAVE_NSS
-nssdb = p11_nssdb p11_nssdb_2certs
+extra = p11_nssdb p11_nssdb_2certs
+else
+extra = softhsm2_none softhsm2_one softhsm2_two
 endif
 
 # If openssl is run in parallel there might be conflicts with the serial
 .NOTPARALLEL:
 
-ca_all: clean serial SSSD_test_CA.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(nssdb)
+ca_all: clean serial SSSD_test_CA.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(extra)
 
 $(pwdfile):
 	@echo "12345678" > $@
@@ -74,18 +76,56 @@ p11_nssdb_2certs: SSSD_test_cert_pkcs12_0001.pem SSSD_test_cert_pkcs12_0002.pem 
 	$(PK12UTIL) -d sql:./$@ p11_nssdb -i SSSD_test_cert_pkcs12_0001.pem -w $(pwdfile)
 	$(PK12UTIL) -d sql:./$@ p11_nssdb -i SSSD_test_cert_pkcs12_0002.pem -w $(pwdfile)
 
+# The softhsm2 PKCS#11 setups are used in
+# - src/tests/cmocka/test_pam_srv.c
+# if SSSD is build with OpenSSL/libcrypto
+softhsm2_none: softhsm2_none.conf
+	mkdir $@
+	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
+
+softhsm2_none.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_none" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+
+softhsm2_one: softhsm2_one.conf
+	mkdir $@
+	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0001.pem --login  --label 'SSSD test cert 0001' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0001.pem --login  --label 'SSSD test cert 0001' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
+
+softhsm2_one.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_one" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+
+softhsm2_two: softhsm2_two.conf
+	mkdir $@
+	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0002.pem --login  --label 'SSSD test cert 0002' --id '5405842D56CF31F0BB025A695C5F3E907051C5B9'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0002.pem --login  --label 'SSSD test cert 0002' --id '5405842D56CF31F0BB025A695C5F3E907051C5B9'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0001.pem --login  --label 'SSSD test cert 0001' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0001.pem --login  --label 'SSSD test cert 0001' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17'
+
+softhsm2_two.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_two" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+
 CLEANFILES = \
     index.txt  index.txt.attr \
     index.txt.attr.old  index.txt.old \
     serial  serial.old  \
     SSSD_test_CA.pem $(pwdfile) \
     $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) \
+    softhsm2_*.conf \
     $(NULL)
 
 clean-local:
 	rm -rf newcerts
 	rm -rf p11_nssdb
 	rm -rf p11_nssdb_2certs
+	rm -rf softhsm*
 
 serial: clean
 	touch index.txt
