@@ -523,6 +523,7 @@ static void cache_req_locate_dom_cache_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_TRACE_INTERNAL, "Result found in the cache\n");
         tevent_req_done(req);
         return;
+    case ERR_ID_OUTSIDE_RANGE:
     case ENOENT:
         /* Not cached and locator was requested, run the locator
          * DP request plugin

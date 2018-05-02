@@ -27,7 +27,7 @@
 #include "responder/common/cache_req/cache_req_plugin.h"
 
 errno_t cache_req_idminmax_check(struct cache_req_data *data,
-	                         struct sss_domain_info *domain)
+                                 struct sss_domain_info *domain)
 {
    if (((domain->id_min != 0) && (data->id < domain->id_min)) ||
        ((domain->id_max != 0) && (data->id > domain->id_max))) {
