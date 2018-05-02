@@ -843,6 +843,7 @@ dist_noinst_HEADERS = \
     src/shared/io.h \
     src/shared/murmurhash3.h \
     src/shared/safealign.h \
+    src/p11_child/p11_child.h \
     $(NULL)
 
 
@@ -4268,6 +4269,7 @@ proxy_child_LDADD = \
     $(SSSD_INTERNAL_LTLIBS)
 
 p11_child_SOURCES = \
+    src/p11_child/p11_child_common.c \
     src/p11_child/p11_child_nss.c \
     src/util/atomic_io.c \
     src/util/util.c \
