@@ -33,6 +33,7 @@
 #include <popt.h>
 #include <dbus/dbus.h>
 
+#include "config.h"
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
@@ -51,7 +52,11 @@
 #define NO_DOMAINS_ARE_PUBLIC "none"
 #define DEFAULT_ALLOWED_UIDS ALL_UIDS_ALLOWED
 #define DEFAULT_PAM_CERT_AUTH false
+#ifdef HAVE_NSS
 #define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/pki/nssdb"
+#else
+#define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
+#endif
 
 struct mon_cli_iface monitor_pam_methods = {
     { &mon_cli_iface_meta, 0 },

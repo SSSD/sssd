@@ -1345,7 +1345,22 @@ pam_account_locked_message = Account locked, please contact help desk.
                             the PKCS#11 modules to access the Smartcard.
                         </para>
                         <para>
-                            Default: /etc/pki/nssdb (NSS version)
+                            Default:
+                            <itemizedlist>
+                                <listitem><para>/etc/pki/nssdb (NSS version,
+                                                path to a NSS
+                                                database)</para></listitem>
+                                <listitem><para>/etc/sssd/pki/sssd_auth_ca_db.pem
+                                                (OpenSSL version, path to a file
+                                                with trusted CA certificates in
+                                                PEM format)</para></listitem>
+                            </itemizedlist>
+                        </para>
+                        <para condition="with_nss">
+                            This man page was generated for the NSS version.
+                        </para>
+                        <para condition="with_openssl">
+                            This man page was generated for the OpenSSL version.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -1515,7 +1530,22 @@ pam_account_locked_message = Account locked, please contact help desk.
                             deriving public ssh keys from them.
                         </para>
                         <para>
-                            Default: /etc/pki/nssdb
+                            Default:
+                            <itemizedlist>
+                                <listitem><para>/etc/pki/nssdb (NSS version,
+                                                path to a NSS
+                                                database)</para></listitem>
+                                <listitem><para>/etc/sssd/pki/sssd_auth_ca_db.pem
+                                                (OpenSSL version, path to a file
+                                                with trusted CA certificates in
+                                                PEM format)</para></listitem>
+                            </itemizedlist>
+                        </para>
+                        <para condition="with_nss">
+                            This man page was generated for the NSS version.
+                        </para>
+                        <para condition="with_openssl">
+                            This man page was generated for the OpenSSL version.
                         </para>
                     </listitem>
                 </varlistentry>

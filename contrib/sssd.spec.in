@@ -1001,6 +1001,9 @@ done
 %attr(750,sssd,sssd) %dir %{_var}/log/%{name}
 %attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd
 %attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd/conf.d
+%if (0%{?use_openssl} == 1)
+%attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd/pki
+%endif
 %ghost %attr(0600,sssd,sssd) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %dir %{_sysconfdir}/logrotate.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
