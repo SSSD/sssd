@@ -200,3 +200,24 @@
    obj:/usr/bin/bash
    ...
 }
+
+# Leak in sqlite3 used by the softhsm2 PKCS#11 module
+{
+   sqlite3.error
+   Memcheck:Leak
+   ...
+   fun:malloc
+   obj:/usr/lib64/libsqlite3.so.0.8.6
+   ...
+}
+
+# Leak found on debian
+{
+   set-default-locale-error-debian
+   Memcheck:Leak
+   ...
+   fun:malloc
+   fun:xmalloc
+   fun:set_default_locale
+   fun:main
+}

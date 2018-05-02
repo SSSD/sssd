@@ -22,6 +22,7 @@
 
 #include <security/pam_modules.h>
 #include <popt.h>
+#include <stdlib.h> /* putenv */
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_resp.h"
@@ -57,14 +58,25 @@
 
 #define NSS_DB_PATH_2CERTS TESTS_PATH "_2certs"
 #define NSS_DB_2CERTS "sql:"NSS_DB_PATH_2CERTS
+#ifdef HAVE_NSS
+#define CA_DB NSS_DB
+#else
+#define CA_DB ABS_BUILD_DIR"/src/tests/test_CA/SSSD_test_CA.pem"
+#endif
 
 #define TEST_TOKEN_NAME "SSSD Test Token"
-#define TEST_MODULE_NAME "NSS-Internal"
 #define TEST_KEY_ID "C554C9F82C2A9D58B70921C143304153A8A42F17"
+#ifdef HAVE_NSS
+#define TEST_MODULE_NAME "NSS-Internal"
 #define TEST_PROMPT "SSSD test cert 0001 - SSSD\nCN=SSSD test cert 0001,OU=SSSD test,O=SSSD"
+#define TEST2_PROMPT "SSSD test cert 0002 - SSSD\nCN=SSSD test cert 0002,OU=SSSD test,O=SSSD"
+#else
+#define TEST_MODULE_NAME SOFTHSM2_PATH
+#define TEST_PROMPT "SSSD test cert 0001\nCN=SSSD test cert 0001,OU=SSSD test,O=SSSD"
+#define TEST2_PROMPT "SSSD test cert 0002\nCN=SSSD test cert 0002,OU=SSSD test,O=SSSD"
+#endif
 
 #define TEST2_KEY_ID "5405842D56CF31F0BB025A695C5F3E907051C5B9"
-#define TEST2_PROMPT "SSSD test cert 0002 - SSSD\nCN=SSSD test cert 0002,OU=SSSD test,O=SSSD"
 
 static char CACHED_AUTH_TIMEOUT_STR[] = "4";
 static const int CACHED_AUTH_TIMEOUT = 4;
@@ -416,7 +428,6 @@ static int pam_test_setup(void **state)
 }
 
 #ifdef HAVE_TEST_CA
-#ifdef HAVE_NSS
 static int pam_test_setup_no_verification(void **state)
 {
     struct sss_test_conf_param dom_params[] = {
@@ -440,7 +451,6 @@ static int pam_test_setup_no_verification(void **state)
     pam_test_setup_common();
     return 0;
 }
-#endif /* HAVE_NSS */
 #endif /* HAVE_TEST_CA */
 
 static int pam_cached_test_setup(void **state)
@@ -861,20 +871,20 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
     bool test2_first = false;
 
     size_t check_len = 0;
-    const char const *check_strings[] = { NULL,
-                                          TEST_TOKEN_NAME,
-                                          TEST_MODULE_NAME,
-                                          TEST_KEY_ID,
-                                          TEST_PROMPT,
-                                          NULL };
+    char const *check_strings[] = { NULL,
+                                    TEST_TOKEN_NAME,
+                                    TEST_MODULE_NAME,
+                                    TEST_KEY_ID,
+                                    TEST_PROMPT,
+                                    NULL };
 
     size_t check2_len = 0;
-    const char const *check2_strings[] = { NULL,
-                                           TEST_TOKEN_NAME,
-                                           TEST_MODULE_NAME,
-                                           TEST2_KEY_ID,
-                                           TEST2_PROMPT,
-                                           NULL };
+    char const *check2_strings[] = { NULL,
+                                     TEST_TOKEN_NAME,
+                                     TEST_MODULE_NAME,
+                                     TEST2_KEY_ID,
+                                     TEST2_PROMPT,
+                                     NULL };
 
     assert_int_equal(status, 0);
 
@@ -1857,7 +1867,12 @@ void test_pam_preauth_cert_nocert(void **state)
 {
     int ret;
 
+#ifdef HAVE_NSS
     set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
+#else
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+#endif
+
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         NULL, NULL, false);
@@ -1997,7 +2012,10 @@ void test_pam_preauth_cert_nomatch(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+#ifndef HAVE_NSS
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_one.conf"));
+#endif
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, NULL, false);
@@ -2019,7 +2037,7 @@ void test_pam_preauth_cert_match(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, SSSD_TEST_CERT_0001, false);
@@ -2042,7 +2060,7 @@ void test_pam_preauth_cert_match_gdm_smartcard(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL,
                         "gdm-smartcard", test_lookup_by_cert_cb,
@@ -2065,7 +2083,7 @@ void test_pam_preauth_cert_match_wrong_user(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_wrong_user_cb,
@@ -2089,7 +2107,7 @@ void test_pam_preauth_cert_no_logon_name(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     /* If no logon name is given the user is looked by certificate first.
      * Since there is a matching user the upcoming lookup by name will find
@@ -2121,7 +2139,7 @@ void test_pam_preauth_cert_no_logon_name_with_hint(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     pam_test_ctx->rctx->domains->user_name_hint = true;
 
     /* If no logon name is given the user is looked by certificate first.
@@ -2148,7 +2166,7 @@ void test_pam_preauth_cert_no_logon_name_double_cert(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_double_cb, SSSD_TEST_CERT_0001,
@@ -2171,7 +2189,7 @@ void test_pam_preauth_cert_no_logon_name_double_cert_with_hint(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
     pam_test_ctx->rctx->domains->user_name_hint = true;
 
     mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -2217,7 +2235,7 @@ void test_pam_preauth_cert_no_logon_name_no_match(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     mock_input_pam_cert(pam_test_ctx, NULL, NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb, NULL, false);
@@ -2239,7 +2257,7 @@ void test_pam_cert_auth(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     /* Here the last option must be set to true because the backend is only
      * connected once. During authentication the backend is connected first to
@@ -2248,7 +2266,7 @@ void test_pam_cert_auth(void **state)
      * to the user entry the lookup by certificate will already find the user
      * in the cache and no second request to the backend is needed. */
     mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
-                        "NSS-Internal",
+                        TEST_MODULE_NAME,
                         "C554C9F82C2A9D58B70921C143304153A8A42F17", NULL,
                         test_lookup_by_cert_cb, SSSD_TEST_CERT_0001, true);
 
@@ -2273,7 +2291,10 @@ void test_pam_cert_auth_no_logon_name(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+#ifndef HAVE_NSS
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_one.conf"));
+#endif
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     /* Here the last option must be set to true because the backend is only
      * connected once. During authentication the backend is connected first to
@@ -2282,7 +2303,7 @@ void test_pam_cert_auth_no_logon_name(void **state)
      * to the user entry the lookup by certificate will already find the user
      * in the cache and no second request to the backend is needed. */
     mock_input_pam_cert(pam_test_ctx, NULL, "123456", "SSSD Test Token",
-                        "NSS-Internal",
+                        TEST_MODULE_NAME,
                         "C554C9F82C2A9D58B70921C143304153A8A42F17", NULL,
                         test_lookup_by_cert_cb, SSSD_TEST_CERT_0001, true);
 
@@ -2309,7 +2330,7 @@ void test_pam_cert_auth_no_logon_name_no_key_id(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     /* Here the last option must be set to true because the backend is only
      * connected once. During authentication the backend is connected first to
@@ -2318,7 +2339,7 @@ void test_pam_cert_auth_no_logon_name_no_key_id(void **state)
      * to the user entry the lookup by certificate will already find the user
      * in the cache and no second request to the backend is needed. */
     mock_input_pam_cert(pam_test_ctx, NULL, "123456", "SSSD Test Token",
-                        "NSS-Internal", NULL, NULL,
+                        TEST_MODULE_NAME, NULL, NULL,
                         NULL, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
@@ -2341,10 +2362,10 @@ void test_pam_cert_auth_double_cert(void **state)
 {
     int ret;
 
-    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB);
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
-                        "NSS-Internal",
+                        TEST_MODULE_NAME,
                         "C554C9F82C2A9D58B70921C143304153A8A42F17", NULL,
                         test_lookup_by_cert_double_cb, SSSD_TEST_CERT_0001,
                         true);
@@ -2369,7 +2390,12 @@ void test_pam_cert_preauth_2certs_one_mapping(void **state)
 {
     int ret;
 
+#ifdef HAVE_NSS
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
+#else
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_two.conf"));
+#endif
 
     ret = test_lookup_by_cert_cb(discard_const(SSSD_TEST_CERT_0001));
     assert_int_equal(ret, EOK);
@@ -2393,7 +2419,12 @@ void test_pam_cert_preauth_2certs_two_mappings(void **state)
 {
     int ret;
 
+#ifdef HAVE_NSS
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
+#else
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_two.conf"));
+#endif
 
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
                         test_lookup_by_cert_cb_2nd_cert_same_user,
@@ -2807,8 +2838,6 @@ int main(int argc, const char *argv[])
                                         pam_cached_test_setup,
                                         pam_test_teardown),
 #ifdef HAVE_TEST_CA
-/* p11_child is not built without NSS */
-#ifdef HAVE_NSS
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_nocert,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_nomatch,
@@ -2850,7 +2879,6 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth_no_logon_name_no_key_id,
                                         pam_test_setup, pam_test_teardown),
-#endif /* HAVE_NSS */
 #endif /* HAVE_TEST_CA */
 
         cmocka_unit_test_setup_teardown(test_filter_response,
