@@ -829,14 +829,59 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     return EOK;
 }
 
+static void check_string_array(const char **strs, uint8_t *body, size_t *rp)
+{
+    size_t c;
+
+    for (c = 0; strs[c] != NULL; c++) {
+        assert_int_equal(*(body + *rp + strlen(strs[c])), 0);
+        assert_string_equal(body + *rp, strs[c]);
+        *rp += strlen(strs[c]) + 1;
+    }
+}
+
+static size_t check_string_array_len(const char **strs)
+{
+    size_t c;
+    size_t sum = 0;
+
+    for (c = 0; strs[c] != NULL; c++) {
+        sum += strlen(strs[c]) + 1;
+    }
+
+    return sum;
+}
+
 static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                   enum response_type type, const char *name,
                                   const char *name2)
 {
     size_t rp = 0;
     uint32_t val;
+    bool test2_first = false;
+
+    size_t check_len = 0;
+    const char const *check_strings[] = { NULL,
+                                          TEST_TOKEN_NAME,
+                                          TEST_MODULE_NAME,
+                                          TEST_KEY_ID,
+                                          TEST_PROMPT,
+                                          NULL };
+
+    size_t check2_len = 0;
+    const char const *check2_strings[] = { NULL,
+                                           TEST_TOKEN_NAME,
+                                           TEST_MODULE_NAME,
+                                           TEST2_KEY_ID,
+                                           TEST2_PROMPT,
+                                           NULL };
 
     assert_int_equal(status, 0);
+
+    check_strings[0] = name;
+    check_len = check_string_array_len(check_strings);
+    check2_strings[0] = name;
+    check2_len = check_string_array_len(check2_strings);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
     assert_int_equal(val, pam_test_ctx->exp_pam_status);
@@ -866,62 +911,39 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
     assert_int_equal(val, type);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, (strlen(name) + 1
+
+    /* look ahead to check if the certificate #2 comes first */
+    if (name2 != NULL && *name2 != '\0'
+            && val == check2_len
+            && strncmp((char *) body + rp + strlen(name) + 1
                                 + sizeof(TEST_TOKEN_NAME)
-                                + sizeof(TEST_MODULE_NAME)
-                                + sizeof(TEST_KEY_ID)
-                                + sizeof(TEST_PROMPT)));
+                                + sizeof(TEST_MODULE_NAME),
+                       TEST2_KEY_ID,
+                       sizeof(TEST2_KEY_ID)) == 0 ) {
+        test2_first = true;
 
-    assert_int_equal(*(body + rp + strlen(name)), 0);
-    assert_string_equal(body + rp, name);
-    rp += strlen(name) + 1;
+        assert_int_equal(val, check2_len);
 
-    assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
-    assert_string_equal(body + rp, TEST_TOKEN_NAME);
-    rp += sizeof(TEST_TOKEN_NAME);
+        check_string_array(check2_strings, body, &rp);
 
-    assert_int_equal(*(body + rp + sizeof(TEST_MODULE_NAME) - 1), 0);
-    assert_string_equal(body + rp, TEST_MODULE_NAME);
-    rp += sizeof(TEST_MODULE_NAME);
-
-    assert_int_equal(*(body + rp + sizeof(TEST_KEY_ID) - 1), 0);
-    assert_string_equal(body + rp, TEST_KEY_ID);
-    rp += sizeof(TEST_KEY_ID);
-
-    assert_int_equal(*(body + rp + sizeof(TEST_PROMPT) - 1), 0);
-    assert_string_equal(body + rp, TEST_PROMPT);
-    rp += sizeof(TEST_PROMPT);
-
-    if (name2 != NULL && *name2 != '\0') {
         SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
         assert_int_equal(val, type);
 
         SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-        assert_int_equal(val, (strlen(name) + 1
-                                    + sizeof(TEST_TOKEN_NAME)
-                                    + sizeof(TEST_MODULE_NAME)
-                                    + sizeof(TEST2_KEY_ID)
-                                    + sizeof(TEST2_PROMPT)));
+    }
 
-        assert_int_equal(*(body + rp + strlen(name)), 0);
-        assert_string_equal(body + rp, name);
-        rp += strlen(name) + 1;
+    assert_int_equal(val, check_len);
 
-        assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
-        assert_string_equal(body + rp, TEST_TOKEN_NAME);
-        rp += sizeof(TEST_TOKEN_NAME);
+    check_string_array(check_strings, body, &rp);
 
-        assert_int_equal(*(body + rp + sizeof(TEST_MODULE_NAME) - 1), 0);
-        assert_string_equal(body + rp, TEST_MODULE_NAME);
-        rp += sizeof(TEST_MODULE_NAME);
+    if (name2 != NULL && *name2 != '\0' && !test2_first) {
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, type);
 
-        assert_int_equal(*(body + rp + sizeof(TEST2_KEY_ID) - 1), 0);
-        assert_string_equal(body + rp, TEST2_KEY_ID);
-        rp += sizeof(TEST2_KEY_ID);
+        SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+        assert_int_equal(val, check2_len);
 
-        assert_int_equal(*(body + rp + sizeof(TEST2_PROMPT) - 1), 0);
-        assert_string_equal(body + rp, TEST2_PROMPT);
-        rp += sizeof(TEST2_PROMPT);
+        check_string_array(check2_strings, body, &rp);
     }
 
     assert_int_equal(rp, blen);
@@ -2349,8 +2371,10 @@ void test_pam_cert_preauth_2certs_one_mapping(void **state)
 
     set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
 
+    ret = test_lookup_by_cert_cb(discard_const(SSSD_TEST_CERT_0001));
+    assert_int_equal(ret, EOK);
     mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
-                        test_lookup_by_cert_cb, SSSD_TEST_CERT_0001, false);
+                        test_lookup_by_cert_cb, NULL, false);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
