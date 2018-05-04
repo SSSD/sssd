@@ -643,7 +643,9 @@ def test_resp_idle_timeout_shutdown_slow(setup_for_resp_timeout_test):
     # so it would tick at 30, 60 and 90 seconds and the responder_idle_timeout
     # uses a greater-than comparison, so the 60-seconds tick wouldn't yet
     # trigger the process' shutdown.
-    p.wait(timeout=90)
+    # 100s has been chosen in order to take a safer path when running our CI
+    # tests.
+    p.wait(timeout=100)
     assert p.is_running() is False
 
 
@@ -678,7 +680,9 @@ def test_resp_idle_timeout_postpone_shutdown_slow(setup_for_resp_timeout_test,
     # updated).
     assert p.is_running() is True
 
-    # Wait more 60s in order to be sure that the process actually is shutdown
-    # when it should be.
-    p.wait(timeout=60)
+    # Wait at least 60s in order to be sure that the process actually is
+    # shutdown when it should be.
+    # 70s has been chosen in order to take a safer path when running our CI
+    # tests.
+    p.wait(timeout=70)
     assert p.is_running() is False
