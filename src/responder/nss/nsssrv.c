@@ -142,7 +142,7 @@ static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *da
 
     DEBUG(SSSDBG_TRACE_FUNC, "Invalidating netgroup hash table\n");
 
-    sss_ptr_hash_delete_all(nss_ctx->netgrent, true);
+    sss_ptr_hash_delete_all(nss_ctx->netgrent, false);
 
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
