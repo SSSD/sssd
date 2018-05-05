@@ -341,7 +341,9 @@ int sss_set_seuser(const char *login_name, const char *seuser_name,
 
     ret = EOK;
 done:
-    semanage_seuser_key_free(key);
+    if (key != NULL) {
+        semanage_seuser_key_free(key);
+    }
     sss_semanage_close(handle);
     return ret;
 }
