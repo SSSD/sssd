@@ -263,6 +263,22 @@ int main(int argc, const char *argv[])
           "Running with effective IDs: [%"SPRIuid"][%"SPRIgid"].\n",
           geteuid(), getegid());
 
+    /* The functions semanage_genhomedircon and getseuserbyname use gepwnam_r
+     * and they might fail to return values if they are not in memory cache.
+     *   [main] (0x0400): performing selinux operations
+     *   [seuser_needs_update] (0x2000): getseuserbyname: ret: 0
+     *                                   seuser: unconfined_u mls: s0-s0:c0.c15
+     *   [libsemanage] (0x0020): semanage_genhomedircon returned error code -1.
+     *   [sss_set_seuser] (0x0020): Cannot commit SELinux transaction
+     *   [main] (0x0020): Cannot set SELinux login context.
+     *   [main] (0x0020): selinux_child failed!
+     */
+    if (unsetenv("_SSS_LOOPS") != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to unset _SSS_LOOPS, some libsemanage functions might "
+              "fail.\n");
+    }
+
     /* libsemanage calls access(2) which works with real IDs, not effective.
      * We need to switch also the real ID to 0.
      */
