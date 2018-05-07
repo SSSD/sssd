@@ -1779,10 +1779,54 @@ done:
     return ret;
 }
 
+
+/* Get string until the first delimiter and strip out
+ * leading and trailing whitespaces.
+ */
+static errno_t sysdb_netgr_split_triple_string(TALLOC_CTX *mem_ctx,
+                                               const char **in,
+                                               const char delimiter,
+                                               char **out)
+{
+    size_t len;
+    const char *p = *in;
+    const char *begin;
+
+    /* Remove any leading whitespace */
+    while (*p && isspace(*p)) p++;
+    begin = p;
+
+    /* Find the delimiter */
+    while (*p && *p != delimiter) p++;
+
+    if (!*p) {
+        /* No delimiter was found: parse error */
+        return EINVAL;
+    }
+
+    len = p - begin;
+    /* Remove trailing spaces */
+    while (len > 0 && isspace(begin[len - 1])) len--;
+
+    *out = NULL;
+    if (len > 0) {
+        /* Copy the output string */
+        *out = talloc_strndup(mem_ctx, begin, len);
+        if (!*out) {
+            return ENOMEM;
+        }
+    }
+    p++;
+
+    *in = p;
+    return EOK;
+}
+
+
+
 /* This function splits a three-tuple into three strings
- * It assumes that any whitespace between the parentheses
- * and commas are intentional and does not attempt to
- * strip them out. Leading and trailing whitespace is
+ * It strips out any whitespace between the parentheses
+ * and commas. Leading and trailing whitespace is
  * ignored.
  *
  * This behavior is compatible with nss_ldap's
@@ -1797,10 +1841,6 @@ static errno_t sysdb_netgr_split_triple(TALLOC_CTX *mem_ctx,
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     const char *p = triple;
-    const char *p_host;
-    const char *p_user;
-    const char *p_domain;
-    size_t len;
 
     char *host = NULL;
     char *user = NULL;
@@ -1827,71 +1867,21 @@ static errno_t sysdb_netgr_split_triple(TALLOC_CTX *mem_ctx,
         goto done;
     }
     p++;
-    p_host = p;
 
-    /* Find the first comma */
-    while (*p && *p != ',') p++;
-
-    if (!*p) {
-        /* No comma was found: parse error */
-        ret = EINVAL;
+    ret = sysdb_netgr_split_triple_string(tmp_ctx, &p, ',', &host);
+    if (ret != EOK) {
         goto done;
     }
 
-    len = p - p_host;
-
-    if (len > 0) {
-        /* Copy the host string */
-        host = talloc_strndup(tmp_ctx, p_host, len);
-        if (!host) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-    p++;
-    p_user = p;
-
-    /* Find the second comma */
-    while (*p && *p != ',') p++;
-
-    if (!*p) {
-        /* No comma was found: parse error */
-        ret = EINVAL;
+    ret = sysdb_netgr_split_triple_string(tmp_ctx, &p, ',', &user);
+    if (ret != EOK) {
         goto done;
     }
 
-    len = p - p_user;
-
-    if (len > 0) {
-        /* Copy the user string */
-        user = talloc_strndup(tmp_ctx, p_user, len);
-        if (!user) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-    p++;
-    p_domain = p;
-
-    /* Find the closing parenthesis */
-    while (*p && *p != ')') p++;
-    if (*p != ')') {
-        /* No trailing parenthesis: parse error */
-        ret = EINVAL;
+    ret = sysdb_netgr_split_triple_string(tmp_ctx, &p, ')', &domain);
+    if (ret != EOK) {
         goto done;
     }
-
-    len = p - p_domain;
-
-    if (len > 0) {
-        /* Copy the domain string */
-        domain = talloc_strndup(tmp_ctx, p_domain, len);
-        if (!domain) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-    p++;
 
     /* skip trailing whitespace */
     while (*p && isspace(*p)) p++;
