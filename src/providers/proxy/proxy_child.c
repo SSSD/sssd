@@ -43,6 +43,7 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
+#include "sbus/sbus_client.h"
 #include "providers/proxy/proxy.h"
 #include "providers/proxy/proxy_iface_generated.h"
 

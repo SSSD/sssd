@@ -28,6 +28,7 @@
 #include "responder/pam/pamsrv.h"
 #include "lib/certmap/sss_certmap.h"
 #include "util/crypto/sss_crypto.h"
+#include "db/sysdb.h"
 
 
 #define CERT_AUTH_DEFAULT_MATCHING_RULE "KRB5:<EKU>clientAuth"

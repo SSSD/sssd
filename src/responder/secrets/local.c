@@ -19,12 +19,14 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "responder/secrets/secsrv_private.h"
-#include "util/crypto/sss_crypto.h"
 #include <time.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ldb.h>
+
+#include "db/sysdb.h"
+#include "responder/secrets/secsrv_private.h"
+#include "util/crypto/sss_crypto.h"
 
 #define MKEY_SIZE (256 / 8)
 

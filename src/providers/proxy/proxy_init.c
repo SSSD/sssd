@@ -26,6 +26,7 @@
 
 #include "util/sss_format.h"
 #include "providers/proxy/proxy.h"
+#include "sbus/sssd_dbus.h"
 
 #define NSS_FN_NAME "_nss_%s_%s"
 

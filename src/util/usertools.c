@@ -26,6 +26,7 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "util/strtonum.h"
 #include "util/util.h"

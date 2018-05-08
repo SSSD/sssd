@@ -22,6 +22,7 @@
 
 #include <talloc.h>
 
+#include "db/sysdb.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "util/util.h"
