@@ -20,6 +20,7 @@
 
 #include <talloc.h>
 
+#include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req_private.h"
 
 static const char **

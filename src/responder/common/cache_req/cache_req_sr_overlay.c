@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req_private.h"
 
 struct cache_req_sr_overlay_state {
