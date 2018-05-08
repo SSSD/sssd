@@ -24,6 +24,7 @@
 #include <string.h>
 #include <pwd.h>
 
+#include "db/sysdb.h"
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
