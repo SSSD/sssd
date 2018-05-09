@@ -419,7 +419,7 @@ static void set_netgr_lifetime(uint32_t lifetime,
 
     tv = tevent_timeval_current_ofs(lifetime, 0);
     te = tevent_add_timer(step_ctx->nctx->rctx->ev,
-                          step_ctx->nctx, tv,
+                          netgr, tv,
                           setnetgrent_result_timeout,
                           netgr);
     if (!te) {
