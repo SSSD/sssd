@@ -508,7 +508,6 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             }
 
             break;
-            break;
         case GEN_EMAIL:
             ret = add_to_san_list(mem_ctx, false,
                                   openssl_name_type_to_san_opt(current->type),
@@ -639,6 +638,8 @@ static int get_san(TALLOC_CTX *mem_ctx, X509 *cert, struct san_list **san_list)
             goto done;
         }
     }
+
+    ret = EOK;
 
 done:
     GENERAL_NAMES_free(extsan);
