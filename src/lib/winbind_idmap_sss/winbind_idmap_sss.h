@@ -32,6 +32,8 @@
 #include <ndr.h>
 #include <gen_ndr/security.h>
 
+#include "config.h"
+
 /* The following definitions are taken from the Samba header files
  * - winbindd/idmap_proto.h
  * - idmap.d
@@ -64,7 +66,9 @@ struct id_map {
     enum id_mapping status;
 };
 
-#define SMB_IDMAP_INTERFACE_VERSION 5
+#ifndef SMB_IDMAP_INTERFACE_VERSION
+#error Missing Samba idmap interface version
+#endif
 
 struct idmap_domain {
     const char *name;
