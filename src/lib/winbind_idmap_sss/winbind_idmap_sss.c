@@ -190,7 +190,13 @@ static struct idmap_methods sss_methods = {
     .sids_to_unixids = idmap_sss_sids_to_unixids,
 };
 
+#if SMB_IDMAP_INTERFACE_VERSION == 5
 NTSTATUS idmap_sss_init(void)
+#elif SMB_IDMAP_INTERFACE_VERSION == 6
+NTSTATUS idmap_sss_init(TALLOC_CTX *ctx)
+#else
+#error Unexpected Samba idmpa inferface version
+#endif
 {
     return smb_register_idmap(SMB_IDMAP_INTERFACE_VERSION, "sss", &sss_methods);
 }

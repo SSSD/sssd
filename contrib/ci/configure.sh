@@ -35,6 +35,7 @@ declare -a CONFIGURE_ARG_LIST=(
 if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
       "$DISTRO_BRANCH" == -redhat-centos-6.*- ]]; then
     CONFIGURE_ARG_LIST+=(
+        "--with-smb-idmap-interface-version=5"
         "--disable-cifs-idmap-plugin"
         "--with-syslog=syslog"
         "--without-python3-bindings"
@@ -53,6 +54,14 @@ if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-7.*- ||
       "$DISTRO_BRANCH" == -redhat-centos-7.*- ]]; then
     CONFIGURE_ARG_LIST+=(
         "--without-python3-bindings"
+    )
+fi
+
+# Different versions of Debian might need different versions here but this is
+# sufficient to make the CI work
+if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
+    CONFIGURE_ARG_LIST+=(
+        "--with-smb-idmap-interface-version=5"
     )
 fi
 
