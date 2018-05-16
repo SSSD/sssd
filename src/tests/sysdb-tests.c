@@ -4388,6 +4388,125 @@ START_TEST (test_netgroup_base_dn)
 }
 END_TEST
 
+static errno_t netgr_triple_to_attrs(struct sysdb_attrs *attrs,
+                                     struct sysdb_netgroup_ctx *netgrent)
+{
+    int ret;
+    char *dummy;
+
+    dummy = talloc_asprintf(attrs, "(%s,%s,%s)",
+                            netgrent->value.triple.hostname,
+                            netgrent->value.triple.username,
+                            netgrent->value.triple.domainname);
+    if (dummy == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_NETGROUP_TRIPLE, dummy);
+    talloc_zfree(dummy);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_attrs_add_string failed.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t store_netgr(struct sysdb_test_ctx *test_ctx,
+                           const char *name,
+                           struct sysdb_netgroup_ctx *netgrent)
+{
+    struct sysdb_attrs *attrs;
+    errno_t ret;
+
+    attrs = sysdb_new_attrs(test_ctx);
+    if (attrs == NULL) {
+        return ENOMEM;
+    }
+
+    ret = netgr_triple_to_attrs(attrs, netgrent);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_netgroup failed.\n");
+        return ret;
+    }
+
+    ret = sysdb_add_netgroup(test_ctx->domain, name, NULL, attrs, NULL,
+                             0, 0);
+    talloc_zfree(attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_netgroup failed.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+static bool sysdb_netgr_ctx_cmp(struct sysdb_netgroup_ctx *a,
+                                struct sysdb_netgroup_ctx *b)
+{
+    return a->type == b->type &&
+           strcmp(a->value.triple.username, b->value.triple.username) == 0 &&
+           strcmp(a->value.triple.hostname, b->value.triple.hostname) == 0 &&
+           strcmp(a->value.triple.domainname, b->value.triple.domainname) == 0;
+}
+
+START_TEST (test_sysdb_netgr_to_entries)
+{
+    errno_t ret;
+    bool bret;
+    struct sysdb_test_ctx *test_ctx;
+    struct sysdb_netgroup_ctx simple_netgroup = {
+        .type = SYSDB_NETGROUP_TRIPLE_VAL,
+        .value.triple.hostname = discard_const("host"),
+        .value.triple.username = discard_const("user"),
+        .value.triple.domainname = discard_const("domain"),
+    };
+    struct sysdb_netgroup_ctx ws_netgroup = {
+        .type = SYSDB_NETGROUP_TRIPLE_VAL,
+        .value.triple.hostname = discard_const(" host "),
+        .value.triple.username = discard_const(" user "),
+        .value.triple.domainname = discard_const(" domain "),
+    };
+    struct ldb_result *res;
+    struct sysdb_netgroup_ctx **entries;
+    size_t netgroup_count;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    ret = store_netgr(test_ctx, "simple_netgroup", &simple_netgroup);
+    fail_if(ret != EOK, "Could not store the netgr");
+
+    ret = sysdb_getnetgr(test_ctx, test_ctx->domain, "simple_netgroup", &res);
+    fail_unless(ret == EOK, "sysdb_getnetgr error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(res->count == 1, "Received [%d] responses",
+                                 res->count);
+    ret = sysdb_netgr_to_entries(test_ctx, res, &entries, &netgroup_count);
+    fail_unless(ret == EOK, "sysdb_netgr_to_entries error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(netgroup_count == 1, "Received [%d] triples", netgroup_count);
+    bret = sysdb_netgr_ctx_cmp(entries[0], &simple_netgroup);
+    fail_unless(bret == true, "Netgroup triples do not match");
+
+    ret = store_netgr(test_ctx, "ws_netgroup", &ws_netgroup);
+    fail_if(ret != EOK, "Could not store the netgr");
+
+    ret = sysdb_getnetgr(test_ctx, test_ctx->domain, "ws_netgroup", &res);
+    fail_unless(ret == EOK, "sysdb_getnetgr error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(res->count == 1, "Received [%d] responses",
+                                 res->count);
+    ret = sysdb_netgr_to_entries(test_ctx, res, &entries, &netgroup_count);
+    fail_unless(ret == EOK, "sysdb_netgr_to_entries error [%d][%s]",
+                            ret, strerror(ret));
+    fail_unless(netgroup_count == 1, "Received [%d] triples", netgroup_count);
+    bret = sysdb_netgr_ctx_cmp(entries[0], &simple_netgroup);
+    fail_unless(bret == true, "Netgroup triples do not match");
+}
+END_TEST
+
 START_TEST(test_odd_characters)
 {
     errno_t ret;
@@ -4404,6 +4523,8 @@ START_TEST(test_odd_characters)
     const char *received_group;
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
     static const char *netgr_attrs[] = SYSDB_NETGR_ATTRS;
+    struct sysdb_netgroup_ctx **entries;
+    size_t netgroup_count;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -4546,9 +4667,13 @@ START_TEST(test_odd_characters)
                             ret, strerror(ret));
     fail_unless(res->count == 1, "Received [%d] responses",
                                  res->count);
-    talloc_zfree(res);
 
-    /* ===== Arbitrary Entries ===== */
+    /* Parse */
+    ret = sysdb_netgr_to_entries(test_ctx, res, &entries, &netgroup_count);
+    fail_unless(ret == EOK, "sysdb_netgr_to_entries error [%d][%s]",
+                            ret, strerror(ret));
+
+    talloc_zfree(res);
 
     talloc_free(test_ctx);
 }
@@ -7417,6 +7542,9 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_netgroup_entry, 27005, 27010);
 
     tcase_add_test(tc_sysdb, test_netgroup_base_dn);
+
+    /* Test splitting the netgroup triple */
+    tcase_add_test(tc_sysdb, test_sysdb_netgr_to_entries);
 
 /* ===== SERVICE TESTS ===== */
 
