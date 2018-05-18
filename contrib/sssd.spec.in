@@ -127,6 +127,14 @@
     %global with_gdm_pam_extensions 0
 %endif
 
+# Do not try to detect the idmap version on RHEL6 to avoid conflicts between
+# samba and samba4 package
+%if (0%{?fedora} || 0%{?rhel} >= 7)
+    %global detect_idmap_version 1
+%else
+    %global with_idmap_version --with-smb-idmap-interface-version=5
+%endif
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
@@ -235,6 +243,9 @@ BuildRequires: nfs-utils-lib-devel
 
 BuildRequires: samba4-devel
 BuildRequires: libsmbclient-devel
+%if (0%{?detect_idmap_version} == 1)
+BuildRequires: samba-winbind
+%endif
 
 %if (0%{?enable_systemtap} == 1)
 BuildRequires: systemtap-sdt-devel
@@ -757,6 +768,7 @@ autoreconf -ivf
     %{?enable_systemtap_opt} \
     %{?with_secret_responder} \
     %{?with_kcm_option} \
+    %{?with_idmap_version} \
     %{?experimental}
 
 make %{?_smp_mflags} all
