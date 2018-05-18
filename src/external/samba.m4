@@ -59,7 +59,7 @@ them. In this case, you will need to execute configure script with argument
         sambalibdir="`$PKG_CONFIG --variable=libdir smbclient`"/samba
         SAVE_CFLAGS=$CFLAGS
         SAVE_LIBS=$LIBS
-        CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS -I/usr/include/samba-4.0"
+        CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS -I/usr/include/samba-4.0"
         LIBS="$LIBS -L${sambalibdir} -lidmap-samba4 -Wl,-rpath ${sambalibdir}"
         AC_RUN_IFELSE(
             [AC_LANG_SOURCE([
@@ -98,7 +98,7 @@ int main(void)
     /* Check the versions we know about */
     for (v = 5; v <= 6; v++) {
         ret = smb_register_idmap(v, NULL, NULL);
-        if (ret != NT_STATUS_OBJECT_TYPE_MISMATCH) {
+        if (!NT_STATUS_EQUAL(ret, NT_STATUS_OBJECT_TYPE_MISMATCH)) {
             return v;
         }
     }
