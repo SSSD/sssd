@@ -294,6 +294,22 @@ def no_sssd_conf(request):
     return None
 
 
+@pytest.fixture
+def domain_resolution_order(request):
+    conf = unindent("""\
+        [sssd]
+        domains             = files
+        services            = nss
+        domain_resolution_order = foo
+
+        [domain/files]
+        id_provider = files
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
 def setup_pw_with_list(request, user_list):
     pwd_ops = passwd_ops_setup(request)
     for user in user_list:
@@ -1173,3 +1189,12 @@ def test_multiple_files_created_after_startup(add_user_with_canary,
 
     check_user(ALT_USER1)
     check_group(ALT_GROUP1)
+
+
+def test_files_with_domain_resolution_order(add_user_with_canary,
+                                            domain_resolution_order):
+    """
+    Test that when using domain_resolution_order the user won't be using
+    its fully-qualified name.
+    """
+    check_user(USER1)
