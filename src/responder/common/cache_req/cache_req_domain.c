@@ -202,9 +202,14 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
         /* when using the domain resolution order, using shortnames as input
          * is allowed by default. However, we really want to use the fully
          * qualified name as output in order to avoid conflicts whith users
-         * who have the very same name. */
+         * who have the very same name.
+         *
+         * NOTE: we do *not* want to use fully qualified names for the
+         * files provider.*/
         if (resolution_order != NULL) {
-            sss_domain_info_set_output_fqnames(cr_domain->domain, true);
+            if (strcmp(cr_domain->domain->provider, "files") != 0) {
+                sss_domain_info_set_output_fqnames(cr_domain->domain, true);
+            }
         }
 
         DLIST_ADD_END(cr_domains, cr_domain, struct cache_req_domain *);
