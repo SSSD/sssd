@@ -1245,40 +1245,6 @@ static int groups_by_user_retry(struct tevent_req *req);
 static void groups_by_user_connect_done(struct tevent_req *subreq);
 static void groups_by_user_done(struct tevent_req *subreq);
 
-static errno_t set_initgroups_expire_attribute(struct sss_domain_info *domain,
-                                               const char *name)
-{
-    errno_t ret;
-    time_t cache_timeout;
-    struct sysdb_attrs *attrs;
-
-    attrs = sysdb_new_attrs(NULL);
-    if (attrs == NULL) {
-        return ENOMEM;
-    }
-
-    cache_timeout = domain->user_timeout
-                        ? time(NULL) + domain->user_timeout
-                        : 0;
-
-    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE, cache_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
-        goto done;
-    }
-
-    ret = sysdb_set_user_attr(domain, name, attrs, SYSDB_MOD_REP);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to set initgroups expire attribute\n");
-        goto done;
-    }
-
-done:
-    talloc_zfree(attrs);
-    return ret;
-}
-
 static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
                                               struct sdap_id_ctx *ctx,
@@ -1396,7 +1362,6 @@ static void groups_by_user_done(struct tevent_req *subreq)
                                                      struct groups_by_user_state);
     int dp_error = DP_ERR_FATAL;
     int ret;
-    const char *cname;
 
     ret = sdap_get_initgr_recv(subreq);
     talloc_zfree(subreq);
@@ -1414,24 +1379,25 @@ static void groups_by_user_done(struct tevent_req *subreq)
     }
     state->sdap_ret = ret;
 
-    if (ret == EOK || ret == ENOENT) {
-        /* state->filter_value is still the name used for the original req. The cached
-         * object might have a different name, e.g. a fully-qualified name. */
-        ret = sysdb_get_real_name(state,
-                                  state->domain,
-                                  state->filter_value,
-                                  &cname);
-        if (ret != EOK) {
-            cname = state->filter_value;
-            DEBUG(SSSDBG_TRACE_INTERNAL,
-                  "Failed to canonicalize name, using [%s] [%d]: %s.\n",
-                  cname, ret, sss_strerror(ret));
-        }
-    }
-
     switch (state->sdap_ret) {
     case ENOENT:
         if (state->noexist_delete == true) {
+            const char *cname;
+
+            /* state->filter_value is still the name used for the original
+             * req. The cached object might have a different name, e.g. a
+             * fully-qualified name. */
+            ret = sysdb_get_real_name(state,
+                                      state->domain,
+                                      state->filter_value,
+                                      &cname);
+            if (ret != EOK) {
+                cname = state->filter_value;
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "Failed to canonicalize name, using [%s] [%d]: %s.\n",
+                      cname, ret, sss_strerror(ret));
+            }
+
             ret = sysdb_delete_user(state->domain, cname, 0);
             if (ret != EOK && ret != ENOENT) {
                 tevent_req_error(req, ret);
@@ -1440,12 +1406,6 @@ static void groups_by_user_done(struct tevent_req *subreq)
         }
         break;
     case EOK:
-        ret = set_initgroups_expire_attribute(state->domain, cname);
-        if (ret != EOK) {
-            state->dp_error = DP_ERR_FATAL;
-            tevent_req_error(req, ret);
-            return;
-        }
         break;
     default:
         state->dp_error = dp_error;

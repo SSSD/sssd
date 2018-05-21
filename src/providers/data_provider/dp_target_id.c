@@ -372,12 +372,79 @@ done:
     talloc_free(tmp_ctx);
 }
 
+static errno_t set_initgroups_expire_attribute(struct sss_domain_info *domain,
+                                               const char *name)
+{
+    errno_t ret;
+    time_t cache_timeout;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(NULL);
+    if (attrs == NULL) {
+        return ENOMEM;
+    }
+
+    cache_timeout = domain->user_timeout
+                        ? time(NULL) + domain->user_timeout
+                        : 0;
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE, cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
+        goto done;
+    }
+
+    ret = sysdb_set_user_attr(domain, name, attrs, SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set initgroups expire attribute\n");
+        goto done;
+    }
+
+done:
+    talloc_zfree(attrs);
+    return ret;
+}
+
+static void dp_req_initgr_pp_set_initgr_timestamp(struct dp_initgr_ctx *ctx,
+                                                  struct dp_reply_std *reply)
+{
+    errno_t ret;
+    const char *cname;
+
+    if (reply->dp_error != DP_ERR_OK || reply->error != EOK) {
+        /* Only bump the timestamp on successful lookups */
+        return;
+    }
+
+    ret = sysdb_get_real_name(ctx,
+                              ctx->domain_info,
+                              ctx->filter_value,
+                              &cname);
+    if (ret == ENOENT) {
+        /* No point trying to bump timestamp of an entry that does not exist..*/
+        return;
+    } else if (ret != EOK) {
+        cname = ctx->filter_value;
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to canonicalize name, using [%s]\n", cname);
+    }
+
+    ret = set_initgroups_expire_attribute(ctx->domain_info, cname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set the initgroups expire attribute [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+}
+
 static void dp_req_initgr_pp(const char *req_name,
                              struct data_provider *provider,
                              struct dp_initgr_ctx *ctx,
                              struct dp_reply_std *reply)
 {
     (void)reply;
+    dp_req_initgr_pp_set_initgr_timestamp(ctx, reply);
     dp_req_initgr_pp_nss_notify(req_name, provider, ctx);
     dp_req_initgr_pp_sr_overlay(provider, ctx);
 }
