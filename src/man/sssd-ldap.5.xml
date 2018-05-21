@@ -1058,65 +1058,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_groups_use_matching_rule_in_chain</term>
-                    <listitem>
-                        <para>
-                            This option tells SSSD to take advantage of an
-                            Active Directory-specific feature which may speed
-                            up group lookup operations on deployments with
-                            complex or deep nested groups.
-                        </para>
-                        <para>
-                            In most common cases, it is best to leave this
-                            option disabled. It generally only provides a
-                            performance increase on very complex nestings.
-                        </para>
-                        <para>
-                            If this option is enabled, SSSD will use it if it
-                            detects that the server supports it during initial
-                            connection. So "True" here essentially means
-                            "auto-detect".
-                        </para>
-                        <para>
-                            Note: This feature is currently known to work only
-                            with Active Directory 2008 R1 and later. See
-                            <ulink url="http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx">
-                            MSDN(TM) documentation</ulink> for more details.
-                        </para>
-                        <para>
-                            Default: False
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_initgroups_use_matching_rule_in_chain</term>
-                    <listitem>
-                        <para>
-                            This option tells SSSD to take advantage of an
-                            Active Directory-specific feature which might speed
-                            up initgroups operations (most notably when
-                            dealing with complex or deep nested groups).
-                        </para>
-                        <para>
-                            If this option is enabled, SSSD will use it if it
-                            detects that the server supports it during initial
-                            connection. So "True" here essentially means
-                            "auto-detect".
-                        </para>
-                        <para>
-                            Note: This feature is currently known to work only
-                            with Active Directory 2008 R1 and later. See
-                            <ulink url="http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx">
-                            MSDN(TM) documentation</ulink> for more details.
-                        </para>
-                        <para>
-                            Default: False
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>ldap_use_tokengroups</term>
                     <listitem>
                         <para>
