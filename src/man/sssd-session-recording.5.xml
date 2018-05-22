@@ -7,7 +7,7 @@
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
 
     <refmeta>
-        <refentrytitle>sssd-sudo</refentrytitle>
+        <refentrytitle>sssd-session-recording</refentrytitle>
         <manvolnum>5</manvolnum>
         <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
     </refmeta>
