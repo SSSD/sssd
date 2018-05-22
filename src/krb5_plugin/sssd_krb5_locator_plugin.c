@@ -439,6 +439,10 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
 
+    if (realm == NULL || cbfunc == NULL || cbdata == NULL) {
+        return KRB5_PLUGIN_NO_HANDLE;
+    }
+
     if (ctx->disabled) {
         PLUGIN_DEBUG(("Plugin disabled, nothing to do.\n"));
         return KRB5_PLUGIN_NO_HANDLE;
