@@ -159,6 +159,8 @@ static int buf_to_addr_port_list(struct sssd_ctx *ctx,
     uint8_t *pn;
     size_t c;
     size_t len;
+    size_t addr_len;
+    char *addr_str = NULL;
     char *tmp = NULL;
     char *port_str;
     long port;
@@ -206,6 +208,9 @@ static int buf_to_addr_port_list(struct sssd_ctx *ctx,
         port_str = strrchr(tmp, ':');
         if (port_str == NULL) {
             port = 0;
+        } else if (tmp[0] == '[' && *(port_str - 1) != ']') {
+            /* IPv6 address without port number */
+            port = 0;
         } else {
             *port_str = '\0';
             ++port_str;
@@ -239,9 +244,19 @@ static int buf_to_addr_port_list(struct sssd_ctx *ctx,
             }
         }
 
-        PLUGIN_DEBUG(("Found [%s][%d].\n", tmp, port));
+        /* make sure tmp is not modified so that it can be freed later */
+        addr_str = tmp;
+        /* strip leading '[' and trailing ']' from IPv6 addresses */
+        if (addr_str[0] == '['
+                && (addr_len = strlen(addr_str))
+                && addr_str[addr_len - 1] == ']') {
+            addr_str[addr_len -1] = '\0';
+            addr_str++;
+        }
 
-        l[c].addr = strdup(tmp);
+        PLUGIN_DEBUG(("Found [%s][%d].\n", addr_str, port));
+
+        l[c].addr = strdup(addr_str);
         if (l[c].addr == NULL) {
             ret = ENOMEM;
             goto done;
