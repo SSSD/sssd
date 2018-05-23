@@ -563,7 +563,8 @@
                                 Please, note that when this option is set the
                                 output format of all commands is always
                                 fully-qualified even when using short names
-                                for input.
+                                for input, for all users but the ones managed
+                                by the files provider.
                                 In case the administrator wants the output not
                                 fully-qualified, the full_name_format option
                                 can be used as shown below:
