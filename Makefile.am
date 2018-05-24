@@ -641,6 +641,19 @@ endif
 
 dist_noinst_HEADERS = \
     src/monitor/monitor.h \
+    src/sss_iface/sbus_sss_arguments.h \
+    src/sss_iface/sbus_sss_client_async.h \
+    src/sss_iface/sbus_sss_client_properties.h \
+    src/sss_iface/sbus_sss_client_sync.h \
+    src/sss_iface/sbus_sss_interface.h \
+    src/sss_iface/sbus_sss_invokers.h \
+    src/sss_iface/sbus_sss_keygens.h \
+    src/sss_iface/sbus_sss_server.h \
+    src/sss_iface/sbus_sss_symbols.h \
+    src/sss_iface/sss_iface_types.h \
+    src/sss_iface/sss_iface_async.h \
+    src/sss_iface/sss_iface_sync.h \
+    src/sss_iface/sss_iface.h \
     src/util/crypto/sss_crypto.h \
     src/util/crypto/libcrypto/sss_openssl.h \
     src/util/cert.h \
@@ -665,6 +678,7 @@ dist_noinst_HEADERS = \
     src/util/sss_ssh.h \
     src/util/sss_ini.h \
     src/util/sss_format.h \
+    src/util/sss_pam_data.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
@@ -1049,6 +1063,8 @@ EXTRA_DIST += \
     src/sbus/codegen/templates/server.h.tpl \
     src/sbus/codegen/templates/symbols.c.tpl \
     src/sbus/codegen/templates/symbols.h.tpl \
+    src/sss_iface/sss_iface.xml \
+    src/sss_iface/external_iface.xml \
     $(NULL)
 
 pkglib_LTLIBRARIES += libsss_sbus.la
@@ -1148,6 +1164,64 @@ libsss_sbus_sync_la_LDFLAGS = \
     -avoid-version \
     $(NULL)
 
+pkglib_LTLIBRARIES += libsss_iface.la
+libsss_iface_la_SOURCES = \
+    src/sss_iface/sbus_sss_arguments.c \
+    src/sss_iface/sbus_sss_client_async.c \
+    src/sss_iface/sbus_sss_invokers.c \
+    src/sss_iface/sbus_sss_keygens.c \
+    src/sss_iface/sbus_sss_symbols.c \
+    src/sss_iface/sss_iface_types.c \
+    src/sss_iface/sss_iface.c \
+    src/util/domain_info_utils.c \
+    src/util/sss_pam_data.c \
+    $(NULL)
+libsss_iface_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    libsss_sbus.la \
+    $(NULL)
+libsss_iface_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_iface_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libsss_iface_sync.la
+libsss_iface_sync_la_SOURCES = \
+    src/sss_iface/sbus_sss_arguments.c \
+    src/sss_iface/sbus_sss_client_sync.c \
+    src/sss_iface/sbus_sss_keygens.c \
+    src/sss_iface/sbus_sss_symbols.c \
+    src/sss_iface/sss_iface_types.c \
+    src/util/domain_info_utils.c \
+    src/util/sss_pam_data.c \
+    $(NULL)
+libsss_iface_sync_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    libsss_sbus_sync.la \
+    $(NULL)
+libsss_iface_sync_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_iface_sync_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
 pkglib_LTLIBRARIES += libsss_sbus_old.la
 libsss_sbus_old_la_SOURCES = \
     src/util/check_and_open.c \
@@ -1209,8 +1283,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_gpo.c \
     src/db/sysdb_certmap.c \
     src/db/sysdb_domain_resolution_order.c \
-    src/providers/dp_auth_util.c \
-    src/providers/dp_pam_data_util.c \
+    src/util/sss_pam_data.c \
     src/util/util.c \
     src/util/util_ext.c \
     src/util/util_preauth.c \
@@ -4430,7 +4503,7 @@ krb5_child_SOURCES = \
     src/providers/krb5/krb5_child.c \
     src/providers/krb5/krb5_ccache.c \
     src/providers/krb5/krb5_keytab.c \
-    src/providers/dp_pam_data_util.c \
+    src/util/sss_pam_data.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
