@@ -37,7 +37,6 @@
 #include <fcntl.h>
 #include <popt.h>
 #include <tevent.h>
-#include <dbus/dbus.h>
 
 /* Needed for res_init() */
 #include <netinet/in.h>
@@ -48,10 +47,8 @@
 #include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "monitor/monitor.h"
-#include "sbus/sssd_dbus.h"
-#include "monitor/monitor_interfaces.h"
-#include "responder/common/responder_sbus.h"
 #include "util/inotify.h"
+#include "sss_iface/sss_iface_async.h"
 
 #ifdef USE_KEYRING
 #include <keyutils.h>
@@ -60,6 +57,8 @@
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
+
+#define MONITOR_VERSION 0x0001
 
 /* terminate the child after this interval by default if it
  * doesn't shutdown on receiving SIGTERM */
@@ -114,6 +113,7 @@ struct mt_svc {
     char *command;
     char *name;
     char *identity;
+    const char *busname;
     pid_t pid;
 
     int kill_time;
@@ -123,7 +123,6 @@ struct mt_svc {
 
     int restarts;
     time_t last_restart;
-    DBusPendingCall *pending;
 
     int debug_level;
 
@@ -165,7 +164,6 @@ struct mt_ctx {
     int num_services;
     int started_services;
     struct mt_svc *svc_list;
-    struct sbus_connection *sbus_srv;
     struct config_file_ctx *file_ctx;
     int service_id_timeout;
     bool check_children;
@@ -177,6 +175,9 @@ struct mt_ctx {
     bool is_daemon;
     pid_t parent_pid;
 
+    struct sbus_server *sbus_server;
+    struct sbus_connection *sbus_conn;
+
     /* For running unprivileged services */
     uid_t uid;
     gid_t gid;
@@ -184,9 +185,7 @@ struct mt_ctx {
 
 static int start_service(struct mt_svc *mt_svc);
 
-static int monitor_service_init(struct sbus_connection *conn, void *data);
-
-static int monitor_service_shutdown(struct sbus_connection *conn, void *data);
+static void monitor_service_shutdown(struct mt_svc *svc);
 
 static int service_signal_reset_offline(struct mt_svc *svc);
 
@@ -222,26 +221,9 @@ static void network_status_change_cb(void *cb_data)
     }
 }
 
-/* dbus_get_monitor_version
- * Return the monitor version over D-BUS */
-static int get_monitor_version(struct sbus_request *dbus_req, void *data)
-{
-    dbus_uint16_t version = MONITOR_VERSION;
-
-    return sbus_request_return_and_finish(dbus_req,
-                                          DBUS_TYPE_UINT16, &version,
-                                          DBUS_TYPE_INVALID);
-}
-
-struct mon_init_conn {
-    struct mt_ctx *ctx;
-    struct sbus_connection *conn;
-    struct tevent_timer *timeout;
-};
-
 static int add_svc_conn_spy(struct mt_svc *svc);
 
-static int service_not_found(char *svc_name,
+static int service_not_found(const char *svc_name,
                              struct mt_svc **_svc)
 {
     DEBUG(SSSDBG_FATAL_FAILURE,
@@ -253,10 +235,10 @@ static int service_not_found(char *svc_name,
 }
 
 #ifdef HAVE_SYSTEMD
-static int socket_activated_service_not_found(struct mon_init_conn *mini,
-                                              char *svc_name,
-                                              bool is_provider,
-                                              struct mt_svc **_svc)
+errno_t socket_activated_service_not_found(struct mt_ctx *mt_ctx,
+                                           const char *svc_name,
+                                           bool is_provider,
+                                           struct mt_svc **_svc)
 {
     struct mt_svc *svc = NULL;
     int ret;
@@ -271,15 +253,15 @@ static int socket_activated_service_not_found(struct mon_init_conn *mini,
 
     *_svc = NULL;
 
-    if (check_service(svc_name) != NULL) {
+    if (check_service(discard_const(svc_name)) != NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Invalid service %s\n", svc_name);
         return EINVAL;
     }
 
-    mini->ctx->services_started = true;
-    mini->ctx->num_services++;
+    mt_ctx->services_started = true;
+    mt_ctx->num_services++;
 
-    ret = get_service_config(mini->ctx, svc_name, &svc);
+    ret = get_service_config(mt_ctx, svc_name, &svc);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to get the configuration for the service: %s\n",
@@ -289,21 +271,22 @@ static int socket_activated_service_not_found(struct mon_init_conn *mini,
     svc->restarts = 0;
     svc->socket_activated = true;
 
-    DLIST_ADD(mini->ctx->svc_list, svc);
+    DLIST_ADD(mt_ctx->svc_list, svc);
 
     *_svc = svc;
     return EOK;
 }
 #endif
 
-static int get_service_in_the_list(struct mon_init_conn *mini,
-                                   char *svc_name,
-                                   bool is_provider,
-                                   struct mt_svc **_svc)
+static errno_t
+get_service_in_the_list(struct mt_ctx *mt_ctx,
+                        const char *svc_name,
+                        bool is_provider,
+                        struct mt_svc **_svc)
 {
     struct mt_svc *svc;
 
-    for (svc = mini->ctx->svc_list; svc != NULL; svc = svc->next) {
+    for (svc = mt_ctx->svc_list; svc != NULL; svc = svc->next) {
         if (strcasecmp(svc->identity, svc_name) == 0) {
             svc->socket_activated = false;
             *_svc = svc;
@@ -312,75 +295,41 @@ static int get_service_in_the_list(struct mon_init_conn *mini,
     }
 
 #ifdef HAVE_SYSTEMD
-    return socket_activated_service_not_found(mini, svc_name, is_provider,
+    return socket_activated_service_not_found(mt_ctx, svc_name, is_provider,
                                               _svc);
 #else
     return service_not_found(svc_name, _svc);
 #endif
 }
 
-static int sbus_connection_destructor(struct sbus_connection *conn)
+static errno_t
+monitor_sbus_RegisterService(TALLOC_CTX *mem_ctx,
+                             struct sbus_request *sbus_req,
+                             struct mt_ctx *mt_ctx,
+                             const char *name,
+                             uint16_t version,
+                             uint16_t type,
+                             uint16_t *_monitor_version)
 {
-    return monitor_service_shutdown(conn,
-                                    sbus_connection_get_destructor_data(conn));
-}
-
-/* registers a new client.
- * if operation is successful also sends back the Monitor version */
-static int client_registration(struct sbus_request *dbus_req, void *data)
-{
-    dbus_uint16_t version = MONITOR_VERSION;
-    struct mon_init_conn *mini;
-    struct mt_svc *svc = NULL;
-    DBusError dbus_error;
-    dbus_uint16_t svc_ver;
-    dbus_uint16_t svc_type;
-    char *svc_name;
-    dbus_bool_t dbret;
-    int ret;
-
-    mini = talloc_get_type(data, struct mon_init_conn);
-    if (!mini) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
-        return EINVAL;
-    }
-
-    /* First thing, cancel the timeout */
-    talloc_zfree(mini->timeout);
-
-    dbus_error_init(&dbus_error);
-
-    dbret = dbus_message_get_args(dbus_req->message, &dbus_error,
-                                  DBUS_TYPE_STRING, &svc_name,
-                                  DBUS_TYPE_UINT16, &svc_ver,
-                                  DBUS_TYPE_UINT16, &svc_type,
-                                  DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to parse message, killing connection\n");
-        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-        sbus_disconnect(dbus_req->conn);
-        sbus_request_finish(dbus_req, NULL);
-        /* FIXME: should we just talloc_zfree(conn)? */
-        goto done;
-    }
+    struct mt_svc *svc;
+    errno_t ret;
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          "Received ID registration: (%s,%d)\n", svc_name, svc_ver);
+          "Received ID registration: (%s,%d)\n", name, version);
 
     /* search this service in the list */
-    ret = get_service_in_the_list(mini, svc_name, svc_type == MT_SVC_PROVIDER,
-                                  &svc);
+    ret = get_service_in_the_list(mt_ctx, name, type == MT_SVC_PROVIDER, &svc);
     if (ret != EOK) {
-        sbus_disconnect(dbus_req->conn);
-        sbus_request_finish(dbus_req, NULL);
-        /* FIXME: should we just talloc_zfree(conn)? */
+        return ERR_SBUS_KILL_CONNECTION;
+    }
 
-        goto done;
+    svc->busname = talloc_strdup(svc, sbus_req->sender->name);
+    if (svc->busname == NULL) {
+        return ERR_SBUS_KILL_CONNECTION;
     }
 
     /* Fill in svc structure with connection data */
-    svc->conn = mini->conn;
+    svc->conn = sbus_req->conn;
 
     /* For {dbus,socket}-activated services we will have to unregister then
      * when the sbus_connection is freed. That's the reason we have to
@@ -388,23 +337,16 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
      * from there and set the destructor back to NULL just before freeing
      * the service itself. */
     if (svc->socket_activated) {
-        talloc_set_destructor(svc->conn, sbus_connection_destructor);
+        sbus_connection_set_destructor(svc->conn, monitor_service_shutdown, svc);
     }
 
     ret = mark_service_as_started(svc);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to mark service [%s]!\n", svc_name);
-        goto done;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to mark service [%s]!\n", name);
+        return ret;
     }
 
-    /* reply that all is ok */
-    sbus_request_return_and_finish(dbus_req,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_INVALID);
-
-done:
-    /* init complete, get rid of temp init context */
-    talloc_zfree(mini);
+    *_monitor_version = MONITOR_VERSION;
 
     return EOK;
 }
@@ -424,11 +366,6 @@ static int svc_destructor(void *mem)
     /* try to delist service */
     if (svc->mt_ctx) {
         DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
-    }
-
-    /* Cancel any pending calls */
-    if (svc->pending) {
-        dbus_pending_call_cancel(svc->pending);
     }
 
     /* svc is being freed, neutralize the spy */
@@ -659,65 +596,7 @@ static int add_services_startup_timeout(struct mt_ctx *ctx)
     return EOK;
 }
 
-struct mon_srv_iface monitor_methods = {
-    { &mon_srv_iface_meta, 0 },
-    .getVersion = get_monitor_version,
-    .RegisterService = client_registration,
-};
-
-/* monitor_dbus_init
- * Set up the monitor service as a D-BUS Server */
-static int monitor_dbus_init(struct mt_ctx *ctx)
-{
-    char *monitor_address;
-    int ret;
-
-    ret = monitor_get_sbus_address(ctx, &monitor_address);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    /* If a service is running as unprivileged user, we need to make sure this
-     * user can access the monitor sbus server. root is still king, so we don't
-     * lose any access.
-     */
-    ret = sbus_new_server(ctx, ctx->ev, monitor_address, ctx->uid, ctx->gid,
-                          false, &ctx->sbus_srv, monitor_service_init, ctx, ctx);
-
-    talloc_free(monitor_address);
-
-    return ret;
-}
-
 static void monitor_restart_service(struct mt_svc *svc);
-
-static void reload_reply(DBusPendingCall *pending, void *data)
-{
-    DBusMessage *reply;
-    struct mt_svc *svc = talloc_get_type(data, struct mt_svc);
-
-    reply = dbus_pending_call_steal_reply(pending);
-    if (!reply) {
-        /* reply should never be null. This function shouldn't be called
-         * until reply is valid or timeout has occurred. If reply is NULL
-         * here, something is seriously wrong and we should bail out.
-         */
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "A reply callback was called but no reply was received"
-                  " and no timeout occurred\n");
-        /* Destroy this connection */
-        sbus_disconnect(svc->conn);
-        dbus_pending_call_unref(pending);
-        return;
-    }
-
-    /* TODO: Handle cases where the call has timed out or returned
-     * with an error.
-     */
-
-    dbus_pending_call_unref(pending);
-    dbus_message_unref(reply);
-}
 
 static int service_signal_dns_reload(struct mt_svc *svc);
 static int monitor_update_resolv(struct config_file_ctx *file_ctx,
@@ -743,15 +622,30 @@ static int monitor_update_resolv(struct config_file_ctx *file_ctx,
     return EOK;
 }
 
-static int service_signal(struct mt_svc *svc, const char *svc_signal)
+typedef struct tevent_req *
+(*service_signal_send_fn)(TALLOC_CTX *mem_ctx,
+                          struct sbus_connection *conn,
+                          const char *busname,
+                          const char *object_path);
+
+typedef errno_t
+(*service_signal_recv_fn)(struct tevent_req *req);
+
+static void service_signal_done(struct tevent_req *req);
+
+static int service_signal(struct mt_svc *svc,
+                          service_signal_send_fn send_fn,
+                          service_signal_recv_fn recv_fn)
 {
-    DBusMessage *msg;
-    int ret;
+    struct sbus_connection *conn;
+    struct tevent_req *req;
 
     if (svc->provider && strcasecmp(svc->provider, "local") == 0) {
         /* The local provider requires no signaling */
         return EOK;
     }
+
+    conn = svc->mt_ctx->sbus_conn;
 
     if (!svc->conn) {
         /* Avoid a race condition where we are trying to
@@ -763,52 +657,68 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
         return EIO;
     }
 
-    msg = dbus_message_new_method_call(NULL,
-                                       MONITOR_PATH,
-                                       MON_CLI_IFACE,
-                                       svc_signal);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Out of memory trying to allocate memory to invoke: %s\n",
-               svc_signal);
+    req = send_fn(svc, conn, svc->busname, SSS_BUS_PATH);
+    if (req == NULL) {
         return ENOMEM;
     }
 
-    ret = sbus_conn_send(svc->conn, msg,
-                         svc->mt_ctx->service_id_timeout,
-                         reload_reply, svc, NULL);
+    tevent_req_set_callback(req, service_signal_done, recv_fn);
 
-    dbus_message_unref(msg);
-    return ret;
+    return EOK;
+}
+
+static void service_signal_done(struct tevent_req *req)
+{
+    service_signal_recv_fn recv_fn;
+    errno_t ret;
+
+    recv_fn = tevent_req_callback_data_void(req);
+
+    ret = recv_fn(req);
+    talloc_zfree(req);
+
+    if (ret == EOK) {
+        return;
+    }
+
+    DEBUG(SSSDBG_FATAL_FAILURE, "Unable to signal service [%d]: %s\n",
+          ret, sss_strerror(ret));
 }
 
 static int service_signal_dns_reload(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_IFACE_RESINIT);
+    return service_signal(svc, sbus_call_service_resInit_send,
+                          sbus_call_service_resInit_recv);
 }
 static int service_signal_offline(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_IFACE_GOOFFLINE);
+    return service_signal(svc, sbus_call_service_goOffline_send,
+                          sbus_call_service_goOffline_recv);
 }
 static int service_signal_reset_offline(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_IFACE_RESETOFFLINE);
+    return service_signal(svc, sbus_call_service_resetOffline_send,
+                          sbus_call_service_resetOffline_recv);
 }
 static int service_signal_rotate(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_IFACE_ROTATELOGS);
+    return service_signal(svc, sbus_call_service_rotateLogs_send,
+                          sbus_call_service_rotateLogs_recv);
 }
 static int service_signal_clear_memcache(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_IFACE_CLEARMEMCACHE);
+    return service_signal(svc, sbus_call_service_clearMemcache_send,
+                          sbus_call_service_clearMemcache_recv);
 }
 static int service_signal_clear_enum_cache(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_IFACE_CLEARENUMCACHE);
+    return service_signal(svc, sbus_call_service_clearEnumCache_send,
+                          sbus_call_service_clearEnumCache_recv);
 }
 static int service_signal_sysbus_reconnect(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_IFACE_SYSBUSRECONNECT);
+    return service_signal(svc, sbus_call_service_sysbusReconnect_send,
+                          sbus_call_service_sysbusReconnect_recv);
 }
 
 static int check_domain_ranges(struct sss_domain_info *domains)
@@ -1955,6 +1865,8 @@ static void missing_resolv_conf(struct tevent_context *ev,
     }
 }
 
+static void monitor_sbus_connected(struct tevent_req *req);
+
 static int monitor_process_init(struct mt_ctx *ctx,
                                 const char *config_file)
 {
@@ -1962,12 +1874,10 @@ static int monitor_process_init(struct mt_ctx *ctx,
     struct tevent_signal *tes;
     struct timeval tv;
     struct tevent_timer *te;
-    struct sss_domain_info *dom;
+    struct tevent_req *req;
     char *rcachedir;
-    int num_providers;
     int ret;
     int error;
-    bool disable_netlink;
     struct sysdb_upgrade_ctx db_up_ctx;
 
     /* Set up the environment variable for the Kerberos Replay Cache */
@@ -2062,16 +1972,65 @@ static int monitor_process_init(struct mt_ctx *ctx,
                          true, ctx->uid, ctx->gid);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR_DAEMON(ret);
-        return ret;
+        goto done;
     }
     talloc_zfree(tmp_ctx);
 
-    /* Initialize D-BUS Server
-     * The monitor will act as a D-BUS server for all
-     * SSSD processes */
-    ret = monitor_dbus_init(ctx);
+    req = sbus_server_create_and_connect_send(ctx, ctx->ev, SSS_BUS_MONITOR,
+                                              NULL, SSS_MONITOR_ADDRESS,
+                                              false, 100, ctx->uid, ctx->gid);
+    if (req == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(req, monitor_sbus_connected, ctx);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static void monitor_sbus_connected(struct tevent_req *req)
+{
+    struct mt_ctx *ctx;
+    struct sss_domain_info *dom;
+    bool disable_netlink;
+    int num_providers;
+    errno_t ret;
+
+    ctx = tevent_req_callback_data(req, struct mt_ctx);
+
+    ret = sbus_server_create_and_connect_recv(ctx, req,
+                                              &ctx->sbus_server,
+                                              &ctx->sbus_conn);
+    talloc_zfree(req);
+    if (ret !=  EOK) {
+        goto done;
+    }
+
+    struct sbus_interface iface = SBUS_INTERFACE(
+        sssd_monitor,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_monitor, RegisterService, monitor_sbus_RegisterService, ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    struct sbus_path paths[] = {
+        {SSS_BUS_PATH, &iface},
+        {NULL, NULL}
+    };
+
+    ret = sbus_connection_add_path_map(ctx->sbus_conn, paths);
     if (ret != EOK) {
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add paths [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
     }
 
     ret = confdb_get_bool(ctx->cdb,
@@ -2083,7 +2042,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to read disable_netlink from confdb: [%d] %s\n",
               ret, sss_strerror(ret));
-        return ret;
+        goto done;
     }
 
     if (disable_netlink == false) {
@@ -2092,7 +2051,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Cannot set up listening for network notifications\n");
-            return ret;
+            goto done;
         }
     }
 
@@ -2101,7 +2060,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
     for (dom = ctx->domains; dom; dom = get_next_domain(dom, 0)) {
         ret = add_new_provider(ctx, dom->name, 0);
         if (ret != EOK && ret != ENOENT) {
-            return ret;
+            goto done;
         }
         if (ret != ENOENT) {
             num_providers++;
@@ -2115,7 +2074,7 @@ static int monitor_process_init(struct mt_ctx *ctx,
          *  expires) */
         ret = add_services_startup_timeout(ctx);
         if (ret != EOK) {
-            return ret;
+            goto done;
         }
     } else if (ctx->services != NULL) {
         int i;
@@ -2125,7 +2084,10 @@ static int monitor_process_init(struct mt_ctx *ctx,
         /* No providers start services immediately
          * Normally this means only LOCAL is configured */
         for (i = 0; ctx->services[i]; i++) {
-            add_new_service(ctx, ctx->services[i], 0);
+            ret = add_new_service(ctx, ctx->services[i], 0);
+            if (ret != EOK) {
+                goto done;
+            }
         }
     }
 
@@ -2138,63 +2100,10 @@ static int monitor_process_init(struct mt_ctx *ctx,
         ret = notify_startup();
     }
 
-    return EOK;
-}
-
-static void init_timeout(struct tevent_context *ev,
-                         struct tevent_timer *te,
-                         struct timeval t, void *ptr)
-{
-    struct mon_init_conn *mini;
-
-    DEBUG(SSSDBG_OP_FAILURE, "Client timed out before Identification!\n");
-
-    mini = talloc_get_type(ptr, struct mon_init_conn);
-
-    sbus_disconnect(mini->conn);
-    talloc_zfree(mini);
-}
-
-/*
- * monitor_service_init
- * Set up a timeout function and temporary connection structure.
- * If the client does not identify before the timeout kicks in,
- * the client is forcibly disconnected.
- */
-static int monitor_service_init(struct sbus_connection *conn, void *data)
-{
-    struct mt_ctx *ctx;
-    struct mon_init_conn *mini;
-    struct timeval tv;
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Initializing D-BUS Service\n");
-
-    ctx = talloc_get_type(data, struct mt_ctx);
-
-    mini = talloc(conn, struct mon_init_conn);
-    if (!mini) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
-        talloc_zfree(conn);
-        return ENOMEM;
+done:
+    if (ret != EOK) {
+        monitor_quit(ctx, 3);
     }
-    mini->ctx = ctx;
-    mini->conn = conn;
-
-    /* Allow access from the SSSD user */
-    sbus_allow_uid(conn, &ctx->uid);
-
-    /* 10 seconds should be plenty */
-    tv = tevent_timeval_current_ofs(10, 0);
-
-    mini->timeout = tevent_add_timer(ctx->ev, mini, tv, init_timeout, mini);
-    if (!mini->timeout) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
-        talloc_zfree(conn);
-        return ENOMEM;
-    }
-
-    return sbus_conn_register_iface(conn, &monitor_methods.vtable,
-                                    MON_SRV_PATH, mini);
 }
 
 /*
@@ -2202,36 +2111,18 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
  * Unregister the client when it's connection is finished.
  * Shuts down, from the monitor point of view, the service that just finished.
  */
-static int monitor_service_shutdown(struct sbus_connection *conn, void *data)
+static void monitor_service_shutdown(struct mt_svc *svc)
 {
-    struct mt_ctx *ctx;
-    struct mt_svc *svc;
+    struct mt_ctx *ctx = svc->mt_ctx;
 
-    ctx = talloc_get_type(data, struct mt_ctx);
+    /* We must decrease the number of services when shutting down
+     * a {socket,dbus}-activated service. */
+    ctx->num_services--;
 
-    for (svc = ctx->svc_list; svc != NULL; svc = svc->next) {
-        if (svc->conn == conn) {
-            break;
-        }
-    }
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Unregistering service %s (%p)\n", svc->identity, svc);
 
-    if (svc != NULL) {
-        /* We must decrease the number of services when shutting down
-         * a {socket,dbus}-activated service. */
-        ctx->num_services--;
-
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Unregistering service %s (%p)\n", svc->identity, svc);
-
-        /* Before freeing the service, let's unset the sbus_connection
-         * destructor that triggered this call, otherwise we may end up
-         * with a double-free due to a cycling call */
-        talloc_set_destructor(svc->conn, NULL);
-
-        talloc_zfree(svc);
-    }
-
-    return 0;
+    talloc_zfree(svc);
 }
 
 static void service_startup_handler(struct tevent_context *ev,
