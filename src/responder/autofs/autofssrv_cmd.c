@@ -29,6 +29,7 @@
 #include "db/sysdb.h"
 #include "db/sysdb_autofs.h"
 #include "confdb/confdb.h"
+#include "sss_iface/sss_iface_async.h"
 
 static int autofs_cmd_send_error(struct autofs_cmd_ctx *cmdctx, int err)
 {
@@ -764,8 +765,6 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
     return ENOENT;
 }
 
-static void lookup_automntmap_cache_updated(uint16_t err_maj, uint32_t err_min,
-                                            const char *err_msg, void *ptr);
 static void autofs_dp_send_map_req_done(struct tevent_req *req);
 
 static errno_t
@@ -775,7 +774,7 @@ lookup_automntmap_update_cache(struct setautomntent_lookup_ctx *lookup_ctx)
     uint64_t cache_expire = 0;
     struct autofs_dom_ctx *dctx = lookup_ctx->dctx;
     struct tevent_req *req = NULL;
-    struct dp_callback_ctx *cb_ctx = NULL;
+    struct be_conn *be_conn;
 
     if (dctx->map != NULL) {
         if (strcmp(lookup_ctx->mapname, "auto.master") != 0) {
@@ -805,9 +804,19 @@ lookup_automntmap_update_cache(struct setautomntent_lookup_ctx *lookup_ctx)
     }
 #endif
 
-    req = sss_dp_get_autofs_send(lookup_ctx->cctx, lookup_ctx->rctx,
-                                 lookup_ctx->dctx->domain, true,
-                                 SSS_DP_AUTOFS, lookup_ctx->mapname);
+    ret = sss_dp_get_domain_conn(lookup_ctx->rctx, lookup_ctx->dctx->domain->name,
+                                 &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "BUG: The Data Provider connection for %s is not available!\n",
+              lookup_ctx->dctx->domain->name);
+        ret = EIO;
+        goto error;
+    }
+
+    req = sbus_call_dp_dp_autofsHandler_send(lookup_ctx->cctx, be_conn->conn,
+                                             be_conn->bus_name, SSS_BUS_PATH,
+                                             DP_FAST_REPLY, lookup_ctx->mapname);
     if (!req) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Out of memory sending data provider request\n");
@@ -815,18 +824,7 @@ lookup_automntmap_update_cache(struct setautomntent_lookup_ctx *lookup_ctx)
         goto error;
     }
 
-    cb_ctx = talloc_zero(lookup_ctx->dctx, struct dp_callback_ctx);
-    if(!cb_ctx) {
-        talloc_zfree(req);
-        ret = ENOMEM;
-        goto error;
-    }
-    cb_ctx->callback = lookup_automntmap_cache_updated;
-    cb_ctx->ptr = lookup_ctx;
-    cb_ctx->cctx = lookup_ctx->dctx->cmd_ctx->cctx;
-    cb_ctx->mem_ctx = lookup_ctx->dctx;
-
-    tevent_req_set_callback(req, autofs_dp_send_map_req_done, cb_ctx);
+    tevent_req_set_callback(req, autofs_dp_send_map_req_done, lookup_ctx);
 
     return EAGAIN;
 
@@ -843,36 +841,24 @@ error:
 
 static void autofs_dp_send_map_req_done(struct tevent_req *req)
 {
-    struct dp_callback_ctx *cb_ctx =
-            tevent_req_callback_data(req, struct dp_callback_ctx);
-    struct setautomntent_lookup_ctx *lookup_ctx =
-            talloc_get_type(cb_ctx->ptr, struct setautomntent_lookup_ctx);
-
+    struct setautomntent_lookup_ctx *lookup_ctx;
+    struct autofs_dom_ctx *dctx;
+    const char *err_msg;
+    uint16_t err_maj;
+    uint32_t err_min;
     errno_t ret;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
-    char *err_msg;
 
-    ret = sss_dp_get_autofs_recv(cb_ctx->mem_ctx, req,
-                                 &err_maj, &err_min,
-                                 &err_msg);
+    lookup_ctx = tevent_req_callback_data(req, struct setautomntent_lookup_ctx);
+    dctx = lookup_ctx->dctx;
+
+    ret = sbus_call_dp_dp_autofsHandler_recv(dctx, req, &err_maj,
+                                             &err_min, &err_msg);
     talloc_free(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Fatal error, killing connection!\n");
         talloc_free(lookup_ctx->cctx);
         return;
     }
-
-    cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
-}
-
-static void lookup_automntmap_cache_updated(uint16_t err_maj, uint32_t err_min,
-                                            const char *err_msg, void *ptr)
-{
-    struct setautomntent_lookup_ctx *lookup_ctx =
-            talloc_get_type(ptr, struct setautomntent_lookup_ctx);
-    struct autofs_dom_ctx *dctx = lookup_ctx->dctx;
-    errno_t ret;
 
     if (err_maj) {
         DEBUG(SSSDBG_CRIT_FAILURE,

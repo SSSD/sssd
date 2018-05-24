@@ -40,38 +40,22 @@
 #include "responder/common/negcache.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
-#include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
-#include "responder/common/responder_sbus.h"
 #include "providers/data_provider.h"
-#include "monitor/monitor_interfaces.h"
-#include "sbus/sbus_client.h"
 #include "util/util_sss_idmap.h"
+#include "sss_iface/sss_iface_async.h"
 
 #define DEFAULT_PWFIELD "*"
 #define DEFAULT_NSS_FD_LIMIT 8192
 
-static int nss_clear_memcache(struct sbus_request *dbus_req, void *data);
-static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *data);
-
-struct mon_cli_iface monitor_nss_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .clearMemcache = nss_clear_memcache,
-    .clearEnumCache = nss_clear_netgroup_hash_table,
-    .sysbusReconnect = NULL,
-};
-
-static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
+static errno_t
+nss_clear_memcache(TALLOC_CTX *mem_ctx,
+                   struct sbus_request *sbus_req,
+                   struct nss_ctx *nctx)
 {
-    errno_t ret;
     int memcache_timeout;
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
+    errno_t ret;
 
     ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
     if (ret != 0) {
@@ -79,7 +63,7 @@ static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
         if (ret == ENOENT) {
             DEBUG(SSSDBG_TRACE_FUNC,
                   "CLEAR_MC_FLAG not found. Nothing to do.\n");
-            goto done;
+            return ret;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unlink file: %s.\n",
                   strerror(ret));
@@ -89,7 +73,7 @@ static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
 
     /* CLEAR_MC_FLAG removed successfully. Clearing memory caches. */
 
-    ret = confdb_get_int(rctx->cdb,
+    ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
                          CONFDB_MEMCACHE_TIMEOUT,
                          300, &memcache_timeout);
@@ -128,23 +112,19 @@ static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
         return ret;
     }
 
-done:
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    return EOK;
 }
 
-static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *data)
+static errno_t
+nss_clear_netgroup_hash_table(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct nss_ctx *nss_ctx)
 {
-    struct resp_ctx *rctx;
-    struct nss_ctx *nss_ctx;
-
-    rctx = talloc_get_type(data, struct resp_ctx);
-    nss_ctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-
     DEBUG(SSSDBG_TRACE_FUNC, "Invalidating netgroup hash table\n");
 
     sss_ptr_hash_delete_all(nss_ctx->netgrent, false);
 
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    return EOK;
 }
 
 static int nss_get_config(struct nss_ctx *nctx,
@@ -225,33 +205,6 @@ done:
     return ret;
 }
 
-static void nss_dp_reconnect_init(struct sbus_connection *conn,
-                                  int status, void *pvt)
-{
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "NSS");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-              be_conn->domain->name);
-
-    /* FIXME: kill the frontend and let the monitor restart it? */
-    /* nss_shutdown(rctx); */
-}
-
 static int setup_memcaches(struct nss_ctx *nctx)
 {
     int ret;
@@ -308,6 +261,33 @@ static int setup_memcaches(struct nss_ctx *nctx)
     return EOK;
 }
 
+static errno_t
+nss_register_service_iface(struct nss_ctx *nss_ctx,
+                           struct resp_ctx *rctx)
+{
+    errno_t ret;
+
+    struct sbus_interface iface_svc = SBUS_INTERFACE(
+        sssd_service,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
+            SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx),
+            SBUS_SYNC(METHOD, sssd_service, clearEnumCache, nss_clear_netgroup_hash_table, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_service, clearMemcache, nss_clear_memcache, nss_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    ret = sbus_connection_add_path(rctx->mon_conn, SSS_BUS_PATH, &iface_svc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register service interface"
+              "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    return ret;
+}
+
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -316,7 +296,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct sss_cmd_table *nss_cmds;
     struct be_conn *iter;
     struct nss_ctx *nctx;
-    int ret, max_retries;
+    int ret;
     enum idmap_error_code err;
     int fd_limit;
 
@@ -326,11 +306,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            nss_cmds,
                            SSS_NSS_SOCKET_NAME, -1, NULL, -1,
                            CONFDB_NSS_CONF_ENTRY,
-                           NSS_SBUS_SERVICE_NAME,
-                           NSS_SBUS_SERVICE_VERSION,
-                           &monitor_nss_methods,
-                           "NSS",
-                           nss_get_sbus_interface(),
+                           SSS_BUS_NSS, NSS_SBUS_SERVICE_NAME,
                            nss_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -354,20 +330,11 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(nctx->rctx->cdb,
-                         CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES,
-                         3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set up automatic reconnection\n");
-        goto fail;
-    }
-
     for (iter = nctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            nss_dp_reconnect_init, iter);
+        ret = nss_register_backend_iface(iter->conn, nctx);
+        if (ret != EOK) {
+            goto fail;
+        }
     }
 
     err = sss_idmap_init(sss_idmap_talloc, nctx, sss_idmap_talloc_free,
@@ -406,6 +373,21 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, nctx->rctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
+        goto fail;
+    }
+
+    /* The responder is initialized. Now tell it to the monitor. */
+    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_NSS,
+                                   NSS_SBUS_SERVICE_NAME,
+                                   NSS_SBUS_SERVICE_VERSION, MT_SVC_SERVICE,
+                                   &rctx->last_request_time, &rctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto fail;
+    }
+
+    ret = nss_register_service_iface(nctx, rctx);
+    if (ret != EOK) {
         goto fail;
     }
 

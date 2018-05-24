@@ -35,26 +35,16 @@
 
 #include "util/util.h"
 #include "util/strtonum.h"
-#include "sbus/sssd_dbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "confdb/confdb.h"
 #include "responder/ifp/ifp_private.h"
 #include "responder/ifp/ifp_domains.h"
 #include "responder/ifp/ifp_components.h"
-#include "responder/common/responder_sbus.h"
+#include "sss_iface/sss_iface.h"
 
 #define DEFAULT_ALLOWED_UIDS "0"
 
 static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data);
-
-struct mon_cli_iface monitor_ifp_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .sysbusReconnect = ifp_sysbus_reconnect,
-};
 
 struct sss_cmd_table *get_ifp_cmds(void)
 {
@@ -64,30 +54,6 @@ struct sss_cmd_table *get_ifp_cmds(void)
     };
 
     return ifp_cmds;
-}
-
-static void ifp_dp_reconnect_init(struct sbus_connection *conn,
-                                  int status, void *pvt)
-{
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "InfoPipe");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-                                 be_conn->domain->name);
 }
 
 static errno_t
@@ -202,6 +168,32 @@ done:
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
+static errno_t
+ifp_register_service_iface(struct autofs_ctx *autofs_ctx,
+                           struct resp_ctx *rctx)
+{
+    errno_t ret;
+
+    struct sbus_interface iface_svc = SBUS_INTERFACE(
+        org_freedesktop_sssd_service,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, org_freedesktop_sssd_service, resInit, monitor_common_res_init, NULL),
+            SBUS_SYNC(METHOD, org_freedesktop_sssd_service, rotateLogs, responder_logrotate, rctx),
+            SBUS_SYNC(METHOD, org_freedesktop_sssd_service, sysbusReconnect, ifp_sysbus_reconnect, autofs_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    ret = sbus_connection_add_path(rctx->mon_conn, SSS_BUS_PATH, &iface_svc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register service interface"
+              "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    return ret;
+}
+
 int ifp_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -211,7 +203,6 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     struct ifp_ctx *ifp_ctx;
     struct be_conn *iter;
     int ret;
-    int max_retries;
     char *uid_str;
     char *attr_list_str;
     char *wildcard_limit_str;
@@ -221,11 +212,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                            ifp_cmds,
                            NULL, -1, NULL, -1,
                            CONFDB_IFP_CONF_ENTRY,
-                           SSS_IFP_SBUS_SERVICE_NAME,
-                           SSS_IFP_SBUS_SERVICE_VERSION,
-                           &monitor_ifp_methods,
-                           "InfoPipe",
-                           NULL,
+                           SSS_BUS_IFP, SSS_IFP_SBUS_SERVICE_NAME,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -284,17 +271,6 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(ifp_ctx->rctx->cdb,
-                         CONFDB_IFP_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES,
-                         3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set up automatic reconnection\n");
-        goto fail;
-    }
-
     /* A bit convoluted way until we have a confdb_get_uint32 */
     ret = confdb_get_string(ifp_ctx->rctx->cdb,
                             ifp_ctx->rctx,
@@ -316,11 +292,6 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
-    for (iter = ifp_ctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            ifp_dp_reconnect_init, iter);
-    }
-
     /* Connect to the D-BUS system bus and set up methods */
     ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
                       IFACE_IFP,
@@ -340,6 +311,22 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "schedule_get_domains_tasks failed.\n");
+        goto fail;
+    }
+
+    /* The responder is initialized. Now tell it to the monitor. */
+    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_IFP,
+                                   SSS_IFP_SBUS_SERVICE_NAME,
+                                   SSS_IFP_SBUS_SERVICE_VERSION,
+                                   MT_SVC_SERVICE,
+                                   &rctx->last_request_time, &rctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto fail;
+    }
+
+    ret = ifp_register_service_iface(ifp_ctx, rctx);
+    if (ret != EOK) {
         goto fail;
     }
 

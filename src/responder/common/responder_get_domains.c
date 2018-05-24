@@ -22,107 +22,121 @@
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
 #include "db/sysdb.h"
+#include "sss_iface/sss_iface_async.h"
 
 /* ========== Get subdomains for a domain ================= */
-static DBusMessage *sss_dp_get_domains_msg(void *pvt);
-
-struct sss_dp_domains_info {
-    struct sss_domain_info *dom;
-    const char *hint;
+struct get_subdomains_state {
+    uint16_t dp_error;
+    uint32_t error;
+    const char *error_message;
 };
 
-static struct tevent_req *
-get_subdomains_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
+static void get_subdomains_done(struct tevent_req *subreq);
+
+struct tevent_req *
+get_subdomains_send(TALLOC_CTX *mem_ctx,
+                    struct resp_ctx *rctx,
                     struct sss_domain_info *dom,
                     const char *hint)
 {
-    errno_t ret;
+    struct get_subdomains_state *state;
+    struct tevent_req *subreq;
     struct tevent_req *req;
-    struct sss_dp_req_state *state;
-    struct sss_dp_domains_info *info;
-    char *key;
+    struct be_conn *be_conn;
+    errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sss_dp_req_state);
+    req = tevent_req_create(mem_ctx, &state, struct get_subdomains_state);
     if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
     }
 
-    info = talloc_zero(state, struct sss_dp_domains_info);
-    if (!info) {
-        ret = ENOMEM;
-        goto fail;
+    if (NEED_CHECK_PROVIDER(dom->provider) == false) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Domain %s does not check DP\n",
+              dom->name);
+        state->dp_error = DP_ERR_OK;
+        state->error = EOK;
+        state->error_message = talloc_strdup(state, "Success");
+        if (state->error_message == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = EOK;
+        goto done;
     }
-    info->hint = hint;
-    info->dom = dom;
 
-    key = talloc_asprintf(state, "domains@%s", dom->name);
-    if (key == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    ret = sss_dp_issue_request(state, rctx, key, dom,
-                               sss_dp_get_domains_msg, info, req);
-    talloc_free(key);
+    ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "BUG: The Data Provider connection for %s is not available!\n",
+              dom->name);
         ret = EIO;
-        goto fail;
+        goto done;
     }
 
-    return req;
+    subreq = sbus_call_dp_dp_getDomains_send(state, be_conn->conn,
+                                             be_conn->bus_name,
+                                             SSS_BUS_PATH, hint);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, rctx->ev);
+    tevent_req_set_callback(subreq, get_subdomains_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, rctx->ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, rctx->ev);
+    }
+
     return req;
 }
 
-static DBusMessage *
-sss_dp_get_domains_msg(void *pvt)
+static void get_subdomains_done(struct tevent_req *subreq)
 {
-    struct sss_dp_domains_info *info;
-    DBusMessage *msg = NULL;
-    dbus_bool_t dbret;
+    struct get_subdomains_state *state;
+    struct tevent_req *req;
+    errno_t ret;
 
-    info = talloc_get_type(pvt, struct sss_dp_domains_info);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct get_subdomains_state);
 
-    msg = dbus_message_new_method_call(NULL,
-                                       DP_PATH,
-                                       IFACE_DP,
-                                       IFACE_DP_GETDOMAINS);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
-        return NULL;
+    ret = sbus_call_dp_dp_getDomains_recv(state, subreq, &state->dp_error,
+                                          &state->error, &state->error_message);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        state->dp_error = DP_ERR_FATAL;
+        state->error = ret;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Sending get domains request for [%s][%s]\n",
-           info->dom->name, info->hint);
-
-    /* Send the hint argument to provider as well. This will
-     * be useful for some cases of transitional trust where
-     * the server might not know all trusted domains
-     */
-    dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_STRING, &info->hint,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(SSSDBG_OP_FAILURE ,"Failed to build message\n");
-        dbus_message_unref(msg);
-        return NULL;
-    }
-
-    return msg;
+    tevent_req_done(req);
+    return;
 }
 
 static errno_t
-get_next_domain_recv(TALLOC_CTX *mem_ctx,
-                     struct tevent_req *req,
-                     dbus_uint16_t *dp_err,
-                     dbus_uint32_t *dp_ret,
-                     char **err_msg)
+get_subdomains_recv(TALLOC_CTX *mem_ctx,
+                    struct tevent_req *req,
+                    uint16_t *_dp_error,
+                    uint32_t *_error,
+                    const char **_error_message)
 {
-    return sss_dp_req_recv(mem_ctx, req, dp_err, dp_ret, err_msg);
+    struct get_subdomains_state *state;
+    state = tevent_req_data(req, struct get_subdomains_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_dp_error = state->dp_error;
+    *_error = state->error;
+    *_error_message = talloc_steal(mem_ctx, state->error_message);
+
+    return EOK;
 }
 
 /* ====== Iterate over all domains, searching for their subdomains  ======= */
@@ -252,11 +266,11 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sss_dp_get_domains_state *state = tevent_req_data(req,
                                                 struct sss_dp_get_domains_state);
-    dbus_uint16_t dp_err;
-    dbus_uint32_t dp_ret;
-    char *err_msg;
+    uint16_t dp_err;
+    uint32_t dp_ret;
+    const char *err_msg;
 
-    ret = get_next_domain_recv(req, subreq, &dp_err, &dp_ret, &err_msg);
+    ret = get_subdomains_recv(subreq, subreq, &dp_err, &dp_ret, &err_msg);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto fail;
@@ -644,81 +658,47 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 }
 
 /* ========== Get domain of an account ================= */
-struct sss_dp_get_account_domain_info {
-    struct sss_domain_info *dom;
-    enum sss_dp_acct_type type;
-    uint32_t opt_id;
+
+
+struct sss_dp_get_account_domain_state {
+    uint16_t dp_error;
+    uint32_t error;
+    const char *domain_name;
 };
 
-static DBusMessage *sss_dp_get_account_domain_msg(void *pvt);
+static void sss_dp_get_account_domain_done(struct tevent_req *subreq);
 
-struct tevent_req *sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
-                                                  struct resp_ctx *rctx,
-                                                  struct sss_domain_info *dom,
-                                                  enum sss_dp_acct_type type,
-                                                  uint32_t opt_id)
+struct tevent_req *
+sss_dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
+                               struct resp_ctx *rctx,
+                               struct sss_domain_info *dom,
+                               enum sss_dp_acct_type type,
+                               uint32_t opt_id)
 {
+    struct sss_dp_get_account_domain_state *state;
+    struct tevent_req *subreq;
     struct tevent_req *req;
-    struct sss_dp_get_account_domain_info *info;
-    struct sss_dp_req_state *state;
-    char *key;
+    struct be_conn *be_conn;
+    uint32_t entry_type;
+    char *filter;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sss_dp_req_state);
-    if (!req) {
+    req = tevent_req_create(mem_ctx, &state, struct sss_dp_get_account_domain_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
     }
 
-    info = talloc_zero(state, struct sss_dp_get_account_domain_info);
-    if (info == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
-    info->type = type;
-    info->opt_id = opt_id;
-    info->dom = dom;
-
-    key = talloc_asprintf(state, "%d: %"SPRIuid"@%s", type, opt_id, dom->name);
-    if (key == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
-
-    ret = sss_dp_issue_request(state, rctx, key, dom,
-                               sss_dp_get_account_domain_msg,
-                               info, req);
-    talloc_free(key);
+    ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Could not issue DP request [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto immediately;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "BUG: The Data Provider connection for %s is not available!\n",
+              dom->name);
+        ret = EIO;
+        goto done;
     }
 
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-    tevent_req_post(req, rctx->ev);
-    return req;
-}
-
-static DBusMessage *
-sss_dp_get_account_domain_msg(void *pvt)
-{
-    DBusMessage *msg;
-    dbus_bool_t dbret;
-    struct sss_dp_get_account_domain_info *info;
-    uint32_t entry_type;
-    char *filter;
-
-    info = talloc_get_type(pvt, struct sss_dp_get_account_domain_info);
-
-    switch (info->type) {
+    switch (type) {
     case SSS_DP_USER:
         entry_type = BE_REQ_USER;
         break;
@@ -730,70 +710,87 @@ sss_dp_get_account_domain_msg(void *pvt)
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE,
-              "Unsupported lookup type %X for this request\n", info->type);
+              "Unsupported lookup type %X for this request\n", type);
         return NULL;
     }
 
-    filter = talloc_asprintf(info, "idnumber=%u", info->opt_id);
-    if (!filter) {
+    filter = talloc_asprintf(state, "idnumber=%u", opt_id);
+    if (filter == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
-        return NULL;
+        ret = ENOMEM;
+        goto done;
     }
 
-    msg = dbus_message_new_method_call(NULL,
-                                       DP_PATH,
-                                       IFACE_DP,
-                                       IFACE_DP_GETACCOUNTDOMAIN);
-    if (msg == NULL) {
-        talloc_free(filter);
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
-        return NULL;
+    subreq = sbus_call_dp_dp_getAccountDomain_send(state, be_conn->conn,
+                                                   be_conn->bus_name,
+                                                   SSS_BUS_PATH, entry_type,
+                                                   filter);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
     }
 
-    /* create the message */
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Creating request for [%s][%#x][%s][%s:-]\n",
-          info->dom->name, entry_type, be_req2str(entry_type), filter);
+    tevent_req_set_callback(subreq, sss_dp_get_account_domain_done, req);
 
-    dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_UINT32, &entry_type,
-                                     DBUS_TYPE_STRING, &filter,
-                                     DBUS_TYPE_INVALID);
-    talloc_free(filter);
-    if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
-        dbus_message_unref(msg);
-        return NULL;
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, rctx->ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, rctx->ev);
     }
 
-    return msg;
+    return req;
+}
+
+static void sss_dp_get_account_domain_done(struct tevent_req *subreq)
+{
+    struct sss_dp_get_account_domain_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sss_dp_get_account_domain_state);
+
+    ret = sbus_call_dp_dp_getAccountDomain_recv(state, subreq, &state->dp_error,
+                                                &state->error,
+                                                &state->domain_name);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not get account info [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->dp_error != DP_ERR_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Data Provider Error: %u, %u\n",
+              (unsigned int)state->dp_error, (unsigned int)state->error);
+        tevent_req_error(req, state->error ? state->error : EIO);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
 }
 
 errno_t sss_dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
                                        char **_domain)
 {
-    errno_t ret;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
-    char *msg;
+    struct sss_dp_get_account_domain_state *state;
+    state = tevent_req_data(req, struct sss_dp_get_account_domain_state);
 
-    ret = sss_dp_req_recv(mem_ctx, req, &err_maj, &err_min, &msg);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Could not get account info [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_domain = talloc_strdup(mem_ctx, state->domain_name);
+    if (*_domain == NULL) {
+        return ENOMEM;
     }
 
-    if (err_maj != DP_ERR_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Data Provider Error: %u, %u\n",
-              (unsigned int)err_maj, (unsigned int)err_min);
-        talloc_free(msg);
-        return err_min ? err_min : EIO;
-    }
-
-    *_domain = msg;
     return EOK;
 }

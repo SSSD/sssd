@@ -22,6 +22,7 @@
 #define _CACHE_REQ_PLUGIN_H_
 
 #include "responder/common/cache_req/cache_req_private.h"
+#include "sss_iface/sss_iface_async.h"
 
 enum cache_object_status {
     CACHE_OBJECT_VALID,

@@ -37,14 +37,11 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
-#include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
-#include "monitor/monitor_interfaces.h"
-#include "sbus/sbus_client.h"
 #include "responder/pam/pamsrv.h"
 #include "responder/common/negcache.h"
-#include "responder/common/responder_sbus.h"
+#include "sss_iface/sss_iface_async.h"
 
 #define DEFAULT_PAM_FD_LIMIT 8192
 #define ALL_UIDS_ALLOWED "all"
@@ -57,43 +54,6 @@
 #else
 #define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/sssd/pki/sssd_auth_ca_db.pem"
 #endif
-
-struct mon_cli_iface monitor_pam_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = NULL,
-    .sysbusReconnect = NULL,
-};
-
-static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
-{
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "PAM");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Handle failure */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-              be_conn->domain->name);
-
-    /* FIXME: kill the frontend and let the monitor restart it? */
-    /* pam_shutdown(rctx); */
-}
 
 static errno_t get_trusted_uids(struct pam_ctx *pctx)
 {
@@ -204,9 +164,8 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 {
     struct resp_ctx *rctx;
     struct sss_cmd_table *pam_cmds;
-    struct be_conn *iter;
     struct pam_ctx *pctx;
-    int ret, max_retries;
+    int ret;
     int id_timeout;
     int fd_limit;
 
@@ -216,10 +175,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            SSS_PAM_SOCKET_NAME, pipe_fd,
                            SSS_PAM_PRIV_SOCKET_NAME, priv_pipe_fd,
                            CONFDB_PAM_CONF_ENTRY,
-                           SSS_PAM_SBUS_SERVICE_NAME,
-                           SSS_PAM_SBUS_SERVICE_VERSION,
-                           &monitor_pam_methods,
-                           "PAM", NULL,
+                           SSS_BUS_PAM, SSS_PAM_SBUS_SERVICE_NAME,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -255,23 +211,6 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE, "get_app_services failed: %d:[%s].\n",
               ret, sss_strerror(ret));
         goto done;
-    }
-
-    /* Enable automatic reconnection to the Data Provider */
-
-    /* FIXME: "retries" is too generic, either get it from a global config
-     * or specify these retries are about the sbus connections to DP */
-    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set up automatic reconnection\n");
-        goto done;
-    }
-
-    for (iter = pctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            pam_dp_reconnect_init, iter);
     }
 
     /* Set up the PAM identity timeout */
@@ -352,6 +291,22 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                   "Failed to create pre-authentication indicator file, "
                   "Smartcard authentication might not work as expected.\n");
         }
+    }
+
+    /* The responder is initialized. Now tell it to the monitor. */
+    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_PAM,
+                                   SSS_PAM_SBUS_SERVICE_NAME,
+                                   SSS_PAM_SBUS_SERVICE_VERSION,
+                                   MT_SVC_SERVICE,
+                                   &rctx->last_request_time, &rctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto done;
+    }
+
+    ret = sss_resp_register_service_iface(rctx);
+    if (ret != EOK) {
+        goto done;
     }
 
     ret = EOK;

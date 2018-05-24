@@ -1235,17 +1235,6 @@ done:
     return ret;
 }
 
-static int pam_auth_req_destructor(struct pam_auth_req *preq)
-{
-    if (preq && preq->dpreq_spy) {
-        /* If there is still a request pending, tell the spy
-         * the client is going away
-         */
-        preq->dpreq_spy->preq = NULL;
-    }
-    return 0;
-}
-
 static bool is_uid_trusted(struct cli_creds *creds,
                            size_t trusted_uids_count,
                            uid_t *trusted_uids)
@@ -1359,7 +1348,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     if (!preq) {
         return ENOMEM;
     }
-    talloc_set_destructor(preq, pam_auth_req_destructor);
     preq->cctx = cctx;
     preq->cert_auth_local = false;
 
@@ -2132,7 +2120,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         ret = LOCAL_pam_handler(preq);
     } else {
         preq->callback = pam_reply;
-        ret = pam_dp_send_req(preq, SSS_CLI_SOCKET_TIMEOUT/2);
+        ret = pam_dp_send_req(preq);
         DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
     }
 

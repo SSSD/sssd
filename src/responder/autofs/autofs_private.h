@@ -85,23 +85,4 @@ void autofs_map_hash_delete_cb(hash_entry_t *item,
 
 errno_t autofs_orphan_maps(struct autofs_ctx *actx);
 
-enum sss_dp_autofs_type {
-    SSS_DP_AUTOFS
-};
-
-struct tevent_req *
-sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
-                       struct resp_ctx *rctx,
-                       struct sss_domain_info *dom,
-                       bool fast_reply,
-                       enum sss_dp_autofs_type type,
-                       const char *name);
-
-errno_t
-sss_dp_get_autofs_recv(TALLOC_CTX *mem_ctx,
-                       struct tevent_req *req,
-                       dbus_uint16_t *dp_err,
-                       dbus_uint32_t *dp_ret,
-                       char **err_msg);
-
 #endif /* _AUTOFSSRV_PRIVATE_H_ */
