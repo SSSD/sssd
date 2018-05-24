@@ -159,6 +159,7 @@ static errno_t ad_init_options(TALLOC_CTX *mem_ctx,
     ret = ad_failover_init(ad_options, be_ctx, ad_servers, ad_backup_servers,
                            ad_realm, AD_SERVICE_NAME, AD_GC_SERVICE_NAME,
                            dp_opt_get_string(ad_options->basic, AD_DOMAIN),
+                           false, /* will be set in ad_get_auth_options() */
                            &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init AD failover service: "

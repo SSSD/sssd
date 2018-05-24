@@ -144,6 +144,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                  const char *ad_service,
                  const char *ad_gc_service,
                  const char *ad_domain,
+                 bool use_kdcinfo,
                  struct ad_service **_service);
 
 errno_t

@@ -249,6 +249,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     const char *hostname;
     const char *keytab;
     char *subdom_conf_path;
+    bool use_kdcinfo = false;
 
     realm = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_KRB5_REALM);
     hostname = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_HOSTNAME);
@@ -296,9 +297,19 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
     backup_servers = dp_opt_get_string(ad_options->basic, AD_BACKUP_SERVER);
 
-    ret = ad_failover_init(ad_options, be_ctx, servers, backup_servers, realm,
-                           service_name, gc_service_name,
-                           subdom->name, &ad_options->service);
+    if (id_ctx->ad_options->auth_ctx != NULL
+            && id_ctx->ad_options->auth_ctx->opts != NULL) {
+        use_kdcinfo = dp_opt_get_bool(id_ctx->ad_options->auth_ctx->opts,
+                                      KRB5_USE_KDCINFO);
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Init failover for [%s][%s] with use_kdcinfo [%s].\n",
+          subdom->name, subdom->realm, use_kdcinfo ? "true" : "false");
+
+    ret = ad_failover_init(ad_options, be_ctx, servers, backup_servers,
+                           subdom->realm, service_name, gc_service_name,
+                           subdom->name, use_kdcinfo, &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD failover\n");
         talloc_free(ad_options);
