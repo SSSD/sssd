@@ -575,7 +575,6 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_utils.c \
     src/responder/common/data_provider/rdp_message.c \
     src/responder/common/data_provider/rdp_client.c \
-    src/monitor/monitor_iface_generated.c \
     src/providers/data_provider_req.c \
     src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
@@ -690,8 +689,6 @@ dist_noinst_HEADERS = \
     src/util/sss_iobuf.h \
     src/util/tev_curl.h \
     src/monitor/monitor.h \
-    src/monitor/monitor_interfaces.h \
-    src/monitor/monitor_iface_generated.h \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/common/responder_sbus.h \
@@ -1234,7 +1231,6 @@ libsss_sbus_old_la_SOURCES = \
     src/sbus/sssd_dbus_signals.c \
     src/sbus/sssd_dbus_common_signals.c \
     src/sbus/sssd_dbus_utils.c \
-    src/monitor/monitor_sbus.c \
     src/providers/data_provider/dp_sbus.c \
     $(NULL)
 libsss_sbus_old_la_LIBADD = \
@@ -1588,7 +1584,6 @@ sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
-    src/monitor/monitor_iface_generated.c \
     src/util/nscd.c \
     src/util/inotify.c \
     $(NULL)
@@ -1599,7 +1594,7 @@ sssd_LDADD = \
     $(KEYUTILS_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 
 sssd_nss_SOURCES = \
@@ -1831,7 +1826,6 @@ sssd_be_SOURCES = \
     src/providers/be_dyndns.c \
     src/providers/be_ptask.c \
     src/providers/be_refresh.c \
-    src/monitor/monitor_iface_generated.c \
     src/providers/data_provider/dp.c \
     src/providers/data_provider/dp_modules.c \
     src/providers/data_provider/dp_targets.c \
