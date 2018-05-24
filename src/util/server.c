@@ -32,7 +32,6 @@
 #include <ldb.h>
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "monitor/monitor_interfaces.h"
 
 #ifdef HAVE_PRCTL
 #include <sys/prctl.h>
