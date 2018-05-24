@@ -727,6 +727,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                  const char *ad_service,
                  const char *ad_gc_service,
                  const char *ad_domain,
+                 bool use_kdcinfo,
                  struct ad_service **_service)
 {
     errno_t ret;
@@ -761,6 +762,14 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         ret = ENOMEM;
         goto done;
     }
+
+    /* Set flag that controls whether we want to write the
+     * kdcinfo files at all
+     */
+    service->krb5_service->write_kdcinfo = use_kdcinfo;
+    DEBUG(SSSDBG_CONF_SETTINGS, "write_kdcinfo for realm %s set to %s\n",
+                       krb5_realm,
+                       service->krb5_service->write_kdcinfo ? "true" : "false");
 
     ret = be_fo_add_service(bectx, ad_service, ad_user_data_cmp);
     if (ret != EOK) {
