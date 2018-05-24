@@ -288,6 +288,7 @@ if HAVE_CMOCKA
         krb5_common_test \
         test_iobuf \
         sss_certmap_test \
+        test_sssd_krb5_locator_plugin \
         $(NULL)
 
 
@@ -3516,6 +3517,25 @@ sss_certmap_test_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libsss_certmap.la \
+    $(NULL)
+
+test_sssd_krb5_locator_plugin_SOURCES = \
+    src/tests/cmocka/test_sssd_krb5_locator_plugin.c \
+    src/krb5_plugin/sssd_krb5_locator_plugin.c \
+    $(NULL)
+test_sssd_krb5_locator_plugin_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(KRB5_CFLAGS) \
+    -DTEST_PUBCONF_PATH=\"$(abs_builddir)/src/tests/cmocka/pubconf\" \
+    $(NULL)
+test_sssd_krb5_locator_plugin_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(KRB5_LIBS) \
+    libsss_test_common.la \
     $(NULL)
 
 if BUILD_KCM
