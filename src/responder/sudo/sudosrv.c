@@ -22,48 +22,11 @@
 
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "monitor/monitor_interfaces.h"
 #include "responder/common/responder.h"
-#include "responder/common/responder_sbus.h"
 #include "responder/sudo/sudosrv_private.h"
 #include "providers/data_provider.h"
 #include "responder/common/negcache.h"
-
-struct mon_cli_iface monitor_sudo_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = NULL,
-    .sysbusReconnect = NULL,
-};
-
-static void sudo_dp_reconnect_init(struct sbus_connection *conn,
-                                   int status,
-                                   void *pvt)
-{
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "SUDO");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-                                 be_conn->domain->name);
-}
+#include "sss_iface/sss_iface_async.h"
 
 int sudo_process_init(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
@@ -73,9 +36,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     struct resp_ctx *rctx;
     struct sss_cmd_table *sudo_cmds;
     struct sudo_ctx *sudo_ctx;
-    struct be_conn *iter;
     int ret;
-    int max_retries;
 
     sudo_cmds = get_sudo_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
@@ -83,11 +44,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                            SSS_SUDO_SOCKET_NAME, pipe_fd,   /* custom permissions on socket */
                            NULL, -1,                   /* No private socket */
                            CONFDB_SUDO_CONF_ENTRY,
-                           SSS_SUDO_SBUS_SERVICE_NAME,
-                           SSS_SUDO_SBUS_SERVICE_VERSION,
-                           &monitor_sudo_methods,
-                           "SUDO",
-                           NULL,
+                           SSS_BUS_SUDO, SSS_SUDO_SBUS_SERVICE_NAME,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -110,22 +67,6 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE,
               "failed to set ncache for sudo's filter_users\n");
         goto fail;
-    }
-
-    /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(sudo_ctx->rctx->cdb,
-                         CONFDB_SUDO_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES,
-                         3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set up automatic reconnection\n");
-        goto fail;
-    }
-
-    for (iter = sudo_ctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            sudo_dp_reconnect_init, iter);
     }
 
     /* Get sudo_timed option */
@@ -164,6 +105,22 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
+        goto fail;
+    }
+
+    /* The responder is initialized. Now tell it to the monitor. */
+    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_SUDO,
+                                   SSS_SUDO_SBUS_SERVICE_NAME,
+                                   SSS_SUDO_SBUS_SERVICE_VERSION,
+                                   MT_SVC_SERVICE,
+                                   &rctx->last_request_time, &rctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto fail;
+    }
+
+    ret = sss_resp_register_service_iface(rctx);
+    if (ret != EOK) {
         goto fail;
     }
 

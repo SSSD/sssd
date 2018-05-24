@@ -24,23 +24,10 @@
 
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "monitor/monitor_interfaces.h"
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
 #include "responder/autofs/autofs_private.h"
-
-static int autofs_clean_hash_table(struct sbus_request *dbus_req, void *data);
-
-struct mon_cli_iface monitor_autofs_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = autofs_clean_hash_table,
-    .sysbusReconnect = NULL,
-};
+#include "sss_iface/sss_iface_async.h"
 
 static errno_t
 autofs_get_config(struct autofs_ctx *actx,
@@ -54,45 +41,45 @@ autofs_get_config(struct autofs_ctx *actx,
     return ret;
 }
 
-static void
-autofs_dp_reconnect_init(struct sbus_connection *conn,
-                         int status, void *pvt)
+static errno_t
+autofs_clean_hash_table(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct autofs_ctx *actx)
 {
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "autofs");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-                                 be_conn->domain->name);
-}
-
-static int autofs_clean_hash_table(struct sbus_request *dbus_req, void *data)
-{
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct autofs_ctx *actx =
-            talloc_get_type(rctx->pvt_ctx, struct autofs_ctx);
     errno_t ret;
 
     ret = autofs_orphan_maps(actx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not invalidate maps\n");
-        return ret;
     }
 
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    return ret;
+}
+
+static errno_t
+autofs_register_service_iface(struct autofs_ctx *autofs_ctx,
+                              struct resp_ctx *rctx)
+{
+    errno_t ret;
+
+    struct sbus_interface iface_svc = SBUS_INTERFACE(
+        sssd_service,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
+            SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx),
+            SBUS_SYNC(METHOD, sssd_service, clearEnumCache, autofs_clean_hash_table, autofs_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    ret = sbus_connection_add_path(rctx->mon_conn, SSS_BUS_PATH, &iface_svc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register service interface"
+              "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    return ret;
 }
 
 static int
@@ -103,21 +90,15 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     struct resp_ctx *rctx;
     struct sss_cmd_table *autofs_cmds;
     struct autofs_ctx *autofs_ctx;
-    struct be_conn *iter;
     int ret;
     int hret;
-    int max_retries;
 
     autofs_cmds = get_autofs_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            autofs_cmds,
                            SSS_AUTOFS_SOCKET_NAME, -1, NULL, -1,
                            CONFDB_AUTOFS_CONF_ENTRY,
-                           SSS_AUTOFS_SBUS_SERVICE_NAME,
-                           SSS_AUTOFS_SBUS_SERVICE_VERSION,
-                           &monitor_autofs_methods,
-                           "autofs",
-                           NULL,
+                           SSS_BUS_AUTOFS, SSS_AUTOFS_SBUS_SERVICE_NAME,
                            autofs_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -141,22 +122,6 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     autofs_ctx->rctx = rctx;
     autofs_ctx->rctx->pvt_ctx = autofs_ctx;
 
-    /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(autofs_ctx->rctx->cdb,
-                         CONFDB_AUTOFS_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES,
-                         3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set up automatic reconnection\n");
-        goto fail;
-    }
-
-    for (iter = autofs_ctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            autofs_dp_reconnect_init, iter);
-    }
-
     /* Create the lookup table for setautomntent results */
     hret = sss_hash_create_ex(autofs_ctx, 10, &autofs_ctx->maps, 0, 0, 0, 0,
                               autofs_map_hash_delete_cb, NULL);
@@ -170,6 +135,22 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
+        goto fail;
+    }
+
+    /* The responder is initialized. Now tell it to the monitor. */
+    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_AUTOFS,
+                                   SSS_AUTOFS_SBUS_SERVICE_NAME,
+                                   SSS_AUTOFS_SBUS_SERVICE_VERSION,
+                                   MT_SVC_SERVICE,
+                                   &rctx->last_request_time, &rctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto fail;
+    }
+
+    ret = autofs_register_service_iface(autofs_ctx, rctx);
+    if (ret != EOK) {
         goto fail;
     }
 

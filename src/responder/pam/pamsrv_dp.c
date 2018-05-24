@@ -19,146 +19,88 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sys/time.h>
-#include <time.h>
-
 #include <talloc.h>
+#include <tevent.h>
 #include <security/pam_modules.h>
 
 #include "util/util.h"
-#include "responder/common/responder_packet.h"
-#include "providers/data_provider.h"
-#include "sbus/sbus_client.h"
+#include "util/sss_pam_data.h"
 #include "responder/pam/pamsrv.h"
+#include "sss_iface/sss_iface_async.h"
 
-static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
+static void
+pam_dp_send_req_done(struct tevent_req *subreq);
+
+errno_t
+pam_dp_send_req(struct pam_auth_req *preq)
 {
-    DBusError dbus_error;
-    DBusMessage* msg;
-    int ret;
-    int type;
-    struct pam_auth_req *preq = NULL;
-    struct pam_auth_dp_req *pdp_req;
-
-    pdp_req = talloc_get_type(ptr, struct pam_auth_dp_req);
-    preq = pdp_req->preq;
-    talloc_free(pdp_req);
-
-    dbus_error_init(&dbus_error);
-    msg = dbus_pending_call_steal_reply(pending);
-
-    /* Check if the client still exists. If not, simply free all the resources
-     * and quit */
-    if (preq == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Client already disconnected\n");
-        dbus_pending_call_unref(pending);
-        dbus_message_unref(msg);
-        return;
-    }
-
-    /* Sanity-check of message validity */
-    if (msg == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Severe error. A reply callback was called but no reply was"
-                  "received and no timeout occurred\n");
-        preq->pd->pam_status = PAM_SYSTEM_ERR;
-        goto done;
-    }
-
-    type = dbus_message_get_type(msg);
-    switch (type) {
-        case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-            ret = dp_unpack_pam_response(msg, preq->pd, &dbus_error);
-            if (!ret) {
-                DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse reply.\n");
-                preq->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            DEBUG(SSSDBG_FUNC_DATA,
-                  "received: [%d (%s)][%s]\n", preq->pd->pam_status,
-                  pam_strerror(NULL, preq->pd->pam_status),
-                  preq->pd->domain);
-             break;
-        case DBUS_MESSAGE_TYPE_ERROR:
-            DEBUG(SSSDBG_FATAL_FAILURE, "Reply error.\n");
-            preq->pd->pam_status = PAM_SYSTEM_ERR;
-            break;
-        default:
-            DEBUG(SSSDBG_FATAL_FAILURE, "Default... what now?.\n");
-            preq->pd->pam_status = PAM_SYSTEM_ERR;
-    }
-
-
-done:
-    dbus_pending_call_unref(pending);
-    dbus_message_unref(msg);
-    preq->callback(preq);
-}
-
-static int pdp_req_destructor(struct pam_auth_dp_req *pdp_req)
-{
-    if (pdp_req && pdp_req->preq) {
-        /* If there is still a client waiting, reset the
-         * spy */
-        pdp_req->preq->dpreq_spy = NULL;
-    }
-    return 0;
-}
-
-int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
-{
-    struct pam_data *pd = preq->pd;
+    struct tevent_req *subreq;
     struct be_conn *be_conn;
-    DBusMessage *msg;
-    dbus_bool_t ret;
-    int res;
-    struct pam_auth_dp_req *pdp_req;
+    errno_t ret;
 
-    /* double check dp_ctx has actually been initialized.
-     * in some pathological cases it may happen that nss starts up before
-     * dp connection code is actually able to establish a connection.
-     */
-    res = sss_dp_get_domain_conn(preq->cctx->rctx,
-                                 preq->domain->conn_name, &be_conn);
-    if (res != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "The Data Provider connection for %s is not available!"
-               " This maybe a bug, it shouldn't happen!\n",
+    ret = sss_dp_get_domain_conn(preq->cctx->rctx, preq->domain->conn_name,
+                                 &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "The Data Provider connection for %s is not "
+              "available! This maybe a bug, it shouldn't happen!\n",
                preq->domain->conn_name);
         return EIO;
     }
 
-    msg = dbus_message_new_method_call(NULL,
-                                       DP_PATH,
-                                       IFACE_DP,
-                                       IFACE_DP_PAMHANDLER);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
-        return ENOMEM;
-    }
-
-
     DEBUG(SSSDBG_CONF_SETTINGS, "Sending request with the following data:\n");
-    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
+    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, preq->pd);
 
-    ret = dp_pack_pam_request(msg, pd);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,"Failed to build message\n");
-        return EIO;
-    }
-
-    pdp_req = talloc(preq->cctx->rctx, struct pam_auth_dp_req);
-    if (pdp_req == NULL) {
+    subreq = sbus_call_dp_dp_pamHandler_send(preq, be_conn->conn,
+                 be_conn->bus_name, SSS_BUS_PATH, preq->pd);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         return ENOMEM;
     }
-    pdp_req->preq = preq;
-    preq->dpreq_spy = pdp_req;
-    talloc_set_destructor(pdp_req, pdp_req_destructor);
 
-    res = sbus_conn_send(be_conn->conn, msg,
-                         timeout, pam_dp_process_reply,
-                         pdp_req, NULL);
-    dbus_message_unref(msg);
-    return res;
+    tevent_req_set_callback(subreq, pam_dp_send_req_done, preq);
+
+    return EOK;
 }
 
+static void
+pam_dp_send_req_done(struct tevent_req *subreq)
+{
+    struct pam_data *pam_response;
+    struct response_data *resp;
+    struct pam_auth_req *preq;
+    errno_t ret;
+
+    preq = tevent_req_callback_data(subreq, struct pam_auth_req);
+
+    ret = sbus_call_dp_dp_pamHandler_recv(preq, subreq, &pam_response);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "PAM handler failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        preq->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    preq->pd->pam_status = pam_response->pam_status;
+    preq->pd->account_locked = pam_response->account_locked;
+
+    DEBUG(SSSDBG_FUNC_DATA, "received: [%d (%s)][%s]\n",
+          pam_response->pam_status,
+          pam_strerror(NULL, pam_response->pam_status),
+          preq->pd->domain);
+
+    for (resp = pam_response->resp_list; resp != NULL; resp = resp->next) {
+        talloc_steal(preq->pd, resp);
+
+        if (resp->next == NULL) {
+            resp->next = preq->pd->resp_list;
+            preq->pd->resp_list = pam_response->resp_list;
+            break;
+        }
+    }
+
+    talloc_zfree(pam_response);
+
+done:
+    preq->callback(preq);
+}

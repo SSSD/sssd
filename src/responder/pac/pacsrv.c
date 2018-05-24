@@ -36,56 +36,15 @@
 #include "responder/pac/pacsrv.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
-#include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
-#include "monitor/monitor_interfaces.h"
-#include "sbus/sbus_client.h"
 #include "util/util_sss_idmap.h"
+#include "sss_iface/sss_iface_async.h"
 
 #define SSS_PAC_PIPE_NAME "pac"
 #define DEFAULT_PAC_FD_LIMIT 8192
 #define DEFAULT_ALLOWED_UIDS "0"
-
-struct mon_cli_iface monitor_pac_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = NULL,
-    .sysbusReconnect = NULL,
-};
-
-/* TODO: check if this can be made generic for all responders */
-static void pac_dp_reconnect_init(struct sbus_connection *conn,
-                                  int status, void *pvt)
-{
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "PAC");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-              be_conn->domain->name);
-
-    /* FIXME: kill the frontend and let the monitor restart it? */
-    /* nss_shutdown(rctx); */
-}
 
 int pac_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
@@ -93,9 +52,8 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
 {
     struct resp_ctx *rctx;
     struct sss_cmd_table *pac_cmds;
-    struct be_conn *iter;
     struct pac_ctx *pac_ctx;
-    int ret, max_retries;
+    int ret;
     enum idmap_error_code err;
     int fd_limit;
     char *uid_str;
@@ -106,10 +64,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                            pac_cmds,
                            SSS_PAC_SOCKET_NAME, -1, NULL, -1,
                            CONFDB_PAC_CONF_ENTRY,
-                           PAC_SBUS_SERVICE_NAME,
-                           PAC_SBUS_SERVICE_VERSION,
-                           &monitor_pac_methods,
-                           "PAC", NULL,
+                           SSS_BUS_PAC, PAC_SBUS_SERVICE_NAME,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -127,7 +82,6 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     pac_ctx->rctx = rctx;
     pac_ctx->rctx->pvt_ctx = pac_ctx;
 
-
     ret = confdb_get_string(pac_ctx->rctx->cdb, pac_ctx->rctx,
                             CONFDB_PAC_CONF_ENTRY, CONFDB_SERVICE_ALLOWED_UIDS,
                             DEFAULT_ALLOWED_UIDS, &uid_str);
@@ -143,21 +97,6 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set allowed UIDs.\n");
         goto fail;
-    }
-
-    /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(pac_ctx->rctx->cdb,
-                         CONFDB_PAC_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES,
-                         3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set up automatic reconnection\n");
-        goto fail;
-    }
-
-    for (iter = pac_ctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            pac_dp_reconnect_init, iter);
     }
 
     err = sss_idmap_init(sss_idmap_talloc, pac_ctx, sss_idmap_talloc_free,
@@ -193,6 +132,22 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
+        goto fail;
+    }
+
+    /* The responder is initialized. Now tell it to the monitor. */
+    ret = sss_monitor_service_init(rctx, rctx->ev, SSS_BUS_PAC,
+                                   PAC_SBUS_SERVICE_NAME,
+                                   PAC_SBUS_SERVICE_VERSION,
+                                   MT_SVC_SERVICE,
+                                   &rctx->last_request_time, &rctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
+        goto fail;
+    }
+
+    ret = sss_resp_register_service_iface(rctx);
+    if (ret != EOK) {
         goto fail;
     }
 
