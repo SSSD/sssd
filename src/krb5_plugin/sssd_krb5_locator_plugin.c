@@ -38,6 +38,22 @@
 
 #include "providers/krb5/krb5_common.h"
 
+/* The following override of KDCINFO_TMPL and KPASSWDINFO_TMPL is not very
+ * elegant but since they are defined in krb5_common.h with the help of
+ * PUBCONF_PATH from config.h and PUBCONF_PATH can by set by a configure
+ * options I didn't found another way to change the path for a unit test. */
+#ifdef TEST_PUBCONF_PATH
+#ifdef KDCINFO_TMPL
+#undef KDCINFO_TMPL
+#endif
+#define KDCINFO_TMPL TEST_PUBCONF_PATH"/kdcinfo.%s"
+
+#ifdef KPASSWDINFO_TMPL
+#undef KPASSWDINFO_TMPL
+#endif
+#define KPASSWDINFO_TMPL TEST_PUBCONF_PATH"/kpasswdinfo.%s"
+#endif /* TEST_PUBCONF_PATH */
+
 #define DEFAULT_KERBEROS_PORT 88
 #define DEFAULT_KADMIN_PORT 749
 #define DEFAULT_KPASSWD_PORT 464
