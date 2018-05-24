@@ -18,13 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "sbus/sssd_dbus.h"
-#include "responder/nss/nss_iface.h"
 #include "responder/nss/nss_private.h"
+#include "responder/nss/nss_iface.h"
+#include "sss_iface/sss_iface_async.h"
 
-void nss_update_initgr_memcache(struct nss_ctx *nctx,
-                                const char *fq_name, const char *domain,
-                                int gnum, uint32_t *groups)
+static void
+nss_update_initgr_memcache(struct nss_ctx *nctx,
+                           const char *fq_name, const char *domain,
+                           int gnum, uint32_t *groups)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sss_domain_info *dom;
@@ -146,89 +147,96 @@ done:
     talloc_free(tmp_ctx);
 }
 
-int nss_memorycache_invalidate_users(struct sbus_request *req, void *data)
+static errno_t
+nss_memorycache_invalidate_users(TALLOC_CTX *mem_ctx,
+                                 struct sbus_request *sbus_req,
+                                 struct nss_ctx *nctx)
 {
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-
     DEBUG(SSSDBG_TRACE_LIBS, "Invalidating all users in memory cache\n");
     sss_mmap_cache_reset(nctx->pwd_mc_ctx);
 
-    return iface_nss_memorycache_InvalidateAllUsers_finish(req);
+    return EOK;
 }
 
-int nss_memorycache_invalidate_groups(struct sbus_request *req, void *data)
+static errno_t
+nss_memorycache_invalidate_groups(TALLOC_CTX *mem_ctx,
+                                  struct sbus_request *sbus_req,
+                                  struct nss_ctx *nctx)
 {
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-
     DEBUG(SSSDBG_TRACE_LIBS, "Invalidating all groups in memory cache\n");
     sss_mmap_cache_reset(nctx->grp_mc_ctx);
 
-    return iface_nss_memorycache_InvalidateAllGroups_finish(req);
+    return EOK;
 }
 
-int nss_memorycache_invalidate_initgroups(struct sbus_request *req, void *data)
+static errno_t
+nss_memorycache_invalidate_initgroups(TALLOC_CTX *mem_ctx,
+                                      struct sbus_request *sbus_req,
+                                      struct nss_ctx *nctx)
 {
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-
     DEBUG(SSSDBG_TRACE_LIBS,
           "Invalidating all initgroup records in memory cache\n");
     sss_mmap_cache_reset(nctx->initgr_mc_ctx);
 
-    return iface_nss_memorycache_InvalidateAllInitgroups_finish(req);
+    return EOK;
 }
 
-
-int nss_memorycache_update_initgroups(struct sbus_request *sbus_req,
-                                      void *data,
-                                      const char *user,
-                                      const char *domain,
-                                      uint32_t *groups,
-                                      int num_groups)
+static errno_t
+nss_memorycache_update_initgroups(TALLOC_CTX *mem_ctx,
+                                  struct sbus_request *sbus_req,
+                                  struct nss_ctx *nctx,
+                                  const char *user,
+                                  const char *domain,
+                                  uint32_t *groups)
 {
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-
     DEBUG(SSSDBG_TRACE_LIBS, "Updating initgroups memory cache of [%s@%s]\n",
           user, domain);
 
-    nss_update_initgr_memcache(nctx, user, domain, num_groups, groups);
+    nss_update_initgr_memcache(nctx, user, domain,
+                               talloc_array_length(groups), groups);
 
-    return iface_nss_memorycache_UpdateInitgroups_finish(sbus_req);
+    return EOK;
 }
 
-int nss_memorycache_invalidate_group_by_id(struct sbus_request *sbus_req,
-                                           void *data,
-                                           gid_t gid)
+static errno_t
+nss_memorycache_invalidate_group_by_id(TALLOC_CTX *mem_ctx,
+                                      struct sbus_request *sbus_req,
+                                      struct nss_ctx *nctx,
+                                      uint32_t gid)
 {
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          "Invalidating group %"PRIu32" from memory cache\n", gid);
+          "Invalidating group %u from memory cache\n", gid);
 
     sss_mmap_cache_gr_invalidate_gid(nctx->grp_mc_ctx, gid);
 
-    return iface_nss_memorycache_InvalidateGroupById_finish(sbus_req);
+    return EOK;
 }
 
-struct iface_nss_memorycache iface_nss_memorycache = {
-    { &iface_nss_memorycache_meta, 0 },
-    .UpdateInitgroups = nss_memorycache_update_initgroups,
-    .InvalidateAllUsers = nss_memorycache_invalidate_users,
-    .InvalidateAllGroups = nss_memorycache_invalidate_groups,
-    .InvalidateAllInitgroups = nss_memorycache_invalidate_initgroups,
-    .InvalidateGroupById = nss_memorycache_invalidate_group_by_id,
-};
-
-static struct sbus_iface_map iface_map[] = {
-    { NSS_MEMORYCACHE_PATH, &iface_nss_memorycache.vtable },
-    { NULL, NULL }
-};
-
-struct sbus_iface_map *nss_get_sbus_interface(void)
+errno_t
+nss_register_backend_iface(struct sbus_connection *conn,
+                           struct nss_ctx *nss_ctx)
 {
-    return iface_map;
+    errno_t ret;
+
+    struct sbus_interface iface = SBUS_INTERFACE(
+        sssd_nss_MemoryCache,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, UpdateInitgroups, nss_memorycache_update_initgroups, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllUsers, nss_memorycache_invalidate_users, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllGroups, nss_memorycache_invalidate_groups, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateAllInitgroups, nss_memorycache_invalidate_initgroups, nss_ctx),
+            SBUS_SYNC(METHOD, sssd_nss_MemoryCache, InvalidateGroupById, nss_memorycache_invalidate_group_by_id, nss_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    ret = sbus_connection_add_path(conn, SSS_BUS_PATH, &iface);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register service interface"
+              "[%d]: %s\n", ret, sss_strerror(ret));
+    }
+
+    return ret;
 }

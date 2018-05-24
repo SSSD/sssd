@@ -36,12 +36,6 @@ mock_rctx(TALLOC_CTX *mem_ctx,
     rctx = talloc_zero(mem_ctx, struct resp_ctx);
     if (!rctx) return NULL;
 
-    ret = sss_hash_create(rctx, 30, &rctx->dp_request_table);
-    if (ret != EOK) {
-        talloc_free(rctx);
-        return NULL;
-    }
-
     ret = sss_ncache_init(rctx, 10, 0, &rctx->ncache);
     if (ret != EOK) {
         talloc_free(rctx);
