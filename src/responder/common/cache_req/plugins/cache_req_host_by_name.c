@@ -65,15 +65,46 @@ cache_req_host_by_name_lookup(TALLOC_CTX *mem_ctx,
 #endif /* BUILD_SSH */
 }
 
-struct tevent_req *
+static struct tevent_req *
 cache_req_host_by_name_dp_send(TALLOC_CTX *mem_ctx,
                                struct cache_req *cr,
                                struct cache_req_data *data,
                                struct sss_domain_info *domain,
                                struct ldb_result *result)
 {
-    return sss_dp_get_ssh_host_send(mem_ctx, cr->rctx, domain, false,
-                                    data->name.name, data->alias);
+    struct be_conn *be_conn;
+    errno_t ret;
+
+    ret = sss_dp_get_domain_conn(cr->rctx, domain->conn_name, &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "BUG: The Data Provider connection for %s is not available!\n",
+              domain->name);
+        return NULL;
+    }
+
+    return sbus_call_dp_dp_hostHandler_send(mem_ctx, be_conn->conn,
+                                            be_conn->bus_name, SSS_BUS_PATH,
+                                            0, data->name.name, data->alias);
+}
+
+static bool
+cache_req_host_by_name_dp_recv(struct tevent_req *subreq,
+                               struct cache_req *cr)
+{
+    const char *err_msg;
+    dbus_uint16_t err_maj;
+    dbus_uint32_t err_min;
+    errno_t ret;
+    bool bret;
+
+    /* Use subreq as memory context so err_msg is freed with it. */
+    ret = sbus_call_dp_dp_hostHandler_recv(subreq, subreq, &err_maj,
+                                           &err_min, &err_msg);
+    bret = cache_req_common_process_dp_reply(cr, ret, err_maj,
+                                             err_min, err_msg);
+
+    return bret;
 }
 
 const struct cache_req_plugin cache_req_host_by_name = {
@@ -99,7 +130,7 @@ const struct cache_req_plugin cache_req_host_by_name = {
     .ncache_filter_fn = NULL,
     .lookup_fn = cache_req_host_by_name_lookup,
     .dp_send_fn = cache_req_host_by_name_dp_send,
-    .dp_recv_fn = cache_req_common_dp_recv,
+    .dp_recv_fn = cache_req_host_by_name_dp_recv,
     .dp_get_domain_check_fn = NULL,
     .dp_get_domain_send_fn = NULL,
     .dp_get_domain_recv_fn = NULL,

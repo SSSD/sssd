@@ -557,10 +557,7 @@ SSSD_CACHE_REQ_OBJ = \
 	$(NULL)
 
 SSSD_RESPONDER_IFACE_OBJ = \
-    src/responder/common/iface/responder_iface.c \
-    src/responder/common/iface/responder_domain.c \
-    src/responder/common/iface/responder_ncache.c \
-    src/responder/common/iface/responder_iface_generated.c \
+    src/responder/common/responder_iface.c \
     $(NULL)
 
 SSSD_RESPONDER_OBJ = \
@@ -569,12 +566,9 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_cmd.c \
     src/responder/common/responder_common.c \
     src/responder/common/responder_dp.c \
-    src/responder/common/responder_dp_ssh.c \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_get_domains.c \
     src/responder/common/responder_utils.c \
-    src/responder/common/data_provider/rdp_message.c \
-    src/responder/common/data_provider/rdp_client.c \
     src/providers/data_provider_req.c \
     src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
@@ -692,18 +686,14 @@ dist_noinst_HEADERS = \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/common/responder_sbus.h \
-    src/responder/common/iface/responder_iface.h \
-    src/responder/common/iface/responder_iface_generated.h \
     src/responder/common/cache_req/cache_req.h \
     src/responder/common/cache_req/cache_req_domain.h \
     src/responder/common/cache_req/cache_req_plugin.h \
     src/responder/common/cache_req/cache_req_private.h \
-    src/responder/common/data_provider/rdp.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
     src/responder/nss/nss_private.h \
     src/responder/nss/nss_protocol.h \
-    src/responder/nss/nss_iface_generated.h \
     src/responder/nss/nss_iface.h \
     src/responder/nss/nsssrv_mmap_cache.h \
     src/responder/pac/pacsrv.h \
@@ -712,7 +702,6 @@ dist_noinst_HEADERS = \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
     src/responder/ssh/ssh_private.h \
-    src/responder/ifp/ifp_iface_generated.h \
     src/responder/ifp/ifp_iface.h \
     src/responder/ifp/ifp_private.h \
     src/responder/ifp/ifp_domains.h \
@@ -1607,7 +1596,6 @@ sssd_nss_SOURCES = \
     src/responder/nss/nss_protocol_svcent.c \
     src/responder/nss/nss_protocol_sid.c \
     src/responder/nss/nss_utils.c \
-    src/responder/nss/nss_iface_generated.c \
     src/responder/nss/nss_iface.c \
     src/responder/nss/nsssrv_mmap_cache.c \
     $(SSSD_RESPONDER_OBJ)
@@ -1618,7 +1606,7 @@ sssd_nss_LDADD = \
     libsss_cert.la \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 
 sssd_pam_SOURCES = \
@@ -1637,7 +1625,7 @@ sssd_pam_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_certmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 
 if BUILD_SUDO
@@ -1652,7 +1640,7 @@ sssd_sudo_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 endif
 
@@ -1660,13 +1648,12 @@ if BUILD_AUTOFS
 sssd_autofs_SOURCES = \
     src/responder/autofs/autofssrv.c \
     src/responder/autofs/autofssrv_cmd.c \
-    src/responder/autofs/autofssrv_dp.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_autofs_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 endif
 
@@ -1684,7 +1671,7 @@ sssd_ssh_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_cert.la \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 endif
 
@@ -1703,7 +1690,7 @@ sssd_pac_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_idmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 
 if BUILD_IFP
@@ -1776,7 +1763,7 @@ sssd_secrets_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(CURL_LIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 endif
 
@@ -1811,7 +1798,7 @@ sssd_kcm_LDADD = \
     $(UUID_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
     $(NULL)
 endif
 
