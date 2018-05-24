@@ -249,6 +249,8 @@ def InitializeDataTypes():
     DataType.Create("aO", "char **",       DBusType = "ao", RequireTalloc = True)
 
     # Custom types
+    DataType.Create("pam_data",     "struct pam_data *", DBusType = "issssssuayuayiu", RequireTalloc = True)
+    DataType.Create("pam_response", "struct pam_data *", DBusType = "uua(uay)",        RequireTalloc = True)
 
 def main():
     InitializeDataTypes()
