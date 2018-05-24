@@ -1496,13 +1496,6 @@ endif
 # Yes, the goal here is that the generated files end up in $(srcdir)
 # not $(builddir). Always use $(srcdir) here.
 CODEGEN_XML = \
-    $(srcdir)/src/tests/sbus_codegen_tests.xml \
-    $(srcdir)/src/monitor/monitor_iface.xml \
-    $(srcdir)/src/providers/data_provider/dp_iface.xml \
-    $(srcdir)/src/providers/proxy/proxy_iface.xml \
-    $(srcdir)/src/responder/ifp/ifp_iface.xml \
-    $(srcdir)/src/responder/nss/nss_iface.xml \
-    $(srcdir)/src/responder/common/iface/responder_iface.xml \
     $(NULL)
 
 SBUS_CODEGEN = src/sbus/sbus_codegen
