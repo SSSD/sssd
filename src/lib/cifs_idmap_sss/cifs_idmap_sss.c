@@ -304,7 +304,18 @@ int cifs_idmap_ids_to_sids(void *handle, const struct cifs_uxid *cuxid,
     }
 
     for (i = 0; i < num; ++i) {
-        err = sss_nss_getsidbyid((uint32_t)cuxid[i].id.uid, &sid, &id_type);
+        switch (cuxid[i].type) {
+        case CIFS_UXID_TYPE_UID:
+            err = sss_nss_getsidbyuid((uint32_t)cuxid[i].id.uid,
+                                      &sid, &id_type);
+            break;
+        case CIFS_UXID_TYPE_GID:
+            err = sss_nss_getsidbygid((uint32_t)cuxid[i].id.gid,
+                                      &sid, &id_type);
+            break;
+        default:
+            err = sss_nss_getsidbyid((uint32_t)cuxid[i].id.uid, &sid, &id_type);
+        }
         if (err != 0)  {
             ctx_set_error(ctx, strerror(err));
             csid[i].revision = 0;
