@@ -34,6 +34,8 @@
 enum lookup_type {
     SIDBYNAME,
     SIDBYID,
+    SIDBYUID,
+    SIDBYGID,
     NAMEBYSID,
     IDBYSID,
     NAMEBYCERT,
@@ -155,7 +157,8 @@ static int do_getnamebysid(PyObject *py_result, PyObject *py_sid)
     return ret;
 }
 
-static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
+static int do_getsidbyid(enum lookup_type type, PyObject *py_result,
+                         PyObject *py_id)
 {
     long id;
     const char *id_str;
@@ -187,7 +190,19 @@ static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
         return EINVAL;
     }
 
-    ret = sss_nss_getsidbyid((uint32_t) id, &sid, &id_type);
+    switch (type) {
+    case SIDBYID:
+        ret = sss_nss_getsidbyid((uint32_t) id, &sid, &id_type);
+        break;
+    case SIDBYUID:
+        ret = sss_nss_getsidbyuid((uint32_t) id, &sid, &id_type);
+        break;
+    case SIDBYGID:
+        ret = sss_nss_getsidbygid((uint32_t) id, &sid, &id_type);
+        break;
+    default:
+        return EINVAL;
+    }
     if (ret == 0) {
         ret = add_dict(py_result, py_id, PyUnicode_FromString(SSS_SID_KEY),
                        PyUnicode_FromString(sid), PYNUMBER_FROMLONG(id_type));
@@ -302,7 +317,9 @@ static int do_lookup(enum lookup_type type, PyObject *py_result,
         return do_getnamebysid(py_result, py_inp);
         break;
     case SIDBYID:
-        return do_getsidbyid(py_result, py_inp);
+    case SIDBYUID:
+    case SIDBYGID:
+        return do_getsidbyid(type, py_result, py_inp);
         break;
     case IDBYSID:
         return do_getidbysid(py_result, py_inp);
@@ -334,7 +351,9 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
 
     if (!(PyList_Check(obj) || PyTuple_Check(obj) ||
           PyBytes_Check(obj) || PyUnicode_Check(obj) ||
-          (type == SIDBYID && (PYNUMBER_CHECK(obj))))) {
+          ((type == SIDBYID
+                || type == SIDBYUID
+                || type == SIDBYGID) && (PYNUMBER_CHECK(obj))))) {
         PyErr_Format(PyExc_ValueError,
                      "Only string, long or list or tuples of them " \
                      "are accepted\n");
@@ -355,7 +374,9 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
             py_value = PySequence_GetItem(obj, i);
             if ((py_value != NULL) &&
                 (PyBytes_Check(py_value) || PyUnicode_Check(py_value) ||
-                 (type == SIDBYID && PYNUMBER_CHECK(py_value)))) {
+                 ((type == SIDBYID
+                        || type == SIDBYUID
+                        || type == SIDBYGID) && PYNUMBER_CHECK(py_value)))) {
                 ret = do_lookup(type, py_result, py_value);
                 if (ret != 0) {
                     /* Skip this name */
@@ -416,6 +437,36 @@ accessed with the key constants SID_KEY and TYPE_KEY, respectively."
 static PyObject * py_getsidbyid(PyObject *module, PyObject *args)
 {
     return check_args(SIDBYID, args);
+}
+
+PyDoc_STRVAR(getsidbyuid_doc,
+"getsidbyuid(uid or list/tuple of uid) -> dict(uid => dict(results))\n\
+\n\
+Returns a dictionary with a dictionary of results for each given POSIX UID.\n\
+The result dictionary contain the SID and the type of the object which can be\n\
+accessed with the key constants SID_KEY and TYPE_KEY, respectively. Since \n\
+given ID is assumed to be a user ID is is not expected that group objects are\n\
+returned."
+);
+
+static PyObject * py_getsidbyuid(PyObject *module, PyObject *args)
+{
+    return check_args(SIDBYUID, args);
+}
+
+PyDoc_STRVAR(getsidbygid_doc,
+"getsidbygid(gid or list/tuple of gid) -> dict(gid => dict(results))\n\
+\n\
+Returns a dictionary with a dictionary of results for each given POSIX GID.\n\
+The result dictionary contain the SID and the type of the object which can be\n\
+accessed with the key constants SID_KEY and TYPE_KEY, respectively. Since \n\
+given ID is assumed to be a group ID is is not expected that user objects are\n\
+returned."
+);
+
+static PyObject * py_getsidbygid(PyObject *module, PyObject *args)
+{
+    return check_args(SIDBYGID, args);
 }
 
 PyDoc_STRVAR(getnamebysid_doc,
@@ -484,6 +535,10 @@ static PyMethodDef methods[] = {
       METH_VARARGS, getsidbyname_doc },
     { sss_py_const_p(char, "getsidbyid"), (PyCFunction) py_getsidbyid,
       METH_VARARGS, getsidbyid_doc },
+    { sss_py_const_p(char, "getsidbyuid"), (PyCFunction) py_getsidbyuid,
+      METH_VARARGS, getsidbyuid_doc },
+    { sss_py_const_p(char, "getsidbygid"), (PyCFunction) py_getsidbygid,
+      METH_VARARGS, getsidbygid_doc },
     { sss_py_const_p(char, "getnamebysid"), (PyCFunction) py_getnamebysid,
       METH_VARARGS, getnamebysid_doc },
     { sss_py_const_p(char, "getidbysid"), (PyCFunction) py_getidbysid,

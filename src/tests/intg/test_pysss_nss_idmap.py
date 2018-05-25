@@ -215,6 +215,13 @@ def test_user_operations(ldap_conn, simple_ad):
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_USER
     assert output[pysss_nss_idmap.SID_KEY] == user_sid
 
+    output = pysss_nss_idmap.getsidbyuid(user_id)[user_id]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_USER
+    assert output[pysss_nss_idmap.SID_KEY] == user_sid
+
+    output = pysss_nss_idmap.getsidbygid(user_id)
+    assert len(output) == 0
+
     output = pysss_nss_idmap.getidbysid(user_sid)[user_sid]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_USER
     assert output[pysss_nss_idmap.ID_KEY] == user_id
@@ -236,6 +243,13 @@ def test_group_operations(ldap_conn, simple_ad):
     output = pysss_nss_idmap.getsidbyid(group_id)[group_id]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
     assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbygid(group_id)[group_id]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
+    assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbyuid(group_id)
+    assert len(output) == 0
 
     output = pysss_nss_idmap.getidbysid(group_sid)[group_sid]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
@@ -259,6 +273,13 @@ def test_case_insensitive(ldap_conn, simple_ad):
     output = pysss_nss_idmap.getsidbyid(group_id)[group_id]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
     assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbygid(group_id)[group_id]
+    assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
+    assert output[pysss_nss_idmap.SID_KEY] == group_sid
+
+    output = pysss_nss_idmap.getsidbyuid(group_id)
+    assert len(output) == 0
 
     output = pysss_nss_idmap.getidbysid(group_sid)[group_sid]
     assert output[pysss_nss_idmap.TYPE_KEY] == pysss_nss_idmap.ID_GROUP
