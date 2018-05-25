@@ -41,6 +41,7 @@
 #include "db/sysdb.h"
 #include "sss_client/nss_compat.h"
 #include <dhash.h>
+#include "sss_iface/sss_iface_async.h"
 
 #define PROXY_CHILD_PATH "/org/freedesktop/sssd/proxychild"
 
@@ -187,6 +188,8 @@ errno_t enum_services(struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom);
 
-int proxy_client_init(struct sbus_connection *conn, void *data);
+errno_t
+proxy_client_init(struct sbus_connection *conn,
+                  struct proxy_auth_ctx *auth_ctx);
 
 #endif /* __PROXY_H__ */
