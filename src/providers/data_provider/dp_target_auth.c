@@ -24,10 +24,10 @@
 #include <security/pam_modules.h>
 
 #include "sbus/sbus_request.h"
-#include "providers/data_provider/dp_pam_data.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
+#include "util/sss_pam_data.h"
 #include "util/util.h"
 
 static void choose_target(struct data_provider *provider,
