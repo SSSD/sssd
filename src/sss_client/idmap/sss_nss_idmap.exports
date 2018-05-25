@@ -48,3 +48,12 @@ SSS_NSS_IDMAP_0.4.0 {
         sss_nss_getnamebycert_timeout;
         sss_nss_getlistbycert_timeout;
 } SSS_NSS_IDMAP_0.3.0;
+
+SSS_NSS_IDMAP_0.5.0 {
+    # public functions
+    global:
+        sss_nss_getsidbyuid;
+        sss_nss_getsidbyuid_timeout;
+        sss_nss_getsidbygid;
+        sss_nss_getsidbygid_timeout;
+} SSS_NSS_IDMAP_0.4.0;

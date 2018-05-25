@@ -1134,6 +1134,22 @@ static errno_t nss_cmd_getsidbyid(struct cli_ctx *cli_ctx)
                         SSS_MC_NONE, nss_protocol_fill_sid);
 }
 
+static errno_t nss_cmd_getsidbyuid(struct cli_ctx *cli_ctx)
+{
+    const char *attrs[] = { SYSDB_SID_STR, NULL };
+
+    return nss_getby_id(cli_ctx, false, CACHE_REQ_USER_BY_ID, attrs,
+                        SSS_MC_NONE, nss_protocol_fill_sid);
+}
+
+static errno_t nss_cmd_getsidbygid(struct cli_ctx *cli_ctx)
+{
+    const char *attrs[] = { SYSDB_SID_STR, NULL };
+
+    return nss_getby_id(cli_ctx, false, CACHE_REQ_GROUP_BY_ID, attrs,
+                        SSS_MC_NONE, nss_protocol_fill_sid);
+}
+
 static errno_t nss_cmd_getnamebysid(struct cli_ctx *cli_ctx)
 {
     return nss_getby_sid(cli_ctx, CACHE_REQ_OBJECT_BY_SID,
@@ -1225,6 +1241,8 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_ENDSERVENT, nss_cmd_endservent },
         { SSS_NSS_GETSIDBYNAME, nss_cmd_getsidbyname },
         { SSS_NSS_GETSIDBYID, nss_cmd_getsidbyid },
+        { SSS_NSS_GETSIDBYUID, nss_cmd_getsidbyuid },
+        { SSS_NSS_GETSIDBYGID, nss_cmd_getsidbygid },
         { SSS_NSS_GETNAMEBYSID, nss_cmd_getnamebysid },
         { SSS_NSS_GETIDBYSID, nss_cmd_getidbysid },
         { SSS_NSS_GETORIGBYNAME, nss_cmd_getorigbyname },

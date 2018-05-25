@@ -79,6 +79,32 @@ int sss_nss_getsidbyname(const char *fq_name, char **sid,
 int sss_nss_getsidbyid(uint32_t id, char **sid, enum sss_id_type *type);
 
 /**
+ * @brief Find SID by a POSIX UID
+ *
+ * @param[in] uid      POSIX UID
+ * @param[out] sid     String representation of the SID of the requested user,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the given ID
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname
+ */
+int sss_nss_getsidbyuid(uint32_t uid, char **sid, enum sss_id_type *type);
+
+/**
+ * @brief Find SID by a POSIX GID
+ *
+ * @param[in] gid      POSIX GID
+ * @param[out] sid     String representation of the SID of the requested group,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the given ID
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname
+ */
+int sss_nss_getsidbygid(uint32_t id, char **sid, enum sss_id_type *type);
+
+/**
  * @brief Return the fully qualified name for the given SID
  *
  * @param[in] sid      String representation of the SID
@@ -340,6 +366,36 @@ int sss_nss_getsidbyname_timeout(const char *fq_name, unsigned int timeout,
  */
 int sss_nss_getsidbyid_timeout(uint32_t id, unsigned int timeout,
                                char **sid, enum sss_id_type *type);
+/**
+ * @brief Find SID by a POSIX UID with timeout
+ *
+ * @param[in] uid      POSIX UID
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] sid     String representation of the SID of the requested user,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the given ID
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getsidbyuid_timeout(uint32_t uid, unsigned int timeout,
+                                char **sid, enum sss_id_type *type);
+
+/**
+ * @brief Find SID by a POSIX GID with timeout
+ *
+ * @param[in] gid      POSIX GID
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] sid     String representation of the SID of the requested group,
+ *                     must be freed by the caller
+ * @param[out] type    Type of the object related to the given ID
+ *
+ * @return
+ *  - see #sss_nss_getsidbyname_timeout
+ */
+int sss_nss_getsidbygid_timeout(uint32_t gid, unsigned int timeout,
+                                char **sid, enum sss_id_type *type);
+
 
 /**
  * @brief Return the fully qualified name for the given SID with timeout

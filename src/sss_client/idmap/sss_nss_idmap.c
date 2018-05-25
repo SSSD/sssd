@@ -246,6 +246,8 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
 
         break;
     case SSS_NSS_GETSIDBYID:
+    case SSS_NSS_GETSIDBYUID:
+    case SSS_NSS_GETSIDBYGID:
         rd.len = sizeof(uint32_t);
         rd.data = &inp.id;
 
@@ -292,6 +294,8 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd,
 
     switch(cmd) {
     case SSS_NSS_GETSIDBYID:
+    case SSS_NSS_GETSIDBYUID:
+    case SSS_NSS_GETSIDBYGID:
     case SSS_NSS_GETSIDBYNAME:
     case SSS_NSS_GETNAMEBYSID:
     case SSS_NSS_GETNAMEBYCERT:
@@ -412,6 +416,60 @@ int sss_nss_getsidbyid_timeout(uint32_t id, unsigned int timeout,
 int sss_nss_getsidbyid(uint32_t id, char **sid, enum sss_id_type *type)
 {
     return sss_nss_getsidbyid_timeout(id, NO_TIMEOUT, sid, type);
+}
+
+int sss_nss_getsidbyuid_timeout(uint32_t uid, unsigned int timeout,
+                                char **sid, enum sss_id_type *type)
+{
+    int ret;
+    union input inp;
+    struct output out;
+
+    if (sid == NULL) {
+        return EINVAL;
+    }
+
+    inp.id = uid;
+
+    ret = sss_nss_getyyybyxxx(inp, SSS_NSS_GETSIDBYUID, timeout, &out);
+    if (ret == EOK) {
+        *sid = out.d.str;
+        *type = out.type;
+    }
+
+    return ret;
+}
+
+int sss_nss_getsidbyuid(uint32_t uid, char **sid, enum sss_id_type *type)
+{
+    return sss_nss_getsidbyuid_timeout(uid, NO_TIMEOUT, sid, type);
+}
+
+int sss_nss_getsidbygid_timeout(uint32_t gid, unsigned int timeout,
+                                char **sid, enum sss_id_type *type)
+{
+    int ret;
+    union input inp;
+    struct output out;
+
+    if (sid == NULL) {
+        return EINVAL;
+    }
+
+    inp.id = gid;
+
+    ret = sss_nss_getyyybyxxx(inp, SSS_NSS_GETSIDBYGID, timeout, &out);
+    if (ret == EOK) {
+        *sid = out.d.str;
+        *type = out.type;
+    }
+
+    return ret;
+}
+
+int sss_nss_getsidbygid(uint32_t gid, char **sid, enum sss_id_type *type)
+{
+    return sss_nss_getsidbygid_timeout(gid, NO_TIMEOUT, sid, type);
 }
 
 int sss_nss_getnamebysid_timeout(const char *sid, unsigned int timeout,
