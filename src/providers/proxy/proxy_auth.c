@@ -25,7 +25,7 @@
 #include <signal.h>
 
 #include "providers/proxy/proxy.h"
-#include "sss_iface/sss_iface.h"
+#include "sss_iface/sss_iface_async.h"
 
 struct pc_init_ctx;
 
@@ -547,7 +547,7 @@ static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
     DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
 
     subreq = sbus_call_proxy_auth_PAM_send(state, state->conn, sbus_cliname,
-                                           SSS_BACKEND_PATH, pd);
+                                           SSS_BUS_PATH, pd);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

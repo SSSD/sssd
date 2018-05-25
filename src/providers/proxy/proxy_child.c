@@ -42,7 +42,7 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "providers/proxy/proxy.h"
-#include "sss_iface/sss_iface.h"
+#include "sss_iface/sss_iface_async.h"
 
 #include "providers/backend.h"
 
@@ -349,16 +349,16 @@ proxy_cli_init(struct pc_ctx *ctx)
     }
 
     struct sbus_interface iface = SBUS_INTERFACE(
-        org_freedesktop_sssd_ProxyChild_Auth,
+        sssd_ProxyChild_Auth,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, org_freedesktop_sssd_ProxyChild_Auth, PAM, pc_pam_handler, ctx)
+            SBUS_SYNC(METHOD, sssd_ProxyChild_Auth, PAM, pc_pam_handler, ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
     struct sbus_path paths[] = {
-        {SSS_BACKEND_PATH, &iface},
+        {SSS_BUS_PATH, &iface},
         {NULL, NULL}
     };
 
@@ -398,7 +398,7 @@ proxy_cli_init(struct pc_ctx *ctx)
           ctx->id);
 
     subreq = sbus_call_proxy_client_Register_send(ctx, ctx->conn, sbus_busname,
-                                                  SSS_BACKEND_PATH, ctx->id);
+                                                  SSS_BUS_PATH, ctx->id);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
         ret = ENOMEM;

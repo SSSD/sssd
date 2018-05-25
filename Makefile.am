@@ -832,7 +832,6 @@ dist_noinst_HEADERS = \
     src/providers/ad/ad_domain_info.h \
     src/providers/ad/ad_subdomains.h \
     src/providers/proxy/proxy.h \
-    src/providers/proxy/proxy_iface_generated.h \
     src/providers/files/files_private.h \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \
@@ -4263,7 +4262,6 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_netgroup.c \
     src/providers/proxy/proxy_services.c \
     src/providers/proxy/proxy_auth.c \
-    src/providers/proxy/proxy_iface_generated.c \
     $(NULL)
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
@@ -4276,6 +4274,7 @@ libsss_proxy_la_LIBADD = \
     $(DHASH_LIBS) \
     $(DBUS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
     $(NULL)
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
@@ -4589,7 +4588,6 @@ gpo_child_LDADD = \
 
 proxy_child_SOURCES = \
     src/providers/proxy/proxy_child.c \
-    src/providers/proxy/proxy_iface_generated.c \
     $(NULL)
 proxy_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4598,7 +4596,7 @@ proxy_child_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la
+    libsss_iface.la
 
 p11_child_SOURCES = \
     src/p11_child/p11_child_common.c \
