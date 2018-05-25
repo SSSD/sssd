@@ -63,7 +63,7 @@ wbcErr wbcUidToSid(uid_t uid, struct wbcDomainSid *sid)
     enum sss_id_type type;
     wbcErr wbc_status;
 
-    ret = sss_nss_getsidbyid(uid, &str_sid, &type);
+    ret = sss_nss_getsidbyuid(uid, &str_sid, &type);
     if (ret != 0) {
         return WBC_ERR_UNKNOWN_FAILURE;
     }
@@ -127,7 +127,7 @@ wbcErr wbcGidToSid(gid_t gid, struct wbcDomainSid *sid)
     enum sss_id_type type;
     wbcErr wbc_status;
 
-    ret = sss_nss_getsidbyid(gid, &str_sid, &type);
+    ret = sss_nss_getsidbygid(gid, &str_sid, &type);
     if (ret != 0) {
         return WBC_ERR_UNKNOWN_FAILURE;
     }
