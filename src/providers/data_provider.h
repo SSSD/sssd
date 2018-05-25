@@ -41,8 +41,8 @@
 #include "confdb/confdb.h"
 #include "sss_client/sss_cli.h"
 #include "util/authtok.h"
+#include "util/sss_pam_data.h"
 #include "providers/data_provider_req.h"
-#include "providers/data_provider/dp_pam_data.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_PIPE "private/sbus-dp"
