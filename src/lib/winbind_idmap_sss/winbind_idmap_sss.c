@@ -85,7 +85,16 @@ static NTSTATUS idmap_sss_unixids_to_sids(struct idmap_domain *dom,
     }
 
     for (c = 0; map[c]; c++) {
-        ret = sss_nss_getsidbyid(map[c]->xid.id, &sid_str, &id_type);
+        switch (map[c]->xid.type) {
+        case ID_TYPE_UID:
+            ret = sss_nss_getsidbyuid(map[c]->xid.id, &sid_str, &id_type);
+            break;
+        case ID_TYPE_GID:
+            ret = sss_nss_getsidbygid(map[c]->xid.id, &sid_str, &id_type);
+            break;
+        default:
+            ret = sss_nss_getsidbyid(map[c]->xid.id, &sid_str, &id_type);
+        }
         if (ret != 0) {
             if (ret == ENOENT) {
                 map[c]->status = ID_UNMAPPED;
