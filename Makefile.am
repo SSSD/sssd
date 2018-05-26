@@ -611,7 +611,6 @@ SSSD_LIBS = \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
     $(DBUS_LIBS) \
-    $(INI_CONFIG_LIBS) \
     $(DHASH_LIBS) \
     $(SELINUX_LIBS) \
     $(TDB_LIBS)
@@ -629,7 +628,6 @@ TOOLS_LIBS = \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
     $(DBUS_LIBS) \
-    $(INI_CONFIG_LIBS) \
     $(DHASH_LIBS) \
     $(TDB_LIBS)
 
@@ -1060,6 +1058,7 @@ libsss_util_la_LIBADD = \
     $(SYSTEMD_LOGIN_LIBS) \
     $(UNICODE_LIBS) \
     $(PCRE_LIBS) \
+    $(INI_CONFIG_LIBS) \
     libsss_debug.la \
     libsss_child.la \
     libsss_crypt.la \
@@ -1744,6 +1743,7 @@ sssctl_SOURCES = \
     $(NULL)
 sssctl_LDADD = \
     $(TOOLS_LIBS) \
+    $(INI_CONFIG_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(PAM_LIBS) \
     $(PAM_MISC_LIBS) \
