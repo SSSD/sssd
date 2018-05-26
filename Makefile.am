@@ -1516,7 +1516,6 @@ sssd_secrets_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(CARES_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(CURL_LIBS) \
     $(NULL)
