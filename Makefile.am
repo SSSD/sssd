@@ -497,7 +497,6 @@ AM_CPPFLAGS = \
     $(LDB_CFLAGS) \
     $(DBUS_CFLAGS) \
     $(PCRE_CFLAGS) \
-    $(COLLECTION_CFLAGS) \
     $(INI_CONFIG_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(LIBNL_CFLAGS) \
@@ -613,7 +612,6 @@ SSSD_LIBS = \
     $(LDB_LIBS) \
     $(DBUS_LIBS) \
     $(INI_CONFIG_LIBS) \
-    $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
     $(SELINUX_LIBS) \
     $(TDB_LIBS)
@@ -632,7 +630,6 @@ TOOLS_LIBS = \
     $(LDB_LIBS) \
     $(DBUS_LIBS) \
     $(INI_CONFIG_LIBS) \
-    $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
     $(TDB_LIBS)
 
