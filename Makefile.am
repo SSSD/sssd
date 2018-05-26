@@ -1711,11 +1711,10 @@ sss_seed_LDADD = \
 
 sss_signal_SOURCES = \
     src/tools/sss_signal.c \
-    $(SSSD_TOOLS_OBJ) \
+    src/tools/common/sss_process.c
     $(NULL)
 sss_signal_LDADD = \
-    $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_debug.la \
     $(NULL)
 
 sss_override_SOURCES = \
