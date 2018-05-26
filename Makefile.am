@@ -4140,7 +4140,6 @@ krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
     $(KRB5_CFLAGS) \
-    $(PCRE_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS) \
     $(NULL)
 krb5_child_LDADD = \
@@ -4150,7 +4149,6 @@ krb5_child_LDADD = \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
     $(CLIENT_LIBS) \
-    $(PCRE_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
     $(NULL)
 
