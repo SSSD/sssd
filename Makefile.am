@@ -612,7 +612,6 @@ SSSD_LIBS = \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
     $(DBUS_LIBS) \
-    $(PCRE_LIBS) \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
@@ -632,7 +631,6 @@ TOOLS_LIBS = \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
     $(DBUS_LIBS) \
-    $(PCRE_LIBS) \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
@@ -1064,6 +1062,7 @@ libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
     $(UNICODE_LIBS) \
+    $(PCRE_LIBS) \
     libsss_debug.la \
     libsss_child.la \
     libsss_crypt.la \
@@ -2009,6 +2008,7 @@ krb5_utils_tests_LDADD = \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
+    $(PCRE_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
@@ -2288,6 +2288,7 @@ krb5_child_test_LDADD = \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
+    $(PCRE_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
