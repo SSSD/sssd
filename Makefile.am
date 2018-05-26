@@ -3391,18 +3391,13 @@ test_ipa_dn_SOURCES = \
     src/providers/ipa/ipa_dn.c \
     src/tests/cmocka/test_ipa_dn.c \
     $(NULL)
-test_ipa_dn_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING \
-    $(NULL)
-test_ipa_dn_LDFLAGS = \
-    -Wl,-wrap,_tevent_add_timer \
-    $(NULL)
 test_ipa_dn_LDADD = \
     $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
+    $(POPT_LIBS) \
+    $(LDB_LIBS) \
+    $(TEVENT_LIBS) \
+    $(TALLOC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(LIBADD_DL) \
     libsss_test_common.la \
     $(NULL)
 
