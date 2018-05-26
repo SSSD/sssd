@@ -616,7 +616,6 @@ SSSD_LIBS = \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
-    $(OPENLDAP_LIBS) \
     $(SELINUX_LIBS) \
     $(TDB_LIBS)
 
@@ -2603,6 +2602,7 @@ nestedgroups_tests_CFLAGS = \
     $(NULL)
 nestedgroups_tests_LDADD = \
     $(CMOCKA_LIBS) \
+    $(OPENLDAP_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_idmap.la \
@@ -2740,6 +2740,7 @@ ad_gpo_tests_CFLAGS = \
     $(NULL)
 ad_gpo_tests_LDADD = \
     $(CMOCKA_LIBS) \
+    $(OPENLDAP_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NDR_NBT_LIBS) \
