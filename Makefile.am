@@ -636,7 +636,6 @@ TOOLS_LIBS = \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
-    $(OPENLDAP_LIBS) \
     $(TDB_LIBS)
 
 if BUILD_SELINUX
