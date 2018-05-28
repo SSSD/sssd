@@ -23,3 +23,4 @@ generate() {
 
 generate sbus/codegen/dbus.xml sbus/interface_dbus dbus
 generate sss_iface/sss_iface.xml sss_iface sss -i sss_iface/sss_iface_types.h "$SRCDIR/src/sss_iface/external_iface.xml"
+generate responder/ifp/ifp_iface/ifp_iface.xml responder/ifp/ifp_iface ifp -i responder/ifp/ifp_iface/ifp_iface_types.h

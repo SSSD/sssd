@@ -21,50 +21,80 @@
 #ifndef _IFP_COMPONENTS_H_
 #define _IFP_COMPONENTS_H_
 
-#include "responder/ifp/ifp_iface.h"
+#include "responder/ifp/ifp_iface/ifp_iface_async.h"
 #include "responder/ifp/ifp_private.h"
 
 /* org.freedesktop.sssd.infopipe */
 
-int ifp_list_components(struct sbus_request *dbus_req, void *data);
+errno_t
+ifp_list_components(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct ifp_ctx *ctx,
+                    const char ***_paths);
 
-int ifp_list_responders(struct sbus_request *dbus_req, void *data);
+errno_t
+ifp_list_responders(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct ifp_ctx *ctx,
+                    const char ***_paths);
+errno_t
+ifp_list_backends(TALLOC_CTX *mem_ctx,
+                  struct sbus_request *sbus_req,
+                  struct ifp_ctx *ctx,
+                  const char ***_paths);
 
-int ifp_list_backends(struct sbus_request *dbus_req, void *data);
+errno_t
+ifp_find_monitor(TALLOC_CTX *mem_ctx,
+                 struct sbus_request *sbus_req,
+                 struct ifp_ctx *ctx,
+                 const char **_path);
 
-int ifp_find_monitor(struct sbus_request *dbus_req, void *data);
+errno_t
+ifp_find_responder_by_name(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           const char *name,
+                           const char **_path);
 
-int ifp_find_responder_by_name(struct sbus_request *dbus_req,
-                               void *data,
-                               const char *arg_name);
-
-int ifp_find_backend_by_name(struct sbus_request *dbus_req,
-                             void *data,
-                             const char *arg_name);
+errno_t
+ifp_find_backend_by_name(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct ifp_ctx *ctx,
+                         const char *name,
+                         const char **_path);
 
 /* org.freedesktop.sssd.infopipe.Components */
 
-void ifp_component_get_name(struct sbus_request *dbus_req,
-                            void *data,
-                            const char **_out);
+errno_t
+ifp_component_get_name(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct ifp_ctx *ctx,
+                       const char **_out);
 
-void ifp_component_get_debug_level(struct sbus_request *dbus_req,
-                                   void *data,
-                                   uint32_t *_out);
+errno_t
+ifp_component_get_debug_level(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              uint32_t *_out);
 
-void ifp_component_get_enabled(struct sbus_request *dbus_req,
-                               void *data,
-                               bool *_out);
+errno_t
+ifp_component_get_enabled(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          bool *_out);
 
-void ifp_component_get_type(struct sbus_request *dbus_req,
-                            void *data,
-                            const char **_out);
+errno_t
+ifp_component_get_type(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct ifp_ctx *ctx,
+                       const char **_out);
 
 /* org.freedesktop.sssd.infopipe.Components.Backends */
 
-void ifp_backend_get_providers(struct sbus_request *dbus_req,
-                               void *data,
-                               const char ***_out,
-                               int *_out_len);
+errno_t
+ifp_backend_get_providers(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          const char ***_out);
 
 #endif /* _IFP_COMPONENTS_H_ */

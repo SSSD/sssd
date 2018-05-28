@@ -2,7 +2,7 @@
     Authors:
         Pavel Březina <pbrezina@redhat.com>
 
-    Copyright (C) 2016 Red Hat
+    Copyright (C) 2018 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,20 +21,20 @@
 #ifndef _IFP_IFACE_H_
 #define _IFP_IFACE_H_
 
-#include "responder/ifp/ifp_iface_generated.h"
+#define IFP_BUS     "org.freedesktop.sssd.infopipe"
 
 #define IFP_PATH "/org/freedesktop/sssd/infopipe"
 
 #define IFP_PATH_DOMAINS IFP_PATH "/Domains"
-#define IFP_PATH_DOMAINS_TREE IFP_PATH_DOMAINS SBUS_SUBTREE_SUFFIX
+#define IFP_PATH_DOMAINS_TREE IFP_PATH_DOMAINS "/*"
 
 #define IFP_PATH_COMPONENTS IFP_PATH "/Components"
-#define IFP_PATH_COMPONENTS_TREE IFP_PATH_COMPONENTS SBUS_SUBTREE_SUFFIX
+#define IFP_PATH_COMPONENTS_TREE IFP_PATH_COMPONENTS "/*"
 
 #define IFP_PATH_GROUPS IFP_PATH "/Groups"
-#define IFP_PATH_GROUPS_TREE IFP_PATH_GROUPS SBUS_SUBTREE_SUFFIX
+#define IFP_PATH_GROUPS_TREE IFP_PATH_GROUPS "/*"
 
 #define IFP_PATH_USERS IFP_PATH "/Users"
-#define IFP_PATH_USERS_TREE IFP_PATH_USERS SBUS_SUBTREE_SUFFIX
+#define IFP_PATH_USERS_TREE IFP_PATH_USERS "/*"
 
 #endif /* _IFP_IFACE_H_ */

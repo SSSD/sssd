@@ -35,16 +35,14 @@
 
 #include "util/util.h"
 #include "util/strtonum.h"
-#include "monitor/monitor_interfaces.h"
 #include "confdb/confdb.h"
 #include "responder/ifp/ifp_private.h"
 #include "responder/ifp/ifp_domains.h"
 #include "responder/ifp/ifp_components.h"
-#include "sss_iface/sss_iface.h"
+#include "responder/ifp/ifp_iface/ifp_iface_async.h"
+#include "sss_iface/sss_iface_async.h"
 
 #define DEFAULT_ALLOWED_UIDS "0"
-
-static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data);
 
 struct sss_cmd_table *get_ifp_cmds(void)
 {
@@ -60,102 +58,66 @@ static errno_t
 sysbus_init(TALLOC_CTX *mem_ctx,
             struct tevent_context *ev,
             const char *dbus_name,
-            void *pvt,
-            struct sysbus_ctx **sysbus)
+            struct ifp_ctx  *ifp_ctx,
+            struct sbus_connection **_sysbus)
 {
-    DBusError dbus_error;
-    DBusConnection *conn = NULL;
-    struct sysbus_ctx *system_bus = NULL;
+    struct sbus_connection *sysbus;
     errno_t ret;
 
-    system_bus = talloc_zero(mem_ctx, struct sysbus_ctx);
-    if (system_bus == NULL) {
-        return ENOMEM;
+    sysbus = sbus_connect_system(mem_ctx, ev, dbus_name,
+                                 &ifp_ctx->rctx->last_request_time);
+    if (sysbus == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to system bus!\n");
+        return ERR_NO_SYSBUS;
     }
 
-    dbus_error_init(&dbus_error);
+    sbus_connection_set_access_check(sysbus, ifp_access_check, ifp_ctx);
 
-    /* Connect to the well-known system bus */
-    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
-    if (conn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to connect to D-BUS system bus: [%s]\n",
-              dbus_error.message);
-        ret = ERR_NO_SYSBUS;
-        goto fail;
-    }
-    dbus_connection_set_exit_on_disconnect(conn, FALSE);
-
-    ret = dbus_bus_request_name(conn, dbus_name,
-                                /* We want exclusive access */
-                                DBUS_NAME_FLAG_DO_NOT_QUEUE,
-                                &dbus_error);
-    if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
-        /* We were unable to register on the system bus */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to request name on the system bus: [%s]\n",
-              dbus_error.message);
-        ret = EIO;
-        goto fail;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Listening on %s\n", dbus_name);
-
-    /* Integrate with tevent loop */
-    ret = sbus_init_connection(system_bus, ev, conn,
-                               SBUS_CONN_TYPE_SYSBUS,
-                               NULL, NULL, &system_bus->conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not integrate D-BUS into mainloop.\n");
-        goto fail;
-    }
-
-    ret = ifp_register_sbus_interface(system_bus->conn, pvt);
+    ret = ifp_register_sbus_interface(sysbus, ifp_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not register interfaces\n");
-        goto fail;
+        goto done;
     }
 
-    ifp_register_nodes(pvt, system_bus->conn);
-
-    *sysbus = system_bus;
-    return EOK;
-
-fail:
-    if (dbus_error_is_set(&dbus_error)) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "DBus error message: %s\n", dbus_error.message);
-        dbus_error_free(&dbus_error);
+    ret = ifp_register_nodes(ifp_ctx, sysbus);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not register nodes factories\n");
+        goto done;
     }
 
-    if (conn) dbus_connection_unref(conn);
+    *_sysbus = sysbus;
 
-    talloc_free(system_bus);
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(sysbus);
+    }
+
     return ret;
 }
 
-static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data)
+static errno_t
+ifp_sysbus_reconnect(TALLOC_CTX *mem_ctx,
+                     struct sbus_request *sbus_req,
+                     struct ifp_ctx *ifp_ctx)
 {
-    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
-    struct ifp_ctx *ifp_ctx = (struct ifp_ctx*) rctx->pvt_ctx;
     errno_t ret;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Attempting to reconnect to the system bus\n");
 
-    if (ifp_ctx->sysbus) {
+    if (ifp_ctx->sysbus != NULL) {
         DEBUG(SSSDBG_TRACE_LIBS, "Already connected to sysbus\n");
-        goto done;
+        return EOK;
     }
 
     /* Connect to the D-BUS system bus and set up methods */
-    ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
-                      IFACE_IFP,
+    ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev, IFP_BUS,
                       ifp_ctx, &ifp_ctx->sysbus);
     if (ret == ERR_NO_SYSBUS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "The system bus is not available..\n");
-        goto done;
+        return ret;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to connect to the system message bus\n");
@@ -164,22 +126,21 @@ static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data)
 
     DEBUG(SSSDBG_TRACE_LIBS, "Reconnected to the system bus!\n");
 
-done:
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    return EOK;
 }
 
 static errno_t
-ifp_register_service_iface(struct autofs_ctx *autofs_ctx,
+ifp_register_service_iface(struct ifp_ctx *ifp_ctx,
                            struct resp_ctx *rctx)
 {
     errno_t ret;
 
     struct sbus_interface iface_svc = SBUS_INTERFACE(
-        org_freedesktop_sssd_service,
+        sssd_service,
         SBUS_METHODS(
-            SBUS_SYNC(METHOD, org_freedesktop_sssd_service, resInit, monitor_common_res_init, NULL),
-            SBUS_SYNC(METHOD, org_freedesktop_sssd_service, rotateLogs, responder_logrotate, rctx),
-            SBUS_SYNC(METHOD, org_freedesktop_sssd_service, sysbusReconnect, ifp_sysbus_reconnect, autofs_ctx)
+            SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
+            SBUS_SYNC(METHOD, sssd_service, rotateLogs, responder_logrotate, rctx),
+            SBUS_SYNC(METHOD, sssd_service, sysbusReconnect, ifp_sysbus_reconnect, ifp_ctx)
         ),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
@@ -201,7 +162,6 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     struct resp_ctx *rctx;
     struct sss_cmd_table *ifp_cmds;
     struct ifp_ctx *ifp_ctx;
-    struct be_conn *iter;
     int ret;
     char *uid_str;
     char *attr_list_str;
@@ -293,8 +253,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Connect to the D-BUS system bus and set up methods */
-    ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
-                      IFACE_IFP,
+    ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev, IFP_BUS,
                       ifp_ctx, &ifp_ctx->sysbus);
     if (ret == ERR_NO_SYSBUS) {
         DEBUG(SSSDBG_MINOR_FAILURE,

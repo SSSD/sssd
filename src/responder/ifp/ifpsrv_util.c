@@ -32,74 +32,6 @@
                                 "groups", "domain", "domainname", \
                                 NULL}
 
-errno_t ifp_req_create(struct sbus_request *dbus_req,
-                       struct ifp_ctx *ifp_ctx,
-                       struct ifp_req **_ifp_req)
-{
-    struct ifp_req *ireq = NULL;
-    errno_t ret;
-
-    if (ifp_ctx->sysbus == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Responder not connected to sysbus!\n");
-        return EINVAL;
-    }
-
-    ireq = talloc_zero(dbus_req, struct ifp_req);
-    if (ireq == NULL) {
-        return ENOMEM;
-    }
-
-    ireq->ifp_ctx = ifp_ctx;
-    ireq->dbus_req = dbus_req;
-
-    if (dbus_req->client == -1) {
-        /* We got a sysbus message but couldn't identify the
-         * caller? Bail out! */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "BUG: Received a message without a known caller!\n");
-        ret = EACCES;
-        goto done;
-    }
-
-    ret = check_allowed_uids(dbus_req->client,
-                             ifp_ctx->rctx->allowed_uids_count,
-                             ifp_ctx->rctx->allowed_uids);
-    if (ret == EACCES) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "User %"PRIi64" not in ACL\n", dbus_req->client);
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot check if user %"PRIi64" is present in ACL\n",
-              dbus_req->client);
-        goto done;
-    }
-
-    *_ifp_req = ireq;
-    ret = EOK;
-done:
-    if (ret != EOK) {
-        talloc_free(ireq);
-    }
-    return ret;
-}
-
-int ifp_req_create_handle_failure(struct sbus_request *dbus_req, errno_t err)
-{
-    if (err == EACCES) {
-        return sbus_request_fail_and_finish(dbus_req,
-                               sbus_error_new(dbus_req,
-                                              DBUS_ERROR_ACCESS_DENIED,
-                                              "User %"PRIi64" not in ACL\n",
-                                              dbus_req->client));
-    }
-
-    return sbus_request_fail_and_finish(dbus_req,
-                                        sbus_error_new(dbus_req,
-                                            DBUS_ERROR_FAILED,
-                                            "Cannot create IFP request\n"));
-}
-
 errno_t ifp_add_value_to_dict(DBusMessageIter *iter_dict,
                               const char *key,
                               const char *value)
@@ -355,26 +287,25 @@ static uint32_t ifp_list_limit(struct ifp_ctx *ctx, uint32_t limit)
     }
 }
 
-struct ifp_list_ctx *ifp_list_ctx_new(struct sbus_request *sbus_req,
+struct ifp_list_ctx *ifp_list_ctx_new(TALLOC_CTX *mem_ctx,
                                       struct ifp_ctx *ctx,
                                       const char *filter,
                                       uint32_t limit)
 {
     struct ifp_list_ctx *list_ctx;
 
-    list_ctx = talloc_zero(sbus_req, struct ifp_list_ctx);
+    list_ctx = talloc_zero(mem_ctx, struct ifp_list_ctx);
     if (list_ctx == NULL) {
         return NULL;
     }
 
-    list_ctx->sbus_req = sbus_req;
     list_ctx->limit = ifp_list_limit(ctx, limit);
     list_ctx->ctx = ctx;
     list_ctx->dom = ctx->rctx->domains;
     list_ctx->filter = filter;
     list_ctx->paths_max = 1;
     list_ctx->paths = talloc_zero_array(list_ctx, const char *,
-                                        list_ctx->paths_max);
+                                        list_ctx->paths_max + 1);
     if (list_ctx->paths == NULL) {
         talloc_free(list_ctx);
         return NULL;
@@ -408,13 +339,13 @@ errno_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
 immediately:
     list_ctx->paths_max = list_ctx->path_count + capacity;
     list_ctx->paths = talloc_realloc(list_ctx, list_ctx->paths, const char *,
-                                     list_ctx->paths_max);
+                                     list_ctx->paths_max + 1);
     if (list_ctx->paths == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
         ret = ENOMEM;
         goto done;
     }
-    for (c = list_ctx->path_count; c < list_ctx->paths_max; c++) {
+    for (c = list_ctx->path_count; c <= list_ctx->paths_max; c++) {
         list_ctx->paths[c] = NULL;
     }
 
