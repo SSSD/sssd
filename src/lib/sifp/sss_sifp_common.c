@@ -23,7 +23,7 @@
 #include "lib/sifp/sss_sifp.h"
 #include "lib/sifp/sss_sifp_dbus.h"
 #include "lib/sifp/sss_sifp_private.h"
-#include "responder/ifp/ifp_iface.h"
+#include "responder/ifp/ifp_iface/ifp_iface.h"
 
 #define SSS_SIFP_ATTR_NAME "name"
 
@@ -96,7 +96,7 @@ sss_sifp_list_domains(sss_sifp_ctx *ctx,
         return SSS_SIFP_INVALID_ARGUMENT;
     }
 
-    ret = sss_sifp_invoke_list_ex(ctx, IFP_PATH, IFACE_IFP, "Domains",
+    ret = sss_sifp_invoke_list_ex(ctx, IFP_PATH, "org.freedesktop.sssd.infopipe", "Domains",
                                   &object_paths, DBUS_TYPE_INVALID);
     if (ret != SSS_SIFP_OK) {
         goto done;
@@ -113,7 +113,7 @@ sss_sifp_list_domains(sss_sifp_ctx *ctx,
 
     /* fetch domain name */
     for (i = 0; i < size; i++) {
-        ret = sss_sifp_fetch_attr(ctx, object_paths[i], IFACE_IFP_DOMAINS,
+        ret = sss_sifp_fetch_attr(ctx, object_paths[i], "org.freedesktop.sssd.infopipe.Domains",
                                   SSS_SIFP_ATTR_NAME, &attrs);
         if (ret != SSS_SIFP_OK) {
             goto done;
@@ -155,8 +155,8 @@ sss_sifp_fetch_domain_by_name(sss_sifp_ctx *ctx,
                               const char *name,
                               sss_sifp_object **_domain)
 {
-    return sss_sifp_fetch_object_by_name(ctx, IFP_PATH, IFACE_IFP,
-                                         IFACE_IFP_DOMAINS, "DomainByName",
+    return sss_sifp_fetch_object_by_name(ctx, IFP_PATH, "org.freedesktop.sssd.infopipe",
+                                         "org.freedesktop.sssd.infopipe.Domains", "DomainByName",
                                          name, _domain);
 }
 
@@ -167,8 +167,8 @@ sss_sifp_fetch_user_by_uid(sss_sifp_ctx *ctx,
 {
     uint64_t _uid = uid;
 
-    return sss_sifp_fetch_object_by_attr(ctx, IFP_PATH_USERS, IFACE_IFP_USERS,
-                                         IFACE_IFP_USERS_USER, "ByID",
+    return sss_sifp_fetch_object_by_attr(ctx, IFP_PATH_USERS, "org.freedesktop.sssd.infopipe.Users",
+                                         "org.freedesktop.sssd.infopipe.Users.User", "ByID",
                                          DBUS_TYPE_UINT64, &_uid, _user);
 }
 
@@ -177,7 +177,7 @@ sss_sifp_fetch_user_by_name(sss_sifp_ctx *ctx,
                             const char *name,
                             sss_sifp_object **_user)
 {
-    return sss_sifp_fetch_object_by_name(ctx, IFP_PATH_USERS, IFACE_IFP_USERS,
-                                         IFACE_IFP_USERS_USER, "ByName",
+    return sss_sifp_fetch_object_by_name(ctx, IFP_PATH_USERS, "org.freedesktop.sssd.infopipe.Users",
+                                         "org.freedesktop.sssd.infopipe.Users.User", "ByName",
                                          name, _user);
 }
