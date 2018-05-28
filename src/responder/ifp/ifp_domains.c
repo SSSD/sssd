@@ -28,201 +28,218 @@
 #include "confdb/confdb.h"
 #include "responder/common/responder.h"
 #include "responder/ifp/ifp_domains.h"
-#include "responder/common/data_provider/rdp.h"
-#include "sbus/sssd_dbus_errors.h"
-#include "providers/data_provider/dp_responder_iface.h"
+#include "responder/ifp/ifp_iface/ifp_iface_async.h"
+#include "sss_iface/sss_iface_async.h"
 
-#define RETURN_DOM_PROP_AS_STRING(dbus_req, pvt_data, out, property) do { \
-    struct sss_domain_info *__dom;                                        \
-                                                                          \
-    *(out) = NULL;                                                        \
-                                                                          \
-    __dom = get_domain_info_from_req((dbus_req), (pvt_data));             \
-    if (__dom == NULL) {                                                  \
-        return;                                                           \
-    }                                                                     \
-                                                                          \
-    *(out) = __dom->property;                                             \
-} while (0)
+#define RETURN_DOM_PROP(dbus_req, ctx, out, property) ({                    \
+    struct sss_domain_info *__dom;                                          \
+    errno_t __ret;                                                          \
+                                                                            \
+    __dom = get_domain_info_from_req((dbus_req), (ctx));                    \
+    if (__dom == NULL) {                                                    \
+        __ret = ERR_DOMAIN_NOT_FOUND;                                       \
+    } else {                                                                \
+        *(out) = __dom->property;                                           \
+        __ret = EOK;                                                        \
+    }                                                                       \
+    __ret;                                                                  \
+})
 
-static void ifp_list_domains_process(struct tevent_req *req);
 
-int ifp_list_domains(struct sbus_request *dbus_req,
-                     void *data)
-{
+struct ifp_list_domains_state {
     struct ifp_ctx *ifp_ctx;
-    struct ifp_req *ireq;
+    const char **paths;
+};
+
+static void ifp_list_domains_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_list_domains_send(TALLOC_CTX *mem_ctx,
+                      struct tevent_context *ev,
+                      struct sbus_request *sbus_req,
+                      struct ifp_ctx *ifp_ctx)
+{
+    struct ifp_list_domains_state *state;
+    struct tevent_req *subreq;
     struct tevent_req *req;
-    DBusError *error;
     errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "Invalid ifp context!");
-        return sbus_request_fail_and_finish(dbus_req, error);
-    }
-
-    ret = ifp_req_create(dbus_req, ifp_ctx, &ireq);
-    if (ret != EOK) {
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "%s", sss_strerror(ret));
-        return sbus_request_fail_and_finish(dbus_req, error);
-    }
-
-    req = sss_dp_get_domains_send(ireq, ifp_ctx->rctx, false, NULL);
+    req = tevent_req_create(mem_ctx, &state, struct ifp_list_domains_state);
     if (req == NULL) {
-        return sbus_request_finish(ireq->dbus_req, NULL);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    tevent_req_set_callback(req, ifp_list_domains_process, ireq);
+    state->ifp_ctx = ifp_ctx;
 
-    return EOK;
+    subreq = sss_dp_get_domains_send(state, ifp_ctx->rctx, false, NULL);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_list_domains_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
 }
 
-static void ifp_list_domains_process(struct tevent_req *req)
+static void ifp_list_domains_done(struct tevent_req *subreq)
 {
+    struct ifp_list_domains_state *state;
     struct sss_domain_info *dom;
-    struct ifp_req *ireq;
-    const char **paths;
-    char *p;
-    DBusError *error;
+    struct tevent_req *req;
     size_t num_domains;
     size_t pi;
     errno_t ret;
 
-    ireq = tevent_req_callback_data(req, struct ifp_req);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_list_domains_state);
 
-    ret = sss_dp_get_domains_recv(req);
-    talloc_free(req);
+    ret = sss_dp_get_domains_recv(subreq);
+    talloc_zfree(subreq);
     if (ret != EOK) {
-        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
-                               "Failed to refresh domain objects\n");
-        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to refresh domain objects\n");
+        tevent_req_error(req, ret);
         return;
     }
 
-    ret = sysdb_master_domain_update(ireq->ifp_ctx->rctx->domains);
+    ret = sysdb_master_domain_update(state->ifp_ctx->rctx->domains);
     if (ret != EOK) {
-        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
-                               "Failed to refresh subdomain list\n");
-        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to refresh subdomain list\n");
+        tevent_req_error(req, ret);
         return;
     }
 
     num_domains = 0;
-    for (dom = ireq->ifp_ctx->rctx->domains;
+    for (dom = state->ifp_ctx->rctx->domains;
             dom != NULL;
             dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         num_domains++;
     }
 
-    paths = talloc_zero_array(ireq, const char *, num_domains);
-    if (paths == NULL) {
-        sbus_request_finish(ireq->dbus_req, NULL);
+    state->paths = talloc_zero_array(state, const char *, num_domains + 1);
+    if (state->paths == NULL) {
+        tevent_req_error(req, ENOMEM);
         return;
     }
 
     pi = 0;
-    for (dom = ireq->ifp_ctx->rctx->domains;
+    for (dom = state->ifp_ctx->rctx->domains;
             dom != NULL;
             dom = get_next_domain(dom, SSS_GND_DESCEND)) {
-        p = sbus_opath_compose(ireq, IFP_PATH_DOMAINS, dom->name);
-        if (p == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Could not create path for dom %s, skipping\n", dom->name);
-            continue;
+        state->paths[pi] = sbus_opath_compose(state, IFP_PATH_DOMAINS, dom->name);
+        if (state->paths[pi] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not create path for dom %s\n",
+                  dom->name);
+            tevent_req_error(req, ENOMEM);
+            return;
         }
-        paths[pi] = p;
         pi++;
     }
 
-    ret = iface_ifp_ListDomains_finish(ireq->dbus_req, paths, num_domains);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not finish request!\n");
-    }
+    tevent_req_done(req);
+    return;
 }
 
-struct ifp_get_domain_state {
-    const char *name;
-    struct ifp_req *ireq;
-};
-
-static void ifp_find_domain_by_name_process(struct tevent_req *req);
-
-int ifp_find_domain_by_name(struct sbus_request *dbus_req,
-                            void *data,
-                            const char *arg_name)
+errno_t ifp_list_domains_recv(TALLOC_CTX *mem_ctx,
+                              struct tevent_req *req,
+                              const char ***_paths)
 {
-    struct ifp_ctx *ifp_ctx;
-    struct ifp_req *ireq;
-    struct tevent_req *req;
-    struct ifp_get_domain_state *state;
-    DBusError *error;
-    errno_t ret;
+    struct ifp_list_domains_state *state;
+    state = tevent_req_data(req, struct ifp_list_domains_state);
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "Invalid ifp context!");
-        return sbus_request_fail_and_finish(dbus_req, error);
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    ret = ifp_req_create(dbus_req, ifp_ctx, &ireq);
-    if (ret != EOK) {
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "%s", sss_strerror(ret));
-        return sbus_request_fail_and_finish(dbus_req, error);
-    }
+    *_paths = talloc_steal(mem_ctx, state->paths);
 
-    state = talloc_zero(ireq, struct ifp_get_domain_state);
-    if (state == NULL) {
-        return sbus_request_finish(dbus_req, NULL);
-    }
-    state->name = arg_name;
-    state->ireq = ireq;
-
-    req = sss_dp_get_domains_send(ireq, ifp_ctx->rctx, false, NULL);
-    if (req == NULL) {
-        return sbus_request_finish(dbus_req, NULL);
-    }
-    tevent_req_set_callback(req, ifp_find_domain_by_name_process, state);
     return EOK;
 }
 
-static void ifp_find_domain_by_name_process(struct tevent_req *req)
-{
-    errno_t ret;
-    struct ifp_req *ireq;
-    struct ifp_get_domain_state *state;
-    struct sss_domain_info *iter;
+struct ifp_find_domain_by_name_state {
+    struct ifp_ctx *ifp_ctx;
+    const char *name;
     const char *path;
-    DBusError *error;
+};
 
-    state = tevent_req_callback_data(req, struct ifp_get_domain_state);
-    ireq = state->ireq;
+static void ifp_find_domain_by_name_done(struct tevent_req *subreq);
 
-    ret = sss_dp_get_domains_recv(req);
-    talloc_free(req);
+struct tevent_req *
+ifp_find_domain_by_name_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ifp_ctx,
+                             const char *name)
+{
+    struct ifp_find_domain_by_name_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ifp_find_domain_by_name_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    state->ifp_ctx = ifp_ctx;
+    state->name = name;
+
+    subreq = sss_dp_get_domains_send(state, ifp_ctx->rctx, false, NULL);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_find_domain_by_name_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_find_domain_by_name_done(struct tevent_req *subreq)
+{
+    struct ifp_find_domain_by_name_state *state;
+    struct sss_domain_info *iter;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_find_domain_by_name_state);
+
+    ret = sss_dp_get_domains_recv(subreq);
+    talloc_zfree(subreq);
     if (ret != EOK) {
-        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
-                               "Failed to refresh domain objects\n");
-        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to refresh domain objects\n");
+        tevent_req_error(req, ret);
         return;
     }
 
-    ret = sysdb_master_domain_update(ireq->ifp_ctx->rctx->domains);
+    ret = sysdb_master_domain_update(state->ifp_ctx->rctx->domains);
     if (ret != EOK) {
-        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
-                               "Failed to refresh subdomain list\n");
-        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to refresh subdomain list\n");
+        tevent_req_error(req, ret);
         return;
     }
 
     /* Reply with the domain that was asked for */
-    for (iter = ireq->ifp_ctx->rctx->domains;
+    for (iter = state->ifp_ctx->rctx->domains;
             iter != NULL;
             iter = get_next_domain(iter, SSS_GND_DESCEND)) {
         if (strcasecmp(iter->name, state->name) == 0) {
@@ -231,42 +248,47 @@ static void ifp_find_domain_by_name_process(struct tevent_req *req)
     }
 
     if (iter == NULL) {
-        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
-                               "No such domain\n");
-        sbus_request_fail_and_finish(ireq->dbus_req, error);
-        return;
+         DEBUG(SSSDBG_MINOR_FAILURE, "Domain not found: %s\n", state->name);
+         tevent_req_error(req, ERR_DOMAIN_NOT_FOUND);
+         return;
     }
 
-    path = sbus_opath_compose(ireq, IFP_PATH_DOMAINS, iter->name);
-    if (path == NULL) {
+    state->path = sbus_opath_compose(state, IFP_PATH_DOMAINS, iter->name);
+    if (state->path == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-                "Could not create path for domain %s, skipping\n", iter->name);
-        sbus_request_finish(ireq->dbus_req, NULL);
+              "Could not create path for domain %s, skipping\n", iter->name);
+        tevent_req_error(req, ENOMEM);
         return;
     }
 
-    ret = iface_ifp_FindDomainByName_finish(ireq->dbus_req, path);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not finish request!\n");
-    }
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_find_domain_by_name_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             const char **_path)
+{
+    struct ifp_find_domain_by_name_state *state;
+    state = tevent_req_data(req, struct ifp_find_domain_by_name_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_path = talloc_steal(mem_ctx, state->path);
+
+    return EOK;
 }
 
 static struct sss_domain_info *
-get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
+get_domain_info_from_req(struct sbus_request *dbus_req,
+                         struct ifp_ctx *ctx)
 {
-    struct ifp_ctx *ctx = NULL;
     struct sss_domain_info *domains = NULL;
     struct sss_domain_info *iter = NULL;
     char *name = NULL;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return NULL;
-    }
-
-    name = sbus_opath_get_object_name(dbus_req, dbus_req->path,
-                                      IFP_PATH_DOMAINS);
+    name = sbus_opath_object_name(NULL, dbus_req->path, IFP_PATH_DOMAINS);
     if (name == NULL) {
         return NULL;
     }
@@ -285,16 +307,17 @@ get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
     return iter;
 }
 
-static void get_server_list(struct sbus_request *dbus_req,
-                            void *data,
-                            const char ***_out,
-                            int *_out_len,
-                            bool backup)
+static errno_t
+get_server_list(TALLOC_CTX *mem_ctx,
+                struct sbus_request *dbus_req,
+                struct ifp_ctx *ctx,
+                const char ***_out,
+                bool backup)
 {
-    static const char *srv[] = {"_srv_"};
+    TALLOC_CTX *tmp_ctx;
+    static const char *srv[] = {"_srv_", NULL};
     struct sss_domain_info *dom = NULL;
-    struct ifp_ctx *ctx = NULL;
-    const char *conf_path = NULL;
+    char *conf_path = NULL;
     const char *option = NULL;
     const char **out = NULL;
     char **servers = NULL;
@@ -302,12 +325,15 @@ static void get_server_list(struct sbus_request *dbus_req,
     errno_t ret;
     int i;
 
-    *_out = NULL;
-    *_out_len = 0;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
 
-    dom = get_domain_info_from_req(dbus_req, data);
+    dom = get_domain_info_from_req(dbus_req, ctx);
     if (dom == NULL) {
-        return;
+        return ERR_DOMAIN_NOT_FOUND;
     }
 
     if (dom->parent != NULL) {
@@ -316,14 +342,7 @@ static void get_server_list(struct sbus_request *dbus_req,
         goto done;
     }
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    conf_path = talloc_asprintf(dbus_req, CONFDB_DOMAIN_PATH_TMPL, dom->name);
+    conf_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, dom->name);
     if (conf_path == NULL) {
         ret = ENOMEM;
         goto done;
@@ -341,7 +360,7 @@ static void get_server_list(struct sbus_request *dbus_req,
         goto done;
     }
 
-    ret = confdb_get_string_as_list(ctx->rctx->cdb, dbus_req, conf_path,
+    ret = confdb_get_string_as_list(ctx->rctx->cdb, tmp_ctx, conf_path,
                                     option, &servers);
     if (ret != EOK) {
         goto done;
@@ -354,7 +373,7 @@ static void get_server_list(struct sbus_request *dbus_req,
         goto done;
     }
 
-    out = talloc_zero_array(dbus_req, const char*, num_servers);
+    out = talloc_zero_array(mem_ctx, const char *, num_servers + 1);
     if (out == NULL) {
         ret = ENOMEM;
         goto done;
@@ -365,290 +384,639 @@ static void get_server_list(struct sbus_request *dbus_req,
     }
 
     *_out = out;
-    *_out_len = num_servers;
 
     ret = EOK;
 
 done:
+    talloc_free(tmp_ctx);
+
     if (ret == ENOENT) {
         *_out = srv;
-        *_out_len = 1;
     }
 
-    return;
+    return ret;
 }
 
-void ifp_dom_get_name(struct sbus_request *dbus_req,
-                      void *data,
-                      const char **_out)
+errno_t
+ifp_dom_get_name(TALLOC_CTX *mem_ctx,
+                 struct sbus_request *sbus_req,
+                 struct ifp_ctx *ctx,
+                 const char **_out)
 {
-    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, name);
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, name);
 }
 
-void ifp_dom_get_provider(struct sbus_request *dbus_req,
-                          void *data,
-                          const char **_out)
+errno_t
+ifp_dom_get_provider(TALLOC_CTX *mem_ctx,
+                     struct sbus_request *sbus_req,
+                     struct ifp_ctx *ctx,
+                     const char **_out)
 {
-    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, provider);
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, provider);
 }
 
-void ifp_dom_get_primary_servers(struct sbus_request *dbus_req,
-                                 void *data,
-                                 const char ***_out,
-                                 int *_out_len)
+errno_t
+ifp_dom_get_primary_servers(TALLOC_CTX *mem_ctx,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char ***_out)
 {
-    get_server_list(dbus_req, data, _out, _out_len, false);
+    return get_server_list(mem_ctx, sbus_req, ctx, _out, false);
 }
 
-void ifp_dom_get_backup_servers(struct sbus_request *dbus_req,
-                                void *data,
-                                const char ***_out,
-                                int *_out_len)
+errno_t
+ifp_dom_get_backup_servers(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           const char ***_out)
 {
-    get_server_list(dbus_req, data, _out, _out_len, true);
+    return get_server_list(mem_ctx, sbus_req, ctx, _out, true);
 }
 
-void ifp_dom_get_min_id(struct sbus_request *dbus_req,
-                        void *data,
-                        uint32_t *_out)
+errno_t
+ifp_dom_get_min_id(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           uint32_t *_out)
 {
-    struct sss_domain_info *dom;
-
-    *_out = 1;
-
-    dom = get_domain_info_from_req(dbus_req, data);
-    if (dom == NULL) {
-        return;
-    }
-
-    *_out = dom->id_min;
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, id_min);
 }
 
-void ifp_dom_get_max_id(struct sbus_request *dbus_req,
-                        void *data,
-                        uint32_t *_out)
+errno_t
+ifp_dom_get_max_id(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           uint32_t *_out)
 {
-    struct sss_domain_info *dom;
-
-    *_out = 0;
-
-    dom = get_domain_info_from_req(dbus_req, data);
-    if (dom == NULL) {
-        return;
-    }
-
-    *_out = dom->id_max;
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, id_max);
 }
 
-void ifp_dom_get_realm(struct sbus_request *dbus_req,
-                       void *data,
-                       const char **_out)
+errno_t
+ifp_dom_get_realm(TALLOC_CTX *mem_ctx,
+                  struct sbus_request *sbus_req,
+                  struct ifp_ctx *ctx,
+                  const char **_out)
 {
-    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, realm);
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, realm);
 }
 
-void ifp_dom_get_forest(struct sbus_request *dbus_req,
-                        void *data,
+errno_t
+ifp_dom_get_forest(TALLOC_CTX *mem_ctx,
+                   struct sbus_request *sbus_req,
+                   struct ifp_ctx *ctx,
+                   const char **_out)
+{
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, forest);
+}
+
+errno_t
+ifp_dom_get_login_format(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct ifp_ctx *ctx,
+                         const char **_out)
+{
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, names->re_pattern);
+}
+
+errno_t
+ifp_dom_get_fqdn_format(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct ifp_ctx *ctx,
                         const char **_out)
 {
-    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, forest);
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, names->fq_fmt);
 }
 
-void ifp_dom_get_login_format(struct sbus_request *dbus_req,
-                              void *data,
-                              const char **_out)
+errno_t
+ifp_dom_get_enumerable(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct ifp_ctx *ctx,
+                       bool *_out)
 {
-    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, names->re_pattern);
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, enumerate);
 }
 
-void ifp_dom_get_fqdn_format(struct sbus_request *dbus_req,
-                             void *data,
-                             const char **_out)
+errno_t
+ifp_dom_get_use_fqdn(TALLOC_CTX *mem_ctx,
+                     struct sbus_request *sbus_req,
+                     struct ifp_ctx *ctx,
+                     bool *_out)
 {
-    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, names->fq_fmt);
+    return RETURN_DOM_PROP(sbus_req, ctx, _out, fqnames);
 }
 
-void ifp_dom_get_enumerable(struct sbus_request *dbus_req,
-                            void *data,
-                            bool *_out)
+errno_t
+ifp_dom_get_subdomain(TALLOC_CTX *mem_ctx,
+                      struct sbus_request *sbus_req,
+                      struct ifp_ctx *ctx,
+                      bool *_out)
 {
     struct sss_domain_info *dom;
 
-    *_out = false;
-
-    dom = get_domain_info_from_req(dbus_req, data);
+    dom = get_domain_info_from_req(sbus_req, ctx);
     if (dom == NULL) {
-        return;
+        return ERR_DOMAIN_NOT_FOUND;
     }
 
-    *_out = dom->enumerate;
+    *_out = dom->parent != NULL ? true : false;
+
+    return EOK;
 }
 
-void ifp_dom_get_use_fqdn(struct sbus_request *dbus_req,
-                          void *data,
-                          bool *_out)
+errno_t
+ifp_dom_get_parent_domain(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          const char **_out)
 {
     struct sss_domain_info *dom;
+    const char *path;
 
-    *_out = false;
-
-    dom = get_domain_info_from_req(dbus_req, data);
+    dom = get_domain_info_from_req(sbus_req, ctx);
     if (dom == NULL) {
-        return;
-    }
-
-    *_out = dom->fqnames;
-}
-
-void ifp_dom_get_subdomain(struct sbus_request *dbus_req,
-                           void *data,
-                           bool *_out)
-{
-    struct sss_domain_info *dom;
-
-    *_out = false;
-
-    dom = get_domain_info_from_req(dbus_req, data);
-    if (dom == NULL) {
-        return;
-    }
-
-    *_out = dom->parent ? true : false;
-}
-
-void ifp_dom_get_parent_domain(struct sbus_request *dbus_req,
-                              void *data,
-                              const char **_out)
-{
-    struct sss_domain_info *dom;
-
-    *_out = NULL;
-
-    dom = get_domain_info_from_req(dbus_req, data);
-    if (dom == NULL) {
-        return;
+        return ERR_DOMAIN_NOT_FOUND;
     }
 
     if (dom->parent == NULL) {
         *_out = "/";
+        return EOK;
+    }
+
+    path = sbus_opath_compose(mem_ctx, IFP_PATH_DOMAINS, dom->parent->name);
+    if (path == NULL) {
+        return ENOMEM;
+    }
+
+    *_out = path;
+
+    return EOK;
+}
+
+struct ifp_domains_domain_is_online_state {
+    bool is_online;
+};
+
+static void ifp_domains_domain_is_online_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_domains_domain_is_online_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct sbus_request *sbus_req,
+                                  struct ifp_ctx *ifp_ctx)
+{
+    struct ifp_domains_domain_is_online_state *state;
+    struct sss_domain_info *dom;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    struct be_conn *be_conn;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ifp_domains_domain_is_online_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    dom = get_domain_info_from_req(sbus_req, ifp_ctx);
+    if (dom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
+
+    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
+              "%s is not available!\n", dom->name);
+        goto done;
+    }
+
+    subreq = sbus_call_dp_backend_IsOnline_send(state, be_conn->conn,
+                be_conn->bus_name, SSS_BUS_PATH, dom->name);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_domains_domain_is_online_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_domains_domain_is_online_done(struct tevent_req *subreq)
+{
+    struct ifp_domains_domain_is_online_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_domains_domain_is_online_state);
+
+    ret = sbus_call_dp_backend_IsOnline_recv(subreq, &state->is_online);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
         return;
     }
 
-    *_out = sbus_opath_compose(dbus_req, IFP_PATH_DOMAINS,
-                               dom->parent->name);
+    tevent_req_done(req);
+    return;
 }
 
-int ifp_domains_domain_is_online(struct sbus_request *sbus_req,
-                                 void *data)
+errno_t
+ifp_domains_domain_is_online_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  bool *_is_online)
 {
-    struct ifp_ctx *ifp_ctx;
-    struct sss_domain_info *dom;
+    struct ifp_domains_domain_is_online_state *state;
+    state = tevent_req_data(req, struct ifp_domains_domain_is_online_state);
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    dom = get_domain_info_from_req(sbus_req, data);
-    if (dom == NULL) {
-        sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                                 "Unknown domain");
-        return EOK;
-    }
-
-    rdp_message_send_and_reply(sbus_req, ifp_ctx->rctx, dom, DP_PATH,
-                               IFACE_DP_BACKEND, IFACE_DP_BACKEND_ISONLINE,
-                               DBUS_TYPE_STRING, &dom->name);
+    *_is_online = state->is_online;
 
     return EOK;
 }
 
-int ifp_domains_domain_list_services(struct sbus_request *sbus_req,
-                                     void *data)
+struct ifp_domains_domain_list_services_state {
+    const char **services;
+};
+
+static void ifp_domains_domain_list_services_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_domains_domain_list_services_send(TALLOC_CTX *mem_ctx,
+                                      struct tevent_context *ev,
+                                      struct sbus_request *sbus_req,
+                                      struct ifp_ctx *ifp_ctx)
 {
-    struct ifp_ctx *ifp_ctx;
+    struct ifp_domains_domain_list_services_state *state;
     struct sss_domain_info *dom;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    struct be_conn *be_conn;
+    errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-
-    dom = get_domain_info_from_req(sbus_req, data);
-    if (dom == NULL) {
-        sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                                 "Unknown domain");
-        return EOK;
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ifp_domains_domain_list_services_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    rdp_message_send_and_reply(sbus_req, ifp_ctx->rctx, dom, DP_PATH,
-                               IFACE_DP_FAILOVER,
-                               IFACE_DP_FAILOVER_LISTSERVICES,
-                               DBUS_TYPE_STRING, &dom->name);
+    dom = get_domain_info_from_req(sbus_req, ifp_ctx);
+    if (dom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
+
+    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
+              "%s is not available!\n", dom->name);
+        goto done;
+    }
+
+    subreq = sbus_call_dp_failover_ListServices_send(state, be_conn->conn,
+                be_conn->bus_name, SSS_BUS_PATH, dom->name);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_domains_domain_list_services_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_domains_domain_list_services_done(struct tevent_req *subreq)
+{
+    struct ifp_domains_domain_list_services_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_domains_domain_list_services_state);
+
+    ret = sbus_call_dp_failover_ListServices_recv(state, subreq, &state->services);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_domains_domain_list_services_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      const char ***_services)
+{
+    struct ifp_domains_domain_list_services_state *state;
+    state = tevent_req_data(req, struct ifp_domains_domain_list_services_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_services = talloc_steal(mem_ctx, state->services);
 
     return EOK;
 }
 
-int ifp_domains_domain_active_server(struct sbus_request *sbus_req,
-                                     void *data,
+struct ifp_domains_domain_active_server_state {
+    const char *server;
+};
+
+static void ifp_domains_domain_active_server_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_domains_domain_active_server_send(TALLOC_CTX *mem_ctx,
+                                      struct tevent_context *ev,
+                                      struct sbus_request *sbus_req,
+                                      struct ifp_ctx *ifp_ctx,
+                                      const char *service)
+{
+    struct ifp_domains_domain_active_server_state *state;
+    struct sss_domain_info *dom;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    struct be_conn *be_conn;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ifp_domains_domain_active_server_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    dom = get_domain_info_from_req(sbus_req, ifp_ctx);
+    if (dom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
+
+    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
+              "%s is not available!\n", dom->name);
+        goto done;
+    }
+
+    subreq = sbus_call_dp_failover_ActiveServer_send(state, be_conn->conn,
+                be_conn->bus_name, SSS_BUS_PATH, service);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_domains_domain_active_server_done, req);
+
+    ret = EAGAIN;
+
+done:
+if (ret != EAGAIN) {
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+}
+
+    return req;
+}
+
+static void ifp_domains_domain_active_server_done(struct tevent_req *subreq)
+{
+    struct ifp_domains_domain_active_server_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_domains_domain_active_server_state);
+
+    ret = sbus_call_dp_failover_ActiveServer_recv(state, subreq, &state->server);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_domains_domain_active_server_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      const char **_server)
+{
+    struct ifp_domains_domain_active_server_state *state;
+    state = tevent_req_data(req, struct ifp_domains_domain_active_server_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_server = talloc_steal(mem_ctx, state->server);
+
+    return EOK;
+}
+
+struct ifp_domains_domain_list_servers_state {
+    const char **servers;
+};
+
+static void ifp_domains_domain_list_servers_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_domains_domain_list_servers_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sbus_request *sbus_req,
+                                     struct ifp_ctx *ifp_ctx,
                                      const char *service)
 {
-    struct ifp_ctx *ifp_ctx;
+    struct ifp_domains_domain_list_servers_state *state;
     struct sss_domain_info *dom;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    struct be_conn *be_conn;
+    errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-
-    dom = get_domain_info_from_req(sbus_req, data);
-    if (dom == NULL) {
-        sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                                 "Unknown domain");
-        return EOK;
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ifp_domains_domain_list_servers_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    rdp_message_send_and_reply(sbus_req, ifp_ctx->rctx, dom, DP_PATH,
-                               IFACE_DP_FAILOVER,
-                               IFACE_DP_FAILOVER_ACTIVESERVER,
-                               DBUS_TYPE_STRING, &service);
+    dom = get_domain_info_from_req(sbus_req, ifp_ctx);
+    if (dom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
+
+    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
+              "%s is not available!\n", dom->name);
+        goto done;
+    }
+
+    subreq = sbus_call_dp_failover_ListServers_send(state, be_conn->conn,
+                be_conn->bus_name, SSS_BUS_PATH, service);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_domains_domain_list_servers_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void ifp_domains_domain_list_servers_done(struct tevent_req *subreq)
+{
+    struct ifp_domains_domain_list_servers_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ifp_domains_domain_list_servers_state);
+
+    ret = sbus_call_dp_failover_ListServers_recv(state, subreq, &state->servers);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_domains_domain_list_servers_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      const char ***_servers)
+{
+    struct ifp_domains_domain_list_servers_state *state;
+    state = tevent_req_data(req, struct ifp_domains_domain_list_servers_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_servers = talloc_steal(mem_ctx, state->servers);
 
     return EOK;
 }
 
-int ifp_domains_domain_list_servers(struct sbus_request *sbus_req,
-                                    void *data,
-                                    const char *service)
+struct ifp_domains_domain_refresh_access_rules_state {
+    int dummy;
+};
+
+static void ifp_domains_domain_refresh_access_rules_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ifp_domains_domain_refresh_access_rules_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sbus_request *sbus_req,
+                                             struct ifp_ctx *ifp_ctx)
 {
-    struct ifp_ctx *ifp_ctx;
+    struct ifp_domains_domain_refresh_access_rules_state *state;
     struct sss_domain_info *dom;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    struct be_conn *be_conn;
+    errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-
-    dom = get_domain_info_from_req(sbus_req, data);
-    if (dom == NULL) {
-        sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                                 "Unknown domain");
-        return EOK;
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ifp_domains_domain_refresh_access_rules_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    rdp_message_send_and_reply(sbus_req, ifp_ctx->rctx, dom, DP_PATH,
-                               IFACE_DP_FAILOVER,
-                               IFACE_DP_FAILOVER_LISTSERVERS,
-                               DBUS_TYPE_STRING, &service);
+    dom = get_domain_info_from_req(sbus_req, ifp_ctx);
+    if (dom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
 
-    return EOK;
+    ret = sss_dp_get_domain_conn(ifp_ctx->rctx, dom->conn_name, &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: The Data Provider connection for "
+              "%s is not available!\n", dom->name);
+        goto done;
+    }
+
+    subreq = sbus_call_dp_access_RefreshRules_send(state, be_conn->conn,
+                be_conn->bus_name, SSS_BUS_PATH);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, ifp_domains_domain_refresh_access_rules_done, req);
+
+    ret = EAGAIN;
+
+done:
+if (ret != EAGAIN) {
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
 }
 
-int ifp_domains_domain_refresh_access_rules(struct sbus_request *sbus_req,
-                                            void *data)
+    return req;
+}
+
+static void ifp_domains_domain_refresh_access_rules_done(struct tevent_req *subreq)
 {
-    struct ifp_ctx *ifp_ctx;
-    struct sss_domain_info *dom;
+    struct tevent_req *req;
+    errno_t ret;
 
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
 
-    dom = get_domain_info_from_req(sbus_req, data);
-    if (dom == NULL) {
-        sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                                 "Unknown domain");
-        return EOK;
+    ret = sbus_call_dp_access_RefreshRules_recv(req);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
-    rdp_message_send_and_reply(sbus_req, ifp_ctx->rctx, dom, DP_PATH,
-                               IFACE_DP_ACCESS_CONTROL,
-                               IFACE_DP_ACCESS_CONTROL_REFRESHRULES);
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+ifp_domains_domain_refresh_access_rules_recv(TALLOC_CTX *mem_ctx,
+                                             struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }

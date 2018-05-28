@@ -27,7 +27,6 @@
 #include "responder/ifp/ifp_cache.h"
 #include "responder/ifp/ifp_users.h"
 #include "responder/ifp/ifp_groups.h"
-#include "responder/ifp/ifp_iface_generated.h"
 
 static struct ldb_dn *
 ifp_cache_build_base_dn(TALLOC_CTX *mem_ctx,
@@ -89,8 +88,7 @@ static errno_t
 ifp_cache_get_cached_objects(TALLOC_CTX *mem_ctx,
                              enum ifp_cache_type type,
                              struct sss_domain_info *domain,
-                             const char ***_paths,
-                             int *_num_paths)
+                             const char ***_paths)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *base_dn;
@@ -140,7 +138,6 @@ ifp_cache_get_cached_objects(TALLOC_CTX *mem_ctx,
     }
 
     *_paths = talloc_steal(mem_ctx, paths);
-    *_num_paths = result->count;
 
     ret = EOK;
 
@@ -149,18 +146,16 @@ done:
     return ret;
 }
 
-errno_t ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
-                               struct sss_domain_info *domains,
-                               enum ifp_cache_type type,
-                               const char ***_paths,
-                               int *_num_paths)
+errno_t
+ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
+                       struct sss_domain_info *domains,
+                       enum ifp_cache_type type,
+                       const char ***_paths)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *domain;
-    const char **tmp_paths;
-    int num_tmp_paths;
+    const char **tmp_paths = NULL;
     const char **paths;
-    int num_paths;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -169,11 +164,9 @@ errno_t ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
     }
 
     domain = domains;
-    num_paths = 0;
     paths = NULL;
     while (domain != NULL) {
-        ret = ifp_cache_get_cached_objects(tmp_ctx, type, domain,
-                                           &tmp_paths, &num_tmp_paths);
+        ret = ifp_cache_get_cached_objects(tmp_ctx, type, domain, &tmp_paths);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build object list "
                   "[%d]: %s\n", ret, sss_strerror(ret));
@@ -188,17 +181,11 @@ errno_t ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        num_paths += num_tmp_paths;
-
         domain = get_next_domain(domain, SSS_GND_DESCEND);
     }
 
     if (_paths != NULL) {
         *_paths = talloc_steal(mem_ctx, paths);
-    }
-
-    if (_num_paths != NULL) {
-        *_num_paths = num_paths;
     }
 
     ret = EOK;
@@ -208,71 +195,31 @@ done:
     return ret;
 }
 
-int ifp_cache_list(struct sbus_request *sbus_req,
-                   void *data,
-                   enum ifp_cache_type type)
+errno_t
+ifp_cache_list(TALLOC_CTX *mem_ctx,
+               struct ifp_ctx *ifp_ctx,
+               enum ifp_cache_type type,
+               const char ***_paths)
 {
-    DBusError *error;
-    struct ifp_ctx *ifp_ctx;
-    const char **paths;
-    int num_paths;
-    errno_t ret;
-
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
-    }
-
-    ret = ifp_cache_list_domains(sbus_req, ifp_ctx->rctx->domains, type,
-                                 &paths, &num_paths);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
-                               "Unable to build object list [%d]: %s\n",
-                               ret, sss_strerror(ret));
-        return sbus_request_fail_and_finish(sbus_req, error);
-    }
-
-    iface_ifp_cache_List_finish(sbus_req, paths, num_paths);
-
-    return EOK;
+    return ifp_cache_list_domains(mem_ctx, ifp_ctx->rctx->domains,
+                                  type, _paths);
 }
 
-int ifp_cache_list_by_domain(struct sbus_request *sbus_req,
-                             void *data,
-                             const char *domainname,
-                             enum ifp_cache_type type)
+errno_t
+ifp_cache_list_by_domain(TALLOC_CTX *mem_ctx,
+                         struct ifp_ctx *ifp_ctx,
+                         const char *domainname,
+                         enum ifp_cache_type type,
+                         const char ***_paths)
 {
-    DBusError *error;
     struct sss_domain_info *domain;
-    struct ifp_ctx *ifp_ctx;
-    const char **paths;
-    int num_paths;
-    errno_t ret;
-
-    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ifp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return ERR_INTERNAL;
-    }
 
     domain = find_domain_by_name(ifp_ctx->rctx->domains, domainname, true);
     if (domain == NULL) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Unknown domain");
-        return sbus_request_fail_and_finish(sbus_req, error);
+        return ERR_DOMAIN_NOT_FOUND;
     }
 
-    ret = ifp_cache_get_cached_objects(sbus_req, type, domain,
-                                       &paths, &num_paths);
-    if (ret != EOK) {
-        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Unable to build "
-                           "object list [%d]: %s\n", ret, sss_strerror(ret));
-        return sbus_request_fail_and_finish(sbus_req, error);
-    }
-
-    iface_ifp_cache_ListByDomain_finish(sbus_req, paths, num_paths);
-
-    return EOK;
+    return ifp_cache_get_cached_objects(mem_ctx, type, domain, _paths);
 }
 
 static errno_t ifp_cache_object_set(struct sss_domain_info *domain,
@@ -309,36 +256,16 @@ done:
     return ret;
 }
 
-int ifp_cache_object_store(struct sbus_request *sbus_req,
-                           struct sss_domain_info *domain,
-                           struct ldb_dn *dn)
+errno_t
+ifp_cache_object_store(struct sss_domain_info *domain,
+                       struct ldb_dn *dn)
 {
-    errno_t ret;
-
-    ret = ifp_cache_object_set(domain, dn, true);
-
-    if (ret == EOK) {
-        iface_ifp_cache_object_Store_finish(sbus_req, true);
-    } else {
-        iface_ifp_cache_object_Store_finish(sbus_req, false);
-    }
-
-    return EOK;
+    return ifp_cache_object_set(domain, dn, true);
 }
 
-int ifp_cache_object_remove(struct sbus_request *sbus_req,
-                            struct sss_domain_info *domain,
-                            struct ldb_dn *dn)
+errno_t
+ifp_cache_object_remove(struct sss_domain_info *domain,
+                        struct ldb_dn *dn)
 {
-    errno_t ret;
-
-    ret = ifp_cache_object_set(domain, dn, false);
-
-    if (ret == EOK) {
-        iface_ifp_cache_object_Remove_finish(sbus_req, true);
-    } else {
-        iface_ifp_cache_object_Remove_finish(sbus_req, false);
-    }
-
-    return EOK;
+    return ifp_cache_object_set(domain, dn, false);
 }

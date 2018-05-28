@@ -21,7 +21,6 @@
 #ifndef IFP_USERS_H_
 #define IFP_USERS_H_
 
-#include "responder/ifp/ifp_iface.h"
 #include "responder/ifp/ifp_private.h"
 
 /* Utility functions */
@@ -32,104 +31,199 @@ char * ifp_users_build_path_from_msg(TALLOC_CTX *mem_ctx,
 
 /* org.freedesktop.sssd.infopipe.Users */
 
-int ifp_users_find_by_name(struct sbus_request *sbus_req,
-                           void *data,
-                           const char *name);
+struct tevent_req *
+ifp_users_find_by_name_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *name);
 
-int ifp_users_find_by_id(struct sbus_request *sbus_req,
-                         void *data,
-                         uint32_t id);
+errno_t
+ifp_users_find_by_name_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char **_path);
 
-int ifp_users_find_by_cert(struct sbus_request *sbus_req,
-                           void *data,
-                           const char *pem_cert);
+struct tevent_req *
+ifp_users_find_by_id_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          uint32_t id);
 
-int ifp_users_list_by_cert(struct sbus_request *sbus_req,
-                           void *data,
-                           const char *pem_cert,
-                           uint32_t limit);
+errno_t
+ifp_users_find_by_id_recv(TALLOC_CTX *mem_ctx,
+                          struct tevent_req *req,
+                          const char **_path);
 
-int ifp_users_find_by_name_and_cert(struct sbus_request *sbus_req,
-                                    void *data,
-                                    const char *name,
-                                    const char *pem_cert);
+struct tevent_req *
+ifp_users_find_by_cert_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *pem_cert);
 
-int ifp_users_list_by_name(struct sbus_request *sbus_req,
-                           void *data,
-                           const char *filter,
-                           uint32_t limit);
+errno_t
+ifp_users_find_by_cert_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char **_path);
 
-int ifp_users_list_by_domain_and_name(struct sbus_request *sbus_req,
-                                      void *data,
-                                      const char *domain,
-                                      const char *filter,
-                                      uint32_t limit);
+struct tevent_req *
+ifp_users_list_by_cert_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *pem_cert,
+                            uint32_t limit);
+
+errno_t
+ifp_users_list_by_cert_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char ***_paths);
+
+struct tevent_req *
+ifp_users_find_by_name_and_cert_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sbus_request *sbus_req,
+                                     struct ifp_ctx *ctx,
+                                     const char *name,
+                                     const char *pem_cert);
+
+errno_t
+ifp_users_find_by_name_and_cert_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req,
+                                     const char **_path);
+
+struct tevent_req *
+ifp_users_list_by_name_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            const char *filter,
+                            uint32_t limit);
+
+errno_t
+ifp_users_list_by_name_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            const char ***_paths);
+
+struct tevent_req *
+ifp_users_list_by_domain_and_name_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       struct sbus_request *sbus_req,
+                                       struct ifp_ctx *ctx,
+                                       const char *domain,
+                                       const char *filter,
+                                       uint32_t limit);
+
+errno_t
+ifp_users_list_by_domain_and_name_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       const char ***_paths);
 
 /* org.freedesktop.sssd.infopipe.Users.User */
 
-int ifp_users_user_update_groups_list(struct sbus_request *req,
-                                      void *data);
+struct tevent_req *
+ifp_users_user_update_groups_list_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       struct sbus_request *sbus_req,
+                                       struct ifp_ctx *ctx);
 
-void ifp_users_user_get_name(struct sbus_request *sbus_req,
-                             void *data,
-                             const char **_out);
+errno_t
+ifp_users_user_update_groups_list_recv(struct tevent_req *req);
 
-void ifp_users_user_get_uid_number(struct sbus_request *sbus_req,
-                                   void *data,
-                                   uint32_t *_out);
+errno_t
+ifp_users_user_get_name(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct ifp_ctx *ctx,
+                        const char **_out);
 
-void ifp_users_user_get_gid_number(struct sbus_request *sbus_req,
-                                   void *data,
-                                   uint32_t *_out);
+errno_t
+ifp_users_user_get_uid_number(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              uint32_t *_out);
 
-void ifp_users_user_get_gecos(struct sbus_request *sbus_req,
-                              void *data,
-                              const char **_out);
+errno_t
+ifp_users_user_get_gid_number(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              uint32_t *_out);
 
-void ifp_users_user_get_home_directory(struct sbus_request *sbus_req,
-                                       void *data,
-                                       const char **_out);
+errno_t
+ifp_users_user_get_gecos(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct ifp_ctx *ctx,
+                        const char **_out);
 
-void ifp_users_user_get_login_shell(struct sbus_request *sbus_req,
-                                    void *data,
-                                    const char **_out);
-
-void ifp_users_user_get_unique_id(struct sbus_request *sbus_req,
-                                  void *data,
+errno_t
+ifp_users_user_get_home_directory(TALLOC_CTX *mem_ctx,
+                                  struct sbus_request *sbus_req,
+                                  struct ifp_ctx *ctx,
                                   const char **_out);
 
-void ifp_users_user_get_groups(struct sbus_request *sbus_req,
-                               void *data,
-                               const char ***_out,
-                               int *_size);
-
-void ifp_users_user_get_domain(struct sbus_request *sbus_req,
-                               void *data,
+errno_t
+ifp_users_user_get_login_shell(TALLOC_CTX *mem_ctx,
+                               struct sbus_request *sbus_req,
+                               struct ifp_ctx *ctx,
                                const char **_out);
 
-void ifp_users_user_get_domainname(struct sbus_request *sbus_req,
-                                   void *data,
-                                   const char **_out);
+errno_t
+ifp_users_user_get_unique_id(TALLOC_CTX *mem_ctx,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ctx,
+                             const char **_out);
 
-void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
-                                         void *data,
-                                         hash_table_t **_out);
+errno_t
+ifp_users_user_get_groups(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ifp_ctx,
+                          const char ***_out);
+
+errno_t
+ifp_users_user_get_domain(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          const char **_out);
+
+errno_t
+ifp_users_user_get_domainname(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ifp_ctx,
+                              const char **_out);
+
+errno_t
+ifp_users_user_get_extra_attributes(TALLOC_CTX *mem_ctx,
+                                    struct sbus_request *sbus_req,
+                                    struct ifp_ctx *ifp_ctx,
+                                    hash_table_t **_out);
 
 /* org.freedesktop.sssd.infopipe.Cache */
 
-int ifp_cache_list_user(struct sbus_request *sbus_req,
-                        void *data);
+errno_t
+ifp_cache_list_user(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct ifp_ctx *ctx,
+                    const char ***_out);
 
-int ifp_cache_list_by_domain_user(struct sbus_request *sbus_req,
-                                  void *data,
-                                  const char *domain);
+errno_t
+ifp_cache_list_by_domain_user(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              const char *domain,
+                              const char ***_out);
 
 /* org.freedesktop.sssd.infopipe.Cache.Object */
 
-int ifp_cache_object_store_user(struct sbus_request *sbus_req,
-                                void *data);
+errno_t
+ifp_cache_object_store_user(TALLOC_CTX *mem_ctx,
+                            struct sbus_request *sbus_req,
+                            struct ifp_ctx *ctx,
+                            bool *_result);
 
-int ifp_cache_object_remove_user(struct sbus_request *sbus_req,
-                                 void *data);
+errno_t
+ifp_cache_object_remove_user(TALLOC_CTX *mem_ctx,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ctx,
+                             bool *_result);
 
 #endif /* IFP_USERS_H_ */

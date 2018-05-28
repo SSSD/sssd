@@ -705,13 +705,25 @@ dist_noinst_HEADERS = \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
     src/responder/ssh/ssh_private.h \
-    src/responder/ifp/ifp_iface.h \
     src/responder/ifp/ifp_private.h \
     src/responder/ifp/ifp_domains.h \
     src/responder/ifp/ifp_components.h \
     src/responder/ifp/ifp_users.h \
     src/responder/ifp/ifp_groups.h \
     src/responder/ifp/ifp_cache.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_arguments.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_async.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_properties.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_sync.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_interface.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_invokers.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_keygens.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_server.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_symbols.h \
+    src/responder/ifp/ifp_iface/ifp_iface.h \
+    src/responder/ifp/ifp_iface/ifp_iface_types.h \
+    src/responder/ifp/ifp_iface/ifp_iface_async.h \
+    src/responder/ifp/ifp_iface/ifp_iface_sync.h \
     src/responder/secrets/secsrv.h \
     src/responder/secrets/secsrv_private.h \
     src/responder/secrets/secsrv_local.h \
@@ -1048,6 +1060,7 @@ EXTRA_DIST += \
     src/sbus/codegen/templates/symbols.h.tpl \
     src/sss_iface/sss_iface.xml \
     src/sss_iface/external_iface.xml \
+    src/responder/ifp/ifp_iface/ifp_iface.xml \
     $(NULL)
 
 pkglib_LTLIBRARIES += libsss_sbus.la
@@ -1712,11 +1725,63 @@ sssd_pac_LDADD = \
     $(NULL)
 
 if BUILD_IFP
+pkglib_LTLIBRARIES += libifp_iface.la
+libifp_iface_la_SOURCES = \
+    src/responder/ifp/ifp_iface/sbus_ifp_arguments.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_async.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_invokers.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_keygens.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_symbols.c \
+    src/responder/ifp/ifp_iface/ifp_iface_types.c \
+    src/responder/ifp/ifp_iface/ifp_iface.c \
+    $(NULL)
+libifp_iface_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    libsss_sbus.la \
+    $(NULL)
+libifp_iface_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libifp_iface_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libifp_iface_sync.la
+libifp_iface_sync_la_SOURCES = \
+    src/responder/ifp/ifp_iface/sbus_ifp_arguments.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_sync.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_keygens.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_symbols.c \
+    src/responder/ifp/ifp_iface/ifp_iface_types.c \
+    $(NULL)
+libifp_iface_sync_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    libsss_sbus_sync.la \
+    $(NULL)
+libifp_iface_sync_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libifp_iface_sync_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
 sssd_ifp_SOURCES = \
     src/responder/ifp/ifpsrv.c \
     src/responder/ifp/ifpsrv_cmd.c \
-    src/responder/ifp/ifp_iface_generated.c \
-    src/responder/ifp/ifp_iface.c \
     src/responder/ifp/ifp_iface_nodes.c \
     src/responder/ifp/ifpsrv_util.c \
     src/responder/ifp/ifp_domains.c \
@@ -1732,7 +1797,9 @@ sssd_ifp_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_cert.la \
-    libsss_sbus_old.la \
+    libifp_iface.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 dist_dbuspolicy_DATA = \
@@ -3177,7 +3244,6 @@ ifp_tests_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_ifp.c \
     src/responder/ifp/ifpsrv_cmd.c \
-    src/responder/ifp/ifp_iface_generated.c \
     src/responder/ifp/ifpsrv_util.c \
     $(NULL)
 ifp_tests_CFLAGS = \

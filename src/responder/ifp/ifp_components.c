@@ -96,11 +96,11 @@ static errno_t check_and_get_component_from_path(TALLOC_CTX *mem_ctx,
             goto done;
         }
     } else {
-        name = sbus_opath_get_object_name(mem_ctx, path, PATH_RESPONDERS);
+        name = sbus_opath_object_name(mem_ctx, path, PATH_RESPONDERS);
         if (name != NULL) {
             type = COMPONENT_RESPONDER;
         } else {
-            name = sbus_opath_get_object_name(mem_ctx, path, PATH_BACKENDS);
+            name = sbus_opath_object_name(mem_ctx, path, PATH_BACKENDS);
             if (name != NULL) {
                 type = COMPONENT_BACKEND;
             } else {
@@ -163,7 +163,7 @@ static errno_t list_responders(TALLOC_CTX *mem_ctx,
 
     for (num = 0; svc[num] != NULL; num++);
 
-    list = talloc_array(mem_ctx, const char*, num);
+    list = talloc_zero_array(mem_ctx, const char*, num + 1);
     if (list == NULL) {
         ret = ENOMEM;
         goto done;
@@ -213,7 +213,7 @@ static errno_t list_backends(TALLOC_CTX *mem_ctx,
 
     for (num = 0; names[num] != NULL; num++);
 
-    list = talloc_array(tmp_ctx, const char*, num);
+    list = talloc_zero_array(tmp_ctx, const char*, num + 1);
     if (list == NULL) {
         ret = ENOMEM;
         goto done;
@@ -236,38 +236,40 @@ done:
     return ret;
 }
 
-int ifp_list_components(struct sbus_request *dbus_req, void *data)
+errno_t
+ifp_list_components(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct ifp_ctx *ctx,
+                    const char ***_paths)
 {
-    struct ifp_ctx *ctx = NULL;
-    DBusError *error = NULL;
-    const char **responders = NULL;
-    const char **backends = NULL;
-    const char **result = NULL;
+    TALLOC_CTX *tmp_ctx;
+    const char **responders;
+    const char **backends;
+    const char **result;
     int num_responders;
     int num_backends;
     int num;
     int i;
     errno_t ret;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        ret = EINVAL;
-        goto done;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
     }
 
-    ret = list_responders(dbus_req, &responders, &num_responders);
+    ret = list_responders(tmp_ctx, &responders, &num_responders);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = list_backends(dbus_req, ctx->rctx->cdb, &backends, &num_backends);
+    ret = list_backends(tmp_ctx, ctx->rctx->cdb, &backends, &num_backends);
     if (ret != EOK) {
         goto done;
     }
 
     num = num_responders + num_backends + 1;
-    result = talloc_array(dbus_req, const char*, num);
+    result = talloc_zero_array(mem_ctx, const char *, num + 1);
     if (result == NULL) {
         ret = ENOMEM;
         goto done;
@@ -283,170 +285,162 @@ int ifp_list_components(struct sbus_request *dbus_req, void *data)
         result[i + num_responders + 1] = talloc_steal(result, backends[i]);
     }
 
+    *_paths = result;
+
     ret = EOK;
 
 done:
-    if (ret != EOK) {
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "%s", strerror(ret));
-        return sbus_request_fail_and_finish(dbus_req, error);
-    }
+    talloc_free(tmp_ctx);
 
-    return iface_ifp_ListComponents_finish(dbus_req, result, num);
+    return ret;
 }
 
-int ifp_list_responders(struct sbus_request *dbus_req, void *data)
+
+errno_t
+ifp_list_responders(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct ifp_ctx *ctx,
+                    const char ***_paths)
 {
-    DBusError *error = NULL;
-    const char **result = NULL;
+    const char **result;
     int num;
     errno_t ret;
 
-    ret = list_responders(dbus_req, &result, &num);
+    ret = list_responders(mem_ctx, &result, &num);
     if (ret != EOK) {
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "%s", strerror(ret));
-        return sbus_request_fail_and_finish(dbus_req, error);
+        return ret;
     }
 
-    return iface_ifp_ListResponders_finish(dbus_req, result, num);
+    *_paths = result;
+
+    return EOK;
 }
 
-int ifp_list_backends(struct sbus_request *dbus_req, void *data)
+errno_t
+ifp_list_backends(TALLOC_CTX *mem_ctx,
+                  struct sbus_request *sbus_req,
+                  struct ifp_ctx *ctx,
+                  const char ***_paths)
 {
-    struct ifp_ctx *ctx = NULL;
-    DBusError *error = NULL;
-    const char **result = NULL;
+    const char **result;
     int num;
     errno_t ret;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = list_backends(dbus_req, ctx->rctx->cdb, &result, &num);
-
-done:
+    ret = list_backends(mem_ctx, ctx->rctx->cdb, &result, &num);
     if (ret != EOK) {
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "%s", strerror(ret));
-        return sbus_request_fail_and_finish(dbus_req, error);
+        return ret;
     }
 
-    return iface_ifp_ListBackends_finish(dbus_req, result, num);
+    *_paths = result;
+
+    return EOK;
 }
 
-int ifp_find_monitor(struct sbus_request *dbus_req, void *data)
+errno_t
+ifp_find_monitor(TALLOC_CTX *mem_ctx,
+                 struct sbus_request *sbus_req,
+                 struct ifp_ctx *ctx,
+                 const char **_path)
 {
-    return iface_ifp_FindMonitor_finish(dbus_req, PATH_MONITOR);
+    *_path = PATH_MONITOR;
+
+    return EOK;
 }
 
-int ifp_find_responder_by_name(struct sbus_request *dbus_req,
-                               void *data,
-                               const char *arg_name)
-{
-    DBusError *error = NULL;
-    const char *result = NULL;
 
-    if (responder_exists(arg_name)) {
-        result = sbus_opath_compose(dbus_req, PATH_RESPONDERS, arg_name);
+errno_t
+ifp_find_responder_by_name(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           const char *name,
+                           const char **_path)
+{
+    const char *result;
+
+    if (responder_exists(name)) {
+        result = sbus_opath_compose(mem_ctx, PATH_RESPONDERS, name);
         if (result == NULL) {
-            return sbus_request_fail_and_finish(dbus_req, NULL);
+            return ENOMEM;
         }
-    } else {
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "Responder \"%s\" does not exist", arg_name);
-        return sbus_request_fail_and_finish(dbus_req, error);
+
+        *_path = result;
+        return EOK;
     }
 
-    return iface_ifp_FindResponderByName_finish(dbus_req, result);
+    DEBUG(SSSDBG_MINOR_FAILURE, "Responder \"%s\" does not exist", name);
+    return ENOENT;
 }
 
-int ifp_find_backend_by_name(struct sbus_request *dbus_req,
-                             void *data,
-                             const char *arg_name)
+errno_t
+ifp_find_backend_by_name(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct ifp_ctx *ctx,
+                         const char *name,
+                         const char **_path)
 {
-    struct ifp_ctx *ctx = NULL;
-    DBusError *error = NULL;
-    const char *result = NULL;
+    const char *result;
 
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "%s\n", strerror(EINVAL));
-        return sbus_request_fail_and_finish(dbus_req, error);
-    }
-
-    if (backend_exists(ctx->rctx->cdb, arg_name)) {
-        result = sbus_opath_compose(dbus_req, PATH_BACKENDS, arg_name);
+    if (backend_exists(ctx->rctx->cdb, name)) {
+        result = sbus_opath_compose(mem_ctx, PATH_BACKENDS, name);
         if (result == NULL) {
-            return sbus_request_fail_and_finish(dbus_req, NULL);
+            return ENOMEM;
         }
-    } else {
-        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
-                               "Backend \"%s\" does not exist", arg_name);
-        return sbus_request_fail_and_finish(dbus_req, error);
+
+        *_path = result;
+        return EOK;
     }
 
-    return iface_ifp_FindBackendByName_finish(dbus_req, result);
+    DEBUG(SSSDBG_MINOR_FAILURE, "Backend \"%s\" does not exist", name);
+    return ENOENT;
 }
 
-void ifp_component_get_name(struct sbus_request *dbus_req,
-                            void *data,
-                            const char **_out)
+errno_t
+ifp_component_get_name(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct ifp_ctx *ctx,
+                       const char **_out)
 {
-    struct ifp_ctx *ctx = NULL;
-    char *name = NULL;
+    char *name;
     errno_t ret;
 
-    *_out = NULL;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        return;
-    }
-
-    ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            dbus_req->path, NULL, &name);
+    ret = check_and_get_component_from_path(mem_ctx, ctx->rctx->cdb,
+                                            sbus_req->path, NULL, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
-                                 ret, strerror(ret));
-        return;
+              ret, sss_strerror(ret));
+        return ret;
     }
 
     *_out = name;
+
+    return EOK;
 }
 
-void ifp_component_get_debug_level(struct sbus_request *dbus_req,
-                                   void *data,
-                                   uint32_t *_out)
+errno_t
+ifp_component_get_debug_level(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              uint32_t *_out)
 {
-    struct ifp_ctx *ctx = NULL;
+    TALLOC_CTX *tmp_ctx;
     const char *confdb_path = NULL;
-    char *name = NULL;
     enum component_type type;
+    char *name;
     int level;
     errno_t ret;
 
-    *_out = 0;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        return;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
     }
 
-    ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            dbus_req->path, &type, &name);
+    ret = check_and_get_component_from_path(tmp_ctx, ctx->rctx->cdb,
+                                            sbus_req->path, &type, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
-                                 ret, strerror(ret));
-        return;
+              ret, sss_strerror(ret));
+        goto done;
     }
 
     switch (type) {
@@ -454,61 +448,70 @@ void ifp_component_get_debug_level(struct sbus_request *dbus_req,
         confdb_path = CONFDB_MONITOR_CONF_ENTRY;
         break;
     case COMPONENT_RESPONDER:
-        confdb_path = talloc_asprintf(dbus_req, CONFDB_SERVICE_PATH_TMPL, name);
+        confdb_path = talloc_asprintf(tmp_ctx, CONFDB_SERVICE_PATH_TMPL, name);
         break;
     case COMPONENT_BACKEND:
-        confdb_path = talloc_asprintf(dbus_req, CONFDB_DOMAIN_PATH_TMPL, name);
+        confdb_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, name);
         break;
     }
 
     if (confdb_path == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = confdb_get_int(ctx->rctx->cdb, confdb_path,
                          CONFDB_SERVICE_DEBUG_LEVEL, SSSDBG_DEFAULT, &level);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve configuration option"
-                                 "[%d]: %s\n", ret, strerror(ret));
-        return;
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
     *_out = level;
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
-void ifp_component_get_enabled(struct sbus_request *dbus_req,
-                               void *data,
-                               bool *_out)
+errno_t
+ifp_component_get_enabled(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          bool *_out)
 {
-    struct ifp_ctx *ctx = NULL;
-    const char *param = NULL;
-    char **values = NULL;
-    char *name = NULL;
+    TALLOC_CTX *tmp_ctx;
     enum component_type type;
+    const char *param = NULL;
+    char **values;
+    char *name;
     errno_t ret;
     int i;
 
-    *_out = false;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        return;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
     }
 
-    ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            dbus_req->path, &type, &name);
+    ret = check_and_get_component_from_path(tmp_ctx, ctx->rctx->cdb,
+                                            sbus_req->path, &type, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
-                                 ret, strerror(ret));
-        return;
+              ret, sss_strerror(ret));
+        goto done;
     }
 
     switch (type) {
     case COMPONENT_MONITOR:
         *_out = true;
-        return;
+        ret = EOK;
+        goto done;
     case COMPONENT_RESPONDER:
         param = CONFDB_MONITOR_ACTIVE_SERVICES;
         break;
@@ -517,44 +520,44 @@ void ifp_component_get_enabled(struct sbus_request *dbus_req,
         break;
     }
 
-    ret = confdb_get_string_as_list(ctx->rctx->cdb, dbus_req,
+    ret = confdb_get_string_as_list(ctx->rctx->cdb, tmp_ctx,
                                     CONFDB_MONITOR_CONF_ENTRY, param, &values);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve configuration option"
-                                 "[%d]: %s\n", ret, strerror(ret));
-        return;
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
     }
 
     for (i = 0; values[i] != NULL; i++) {
         if (strcmp(values[i], name) == 0) {
             *_out = true;
-            return;
+            break;
         }
     }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
-void ifp_component_get_type(struct sbus_request *dbus_req,
-                            void *data,
-                            const char **_out)
+errno_t
+ifp_component_get_type(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct ifp_ctx *ctx,
+                       const char **_out)
 {
-    struct ifp_ctx *ctx = NULL;
     enum component_type type;
     errno_t ret;
 
-    *_out = NULL;
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        return;
-    }
-
-    ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            dbus_req->path, &type, NULL);
+    ret = check_and_get_component_from_path(mem_ctx, ctx->rctx->cdb,
+                                            sbus_req->path, &type, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
-                                 ret, strerror(ret));
-        return;
+              ret, sss_strerror(ret));
+        return ret;
     }
 
     switch (type) {
@@ -568,20 +571,22 @@ void ifp_component_get_type(struct sbus_request *dbus_req,
         *_out = "backend";
         break;
     }
+
+    return EOK;
 }
 
-void ifp_backend_get_providers(struct sbus_request *dbus_req,
-                               void *data,
-                               const char ***_out,
-                               int *_out_len)
+errno_t
+ifp_backend_get_providers(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          const char ***_out)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
-    struct ifp_ctx *ctx = NULL;
-    const char *confdb_path = NULL;
-    char *name = NULL;
+    TALLOC_CTX *tmp_ctx;
+    const char *confdb_path;
+    char *name;
     enum component_type type;
-    const char **out = NULL;
-    char *value = NULL;
+    const char **out;
+    char *value;
     static const char *providers[] = {CONFDB_DOMAIN_ID_PROVIDER,
                                       CONFDB_DOMAIN_AUTH_PROVIDER,
                                       CONFDB_DOMAIN_ACCESS_PROVIDER,
@@ -597,40 +602,34 @@ void ifp_backend_get_providers(struct sbus_request *dbus_req,
     int i;
     int j;
 
-    *_out = NULL;
-    *_out_len = 0;
-
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        return;
-    }
-
-    ctx = talloc_get_type(data, struct ifp_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
-        return;
+        return ENOMEM;
     }
 
     ret = check_and_get_component_from_path(tmp_ctx, ctx->rctx->cdb,
-                                            dbus_req->path, &type, &name);
+                                            sbus_req->path, &type, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
-                                 ret, strerror(ret));
-        return;
+              ret, sss_strerror(ret));
+        goto done;
     }
 
     if (type != COMPONENT_BACKEND) {
-        return;
+        ret = EINVAL;
+        goto done;
     }
 
     confdb_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, name);
     if (confdb_path == NULL) {
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
-    out = talloc_zero_array(tmp_ctx, const char*, num_providers);
+    out = talloc_zero_array(tmp_ctx, const char *, num_providers + 1);
     if (out == NULL) {
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
     j = 0;
@@ -638,7 +637,7 @@ void ifp_backend_get_providers(struct sbus_request *dbus_req,
         ret = confdb_get_string(ctx->rctx->cdb, tmp_ctx, confdb_path,
                                 providers[i], NULL, &value);
         if (ret != EOK) {
-            return;
+            goto done;
         }
 
         if (value == NULL) {
@@ -647,15 +646,17 @@ void ifp_backend_get_providers(struct sbus_request *dbus_req,
 
         out[j] = talloc_asprintf(out, "%s=%s", providers[i], value);
         if (out[j] == NULL) {
-            return;
+            ret = ENOMEM;
+            goto done;
         }
 
         j++;
     }
 
-    *_out = talloc_steal(dbus_req, out);
-    *_out_len = j;
+    *_out = talloc_steal(mem_ctx, out);
 
+done:
     talloc_free(tmp_ctx);
-    return;
+
+    return ret;
 }
