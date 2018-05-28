@@ -661,19 +661,26 @@ static int get_extended_key_usage_oids(TALLOC_CTX *mem_ctx,
     char oid_buf[128]; /* FIXME: any other size ?? */
     int len;
     EXTENDED_KEY_USAGE *extusage = NULL;
+    int crit;
+    size_t eku_count = 0;
 
-    extusage = X509_get_ext_d2i(cert, NID_ext_key_usage, NULL, NULL);
+    extusage = X509_get_ext_d2i(cert, NID_ext_key_usage, &crit, NULL);
     if (extusage == NULL) {
-        return EIO;
+        if (crit == -1) { /* extension could not be found */
+            eku_count = 0;
+        } else {
+            return EINVAL;
+        }
+    } else {
+        eku_count = sk_ASN1_OBJECT_num(extusage);
     }
 
-    oids_list = talloc_zero_array(mem_ctx, const char *,
-                                  sk_ASN1_OBJECT_num(extusage) + 1);
+    oids_list = talloc_zero_array(mem_ctx, const char *, eku_count + 1);
     if (oids_list == NULL) {
         return ENOMEM;
     }
 
-    for (c = 0; c < sk_ASN1_OBJECT_num(extusage); c++) {
+    for (c = 0; c < eku_count; c++) {
         len = OBJ_obj2txt(oid_buf, sizeof(oid_buf),
                           sk_ASN1_OBJECT_value(extusage, c), 1);
         if (len < 0) {

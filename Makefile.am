@@ -3506,6 +3506,7 @@ sss_certmap_test_SOURCES = \
 sss_certmap_test_CFLAGS = \
     $(AM_CFLAGS) \
     $(NSS_CFLAGS) \
+    -I$(abs_builddir)/src \
     $(NULL)
 sss_certmap_test_LDADD = \
     $(CMOCKA_LIBS) \
