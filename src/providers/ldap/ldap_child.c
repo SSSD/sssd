@@ -38,21 +38,9 @@ char *global_ccname_file_dummy = NULL;
 
 static void sig_term_handler(int sig)
 {
-    int ret;
-
-    DEBUG(SSSDBG_FATAL_FAILURE, "Received signal [%s] [%i], shutting down\n",
-                                strsignal(sig), sig);
-
     if (global_ccname_file_dummy != NULL) {
-        ret = unlink(global_ccname_file_dummy);
-        if (ret != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Unlink file [%s] failed [%i][%s]\n",
-                                        global_ccname_file_dummy,
-                                        errno, strerror(errno));
-        } else {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Unlink file [%s]\n",
-                                        global_ccname_file_dummy);
-        }
+        /* Cast to void to avoid a complaint by Coverity */
+        (void) unlink(global_ccname_file_dummy);
     }
 
     _exit(CHILD_TIMEOUT_EXIT_CODE);
