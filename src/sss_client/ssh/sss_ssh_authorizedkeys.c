@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <talloc.h>
 #include <popt.h>
+#include <signal.h>
 
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
@@ -99,8 +100,16 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
+    /* if sshd closes its end of the pipe, we don't want sss_ssh_authorizedkeys
+     * to exit abruptly, but to finish gracefully instead because the valid
+     * key can be present in the data already written
+     */
+    signal(SIGPIPE, SIG_IGN);
+
     /* print results */
     for (i = 0; i < ent->num_pubkeys; i++) {
+        char *repr_break = NULL;
+
         ret = sss_ssh_format_pubkey(mem_ctx, &ent->pubkeys[i], &repr);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -109,7 +118,31 @@ int main(int argc, const char **argv)
             continue;
         }
 
-        printf("%s\n", repr);
+        /* OpenSSH expects a linebreak after each key */
+        repr_break = talloc_asprintf(mem_ctx, "%s\n", repr);
+        talloc_zfree(repr);
+        if (repr_break == NULL) {
+            ret = ENOMEM;
+            goto fini;
+        }
+
+        ret = sss_atomic_write_s(STDOUT_FILENO, repr_break, strlen(repr_break));
+        /* Avoid spiking memory with too many large keys */
+        talloc_zfree(repr_break);
+        if (ret < 0) {
+            ret = errno;
+            if (ret == EPIPE) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "SSHD closed the pipe before all keys could be written\n");
+                /* Return 0 so that openssh doesn't abort pubkey auth */
+                ret = 0;
+                goto fini;
+            }
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_atomic_write_s() failed (%d): %s\n",
+                  ret, strerror(ret));
+            goto fini;
+        }
     }
 
     ret = EXIT_SUCCESS;
