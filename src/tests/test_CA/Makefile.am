@@ -3,8 +3,10 @@ dist_noinst_DATA = \
     SSSD_test_CA_key.pem \
     SSSD_test_cert_0001.config \
     SSSD_test_cert_0002.config \
+    SSSD_test_cert_0003.config \
     SSSD_test_cert_key_0001.pem \
     SSSD_test_cert_key_0002.pem \
+    SSSD_test_cert_key_0003.pem \
     $(NULL)
 
 openssl_ca_config = $(srcdir)/SSSD_test_CA.config
