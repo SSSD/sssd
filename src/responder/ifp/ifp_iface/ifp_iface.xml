@@ -2,66 +2,68 @@
  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
     <interface name="org.freedesktop.sssd.infopipe">
-        <annotation value="iface_ifp" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <annotation name="codegen.Name" value="ifp" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
         <method name="Ping">
-            <arg name="ping" type="s" direction="in" />
+            <arg name="ping" type="s" direction="in" key="1" />
             <arg name="pong" type="s" direction="out" />
         </method>
 
         <!-- SSSD components -->
 
-        <method name="ListComponents">
+        <method name="ListComponents" key="True">
             <arg name="components" type="ao" direction="out"/>
         </method>
 
-        <method name="ListResponders">
+        <method name="ListResponders" key="True">
             <arg name="responders" type="ao" direction="out"/>
         </method>
 
-        <method name="ListBackends">
+        <method name="ListBackends" key="True">
             <arg name="backends" type="ao" direction="out"/>
         </method>
 
-        <method name="FindMonitor">
+        <method name="FindMonitor" key="True">
             <arg name="monitor" type="o" direction="out"/>
         </method>
 
         <method name="FindResponderByName">
-            <arg name="name" type="s" direction="in" />
+            <arg name="name" type="s" direction="in" key="1" />
             <arg name="responder" type="o" direction="out"/>
         </method>
 
         <method name="FindBackendByName">
-            <arg name="name" type="s" direction="in" />
+            <arg name="name" type="s" direction="in" key="1" />
             <arg name="backend" type="o" direction="out"/>
         </method>
 
         <method name="GetUserAttr">
+            <annotation name="codegen.CustomOutputHandler" value="true"/>
             <arg name="user" type="s" direction="in" />
             <arg name="attr" type="as" direction="in" />
             <arg name="values" type="a{sv}" direction="out"/>
-            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
 
         <method name="GetUserGroups">
-            <arg name="user" type="s" direction="in" />
+            <arg name="user" type="s" direction="in" key="1" />
             <arg name="values" type="as" direction="out"/>
         </method>
 
         <method name="FindDomainByName">
-            <arg name="name" type="s" direction="in" />
+            <arg name="name" type="s" direction="in" key="1" />
             <arg name="domain" type="o" direction="out"/>
         </method>
 
-        <method name="ListDomains">
+        <method name="ListDomains" key="True">
             <arg name="domain" type="ao" direction="out"/>
         </method>
 
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Components">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_components"/>
+        <annotation name="codegen.Name" value="ifp_components" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
         <property name="name" type="s" access="read" />
         <property name="debug_level" type="u" access="read" />
@@ -74,7 +76,8 @@
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Domains">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_domains"/>
+        <annotation name="codegen.Name" value="ifp_domains" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
         <property name="name" type="s" access="read"/>
         <property name="provider" type="s" access="read"/>
@@ -93,62 +96,65 @@
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Domains.Domain">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_domains_domain"/>
+        <annotation name="codegen.Name" value="ifp_domain" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
-        <method name="IsOnline">
+        <method name="IsOnline" key="True">
             <arg name="status" type="b" direction="out" />
         </method>
 
-        <method name="ListServices">
+        <method name="ListServices" key="True">
             <arg name="services" type="as" direction="out" />
         </method>
 
         <method name="ActiveServer">
-            <arg name="service" type="s" direction="in" />
+            <arg name="service" type="s" direction="in" key="1" />
             <arg name="server" type="s" direction="out" />
         </method>
 
         <method name="ListServers">
-            <arg name="service_name" type="s" direction="in" />
+            <arg name="service_name" type="s" direction="in" key="1" />
             <arg name="servers" type="as" direction="out" />
         </method>
 
-        <method name="RefreshAccessRules">
-        </method>
+        <method name="RefreshAccessRules" key="True" />
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Cache">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_cache"/>
+        <annotation name="codegen.Name" value="ifp_cache" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
-        <method name="List">
+        <method name="List" key="True">
             <arg name="result" type="ao" direction="out" />
         </method>
         <method name="ListByDomain">
-            <arg name="domain_name" type="s" direction="in" />
+            <arg name="domain_name" type="s" direction="in" key="1" />
             <arg name="result" type="ao" direction="out"/>
         </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Cache.Object">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_cache_object"/>
+        <annotation name="codegen.Name" value="ifp_cache_object" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
-        <method name="Store">
+        <method name="Store" key="True">
             <arg name="result" type="b" direction="out" />
         </method>
-        <method name="Remove">
+        <method name="Remove" key="True">
             <arg name="result" type="b" direction="out" />
         </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Users">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_users"/>
+        <annotation name="codegen.Name" value="ifp_users" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
         <method name="FindByName">
-            <arg name="name" type="s" direction="in" />
+            <arg name="name" type="s" direction="in" key="1" />
             <arg name="result" type="o" direction="out" />
         </method>
         <method name="FindByID">
-            <arg name="id" type="u" direction="in" />
+            <arg name="id" type="u" direction="in" key="1" />
             <arg name="result" type="o" direction="out" />
         </method>
         <method name="FindByCertificate">
@@ -166,22 +172,23 @@
             <arg name="result" type="o" direction="out" />
         </method>
         <method name="ListByName">
-            <arg name="name_filter" type="s" direction="in" />
-            <arg name="limit" type="u" direction="in" />
+            <arg name="name_filter" type="s" direction="in" key="1" />
+            <arg name="limit" type="u" direction="in" key="2" />
             <arg name="result" type="ao" direction="out" />
         </method>
         <method name="ListByDomainAndName">
-            <arg name="domain_name" type="s" direction="in" />
-            <arg name="name_filter" type="s" direction="in" />
-            <arg name="limit" type="u" direction="in" />
+            <arg name="domain_name" type="s" direction="in" key="1" />
+            <arg name="name_filter" type="s" direction="in" key="2" />
+            <arg name="limit" type="u" direction="in" key="3" />
             <arg name="result" type="ao" direction="out"/>
         </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Users.User">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_users_user"/>
+        <annotation name="codegen.Name" value="ifp_user" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
-        <method name="UpdateGroupsList" />
+        <method name="UpdateGroupsList" key="True" />
 
         <property name="name" type="s" access="read" />
         <property name="uidNumber" type="u" access="read" />
@@ -193,37 +200,39 @@
         <property name="groups" type="ao" access="read" />
         <property name="domain" type="o" access="read" />
         <property name="domainname" type="s" access="read" />
-        <property name="extraAttributes" type="a{sas}" access="read" />
+        <property name="extraAttributes" type="ifp_extra" access="read" />
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Groups">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_groups"/>
+        <annotation name="codegen.Name" value="ifp_groups" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
         <method name="FindByName">
-            <arg name="name" type="s" direction="in" />
+            <arg name="name" type="s" direction="in" key="1" />
             <arg name="result" type="o" direction="out" />
         </method>
         <method name="FindByID">
-            <arg name="id" type="u" direction="in" />
+            <arg name="id" type="u" direction="in" key="1" />
             <arg name="result" type="o" direction="out" />
         </method>
         <method name="ListByName">
-            <arg name="name_filter" type="s" direction="in" />
-            <arg name="limit" type="u" direction="in" />
+            <arg name="name_filter" type="s" direction="in" key="1" />
+            <arg name="limit" type="u" direction="in" key="2" />
             <arg name="result" type="ao" direction="out" />
         </method>
         <method name="ListByDomainAndName">
-            <arg name="domain_name" type="s" direction="in" />
-            <arg name="name_filter" type="s" direction="in" />
-            <arg name="limit" type="u" direction="in" />
+            <arg name="domain_name" type="s" direction="in" key="1" />
+            <arg name="name_filter" type="s" direction="in" key="2" />
+            <arg name="limit" type="u" direction="in" key="3" />
             <arg name="result" type="ao" direction="out"/>
         </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Groups.Group">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_groups_group"/>
+        <annotation name="codegen.Name" value="ifp_group" />
+        <annotation name="codegen.AsyncCaller" value="false" />
 
-        <method name="UpdateMemberList" />
+        <method name="UpdateMemberList" key="True" />
 
         <property name="name" type="s" access="read" />
         <property name="gidNumber" type="u" access="read" />
