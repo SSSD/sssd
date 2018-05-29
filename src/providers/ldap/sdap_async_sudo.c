@@ -161,7 +161,7 @@ static char *sdap_sudo_build_host_filter(TALLOC_CTX *mem_ctx,
     /* sudoHost is not specified and it is a cn=defaults rule */
     filter = talloc_asprintf_append_buffer(filter, "(&(!(%s=*))(%s=defaults))",
                                            map[SDAP_AT_SUDO_HOST].name,
-                                           map[SDAP_AT_SUDO_HOST].name);
+                                           map[SDAP_AT_SUDO_NAME].name);
     if (filter == NULL) {
         goto done;
     }
