@@ -1108,7 +1108,14 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
 
         switch (ar->entry_type & BE_REQ_TYPE_MASK) {
         case BE_REQ_GROUP:
-            ret = sysdb_search_group_by_gid(mem_ctx, dom, id, attrs, &msg);
+            ret = sysdb_getgrgid_attrs(mem_ctx, dom, id, attrs, &res);
+            if (ret == EOK) {
+                if (res->count == 0) {
+                    ret = ENOENT;
+                } else {
+                    msg = res->msgs[0];
+                }
+            }
             break;
         case BE_REQ_INITGROUPS:
         case BE_REQ_USER:
@@ -1116,7 +1123,14 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
             ret = sysdb_search_user_by_uid(mem_ctx, dom, id, attrs, &msg);
             if (ret == ENOENT && (ar->entry_type & BE_REQ_TYPE_MASK)
                                                      == BE_REQ_USER_AND_GROUP) {
-                ret = sysdb_search_group_by_gid(mem_ctx, dom, id, attrs, &msg);
+                ret = sysdb_getgrgid_attrs(mem_ctx, dom, id, attrs, &res);
+                if (ret == EOK) {
+                    if (res->count == 0) {
+                        ret = ENOENT;
+                    } else {
+                        msg = res->msgs[0];
+                    }
+                }
             }
             break;
         default:
