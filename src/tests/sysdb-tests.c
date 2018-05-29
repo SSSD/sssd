@@ -1220,6 +1220,42 @@ done:
 }
 END_TEST
 
+START_TEST (test_sysdb_getgrgid_attrs)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct ldb_result *res;
+    int ret;
+    const char *attrs[] = { SYSDB_CREATE_TIME, NULL };
+    uint64_t ctime;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = test_data_new_group(test_ctx, _i);
+    fail_if(data == NULL, "OOM");
+
+    ret = sysdb_getgrgid_attrs(test_ctx,
+                               test_ctx->domain,
+                               data->gid, attrs, &res);
+    if (ret) {
+        fail("sysdb_getgrgid_attrs failed for gid %d (%d: %s)",
+             data->gid, ret, strerror(ret));
+        goto done;
+    }
+
+    ctime = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_CREATE_TIME, 0);
+    fail_unless(ctime != 0, "Missing create time");
+
+done:
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_search_groups)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -7231,6 +7267,7 @@ Suite *create_sysdb_suite(void)
 
     /* Verify the groups can be queried by GID */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getgrgid, 28010, 28020);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_getgrgid_attrs, 28010, 28020);
 
     /* Find the users by GID using a filter */
     tcase_add_loop_test(tc_sysdb, test_sysdb_search_groups, 28010, 28020);
