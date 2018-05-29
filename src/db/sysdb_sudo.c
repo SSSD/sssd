@@ -956,6 +956,14 @@ sysdb_sudo_store_rule(struct sss_domain_info *domain,
         return ret;
     }
 
+    /* Always delete the old rule and add a new one */
+    ret = sysdb_delete_custom(domain, name, SUDORULE_SUBDIR);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to delete the old rule %s [%d]: %s\n",
+              name, ret, strerror(ret));
+        return ret;
+    }
+
     ret = sysdb_store_custom(domain, name, SUDORULE_SUBDIR, rule);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to store rule %s [%d]: %s\n",
