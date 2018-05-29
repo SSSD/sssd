@@ -1076,23 +1076,36 @@ done:
     return ret;
 }
 
-int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
-                   struct sss_domain_info *domain,
-                   gid_t gid,
-                   struct ldb_result **_res)
+int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
+                         struct sss_domain_info *domain,
+                         gid_t gid,
+                         const char **additional_attrs,
+                         struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
     unsigned long int ul_gid = gid;
     unsigned long int ul_originalad_gid;
-    static const char *attrs[] = SYSDB_GRSRC_ATTRS;
     const char *fmt_filter;
     struct ldb_dn *base_dn;
     struct ldb_result *res = NULL;
     int ret;
+    static const char *default_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **attrs = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
+    }
+
+    if (additional_attrs == NULL) {
+        attrs = default_attrs;
+    } else {
+        ret = add_strings_lists(tmp_ctx, additional_attrs, default_attrs,
+                                false, discard_const(&attrs));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "add_strings_lists failed.\n");
+            goto done;
+        }
     }
 
     if (domain->mpg) {
@@ -1165,6 +1178,14 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
+                   struct sss_domain_info *domain,
+                   gid_t gid,
+                   struct ldb_result **_res)
+{
+    return sysdb_getgrgid_attrs(mem_ctx, domain, gid, NULL, _res);
 }
 
 int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
