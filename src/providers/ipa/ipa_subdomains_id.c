@@ -973,9 +973,16 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
+    /* The object is a user if SYSDB_OBJECTCATEGORY is SYSDB_USER_CLASS or in
+     * case of a MPG group lookup if SYSDB_OBJECTCATEGORY is SYSDB_GROUP_CLASS.
+     */
     for (c = 0; c < msg_el->num_values; c++) {
         if (strncmp(SYSDB_USER_CLASS, (const char *)msg_el->values[c].data,
-                    msg_el->values[c].length) == 0) {
+                    msg_el->values[c].length) == 0
+                || (dom->mpg
+                    && strncmp(SYSDB_GROUP_CLASS,
+                               (const char *)msg_el->values[c].data,
+                               msg_el->values[c].length) == 0)) {
             break;
         }
     }
