@@ -2054,11 +2054,19 @@ pam_account_locked_message = Account locked, please contact help desk.
                             Supported ID providers are:
                         </para>
                         <para>
-                            <quote>proxy</quote>: Support a legacy NSS provider
+                            <quote>proxy</quote>: Support a legacy NSS provider.
                         </para>
                         <para>
                             <quote>local</quote>: SSSD internal provider for
-                            local users
+                            local users (DEPRECATED).
+                        </para>
+                        <para>
+                            <quote>files</quote>: FILES provider. See
+                            <citerefentry>
+                                <refentrytitle>sssd-files</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on
+                            how to mirror local users and groups into SSSD.
                         </para>
                         <para>
                             <quote>ldap</quote>:  LDAP provider. See
