@@ -401,7 +401,7 @@ set_autofs_map_lifetime(uint32_t lifetime,
 
     tv = tevent_timeval_current_ofs(lifetime, 0);
     te = tevent_add_timer(lookup_ctx->rctx->ev,
-                          lookup_ctx->rctx, tv,
+                          map, tv,
                           autofs_map_result_timeout,
                           map);
     if (!te) {
