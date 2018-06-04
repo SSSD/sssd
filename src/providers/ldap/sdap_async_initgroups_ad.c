@@ -1235,7 +1235,18 @@ sdap_ad_tokengroups_get_posix_members(TALLOC_CTX *mem_ctx,
 
         domain = sss_get_domain_by_sid_ldap_fallback(user_domain, sid);
         if (domain == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Domain not found for SID %s\n", sid);
+            const char *check_dom;
+            const char *check_name;
+
+            ret = well_known_sid_to_name(sid, &check_dom, &check_name);
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "Skipping SID [%s][%s\\%s] which is "
+                      "currently not handled by SSSD.\n",
+                      sid, check_dom, check_name);
+            } else {
+                DEBUG(SSSDBG_MINOR_FAILURE, "Domain not found for SID %s\n", sid);
+            }
             continue;
         }
 
