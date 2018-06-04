@@ -1045,7 +1045,8 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
     /* local_timeout */
     ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_RESPONDER_LOCAL_NEG_TIMEOUT,
-                         0, &tmp_value);
+                         CONFDB_RESPONDER_LOCAL_NEG_TIMEOUT_DEFAULT,
+                         &tmp_value);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Fatal failure of setup negative cache timeout.\n");
