@@ -30,12 +30,6 @@
 #include "util/crypto/sss_crypto.h"
 
 
-#ifndef SSSD_LIBEXEC_PATH
-#error "SSSD_LIBEXEC_PATH not defined"
-#endif  /* SSSD_LIBEXEC_PATH */
-
-#define P11_CHILD_LOG_FILE "p11_child"
-#define P11_CHILD_PATH SSSD_LIBEXEC_PATH"/p11_child"
 #define CERT_AUTH_DEFAULT_MATCHING_RULE "KRB5:<EKU>clientAuth"
 
 struct cert_auth_info {

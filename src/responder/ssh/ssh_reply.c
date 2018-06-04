@@ -37,95 +37,6 @@
  * should be used with care if libldb's I/O operations are involved. */
 #define SSS_EL_FLAG_BIN_DATA (1<<4)
 
-static errno_t get_valid_certs_keys(TALLOC_CTX *mem_ctx,
-                                    struct ssh_ctx *ssh_ctx,
-                                    struct ldb_message_element *el_cert,
-                                    struct ldb_message_element **_el_res)
-{
-    TALLOC_CTX *tmp_ctx;
-    uint8_t *key;
-    size_t key_len;
-    char *cert_verification_opts;
-    struct cert_verify_opts *cert_verify_opts;
-    int ret;
-    struct ldb_message_element *el_res;
-    size_t d;
-
-    if (el_cert == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, "Mssing element, nothing to do.\n");
-        return EOK;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    ret = confdb_get_string(ssh_ctx->rctx->cdb, tmp_ctx,
-                            CONFDB_MONITOR_CONF_ENTRY,
-                            CONFDB_MONITOR_CERT_VERIFICATION, NULL,
-                            &cert_verification_opts);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to read p11_child_timeout from confdb: [%d] %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ret = parse_cert_verify_opts(tmp_ctx, cert_verification_opts,
-                                 &cert_verify_opts);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to parse verifiy option.\n");
-        goto done;
-    }
-
-    el_res = talloc_zero(tmp_ctx, struct ldb_message_element);
-    if (el_res == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    el_res->values = talloc_array(el_res, struct ldb_val, el_cert->num_values);
-    if (el_res->values == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    for (d = 0; d < el_cert->num_values; d++) {
-            ret = cert_to_ssh_key(tmp_ctx, ssh_ctx->ca_db,
-                                  el_cert->values[d].data,
-                                  el_cert->values[d].length,
-                                  cert_verify_opts, &key, &key_len);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key failed, ignoring.\n");
-                continue;
-            }
-
-            el_res->values[el_res->num_values].data =
-                                              talloc_steal(el_res->values, key);
-            el_res->values[el_res->num_values].length = key_len;
-            el_res->num_values++;
-    }
-
-    if (el_res->num_values == 0) {
-        *_el_res = NULL;
-    } else {
-        *_el_res = talloc_steal(mem_ctx, el_res);
-    }
-
-    ret = EOK;
-
-done:
-
-    talloc_free(tmp_ctx);
-
-    return ret;
-}
-
 static errno_t decode_and_add_base64_data(struct sss_packet *packet,
                                           struct ldb_message_element *el,
                                           bool skip_base64_decode,
@@ -153,6 +64,10 @@ static errno_t decode_and_add_base64_data(struct sss_packet *packet,
     }
 
     for (d = 0; d < el->num_values; d++) {
+        if (el->values[d].length == 0 && el->values[d].data == NULL) {
+            /* skip empty keys, e.g. due to invalid certificate */
+            continue;
+        }
         if (skip_base64_decode || (el->flags & SSS_EL_FLAG_BIN_DATA)) {
             key = el->values[d].data;
             key_len = el->values[d].length;
@@ -190,139 +105,276 @@ done:
     return ret;
 }
 
-static errno_t
-ssh_get_output_keys(TALLOC_CTX *mem_ctx,
-                    struct ssh_ctx *ssh_ctx,
-                    struct sss_domain_info *domain,
-                    struct ldb_message *msg,
-                    struct ldb_message_element ***_elements,
-                    uint32_t *_num_keys)
-{
-    struct ldb_message_element **elements;
+struct ssh_get_output_keys_state {
+    struct tevent_context *ev;
+    struct cli_ctx *cli_ctx;
+    struct ldb_message *msg;
+    char *cert_verification_opts;
+    int p11_child_timeout;
+    struct ssh_ctx *ssh_ctx;
     struct ldb_message_element *user_cert;
-    uint32_t num_keys = 0;
-    uint32_t i = 0;
+    struct ldb_message_element *user_cert_override;
+    struct ldb_message_element *current_cert;
+
+    const char *name;
+    struct ldb_message_element **elements;
+    uint32_t num_keys;
+    size_t iter;
+};
+
+void ssh_get_output_keys_done(struct tevent_req *subreq);
+
+struct tevent_req *ssh_get_output_keys_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct cli_ctx *cli_ctx,
+                                            struct sss_domain_info *domain,
+                                            struct ldb_message *msg)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
     errno_t ret;
+    struct ssh_get_output_keys_state *state;
 
-    elements = talloc_zero_array(mem_ctx, struct ldb_message_element *, 6);
-    if (elements == NULL) {
-        return ENOMEM;
+    req = tevent_req_create(mem_ctx, &state, struct ssh_get_output_keys_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
+        return NULL;
     }
 
-    elements[i] = ldb_msg_find_element(msg, SYSDB_SSH_PUBKEY);
-    if (elements[i] != NULL) {
-        num_keys += elements[i]->num_values;
-        i++;
+    state->ev = ev;
+    state->cli_ctx = cli_ctx;
+    state->msg = msg;
+    state->num_keys = 0;
+    state->iter = 0;
+    state->ssh_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct ssh_ctx);
+    if (state->ssh_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing ssh responder context.\n");
+        ret = EINVAL;
+        goto done;
     }
 
-    elements[i] = ldb_msg_find_element(msg, ORIGINALAD_PREFIX SYSDB_SSH_PUBKEY);
-    if (elements[i] != NULL) {
-        num_keys += elements[i]->num_values;
-        i++;
+    state->name = ldb_msg_find_attr_as_string(state->msg, SYSDB_NAME, NULL);
+    if (state->name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing name.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    state->elements = talloc_zero_array(state, struct ldb_message_element *, 6);
+    if (state->elements == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    state->elements[state->iter] = ldb_msg_find_element(state->msg,
+                                                        SYSDB_SSH_PUBKEY);
+    if (state->elements[state->iter] != NULL) {
+        state->num_keys += state->elements[state->iter]->num_values;
+        state->iter++;
+    }
+
+    state->elements[state->iter] = ldb_msg_find_element(state->msg,
+                                            ORIGINALAD_PREFIX SYSDB_SSH_PUBKEY);
+    if (state->elements[state->iter] != NULL) {
+        state->num_keys += state->elements[state->iter]->num_values;
+        state->iter++;
     }
 
     if (DOM_HAS_VIEWS(domain)) {
-        elements[i] = ldb_msg_find_element(msg, OVERRIDE_PREFIX SYSDB_SSH_PUBKEY);
-        if (elements[i] != NULL) {
-            num_keys += elements[i]->num_values;
-            i++;
+        state->elements[state->iter] = ldb_msg_find_element(state->msg,
+                                              OVERRIDE_PREFIX SYSDB_SSH_PUBKEY);
+        if (state->elements[state->iter] != NULL) {
+            state->num_keys += state->elements[state->iter]->num_values;
+            state->iter++;
         }
     }
 
-    user_cert = ldb_msg_find_element(msg, SYSDB_USER_CERT);
-    if (user_cert != NULL) {
-        ret = get_valid_certs_keys(elements, ssh_ctx, user_cert, &elements[i]);
+    if (!state->ssh_ctx->use_cert_keys) {
+        DEBUG(SSSDBG_TRACE_ALL, "Skipping keys from certificates.\n");
+        ret = EOK;
+        goto done;
+    }
+
+    ret = confdb_get_string(cli_ctx->rctx->cdb, state,
+                            CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_CERT_VERIFICATION, NULL,
+                            &state->cert_verification_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read verification options from confdb: [%d] %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    state->p11_child_timeout = -1;
+    ret = confdb_get_int(cli_ctx->rctx->cdb, CONFDB_SSH_CONF_ENTRY,
+                         CONFDB_PAM_P11_CHILD_TIMEOUT, -1,
+                         &state->p11_child_timeout);
+    if (ret != EOK || state->p11_child_timeout == -1) {
+        /* check pam configuration as well or use default */
+        ret = confdb_get_int(cli_ctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                             CONFDB_PAM_P11_CHILD_TIMEOUT,
+                             P11_CHILD_TIMEOUT_DEFAULT,
+                             &state->p11_child_timeout);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "get_valid_certs_keys failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read p11_child_timeout from confdb: [%d]: %s\n",
+                  ret, sss_strerror(ret));
             goto done;
         }
-
-        if (elements[i] != NULL) {
-            elements[i]->flags |= SSS_EL_FLAG_BIN_DATA;
-            num_keys += elements[i]->num_values;
-            i++;
-        }
     }
 
+    state->user_cert = ldb_msg_find_element(state->msg, SYSDB_USER_CERT);
     if (DOM_HAS_VIEWS(domain)) {
-        user_cert = ldb_msg_find_element(msg, OVERRIDE_PREFIX SYSDB_USER_CERT);
-        if (user_cert != NULL) {
-            ret = get_valid_certs_keys(elements, ssh_ctx, user_cert,
-                                       &elements[i]);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "get_valid_certs_keys failed.\n");
-                goto done;
-            }
-
-            if (elements[i] != NULL) {
-                elements[i]->flags |= SSS_EL_FLAG_BIN_DATA;
-                num_keys += elements[i]->num_values;
-                i++;
-            }
-        }
+        state->user_cert_override = ldb_msg_find_element(state->msg,
+                                               OVERRIDE_PREFIX SYSDB_USER_CERT);
     }
 
-    *_elements = elements;
-    *_num_keys = num_keys;
+    if (state->user_cert == NULL && state->user_cert_override == NULL) {
+        /* no certificates to convert, we are done */
+        ret = EOK;
+        goto done;
+    }
 
-    ret = EOK;
+    state->current_cert = state->user_cert != NULL ? state->user_cert
+                                                   : state->user_cert_override;
+
+    subreq = cert_to_ssh_key_send(state, state->ev, -1,
+                                  state->p11_child_timeout,
+                                  state->ssh_ctx->ca_db,
+                                  state->current_cert->num_values,
+                                  state->current_cert->values,
+                                  state->cert_verification_opts);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key_send failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ssh_get_output_keys_done, req);
+
+    ret = EAGAIN;
 
 done:
-    if (ret != EOK) {
-        talloc_free(elements);
+    if (ret != EAGAIN) {
+        if (ret == EOK) {
+            tevent_req_done(req);
+        } else {
+            tevent_req_error(req, ret);
+        }
+        tevent_req_post(req, ev);
     }
 
-    return ret;
+    return req;
 }
 
-static errno_t
-ssh_get_name(struct ldb_message *msg,
-             struct sized_string *sz_name)
+void ssh_get_output_keys_done(struct tevent_req *subreq)
 {
-    const char *name;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ssh_get_output_keys_state *state = tevent_req_data(req,
+                                              struct ssh_get_output_keys_state);
+    int ret;
+    struct ldb_val *keys;
+    size_t valid_keys;
 
-    name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-    if (name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Got unnamed result!\n");
-        return ENOENT;
+    ret = cert_to_ssh_key_recv(subreq, state, &keys, &valid_keys);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key request failed.\n");
+        tevent_req_error(req, ret);
+        return;
     }
 
-    to_sized_string(sz_name, name);
+    state->elements[state->iter] = talloc_zero(state->elements,
+                                                struct ldb_message_element);
+    if (state->elements[state->iter] == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    state->elements[state->iter]->values = talloc_steal(
+                                                   state->elements[state->iter],
+                                                   keys);
+    state->elements[state->iter]->num_values = state->current_cert->num_values;
+    state->elements[state->iter]->flags |= SSS_EL_FLAG_BIN_DATA;
+    state->num_keys += valid_keys;
+
+    if (state->current_cert == state->user_cert) {
+        state->current_cert = state->user_cert_override;
+    } else if (state->current_cert == state->user_cert_override) {
+        state->current_cert = NULL;
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected certificate pointer.\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    if (state->current_cert == NULL) {
+        /* done */
+        ret = EOK;
+        goto done;
+    }
+
+    subreq = cert_to_ssh_key_send(state, state->ev, -1,
+                                  state->p11_child_timeout,
+                                  state->ssh_ctx->ca_db,
+                                  state->current_cert->num_values,
+                                  state->current_cert->values,
+                                  state->cert_verification_opts);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key_send failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ssh_get_output_keys_done, req);
+    return;
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+
+    return;
+}
+
+errno_t ssh_get_output_keys_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                                 struct sized_string *name,
+                                 struct ldb_message_element ***elements,
+                                 uint32_t *num_keys)
+{
+    struct ssh_get_output_keys_state *state = tevent_req_data(req,
+                                              struct ssh_get_output_keys_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (name != NULL) {
+        name->str = talloc_strdup(mem_ctx, state->name);
+        name->len = strlen(name->str) + 1;
+    }
+
+    if (elements != NULL) {
+        *elements = talloc_steal(mem_ctx, state->elements);
+    }
+
+    if (num_keys != NULL) {
+        *num_keys = state->num_keys;
+    }
 
     return EOK;
 }
 
 errno_t
 ssh_protocol_build_reply(struct sss_packet *packet,
-                         struct ssh_ctx *ssh_ctx,
-                         struct cache_req_result *result)
+                         struct sized_string name,
+                         struct ldb_message_element **elements,
+                         uint32_t num_keys)
 {
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_message_element **elements;
-    struct sized_string name;
-    uint32_t num_keys;
     size_t body_len;
     uint8_t *body;
     size_t c = 0;
     errno_t ret;
     int i;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
-        return ENOMEM;
-    }
-
-    ret = ssh_get_output_keys(tmp_ctx, ssh_ctx, result->domain,
-                              result->msgs[0], &elements, &num_keys);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = ssh_get_name(result->msgs[0], &name);
-    if (ret != EOK) {
-        goto done;
-    }
 
     ret = sss_packet_grow(packet, 2 * sizeof(uint32_t));
     if (ret != EOK) {
@@ -351,7 +403,6 @@ ssh_protocol_build_reply(struct sss_packet *packet,
     ret = EOK;
 
 done:
-    talloc_free(tmp_ctx);
 
     return ret;
 }

@@ -223,10 +223,9 @@ done:
 #define SSH_RSA_HEADER "ssh-rsa"
 #define SSH_RSA_HEADER_LEN (sizeof(SSH_RSA_HEADER) - 1)
 
-errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
-                        const uint8_t *der_blob, size_t der_size,
-                        struct cert_verify_opts *cert_verify_opts,
-                        uint8_t **key, size_t *key_size)
+errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
+                              uint8_t *der_blob, size_t der_size,
+                              uint8_t **key_blob, size_t *key_size)
 {
     CERTCertDBHandle *handle;
     CERTCertificate *cert = NULL;
@@ -236,11 +235,6 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     size_t size;
     uint8_t *buf = NULL;
     size_t c;
-    NSSInitContext *nss_ctx;
-    NSSInitParameters parameters = { 0 };
-    parameters.length =  sizeof (parameters);
-    SECStatus rv;
-    SECStatus rv_verify;
     size_t exponent_prefix_len;
     size_t modulus_prefix_len;
 
@@ -248,51 +242,14 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
         return EINVAL;
     }
 
-    /* initialize NSS with context, we might have already called
-     * NSS_NoDB_Init() but for validation we need to have access to a DB with
-     * the trusted issuer cert. Only NSS_InitContext will really open the DB
-     * in this case. I'm not sure about how long validation might need e.g. if
-     * CRLs or OSCP is enabled, maybe it would be better to run validation in
-     * p11_child? */
-    nss_ctx = NSS_InitContext(ca_db, "", "", SECMOD_DB, &parameters,
-                              NSS_INIT_READONLY);
-    if (nss_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "NSS_InitContext failed [%d].\n",
-                                 PR_GetError());
-        return EIO;
+    /* initialize NSS if needed */
+    ret = nspr_nss_init();
+    if (ret != EOK) {
+        ret = EIO;
+        goto done;
     }
 
     handle = CERT_GetDefaultCertDB();
-
-    if (cert_verify_opts->do_ocsp) {
-        rv = CERT_EnableOCSPChecking(handle);
-        if (rv != SECSuccess) {
-            DEBUG(SSSDBG_OP_FAILURE, "CERT_EnableOCSPChecking failed: [%d].\n",
-                                     PR_GetError());
-            return EIO;
-        }
-
-        if (cert_verify_opts->ocsp_default_responder != NULL
-            && cert_verify_opts->ocsp_default_responder_signing_cert != NULL) {
-            rv = CERT_SetOCSPDefaultResponder(handle,
-                         cert_verify_opts->ocsp_default_responder,
-                         cert_verify_opts->ocsp_default_responder_signing_cert);
-            if (rv != SECSuccess) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "CERT_SetOCSPDefaultResponder failed: [%d].\n",
-                      PR_GetError());
-                return EIO;
-            }
-
-            rv = CERT_EnableOCSPDefaultResponder(handle);
-            if (rv != SECSuccess) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "CERT_EnableOCSPDefaultResponder failed: [%d].\n",
-                      PR_GetError());
-                return EIO;
-            }
-        }
-    }
 
     der_item.len = der_size;
     der_item.data = discard_const(der_blob);
@@ -302,32 +259,6 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
         DEBUG(SSSDBG_OP_FAILURE, "CERT_NewTempCertificate failed.\n");
         ret = EINVAL;
         goto done;
-    }
-
-    if (cert_verify_opts->do_verification) {
-        rv_verify = CERT_VerifyCertificateNow(handle, cert, PR_TRUE,
-                                              certificateUsageSSLClient,
-                                              NULL, NULL);
-
-        /* Disable OCSP default responder so that NSS can shutdown properly */
-        if (cert_verify_opts->do_ocsp
-                && cert_verify_opts->ocsp_default_responder != NULL
-                && cert_verify_opts->ocsp_default_responder_signing_cert
-                                                                      != NULL) {
-            rv = CERT_DisableOCSPDefaultResponder(handle);
-            if (rv != SECSuccess) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "CERT_DisableOCSPDefaultResponder failed: [%d].\n",
-                      PR_GetError());
-            }
-        }
-
-        if (rv_verify != SECSuccess) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "CERT_VerifyCertificateNow failed [%d].\n",
-                                       PR_GetError());
-            ret = EACCES;
-            goto done;
-        }
     }
 
     cert_pub_key = CERT_ExtractPublicKey(cert);
@@ -390,7 +321,7 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     safealign_memcpy(&buf[c], cert_pub_key->u.rsa.modulus.data,
                      cert_pub_key->u.rsa.modulus.len, &c);
 
-    *key = buf;
+    *key_blob = buf;
     *key_size = size;
 
     ret = EOK;
@@ -401,12 +332,6 @@ done:
     }
     SECKEY_DestroyPublicKey(cert_pub_key);
     CERT_DestroyCertificate(cert);
-
-    rv = NSS_ShutdownContext(nss_ctx);
-    if (rv != SECSuccess) {
-        DEBUG(SSSDBG_OP_FAILURE, "NSS_ShutdownContext failed [%d].\n",
-                                 PR_GetError());
-    }
 
     return ret;
 }

@@ -171,10 +171,9 @@ done:
 #define SSH_RSA_HEADER "ssh-rsa"
 #define SSH_RSA_HEADER_LEN (sizeof(SSH_RSA_HEADER) - 1)
 
-errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
-                        const uint8_t *der_blob, size_t der_size,
-                        struct cert_verify_opts *cert_verify_opts,
-                        uint8_t **key, size_t *key_size)
+errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
+                              const uint8_t *der_blob, size_t der_size,
+                              uint8_t **key_blob, size_t *key_size)
 {
     int ret;
     size_t size;
@@ -201,8 +200,6 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
         DEBUG(SSSDBG_OP_FAILURE, "d2i_X509 failed.\n");
         return EINVAL;
     }
-
-    /* TODO: verify certificate !!!!! */
 
     cert_pub_key = X509_get_pubkey(cert);
     if (cert_pub_key == NULL) {
@@ -262,7 +259,7 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
     safealign_memcpy(&buf[c], modulus, modulus_len, &c);
 
-    *key = buf;
+    *key_blob = buf;
     *key_size = size;
 
     ret = EOK;
