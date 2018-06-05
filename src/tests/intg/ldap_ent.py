@@ -113,6 +113,27 @@ def netgroup(base_dn, cn, triples=(), members=()):
     return ("cn=" + cn + ",ou=Netgroups," + base_dn, attr_list)
 
 
+def sudo_rule(base_dn, name, users=(), hosts=(), commands=()):
+    """
+    Generate a sudo rule for passing to ldap.add*
+    """
+    attr_list = [
+        ('objectClass', [b'top', b'sudoRole']),
+        ('cn', [name.encode('utf-8')])
+    ]
+
+    if len(users) > 0:
+        sudo_user_list = [u.encode('utf-8') for u in users]
+        attr_list.append(('sudoUser', sudo_user_list))
+    if len(hosts) > 0:
+        sudo_host_list = [h.encode('utf-8') for h in hosts]
+        attr_list.append(('sudoHost', sudo_host_list))
+    if len(commands) > 0:
+        sudo_command_list = [cmd.encode('utf-8') for cmd in commands]
+        attr_list.append(('sudoCommand', sudo_command_list))
+    return ("cn=" + name + ",ou=sudoers," + base_dn, attr_list)
+
+
 class List(list):
     """LDAP add-modlist list"""
 
@@ -159,3 +180,9 @@ class List(list):
         """Add an RFC2307bis netgroup add-modlist."""
         self.append(netgroup(base_dn or self.base_dn,
                              cn, triples, members))
+
+    def add_sudo_rule(self, name,
+                      users=(), hosts=(), commands=(),
+                      base_dn=None):
+        self.append(sudo_rule(base_dn or self.base_dn,
+                              name, users, hosts, commands))
