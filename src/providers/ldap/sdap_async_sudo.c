@@ -499,6 +499,7 @@ static errno_t sdap_sudo_qualify_names(struct sss_domain_info *dom,
     char *domain;
     char *name;
     const char *orig_name;
+    struct ldb_message_element unique_el;
 
     for (size_t i = 0; i < rules_count; i++) {
         ret = sysdb_attrs_get_el_ext(rules[i], SYSDB_SUDO_CACHE_AT_USER,
@@ -507,11 +508,20 @@ static errno_t sdap_sudo_qualify_names(struct sss_domain_info *dom,
             continue;
         }
 
+        unique_el.values = talloc_zero_array(rules, struct ldb_val, el->num_values);
+        if (unique_el.values == NULL) {
+            return ENOMEM;
+        }
+        unique_el.num_values = 0;
+
         for (size_t ii = 0; ii < el->num_values; ii++) {
             orig_name = (const char *) el->values[ii].data;
 
             qualify = is_user_or_group_name(orig_name);
             if (qualify) {
+                struct ldb_val fqval;
+                struct ldb_val *dup;
+
                 ret = sss_parse_name(rules, dom->names, orig_name,
                                      &domain, &name);
                 if (ret != EOK) {
@@ -526,19 +536,39 @@ static errno_t sdap_sudo_qualify_names(struct sss_domain_info *dom,
                     }
                 }
 
-                el->values[ii].data = (uint8_t * ) sss_create_internal_fqname(
-                                                                    rules,
-                                                                    name,
-                                                                    domain);
+                fqval.data = (uint8_t * ) sss_create_internal_fqname(rules,
+                                                                     name,
+                                                                     domain);
                 talloc_zfree(domain);
                 talloc_zfree(name);
-                if (el->values[ii].data == NULL) {
+                if (fqval.data == NULL) {
                     return ENOMEM;
                 }
-                el->values[ii].length = strlen(
-                                        (const char *) el->values[ii].data);
+                fqval.length = strlen((const char *) fqval.data);
+
+                /* Prevent saving duplicates in case the sudo rule contains
+                 * e.g. foo and foo@domain
+                 */
+                dup = ldb_msg_find_val(&unique_el, &fqval);
+                if (dup != NULL) {
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                          "Discarding duplicate value %s\n", (const char *) fqval.data);
+                    talloc_free(fqval.data);
+                    continue;
+                }
+                unique_el.values[unique_el.num_values].data = talloc_steal(unique_el.values, fqval.data);
+                unique_el.values[unique_el.num_values].length = fqval.length;
+                unique_el.num_values++;
+            } else {
+                unique_el.values[unique_el.num_values] = ldb_val_dup(unique_el.values,
+                                                                     &el->values[ii]);
+                unique_el.num_values++;
             }
         }
+
+        talloc_zfree(el->values);
+        el->values = unique_el.values;
+        el->num_values = unique_el.num_values;
     }
 
     return EOK;

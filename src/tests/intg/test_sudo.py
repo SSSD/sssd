@@ -242,3 +242,39 @@ def test_sudo_rule_for_user(add_common_rules, sudocli_tool):
     user2_rules = get_call_output([sudocli_tool, "user2"])
     reply = SudoReply(user2_rules)
     assert len(reply.sudo_rules.rules) == 0
+
+
+@pytest.fixture
+def add_double_qualified_rules(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001)
+    ent_list.add_user("user2", 1002, 2001)
+    ent_list.add_user("user3", 1003, 2001)
+    ent_list.add_user("user4", 1004, 2001)
+    ent_list.add_sudo_rule("user1_allow_less_shadow",
+                           users=("user1", "user2", "user2@LDAP", "user3"),
+                           hosts=("ALL",),
+                           commands=("/usr/bin/less /etc/shadow", "/bin/ls"))
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_sudo_rule_duplicate_sudo_user(add_double_qualified_rules,
+                                       sudocli_tool):
+    """
+    Test that despite user1 and user1@LDAP meaning the same user,
+    the rule is still usable
+    """
+    # Try several users to make sure we don't mangle the list
+    for u in ["user1", "user2", "user3"]:
+        user_rules = get_call_output([sudocli_tool, u])
+        reply = SudoReply(user_rules)
+        assert len(reply.sudo_rules.rules) == 1
+        assert reply.sudo_rules.rules[0]['cn'] == 'user1_allow_less_shadow'
+
+    user4_rules = get_call_output([sudocli_tool, "user4"])
+    reply = SudoReply(user4_rules)
+    assert len(reply.sudo_rules.rules) == 0
