@@ -34,6 +34,7 @@ dist_noinst_DATA = \
     test_pac_responder.py \
     data/ad_data.ldif \
     data/ad_schema.ldif \
+    data/sudo_schema.ldif \
     test_pysss_nss_idmap.py \
     test_infopipe.py \
     test_ssh_pubkey.py \
