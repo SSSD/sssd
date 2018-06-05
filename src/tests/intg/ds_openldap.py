@@ -192,6 +192,12 @@ class DSOpenLDAP(DS):
              "-l", "data/ssh_schema.ldif"],
         )
 
+        # Import sudo schema
+        subprocess.check_call(
+            ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config",
+             "-l", "data/sudo_schema.ldif"],
+        )
+
     def _start_daemon(self):
         """Start the instance."""
         if subprocess.call(["slapd", "-F", self.conf_slapd_d_dir,
@@ -272,6 +278,13 @@ class DSOpenLDAP(DS):
             ldap_conn.add_s("ou=" + ou + "," + self.base_dn, [
                 ("objectClass", [b"top", b"organizationalUnit"]),
             ])
+        ldap_conn.add_s("ou=sudoers," + self.base_dn, [
+            ("objectClass", [b"top", b"organizationalUnit"]),
+        ])
+        ldap_conn.add_s("cn=testrule,ou=sudoers," + self.base_dn, [
+            ("objectClass", [b"top", b"sudoRole"]),
+            ("sudoUser", [b"tuser"]),
+        ])
         ldap_conn.unbind_s()
 
     def _stop_daemon(self):
