@@ -804,6 +804,8 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
+    service->krb5_service->be_ctx = bectx;
+
     if (!primary_servers) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "No primary servers defined, using service discovery\n");
@@ -984,8 +986,9 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
             goto done;
         }
 
-        ret = write_krb5info_file(service->krb5_service->realm, safe_address,
-                                SSS_KRB5KDC_FO_SRV);
+        ret = write_krb5info_file(service->krb5_service,
+                                  safe_address,
+                                  SSS_KRB5KDC_FO_SRV);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                 "write_krb5info_file failed, authentication might fail.\n");

@@ -838,7 +838,8 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
             return;
         }
 
-        ret = write_krb5info_file(service->krb5_service->realm, safe_address,
+        ret = write_krb5info_file(service->krb5_service,
+                                  safe_address,
                                   SSS_KRB5KDC_FO_SRV);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -1011,6 +1012,8 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         ret = ENOMEM;
         goto done;
     }
+
+    service->krb5_service->be_ctx = ctx;
 
     if (!primary_servers) {
         DEBUG(SSSDBG_CONF_SETTINGS,
