@@ -75,15 +75,14 @@ int main(int argc, char **argv)
         goto fail;
     }
 
-    printf("User [%s:%llu] found in domain: %s\n\n",
-            username, (unsigned long long)uid,
-            domainname != NULL ? domainname : "<NULL>");
-
-    printf("=== Printing response data [default options] ===\n");
-    printf("Response code: %d\n\n", error);
+    printf("[\n");
+    printf("\t{\n");
+    printf("\t\t\"type\": \"default\",\n");
+    printf("\t\t\"retval\": %d,\n", error);
     if (error == SSS_SUDO_ERROR_OK) {
         print_sss_result(result);
     }
+    printf("\t},\n");
 
     sss_sudo_free_result(result);
     result = NULL;
@@ -96,11 +95,14 @@ int main(int argc, char **argv)
         goto fail;
     }
 
-    printf("\n=== Printing response data [rules] ===\n");
-    printf("Response code: %d\n\n", error);
+    printf("\t{\n");
+    printf("\t\t\"type\": \"rules\",\n");
+    printf("\t\t\"retval\": %d,\n", error);
     if (error == SSS_SUDO_ERROR_OK) {
         print_sss_result(result);
     }
+    printf("\t}\n");
+    printf("]\n");
 
 
     free(domainname);
@@ -121,19 +123,37 @@ void print_sss_result(struct sss_sudo_result *result)
     int j = 0;
     int k = 0;
 
-    printf("Number of rules: %d\n", result->num_rules);
-
+    printf("\t\t\"result\": {\n");
+    printf("\t\t\t\"num_rules\": %d,\n", result->num_rules);
+    printf("\t\t\t\"rules\": [\n");
     for (i = 0; i < result->num_rules; i++) {
         rule = &result->rules[i];
-        printf("=== Rule %d has %d attributes\n", i, rule->num_attrs);
+        printf("\t\t\t\t{\n");
         for (j = 0; j < rule->num_attrs; j++) {
             attr = &rule->attrs[j];
-            printf("   === Attribute named %s has %d values:\n", attr->name,
-                   attr->num_values);
-
-            for (k = 0; k < attr->num_values; k++) {
-                printf("       %s\n", attr->values[k]);
+            printf("\t\t\t\t\t\"%s\": ", attr->name);
+            if (attr->num_values > 1) {
+                printf("[ ");
+                printf("\"%s\"", attr->values[0]);
+                for (k = 1; k < attr->num_values; k++) {
+                    printf(", \"%s\"", attr->values[k]);
+                }
+                printf(" ]");
+            } else {
+                printf("\"%s\"", attr->values[0]);
             }
+
+            if (j < rule->num_attrs - 1) {
+                printf(",");
+            }
+            printf("\n");
         }
+        printf("\t\t\t\t}");
+        if (i < result->num_rules - 1) {
+            printf(",");
+        }
+        printf("\n");
     }
+    printf("\t\t\t]\n");
+    printf("\t\t}\n");
 }
