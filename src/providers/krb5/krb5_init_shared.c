@@ -71,12 +71,6 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
         goto done;
     }
 
-    ret = krb5_install_offline_callback(bectx, krb5_auth_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_install_offline_callback failed.\n");
-        goto done;
-    }
-
     ret = krb5_install_sigterm_handler(bectx->ev, krb5_auth_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_install_sigterm_handler failed.\n");

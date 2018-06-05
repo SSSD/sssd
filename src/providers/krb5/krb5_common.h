@@ -67,6 +67,7 @@ enum krb5_opts {
 typedef enum { INIT_PW, INIT_KT, RENEW, VALIDATE } action_type;
 
 struct krb5_service {
+    struct be_ctx *be_ctx;
     char *name;
     char *realm;
     bool write_kdcinfo;
@@ -157,7 +158,8 @@ errno_t krb5_try_kdcip(struct confdb_ctx *cdb, const char *conf_path,
 errno_t sss_krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                              const char *conf_path, struct dp_option **_opts);
 
-errno_t write_krb5info_file(const char *realm, const char *kdc,
+errno_t write_krb5info_file(struct krb5_service *krb5_service,
+                            const char *server,
                             const char *service);
 
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
@@ -176,9 +178,6 @@ void krb5_finalize(struct tevent_context *ev,
                    int count,
                    void *siginfo,
                    void *private_data);
-
-errno_t krb5_install_offline_callback(struct be_ctx *be_ctx,
-                                      struct krb5_ctx *krb_ctx);
 
 errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
                                      struct krb5_ctx *krb5_ctx);

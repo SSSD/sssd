@@ -158,14 +158,6 @@ static void sdap_finalize(struct tevent_context *ev,
                           void *siginfo,
                           void *private_data)
 {
-    char *realm = (char *) private_data;
-    int ret;
-
-    ret = remove_krb5_info_files(se, realm);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "remove_krb5_info_files failed.\n");
-    }
-
     orderly_shutdown(0);
 }
 
@@ -194,78 +186,6 @@ errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,
     talloc_steal(sige, sig_realm);
 
     return EOK;
-}
-
-void sdap_remove_kdcinfo_files_callback(void *pvt)
-{
-    int ret;
-    TALLOC_CTX *tmp_ctx = NULL;
-    struct remove_info_files_ctx *ctx = talloc_get_type(pvt,
-                                                  struct remove_info_files_ctx);
-
-    ret = be_fo_run_callbacks_at_next_request(ctx->be_ctx,
-                                              ctx->kdc_service_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "be_fo_run_callbacks_at_next_request failed, "
-                  "krb5 info files will not be removed, because "
-                  "it is unclear if they will be recreated properly.\n");
-        return;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "talloc_new failed, cannot remove krb5 info files.\n");
-        return;
-    }
-
-    ret = remove_krb5_info_files(tmp_ctx, ctx->realm);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "remove_krb5_info_files failed.\n");
-    }
-
-    talloc_zfree(tmp_ctx);
-}
-
-
-errno_t sdap_install_offline_callback(TALLOC_CTX *mem_ctx,
-                                      struct be_ctx *be_ctx,
-                                      const char *realm,
-                                      const char *service_name)
-{
-    int ret;
-    struct remove_info_files_ctx *ctx;
-
-    ctx = talloc_zero(mem_ctx, struct remove_info_files_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zfree failed.\n");
-        return ENOMEM;
-    }
-
-    ctx->be_ctx = be_ctx;
-    ctx->realm = talloc_strdup(ctx, realm);
-    ctx->kdc_service_name = talloc_strdup(ctx, service_name);
-    if (ctx->realm == NULL || ctx->kdc_service_name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = be_add_offline_cb(ctx, be_ctx,
-                            sdap_remove_kdcinfo_files_callback,
-                            ctx, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "be_add_offline_cb failed.\n");
-        goto done;
-    }
-
-    ret = EOK;
-done:
-    if (ret != EOK) {
-        talloc_zfree(ctx);
-    }
-    return ret;
 }
 
 errno_t
@@ -453,13 +373,6 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = sdap_install_sigterm_handler(mem_ctx, bectx->ev, krb5_realm);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to install sigterm handler\n");
-        goto done;
-    }
-
-    ret = sdap_install_offline_callback(mem_ctx, bectx,
-                                        krb5_realm, SSS_KRB5KDC_FO_SRV);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to install sigterm handler\n");
         goto done;
