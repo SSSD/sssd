@@ -781,6 +781,12 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    gid_t gid,
                    struct ldb_result **res);
 
+int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
+                         struct sss_domain_info *domain,
+                         gid_t gid,
+                         const char **attrs,
+                         struct ldb_result **res);
+
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *domain,
                     struct ldb_result **res);

@@ -973,9 +973,16 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
+    /* The object is a user if SYSDB_OBJECTCATEGORY is SYSDB_USER_CLASS or in
+     * case of a MPG group lookup if SYSDB_OBJECTCATEGORY is SYSDB_GROUP_CLASS.
+     */
     for (c = 0; c < msg_el->num_values; c++) {
         if (strncmp(SYSDB_USER_CLASS, (const char *)msg_el->values[c].data,
-                    msg_el->values[c].length) == 0) {
+                    msg_el->values[c].length) == 0
+                || (dom->mpg
+                    && strncmp(SYSDB_GROUP_CLASS,
+                               (const char *)msg_el->values[c].data,
+                               msg_el->values[c].length) == 0)) {
             break;
         }
     }
@@ -1108,7 +1115,14 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
 
         switch (ar->entry_type & BE_REQ_TYPE_MASK) {
         case BE_REQ_GROUP:
-            ret = sysdb_search_group_by_gid(mem_ctx, dom, id, attrs, &msg);
+            ret = sysdb_getgrgid_attrs(mem_ctx, dom, id, attrs, &res);
+            if (ret == EOK) {
+                if (res->count == 0) {
+                    ret = ENOENT;
+                } else {
+                    msg = res->msgs[0];
+                }
+            }
             break;
         case BE_REQ_INITGROUPS:
         case BE_REQ_USER:
@@ -1116,7 +1130,14 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
             ret = sysdb_search_user_by_uid(mem_ctx, dom, id, attrs, &msg);
             if (ret == ENOENT && (ar->entry_type & BE_REQ_TYPE_MASK)
                                                      == BE_REQ_USER_AND_GROUP) {
-                ret = sysdb_search_group_by_gid(mem_ctx, dom, id, attrs, &msg);
+                ret = sysdb_getgrgid_attrs(mem_ctx, dom, id, attrs, &res);
+                if (ret == EOK) {
+                    if (res->count == 0) {
+                        ret = ENOENT;
+                    } else {
+                        msg = res->msgs[0];
+                    }
+                }
             }
             break;
         default:

@@ -57,6 +57,8 @@ struct sdap_id_conn_ctx {
     struct sdap_id_conn_ctx *prev, *next;
     /* do not go offline, try another connection */
     bool ignore_mark_offline;
+    /* do not fall back to user lookups for mpg domains on this connection */
+    bool no_mpg_user_fallback;
 };
 
 struct sdap_id_ctx {

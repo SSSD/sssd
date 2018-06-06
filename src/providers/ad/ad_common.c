@@ -1395,6 +1395,7 @@ ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
     if (dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)) {
         clist[cindex] = ad_ctx->gc_ctx;
         clist[cindex]->ignore_mark_offline = true;
+        clist[cindex]->no_mpg_user_fallback = true;
         cindex++;
     }
 

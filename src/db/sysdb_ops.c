@@ -753,6 +753,9 @@ int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
     return sysdb_search_by_name(mem_ctx, domain, name, SYSDB_GROUP, attrs, msg);
 }
 
+/* Please note that sysdb_search_group_by_gid() is not aware of MPGs. If MPG
+ * support is needed either the caller must handle it or sysdb_getgrgid() or
+ * sysdb_getgrgid_attrs() should be used. */
 int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *domain,
                               gid_t gid,
