@@ -679,19 +679,24 @@ sss_dp_get_account_msg(void *pvt)
     dp_flags = info->fast_reply ? DP_FAST_REPLY : 0;
 
     if (info->opt_name) {
-        if (info->type == SSS_DP_SECID) {
-            filter = talloc_asprintf(info, "%s=%s", DP_SEC_ID,
-                                     info->opt_name);
-        } else if (info->type == SSS_DP_CERT) {
-            filter = talloc_asprintf(info, "%s=%s", DP_CERT,
-                                     info->opt_name);
-        } else if (info->type == SSS_DP_WILDCARD_USER ||
-                   info->type == SSS_DP_WILDCARD_GROUP) {
-            filter = talloc_asprintf(info, "%s=%s", DP_WILDCARD,
-                                     info->opt_name);
-        } else {
-            filter = talloc_asprintf(info, "name=%s", info->opt_name);
-        }
+        switch(info->type) {
+            case SSS_DP_SECID:
+                filter = talloc_asprintf(info, "%s=%s", DP_SEC_ID,
+                                         info->opt_name);
+                break;
+            case SSS_DP_CERT:
+                filter = talloc_asprintf(info, "%s=%s", DP_CERT,
+                                         info->opt_name);
+                break;
+            case SSS_DP_WILDCARD_USER:
+            case SSS_DP_WILDCARD_GROUP:
+                filter = talloc_asprintf(info, "%s=%s", DP_WILDCARD,
+                                         info->opt_name);
+                break;
+            default:
+                filter = talloc_asprintf(info, "name=%s", info->opt_name);
+		break;
+	}
     } else if (info->opt_id) {
         filter = talloc_asprintf(info, "idnumber=%u", info->opt_id);
     } else {
