@@ -113,7 +113,7 @@ static void assert_cc_princ_equal(struct kcm_ccache *cc1,
     krb5_error_code kerr;
 
     p1 = kcm_cc_get_client_principal(cc1);
-    p2 = kcm_cc_get_client_principal(cc1);
+    p2 = kcm_cc_get_client_principal(cc2);
 
     kerr = krb5_unparse_name(NULL, p1, &name1);
     assert_int_equal(kerr, 0);
