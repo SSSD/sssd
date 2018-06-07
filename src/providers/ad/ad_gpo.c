@@ -1653,7 +1653,15 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
 
     /* if service isn't mapped, map it to value of ad_gpo_default_right option */
     if (hret == HASH_ERROR_KEY_NOT_FOUND) {
-        DEBUG(SSSDBG_TRACE_FUNC, "using default right\n");
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Configuration hint: PAM service '%s' is not mapped to any Group"
+              " Policy rule. If you plan to use this PAM service it is "
+              "recommended to use the ad_gpo_map_* family of options to map "
+              "this PAM service to a Group Policy rule. PAM services not "
+              "present in any map will fall back to value set in "
+              "ad_gpo_default_right, which is currently set to %s (see manual "
+              "pages 'man sssd-ad' for more details).\n", service,
+              gpo_map_type_string(ctx->gpo_default_right));
         gpo_map_type = ctx->gpo_default_right;
     } else {
         gpo_map_type = (enum gpo_map_type) val.i;
