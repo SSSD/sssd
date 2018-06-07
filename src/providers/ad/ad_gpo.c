@@ -299,7 +299,24 @@ ad_gpo_parse_map_option_helper(enum gpo_map_type gpo_map_type,
         } else {
             /* mapping for key exists for different map type; error! */
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "PAM service %s maps to both %s and %s\n", key.str,
+                  "Configuration error: PAM service %s maps to both %s and "
+                  "%s. If you are changing the default mappings of Group "
+                  "Policy rules to PAM services using one of the ad_gpo_map_*"
+                  " options make sure that the PAM service you add to one map "
+                  "using the '+service' syntax is not already present in "
+                  "another map by default (if it is then remove it from the "
+                  "other map by using the '-service' syntax. Check manual "
+                  "pages 'man sssd-ad' for details).\n", key.str,
+                  gpo_map_type_string(val.i), gpo_map_type_string(gpo_map_type));
+            sss_log(SSS_LOG_ERR,
+                  "Configuration error: PAM service %s maps to both %s and "
+                  "%s. If you are changing the default mappings of Group "
+                  "Policy rules to PAM services using one of the ad_gpo_map_*"
+                  " options make sure that the PAM service you add to one map "
+                  "using the '+service' syntax is not already present in "
+                  "another map by default (if it is then remove it from the "
+                  "other map by using the '-service' syntax. Check manual "
+                  "pages 'man sssd-ad' for details).\n", key.str,
                   gpo_map_type_string(val.i), gpo_map_type_string(gpo_map_type));
             ret = EINVAL;
         }
