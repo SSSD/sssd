@@ -585,12 +585,18 @@ static errno_t json_element_to_krb5_data(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
     str_len = strlen(str_value);
+    /* make sure that the unsigned int length component of krb5_data can store
+     * str_len. */
+    if (str_len > UINT_MAX) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "String too long");
+        return EINVAL;
+    }
 
     data->data = talloc_strndup(mem_ctx, str_value, str_len);
     if (data->data == NULL) {
         return ENOMEM;
     }
-    data->length = str_len;
+    data->length = (unsigned int) str_len;
 
     return EOK;
 }
@@ -651,6 +657,7 @@ static errno_t json_to_princ(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx = NULL;
     char *realm_str;
     size_t realm_size;
+    size_t comp_count;
     json_error_t error;
 
     ok = json_is_object(js_princ);
@@ -691,23 +698,43 @@ static errno_t json_to_princ(TALLOC_CTX *mem_ctx,
     }
 
     realm_size = strlen(realm_str);
+    /* Since the realm should be put into a krb5_data which uses unsigned int
+     * to store the length we have to make sure that the realm is not too long
+     * since size_t might be bigger than unsigned int. */
+    if (realm_size > UINT_MAX) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Realm name is too long.\n");
+        ret = EINVAL;
+        goto done;
+    }
 
     princ->realm.data = talloc_strndup(mem_ctx, realm_str, realm_size);
     if (princ->realm.data == NULL) {
         return ENOMEM;
     }
-    princ->realm.length = realm_size;
+    princ->realm.length = (unsigned int) realm_size;
     princ->realm.magic = 0;
 
+    /* json_array_to_krb5_data expects size_t* as last argument but the length
+     * component of krb5_principal_data is krb5_int32 so it cannot be used
+     * directly here because size_t and krb5_int32 might differ in size.
+     * Additionally we have to check that the result will fit into the int32
+     * range (although we would have other problems if the principal really
+     * has more then INT32_MAX components). */
     ret = json_array_to_krb5_data(princ, components,
                                   &princ->data,
-                                  (size_t *) &princ->length);
+                                  &comp_count);
     if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Cannot convert principal from JSON");
         ret = EINVAL;
         goto done;
     }
+    if (comp_count > INT32_MAX) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Too many principal components.\n");
+        ret = EINVAL;
+        goto done;
+    }
+    princ->length = (krb5_int32) comp_count;
 
     *_princ = talloc_steal(mem_ctx, princ);
     ret = EOK;
