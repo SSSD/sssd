@@ -2068,7 +2068,6 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_data.c \
     src/tools/sssctl/sssctl_logs.c \
     src/tools/sssctl/sssctl_domains.c \
-    src/tools/sssctl/sssctl_sifp.c \
     src/tools/sssctl/sssctl_config.c \
     src/tools/sssctl/sssctl_user_checks.c \
     src/tools/sssctl/sssctl_access_report.c \
@@ -2081,12 +2080,12 @@ sssctl_LDADD = \
     $(PAM_LIBS) \
     $(PAM_MISC_LIBS) \
     $(LIBADD_DL) \
-    libsss_simpleifp.la \
-    libsss_sbus_old.la \
+    libifp_iface_sync.la \
+    libsss_iface_sync.la \
+    libsss_sbus_sync.la \
     $(NULL)
 sssctl_CFLAGS = \
     $(AM_CFLAGS) \
-    -I$(top_srcdir)/src/lib/sifp
     $(NULL)
 
 if BUILD_SUDO
