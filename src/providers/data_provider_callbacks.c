@@ -265,22 +265,42 @@ void be_run_unconditional_online_cb(struct be_ctx *be)
 int be_add_offline_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t cb,
                       void *pvt, struct be_cb **offline_cb)
 {
-    return be_add_cb(mem_ctx, ctx, cb, pvt, &ctx->offline_cb_list, offline_cb);
+    int ret;
+
+    ret = be_add_cb(mem_ctx, ctx, cb, pvt, &ctx->offline_cb_list, offline_cb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_add_cb failed.\n");
+        return ret;
+    }
+
+    /* Make sure we run the callback when SSSD goes offline */
+    ctx->run_offline_cb = true;
+
+    return EOK;
 }
 
 void be_run_offline_cb(struct be_ctx *be) {
     int ret;
 
-    if (be->offline_cb_list) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Going offline. Running callbacks.\n");
+    if (be->run_offline_cb) {
+        /* Reset the flag, we only want to run these callbacks once when going
+         * offline */
+        be->run_offline_cb = false;
 
-        ret = be_run_cb(be, be->offline_cb_list);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "be_run_cb failed.\n");
+        if (be->offline_cb_list) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Going offline. Running callbacks.\n");
+
+            ret = be_run_cb(be, be->offline_cb_list);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "be_run_cb failed.\n");
+            }
+
+        } else {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Offline call back list is empty, nothing to do.\n");
         }
-
     } else {
         DEBUG(SSSDBG_TRACE_ALL,
-              "Offline call back list is empty, nothing to do.\n");
+              "Flag indicates that offline callback were already called.\n");
     }
 }
