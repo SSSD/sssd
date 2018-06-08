@@ -34,10 +34,10 @@
 
 #include <security/pam_appl.h>
 
-#include "lib/sifp/sss_sifp.h"
 #include "util/util.h"
 #include "tools/common/sss_tools.h"
 #include "tools/sssctl/sssctl.h"
+#include "responder/ifp/ifp_iface/ifp_iface_sync.h"
 
 #ifdef HAVE_SECURITY_PAM_MISC_H
 # include <security/pam_misc.h>
@@ -64,68 +64,67 @@ static struct pam_conv conv = {
 
 #define DEFAULT_BUFSIZE 4096
 
-static int get_ifp_user(const char *user)
+#define PRINT_IFP_PROPERTY(all, name, fmt) do { \
+    if (all->name.is_set) { \
+        fprintf(stdout, " - %s: %" fmt "\n", #name, user->name.value); \
+    } else { \
+        fprintf(stdout, " - %s: not set\n", #name); \
+    } \
+} while (0)
+
+static errno_t get_ifp_user(const char *username)
 {
-    sss_sifp_ctx *sifp;
-    sss_sifp_error error;
-    sss_sifp_object *user_obj;
-    const char *tmp_str;
-    uint32_t tmp_uint32;
-    size_t c;
+    TALLOC_CTX *tmp_ctx;
+    struct sbus_sync_connection *conn;
+    struct sbus_all_ifp_user *user;
+    const char *path;
+    errno_t ret;
 
-    struct ifp_user_attr {
-        const char *name;
-        bool is_string;
-    } ifp_user_attr[] = {
-        { "name", true },
-        { "uidNumber", false },
-        { "gidNumber", false },
-        { "gecos", true },
-        { "homeDirectory", true },
-        { "loginShell", true },
-        { NULL, false }
-    };
-
-    error = sss_sifp_init(&sifp);
-    if (error != SSS_SIFP_OK) {
-        fprintf(stderr, _("Unable to connect to the InfoPipe"));
-        return EFAULT;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
     }
 
-    error = sss_sifp_fetch_user_by_name(sifp, user, &user_obj);
-    if (error != SSS_SIFP_OK) {
-        fprintf(stderr, _("Unable to get user object"));
-        return EIO;
+    conn = sbus_sync_connect_system(tmp_ctx, NULL);
+    if (conn == NULL) {
+        fprintf(stderr, _("Unable to connect to system bus!\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = sbus_call_ifp_users_FindByName(tmp_ctx, conn, IFP_BUS, IFP_PATH_USERS,
+              username, &path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to find user by name [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+        goto done;
+    }
+
+    ret = sbus_getall_ifp_user(tmp_ctx, conn, IFP_BUS, path, &user);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get user properties [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+        goto done;
     }
 
     fprintf(stdout, _("SSSD InfoPipe user lookup result:\n"));
-    for (c = 0; ifp_user_attr[c].name != NULL; c++) {
-        if (ifp_user_attr[c].is_string) {
-            error = sss_sifp_find_attr_as_string(user_obj->attrs,
-                                                 ifp_user_attr[c].name,
-                                                 &tmp_str);
-        } else {
-            error = sss_sifp_find_attr_as_uint32(user_obj->attrs,
-                                                 ifp_user_attr[c].name,
-                                                 &tmp_uint32);
-        }
-        if (error != SSS_SIFP_OK) {
-            fprintf(stderr, _("Unable to get user name attr"));
-            return EIO;
-        }
-
-        if (ifp_user_attr[c].is_string) {
-            fprintf(stdout, " - %s: %s\n", ifp_user_attr[c].name, tmp_str);
-        } else {
-            fprintf(stdout, " - %s: %"PRIu32"\n", ifp_user_attr[c].name,
-                                                  tmp_uint32);
-        }
-    }
+    PRINT_IFP_PROPERTY(user, name, "s");
+    PRINT_IFP_PROPERTY(user, uidNumber, PRIu32);
+    PRINT_IFP_PROPERTY(user, gidNumber, PRIu32);
+    PRINT_IFP_PROPERTY(user, gecos, "s");
+    PRINT_IFP_PROPERTY(user, homeDirectory, "s");
+    PRINT_IFP_PROPERTY(user, loginShell, "s");
     fprintf(stdout, "\n");
 
-    sss_sifp_free_object(sifp, &user_obj);
-    sss_sifp_free(&sifp);
-    return 0;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
 static int sss_getpwnam_check(const char *user)
