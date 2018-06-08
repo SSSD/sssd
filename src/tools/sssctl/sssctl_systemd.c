@@ -24,74 +24,43 @@
 
 #include "util/util.h"
 #include "tools/sssctl/sssctl.h"
+#include "sss_iface/sss_iface_sync.h"
 
 #define SSS_SYSTEMD_BUS   "org.freedesktop.systemd1"
 #define SSS_SYSTEMD_PATH  "/org/freedesktop/systemd1"
-#define SSS_SYSTEMD_IFACE "org.freedesktop.systemd1.Manager"
 #define SSS_SYSTEMD_UNIT  "sssd.service"
 #define SSS_SYSTEMD_MODE  "replace" /* replace queued job if present */
 
-static DBusConnection *
-sssctl_systemd_connect(void)
+typedef errno_t
+(*systemd_method)(TALLOC_CTX *, struct sbus_sync_connection *,
+                  const char *, const char *, const char *, const char *,
+                  const char **);
+
+static errno_t sssctl_systemd_call(systemd_method method)
 {
-    DBusConnection *conn;
-    DBusError error;
-
-    dbus_error_init(&error);
-
-    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &error);
-    if (dbus_error_is_set(&error)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to systemd D-Bus "
-              "[%s]: %s\n", error.name, error.message);
-        conn = NULL;
-        goto done;
-    }
-
-done:
-    dbus_error_free(&error);
-    return conn;
-}
-
-static errno_t sssctl_systemd_call(const char *method)
-{
-    DBusConnection *conn = NULL;
-    DBusMessage *reply = NULL;
-    DBusMessage *msg = NULL;
-    DBusError error;
-    const char *unit = SSS_SYSTEMD_UNIT;
-    const char *mode = SSS_SYSTEMD_MODE;
+    TALLOC_CTX *tmp_ctx;
+    struct sbus_sync_connection *conn;
     const char *job;
     errno_t ret;
 
-    dbus_error_init(&error);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
 
-    conn = sssctl_systemd_connect();
+    conn = sbus_sync_connect_system(tmp_ctx, NULL);
     if (conn == NULL) {
+        fprintf(stderr, _("Unable to connect to system bus!\n"));
         ret = EIO;
         goto done;
     }
 
-    msg = sbus_create_message(NULL, SSS_SYSTEMD_BUS, SSS_SYSTEMD_PATH,
-                              SSS_SYSTEMD_IFACE, method,
-                              DBUS_TYPE_STRING, &unit,
-                              DBUS_TYPE_STRING, &mode);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create D-Bus Message!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    reply = dbus_connection_send_with_reply_and_block(conn, msg, 5000, &error);
-    if (dbus_error_is_set(&error)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send D-Bus message "
-                      "[%s]: %s\n", error.name, error.message);
-        ret = EIO;
-        goto done;
-    }
-
-    ret = sbus_parse_message(reply, DBUS_TYPE_OBJECT_PATH, &job);
+    ret = method(tmp_ctx, conn, SSS_SYSTEMD_BUS,
+                 SSS_SYSTEMD_PATH, SSS_SYSTEMD_UNIT,
+                 SSS_SYSTEMD_MODE, &job);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get D-Bus reply [%d]: %s!\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "systemd operation failed [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
@@ -99,17 +68,7 @@ static errno_t sssctl_systemd_call(const char *method)
     DEBUG(SSSDBG_TRACE_FUNC, "New systemd job created: %s\n", job);
 
 done:
-    if (msg != NULL) {
-        dbus_message_unref(msg);
-    }
-
-    if (reply != NULL) {
-        dbus_message_unref(reply);
-    }
-
-    if (conn != NULL) {
-        dbus_connection_unref(conn);
-    }
+    talloc_free(tmp_ctx);
 
     return ret;
 }
@@ -118,19 +77,19 @@ errno_t sssctl_systemd_start(void)
 {
     DEBUG(SSSDBG_TRACE_FUNC, "Starting SSSD via systemd...\n");
 
-    return sssctl_systemd_call("StartUnit");
+    return sssctl_systemd_call(sbus_call_systemd_StartUnit);
 }
 
 errno_t sssctl_systemd_stop(void)
 {
     DEBUG(SSSDBG_TRACE_FUNC, "Stopping SSSD via systemd...\n");
 
-    return sssctl_systemd_call("StopUnit");
+    return sssctl_systemd_call(sbus_call_systemd_StopUnit);
 }
 
 errno_t sssctl_systemd_restart(void)
 {
     DEBUG(SSSDBG_TRACE_FUNC, "Restarting SSSD via systemd...\n");
 
-    return sssctl_systemd_call("RestartUnit");
+    return sssctl_systemd_call(sbus_call_systemd_RestartUnit);
 }
