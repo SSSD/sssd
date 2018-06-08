@@ -71,6 +71,7 @@ struct krb5_service {
     char *name;
     char *realm;
     bool write_kdcinfo;
+    bool removal_callback_available;
 };
 
 struct fo_service;
@@ -146,6 +147,7 @@ struct remove_info_files_ctx {
     struct be_ctx *be_ctx;
     const char *kdc_service_name;
     const char *kpasswd_service_name;
+    struct krb5_service *krb5_service;
 };
 
 errno_t sss_krb5_check_options(struct dp_option *opts,

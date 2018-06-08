@@ -399,6 +399,7 @@ static int remove_info_files_destructor(void *p)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "remove_krb5_info_files failed.\n");
     }
+    ctx->krb5_service->removal_callback_available = false;
 
     return 0;
 }
@@ -407,13 +408,20 @@ static errno_t
 krb5_add_krb5info_offline_callback(struct krb5_service *krb5_service)
 {
     int ret;
-    struct remove_info_files_ctx *ctx;
+    struct remove_info_files_ctx *ctx = NULL;
 
     if (krb5_service == NULL || krb5_service->name == NULL
                              || krb5_service->realm == NULL
                              || krb5_service->be_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing KDC service name or realm!\n");
         return EINVAL;
+    }
+
+    if (krb5_service->removal_callback_available) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Removal callback already available for service [%s].\n",
+              krb5_service->name);
+        return EOK;
     }
 
     ctx = talloc_zero(krb5_service->be_ctx, struct remove_info_files_ctx);
@@ -430,6 +438,7 @@ krb5_add_krb5info_offline_callback(struct krb5_service *krb5_service)
     }
 
     ctx->be_ctx = krb5_service->be_ctx;
+    ctx->krb5_service = krb5_service;
     ctx->kdc_service_name = talloc_strdup(ctx, krb5_service->name);
     if (ctx->kdc_service_name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed!\n");
@@ -445,6 +454,7 @@ krb5_add_krb5info_offline_callback(struct krb5_service *krb5_service)
     }
 
     talloc_set_destructor((TALLOC_CTX *) ctx, remove_info_files_destructor);
+    krb5_service->removal_callback_available = true;
 
     ret = EOK;
 
