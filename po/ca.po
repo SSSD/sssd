@@ -14,8 +14,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2018-03-09 12:31+0100\n"
-"PO-Revision-Date: 2017-10-15 03:02-0400\n"
+"POT-Creation-Date: 2018-06-08 21:01+0200\n"
+"PO-Revision-Date: 2017-10-15 03:02+0000\n"
 "Last-Translator: Robert Antoni Buj Gelonch <rbuj@fedoraproject.org>\n"
 "Language-Team: Catalan (http://www.transifex.com/projects/p/sssd/language/"
 "ca/)\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 3.9.6\n"
+"X-Generator: Zanata 4.4.5\n"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 #: src/config/SSSDConfig/__init__.py.in:44
@@ -360,11 +360,8 @@ msgid "The maximum number of secrets that can be stored"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:132
-#, fuzzy
 msgid "The maximum number of secrets that can be stored per UID"
 msgstr ""
-"El nombre de descriptors de fitxers que poden estar oberts per aquest "
-"contestador"
 
 #: src/config/SSSDConfig/__init__.py.in:133
 msgid "The maximum payload size of a secret in kilobytes"
@@ -463,9 +460,8 @@ msgid "SELinux provider"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:158
-#, fuzzy
 msgid "Session management provider"
-msgstr "Proveïdor de canvi de contrasenya"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:161
 msgid "Whether the domain is usable by the OS or by applications"
@@ -606,9 +602,8 @@ msgid "How long can cached credentials be used for cached authentication"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:198
-#, fuzzy
 msgid "Whether to automatically create private groups for users"
-msgstr "Si s'actualitza automàticament l'entrada DNS del client"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:201
 msgid "IPA domain"
@@ -707,26 +702,20 @@ msgid "Objectclass for group override objects"
 msgstr "Objectclass per als objectes de substitució de grup"
 
 #: src/config/SSSDConfig/__init__.py.in:223
-#, fuzzy
 msgid "Search base for Desktop Profile related objects"
-msgstr "Base de cerca per als objectes relacionats amb HBAC"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:224
-#, fuzzy
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr ""
-"Quantitat de temps en segons entre recerques de les assignacions SELinux "
-"contra el servidor IPA"
 
 #: src/config/SSSDConfig/__init__.py.in:225
-#, fuzzy
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
 msgstr ""
-"Quantitat de temps entre recerques de les regles HBAC contra el servidor IPA"
 
 #: src/config/SSSDConfig/__init__.py.in:228
 msgid "Active Directory domain"
@@ -913,10 +902,8 @@ msgid "Enables enterprise principals"
 msgstr "Habilita els principals empresarials"
 
 #: src/config/SSSDConfig/__init__.py.in:272
-#, fuzzy
 msgid "A mapping from user names to Kerberos principal names"
 msgstr ""
-"Una assignació des dels noms dels usuaris als noms del principal de kerberos"
 
 #: src/config/SSSDConfig/__init__.py.in:275
 #: src/config/SSSDConfig/__init__.py.in:276
@@ -1206,9 +1193,8 @@ msgid "Attribute listing authorized server hosts"
 msgstr "L'atribut que llista els amfitrions dels servidors autoritzats"
 
 #: src/config/SSSDConfig/__init__.py.in:353
-#, fuzzy
 msgid "Attribute listing authorized server rhosts"
-msgstr "L'atribut que llista els amfitrions dels servidors autoritzats"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:354
 msgid "krbLastPwdChange attribute"
@@ -1310,9 +1296,8 @@ msgid "The LDAP group external member attribute"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:384
-#, fuzzy
 msgid "Maximum nesting level SSSD will follow"
-msgstr "Nivell màxim d'encadenament que seguirà l'SSSd"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:386
 msgid "Base DN for netgroup lookups"
@@ -1600,6 +1585,14 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Pila PAM a utilitzar"
 
+#: src/config/SSSDConfig/__init__.py.in:479
+msgid "Path of passwd file sources."
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:480
+msgid "Path of group file sources."
+msgstr ""
+
 #: src/monitor/monitor.c:2449
 msgid "Become a daemon (default)"
 msgstr "Esdevé un dimoni (per defecte)"
@@ -1628,23 +1621,23 @@ msgstr "Imprimeix el número de versió i surt"
 msgid "SSSD is already running\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:617
+#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:605
 msgid "Debug level"
 msgstr "Nivell de depuració"
 
-#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:619
+#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:607
 msgid "Add debug timestamps"
 msgstr "Afegeix les marques temporals de depuració"
 
-#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:621
+#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:609
 msgid "Show timestamps with microseconds"
 msgstr "Mostra les marques temporals amb microsegons"
 
-#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:623
+#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:611
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descriptor de fitxer obert pels registres de depuració"
 
-#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:625
+#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:613
 msgid "Send the debug output to stderr directly."
 msgstr "Envia directament la sortida de depuració al stderr."
 
@@ -1794,9 +1787,8 @@ msgid "Password: "
 msgstr "Contrasenya: "
 
 #: src/sss_client/pam_sss.c:2201 src/sss_client/pam_sss.c:2204
-#, fuzzy
 msgid "First Factor (Current Password): "
-msgstr "Contrasenya actual: "
+msgstr ""
 
 #: src/sss_client/pam_sss.c:2208
 msgid "Current Password: "
@@ -2727,9 +2719,8 @@ msgid "Unable to archive log files\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_logs.c:317
-#, fuzzy
 msgid "Specify debug level you want to set"
-msgstr "Especifica el nivell de depuració que vulgueu establir\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_sifp.c:28
 msgid ""
@@ -2969,6 +2960,3 @@ msgstr ""
 #: src/util/util.h:87
 msgid "Informs that the responder has been dbus-activated"
 msgstr ""
-
-#~ msgid "Only one argument expected\n"
-#~ msgstr "Tan sols s'esperava un argument\n"

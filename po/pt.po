@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2018-03-09 12:31+0100\n"
-"PO-Revision-Date: 2014-12-14 11:47-0500\n"
+"POT-Creation-Date: 2018-06-08 21:01+0200\n"
+"PO-Revision-Date: 2014-12-14 11:47+0000\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Portuguese (http://www.transifex.com/projects/p/sssd/language/"
 "pt/)\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 3.9.6\n"
+"X-Generator: Zanata 4.4.5\n"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 #: src/config/SSSDConfig/__init__.py.in:44
@@ -417,9 +417,8 @@ msgid "SELinux provider"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:158
-#, fuzzy
 msgid "Session management provider"
-msgstr "Fornecedor de Alteração de Senha"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:161
 msgid "Whether the domain is usable by the OS or by applications"
@@ -1474,6 +1473,14 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Stack PAM a utilizar"
 
+#: src/config/SSSDConfig/__init__.py.in:479
+msgid "Path of passwd file sources."
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:480
+msgid "Path of group file sources."
+msgstr ""
+
 #: src/monitor/monitor.c:2449
 msgid "Become a daemon (default)"
 msgstr "Tornar-se num serviço (omissão)"
@@ -1502,23 +1509,23 @@ msgstr ""
 msgid "SSSD is already running\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:617
+#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:605
 msgid "Debug level"
 msgstr "Nível de depuração"
 
-#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:619
+#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:607
 msgid "Add debug timestamps"
 msgstr "Adicionar tempos na depuração"
 
-#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:621
+#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:609
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:623
+#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:611
 msgid "An open file descriptor for the debug logs"
 msgstr "Um descritor de ficheiro aberto para os registos de depuração"
 
-#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:625
+#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:613
 msgid "Send the debug output to stderr directly."
 msgstr ""
 
@@ -1664,9 +1671,8 @@ msgid "Password: "
 msgstr "Senha: "
 
 #: src/sss_client/pam_sss.c:2201 src/sss_client/pam_sss.c:2204
-#, fuzzy
 msgid "First Factor (Current Password): "
-msgstr "Senha actual: "
+msgstr ""
 
 #: src/sss_client/pam_sss.c:2208
 msgid "Current Password: "
@@ -2575,9 +2581,8 @@ msgid "Unable to archive log files\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_logs.c:317
-#, fuzzy
 msgid "Specify debug level you want to set"
-msgstr "O nível de depuração a utilizar durante a execução"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_sifp.c:28
 msgid ""

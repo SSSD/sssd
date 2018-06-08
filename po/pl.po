@@ -8,12 +8,13 @@
 # Piotr Drąg <piotrdrag@gmail.com>, 2015. #zanata
 # Piotr Drąg <piotrdrag@gmail.com>, 2016. #zanata
 # Piotr Drąg <piotrdrag@gmail.com>, 2017. #zanata
+# Piotr Drąg <piotrdrag@gmail.com>, 2018. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2018-03-09 12:31+0100\n"
-"PO-Revision-Date: 2017-07-27 08:24-0400\n"
+"POT-Creation-Date: 2018-06-08 21:01+0200\n"
+"PO-Revision-Date: 2018-03-09 11:38+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish (http://www.transifex.com/projects/p/sssd/language/"
 "pl/)\n"
@@ -23,7 +24,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2);\n"
-"X-Generator: Zanata 3.9.6\n"
+"X-Generator: Zanata 4.4.5\n"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 #: src/config/SSSDConfig/__init__.py.in:44
@@ -236,9 +237,8 @@ msgstr ""
 "Jaki rodzaj komunikatów wyświetlać użytkownikowi podczas uwierzytelniania"
 
 #: src/config/SSSDConfig/__init__.py.in:95
-#, fuzzy
 msgid "Filter PAM responses sent to the pam_sss"
-msgstr "Filtruje odpowiedzi NSS wysyłane do pam_sss"
+msgstr "Filtruje odpowiedzi PAM wysłane do pam_sss"
 
 #: src/config/SSSDConfig/__init__.py.in:96
 msgid "How many seconds to keep identity information cached for PAM requests"
@@ -271,7 +271,6 @@ msgid "Allow certificate based/Smartcard authentication."
 msgstr "Zezwala na uwierzytelnianie za pomocą certyfikatów/smartcard."
 
 #: src/config/SSSDConfig/__init__.py.in:103
-#, fuzzy
 msgid "Path to certificate database with PKCS#11 modules."
 msgstr "Ścieżka do bazy danych certyfikatów z modułami PKCS#11."
 
@@ -298,6 +297,8 @@ msgid ""
 "Maximum number of rules that can be refreshed at once. If this is exceeded, "
 "full refresh is performed."
 msgstr ""
+"Maksymalna liczba reguł, jaką można odświeżyć jednocześnie. Jeśli zostanie "
+"przekroczona, wykonywane jest pełne odświeżenie."
 
 #: src/config/SSSDConfig/__init__.py.in:116
 msgid "Whether to hash host names and addresses in the known_hosts file"
@@ -347,9 +348,8 @@ msgid "The maximum number of secrets that can be stored"
 msgstr "Maksymalna liczba przechowywanych haseł"
 
 #: src/config/SSSDConfig/__init__.py.in:132
-#, fuzzy
 msgid "The maximum number of secrets that can be stored per UID"
-msgstr "Maksymalna liczba przechowywanych haseł"
+msgstr "Maksymalna liczba haseł przechowywanych na UID"
 
 #: src/config/SSSDConfig/__init__.py.in:133
 msgid "The maximum payload size of a secret in kilobytes"
@@ -402,7 +402,6 @@ msgstr ""
 "protokołu HTTPS"
 
 #: src/config/SSSDConfig/__init__.py.in:143
-#, fuzzy
 msgid ""
 "If false peer's certificate may contain different hostname than proxy_url "
 "when https protocol is used"
@@ -459,9 +458,8 @@ msgid "SELinux provider"
 msgstr "Dostawca SELinuksa"
 
 #: src/config/SSSDConfig/__init__.py.in:158
-#, fuzzy
 msgid "Session management provider"
-msgstr "Dostawca zmiany hasła"
+msgstr "Dostawca zarządzania sesją"
 
 #: src/config/SSSDConfig/__init__.py.in:161
 msgid "Whether the domain is usable by the OS or by applications"
@@ -601,9 +599,8 @@ msgstr ""
 "uwierzytelniania w pamięci podręcznej"
 
 #: src/config/SSSDConfig/__init__.py.in:198
-#, fuzzy
 msgid "Whether to automatically create private groups for users"
-msgstr "Czy automatycznie aktualizować wpis DNS klienta"
+msgstr "Czy automatycznie tworzyć prywatne grupy dla użytkowników"
 
 #: src/config/SSSDConfig/__init__.py.in:201
 msgid "IPA domain"
@@ -696,23 +693,23 @@ msgid "Objectclass for group override objects"
 msgstr "Klasa obiektów dla obiektów zastępowania grup"
 
 #: src/config/SSSDConfig/__init__.py.in:223
-#, fuzzy
 msgid "Search base for Desktop Profile related objects"
-msgstr "Podstawa wyszukiwania pod kątem obiektów związanych z HBAC"
+msgstr "Podstawa wyszukiwania pod kątem obiektów związanych z profilem pulpitu"
 
 #: src/config/SSSDConfig/__init__.py.in:224
-#, fuzzy
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
-msgstr "Czas w sekundach między wyszukiwaniami map SELinuksa w serwerze IPA"
+msgstr ""
+"Czas w sekundach między wyszukiwaniami reguł profilu pulpitu w serwerze IPA"
 
 #: src/config/SSSDConfig/__init__.py.in:225
-#, fuzzy
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
-msgstr "Czas między wyszukiwaniami reguł HBAC w serwerze IPA"
+msgstr ""
+"Czas w minutach między wyszukiwaniami reguł profilów pulpitu w serwerze IPA, "
+"kiedy ostatnie żądanie nie odnalazło żadnej reguły"
 
 #: src/config/SSSDConfig/__init__.py.in:228
 msgid "Active Directory domain"
@@ -815,7 +812,6 @@ msgstr ""
 "Maksymalny wiek w dniach przed wymaganiem odnowienia hasła konta komputera"
 
 #: src/config/SSSDConfig/__init__.py.in:248
-#, fuzzy
 msgid "Option for tuning the machine account renewal task"
 msgstr "Opcja dostrajania zadania odnawiania konta komputera"
 
@@ -896,7 +892,6 @@ msgid "Enables enterprise principals"
 msgstr "Włącza naczelników enterprise"
 
 #: src/config/SSSDConfig/__init__.py.in:272
-#, fuzzy
 msgid "A mapping from user names to Kerberos principal names"
 msgstr "Mapa nazw użytkowników do nazw naczelników Kerberos"
 
@@ -1183,9 +1178,8 @@ msgid "Attribute listing authorized server hosts"
 msgstr "Atrybut zawierający listę upoważnionych komputerów serwerowych"
 
 #: src/config/SSSDConfig/__init__.py.in:353
-#, fuzzy
 msgid "Attribute listing authorized server rhosts"
-msgstr "Atrybut zawierający listę upoważnionych komputerów serwerowych"
+msgstr "Atrybut zawierający listę upoważnionych rhosts serwera"
 
 #: src/config/SSSDConfig/__init__.py.in:354
 msgid "krbLastPwdChange attribute"
@@ -1285,7 +1279,6 @@ msgid "The LDAP group external member attribute"
 msgstr "Atrybut zewnętrznego członka grupy LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:384
-#, fuzzy
 msgid "Maximum nesting level SSSD will follow"
 msgstr "Maksymalny poziom zagnieżdżenia, jaki usługa SSSD będzie używała"
 
@@ -1571,6 +1564,14 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Używany stos PAM"
 
+#: src/config/SSSDConfig/__init__.py.in:479
+msgid "Path of passwd file sources."
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:480
+msgid "Path of group file sources."
+msgstr ""
+
 #: src/monitor/monitor.c:2449
 msgid "Become a daemon (default)"
 msgstr "Uruchamia jako usługa (domyślnie)"
@@ -1599,23 +1600,23 @@ msgstr "Wyświetla numer wersji i kończy działanie"
 msgid "SSSD is already running\n"
 msgstr "Usługa SSSD jest już uruchomiona\n"
 
-#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:617
+#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:605
 msgid "Debug level"
 msgstr "Poziom debugowania"
 
-#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:619
+#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:607
 msgid "Add debug timestamps"
 msgstr "Dodaje czasy debugowania"
 
-#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:621
+#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:609
 msgid "Show timestamps with microseconds"
 msgstr "Wyświetlanie dat z mikrosekundami"
 
-#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:623
+#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:611
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
-#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:625
+#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:613
 msgid "Send the debug output to stderr directly."
 msgstr ""
 "Wysyła wyjście debugowania bezpośrednio do standardowego wyjścia błędów."
@@ -1654,7 +1655,7 @@ msgstr "Żąda ujednolicenie nazwy naczelnika"
 
 #: src/providers/krb5/krb5_child.c:3245
 msgid "Use custom version of krb5_get_init_creds_password"
-msgstr ""
+msgstr "Użycie niestandardowej wersji krb5_get_init_creds_password"
 
 #: src/providers/data_provider_be.c:555
 msgid "Domain of the information provider (mandatory)"
@@ -1764,9 +1765,8 @@ msgid "Password: "
 msgstr "Hasło: "
 
 #: src/sss_client/pam_sss.c:2201 src/sss_client/pam_sss.c:2204
-#, fuzzy
 msgid "First Factor (Current Password): "
-msgstr "Bieżące hasło: "
+msgstr "Pierwszy czynnik (obecne hasło): "
 
 #: src/sss_client/pam_sss.c:2208
 msgid "Current Password: "
@@ -2518,7 +2518,6 @@ msgid "Unable to create backup directory [%d]: %s"
 msgstr "Nie można utworzyć katalogu kopii zapasowej [%d]: %s"
 
 #: src/tools/sssctl/sssctl_data.c:95
-#, fuzzy
 msgid "SSSD backup of local data already exists, override?"
 msgstr "Kopia zapasowa SSSD lokalnych danych już istnieje, zastąpić?"
 
@@ -2704,9 +2703,8 @@ msgid "Unable to archive log files\n"
 msgstr "Nie można zarchiwizować plików dziennika\n"
 
 #: src/tools/sssctl/sssctl_logs.c:317
-#, fuzzy
 msgid "Specify debug level you want to set"
-msgstr "Podaje poziom debugowania do ustawienia\n"
+msgstr "Podaje poziom debugowania do ustawienia"
 
 #: src/tools/sssctl/sssctl_sifp.c:28
 msgid ""
@@ -2827,9 +2825,9 @@ msgid "User name lookup with [%s] failed.\n"
 msgstr "Wyszukanie nazwy użytkownika [%s] się nie powiodło.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:237
-#, fuzzy, c-format
+#, c-format
 msgid "InfoPipe User lookup with [%s] failed.\n"
-msgstr "InforPipe Wyszukanie użytkownika z [%s] się nie powiodło.\n"
+msgstr "InfoPipe Wyszukanie użytkownika z [%s] się nie powiodło.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:244
 #, c-format
@@ -2979,6 +2977,3 @@ msgstr "Informuje, że program odpowiadający został aktywowany gniazdem"
 #: src/util/util.h:87
 msgid "Informs that the responder has been dbus-activated"
 msgstr "Informuje, że program odpowiadający został aktywowany magistralą D-Bus"
-
-#~ msgid "Only one argument expected\n"
-#~ msgstr "Oczekiwano tylko jednego parametru\n"

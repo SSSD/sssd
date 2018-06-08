@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2018-03-09 12:31+0100\n"
-"PO-Revision-Date: 2014-12-14 11:44-0500\n"
+"POT-Creation-Date: 2018-06-08 21:01+0200\n"
+"PO-Revision-Date: 2014-12-14 11:44+0000\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Bulgarian (http://www.transifex.com/projects/p/sssd/language/"
 "bg/)\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 3.9.6\n"
+"X-Generator: Zanata 4.4.5\n"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 #: src/config/SSSDConfig/__init__.py.in:44
@@ -415,9 +415,8 @@ msgid "SELinux provider"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:158
-#, fuzzy
 msgid "Session management provider"
-msgstr "Доставчик на смяна на парола"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:161
 msgid "Whether the domain is usable by the OS or by applications"
@@ -547,9 +546,8 @@ msgid "How long can cached credentials be used for cached authentication"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:198
-#, fuzzy
 msgid "Whether to automatically create private groups for users"
-msgstr "Дали автоматично да се обновява клиентския DNS запис във FreeIPA"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:201
 msgid "IPA domain"
@@ -1469,6 +1467,14 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr ""
 
+#: src/config/SSSDConfig/__init__.py.in:479
+msgid "Path of passwd file sources."
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:480
+msgid "Path of group file sources."
+msgstr ""
+
 #: src/monitor/monitor.c:2449
 msgid "Become a daemon (default)"
 msgstr "Продължава като демон (по подразбиране)"
@@ -1497,23 +1503,23 @@ msgstr ""
 msgid "SSSD is already running\n"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:617
+#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:605
 msgid "Debug level"
 msgstr "Ниво на debug"
 
-#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:619
+#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:607
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:621
+#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:609
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:623
+#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:611
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:625
+#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:613
 msgid "Send the debug output to stderr directly."
 msgstr ""
 
@@ -1659,9 +1665,8 @@ msgid "Password: "
 msgstr "Парола:"
 
 #: src/sss_client/pam_sss.c:2201 src/sss_client/pam_sss.c:2204
-#, fuzzy
 msgid "First Factor (Current Password): "
-msgstr "Текуща парола:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:2208
 msgid "Current Password: "
@@ -2554,9 +2559,8 @@ msgid "Unable to archive log files\n"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_logs.c:317
-#, fuzzy
 msgid "Specify debug level you want to set"
-msgstr "Нивото на debug записи при работа"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_sifp.c:28
 msgid ""
