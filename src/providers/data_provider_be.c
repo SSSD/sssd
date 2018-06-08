@@ -219,6 +219,7 @@ static void be_reset_offline(struct be_ctx *ctx)
 {
     ctx->offstat.went_offline = 0;
     ctx->offstat.offline = false;
+    ctx->run_offline_cb = true;
 
     reactivate_subdoms(ctx->domain);
 
