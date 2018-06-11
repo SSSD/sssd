@@ -30,6 +30,9 @@
 #include "responder/sudo/sudosrv_private.h"
 #include "providers/data_provider.h"
 
+static errno_t
+sort_sudo_rules(struct sysdb_attrs **rules, size_t count, bool higher_wins);
+
 static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx);
 
 errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx)
@@ -396,7 +399,8 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     flags =   SYSDB_SUDO_FILTER_INCLUDE_ALL
             | SYSDB_SUDO_FILTER_INCLUDE_DFL
             | SYSDB_SUDO_FILTER_ONLY_EXPIRED
-            | SYSDB_SUDO_FILTER_USERINFO;
+            | SYSDB_SUDO_FILTER_USERINFO
+            | SYSDB_SUDO_FILTER_NGRS;
     ret = sudosrv_get_sudorules_query_cache(tmp_ctx,
                                             cmd_ctx->domain, attrs, flags,
                                             cmd_ctx->orig_username,
@@ -552,6 +556,147 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
     sudosrv_cmd_done(cmd_ctx, ret);
 }
 
+static errno_t
+sudosrv_merge_rules(TALLOC_CTX *mem_ctx,
+                    struct sudo_cmd_ctx *cmd_ctx,
+                    struct sysdb_attrs **user_rules,
+                    struct sysdb_attrs **ng_rules,
+                    uint32_t num_user_rules,
+                    uint32_t num_ng_rules,
+                    struct sysdb_attrs ***_rules,
+                    uint32_t *_num_rules)
+{
+    struct sysdb_attrs **rules;
+    uint32_t rule_iter, i;
+    uint32_t num_rules;
+    errno_t ret;
+
+    num_rules = num_user_rules + num_ng_rules;
+    if (num_rules == 0) {
+        *_rules = NULL;
+        *_num_rules = 0;
+        return EOK;
+    }
+
+    rules = talloc_array(mem_ctx, struct sysdb_attrs *, num_rules);
+    if (rules == NULL) {
+        return ENOMEM;
+    }
+
+    rule_iter = 0;
+    for (i = 0; i < num_user_rules; rule_iter++, i++) {
+        rules[rule_iter] = talloc_steal(rules, user_rules[i]);
+    }
+
+    for (i = 0; i < num_ng_rules; rule_iter++, i++) {
+        rules[rule_iter] = talloc_steal(rules, ng_rules[i]);
+    }
+
+    ret = sort_sudo_rules(rules, num_rules, cmd_ctx->sudo_ctx->inverse_order);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not sort rules by sudoOrder\n");
+        talloc_zfree(rules);
+        return ret;
+    }
+
+    *_rules = rules;
+    *_num_rules = num_rules;
+
+    return EOK;
+}
+
+static errno_t
+sudosrv_get_sudorules_with_uid(TALLOC_CTX *mem_ctx,
+                               struct sudo_cmd_ctx *cmd_ctx,
+                               const char **attrs,
+                               struct sysdb_attrs ***_rules,
+                               uint32_t *_num_rules)
+{
+    TALLOC_CTX *tmp_ctx;
+    char **groupnames = NULL;
+    char **aliases = NULL;
+    unsigned int flags = SYSDB_SUDO_FILTER_NONE;
+    struct sysdb_attrs **user_rules;
+    struct sysdb_attrs **ng_rules;
+    uint32_t num_user_rules;
+    uint32_t num_ng_rules;
+    const char *val;
+    errno_t ret;
+    uint32_t i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->domain,
+                                   cmd_ctx->orig_username,
+                                   NULL, &aliases, &groupnames);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve user info [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Get user rules and add #uid information to sudoUser. */
+    flags = SYSDB_SUDO_FILTER_USERINFO | SYSDB_SUDO_FILTER_INCLUDE_ALL;
+
+    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, cmd_ctx->domain, attrs,
+                                            flags, cmd_ctx->orig_username,
+                                            aliases, cmd_ctx->uid, groupnames,
+                                            cmd_ctx->sudo_ctx->inverse_order,
+                                            &user_rules, &num_user_rules);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+             "Unable to retrieve sudo rules [%d]: %s\n", ret, strerror(ret));
+        goto done;
+    }
+
+    val = talloc_asprintf(tmp_ctx, "#%"SPRIuid, cmd_ctx->uid);
+    if (val == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Replacing sudoUser attribute with "
+          "sudoUser: %s\n", val);
+    for (i = 0; i < num_user_rules; i++) {
+        ret = sysdb_attrs_add_string(user_rules[i], SYSDB_SUDO_CACHE_AT_USER,
+                                     val);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to alter sudoUser attribute "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+        }
+    }
+
+    /* Find rules with netgroups. */
+    flags = SYSDB_SUDO_FILTER_NGRS;
+
+    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, cmd_ctx->domain, attrs,
+                                            flags, cmd_ctx->orig_username,
+                                            aliases, cmd_ctx->uid, groupnames,
+                                            cmd_ctx->sudo_ctx->inverse_order,
+                                            &ng_rules, &num_ng_rules);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve sudo rules [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Merge them together. */
+    ret = sudosrv_merge_rules(mem_ctx, cmd_ctx, user_rules, ng_rules,
+                              num_user_rules, num_ng_rules, _rules, _num_rules);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to merge sudo rules [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
                                                 struct sudo_cmd_ctx *cmd_ctx,
                                                 struct sysdb_attrs ***_rules,
@@ -593,36 +738,36 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
     switch (cmd_ctx->type) {
     case SSS_SUDO_USER:
         debug_name = cmd_ctx->cased_username;
-        ret = sysdb_get_sudo_user_info(tmp_ctx,
-                                       cmd_ctx->domain,
-                                       cmd_ctx->orig_username,
-                                       NULL, &aliases, &groupnames);
+
+        ret = sudosrv_get_sudorules_with_uid(tmp_ctx, cmd_ctx, attrs,
+                                             &rules, &num_rules);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                 "Unable to retrieve user info [%d]: %s\n",
-                  ret, strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve user rules "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
             goto done;
         }
-        flags = SYSDB_SUDO_FILTER_USERINFO | SYSDB_SUDO_FILTER_INCLUDE_ALL;
         break;
     case SSS_SUDO_DEFAULTS:
         debug_name = "<default options>";
         flags = SYSDB_SUDO_FILTER_INCLUDE_DFL;
+
+        ret = sudosrv_get_sudorules_query_cache(tmp_ctx,
+                                                cmd_ctx->domain, attrs, flags,
+                                                cmd_ctx->orig_username,
+                                                aliases,
+                                                cmd_ctx->uid, groupnames,
+                                                cmd_ctx->sudo_ctx->inverse_order,
+                                                &rules, &num_rules);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                 "Unable to retrieve sudo rules [%d]: %s\n", ret, strerror(ret));
+            goto done;
+        }
+
         break;
     }
 
-    ret = sudosrv_get_sudorules_query_cache(tmp_ctx,
-                                            cmd_ctx->domain, attrs, flags,
-                                            cmd_ctx->orig_username,
-                                            aliases,
-                                            cmd_ctx->uid, groupnames,
-                                            cmd_ctx->sudo_ctx->inverse_order,
-                                            &rules, &num_rules);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-             "Unable to retrieve sudo rules [%d]: %s\n", ret, strerror(ret));
-        goto done;
-    }
+
 
     DEBUG(SSSDBG_TRACE_FUNC, "Returning %d rules for [%s@%s]\n",
                               num_rules, debug_name, cmd_ctx->domain->name);
@@ -640,9 +785,6 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
-
-static errno_t
-sort_sudo_rules(struct sysdb_attrs **rules, size_t count, bool higher_wins);
 
 static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  struct sss_domain_info *domain,

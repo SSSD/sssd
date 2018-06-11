@@ -86,8 +86,7 @@
 #define SYSDB_SUDO_FILTER_INCLUDE_DFL    0x40       /* include cn=default   */
 #define SYSDB_SUDO_FILTER_USERINFO       SYSDB_SUDO_FILTER_USERNAME \
                                        | SYSDB_SUDO_FILTER_UID \
-                                       | SYSDB_SUDO_FILTER_GROUPS \
-                                       | SYSDB_SUDO_FILTER_NGRS
+                                       | SYSDB_SUDO_FILTER_GROUPS
 
 errno_t sysdb_sudo_filter_rules_by_time(TALLOC_CTX *mem_ctx,
                                         uint32_t in_num_rules,
