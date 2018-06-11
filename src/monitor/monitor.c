@@ -1964,9 +1964,12 @@ static int monitor_process_init(struct mt_ctx *ctx,
     struct tevent_timer *te;
     struct sss_domain_info *dom;
     char *rcachedir;
+    char *conf_path;
     int num_providers;
     int ret;
+    int ret_en;
     int error;
+    int enabled;
     bool disable_netlink;
     struct sysdb_upgrade_ctx db_up_ctx;
 
@@ -2096,17 +2099,37 @@ static int monitor_process_init(struct mt_ctx *ctx,
         }
     }
 
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
     /* start providers */
     num_providers = 0;
     for (dom = ctx->domains; dom; dom = get_next_domain(dom, 0)) {
-        ret = add_new_provider(ctx, dom->name, 0);
-        if (ret != EOK && ret != ENOENT) {
+        conf_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
+                                    dom->name);
+
+        ret_en = confdb_get_int(ctx->cdb, conf_path,
+                         CONFDB_DOMAIN_ENABLED, 0,
+                         &enabled);
+
+	if (ret_en != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot parse enabled from domain section");
+	}
+
+	if (enabled) {
+            ret = add_new_provider(ctx, dom->name, 0);
+            if (ret != EOK && ret != ENOENT) {
             return ret;
-        }
-        if (ret != ENOENT) {
-            num_providers++;
-        }
+            }
+            if (ret != ENOENT) {
+                num_providers++;
+            }
+	}
     }
+    talloc_zfree(tmp_ctx);
 
     if (num_providers > 0) {
         /* now set the services startup timeout *
