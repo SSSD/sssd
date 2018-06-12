@@ -975,6 +975,7 @@ libsss_cert_la_LIBADD = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     libsss_crypt.la \
+    libsss_child.la \
     libsss_debug.la \
     libsss_certmap.la \
     $(NULL)
