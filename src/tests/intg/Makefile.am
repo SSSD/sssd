@@ -73,6 +73,7 @@ cwrap-dbus-system.conf: data/cwrap-dbus-system.conf.in Makefile
 config.py: config.py.m4
 	m4 -D "prefix=\`$(prefix)'" \
 	   -D "sysconfdir=\`$(sysconfdir)'" \
+	   -D "nsslibdir=\`$(nsslibdir)'" \
 	   -D "dbpath=\`$(dbpath)'" \
 	   -D "pidpath=\`$(pidpath)'" \
 	   -D "logpath=\`$(logpath)'" \
