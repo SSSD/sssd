@@ -4,7 +4,7 @@ Build configuration variables.
 
 PREFIX = "prefix"
 SYSCONFDIR = "sysconfdir"
-NSS_MODULE_DIR = PREFIX + "/lib"
+NSS_MODULE_DIR = "nsslibdir"
 SSSDCONFDIR = SYSCONFDIR + "/sssd"
 CONF_PATH = SSSDCONFDIR + "/sssd.conf"
 DB_PATH = "dbpath"
