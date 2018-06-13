@@ -233,6 +233,7 @@
 #define CONFDB_DOMAIN_TYPE_APP "application"
 #define CONFDB_DOMAIN_INHERIT_FROM "inherit_from"
 #define CONFDB_DOMAIN_ENABLED "enabled"
+#define CONFDB_DEFAULT_DOMAIN_ENABLED 0
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"

@@ -870,6 +870,7 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
                                      char ***_services)
 {
     int ret;
+    int enabled;
     char **domain_names;
     TALLOC_CTX *tmp_ctx;
     size_t c;
@@ -883,11 +884,8 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
         return ENOMEM;
     }
 
-    ret = confdb_get_string_as_list(cdb, tmp_ctx,
-                                    CONFDB_MONITOR_CONF_ENTRY,
-                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
-                                    &domain_names);
-    if (ret == ENOENT) {
+    ret = confdb_list_all_domain_names(NULL, cdb, &domain_names);
+    if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "No domains configured!\n");
         goto done;
     }
@@ -901,22 +899,33 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
             goto done;
         }
 
-        ret = confdb_get_string(cdb, tmp_ctx, conf_path,
-                                CONFDB_DOMAIN_ID_PROVIDER, NULL, &id_provider);
-        if (ret == EOK) {
-            if (id_provider == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "id_provider is not set for "
-                      "domain [%s], trying next domain.\n", domain_names[c]);
-                continue;
-            }
+        ret = confdb_get_int (cdb, conf_path,
+                              CONFDB_DOMAIN_ENABLED,
+                              CONFDB_DEFAULT_DOMAIN_ENABLED,
+                              &enabled);
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "No enabled value found!\n");
+            goto done;
+        }
 
-            if (strcasecmp(id_provider, "IPA") == 0) {
-                add_pac = true;
+	if (enabled) {
+            ret = confdb_get_string(cdb, tmp_ctx, conf_path,
+                                    CONFDB_DOMAIN_ID_PROVIDER, NULL, &id_provider);
+            if (ret == EOK) {
+                if (id_provider == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "id_provider is not set for "
+                          "domain [%s], trying next domain.\n", domain_names[c]);
+                    continue;
+                }
+
+                if (strcasecmp(id_provider, "IPA") == 0) {
+                    add_pac = true;
+                }
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to get id_provider for " \
+                                          "domain [%s], trying next domain.\n",
+                                          domain_names[c]);
             }
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to get id_provider for " \
-                                      "domain [%s], trying next domain.\n",
-                                      domain_names[c]);
         }
     }
 
