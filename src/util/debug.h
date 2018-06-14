@@ -23,6 +23,8 @@
 
 #include "config.h"
 
+#include <stdarg.h>
+
 #ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
 #define SSS_ATTRIBUTE_PRINTF(a1, a2) __attribute__((format (printf, a1, a2)))
 #else
