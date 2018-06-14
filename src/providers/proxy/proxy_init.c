@@ -26,7 +26,6 @@
 
 #include "util/sss_format.h"
 #include "providers/proxy/proxy.h"
-#include "sbus/sssd_dbus.h"
 
 #define NSS_FN_NAME "_nss_%s_%s"
 
@@ -160,31 +159,6 @@ static errno_t proxy_id_load_symbols(struct proxy_nss_ops *ops,
                 return ELIBBAD;
             }
         }
-    }
-
-    return EOK;
-}
-
-static errno_t proxy_setup_sbus(TALLOC_CTX *mem_ctx,
-                                struct proxy_auth_ctx *ctx,
-                                struct be_ctx *be_ctx)
-{
-    char *sbus_address;
-    errno_t ret;
-
-    sbus_address = talloc_asprintf(mem_ctx, "unix:path=%s/%s_%s", PIPE_PATH,
-                                   PROXY_CHILD_PIPE, be_ctx->domain->name);
-    if (sbus_address == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed.\n");
-        return ENOMEM;
-    }
-
-    ret = sbus_new_server(mem_ctx, be_ctx->ev, sbus_address, 0, be_ctx->gid,
-                          false, &ctx->sbus_srv, proxy_client_init, ctx, NULL);
-    talloc_free(sbus_address);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");
-        return ret;
     }
 
     return EOK;

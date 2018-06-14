@@ -22,7 +22,6 @@
 #include <tevent.h>
 #include <dbus/dbus.h>
 
-#include "sbus/sssd_dbus_errors.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/backend.h"
 #include "util/dlinklist.h"
@@ -31,7 +30,6 @@
 
 struct dp_req {
     struct data_provider *provider;
-    struct dp_client *client;
     uint32_t dp_flags;
 
     struct sss_domain_info *domain;
@@ -132,7 +130,6 @@ static errno_t dp_attach_req(struct dp_req *dp_req,
 static errno_t
 dp_req_new(TALLOC_CTX *mem_ctx,
            struct data_provider *provider,
-           struct dp_client *dp_cli,
            const char *domainname,
            const char *name,
            enum dp_targets target,
@@ -155,7 +152,6 @@ dp_req_new(TALLOC_CTX *mem_ctx,
     }
 
     dp_req->provider = provider;
-    dp_req->client = dp_cli;
     dp_req->dp_flags = dp_flags;
     dp_req->target = target;
     dp_req->method = method;
@@ -194,7 +190,6 @@ dp_req_new(TALLOC_CTX *mem_ctx,
 static errno_t
 file_dp_request(TALLOC_CTX *mem_ctx,
                 struct data_provider *provider,
-                struct dp_client *dp_cli,
                 const char *domainname,
                 const char *name,
                 enum dp_targets target,
@@ -212,7 +207,7 @@ file_dp_request(TALLOC_CTX *mem_ctx,
 
     be_ctx = provider->be_ctx;
 
-    ret = dp_req_new(mem_ctx, provider, dp_cli, domainname, name, target,
+    ret = dp_req_new(mem_ctx, provider, domainname, name, target,
                      method, dp_flags, request_data, req, &dp_req);
     if (ret != EOK) {
         *_dp_req = dp_req;
@@ -277,7 +272,6 @@ static void dp_req_done(struct tevent_req *subreq);
 
 struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
                                struct data_provider *provider,
-                               struct dp_client *dp_cli,
                                const char *domain,
                                const char *name,
                                enum dp_targets target,
@@ -298,7 +292,7 @@ struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = file_dp_request(state, provider, dp_cli, domain, name, target,
+    ret = file_dp_request(state, provider, domain, name, target,
                           method, dp_flags, request_data, req, &dp_req);
 
     if (dp_req == NULL) {

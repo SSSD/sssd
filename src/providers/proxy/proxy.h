@@ -111,7 +111,6 @@ struct proxy_auth_ctx {
     uint32_t running;
     uint32_t next_id;
     hash_table_t *request_table;
-    struct sbus_connection *sbus_srv;
     int timeout_ms;
 };
 

@@ -23,71 +23,12 @@
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
-#include "sbus/sssd_dbus.h"
+#include "sbus/sbus_request.h"
+#include "providers/data_provider/dp_pam_data.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
 #include "util/util.h"
-
-static void dp_pam_reply(struct sbus_request *sbus_req,
-                         const char *request_name,
-                         struct pam_data *pd)
-{
-    DBusMessage *reply;
-    dbus_bool_t dbret;
-
-    DP_REQ_DEBUG(SSSDBG_TRACE_LIBS, request_name,
-                 "Sending result [%d][%s]", pd->pam_status, pd->domain);
-
-    reply = dbus_message_new_method_return(sbus_req->message);
-    if (reply == NULL) {
-        DP_REQ_DEBUG(SSSDBG_TRACE_LIBS, request_name,
-                     "Unable to acquire reply message");
-        return;
-    }
-
-    dbret = dp_pack_pam_response(reply, pd);
-    if (!dbret) {
-        DP_REQ_DEBUG(SSSDBG_TRACE_LIBS, request_name,
-                     "Unable to generate reply message");
-        dbus_message_unref(reply);
-        return;
-    }
-
-    sbus_request_finish(sbus_req, reply);
-    dbus_message_unref(reply);
-    return;
-}
-
-static errno_t pam_data_create(TALLOC_CTX *mem_ctx,
-                               struct sbus_request *sbus_req,
-                               struct be_ctx *be_ctx,
-                               struct pam_data **_pd)
-{
-    DBusError dbus_error;
-    struct pam_data *pd;
-    bool bret;
-
-    dbus_error_init(&dbus_error);
-    bret = dp_unpack_pam_request(sbus_req->message, mem_ctx, &pd, &dbus_error);
-    if (bret == false) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse message!\n");
-        return EINVAL;
-    }
-
-    pd->pam_status = PAM_SYSTEM_ERR;
-    if (pd->domain == NULL) {
-        pd->domain = talloc_strdup(pd, be_ctx->domain->name);
-        if (pd->domain == NULL) {
-            talloc_free(pd);
-            return ENOMEM;
-        }
-    }
-
-    *_pd = pd;
-
-    return EOK;
-}
 
 static void choose_target(struct data_provider *provider,
                           struct pam_data *pd,
@@ -172,73 +113,6 @@ static void choose_target(struct data_provider *provider,
     *_req_name = name;
 }
 
-struct dp_pam_handler_state {
-    struct data_provider *provider;
-    struct dp_client *dp_cli;
-    struct sbus_request *sbus_req;
-    const char *request_name;
-};
-
-void dp_pam_handler_step_done(struct tevent_req *req);
-void dp_pam_handler_selinux_done(struct tevent_req *req);
-
-errno_t dp_pam_handler(struct sbus_request *sbus_req, void *sbus_data)
-{
-    struct dp_pam_handler_state *state;
-    struct data_provider *provider;
-    struct pam_data *pd = NULL;
-    struct dp_client *dp_cli;
-    enum dp_targets target;
-    enum dp_methods method;
-    const char *req_name;
-    struct tevent_req *req;
-    errno_t ret;
-
-    dp_cli = talloc_get_type(sbus_data, struct dp_client);
-    provider = dp_client_provider(dp_cli);
-
-    state = talloc_zero(sbus_req, struct dp_pam_handler_state);
-    if (state == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = pam_data_create(state, sbus_req, provider->be_ctx, &pd);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    state->provider = provider;
-    state->dp_cli = dp_cli;
-    state->sbus_req = sbus_req;
-
-    DEBUG(SSSDBG_CONF_SETTINGS, "Got request with the following data\n");
-    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
-
-    choose_target(provider, pd, &target, &method, &req_name);
-    if (target == DP_TARGET_SENTINEL) {
-        /* Just send the result. Pam data are freed with this call. */
-        dp_pam_reply(sbus_req, req_name, pd);
-        return EOK;
-    }
-
-    req = dp_req_send(state, provider, dp_cli, pd->domain, req_name,
-                      target, method, 0, pd, &state->request_name);
-    if (req == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tevent_req_set_callback(req, dp_pam_handler_step_done, state);
-
-done:
-    if (ret != EOK) {
-        talloc_free(pd);
-    }
-
-    return ret;
-}
-
 static bool should_invoke_selinux(struct data_provider *provider,
                                   struct pam_data *pd)
 {
@@ -253,70 +127,216 @@ static bool should_invoke_selinux(struct data_provider *provider,
     return false;
 }
 
-void dp_pam_handler_step_done(struct tevent_req *req)
+struct dp_pam_handler_state {
+    struct data_provider *provider;
+    struct pam_data *pd;
+};
+
+static void dp_pam_handler_auth_done(struct tevent_req *subreq);
+static void dp_pam_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+dp_pam_handler_send(TALLOC_CTX *mem_ctx,
+                    struct tevent_context *ev,
+                    struct sbus_request *sbus_req,
+                    struct data_provider *provider,
+                    struct pam_data *pd)
 {
     struct dp_pam_handler_state *state;
-    struct pam_data *pd;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    enum dp_targets target;
+    enum dp_methods method;
+    const char *req_name;
     errno_t ret;
 
-    state = tevent_req_callback_data(req, struct dp_pam_handler_state);
-
-    ret = dp_req_recv(state, req, struct pam_data *, &pd);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        dp_req_reply_error(state->sbus_req, state->request_name, ret);
-        return;
-    }
-
-    if (!should_invoke_selinux(state->provider, pd)) {
-        /* State and request related data are freed with sbus_req. */
-        dp_pam_reply(state->sbus_req, state->request_name, pd);
-        return;
-    }
-
-    req = dp_req_send(state, state->provider, state->dp_cli, pd->domain,
-                      "PAM SELinux", DPT_SELINUX, DPM_SELINUX_HANDLER,
-                      0, pd, NULL);
+    req = tevent_req_create(mem_ctx, &state, struct dp_pam_handler_state);
     if (req == NULL) {
-        DP_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->request_name,
-                     "Unable to process SELinux, killing request...");
-        talloc_free(state->sbus_req);
-        return;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    tevent_req_set_callback(req, dp_pam_handler_selinux_done, state);
+    pd->pam_status = PAM_SYSTEM_ERR;
+    if (pd->domain == NULL) {
+        pd->domain = talloc_strdup(pd, provider->be_ctx->domain->name);
+        if (pd->domain == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    state->provider = provider;
+    state->pd = pd;
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "Got request with the following data\n");
+    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
+
+    choose_target(provider, pd, &target, &method, &req_name);
+    if (target == DP_TARGET_SENTINEL) {
+        ret = EOK;
+        goto done;
+    }
+
+    subreq = dp_req_send(state, provider, pd->domain, req_name, target,
+                         method, 0, pd, NULL);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, dp_pam_handler_auth_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
 }
 
-void dp_pam_handler_selinux_done(struct tevent_req *req)
+static void dp_pam_handler_auth_done(struct tevent_req *subreq)
 {
     struct dp_pam_handler_state *state;
-    struct pam_data *pd;
+    struct tevent_req *req;
     errno_t ret;
 
-    state = tevent_req_callback_data(req, struct dp_pam_handler_state);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_pam_handler_state);
 
-    ret = dp_req_recv(state, req, struct pam_data *, &pd);
-    talloc_zfree(req);
+    ret = dp_req_recv(state, subreq, struct pam_data *, &state->pd);
+    talloc_zfree(subreq);
     if (ret != EOK) {
-        dp_req_reply_error(state->sbus_req, state->request_name, ret);
+        tevent_req_error(req, ret);
         return;
     }
 
-    /* State and request related data are freed with sbus_req. */
-    dp_pam_reply(state->sbus_req, state->request_name, pd);
+    if (!should_invoke_selinux(state->provider, state->pd)) {
+        tevent_req_done(req);
+        return;
+    }
+
+    subreq = dp_req_send(state, state->provider, state->pd->domain,
+                         "PAM SELinux", DPT_SELINUX, DPM_SELINUX_HANDLER,
+                         0, state->pd, NULL);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, dp_pam_handler_done, req);
+}
+
+static void dp_pam_handler_done(struct tevent_req *subreq)
+{
+    struct dp_pam_handler_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_pam_handler_state);
+
+    ret = dp_req_recv(state, subreq, struct pam_data *, &state->pd);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t
+dp_pam_handler_recv(TALLOC_CTX *mem_ctx,
+                    struct tevent_req *req,
+                    struct pam_data **_pd)
+{
+    struct dp_pam_handler_state *state;
+    state = tevent_req_data(req, struct dp_pam_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_pd = talloc_steal(mem_ctx, state->pd);
+
+    return EOK;
+}
+
+struct dp_access_control_refresh_rules_state {
+    void *reply;
+};
+
+static void dp_access_control_refresh_rules_done(struct tevent_req *subreq);
+
+struct tevent_req *
+dp_access_control_refresh_rules_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sbus_request *sbus_req,
+                                     struct data_provider *provider)
+{
+    struct dp_access_control_refresh_rules_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct dp_access_control_refresh_rules_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    subreq = dp_req_send(state, provider, NULL, "Refresh Access Control Rules",
+                         DPT_ACCESS, DPM_REFRESH_ACCESS_RULES, 0, NULL, NULL);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, dp_access_control_refresh_rules_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void dp_access_control_refresh_rules_done(struct tevent_req *subreq)
+{
+    struct dp_access_control_refresh_rules_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_access_control_refresh_rules_state);
+
+    ret = dp_req_recv(state, subreq, void *, &state->reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
     return;
 }
 
-errno_t dp_access_control_refresh_rules_handler(struct sbus_request *sbus_req,
-                                                void *dp_cli)
+errno_t
+dp_access_control_refresh_rules_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req)
 {
-    const char *key;
-
-    key = "RefreshRules";
-
-    dp_req_with_reply(dp_cli, NULL, "Refresh Access Control Rules", key,
-                      sbus_req, DPT_ACCESS, DPM_REFRESH_ACCESS_RULES, 0, NULL,
-                      dp_req_reply_default, void *);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
