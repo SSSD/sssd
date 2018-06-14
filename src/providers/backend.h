@@ -82,6 +82,7 @@ struct be_ctx {
     struct sss_domain_info *domain;
     const char *identity;
     const char *conf_path;
+    const char *sbus_name;
     uid_t uid;
     gid_t gid;
     char override_space;

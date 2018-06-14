@@ -273,7 +273,7 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                 struct sdap_sudo_ctx *sudo_ctx,
-                                                char **rules)
+                                                const char **rules)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;

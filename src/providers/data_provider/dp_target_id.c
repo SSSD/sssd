@@ -21,11 +21,11 @@
 #include <talloc.h>
 #include <tevent.h>
 
-#include "sbus/sssd_dbus.h"
+#include "sbus/sbus_request.h"
+#include "sss_iface/sss_iface_async.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
-#include "responder/nss/nss_iface.h"
 #include "util/util.h"
 
 #define FILTER_TYPE(str, type) {str "=", sizeof(str "=") - 1, type}
@@ -49,15 +49,15 @@ static bool check_and_parse_filter(struct dp_id_data *data,
                  {0, 0, 0}};
     int i;
 
-    if (SBUS_IS_STRING_EMPTY(filter)) {
+    if (SBUS_REQ_STRING_IS_EMPTY(filter)) {
         return false;
     }
 
     for (i = 0; types[i].name != NULL; i++) {
         if (strncmp(filter, types[i].name, types[i].lenght) == 0) {
             data->filter_type = types[i].type;
-            data->filter_value = SBUS_SET_STRING(&filter[types[i].lenght]);
-            data->extra_value = SBUS_SET_STRING(extra);
+            data->filter_value = SBUS_REQ_STRING(&filter[types[i].lenght]);
+            data->extra_value = SBUS_REQ_STRING(extra);
             return true;
         }
     }
@@ -81,133 +81,89 @@ struct dp_initgr_ctx {
     uint32_t *groups;
 };
 
-static struct dp_initgr_ctx *create_initgr_ctx(
-                                        TALLOC_CTX *mem_ctx,
-                                        const char *domain,
-                                        struct sss_domain_info *domain_info,
-                                        const char *filter_value,
-                                        struct ldb_result *res)
+static errno_t
+dp_create_initgroups_ctx(TALLOC_CTX *mem_ctx,
+                         struct be_ctx *be_ctx,
+                         struct dp_id_data *data,
+                         struct dp_initgr_ctx **_ctx)
 {
+    struct sss_domain_info *domain;
     struct dp_initgr_ctx *ctx;
+    struct ldb_result *res;
     const char *username;
     unsigned int i;
     errno_t ret;
 
+    if (data->domain == NULL) {
+        domain = be_ctx->domain;
+    } else {
+        domain = find_domain_by_name(be_ctx->domain, data->domain, true);
+        if (domain == NULL) {
+            return ERR_DOMAIN_NOT_FOUND;
+        }
+    }
+
     ctx = talloc_zero(mem_ctx, struct dp_initgr_ctx);
     if (ctx == NULL) {
-        return NULL;
+        return ENOMEM;
     }
 
-    /* Copy domain name */
-    ctx->domain = talloc_strdup(ctx, domain);
-    if (ctx->domain == NULL) {
+    ctx->domain = data->domain;
+    ctx->filter_value = data->filter_value;
+    ctx->domain_info = domain;
+
+    ret = sysdb_initgroups(ctx, domain, data->filter_value, &res);
+    if (ret == ENOENT || (ret == EOK && res->count == 0)) {
+        *_ctx = ctx;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get initgroups [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Copy original username */
+    username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    if (username == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ctx->username = talloc_strdup(ctx, username);
+    if (ctx->username == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    /* Copy filter value */
-    ctx->filter_value = talloc_strdup(ctx, filter_value);
-    if (ctx->filter_value == NULL) {
+    /* Copy group IDs */
+    ctx->groups = talloc_zero_array(mem_ctx, uint32_t, res->count + 1);
+    if (ctx->groups == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    /* Reference domain info */
-    ctx->domain_info = domain_info;
-
-    /* If we had the data in sysdb */
-    if (res != NULL) {
-        /* Copy original username */
-        username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
-        if (username == NULL) {
-            ret = EINVAL;
-            goto done;
-        }
-        ctx->username = talloc_strdup(ctx, username);
-        if (ctx->username == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        /* Copy group IDs */
-        ctx->groups = talloc_array(mem_ctx, uint32_t, res->count);
-        if (ctx->groups == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        /* The first GID is the primary so it might be duplicated
-         * later in the list. */
-        for (ctx->gnum = 0, i = 0; i < res->count; i++) {
-            ctx->groups[ctx->gnum] = ldb_msg_find_attr_as_uint(res->msgs[i],
-                                                               SYSDB_GIDNUM, 0);
-            /* If 0 it may be a non-POSIX group, so we skip it. */
-            if (ctx->groups[ctx->gnum] != 0) {
-                ctx->gnum++;
-            }
+    /* The first GID is the primary so it might be duplicated
+     * later in the list. */
+    for (ctx->gnum = 0, i = 0; i < res->count; i++) {
+        ctx->groups[ctx->gnum] = ldb_msg_find_attr_as_uint(res->msgs[i],
+                                                           SYSDB_GIDNUM, 0);
+        /* If 0 it may be a non-POSIX group, so we skip it. */
+        if (ctx->groups[ctx->gnum] != 0) {
+            ctx->gnum++;
         }
     }
+
+    *_ctx = ctx;
+    talloc_free(res);
 
     ret = EOK;
 
 done:
     if (ret != EOK) {
         talloc_free(ctx);
-        return NULL;
     }
 
-    return ctx;
-}
-
-static void dp_req_initgr_pp_nss_notify(const char *req_name,
-                                        struct data_provider *provider,
-                                        struct dp_initgr_ctx *ctx)
-{
-    struct dp_client *dp_cli;
-    DBusMessage *msg;
-    dbus_bool_t dbret;
-    int num;
-
-    /* If user didn't exist in the cache previously */
-    if (ctx->username == NULL) {
-        /* There is no point in contacting NSS responder */
-        return;
-    }
-
-    dp_cli = provider->clients[DPC_NSS];
-    if (dp_cli == NULL) {
-        return;
-    }
-
-    msg = dbus_message_new_method_call(NULL,
-                                       NSS_MEMORYCACHE_PATH,
-                                       IFACE_NSS_MEMORYCACHE,
-                                       IFACE_NSS_MEMORYCACHE_UPDATEINITGROUPS);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
-        return;
-    }
-
-    num = ctx->gnum;
-    dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_STRING, &ctx->username,
-                                     DBUS_TYPE_STRING, &ctx->domain,
-                                     DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32,
-                                     &ctx->groups, num,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
-        dbus_message_unref(msg);
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Ordering NSS responder to update memory cache\n");
-
-    sbus_conn_send_reply(dp_client_conn(dp_cli), msg);
-    dbus_message_unref(msg);
-
-    return;
+    return ret;
 }
 
 static void dp_req_initgr_pp_sr_overlay(struct data_provider *provider,
@@ -438,124 +394,198 @@ static void dp_req_initgr_pp_set_initgr_timestamp(struct dp_initgr_ctx *ctx,
     }
 }
 
-static void dp_req_initgr_pp(const char *req_name,
-                             struct data_provider *provider,
-                             struct dp_initgr_ctx *ctx,
-                             struct dp_reply_std *reply)
-{
-    (void)reply;
-    dp_req_initgr_pp_set_initgr_timestamp(ctx, reply);
-    dp_req_initgr_pp_nss_notify(req_name, provider, ctx);
-    dp_req_initgr_pp_sr_overlay(provider, ctx);
-}
+struct dp_get_account_info_state {
+    const char *request_name;
+    bool initgroups;
 
-static errno_t dp_initgroups(struct sbus_request *sbus_req,
-                             struct dp_client *dp_cli,
-                             const char *key,
-                             uint32_t dp_flags,
-                             struct dp_id_data *data)
+    struct data_provider *provider;
+    struct dp_id_data *data;
+    struct dp_reply_std reply;
+    struct dp_initgr_ctx *initgr_ctx;
+};
+
+static void dp_get_account_info_request_done(struct tevent_req *subreq);
+static errno_t dp_get_account_info_initgroups_step(struct tevent_req *req);
+static void dp_get_account_info_done(struct tevent_req *subreq);
+
+struct tevent_req *
+dp_get_account_info_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sbus_request *sbus_req,
+                         struct data_provider *provider,
+                         uint32_t dp_flags,
+                         uint32_t entry_type,
+                         const char *filter,
+                         const char *domain,
+                         const char *extra)
 {
-    struct be_ctx *be_ctx;
-    struct sss_domain_info *domain;
-    struct dp_initgr_ctx *ctx;
-    struct ldb_result *res = NULL;
+    struct dp_get_account_info_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
     errno_t ret;
 
-    be_ctx = dp_client_be(dp_cli);
-
-    if (data->domain == NULL) {
-        domain = be_ctx->domain;
-    } else {
-        domain = find_domain_by_name(be_ctx->domain, data->domain, true);
-        if (domain == NULL) {
-            return ERR_DOMAIN_NOT_FOUND;
-        }
+    req = tevent_req_create(mem_ctx, &state, struct dp_get_account_info_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    ret = sysdb_initgroups(sbus_req, domain, data->filter_value, &res);
-    if (ret == ENOENT || (ret == EOK && res->count == 0)) {
-        talloc_zfree(res);
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get initgroups [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    ctx = create_initgr_ctx(sbus_req, data->domain, domain,
-                            data->filter_value, res);
-    if (ctx == NULL) {
+    state->data = talloc_zero(state, struct dp_id_data);
+    if (state->data == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    dp_req_with_reply_pp(dp_cli, data->domain, "Initgroups", key,
-                      sbus_req, DPT_ID, DPM_ACCOUNT_HANDLER, dp_flags, data,
-                      dp_req_initgr_pp, ctx, struct dp_initgr_ctx,
-                      dp_req_reply_std, struct dp_reply_std);
+    state->provider = provider;
+    state->request_name = "Account";
+    state->initgroups = false;
+    state->data->entry_type = entry_type;
+    state->data->domain = domain;
 
-    ret = EOK;
-
-done:
-    talloc_free(res);
-    return ret;
-}
-
-errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
-                                    void *dp_cli,
-                                    uint32_t dp_flags,
-                                    uint32_t entry_type,
-                                    const char *filter,
-                                    const char *domain,
-                                    const char *extra)
-{
-    struct dp_id_data *data;
-    const char *key;
-    errno_t ret;
-
-    data = talloc_zero(sbus_req, struct dp_id_data);
-    if (data == NULL) {
-        return ENOMEM;
-    }
-
-    data->entry_type = entry_type;
-    data->domain = domain;
-
-    if (!check_and_parse_filter(data, filter, extra)) {
+    if (!check_and_parse_filter(state->data, filter, extra)) {
         ret = EINVAL;
         goto done;
     }
 
     DEBUG(SSSDBG_FUNC_DATA,
           "Got request for [%#"PRIx32"][%s][%s]\n",
-          data->entry_type, be_req2str(data->entry_type),
+          state->data->entry_type, be_req2str(state->data->entry_type),
           filter);
 
-    key = talloc_asprintf(data, "%u:%s:%s:%s", data->entry_type,
-                          extra, domain, filter);
-    if (key == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
+    if ((state->data->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_INITGROUPS) {
+        state->request_name = "Initgroups";
+        state->initgroups = true;
 
-    if ((data->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_INITGROUPS) {
-        ret = dp_initgroups(sbus_req, dp_cli, key, dp_flags, data);
-        if (ret != EAGAIN) {
+        ret = dp_create_initgroups_ctx(state, provider->be_ctx, state->data,
+                                       &state->initgr_ctx);
+        if (ret != EOK) {
             goto done;
         }
     }
 
-    dp_req_with_reply(dp_cli, domain, "Account", key,
-                      sbus_req, DPT_ID, DPM_ACCOUNT_HANDLER, dp_flags, data,
-                      dp_req_reply_std, struct dp_reply_std);
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(data);
+    subreq = dp_req_send(state, provider, domain, state->request_name, DPT_ID,
+                         DPM_ACCOUNT_HANDLER, dp_flags, state->data,
+                         &state->request_name);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
     }
 
+    tevent_req_set_callback(subreq, dp_get_account_info_request_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void dp_get_account_info_request_done(struct tevent_req *subreq)
+{
+    struct dp_get_account_info_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_get_account_info_state);
+
+    ret = dp_req_recv(state, subreq, struct dp_reply_std, &state->reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = dp_get_account_info_initgroups_step(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+}
+
+static errno_t dp_get_account_info_initgroups_step(struct tevent_req *req)
+{
+    struct dp_get_account_info_state *state;
+    struct tevent_req *subreq;
+    errno_t ret;
+
+    state = tevent_req_data(req, struct dp_get_account_info_state);
+
+    if (state->initgroups == false) {
+        return EOK;
+    }
+
+    if (state->initgr_ctx->username != NULL) {
+        /* There is no point in contacting NSS responder if user did
+         * not exist before this request. */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Ordering NSS responder to update memory cache\n");
+
+        subreq = sbus_call_nss_memcache_UpdateInitgroups_send(state,
+                     state->provider->sbus_conn, SSS_BUS_NSS, SSS_BUS_PATH,
+                     state->initgr_ctx->username, state->initgr_ctx->domain,
+                     state->initgr_ctx->groups);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+            return ENOMEM;
+        }
+
+        tevent_req_set_callback(subreq, dp_get_account_info_done, req);
+        ret = EAGAIN;
+    } else {
+        ret = EOK;
+    }
+
+    dp_req_initgr_pp_set_initgr_timestamp(state->initgr_ctx, &state->reply);
+    dp_req_initgr_pp_sr_overlay(state->provider, state->initgr_ctx);
+
     return ret;
+}
+
+static void dp_get_account_info_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = sbus_call_nss_memcache_UpdateInitgroups_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error sending sbus message [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t
+dp_get_account_info_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         uint16_t *_dp_error,
+                         uint32_t *_error,
+                         const char **_err_msg)
+{
+    struct dp_get_account_info_state *state;
+    state = tevent_req_data(req, struct dp_get_account_info_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    dp_req_reply_std(state->request_name, &state->reply,
+                     _dp_error, _error, _err_msg);
+
+    return EOK;
 }
 
 static bool
@@ -573,14 +603,14 @@ check_and_parse_acct_domain_filter(struct dp_get_acct_domain_data *data,
                  {0, 0, 0}};
     int i;
 
-    if (SBUS_IS_STRING_EMPTY(filter)) {
+    if (SBUS_REQ_STRING_IS_EMPTY(filter)) {
         return false;
     }
 
     for (i = 0; types[i].name != NULL; i++) {
         if (strncmp(filter, types[i].name, types[i].lenght) == 0) {
             data->filter_type = types[i].type;
-            data->filter_value = SBUS_SET_STRING(&filter[types[i].lenght]);
+            data->filter_value = SBUS_REQ_STRING(&filter[types[i].lenght]);
             return true;
         }
     }
@@ -594,38 +624,103 @@ check_and_parse_acct_domain_filter(struct dp_get_acct_domain_data *data,
     return false;
 }
 
-errno_t dp_get_account_domain_handler(struct sbus_request *sbus_req,
-                                      void *dp_cli,
-                                      uint32_t entry_type,
-                                      const char *filter)
-{
+struct dp_get_account_domain_state {
     struct dp_get_acct_domain_data *data;
-    const char *key = NULL;
+    struct dp_reply_std reply;
+    const char *request_name;
+};
+
+static void dp_get_account_domain_done(struct tevent_req *subreq);
+
+struct tevent_req *
+dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct sbus_request *sbus_req,
+                           struct data_provider *provider,
+                           uint32_t entry_type,
+                           const char *filter)
+{
+    struct dp_get_account_domain_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
     errno_t ret;
 
-    data = talloc_zero(sbus_req, struct dp_get_acct_domain_data);
-    if (data == NULL) {
-        return ENOMEM;
+    req = tevent_req_create(mem_ctx, &state, struct dp_get_account_domain_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
-    data->entry_type = entry_type;
 
-    if (!check_and_parse_acct_domain_filter(data, filter)) {
+    state->data = talloc_zero(state, struct dp_get_acct_domain_data);
+    if (state->data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    state->data->entry_type = entry_type;
+
+    if (!check_and_parse_acct_domain_filter(state->data, filter)) {
         ret = EINVAL;
         goto done;
     }
 
-    dp_req_with_reply(dp_cli, NULL, "AccountDomain", key, sbus_req,
-                      DPT_ID, DPM_ACCT_DOMAIN_HANDLER, 0, data,
-                      dp_req_reply_std, struct dp_reply_std);
-
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(data);
+    subreq = dp_req_send(state, provider, NULL, "AccountDomain", DPT_ID,
+                         DPM_ACCT_DOMAIN_HANDLER, 0, state->data,
+                         &state->request_name);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
     }
 
-    return ret;
+    tevent_req_set_callback(subreq, dp_get_account_domain_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void dp_get_account_domain_done(struct tevent_req *subreq)
+{
+    struct dp_get_account_domain_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_get_account_domain_state);
+
+    ret = dp_req_recv(state, subreq, struct dp_reply_std, &state->reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           uint16_t *_dp_error,
+                           uint32_t *_error,
+                           const char **_err_msg)
+{
+    struct dp_get_account_domain_state *state;
+    state = tevent_req_data(req, struct dp_get_account_domain_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    dp_req_reply_std(state->request_name, &state->reply,
+                     _dp_error, _error, _err_msg);
+
+    return EOK;
 }
 
 struct default_account_domain_state {

@@ -27,7 +27,7 @@
 
 struct dp_sudo_data {
     uint32_t type;
-    char **rules;
+    const char **rules;
 };
 
 struct dp_hostid_data {
@@ -70,10 +70,10 @@ void dp_reply_std_set(struct dp_reply_std *reply,
                       int error,
                       const char *msg);
 
-/* Reply callbacks. */
-
 void dp_req_reply_std(const char *request_name,
-                      struct sbus_request *sbus_req,
-                      struct dp_reply_std *reply);
+                      struct dp_reply_std *reply,
+                      uint16_t *_dp_error,
+                      uint32_t *_error,
+                      const char **_message);
 
 #endif /* _DP_CUSTOM_DATA_H_ */

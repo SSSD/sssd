@@ -780,12 +780,10 @@ dist_noinst_HEADERS = \
     src/providers/data_provider_req.h \
     src/providers/data_provider/dp.h \
     src/providers/data_provider/dp_flags.h \
-    src/providers/data_provider/dp_responder_iface.h \
     src/providers/data_provider/dp_private.h \
     src/providers/data_provider/dp_request.h \
     src/providers/data_provider/dp_custom_data.h \
     src/providers/data_provider/dp_builtin.h \
-    src/providers/data_provider/dp_iface_generated.h \
     src/providers/data_provider/dp_iface.h \
     src/providers/backend.h \
     src/providers/be_dyndns.h \
@@ -1844,15 +1842,11 @@ sssd_be_SOURCES = \
     src/providers/data_provider/dp_targets.c \
     src/providers/data_provider/dp_methods.c \
     src/providers/data_provider/dp_builtin.c \
-    src/providers/data_provider/dp_iface.c \
     src/providers/data_provider/dp_iface_backend.c \
     src/providers/data_provider/dp_iface_failover.c \
     src/providers/data_provider/dp_client.c \
     src/providers/data_provider/dp_resp_client.c \
-    src/providers/data_provider/dp_iface_generated.c \
     src/providers/data_provider/dp_request.c \
-    src/providers/data_provider/dp_request_reply.c \
-    src/providers/data_provider/dp_request_table.c \
     src/providers/data_provider/dp_reply_std.c \
     src/providers/data_provider/dp_target_sudo.c \
     src/providers/data_provider/dp_target_hostid.c \
@@ -1868,7 +1862,8 @@ sssd_be_LDADD = \
     $(CARES_LIBS) \
     $(PAM_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
