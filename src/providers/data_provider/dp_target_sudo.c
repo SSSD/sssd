@@ -21,56 +21,42 @@
 #include <talloc.h>
 #include <tevent.h>
 
-#include "sbus/sssd_dbus.h"
+#include "sbus/sbus_request.h"
+#include "sbus/interface/sbus_iterator_readers.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
 #include "util/util.h"
 
 static errno_t dp_sudo_parse_message(TALLOC_CTX *mem_ctx,
-                                     DBusMessage *msg,
+                                     DBusMessageIter *read_iter,
                                      uint32_t *_dp_flags,
                                      uint32_t *_sudo_type,
-                                     char ***_rules)
+                                     const char ***_rules)
 {
-    DBusError error;
-    DBusMessageIter iter;
-    DBusMessageIter array_iter;
     uint32_t dp_flags;
     uint32_t sudo_type;
     uint32_t num_rules;
-    const char *rule;
-    char **rules = NULL;
-    uint32_t i;
+    const char **rules;
     errno_t ret;
 
-    dbus_error_init(&error);
-    dbus_message_iter_init(msg, &iter);
-
-    /* get dp flags */
-    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+    ret = sbus_iterator_read_u(read_iter, &dp_flags);
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
-        ret = EIO;
-        goto done;
+        return ret;
     }
 
-    dbus_message_iter_get_basic(&iter, &dp_flags);
-    dbus_message_iter_next(&iter); /* step behind the request type */
-
-    /* get type of the request */
-    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+    ret = sbus_iterator_read_u(read_iter, &sudo_type);
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
-        ret = EIO;
-        goto done;
+        return ret;
     }
-
-    dbus_message_iter_get_basic(&iter, &sudo_type);
-    dbus_message_iter_next(&iter); /* step behind the request type */
 
     /* get additional arguments according to the request type */
     switch (sudo_type) {
     case BE_REQ_SUDO_FULL:
         /* no arguments required */
+        rules = NULL;
         break;
     case BE_REQ_SUDO_RULES:
         /* additional arguments:
@@ -78,53 +64,17 @@ static errno_t dp_sudo_parse_message(TALLOC_CTX *mem_ctx,
          * rules[rules_num]
          */
         /* read rules_num */
-        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+        ret = sbus_iterator_read_u(read_iter, &num_rules);
+        if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
-            ret = EIO;
-            goto done;
+            return ret;
         }
 
-        dbus_message_iter_get_basic(&iter, &num_rules);
-
-        rules = talloc_zero_array(mem_ctx, char *, num_rules + 1);
-        if (rules == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array() failed.\n");
-            ret = ENOMEM;
-            goto done;
+        ret = sbus_iterator_read_as(mem_ctx, read_iter, &rules);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
+            return ret;
         }
-
-        dbus_message_iter_next(&iter);
-
-        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
-           DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
-            ret = EIO;
-            goto done;
-        }
-
-        dbus_message_iter_recurse(&iter, &array_iter);
-
-        /* read the rules */
-       for (i = 0; i < num_rules; i++) {
-            if (dbus_message_iter_get_arg_type(&array_iter)
-                    != DBUS_TYPE_STRING) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
-                ret = EIO;
-                goto done;
-            }
-
-            dbus_message_iter_get_basic(&array_iter, &rule);
-            rules[i] = talloc_strdup(rules, rule);
-            if (rules[i] == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-
-            dbus_message_iter_next(&array_iter);
-        }
-
-        rules[num_rules] = NULL;
-
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type %d\n", sudo_type);
@@ -135,26 +85,7 @@ static errno_t dp_sudo_parse_message(TALLOC_CTX *mem_ctx,
     *_sudo_type = sudo_type;
     *_rules = rules;
 
-    ret = EOK;
-
-done:
-   if (ret != EOK) {
-        talloc_free(rules);
-    }
-
-    return ret;
-}
-
-static const char *dp_sudo_get_key(uint32_t type)
-{
-    switch (type) {
-    case BE_REQ_SUDO_FULL:
-        return "full-refresh";
-    case BE_REQ_SUDO_RULES:
-        return NULL;
-    }
-
-    return NULL;
+    return EOK;
 }
 
 static const char *dp_sudo_get_name(uint32_t type)
@@ -169,31 +100,104 @@ static const char *dp_sudo_get_name(uint32_t type)
     return NULL;
 }
 
-errno_t dp_sudo_handler(struct sbus_request *sbus_req, void *dp_cli)
-{
+struct dp_sudo_handler_state {
     struct dp_sudo_data *data;
+    struct dp_reply_std reply;
+    const char *request_name;
+};
+
+static void dp_sudo_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+dp_sudo_handler_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
+                     struct sbus_request *sbus_req,
+                     struct data_provider *provider,
+                     DBusMessageIter *read_iter)
+{
+    struct dp_sudo_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
     uint32_t dp_flags;
-    const char *key;
     const char *name;
     errno_t ret;
 
-    data = talloc_zero(sbus_req, struct dp_sudo_data);
-    if (data == NULL) {
-        return ENOMEM;
+    req = tevent_req_create(mem_ctx, &state, struct dp_sudo_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    ret = dp_sudo_parse_message(data, sbus_req->message, &dp_flags,
-                                &data->type, &data->rules);
+    state->data = talloc_zero(state, struct dp_sudo_data);
+    if (state->data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = dp_sudo_parse_message(state, read_iter, &dp_flags,
+                                &state->data->type, &state->data->rules);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
-    key = dp_sudo_get_key(data->type);
-    name = dp_sudo_get_name(data->type);
+    name = dp_sudo_get_name(state->data->type);
 
-    dp_req_with_reply(dp_cli, NULL, name, key, sbus_req, DPT_SUDO,
-                      DPM_SUDO_HANDLER, dp_flags, data,
-                      dp_req_reply_std, struct dp_reply_std);
+    subreq = dp_req_send(state, provider, NULL, name, DPT_SUDO,
+                         DPM_SUDO_HANDLER, dp_flags, state->data,
+                         &state->request_name);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, dp_sudo_handler_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void dp_sudo_handler_done(struct tevent_req *subreq)
+{
+    struct dp_sudo_handler_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_sudo_handler_state);
+
+    ret = dp_req_recv(state, subreq, struct dp_reply_std, &state->reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+dp_sudo_handler_recv(TALLOC_CTX *mem_ctx,
+                     struct tevent_req *req,
+                     uint16_t *_dp_error,
+                     uint32_t *_error,
+                     const char **_err_msg)
+{
+    struct dp_sudo_handler_state *state;
+    state = tevent_req_data(req, struct dp_sudo_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    dp_req_reply_std(state->request_name, &state->reply,
+                     _dp_error, _error, _err_msg);
 
     return EOK;
 }

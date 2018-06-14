@@ -39,11 +39,10 @@
 
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "sbus/sssd_dbus.h"
-#include "sbus/sbus_client.h"
 #include "sss_client/sss_cli.h"
 #include "util/authtok.h"
 #include "providers/data_provider_req.h"
+#include "providers/data_provider/dp_pam_data.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_PIPE "private/sbus-dp"
@@ -141,49 +140,6 @@
 #define EXTRA_NAME_IS_UPN "U"
 #define EXTRA_INPUT_MAYBE_WITH_VIEW "V"
 
-/* AUTH related common data and functions */
-
-#define DEBUG_PAM_DATA(level, pd) do { \
-    if (DEBUG_IS_SET(level)) pam_print_data(level, pd); \
-} while(0)
-
-
-struct response_data {
-    int32_t type;
-    int32_t len;
-    uint8_t *data;
-    bool do_not_send_to_client;
-    struct response_data *next;
-};
-
-struct pam_data {
-    int cmd;
-    char *domain;
-    char *user;
-    char *service;
-    char *tty;
-    char *ruser;
-    char *rhost;
-    char **requested_domains;
-    struct sss_auth_token *authtok;
-    struct sss_auth_token *newauthtok;
-    uint32_t cli_pid;
-    char *logon_name;
-
-    int pam_status;
-    int response_delay;
-    struct response_data *resp_list;
-
-    bool offline_auth;
-    bool last_auth_saved;
-    int priv;
-    int account_locked;
-
-#ifdef USE_KEYRING
-    key_serial_t key_serial;
-#endif
-};
-
 /* from dp_auth_util.c */
 #define SSS_SERVER_INFO 0x80000000
 
@@ -193,25 +149,6 @@ struct pam_data {
 
 #define SSS_KRB5_INFO_TGT_LIFETIME (SSS_SERVER_INFO|SSS_KRB5_INFO|0x01)
 #define SSS_KRB5_INFO_UPN (SSS_SERVER_INFO|SSS_KRB5_INFO|0x02)
-
-/**
- * @brief Create new zero initialized struct pam_data.
- *
- * @param mem_ctx    A memory context use to allocate the internal data
- * @return           A pointer to new struct pam_data
- *                   NULL on error
- *
- * NOTE: This function should be the only way, how to create new empty
- * struct pam_data, because this function automatically initialize sub
- * structures and set destructor to created object.
- */
-struct pam_data *create_pam_data(TALLOC_CTX *mem_ctx);
-errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *old_pd,
-                      struct pam_data **new_pd);
-void pam_print_data(int l, struct pam_data *pd);
-int pam_add_response(struct pam_data *pd,
-                     enum response_type type,
-                     int len, const uint8_t *data);
 
 bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd);
 bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,

@@ -21,40 +21,31 @@
 #include <talloc.h>
 #include <tevent.h>
 
-#include "sbus/sssd_dbus.h"
-#include "sbus/sssd_dbus_errors.h"
+#include "sbus/sbus_request.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
 #include "util/util.h"
 
-errno_t dp_backend_is_online(struct sbus_request *sbus_req,
-                             void *dp_cli,
-                             const char *domname)
+errno_t
+dp_backend_is_online(TALLOC_CTX *mem_ctx,
+                     struct sbus_request *sbus_req,
+                     struct be_ctx *be_ctx,
+                     const char *domname,
+                     bool *_is_online)
 {
-    struct be_ctx *be_ctx;
     struct sss_domain_info *domain;
-    bool online;
 
-    be_ctx = dp_client_be(dp_cli);
-
-    if (SBUS_IS_STRING_EMPTY(domname)) {
-        domain = be_ctx->domain;
-    } else {
-        domain = find_domain_by_name(be_ctx->domain, domname, false);
-        if (domain == NULL) {
-            sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                                     "Unknown domain %s", domname);
-            return EOK;
-        }
+    if (SBUS_REQ_STRING_IS_EMPTY(domname)) {
+        *_is_online = be_is_offline(be_ctx);
+        return EOK;
     }
 
-    if (domain == be_ctx->domain) {
-        online = be_is_offline(be_ctx) == false;
-    } else {
-        online = domain->state == DOM_ACTIVE;
+    domain = find_domain_by_name(be_ctx->domain, domname, false);
+    if (domain == NULL) {
+        return ERR_DOMAIN_NOT_FOUND;
     }
 
-    iface_dp_backend_IsOnline_finish(sbus_req, online);
+    *_is_online = domain->state == DOM_ACTIVE;
     return EOK;
 }

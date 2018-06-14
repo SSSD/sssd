@@ -32,7 +32,6 @@
 #include <dlfcn.h>
 #include <popt.h>
 #include <signal.h>
-#include <dbus/dbus.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
@@ -41,30 +40,34 @@
 #include "util/sss_utf8.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
-#include "sbus/sssd_dbus.h"
 #include "providers/backend.h"
 #include "providers/fail_over.h"
 #include "providers/be_refresh.h"
 #include "providers/be_ptask.h"
 #include "util/child_common.h"
 #include "resolv/async_resolv.h"
-#include "monitor/monitor_interfaces.h"
+#include "sss_iface/sss_iface_async.h"
 
-static int data_provider_res_init(struct sbus_request *dbus_req, void *data);
-static int data_provider_go_offline(struct sbus_request *dbus_req, void *data);
-static int data_provider_reset_offline(struct sbus_request *dbus_req, void *data);
-static int data_provider_logrotate(struct sbus_request *dbus_req, void *data);
+/* org.freedesktop.sssd.service */
+static errno_t
+data_provider_res_init(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct be_ctx *be_ctx);
 
-struct mon_cli_iface monitor_be_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = data_provider_res_init,
-    .goOffline = data_provider_go_offline,
-    .resetOffline = data_provider_reset_offline,
-    .rotateLogs = data_provider_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = NULL,
-    .sysbusReconnect = NULL,
-};
+static errno_t
+data_provider_go_offline(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct be_ctx *be_ctx);
+
+static errno_t
+data_provider_reset_offline(TALLOC_CTX *mem_ctx,
+                            struct sbus_request *sbus_req,
+                            struct be_ctx *be_ctx);
+
+static errno_t
+data_provider_logrotate(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct be_ctx *be_ctx);
 
 bool be_is_offline(struct be_ctx *ctx)
 {
@@ -236,7 +239,7 @@ static errno_t be_check_online_request(struct be_ctx *be_ctx)
     be_ctx->offstat.went_offline = time(NULL);
     reset_fo(be_ctx);
 
-    req = dp_req_send(be_ctx, be_ctx->provider, NULL, NULL, "Online Check",
+    req = dp_req_send(be_ctx, be_ctx->provider, NULL, "Online Check",
                       DPT_ID, DPM_CHECK_ONLINE, 0, NULL, NULL);
     if (req == NULL) {
         return ENOMEM;
@@ -376,6 +379,31 @@ static void signal_be_reset_offline(struct tevent_context *ev,
     check_if_online(ctx);
 }
 
+static errno_t
+be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
+{
+    struct sbus_interface iface_service = SBUS_INTERFACE(
+        sssd_service,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_service, resInit, data_provider_res_init, be_ctx),
+            SBUS_SYNC(METHOD, sssd_service, goOffline, data_provider_go_offline, be_ctx),
+            SBUS_SYNC(METHOD, sssd_service, resetOffline, data_provider_reset_offline, be_ctx),
+            SBUS_SYNC(METHOD, sssd_service, rotateLogs, data_provider_logrotate, be_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    struct sbus_path paths[] = {
+        {SSS_BUS_PATH, &iface_service},
+        {NULL, NULL}
+    };
+
+    return sbus_connection_add_path_map(be_ctx->mon_conn, paths);
+}
+
+static void dp_initialized(struct tevent_req *req);
+
 errno_t be_process_init(TALLOC_CTX *mem_ctx,
                         const char *be_domain,
                         uid_t uid,
@@ -384,7 +412,7 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
                         struct confdb_ctx *cdb)
 {
     uint32_t refresh_interval;
-    struct tevent_signal *tes;
+    struct tevent_req *req;
     struct be_ctx *be_ctx;
     char *str = NULL;
     errno_t ret;
@@ -423,15 +451,6 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
     ret = sysdb_master_domain_update(be_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to update master domain information!\n");
-        goto done;
-    }
-
-    ret = sss_monitor_init(be_ctx, be_ctx->ev, &monitor_be_methods,
-                           be_ctx->identity, DATA_PROVIDER_VERSION,
-                           MT_SVC_PROVIDER, be_ctx, NULL,
-                           &be_ctx->mon_conn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize monitor connection\n");
         goto done;
     }
 
@@ -496,9 +515,49 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = dp_init(be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid);
+    req = dp_init_send(be_ctx, be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid);
+    if (req == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(req, dp_initialized, be_ctx);
+
+    ret = EOK;
+
+done:
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup data provider "
+        talloc_free(be_ctx);
+    }
+
+    return ret;
+}
+
+static void dp_initialized(struct tevent_req *req)
+{
+    struct tevent_signal *tes;
+    struct be_ctx *be_ctx;
+    errno_t ret;
+
+    be_ctx = tevent_req_callback_data(req, struct be_ctx);
+
+    ret = dp_init_recv(be_ctx, req, &be_ctx->provider, &be_ctx->sbus_name);
+    talloc_zfree(req);
+    if (ret !=  EOK) {
+        goto done;
+    }
+
+    ret = sss_monitor_service_init(be_ctx, be_ctx->ev, be_ctx->sbus_name,
+                                   be_ctx->identity, DATA_PROVIDER_VERSION,
+                                   MT_SVC_PROVIDER, NULL, &be_ctx->mon_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize monitor connection\n");
+        goto done;
+    }
+
+    ret = be_register_monitor_iface(be_ctx->mon_conn, be_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register monitor interface "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
@@ -523,14 +582,29 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = chown_debug_file(NULL, be_ctx->uid, be_ctx->gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot chown the debug files, debugging might not work!\n");
+    }
+
+    ret = become_user(be_ctx->uid, be_ctx->gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n",
+              be_ctx->uid, be_ctx->gid);
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Backend provider (%s) started!\n",
+          be_ctx->domain->name);
+
     ret = EOK;
 
 done:
     if (ret != EOK) {
-        talloc_free(be_ctx);
+        exit(3);
     }
-
-    return ret;
 }
 
 #ifndef UNIT_TESTING
@@ -621,21 +695,6 @@ int main(int argc, const char *argv[])
         return 3;
     }
 
-    ret = chown_debug_file(NULL, uid, gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot chown the debug files, debugging might not work!\n");
-    }
-
-    ret = become_user(uid, gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FUNC_DATA,
-              "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
-        return ret;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Backend provider (%s) started!\n", be_domain);
-
     /* loop on main */
     server_loop(main_ctx);
 
@@ -643,40 +702,41 @@ int main(int argc, const char *argv[])
 }
 #endif
 
-static int data_provider_res_init(struct sbus_request *dbus_req, void *data)
+static errno_t
+data_provider_res_init(TALLOC_CTX *mem_ctx,
+                       struct sbus_request *sbus_req,
+                       struct be_ctx *be_ctx)
 {
-    struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
-
     resolv_reread_configuration(be_ctx->be_res->resolv);
     check_if_online(be_ctx);
 
-    return monitor_common_res_init(dbus_req, data);
+    return monitor_common_res_init(mem_ctx, sbus_req, NULL);
 }
 
-static int data_provider_go_offline(struct sbus_request *dbus_req, void *data)
+static errno_t
+data_provider_go_offline(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct be_ctx *be_ctx)
 {
-    struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
     be_mark_offline(be_ctx);
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+
+    return EOK;
 }
 
-static int data_provider_reset_offline(struct sbus_request *dbus_req, void *data)
+static errno_t
+data_provider_reset_offline(TALLOC_CTX *mem_ctx,
+                            struct sbus_request *sbus_req,
+                            struct be_ctx *be_ctx)
 {
-    struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(data, struct be_ctx);
     check_if_online(be_ctx);
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+
+    return EOK;
 }
 
-static int data_provider_logrotate(struct sbus_request *dbus_req, void *data)
+static errno_t
+data_provider_logrotate(TALLOC_CTX *mem_ctx,
+                        struct sbus_request *sbus_req,
+                        struct be_ctx *be_ctx)
 {
-    errno_t ret;
-    struct be_ctx *be_ctx = talloc_get_type(data, struct be_ctx);
-
-    ret = server_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
-    if (ret != EOK) return ret;
-
-    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+    return server_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
 }

@@ -65,7 +65,7 @@ struct tevent_req *
 ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct ipa_sudo_ctx *sudo_ctx,
-                            char **rules);
+                            const char **rules);
 
 errno_t
 ipa_sudo_refresh_recv(struct tevent_req *req,

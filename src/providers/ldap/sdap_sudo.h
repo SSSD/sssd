@@ -70,7 +70,7 @@ int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
 
 struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                 struct sdap_sudo_ctx *sudo_ctx,
-                                                char **rules);
+                                                const char **rules);
 
 int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
                                  int *dp_error,

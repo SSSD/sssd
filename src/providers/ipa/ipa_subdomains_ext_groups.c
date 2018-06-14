@@ -1113,7 +1113,7 @@ struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    subreq = dp_req_send(state, ipa_ctx->sdap_id_ctx->be->provider, NULL,
+    subreq = dp_req_send(state, ipa_ctx->sdap_id_ctx->be->provider,
                          ar->domain, "External Member",
                          DPT_ID, DPM_ACCOUNT_HANDLER, 0, ar, NULL);
     if (subreq == NULL) {

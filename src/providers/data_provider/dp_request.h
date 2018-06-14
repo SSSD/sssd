@@ -26,13 +26,11 @@
 #include "providers/data_provider/dp.h"
 
 struct data_provider;
-struct dp_client;
 enum dp_targets;
 enum dp_methods;
 
 struct tevent_req *dp_req_send(TALLOC_CTX *mem_ctx,
                                struct data_provider *provider,
-                               struct dp_client *dp_cli,
                                const char *domain,
                                const char *name,
                                enum dp_targets target,

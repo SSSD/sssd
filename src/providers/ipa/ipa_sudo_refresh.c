@@ -263,7 +263,7 @@ struct tevent_req *
 ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct ipa_sudo_ctx *sudo_ctx,
-                            char **rules)
+                            const char **rules)
 {
     TALLOC_CTX *tmp_ctx;
     struct ipa_sudo_rules_refresh_state *state;

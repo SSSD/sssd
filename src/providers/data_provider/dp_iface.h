@@ -21,42 +21,98 @@
 #ifndef DP_IFACE_H_
 #define DP_IFACE_H_
 
-#include "sbus/sssd_dbus.h"
+#include "sbus/sbus_request.h"
 #include "providers/data_provider/dp_private.h"
-#include "providers/data_provider/dp_responder_iface.h"
 #include "providers/data_provider/dp.h"
 
-#define DP_PATH "/org/freedesktop/sssd/dataprovider"
+struct tevent_req *
+dp_get_account_info_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sbus_request *sbus_req,
+                         struct data_provider *provider,
+                         uint32_t dp_flags,
+                         uint32_t entry_type,
+                         const char *filter,
+                         const char *domain,
+                         const char *extra);
 
-errno_t dp_register_sbus_interface(struct sbus_connection *conn,
-                                   struct dp_client *pvt);
+errno_t
+dp_get_account_info_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         uint16_t *_dp_error,
+                         uint32_t *_error,
+                         const char **_err_msg);
 
-errno_t dp_get_account_info_handler(struct sbus_request *sbus_req,
-                                    void *dp_cli,
-                                    uint32_t dp_flags,
-                                    uint32_t entry_type,
-                                    const char *filter,
-                                    const char *domain,
-                                    const char *extra);
+struct tevent_req *
+dp_pam_handler_send(TALLOC_CTX *mem_ctx,
+                    struct tevent_context *ev,
+                    struct sbus_request *sbus_req,
+                    struct data_provider *provider,
+                    struct pam_data *pd);
 
-errno_t dp_pam_handler(struct sbus_request *sbus_req, void *dp_cli);
+errno_t
+dp_pam_handler_recv(TALLOC_CTX *mem_ctx,
+                    struct tevent_req *req,
+                    struct pam_data **_pd);
 
-errno_t dp_sudo_handler(struct sbus_request *sbus_req, void *dp_cli);
+struct tevent_req *
+dp_sudo_handler_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
+                     struct sbus_request *sbus_req,
+                     struct data_provider *provider,
+                     DBusMessageIter *read_iter);
 
-errno_t dp_host_handler(struct sbus_request *sbus_req,
-                        void *dp_cli,
-                        uint32_t dp_flags,
-                        const char *name,
-                        const char *alias);
+errno_t
+dp_sudo_handler_recv(TALLOC_CTX *mem_ctx,
+                     struct tevent_req *req,
+                     uint16_t *_dp_error,
+                     uint32_t *_error,
+                     const char **_err_msg);
 
-errno_t dp_autofs_handler(struct sbus_request *sbus_req,
-                          void *dp_cli,
-                          uint32_t dp_flags,
-                          const char *mapname);
+struct tevent_req *
+dp_host_handler_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
+                     struct sbus_request *sbus_req,
+                     struct data_provider *provider,
+                     uint32_t dp_flags,
+                     const char *name,
+                     const char *alias);
 
-errno_t dp_subdomains_handler(struct sbus_request *sbus_req,
-                              void *dp_cli,
-                              const char *domain_hint);
+errno_t
+dp_host_handler_recv(TALLOC_CTX *mem_ctx,
+                     struct tevent_req *req,
+                     uint16_t *_dp_error,
+                     uint32_t *_error,
+                     const char **_err_msg);
+
+struct tevent_req *
+dp_autofs_handler_send(TALLOC_CTX *mem_ctx,
+                       struct tevent_context *ev,
+                       struct sbus_request *sbus_req,
+                       struct data_provider *provider,
+                       uint32_t dp_flags,
+                       const char *mapname);
+
+errno_t
+dp_autofs_handler_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *req,
+                       uint16_t *_dp_error,
+                       uint32_t *_error,
+                       const char **_err_msg);
+
+struct tevent_req *
+dp_subdomains_handler_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct sbus_request *sbus_req,
+                           struct data_provider *provider,
+                           const char *domain_hint);
+
+errno_t
+dp_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           uint16_t *_dp_error,
+                           uint32_t *_error,
+                           const char **_err_msg);
 
 /*
  * Return a domain the account belongs to.
@@ -70,31 +126,66 @@ errno_t dp_subdomains_handler(struct sbus_request *sbus_req,
  *  - DP_ERR_*  - the string message contains error string that corresponds
  *                to the errno field in dp_reply_std().
  */
-errno_t dp_get_account_domain_handler(struct sbus_request *sbus_req,
-                                      void *dp_cli,
-                                      uint32_t entry_type,
-                                      const char *filter);
+struct tevent_req *
+dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct sbus_request *sbus_req,
+                           struct data_provider *provider,
+                           uint32_t entry_type,
+                           const char *filter);
+
+errno_t
+dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           uint16_t *_dp_error,
+                           uint32_t *_error,
+                           const char **_err_msg);
+
+/* org.freedesktop.sssd.DataProvider.Client */
+errno_t
+dp_client_register(TALLOC_CTX *mem_ctx,
+                   struct sbus_request *sbus_req,
+                   struct data_provider *provider,
+                   const char *name);
 
 /* org.freedesktop.sssd.DataProvider.Backend */
-errno_t dp_backend_is_online(struct sbus_request *sbus_req,
-                             void *dp_cli,
-                             const char *domain);
+errno_t dp_backend_is_online(TALLOC_CTX *mem_ctx,
+                             struct sbus_request *sbus_req,
+                             struct be_ctx *be_ctx,
+                             const char *domname,
+                             bool *_is_online);
 
 /* org.freedesktop.sssd.DataProvider.Failover */
-errno_t dp_failover_list_services(struct sbus_request *sbus_req,
-                                  void *dp_cli,
-                                  const char *domname);
+errno_t
+dp_failover_list_services(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct be_ctx *be_ctx,
+                          const char *domname,
+                          const char ***_services);
 
-errno_t dp_failover_active_server(struct sbus_request *sbus_req,
-                                  void *dp_cli,
-                                  const char *service_name);
+errno_t
+dp_failover_active_server(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct be_ctx *be_ctx,
+                          const char *service_name,
+                          const char **_server);
 
-errno_t dp_failover_list_servers(struct sbus_request *sbus_req,
-                                 void *dp_cli,
-                                 const char *service_name);
+errno_t
+dp_failover_list_servers(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct be_ctx *be_ctx,
+                         const char *service_name,
+                         const char ***_servers);
 
 /* org.freedesktop.sssd.DataProvider.AccessControl */
-errno_t dp_access_control_refresh_rules_handler(struct sbus_request *sbus_req,
-                                                void *dp_cli);
+struct tevent_req *
+dp_access_control_refresh_rules_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     struct sbus_request *sbus_req,
+                                     struct data_provider *provider);
+
+errno_t
+dp_access_control_refresh_rules_recv(TALLOC_CTX *mem_ctx,
+                                     struct tevent_req *req);
 
 #endif /* DP_IFACE_H_ */

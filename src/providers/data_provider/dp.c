@@ -23,33 +23,85 @@
 #include "config.h"
 #include "providers/data_provider/dp.h"
 #include "providers/data_provider/dp_private.h"
+#include "providers/data_provider/dp_iface.h"
+#include "sss_iface/sss_iface_async.h"
 #include "providers/backend.h"
 #include "util/util.h"
 
-static errno_t dp_init_dbus_server(struct data_provider *provider)
+static errno_t
+dp_init_interface(struct data_provider *provider)
 {
-    const char *domain;
-    char *sbus_address;
     errno_t ret;
 
-    domain = provider->be_ctx->domain->name;
-    ret = dp_get_sbus_address(NULL, &sbus_address, domain);
+    struct sbus_interface iface_dp_client = SBUS_INTERFACE(
+        sssd_DataProvider_Client,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_DataProvider_Client, Register, dp_client_register, provider)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    struct sbus_interface iface_dp_backend = SBUS_INTERFACE(
+        sssd_DataProvider_Backend,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_DataProvider_Backend, IsOnline, dp_backend_is_online, provider->be_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    struct sbus_interface iface_dp_failover = SBUS_INTERFACE(
+        sssd_DataProvider_Failover,
+        SBUS_METHODS(
+            SBUS_SYNC(METHOD, sssd_DataProvider_Failover, ListServices, dp_failover_list_services, provider->be_ctx),
+            SBUS_SYNC(METHOD, sssd_DataProvider_Failover, ListServers, dp_failover_list_servers, provider->be_ctx),
+            SBUS_SYNC(METHOD, sssd_DataProvider_Failover, ActiveServer, dp_failover_active_server, provider->be_ctx)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    struct sbus_interface iface_dp_access = SBUS_INTERFACE(
+        sssd_DataProvider_AccessControl,
+        SBUS_METHODS(
+            SBUS_ASYNC(METHOD, sssd_DataProvider_AccessControl, RefreshRules, dp_access_control_refresh_rules_send, dp_access_control_refresh_rules_recv, provider)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    struct sbus_interface iface_dp = SBUS_INTERFACE(
+        sssd_dataprovider,
+        SBUS_METHODS(
+            SBUS_ASYNC(METHOD, sssd_dataprovider, pamHandler, dp_pam_handler_send, dp_pam_handler_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_dataprovider, sudoHandler, dp_sudo_handler_send, dp_sudo_handler_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_dataprovider, autofsHandler, dp_autofs_handler_send, dp_autofs_handler_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_dataprovider, hostHandler, dp_host_handler_send, dp_host_handler_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_dataprovider, getDomains, dp_subdomains_handler_send, dp_subdomains_handler_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_dataprovider, getAccountInfo, dp_get_account_info_send, dp_get_account_info_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_dataprovider, getAccountDomain, dp_get_account_domain_send, dp_get_account_domain_recv, provider)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
+    struct sbus_path paths[] = {
+        {SSS_BUS_PATH, &iface_dp_client},
+        {SSS_BUS_PATH, &iface_dp_backend},
+        {SSS_BUS_PATH, &iface_dp_failover},
+        {SSS_BUS_PATH, &iface_dp_access},
+        {SSS_BUS_PATH, &iface_dp},
+        {NULL, NULL}
+    };
+
+    ret = sbus_connection_add_path_map(provider->sbus_conn, paths);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend address.\n");
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add paths [%d]: %s\n",
+              ret, sss_strerror(ret));
     }
 
-    ret = sbus_new_server(provider, provider->ev, sbus_address,
-                          provider->uid, provider->gid, true,
-                          &provider->srv_conn,
-                          dp_client_init, provider, NULL);
-    talloc_free(sbus_address);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");
-        return ret;
-    }
-
-    return EOK;
+    return ret;
 }
 
 static int dp_destructor(struct data_provider *provider)
@@ -67,30 +119,54 @@ static int dp_destructor(struct data_provider *provider)
     return 0;
 }
 
-errno_t dp_init(struct tevent_context *ev,
-                struct be_ctx *be_ctx,
-                uid_t uid,
-                gid_t gid)
-{
+struct dp_init_state {
     struct data_provider *provider;
+    char *sbus_name;
+};
 
+static void dp_init_done(struct tevent_req *subreq);
+
+struct tevent_req *
+dp_init_send(TALLOC_CTX *mem_ctx,
+             struct tevent_context *ev,
+             struct be_ctx *be_ctx,
+             uid_t uid,
+             gid_t gid)
+{
+    struct dp_init_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    char *sbus_address;
     errno_t ret;
 
-    provider = talloc_zero(be_ctx, struct data_provider);
-    if (provider == NULL) {
-        return ENOMEM;
+    req = tevent_req_create(mem_ctx, &state, struct dp_init_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
     }
 
-    provider->ev = ev;
-    provider->uid = uid;
-    provider->gid = gid;
-    provider->be_ctx = be_ctx;
+    sbus_address = sss_iface_domain_address(state, be_ctx->domain);
+    if (sbus_address == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend address.\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
-    /* Initialize request table. */
-    ret = dp_req_table_init(provider, &provider->requests.reply_table);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize request table "
-              "[%d]: %s\n", ret, sss_strerror(ret));
+    state->provider = talloc_zero(be_ctx, struct data_provider);
+    if (state->provider == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    state->provider->ev = ev;
+    state->provider->uid = uid;
+    state->provider->gid = gid;
+    state->provider->be_ctx = be_ctx;
+
+    state->sbus_name = sss_iface_domain_bus(state, be_ctx->domain);
+    if (state->sbus_name == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not get sbus backend name.\n");
+        ret = ENOMEM;
         goto done;
     }
 
@@ -99,37 +175,116 @@ errno_t dp_init(struct tevent_context *ev,
      * request will be executed as long as the modules and targets
      * are not initialized.
      */
-    talloc_set_destructor(provider, dp_destructor);
+    talloc_set_destructor(state->provider, dp_destructor);
 
-    ret = dp_init_dbus_server(provider);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to setup service bus [%d]: %s\n",
-              ret, sss_strerror(ret));
+    subreq = sbus_server_create_and_connect_send(state->provider, ev,
+                                                 state->sbus_name,
+                                                 NULL, sbus_address, true, 1000,
+                                                 uid, gid);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
         goto done;
     }
 
-    be_ctx->provider = provider;
+    tevent_req_set_callback(subreq, dp_init_done, req);
 
-    ret = dp_init_modules(provider, &provider->modules);
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void dp_init_done(struct tevent_req *subreq)
+{
+    struct dp_init_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct dp_init_state);
+
+    ret = sbus_server_create_and_connect_recv(state->provider, subreq,
+                                              &state->provider->sbus_server,
+                                              &state->provider->sbus_conn);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    sbus_server_set_on_connection(state->provider->sbus_server,
+                                  dp_client_init, state->provider);
+
+    ret = dp_init_modules(state->provider, &state->provider->modules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP modules "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
+        tevent_req_error(req, ret);
+        return;
     }
 
-    ret = dp_init_targets(provider, be_ctx, provider, provider->modules);
+    ret = dp_init_targets(state->provider, state->provider->be_ctx,
+                          state->provider, state->provider->modules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP targets "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
+        tevent_req_error(req, ret);
+        return;
     }
 
-    ret = EOK;
-
-done:
+    ret = dp_init_interface(state->provider);
     if (ret != EOK) {
-        talloc_free(provider);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP interface "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
     }
 
-    return ret;
+    tevent_req_done(req);
+    return;
+}
+
+errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
+                     struct tevent_req *req,
+                     struct data_provider **_provider,
+                     const char **_sbus_name)
+{
+    struct dp_init_state *state;
+    state = tevent_req_data(req, struct dp_init_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_provider = talloc_steal(mem_ctx, state->provider);
+    *_sbus_name = talloc_steal(mem_ctx, state->sbus_name);
+
+    return EOK;
+}
+
+struct sbus_connection *
+dp_sbus_conn(struct data_provider *provider)
+{
+    if (provider == NULL) {
+        return NULL;
+    }
+
+    return provider->sbus_conn;
+}
+
+struct sbus_server *
+dp_sbus_server(struct data_provider *provider)
+{
+    if (provider == NULL) {
+        return NULL;
+    }
+
+    return provider->sbus_server;
 }

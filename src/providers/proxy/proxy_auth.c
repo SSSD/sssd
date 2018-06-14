@@ -25,7 +25,7 @@
 #include <signal.h>
 
 #include "providers/proxy/proxy.h"
-#include "providers/proxy/proxy_iface_generated.h"
+#include "sss_iface/sss_iface.h"
 
 struct pc_init_ctx;
 
@@ -354,8 +354,9 @@ static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
                                               struct proxy_auth_ctx *auth_ctx,
                                               struct sbus_connection *conn,
                                               struct pam_data *pd,
-                                              pid_t pid);
-static void proxy_pam_conv_done(struct tevent_req *subreq);
+                                              pid_t pid,
+                                              uint32_t id);
+static void proxy_child_init_conv_done(struct tevent_req *subreq);
 static void proxy_child_init_done(struct tevent_req *subreq) {
     int ret;
     struct tevent_signal *sige;
@@ -376,13 +377,13 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
     /* An initialized child is available, awaiting the PAM command */
     subreq = proxy_pam_conv_send(req, child_ctx->auth_ctx,
                                  child_ctx->conn, child_ctx->pd,
-                                 child_ctx->pid);
+                                 child_ctx->pid, child_ctx->id);
     if (!subreq) {
         DEBUG(SSSDBG_CRIT_FAILURE,"Could not start PAM conversation\n");
         tevent_req_error(req, EIO);
         return;
     }
-    tevent_req_set_callback(subreq, proxy_pam_conv_done, req);
+    tevent_req_set_callback(subreq, proxy_child_init_conv_done, req);
 
     /* Add a signal handler for the child under the auth_ctx,
      * that way if the child exits after completion of the
@@ -510,18 +511,21 @@ struct proxy_conv_ctx {
     struct pam_data *pd;
     pid_t pid;
 };
-static void proxy_pam_conv_reply(DBusPendingCall *pending, void *ptr);
+
+static void proxy_pam_conv_done(struct tevent_req *subreq);
+
 static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
                                               struct proxy_auth_ctx *auth_ctx,
                                               struct sbus_connection *conn,
                                               struct pam_data *pd,
-                                              pid_t pid)
+                                              pid_t pid,
+                                              uint32_t id)
 {
-    errno_t ret;
-    bool dp_ret;
-    DBusMessage *msg;
-    struct tevent_req *req;
     struct proxy_conv_ctx *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    char *sbus_cliname;
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct proxy_conv_ctx);
     if (req == NULL) {
@@ -533,95 +537,66 @@ static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
     state->pd = pd;
     state->pid = pid;
 
-    msg = dbus_message_new_method_call(NULL,
-                                       PROXY_CHILD_PATH,
-                                       IFACE_PROXY_AUTH,
-                                       IFACE_PROXY_AUTH_PAM);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "dbus_message_new_method_call failed.\n");
-        talloc_zfree(req);
-        return NULL;
+    sbus_cliname = sss_iface_proxy_bus(state, id);
+    if (sbus_cliname == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Sending request with the following data:\n");
     DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
 
-    dp_ret = dp_pack_pam_request(msg, pd);
-    if (!dp_ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
-        dbus_message_unref(msg);
-        talloc_zfree(req);
-        return NULL;
+    subreq = sbus_call_proxy_auth_PAM_send(state, state->conn, sbus_cliname,
+                                           SSS_BACKEND_PATH, pd);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
     }
 
-    ret = sbus_conn_send(state->conn, msg, state->auth_ctx->timeout_ms,
-                         proxy_pam_conv_reply, req, NULL);
-    if (ret != EOK) {
-        dbus_message_unref(msg);
-        talloc_zfree(req);
-        return NULL;
+    tevent_req_set_callback(subreq, proxy_pam_conv_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret != EAGAIN) {
+        tevent_req_post(req, auth_ctx->be->ev);
+        tevent_req_error(req, ret);
     }
 
-    dbus_message_unref(msg);
     return req;
 }
 
-static void proxy_pam_conv_reply(DBusPendingCall *pending, void *ptr)
+static void proxy_pam_conv_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req;
+    struct pam_data *response;
     struct proxy_conv_ctx *state;
-    DBusError dbus_error;
-    DBusMessage *reply;
-    int type;
-    int ret;
+    struct tevent_req *req;
+    errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Handling pam conversation reply\n");
-
-    req = talloc_get_type(ptr, struct tevent_req);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct proxy_conv_ctx);
 
-    dbus_error_init(&dbus_error);
-
-    reply = dbus_pending_call_steal_reply(pending);
-    dbus_pending_call_unref(pending);
-    if (reply == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Severe error. A reply callback was called but no reply was"
-                  "received and no timeout occurred\n");
-        state->pd->pam_status = PAM_SYSTEM_ERR;
-        tevent_req_error(req, EIO);
-    }
-
-    type = dbus_message_get_type(reply);
-    switch (type) {
-        case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-            ret = dp_unpack_pam_response(reply, state->pd, &dbus_error);
-            if (!ret) {
-                DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse reply.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                dbus_message_unref(reply);
-                tevent_req_error(req, EIO);
-                return;
-            }
-            DEBUG(SSSDBG_CONF_SETTINGS, "received: [%d][%s]\n",
-                      state->pd->pam_status,
-                      state->pd->domain);
-            break;
-        case DBUS_MESSAGE_TYPE_ERROR:
-            DEBUG(SSSDBG_FATAL_FAILURE, "Reply error [%s].\n",
-                    dbus_message_get_error_name(reply));
-            state->pd->pam_status = PAM_SYSTEM_ERR;
-            break;
-        default:
-            DEBUG(SSSDBG_FATAL_FAILURE, "Default... what now?.\n");
-            state->pd->pam_status = PAM_SYSTEM_ERR;
-    }
-    dbus_message_unref(reply);
+    ret = sbus_call_proxy_auth_PAM_recv(state, subreq, &response);
+    talloc_zfree(subreq);
 
     /* Kill the child */
     kill(state->pid, SIGKILL);
 
-    /* Conversation is finished */
+    // TODO copy response to pd
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get reply from child [%d]: %s\n",
+              ret, sss_strerror(ret));
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "received: [%d][%s]\n",
+          state->pd->pam_status,
+          state->pd->domain);
+
     tevent_req_done(req);
 }
 
@@ -632,7 +607,7 @@ static errno_t proxy_pam_conv_recv(struct tevent_req *req)
     return EOK;
 }
 
-static void proxy_pam_conv_done(struct tevent_req *subreq)
+static void proxy_child_init_conv_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     int ret;
