@@ -35,6 +35,8 @@
 #include "providers/ipa/ipa_deskprofile_config.h"
 #include "providers/ipa/ipa_deskprofile_rules.h"
 #include "providers/ipa/ipa_deskprofile_rules_util.h"
+#include "sss_iface/sss_iface_async.h"
+
 
 /* Those here are used for sending a message to the deskprofile client
  * informing that our side is done. */
@@ -471,7 +473,9 @@ ipa_pam_session_handler_save_deskprofile_rules(
                                     uid_t uid,
                                     gid_t gid);
 static errno_t
-ipa_pam_session_handler_notify_deskprofile_client(uid_t uid,
+ipa_pam_session_handler_notify_deskprofile_client(TALLOC_CTX *mem_ctx,
+                                                  struct tevent_context *ev,
+                                                  uid_t uid,
                                                   const char *user_dir,
                                                   uint16_t prio);
 
@@ -773,7 +777,9 @@ ipa_pam_session_handler_save_deskprofile_rules(
     }
 
     /* Notify FleetCommander that our side is done */
-    ret = ipa_pam_session_handler_notify_deskprofile_client(uid,
+    ret = ipa_pam_session_handler_notify_deskprofile_client(be_ctx,
+                                                            be_ctx->ev,
+                                                            uid,
                                                             user_dir,
                                                             priority);
     if (ret != EOK) {
@@ -791,76 +797,51 @@ done:
     return ret;
 }
 
-static DBusConnection *
-ipa_deskprofile_client_connect(void)
-{
-    DBusConnection *conn;
-    DBusError error;
-
-    dbus_error_init(&error);
-    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &error);
-    if (dbus_error_is_set(&error)) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to connect to the FleetCommanderClient bus [%s]: %s\n",
-              error.name, error.message);
-        conn = NULL;
-        goto done;
-    }
-
-done:
-    dbus_error_free(&error);
-    return conn;
-}
+static void
+ipa_pam_session_handler_notify_deskprofile_client_done(struct tevent_req *subreq);
 
 static errno_t
-ipa_pam_session_handler_notify_deskprofile_client(uid_t uid,
+ipa_pam_session_handler_notify_deskprofile_client(TALLOC_CTX *mem_ctx,
+                                                  struct tevent_context *ev,
+                                                  uid_t uid,
                                                   const char *user_dir,
                                                   uint16_t prio)
 {
-    DBusConnection *conn = NULL;
-    DBusMessage *msg = NULL;
-    DBusError error;
-    errno_t ret;
-    bool dbus_ret;
+    struct sbus_connection *conn;
+    struct tevent_req *subreq;
 
-    dbus_error_init(&error);
-
-    conn = ipa_deskprofile_client_connect();
+    conn = sbus_connect_system(mem_ctx, ev, NULL, NULL);
     if (conn == NULL) {
-        ret = EIO;
-        goto done;
+        return ENOMEM;
     }
 
-    msg = sbus_create_message(NULL,
-                              SSS_FLEETCOMMANDERCLIENT_BUS,
-                              SSS_FLEETCOMMANDERCLIENT_PATH,
-                              SSS_FLEETCOMMANDERCLIENT_IFACE,
-                              "ProcessSSSDFiles",
-                              DBUS_TYPE_UINT32, &uid,
-                              DBUS_TYPE_STRING, &user_dir,
-                              DBUS_TYPE_UINT16, &prio);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create D-Bus Message!\n");
-        ret = ENOMEM;
-        goto done;
+    subreq = sbus_call_fleet_ProcessSSSDFiles_send(mem_ctx, conn,
+                 SSS_FLEETCOMMANDERCLIENT_BUS, SSS_FLEETCOMMANDERCLIENT_PATH,
+                 uid, user_dir, prio);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        talloc_free(conn);
+        return ENOMEM;
     }
 
-    dbus_ret = dbus_connection_send(conn, msg, NULL);
-    if (dbus_ret == FALSE) {
-        ret = EIO;
-        goto done;
+    tevent_req_set_callback(subreq, ipa_pam_session_handler_notify_deskprofile_client_done,
+                            conn);
+
+    return EOK;
+}
+
+static void ipa_pam_session_handler_notify_deskprofile_client_done(struct tevent_req *subreq)
+{
+    struct sbus_connection *conn;
+    errno_t ret;
+
+    conn = tevent_req_callback_data(subreq, struct sbus_connection);
+
+    ret = sbus_call_fleet_ProcessSSSDFiles_recv(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error sending sbus message [%d]: %s\n",
+              ret, sss_strerror(ret));
     }
 
-    ret = EOK;
-
-done:
-    if (msg != NULL) {
-        dbus_message_unref(msg);
-    }
-
-    if (conn != NULL) {
-        dbus_connection_unref(conn);
-    }
-
-    return ret;
+    talloc_free(conn);
 }

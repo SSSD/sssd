@@ -21,8 +21,7 @@
 #include <talloc.h>
 #include <tevent.h>
 
-#include "sbus/sssd_dbus.h"
-#include "sbus/sssd_dbus_errors.h"
+#include "sbus/sbus_request.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
@@ -176,28 +175,26 @@ enum dp_fo_svc_type {
     DP_FO_SVC_MIXED = DP_FO_SVC_AD | DP_FO_SVC_IPA
 };
 
-errno_t dp_failover_list_services(struct sbus_request *sbus_req,
-                                  void *dp_cli,
-                                  const char *domname)
+errno_t
+dp_failover_list_services(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct be_ctx *be_ctx,
+                          const char *domname,
+                          const char ***_services)
 {
     enum dp_fo_svc_type svc_type = DP_FO_SVC_LDAP;
     struct sss_domain_info *domain;
-    struct be_ctx *be_ctx;
     struct be_svc_data *svc;
     const char **services;
     int num_services;
     errno_t ret;
 
-    be_ctx = dp_client_be(dp_cli);
-
-    if (SBUS_IS_STRING_EMPTY(domname)) {
+    if (SBUS_REQ_STRING_IS_EMPTY(domname)) {
         domain = be_ctx->domain;
     } else {
         domain = find_domain_by_name(be_ctx->domain, domname, false);
         if (domain == NULL) {
-            sbus_request_reply_error(sbus_req, SBUS_ERROR_UNKNOWN_DOMAIN,
-                                     "Unknown domain %s", domname);
-            return EOK;
+            return ERR_DOMAIN_NOT_FOUND;
         }
     }
 
@@ -232,7 +229,7 @@ errno_t dp_failover_list_services(struct sbus_request *sbus_req,
         }
     }
 
-    services = talloc_zero_array(sbus_req, const char *, num_services);
+    services = talloc_zero_array(mem_ctx, const char *, num_services + 1);
     if (services == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
         return ENOMEM;
@@ -264,20 +261,21 @@ errno_t dp_failover_list_services(struct sbus_request *sbus_req,
         return ret;
     }
 
-    iface_dp_failover_ListServices_finish(sbus_req, services, num_services);
+    *_services = services;
+
     return EOK;
 }
 
-errno_t dp_failover_active_server(struct sbus_request *sbus_req,
-                                  void *dp_cli,
-                                  const char *service_name)
+errno_t
+dp_failover_active_server(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct be_ctx *be_ctx,
+                          const char *service_name,
+                          const char **_server)
 {
-    struct be_ctx *be_ctx;
     struct be_svc_data *svc;
     const char *server;
     bool found = false;
-
-    be_ctx = dp_client_be(dp_cli);
 
     DLIST_FOR_EACH(svc, be_ctx->be_fo->svcs) {
         if (strcmp(svc->name, service_name) == 0) {
@@ -288,9 +286,7 @@ errno_t dp_failover_active_server(struct sbus_request *sbus_req,
 
     if (!found) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get server name\n");
-        sbus_request_reply_error(sbus_req, SBUS_ERROR_NOT_FOUND,
-                                 "Unknown service name");
-        return EOK;
+        return ENOENT;
     }
 
     if (svc->last_good_srv == NULL) {
@@ -299,27 +295,26 @@ errno_t dp_failover_active_server(struct sbus_request *sbus_req,
         server = fo_get_server_name(svc->last_good_srv);
         if (server == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get server name\n");
-            sbus_request_reply_error(sbus_req, SBUS_ERROR_INTERNAL,
-                                     "Unable to get server name");
-            return EOK;
+            return ERR_INTERNAL;
         }
     }
 
-    iface_dp_failover_ActiveServer_finish(sbus_req, server);
+    *_server = server;
+
     return EOK;
 }
 
-errno_t dp_failover_list_servers(struct sbus_request *sbus_req,
-                                 void *dp_cli,
-                                 const char *service_name)
+errno_t
+dp_failover_list_servers(TALLOC_CTX *mem_ctx,
+                         struct sbus_request *sbus_req,
+                         struct be_ctx *be_ctx,
+                         const char *service_name,
+                         const char ***_servers)
 {
-    struct be_ctx *be_ctx;
     struct be_svc_data *svc;
     const char **servers;
     bool found = false;
     size_t count;
-
-    be_ctx = dp_client_be(dp_cli);
 
     DLIST_FOR_EACH(svc, be_ctx->be_fo->svcs) {
         if (strcmp(svc->name, service_name) == 0) {
@@ -330,9 +325,7 @@ errno_t dp_failover_list_servers(struct sbus_request *sbus_req,
 
     if (!found) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get server list\n");
-        sbus_request_reply_error(sbus_req, SBUS_ERROR_NOT_FOUND,
-                                 "Unknown service name");
-        return EOK;
+        return ENOENT;
     }
 
     servers = fo_svc_server_list(sbus_req, svc->fo_service, &count);
@@ -340,6 +333,7 @@ errno_t dp_failover_list_servers(struct sbus_request *sbus_req,
         return ENOMEM;
     }
 
-    iface_dp_failover_ListServers_finish(sbus_req, servers, (int)count);
+    *_servers = servers;
+
     return EOK;
 }
