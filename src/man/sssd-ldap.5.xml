@@ -1778,7 +1778,18 @@
                             principal used for authentication to the directory.
                             This option can either contain the full principal (for
                             example host/myhost@EXAMPLE.COM) or just the principal name
-                            (for example host/myhost).
+                            (for example host/myhost). By default, the value is not set
+                            and the following principals are used:
+                            <programlisting>
+hostname@REALM
+netbiosname$@REALM
+host/hostname@REALM
+*$@REALM
+host/*@REALM
+host/*
+                            </programlisting>
+                            If none of them are found, the first principal in keytab is
+                            returned.
                         </para>
                         <para>
                             Default: host/hostname@REALM
