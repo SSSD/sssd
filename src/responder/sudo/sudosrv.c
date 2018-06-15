@@ -94,7 +94,8 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     sudo_cmds = get_sudo_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            sudo_cmds,
-                           SSS_SUDO_SOCKET_NAME, -1, NULL, -1,
+                           NULL, -1,                   /* No public socket */
+                           SSS_SUDO_SOCKET_NAME, -1,   /* Private socket only */
                            CONFDB_SUDO_CONF_ENTRY,
                            SSS_SUDO_SBUS_SERVICE_NAME,
                            SSS_SUDO_SBUS_SERVICE_VERSION,
