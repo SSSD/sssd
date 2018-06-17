@@ -186,6 +186,12 @@ class DSOpenLDAP(DS):
         db_config_file.write(db_config)
         db_config_file.close()
 
+        # Import ad schema
+        subprocess.check_call(
+            ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config",
+             "-l", "data/ssh_schema.ldif"],
+        )
+
     def _start_daemon(self):
         """Start the instance."""
         if subprocess.call(["slapd", "-F", self.conf_slapd_d_dir,
