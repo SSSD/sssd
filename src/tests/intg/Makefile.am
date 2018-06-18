@@ -36,6 +36,7 @@ dist_noinst_DATA = \
     data/ad_schema.ldif \
     test_pysss_nss_idmap.py \
     test_infopipe.py \
+    test_ssh_pubkey.py \
     $(NULL)
 
 EXTRA_DIST = data/cwrap-dbus-system.conf.in
