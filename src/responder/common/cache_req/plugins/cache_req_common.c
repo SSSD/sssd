@@ -120,16 +120,14 @@ cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
 }
 
 bool
-cache_req_common_dp_recv(struct tevent_req *subreq,
-                         struct cache_req *cr)
+cache_req_common_process_dp_reply(struct cache_req *cr,
+                                  errno_t ret,
+                                  uint16_t err_maj,
+                                  uint32_t err_min,
+                                  const char *err_msg)
 {
-    char *err_msg;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
-    errno_t ret;
     bool bret;
 
-    ret = sss_dp_req_recv(NULL, subreq, &err_maj, &err_min, &err_msg);
     if (ret != EOK) {
         CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, cr,
                         "Could not get account info [%d]: %s\n",
@@ -155,7 +153,24 @@ cache_req_common_dp_recv(struct tevent_req *subreq,
     bret = true;
 
 done:
-    talloc_free(err_msg);
+    return bret;
+}
+
+bool
+cache_req_common_dp_recv(struct tevent_req *subreq,
+                         struct cache_req *cr)
+{
+    const char *err_msg;
+    uint16_t err_maj;
+    uint32_t err_min;
+    errno_t ret;
+    bool bret;
+
+    /* Use subreq as memory context so err_msg is freed with it. */
+    ret = sss_dp_get_account_recv(subreq, subreq, &err_maj, &err_min, &err_msg);
+    bret = cache_req_common_process_dp_reply(cr, ret, err_maj,
+                                             err_min, err_msg);
+
     return bret;
 }
 

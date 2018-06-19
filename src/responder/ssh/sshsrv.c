@@ -22,46 +22,10 @@
 
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "monitor/monitor_interfaces.h"
 #include "responder/common/responder.h"
-#include "responder/common/responder_sbus.h"
 #include "responder/ssh/ssh_private.h"
 #include "providers/data_provider.h"
-
-struct mon_cli_iface monitor_ssh_methods = {
-    { &mon_cli_iface_meta, 0 },
-    .resInit = monitor_common_res_init,
-    .goOffline = NULL,
-    .resetOffline = NULL,
-    .rotateLogs = responder_logrotate,
-    .clearMemcache = NULL,
-    .clearEnumCache = NULL,
-    .sysbusReconnect = NULL,
-};
-
-static void ssh_dp_reconnect_init(struct sbus_connection *conn,
-                                  int status, void *pvt)
-{
-    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
-    int ret;
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
-
-        /* Identify ourselves to the data provider */
-        ret = rdp_register_client(be_conn, "SSH");
-        /* all fine */
-        if (ret == EOK) {
-            handle_requests_after_reconnect(be_conn->rctx);
-            return;
-        }
-    }
-
-    /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
-                                 be_conn->domain->name);
-}
+#include "sss_iface/sss_iface_async.h"
 
 int ssh_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
@@ -70,20 +34,15 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     struct resp_ctx *rctx;
     struct sss_cmd_table *ssh_cmds;
     struct ssh_ctx *ssh_ctx;
-    struct be_conn *iter;
     int ret;
-    int max_retries;
 
     ssh_cmds = get_ssh_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            ssh_cmds,
                            SSS_SSH_SOCKET_NAME, -1, NULL, -1,
                            CONFDB_SSH_CONF_ENTRY,
-                           SSS_SSH_SBUS_SERVICE_NAME,
+                           SSS_BUS_SSH, SSS_SSH_SBUS_SERVICE_NAME,
                            SSS_SSH_SBUS_SERVICE_VERSION,
-                           &monitor_ssh_methods,
-                           "SSH",
-                           NULL,
                            sss_connection_setup,
                            &rctx);
     if (ret != EOK) {
@@ -101,28 +60,17 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     ssh_ctx->rctx = rctx;
     ssh_ctx->rctx->pvt_ctx = ssh_ctx;
 
+    ret = sss_resp_register_service_iface(rctx);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     ret = sss_names_init_from_args(ssh_ctx,
                                    "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
                                    "%1$s@%2$s", &ssh_ctx->snctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing regex data\n");
         goto fail;
-    }
-
-    /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(ssh_ctx->rctx->cdb,
-                         CONFDB_SSH_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES,
-                         3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to set up automatic reconnection\n");
-        goto fail;
-    }
-
-    for (iter = ssh_ctx->rctx->be_conns; iter; iter = iter->next) {
-        sbus_reconnect_init(iter->conn, max_retries,
-                            ssh_dp_reconnect_init, iter);
     }
 
     /* Get responder options */

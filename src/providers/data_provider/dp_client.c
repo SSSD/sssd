@@ -19,12 +19,10 @@
 */
 
 #include "providers/backend.h"
-#include "providers/data_provider/dp_iface_generated.h"
 #include "providers/data_provider/dp_private.h"
 #include "providers/data_provider/dp_iface.h"
 #include "providers/data_provider/dp.h"
-#include "sbus/sssd_dbus.h"
-#include "sbus/sssd_dbus_errors.h"
+#include "sbus/sbus_request.h"
 #include "util/util.h"
 
 struct dp_client {
@@ -43,7 +41,7 @@ const char *dp_client_to_string(enum dp_clients client)
     case DPC_PAM:
         return "PAM";
     case DPC_IFP:
-        return "InfoPipe";
+        return "IFP";
     case DPC_PAC:
         return "PAC";
     case DPC_SUDO:
@@ -86,63 +84,51 @@ static int dp_client_destructor(struct dp_client *dp_cli)
     return 0;
 }
 
-static int
-dp_client_register(struct sbus_request *sbus_req,
-                   void *data,
-                   const char *client_name)
+errno_t
+dp_client_register(TALLOC_CTX *mem_ctx,
+                   struct sbus_request *sbus_req,
+                   struct data_provider *provider,
+                   const char *name)
 {
-    struct data_provider *provider;
+    struct sbus_connection *cli_conn;
     struct dp_client *dp_cli;
-    struct DBusError *error;
     enum dp_clients client;
-    errno_t ret;
 
-    dp_cli = talloc_get_type(data, struct dp_client);
-    if (dp_cli == NULL) {
-        /* Do not send D-Bus error here. */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: dp_cli is NULL\n");
-        return EINVAL;
+    cli_conn = sbus_server_find_connection(dp_sbus_server(provider),
+                                           sbus_req->sender->name);
+    if (cli_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown client: %s\n",
+              sbus_req->sender->name);
+        return ENOENT;
     }
 
-    provider = dp_cli->provider;
-    dp_cli->name = talloc_strdup(dp_cli, client_name);
+    dp_cli = sbus_connection_get_data(cli_conn, struct dp_client);
+
+    dp_cli->name = talloc_strdup(dp_cli, name);
     if (dp_cli->name == NULL) {
+        talloc_free(dp_cli);
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, "Cancel DP ID timeout [%p]\n", dp_cli->timeout);
-    talloc_zfree(dp_cli->timeout);
-
     for (client = 0; client != DP_CLIENT_SENTINEL; client++) {
-        if (strcasecmp(client_name, dp_client_to_string(client)) == 0) {
+        if (strcasecmp(name, dp_client_to_string(client)) == 0) {
             provider->clients[client] = dp_cli;
             break;
         }
     }
 
     if (client == DP_CLIENT_SENTINEL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown client! [%s]\n", client_name);
-        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
-                               "Unknown client [%s]", client_name);
-
-        /* Kill this client. */
-        talloc_free(dp_cli);
-        return sbus_request_fail_and_finish(sbus_req, error);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown client! [%s]\n", name);
+        return ENOENT;
     }
 
     talloc_set_destructor(dp_cli, dp_client_destructor);
 
-    ret = iface_dp_client_Register_finish(sbus_req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Unable to send ack to the client [%s], "
-              "disconnecting...\n", client_name);
-        sbus_disconnect(sbus_req->conn);
-        return ret;
-    }
-
-    DEBUG(SSSDBG_CONF_SETTINGS, "Added Frontend client [%s]\n", client_name);
-
     dp_cli->initialized = true;
+    DEBUG(SSSDBG_CONF_SETTINGS, "Added Frontend client [%s]\n", name);
+    DEBUG(SSSDBG_CONF_SETTINGS, "Cancel DP ID timeout [%p]\n", dp_cli->timeout);
+    talloc_zfree(dp_cli->timeout);
+
     return EOK;
 }
 
@@ -152,6 +138,7 @@ dp_client_handshake_timeout(struct tevent_context *ev,
                             struct timeval t,
                             void *ptr)
 {
+    struct sbus_connection *conn;
     struct dp_client *dp_cli;
 
     DEBUG(SSSDBG_OP_FAILURE,
@@ -159,40 +146,31 @@ dp_client_handshake_timeout(struct tevent_context *ev,
 
     dp_cli = talloc_get_type(ptr, struct dp_client);
 
-    sbus_disconnect(dp_cli->conn);
+    talloc_set_destructor(dp_cli, NULL);
+
+    conn = dp_cli->conn;
     talloc_zfree(dp_cli);
+    talloc_zfree(conn);
 }
 
-errno_t dp_client_init(struct sbus_connection *conn, void *data)
+errno_t
+dp_client_init(struct sbus_connection *cli_conn,
+               struct data_provider *provider)
 {
-    struct data_provider *provider;
     struct dp_client *dp_cli;
     struct timeval tv;
-    errno_t ret;
-
-    static struct iface_dp_client iface_dp_client = {
-        { &iface_dp_client_meta, 0 },
-
-        .Register = dp_client_register,
-    };
-
-    provider = talloc_get_type(data, struct data_provider);
 
     /* When connection is lost we also free the client. */
-    dp_cli = talloc_zero(conn, struct dp_client);
+    dp_cli = talloc_zero(cli_conn, struct dp_client);
     if (dp_cli == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, killing connection.\n");
-        talloc_free(conn);
         return ENOMEM;
     }
 
     dp_cli->provider = provider;
-    dp_cli->conn = conn;
+    dp_cli->conn = cli_conn;
     dp_cli->initialized = false;
     dp_cli->timeout = NULL;
-
-    /* Allow access from the SSSD user. */
-    sbus_allow_uid(conn, &provider->uid);
 
     /* Setup timeout in case client fails to register himself in time. */
     tv = tevent_timeval_current_ofs(5, 0);
@@ -207,25 +185,9 @@ errno_t dp_client_init(struct sbus_connection *conn, void *data)
     DEBUG(SSSDBG_CONF_SETTINGS,
           "Set-up Backend ID timeout [%p]\n", dp_cli->timeout);
 
-    /* Setup D-Bus interfaces and methods. */
-    ret = sbus_conn_register_iface(conn, &iface_dp_client.vtable,
-                                   DP_PATH, dp_cli);
-    if (ret != EOK) {
-        /* Connection is closed in the caller. */
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register D-Bus interface, "
-              "killing connection [%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
-    }
+    sbus_connection_set_data(cli_conn, dp_cli);
 
-    ret = dp_register_sbus_interface(conn, dp_cli);
-    if (ret != EOK) {
-        /* Connection is closed in the caller. */
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register D-Bus interface, "
-              "killing connection [%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
-    }
-
-    return ret;
+    return EOK;
 }
 
 struct data_provider *

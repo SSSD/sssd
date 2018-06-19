@@ -567,7 +567,7 @@ static void sudosrv_refresh_rules_done(struct tevent_req *subreq)
     struct tevent_req *req;
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
-    char *err_msg;
+    const char *err_msg;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);

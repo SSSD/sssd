@@ -23,6 +23,7 @@
 #include <talloc.h>
 #include <ldb.h>
 
+#include "db/sysdb.h"
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/sss_ssh.h"

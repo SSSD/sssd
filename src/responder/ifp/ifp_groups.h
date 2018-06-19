@@ -21,7 +21,6 @@
 #ifndef IFP_GROUPS_H_
 #define IFP_GROUPS_H_
 
-#include "responder/ifp/ifp_iface.h"
 #include "responder/ifp/ifp_private.h"
 
 /* Utility functions */
@@ -32,67 +31,126 @@ char * ifp_groups_build_path_from_msg(TALLOC_CTX *mem_ctx,
 
 /* org.freedesktop.sssd.infopipe.Groups */
 
-int ifp_groups_find_by_name(struct sbus_request *sbus_req,
-                            void *data,
-                            const char *name);
+struct tevent_req *
+ifp_groups_find_by_name_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ctx,
+                             const char *name);
 
-int ifp_groups_find_by_id(struct sbus_request *sbus_req,
-                          void *data,
-                          uint32_t id);
+errno_t
+ifp_groups_find_by_name_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             const char **_path);
 
-int ifp_groups_list_by_name(struct sbus_request *sbus_req,
-                            void *data,
-                            const char *filter,
-                            uint32_t limit);
+struct tevent_req *
+ifp_groups_find_by_id_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           uint32_t id);
 
-int ifp_groups_list_by_domain_and_name(struct sbus_request *sbus_req,
-                                       void *data,
-                                       const char *domain,
-                                       const char *filter,
-                                       uint32_t limit);
+errno_t
+ifp_groups_find_by_id_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           const char **_path);
+
+struct tevent_req *
+ifp_groups_list_by_name_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ctx,
+                             const char *filter,
+                             uint32_t limit);
+
+errno_t
+ifp_groups_list_by_name_recv(TALLOC_CTX *mem_ctx,
+                             struct tevent_req *req,
+                             const char ***_paths);
+
+struct tevent_req *
+ifp_groups_list_by_domain_and_name_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        struct sbus_request *sbus_req,
+                                        struct ifp_ctx *ctx,
+                                        const char *domain,
+                                        const char *filter,
+                                        uint32_t limit);
+
+errno_t
+ifp_groups_list_by_domain_and_name_recv(TALLOC_CTX *mem_ctx,
+                                        struct tevent_req *req,
+                                        const char ***_paths);
 
 /* org.freedesktop.sssd.infopipe.Groups.Group */
 
-int ifp_groups_group_update_member_list(struct sbus_request *sbus_req,
-                                        void *data);
+struct tevent_req *
+ifp_groups_group_update_member_list_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sbus_request *sbus_req,
+                                         struct ifp_ctx *ctx);
 
-void ifp_groups_group_get_name(struct sbus_request *sbus_req,
-                               void *data,
-                               const char **_out);
+errno_t
+ifp_groups_group_update_member_list_recv(TALLOC_CTX *mem_ctx,
+                                         struct tevent_req *req);
 
-void ifp_groups_group_get_gid_number(struct sbus_request *sbus_req,
-                                     void *data,
-                                     uint32_t *_out);
+errno_t
+ifp_groups_group_get_name(TALLOC_CTX *mem_ctx,
+                          struct sbus_request *sbus_req,
+                          struct ifp_ctx *ctx,
+                          const char **_out);
 
-void ifp_groups_group_get_unique_id(struct sbus_request *sbus_req,
-                                    void *data,
-                                    const char **_out);
+errno_t
+ifp_groups_group_get_gid_number(TALLOC_CTX *mem_ctx,
+                                struct sbus_request *sbus_req,
+                                struct ifp_ctx *ctx,
+                                uint32_t *_out);
 
-void ifp_groups_group_get_users(struct sbus_request *sbus_req,
-                                void *data,
-                                const char ***_out,
-                                int *_size);
+errno_t
+ifp_groups_group_get_unique_id(TALLOC_CTX *mem_ctx,
+                                struct sbus_request *sbus_req,
+                                struct ifp_ctx *ctx,
+                                const char **_out);
 
-void ifp_groups_group_get_groups(struct sbus_request *sbus_req,
-                                void *data,
-                                const char ***_out,
-                                int *_size);
+errno_t
+ifp_groups_group_get_users(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           const char ***_out);
+
+errno_t
+ifp_groups_group_get_groups(TALLOC_CTX *mem_ctx,
+                           struct sbus_request *sbus_req,
+                           struct ifp_ctx *ctx,
+                           const char ***_out);
 
 /* org.freedesktop.sssd.infopipe.Cache */
 
-int ifp_cache_list_group(struct sbus_request *sbus_req,
-                         void *data);
+errno_t
+ifp_cache_list_group(TALLOC_CTX *mem_ctx,
+                     struct sbus_request *sbus_req,
+                     struct ifp_ctx *ctx,
+                     const char ***_out);
 
-int ifp_cache_list_by_domain_group(struct sbus_request *sbus_req,
-                                   void *data,
-                                   const char *domain);
+errno_t
+ifp_cache_list_by_domain_group(TALLOC_CTX *mem_ctx,
+                               struct sbus_request *sbus_req,
+                               struct ifp_ctx *ctx,
+                               const char *domain,
+                               const char ***_out);
 
 /* org.freedesktop.sssd.infopipe.Cache.Object */
 
-int ifp_cache_object_store_group(struct sbus_request *sbus_req,
-                                 void *data);
+errno_t
+ifp_cache_object_store_group(TALLOC_CTX *mem_ctx,
+                             struct sbus_request *sbus_req,
+                             struct ifp_ctx *ctx,
+                             bool *_result);
 
-int ifp_cache_object_remove_group(struct sbus_request *sbus_req,
-                                  void *data);
+errno_t
+ifp_cache_object_remove_group(TALLOC_CTX *mem_ctx,
+                              struct sbus_request *sbus_req,
+                              struct ifp_ctx *ctx,
+                              bool *_result);
 
 #endif /* IFP_GROUPS_H_ */

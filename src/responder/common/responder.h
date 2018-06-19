@@ -33,8 +33,7 @@
 #include <ldb.h>
 #include <dhash.h>
 
-#include "data_provider/rdp.h"
-#include "sbus/sssd_dbus.h"
+#include "sss_iface/sss_iface_async.h"
 #include "responder/common/negcache.h"
 #include "sss_client/sss_cli.h"
 #include "responder/common/cache_req/cache_req_domain.h"
@@ -95,6 +94,7 @@ struct be_conn {
     const char *cli_name;
     struct sss_domain_info *domain;
 
+    char *bus_name;
     char *sbus_address;
     struct sbus_connection *conn;
 };
@@ -211,11 +211,9 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *sss_priv_pipe_name,
                      int priv_pipe_fd,
                      const char *confdb_service_path,
+                     const char *conn_name,
                      const char *svc_name,
                      uint16_t svc_version,
-                     struct mon_cli_iface *monitor_intf,
-                     const char *cli_name,
-                     struct sbus_iface_map *sbus_iface,
                      connection_setup_t conn_setup,
                      struct resp_ctx **responder_ctx);
 
@@ -270,7 +268,10 @@ struct dp_callback_ctx {
 
 void handle_requests_after_reconnect(struct resp_ctx *rctx);
 
-int responder_logrotate(struct sbus_request *dbus_req, void *data);
+errno_t
+responder_logrotate(TALLOC_CTX *mem_ctx,
+                    struct sbus_request *sbus_req,
+                    struct resp_ctx *rctx);
 
 /* Each responder-specific request must create a constructor
  * function that creates a DBus Message that would be sent to
@@ -344,24 +345,9 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
 errno_t
 sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
-                        dbus_uint16_t *err_maj,
-                        dbus_uint32_t *err_min,
-                        char **err_msg);
-
-struct tevent_req *
-sss_dp_get_ssh_host_send(TALLOC_CTX *mem_ctx,
-                         struct resp_ctx *rctx,
-                         struct sss_domain_info *dom,
-                         bool fast_reply,
-                         const char *name,
-                         const char *alias);
-
-errno_t
-sss_dp_get_ssh_host_recv(TALLOC_CTX *mem_ctx,
-                         struct tevent_req *req,
-                         dbus_uint16_t *dp_err,
-                         dbus_uint32_t *dp_ret,
-                         char **err_msg);
+                        uint16_t *_dp_error,
+                        uint32_t *_error,
+                        const char **_error_message);
 
 bool sss_utf8_check(const uint8_t *s, size_t n);
 
@@ -488,5 +474,18 @@ struct tevent_req *resp_resolve_group_names_send(TALLOC_CTX *mem_ctx,
 int resp_resolve_group_names_recv(TALLOC_CTX *mem_ctx,
                                   struct tevent_req *req,
                                   struct ldb_result **_initgr_named_res);
+
+/**
+ * Register common responder sbus interface on connection.
+ */
+errno_t
+sss_resp_register_sbus_iface(struct sbus_connection *conn,
+                             struct resp_ctx *rctx);
+
+/**
+ * Register common service sbus interface on monitor connection.
+ */
+errno_t
+sss_resp_register_service_iface(struct resp_ctx *rctx);
 
 #endif /* __SSS_RESPONDER_H__ */

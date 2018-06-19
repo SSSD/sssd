@@ -18,8 +18,8 @@
 #include "util/util.h"
 #include "tools/common/sss_tools.h"
 #include "tools/sssctl/sssctl.h"
-#include "sbus/sssd_dbus.h"
-#include "responder/ifp/ifp_iface.h"
+#include "sbus/sbus_opath.h"
+#include "responder/ifp/ifp_iface/ifp_iface_sync.h"
 
 /*
  * We're searching the cache directly..
@@ -270,9 +270,7 @@ static errno_t refresh_hbac_rules(struct sss_tool_ctx *tool_ctx,
                                   struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmp_ctx;
-    sss_sifp_error error;
-    sss_sifp_ctx *sifp;
-    DBusMessage *reply;
+    struct sbus_sync_connection *conn;
     const char *path;
     errno_t ret;
 
@@ -289,24 +287,18 @@ static errno_t refresh_hbac_rules(struct sss_tool_ctx *tool_ctx,
         goto done;
     }
 
-    error = sssctl_sifp_init(tool_ctx, &sifp);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to connect to the InfoPipe");
+    conn = sbus_sync_connect_system(tmp_ctx, NULL);
+    if (conn == NULL) {
+        fprintf(stderr, _("Unable to connect to system bus!\n"));
         ret = EIO;
         goto done;
     }
 
-    error = sssctl_sifp_send(tmp_ctx, sifp, &reply, path,
-                             IFACE_IFP_DOMAINS_DOMAIN,
-                             IFACE_IFP_DOMAINS_DOMAIN_REFRESHACCESSRULES);
-    if (error != SSS_SIFP_OK) {
-        sssctl_sifp_error(sifp, error, "Unable to refresh HBAC rules");
-        ret = EIO;
-        goto done;
-    }
-
-    ret = sbus_parse_reply(reply);
+    ret = sbus_call_ifp_domain_RefreshAccessRules(conn, IFP_BUS, path);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh HBAC rules [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
         goto done;
     }
 

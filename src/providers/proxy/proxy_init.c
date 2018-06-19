@@ -164,31 +164,6 @@ static errno_t proxy_id_load_symbols(struct proxy_nss_ops *ops,
     return EOK;
 }
 
-static errno_t proxy_setup_sbus(TALLOC_CTX *mem_ctx,
-                                struct proxy_auth_ctx *ctx,
-                                struct be_ctx *be_ctx)
-{
-    char *sbus_address;
-    errno_t ret;
-
-    sbus_address = talloc_asprintf(mem_ctx, "unix:path=%s/%s_%s", PIPE_PATH,
-                                   PROXY_CHILD_PIPE, be_ctx->domain->name);
-    if (sbus_address == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed.\n");
-        return ENOMEM;
-    }
-
-    ret = sbus_new_server(mem_ctx, be_ctx->ev, sbus_address, 0, be_ctx->gid,
-                          false, &ctx->sbus_srv, proxy_client_init, ctx, NULL);
-    talloc_free(sbus_address);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");
-        return ret;
-    }
-
-    return EOK;
-}
-
 static errno_t proxy_auth_conf(TALLOC_CTX *mem_ctx,
                                struct be_ctx *be_ctx,
                                char **_pam_target)
@@ -238,7 +213,7 @@ static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = proxy_setup_sbus(auth_ctx, auth_ctx, be_ctx);
+    ret = proxy_client_init(dp_sbus_conn(be_ctx->provider), auth_ctx);
     if (ret != EOK) {
         goto done;
     }

@@ -46,7 +46,7 @@ sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
                         dbus_uint16_t *dp_err,
                         dbus_uint32_t *dp_ret,
-                        char **err_msg)
+                        const char **err_msg)
 {
     acct_cb_t cb;
 

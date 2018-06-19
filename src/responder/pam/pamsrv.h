@@ -24,7 +24,6 @@
 
 #include <security/pam_appl.h>
 #include "util/util.h"
-#include "sbus/sssd_dbus.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "lib/certmap/sss_certmap.h"
@@ -53,10 +52,6 @@ struct pam_ctx {
     struct sss_certmap_ctx *sss_certmap_ctx;
 };
 
-struct pam_auth_dp_req {
-    struct pam_auth_req *preq;
-};
-
 struct pam_auth_req {
     struct cli_ctx *cctx;
     struct sss_domain_info *domain;
@@ -72,8 +67,6 @@ struct pam_auth_req {
     /* whether cached authentication was tried and failed */
     bool cached_auth_failed;
 
-    struct pam_auth_dp_req *dpreq_spy;
-
     struct ldb_message *user_obj;
     struct cert_auth_info *cert_list;
     struct cert_auth_info *current_cert;
@@ -82,7 +75,8 @@ struct pam_auth_req {
 
 struct sss_cmd_table *get_pam_cmds(void);
 
-int pam_dp_send_req(struct pam_auth_req *preq, int timeout);
+errno_t
+pam_dp_send_req(struct pam_auth_req *preq);
 
 int LOCAL_pam_handler(struct pam_auth_req *preq);
 

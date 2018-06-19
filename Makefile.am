@@ -225,12 +225,6 @@ if BUILD_SSH
     non_interactive_check_based_tests += sysdb_ssh-tests
 endif
 
-if BUILD_DBUS_TESTS
-    non_interactive_check_based_tests += \
-	sbus_tests \
-	sbus_codegen_tests
-endif # BUILD_DBUS_TESTS
-
 endif # HAVE_CHECK
 
 if HAVE_CMOCKA
@@ -249,7 +243,6 @@ if HAVE_CMOCKA
         test_utils \
         dp_opt_tests \
         responder-get-domains-tests \
-        sbus-internal-tests \
         config_check-tests \
         sss_sifp-tests \
         test_search_bases \
@@ -280,7 +273,6 @@ if HAVE_CMOCKA
         test_cert_utils \
         test_ldap_id_cleanup \
         test_data_provider_be \
-        test_dp_request_table \
         test_dp_request \
         test_dp_builtin \
         test_ipa_dn \
@@ -557,10 +549,7 @@ SSSD_CACHE_REQ_OBJ = \
 	$(NULL)
 
 SSSD_RESPONDER_IFACE_OBJ = \
-    src/responder/common/iface/responder_iface.c \
-    src/responder/common/iface/responder_domain.c \
-    src/responder/common/iface/responder_ncache.c \
-    src/responder/common/iface/responder_iface_generated.c \
+    src/responder/common/responder_iface.c \
     $(NULL)
 
 SSSD_RESPONDER_OBJ = \
@@ -569,13 +558,9 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_cmd.c \
     src/responder/common/responder_common.c \
     src/responder/common/responder_dp.c \
-    src/responder/common/responder_dp_ssh.c \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_get_domains.c \
     src/responder/common/responder_utils.c \
-    src/responder/common/data_provider/rdp_message.c \
-    src/responder/common/data_provider/rdp_client.c \
-    src/monitor/monitor_iface_generated.c \
     src/providers/data_provider_req.c \
     src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
@@ -638,6 +623,19 @@ endif
 
 dist_noinst_HEADERS = \
     src/monitor/monitor.h \
+    src/sss_iface/sbus_sss_arguments.h \
+    src/sss_iface/sbus_sss_client_async.h \
+    src/sss_iface/sbus_sss_client_properties.h \
+    src/sss_iface/sbus_sss_client_sync.h \
+    src/sss_iface/sbus_sss_interface.h \
+    src/sss_iface/sbus_sss_invokers.h \
+    src/sss_iface/sbus_sss_keygens.h \
+    src/sss_iface/sbus_sss_server.h \
+    src/sss_iface/sbus_sss_symbols.h \
+    src/sss_iface/sss_iface_types.h \
+    src/sss_iface/sss_iface_async.h \
+    src/sss_iface/sss_iface_sync.h \
+    src/sss_iface/sss_iface.h \
     src/util/crypto/sss_crypto.h \
     src/util/crypto/libcrypto/sss_openssl.h \
     src/util/cert.h \
@@ -650,6 +648,7 @@ dist_noinst_HEADERS = \
     src/util/strtonum.h \
     src/util/sss_cli_cmd.h \
     src/util/sss_ptr_hash.h \
+    src/util/sss_ptr_list.h \
     src/util/sss_endian.h \
     src/util/sss_nss.h \
     src/util/sss_ldap.h \
@@ -661,6 +660,7 @@ dist_noinst_HEADERS = \
     src/util/sss_ssh.h \
     src/util/sss_ini.h \
     src/util/sss_format.h \
+    src/util/sss_pam_data.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
@@ -675,23 +675,17 @@ dist_noinst_HEADERS = \
     src/util/sss_iobuf.h \
     src/util/tev_curl.h \
     src/monitor/monitor.h \
-    src/monitor/monitor_interfaces.h \
-    src/monitor/monitor_iface_generated.h \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/common/responder_sbus.h \
-    src/responder/common/iface/responder_iface.h \
-    src/responder/common/iface/responder_iface_generated.h \
     src/responder/common/cache_req/cache_req.h \
     src/responder/common/cache_req/cache_req_domain.h \
     src/responder/common/cache_req/cache_req_plugin.h \
     src/responder/common/cache_req/cache_req_private.h \
-    src/responder/common/data_provider/rdp.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
     src/responder/nss/nss_private.h \
     src/responder/nss/nss_protocol.h \
-    src/responder/nss/nss_iface_generated.h \
     src/responder/nss/nss_iface.h \
     src/responder/nss/nsssrv_mmap_cache.h \
     src/responder/pac/pacsrv.h \
@@ -700,14 +694,25 @@ dist_noinst_HEADERS = \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
     src/responder/ssh/ssh_private.h \
-    src/responder/ifp/ifp_iface_generated.h \
-    src/responder/ifp/ifp_iface.h \
     src/responder/ifp/ifp_private.h \
     src/responder/ifp/ifp_domains.h \
     src/responder/ifp/ifp_components.h \
     src/responder/ifp/ifp_users.h \
     src/responder/ifp/ifp_groups.h \
     src/responder/ifp/ifp_cache.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_arguments.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_async.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_properties.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_sync.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_interface.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_invokers.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_keygens.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_server.h \
+    src/responder/ifp/ifp_iface/sbus_ifp_symbols.h \
+    src/responder/ifp/ifp_iface/ifp_iface.h \
+    src/responder/ifp/ifp_iface/ifp_iface_types.h \
+    src/responder/ifp/ifp_iface/ifp_iface_async.h \
+    src/responder/ifp/ifp_iface/ifp_iface_sync.h \
     src/responder/secrets/secsrv.h \
     src/responder/secrets/secsrv_private.h \
     src/responder/secrets/secsrv_local.h \
@@ -718,13 +723,31 @@ dist_noinst_HEADERS = \
     src/responder/kcm/kcmsrv_ccache_pvt.h \
     src/responder/kcm/kcmsrv_ccache_be.h \
     src/responder/kcm/kcmsrv_ops.h \
-    src/sbus/sbus_client.h \
-    src/sbus/sssd_dbus.h \
-    src/sbus/sssd_dbus_meta.h \
-    src/sbus/sssd_dbus_private.h \
-    src/sbus/sssd_dbus_invokers.h \
-    src/sbus/sssd_dbus_errors.h \
-    src/sbus/sssd_dbus_utils.h \
+    src/sbus/sbus_annotations.h \
+    src/sbus/sbus_declarations.h \
+    src/sbus/sbus_errors.h \
+    src/sbus/sbus.h \
+    src/sbus/sbus_interface_declarations.h \
+    src/sbus/sbus_interface.h \
+    src/sbus/sbus_message.h \
+    src/sbus/sbus_opath.h \
+    src/sbus/sbus_private.h \
+    src/sbus/sbus_request.h \
+    src/sbus/sbus_sync.h \
+    src/sbus/sbus_sync_private.h \
+    src/sbus/sbus_typeof.h \
+    src/sbus/connection/sbus_dbus_private.h \
+    src/sbus/interface_dbus/sbus_dbus_arguments.h \
+    src/sbus/interface_dbus/sbus_dbus_client_async.h \
+    src/sbus/interface_dbus/sbus_dbus_client_sync.h \
+    src/sbus/interface_dbus/sbus_dbus_client_properties.h \
+    src/sbus/interface_dbus/sbus_dbus_interface.h \
+    src/sbus/interface_dbus/sbus_dbus_invokers.h \
+    src/sbus/interface_dbus/sbus_dbus_keygens.h \
+    src/sbus/interface_dbus/sbus_dbus_server.h \
+    src/sbus/interface_dbus/sbus_dbus_symbols.h \
+    src/sbus/interface/sbus_iterator_readers.h \
+    src/sbus/interface/sbus_iterator_writers.h \
     src/db/sysdb.h \
     src/db/sysdb_sudo.h \
     src/db/sysdb_autofs.h \
@@ -740,12 +763,10 @@ dist_noinst_HEADERS = \
     src/providers/data_provider_req.h \
     src/providers/data_provider/dp.h \
     src/providers/data_provider/dp_flags.h \
-    src/providers/data_provider/dp_responder_iface.h \
     src/providers/data_provider/dp_private.h \
     src/providers/data_provider/dp_request.h \
     src/providers/data_provider/dp_custom_data.h \
     src/providers/data_provider/dp_builtin.h \
-    src/providers/data_provider/dp_iface_generated.h \
     src/providers/data_provider/dp_iface.h \
     src/providers/backend.h \
     src/providers/be_dyndns.h \
@@ -805,7 +826,6 @@ dist_noinst_HEADERS = \
     src/providers/ad/ad_domain_info.h \
     src/providers/ad/ad_subdomains.h \
     src/providers/proxy/proxy.h \
-    src/providers/proxy/proxy_iface_generated.h \
     src/providers/files/files_private.h \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \
@@ -821,7 +841,6 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/test_expire_common.h \
     src/tests/cmocka/test_sdap_access.h \
     src/tests/cmocka/data_provider/mock_dp.h \
-    src/tests/sbus_codegen_tests_generated.h \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
@@ -983,6 +1002,194 @@ libsss_cert_la_LDFLAGS = \
     -avoid-version \
     $(NULL)
 
+generate-sbus-code:
+	$(srcdir)/sbus_generate.sh $(abs_srcdir)
+
+.PHONY: generate-sbus-code
+
+BUILT_SOURCES += generate-sbus-code
+
+EXTRA_DIST += \
+    sbus_generate.sh \
+    src/sbus/codegen/dbus.xml \
+    src/sbus/codegen/sbus_CodeGen.py \
+    src/sbus/codegen/sbus_DataType.py \
+    src/sbus/codegen/sbus_Generator.py \
+    src/sbus/codegen/sbus_Introspection.py \
+    src/sbus/codegen/sbus_Invoker.py \
+    src/sbus/codegen/sbus_Template.py \
+    src/sbus/codegen/templates/arguments.c.tpl \
+    src/sbus/codegen/templates/arguments.h.tpl \
+    src/sbus/codegen/templates/client_async.c.tpl \
+    src/sbus/codegen/templates/client_async.h.tpl \
+    src/sbus/codegen/templates/client_properties.h.tpl \
+    src/sbus/codegen/templates/client_sync.c.tpl \
+    src/sbus/codegen/templates/client_sync.h.tpl \
+    src/sbus/codegen/templates/interface.h.tpl \
+    src/sbus/codegen/templates/invokers.c.tpl \
+    src/sbus/codegen/templates/invokers.h.tpl \
+    src/sbus/codegen/templates/keygens.c.tpl \
+    src/sbus/codegen/templates/keygens.h.tpl \
+    src/sbus/codegen/templates/server.h.tpl \
+    src/sbus/codegen/templates/symbols.c.tpl \
+    src/sbus/codegen/templates/symbols.h.tpl \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libsss_sbus.la
+libsss_sbus_la_SOURCES = \
+    src/util/check_and_open.c \
+    src/util/debug.c \
+    src/util/sss_ptr_hash.c \
+    src/util/sss_ptr_list.c \
+    src/util/sss_utf8.c \
+    src/util/util.c \
+    src/util/util_errors.c \
+    src/util/util_ext.c \
+    src/util/strtonum.c \
+    src/sbus/sbus_errors.c \
+    src/sbus/sbus_opath.c \
+    src/sbus/connection/sbus_connection.c \
+    src/sbus/connection/sbus_connection_connect.c \
+    src/sbus/connection/sbus_dbus.c \
+    src/sbus/connection/sbus_dispatcher.c \
+    src/sbus/connection/sbus_reconnect.c \
+    src/sbus/connection/sbus_send.c \
+    src/sbus/connection/sbus_watch.c \
+    src/sbus/interface_dbus/sbus_dbus_arguments.c \
+    src/sbus/interface_dbus/sbus_dbus_client_async.c \
+    src/sbus/interface_dbus/sbus_dbus_invokers.c \
+    src/sbus/interface_dbus/sbus_dbus_keygens.c \
+    src/sbus/interface_dbus/sbus_dbus_symbols.c \
+    src/sbus/interface/sbus_interface.c \
+    src/sbus/interface/sbus_introspection.c \
+    src/sbus/interface/sbus_iterator_readers.c \
+    src/sbus/interface/sbus_iterator_writers.c \
+    src/sbus/interface/sbus_properties.c \
+    src/sbus/interface/sbus_properties_parser.c \
+    src/sbus/interface/sbus_std_signals.c \
+    src/sbus/request/sbus_message.c \
+    src/sbus/request/sbus_request.c \
+    src/sbus/request/sbus_request_call.c \
+    src/sbus/request/sbus_request_hash.c \
+    src/sbus/request/sbus_request_sender.c \
+    src/sbus/request/sbus_request_util.c \
+    src/sbus/router/sbus_router.c \
+    src/sbus/router/sbus_router_handler.c \
+    src/sbus/router/sbus_router_hash.c \
+    src/sbus/server/sbus_server_handler.c \
+    src/sbus/server/sbus_server_interface.c \
+    src/sbus/server/sbus_server_match.c \
+    src/sbus/server/sbus_server.c \
+    $(NULL)
+libsss_sbus_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    $(NULL)
+libsss_sbus_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_sbus_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libsss_sbus_sync.la
+libsss_sbus_sync_la_SOURCES = \
+    src/util/debug.c \
+    src/util/sss_utf8.c \
+    src/util/util.c \
+    src/util/util_errors.c \
+    src/util/strtonum.c \
+    src/sbus/sbus_errors.c \
+    src/sbus/sbus_opath.c \
+    src/sbus/connection/sbus_dbus.c \
+    src/sbus/interface_dbus/sbus_dbus_arguments.c \
+    src/sbus/interface_dbus/sbus_dbus_client_sync.c \
+    src/sbus/interface_dbus/sbus_dbus_keygens.c \
+    src/sbus/interface_dbus/sbus_dbus_symbols.c \
+    src/sbus/interface/sbus_iterator_readers.c \
+    src/sbus/interface/sbus_iterator_writers.c \
+    src/sbus/interface/sbus_properties_parser.c \
+    src/sbus/request/sbus_message.c \
+    src/sbus/sync/sbus_sync.c \
+    src/sbus/sync/sbus_sync_call.c \
+    $(NULL)
+libsss_sbus_sync_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(DBUS_LIBS) \
+    $(NULL)
+libsss_sbus_sync_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_sbus_sync_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libsss_iface.la
+libsss_iface_la_SOURCES = \
+    src/sss_iface/sbus_sss_arguments.c \
+    src/sss_iface/sbus_sss_client_async.c \
+    src/sss_iface/sbus_sss_invokers.c \
+    src/sss_iface/sbus_sss_keygens.c \
+    src/sss_iface/sbus_sss_symbols.c \
+    src/sss_iface/sss_iface_types.c \
+    src/sss_iface/sss_iface.c \
+    src/util/domain_info_utils.c \
+    src/util/sss_pam_data.c \
+    $(NULL)
+libsss_iface_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    libsss_sbus.la \
+    $(NULL)
+libsss_iface_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_iface_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libsss_iface_sync.la
+libsss_iface_sync_la_SOURCES = \
+    src/sss_iface/sbus_sss_arguments.c \
+    src/sss_iface/sbus_sss_client_sync.c \
+    src/sss_iface/sbus_sss_keygens.c \
+    src/sss_iface/sbus_sss_symbols.c \
+    src/sss_iface/sss_iface_types.c \
+    src/util/domain_info_utils.c \
+    src/util/sss_pam_data.c \
+    $(NULL)
+libsss_iface_sync_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    libsss_sbus_sync.la \
+    $(NULL)
+libsss_iface_sync_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libsss_iface_sync_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
 pkglib_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
     src/confdb/confdb.c \
@@ -1001,23 +1208,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_gpo.c \
     src/db/sysdb_certmap.c \
     src/db/sysdb_domain_resolution_order.c \
-    src/monitor/monitor_sbus.c \
-    src/providers/dp_auth_util.c \
-    src/providers/dp_pam_data_util.c \
-    src/providers/data_provider/dp_sbus.c \
-    src/sbus/sbus_client.c \
-    src/sbus/sssd_dbus_common.c \
-    src/sbus/sssd_dbus_connection.c \
-    src/sbus/sssd_dbus_meta.c \
-    src/sbus/sssd_dbus_interface.c \
-    src/sbus/sssd_dbus_introspect.c \
-    src/sbus/sssd_dbus_invokers.c \
-    src/sbus/sssd_dbus_properties.c \
-    src/sbus/sssd_dbus_request.c \
-    src/sbus/sssd_dbus_server.c \
-    src/sbus/sssd_dbus_signals.c \
-    src/sbus/sssd_dbus_common_signals.c \
-    src/sbus/sssd_dbus_utils.c \
+    src/util/sss_pam_data.c \
     src/util/util.c \
     src/util/util_ext.c \
     src/util/memory.c \
@@ -1296,51 +1487,12 @@ CLEANFILES += stap_generated_probes.h \
 endif
 
 ####################
-# Sbus Codegen     #
-####################
-
-# Yes, the goal here is that the generated files end up in $(srcdir)
-# not $(builddir). Always use $(srcdir) here.
-CODEGEN_XML = \
-    $(srcdir)/src/tests/sbus_codegen_tests.xml \
-    $(srcdir)/src/monitor/monitor_iface.xml \
-    $(srcdir)/src/providers/data_provider/dp_iface.xml \
-    $(srcdir)/src/providers/proxy/proxy_iface.xml \
-    $(srcdir)/src/responder/ifp/ifp_iface.xml \
-    $(srcdir)/src/responder/nss/nss_iface.xml \
-    $(srcdir)/src/responder/common/iface/responder_iface.xml \
-    $(NULL)
-
-SBUS_CODEGEN = src/sbus/sbus_codegen
-
-EXTRA_DIST += \
-    $(SBUS_CODEGEN) \
-    $(CODEGEN_XML)
-
-SUFFIXES = .xml _generated.h _generated.c
-
-.xml_generated.h:
-	$(srcdir)/$(SBUS_CODEGEN) --mode=header --output=$@ $<
-.xml_generated.c:
-	$(srcdir)/$(SBUS_CODEGEN) --mode=source --include=$(@:.c=.h) --output=$@ $<
-
-# Regenerate when codegen changes
-CODEGEN_CODE = \
-    $(CODEGEN_XML:.xml=_generated.c) \
-    $(CODEGEN_XML:.xml=_generated.h)
-
-$(CODEGEN_CODE): $(SBUS_CODEGEN)
-
-BUILT_SOURCES += $(CODEGEN_CODE)
-
-####################
 # Program Binaries #
 ####################
 sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
-    src/monitor/monitor_iface_generated.c \
     src/util/nscd.c \
     src/util/inotify.c \
     $(NULL)
@@ -1350,7 +1502,9 @@ sssd_LDADD = \
     $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
+    $(NULL)
 
 sssd_nss_SOURCES = \
     src/responder/nss/nsssrv.c \
@@ -1364,7 +1518,6 @@ sssd_nss_SOURCES = \
     src/responder/nss/nss_protocol_svcent.c \
     src/responder/nss/nss_protocol_sid.c \
     src/responder/nss/nss_utils.c \
-    src/responder/nss/nss_iface_generated.c \
     src/responder/nss/nss_iface.c \
     src/responder/nss/nsssrv_mmap_cache.c \
     $(SSSD_RESPONDER_OBJ)
@@ -1374,7 +1527,9 @@ sssd_nss_LDADD = \
     libsss_idmap.la \
     libsss_cert.la \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
+    $(NULL)
 
 sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
@@ -1392,6 +1547,7 @@ sssd_pam_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_certmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
     $(NULL)
 
 if BUILD_SUDO
@@ -1405,19 +1561,22 @@ sssd_sudo_SOURCES = \
 sssd_sudo_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
+    $(NULL)
 endif
 
 if BUILD_AUTOFS
 sssd_autofs_SOURCES = \
     src/responder/autofs/autofssrv.c \
     src/responder/autofs/autofssrv_cmd.c \
-    src/responder/autofs/autofssrv_dp.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_autofs_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
+    $(NULL)
 endif
 
 if BUILD_SSH
@@ -1434,6 +1593,7 @@ sssd_ssh_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_cert.la \
+    libsss_iface.la \
     $(NULL)
 endif
 
@@ -1451,14 +1611,68 @@ sssd_pac_LDADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_idmap.la \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
+    $(NULL)
 
 if BUILD_IFP
+pkglib_LTLIBRARIES += libifp_iface.la
+libifp_iface_la_SOURCES = \
+    src/responder/ifp/ifp_iface/sbus_ifp_arguments.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_async.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_invokers.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_keygens.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_symbols.c \
+    src/responder/ifp/ifp_iface/ifp_iface_types.c \
+    src/responder/ifp/ifp_iface/ifp_iface.c \
+    $(NULL)
+libifp_iface_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    libsss_sbus.la \
+    $(NULL)
+libifp_iface_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libifp_iface_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
+pkglib_LTLIBRARIES += libifp_iface_sync.la
+libifp_iface_sync_la_SOURCES = \
+    src/responder/ifp/ifp_iface/sbus_ifp_arguments.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_client_sync.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_keygens.c \
+    src/responder/ifp/ifp_iface/sbus_ifp_symbols.c \
+    src/responder/ifp/ifp_iface/ifp_iface_types.c \
+    $(NULL)
+libifp_iface_sync_la_LIBADD = \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DBUS_LIBS) \
+    libsss_sbus_sync.la \
+    $(NULL)
+libifp_iface_sync_la_CFLAGS = \
+    $(AM_CFLAGS) \
+	$(DHASH_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(TEVENT_CFLAGS) \
+    $(DBUS_CFLAGS) \
+    $(NULL)
+libifp_iface_sync_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+
 sssd_ifp_SOURCES = \
     src/responder/ifp/ifpsrv.c \
     src/responder/ifp/ifpsrv_cmd.c \
-    src/responder/ifp/ifp_iface_generated.c \
-    src/responder/ifp/ifp_iface.c \
     src/responder/ifp/ifp_iface_nodes.c \
     src/responder/ifp/ifpsrv_util.c \
     src/responder/ifp/ifp_domains.c \
@@ -1474,7 +1688,10 @@ sssd_ifp_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_cert.la \
+    libifp_iface.la \
+    libsss_iface.la \
     $(NULL)
+
 dist_dbuspolicy_DATA = \
     src/responder/ifp/org.freedesktop.sssd.infopipe.conf
 dist_dbusservice_DATA = \
@@ -1521,6 +1738,7 @@ sssd_secrets_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(CURL_LIBS) \
+    libsss_iface.la \
     $(NULL)
 endif
 
@@ -1555,6 +1773,7 @@ sssd_kcm_LDADD = \
     $(UUID_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
     $(NULL)
 endif
 
@@ -1567,21 +1786,16 @@ sssd_be_SOURCES = \
     src/providers/be_dyndns.c \
     src/providers/be_ptask.c \
     src/providers/be_refresh.c \
-    src/monitor/monitor_iface_generated.c \
     src/providers/data_provider/dp.c \
     src/providers/data_provider/dp_modules.c \
     src/providers/data_provider/dp_targets.c \
     src/providers/data_provider/dp_methods.c \
     src/providers/data_provider/dp_builtin.c \
-    src/providers/data_provider/dp_iface.c \
     src/providers/data_provider/dp_iface_backend.c \
     src/providers/data_provider/dp_iface_failover.c \
     src/providers/data_provider/dp_client.c \
     src/providers/data_provider/dp_resp_client.c \
-    src/providers/data_provider/dp_iface_generated.c \
     src/providers/data_provider/dp_request.c \
-    src/providers/data_provider/dp_request_reply.c \
-    src/providers/data_provider/dp_request_table.c \
     src/providers/data_provider/dp_reply_std.c \
     src/providers/data_provider/dp_target_sudo.c \
     src/providers/data_provider/dp_target_hostid.c \
@@ -1596,7 +1810,9 @@ sssd_be_LDADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(PAM_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
+    $(NULL)
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -export-dynamic
@@ -1739,7 +1955,6 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_data.c \
     src/tools/sssctl/sssctl_logs.c \
     src/tools/sssctl/sssctl_domains.c \
-    src/tools/sssctl/sssctl_sifp.c \
     src/tools/sssctl/sssctl_config.c \
     src/tools/sssctl/sssctl_user_checks.c \
     src/tools/sssctl/sssctl_access_report.c \
@@ -1752,11 +1967,11 @@ sssctl_LDADD = \
     $(PAM_LIBS) \
     $(PAM_MISC_LIBS) \
     $(LIBADD_DL) \
-    libsss_simpleifp.la \
+    libifp_iface_sync.la \
+    libsss_iface_sync.la \
     $(NULL)
 sssctl_CFLAGS = \
     $(AM_CFLAGS) \
-    -I$(top_srcdir)/src/lib/sifp
     $(NULL)
 
 if BUILD_SUDO
@@ -1905,6 +2120,7 @@ libdlopen_test_providers_la_LIBADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
     $(NULL)
 if BUILD_SYSTEMTAP
 libdlopen_test_providers_la_LIBADD += stap_generated_probes.lo
@@ -2240,8 +2456,6 @@ responder_socket_access_tests_SOURCES = \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_cmd.c \
     src/responder/common/cache_req/cache_req_domain.c \
-    src/responder/common/data_provider/rdp_message.c \
-    src/responder/common/data_provider/rdp_client.c \
     src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(NULL)
@@ -2253,7 +2467,8 @@ responder_socket_access_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_iface.la
 endif
 
 stress_tests_SOURCES = \
@@ -2291,33 +2506,18 @@ krb5_child_test_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
-if BUILD_DBUS_TESTS
-
-sbus_tests_SOURCES = \
-   src/tests/common_dbus.c \
-   src/tests/sbus_tests.c
-sbus_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
-sbus_tests_LDADD = \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS)
-
-sbus_codegen_tests_SOURCES = \
-    src/tests/common_dbus.c \
-    src/tests/sbus_codegen_tests.c \
-    src/tests/sbus_codegen_tests_generated.c \
+test_sbus_opath_SOURCES = \
+    src/tests/cmocka/sbus/test_sbus_opath.c \
     $(NULL)
-sbus_codegen_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
-sbus_codegen_tests_LDADD = \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS)
-
-endif # BUILD_DBUS_TESTS
+test_sbus_opath_CFLAGS = \
+    $(AM_CFLAGS)
+test_sbus_opath_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    libsss_debug.la \
+    libsss_test_common.la \
+    libsss_sbus.la \
+    $(NULL)
 
 if HAVE_CMOCKA
 
@@ -2329,8 +2529,6 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/negcache_files.c \
      src/responder/common/negcache.c \
      src/responder/common/responder_common.c \
-     src/responder/common/data_provider/rdp_message.c \
-     src/responder/common/data_provider/rdp_client.c \
      src/responder/common/responder_utils.c \
      src/util/session_recording.c \
      $(SSSD_CACHE_REQ_OBJ) \
@@ -2385,7 +2583,8 @@ nss_srv_tests_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_cert.la \
-    libsss_idmap.la
+    libsss_idmap.la \
+    libsss_iface.la
 
 EXTRA_pam_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
@@ -2422,6 +2621,7 @@ pam_srv_tests_LDADD = \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
+    libsss_iface.la \
     $(NULL)
 
 EXTRA_ssh_srv_tests_DEPENDENCIES = \
@@ -2455,6 +2655,7 @@ ssh_srv_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
+    libsss_iface.la \
     $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \
@@ -2473,28 +2674,8 @@ responder_get_domains_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    libsss_test_common.la
-
-sbus_internal_tests_SOURCES = \
-    src/tests/cmocka/sbus_internal_tests.c \
-    src/sbus/sssd_dbus_request.c
-sbus_internal_tests_CFLAGS = \
-    $(AM_CFLAGS)
-sbus_internal_tests_LDFLAGS = \
-    -Wl,-wrap,dbus_bus_get \
-    -Wl,-wrap,dbus_pending_call_steal_reply \
-    -Wl,-wrap,dbus_pending_call_unref \
-    -Wl,-wrap,dbus_message_unref \
-    -Wl,-wrap,dbus_connection_unref \
-    -Wl,-wrap,dbus_connection_set_exit_on_disconnect \
-    -Wl,-wrap,hash_lookup
-sbus_internal_tests_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    libsss_util.la \
-    libsss_crypt.la \
-    libsss_debug.la \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_iface.la
 
 config_check_tests_SOURCES = \
     src/tests/cmocka/test_config_check.c \
@@ -2553,7 +2734,8 @@ test_negcache_LDADD = \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
-    libsss_idmap.la
+    libsss_idmap.la \
+    libsss_iface.la
 
 test_authtok_SOURCES = \
     src/tests/cmocka/test_authtok.c \
@@ -2691,6 +2873,7 @@ test_search_bases_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 test_ldap_auth_SOURCES = \
@@ -2703,6 +2886,7 @@ test_ldap_auth_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 test_ldap_id_cleanup_SOURCES = \
@@ -2717,6 +2901,7 @@ test_ldap_id_cleanup_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 test_sdap_access_SOURCES = \
@@ -2729,6 +2914,7 @@ test_sdap_access_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 test_sdap_certmap_SOURCES = \
@@ -2760,6 +2946,7 @@ ad_access_filter_tests_LDADD = \
     libsss_ldap_common.la \
     libsss_ad_tests.la \
     libsss_test_common.la \
+    libsss_iface.la \
     $(NULL)
 
 ad_gpo_tests_SOURCES = \
@@ -2780,6 +2967,7 @@ ad_gpo_tests_LDADD = \
     libsss_ad_tests.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 ad_common_tests_SOURCES = \
@@ -2813,6 +3001,7 @@ ad_common_tests_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 dp_opt_tests_SOURCES = \
@@ -2865,7 +3054,6 @@ ifp_tests_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_ifp.c \
     src/responder/ifp/ifpsrv_cmd.c \
-    src/responder/ifp/ifp_iface_generated.c \
     src/responder/ifp/ifpsrv_util.c \
     $(NULL)
 ifp_tests_CFLAGS = \
@@ -2875,7 +3063,8 @@ ifp_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libsss_iface.la
 
 sss_sifp_tests_SOURCES = \
     src/tests/cmocka/test_sss_sifp.c \
@@ -3132,19 +3321,8 @@ responder_cache_req_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
+    libsss_iface.la \
     $(NULL)
-
-test_sbus_opath_SOURCES = \
-    src/tests/cmocka/test_sbus_opath.c \
-    $(NULL)
-test_sbus_opath_CFLAGS = \
-    $(AM_CFLAGS)
-test_sbus_opath_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_debug.la \
-    libsss_test_common.la
 
 if HAVE_LIBRESOLV
 test_resolv_fake_SOURCES = \
@@ -3207,6 +3385,7 @@ test_sdap_initgr_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 test_ad_subdom_SOURCES = \
@@ -3226,6 +3405,7 @@ test_ad_subdom_LDADD = \
     libsss_idmap.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 test_ipa_subdom_util_SOURCES = \
@@ -3275,6 +3455,7 @@ test_ipa_subdom_server_LDADD = \
     libsss_ad_tests.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 test_tools_colondb_SOURCES = \
@@ -3350,23 +3531,7 @@ test_data_provider_be_LDADD = \
     $(LIBADD_DL) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
-    $(NULL)
-
-test_dp_request_table_SOURCES = \
-    src/providers/data_provider/dp_request_table.c \
-    src/tests/cmocka/data_provider/test_dp_request_table.c \
-    $(NULL)
-test_dp_request_table_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING \
-    $(NULL)
-test_dp_request_table_LDFLAGS = \
-    $(NULL)
-test_dp_request_table_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_test_common.la \
+    libsss_iface.la \
     $(NULL)
 
 test_dp_request_SOURCES = \
@@ -3466,6 +3631,7 @@ simple_access_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 krb5_common_test_SOURCES = \
@@ -3483,6 +3649,7 @@ krb5_common_test_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
     $(NULL)
 
 test_inotify_SOURCES = \
@@ -3947,7 +4114,6 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_netgroup.c \
     src/providers/proxy/proxy_services.c \
     src/providers/proxy/proxy_auth.c \
-    src/providers/proxy/proxy_iface_generated.c \
     $(NULL)
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
@@ -3960,6 +4126,7 @@ libsss_proxy_la_LIBADD = \
     $(DHASH_LIBS) \
     $(DBUS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la \
     $(NULL)
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
@@ -4172,7 +4339,7 @@ krb5_child_SOURCES = \
     src/providers/krb5/krb5_child.c \
     src/providers/krb5/krb5_ccache.c \
     src/providers/krb5/krb5_keytab.c \
-    src/providers/dp_pam_data_util.c \
+    src/util/sss_pam_data.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
@@ -4273,7 +4440,6 @@ gpo_child_LDADD = \
 
 proxy_child_SOURCES = \
     src/providers/proxy/proxy_child.c \
-    src/providers/proxy/proxy_iface_generated.c \
     $(NULL)
 proxy_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4281,7 +4447,8 @@ proxy_child_CFLAGS = \
 proxy_child_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_iface.la
 
 p11_child_SOURCES = \
     src/p11_child/p11_child_common.c \

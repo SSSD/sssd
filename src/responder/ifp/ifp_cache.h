@@ -21,39 +21,43 @@
 #ifndef IFP_CACHE_H_
 #define IFP_CACHE_H_
 
+#include "confdb/confdb.h"
 #include "responder/common/responder.h"
-#include "responder/ifp/ifp_iface_generated.h"
+#include "responder/ifp/ifp_private.h"
 
 enum ifp_cache_type {
     IFP_CACHE_USER,
     IFP_CACHE_GROUP
 };
 
-errno_t ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
-                               struct sss_domain_info *domains,
-                               enum ifp_cache_type type,
-                               const char ***_paths,
-                               int *_num_paths);
+errno_t
+ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
+                       struct sss_domain_info *domains,
+                       enum ifp_cache_type type,
+                       const char ***_paths);
 
 /* org.freedesktop-sssd-infopipe.Cache */
 
-int ifp_cache_list(struct sbus_request *sbus_req,
-                   void *data,
-                   enum ifp_cache_type type);
+errno_t
+ifp_cache_list(TALLOC_CTX *mem_ctx,
+               struct ifp_ctx *ifp_ctx,
+               enum ifp_cache_type type,
+               const char ***_paths);
 
-int ifp_cache_list_by_domain(struct sbus_request *sbus_req,
-                             void *data,
-                             const char *domain,
-                             enum ifp_cache_type type);
+errno_t
+ifp_cache_list_by_domain(TALLOC_CTX *mem_ctx,
+                         struct ifp_ctx *ifp_ctx,
+                         const char *domainname,
+                         enum ifp_cache_type type,
+                         const char ***_paths);
 
 /* org.freedesktop-sssd-infopipe.Cache.Object */
 
-int ifp_cache_object_store(struct sbus_request *sbus_req,
-                           struct sss_domain_info *domain,
-                           struct ldb_dn *dn);
+errno_t
+ifp_cache_object_store(struct sss_domain_info *domain,
+                       struct ldb_dn *dn);
 
-int ifp_cache_object_remove(struct sbus_request *sbus_req,
-                            struct sss_domain_info *domain,
-                            struct ldb_dn *dn);
-
+errno_t
+ifp_cache_object_remove(struct sss_domain_info *domain,
+                        struct ldb_dn *dn);
 #endif /* IFP_CACHE_H_ */
