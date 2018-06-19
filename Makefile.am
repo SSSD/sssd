@@ -734,13 +734,6 @@ dist_noinst_HEADERS = \
     src/responder/kcm/kcmsrv_ccache_pvt.h \
     src/responder/kcm/kcmsrv_ccache_be.h \
     src/responder/kcm/kcmsrv_ops.h \
-    src/sbus/sbus_client.h \
-    src/sbus/sssd_dbus.h \
-    src/sbus/sssd_dbus_meta.h \
-    src/sbus/sssd_dbus_private.h \
-    src/sbus/sssd_dbus_invokers.h \
-    src/sbus/sssd_dbus_errors.h \
-    src/sbus/sssd_dbus_utils.h \
     src/sbus/sbus_annotations.h \
     src/sbus/sbus_declarations.h \
     src/sbus/sbus_errors.h \
@@ -1218,48 +1211,6 @@ libsss_iface_sync_la_LDFLAGS = \
     -avoid-version \
     $(NULL)
 
-pkglib_LTLIBRARIES += libsss_sbus_old.la
-libsss_sbus_old_la_SOURCES = \
-    src/util/check_and_open.c \
-    src/util/debug.c \
-    src/util/sss_ptr_hash.c \
-    src/util/sss_ptr_list.c \
-    src/util/sss_utf8.c \
-    src/util/util.c \
-    src/util/util_errors.c \
-    src/util/util_ext.c \
-    src/sbus/sbus_client.c \
-    src/sbus/sssd_dbus_common.c \
-    src/sbus/sssd_dbus_connection.c \
-    src/sbus/sssd_dbus_meta.c \
-    src/sbus/sssd_dbus_interface.c \
-    src/sbus/sssd_dbus_introspect.c \
-    src/sbus/sssd_dbus_invokers.c \
-    src/sbus/sssd_dbus_properties.c \
-    src/sbus/sssd_dbus_request.c \
-    src/sbus/sssd_dbus_server.c \
-    src/sbus/sssd_dbus_signals.c \
-    src/sbus/sssd_dbus_common_signals.c \
-    src/sbus/sssd_dbus_utils.c \
-    src/providers/data_provider/dp_sbus.c \
-    $(NULL)
-libsss_sbus_old_la_LIBADD = \
-    $(DHASH_LIBS) \
-    $(TALLOC_LIBS) \
-    $(TEVENT_LIBS) \
-    $(DBUS_LIBS) \
-    $(NULL)
-libsss_sbus_old_la_CFLAGS = \
-    $(AM_CFLAGS) \
-	$(DHASH_CFLAGS) \
-    $(TALLOC_CFLAGS) \
-    $(TEVENT_CFLAGS) \
-    $(DBUS_CFLAGS) \
-    $(NULL)
-libsss_sbus_old_la_LDFLAGS = \
-    -avoid-version \
-    $(NULL)
-
 pkglib_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
     src/confdb/confdb.c \
@@ -1556,37 +1507,6 @@ CLEANFILES += stap_generated_probes.h \
 	      stap_generated_probes.lo \
 	      $(NULL)
 endif
-
-####################
-# Sbus Codegen     #
-####################
-
-# Yes, the goal here is that the generated files end up in $(srcdir)
-# not $(builddir). Always use $(srcdir) here.
-CODEGEN_XML = \
-    $(NULL)
-
-SBUS_CODEGEN = src/sbus/sbus_codegen
-
-EXTRA_DIST += \
-    $(SBUS_CODEGEN) \
-    $(CODEGEN_XML)
-
-SUFFIXES = .xml _generated.h _generated.c
-
-.xml_generated.h:
-	$(srcdir)/$(SBUS_CODEGEN) --mode=header --output=$@ $<
-.xml_generated.c:
-	$(srcdir)/$(SBUS_CODEGEN) --mode=source --include=$(@:.c=.h) --output=$@ $<
-
-# Regenerate when codegen changes
-CODEGEN_CODE = \
-    $(CODEGEN_XML:.xml=_generated.c) \
-    $(CODEGEN_XML:.xml=_generated.h)
-
-$(CODEGEN_CODE): $(SBUS_CODEGEN)
-
-BUILT_SOURCES += $(CODEGEN_CODE)
 
 ####################
 # Program Binaries #
