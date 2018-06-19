@@ -893,7 +893,7 @@ bool should_run_posix_check(struct sdap_id_ctx *ctx,
     if (use_id_mapping == false &&
             posix_request == true &&
             ctx->opts->schema_type == SDAP_SCHEMA_AD &&
-            conn->ignore_mark_offline == true &&
+            conn->check_posix_attrs == true &&
             ctx->srv_opts &&
             ctx->srv_opts->posix_checked == false) {
         return true;
