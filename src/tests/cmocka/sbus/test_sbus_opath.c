@@ -19,11 +19,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <talloc.h>
 #include <errno.h>
 #include <popt.h>
 
-#include "sbus/sssd_dbus.h"
+#include "util/util.h"
+#include "sbus/sbus_opath.h"
 #include "tests/cmocka/common_mock.h"
 #include "tests/common.h"
 
@@ -50,50 +53,50 @@ void test_sbus_opath_escape_unescape(void **state)
     TALLOC_CTX *mem_ctx;
 
     assert_true(leak_check_setup());
-    mem_ctx = talloc_new(global_talloc_context);
+    mem_ctx = talloc_new(NULL);
 
-    escaped = sbus_opath_escape_part(mem_ctx, "noescape");
+    escaped = sbus_opath_escape(mem_ctx, "noescape");
     assert_non_null(escaped);
     assert_string_equal(escaped, "noescape");
-    raw = sbus_opath_unescape_part(mem_ctx, escaped);
+    raw = sbus_opath_unescape(mem_ctx, escaped);
     talloc_free(escaped);
     assert_non_null(raw);
     assert_string_equal(raw, "noescape");
     talloc_free(raw);
 
-    escaped = sbus_opath_escape_part(mem_ctx, "redhat.com");
+    escaped = sbus_opath_escape(mem_ctx, "redhat.com");
     assert_non_null(escaped);
     assert_string_equal(escaped, "redhat_2ecom"); /* dot is 0x2E in ASCII */
-    raw = sbus_opath_unescape_part(mem_ctx, escaped);
+    raw = sbus_opath_unescape(mem_ctx, escaped);
     talloc_free(escaped);
     assert_non_null(raw);
     assert_string_equal(raw, "redhat.com");
     talloc_free(raw);
 
-    escaped = sbus_opath_escape_part(mem_ctx, "path_with_underscore");
+    escaped = sbus_opath_escape(mem_ctx, "path_with_underscore");
     assert_non_null(escaped);
     /* underscore is 0x5F in ASCII */
     assert_string_equal(escaped, "path_5fwith_5funderscore");
-    raw = sbus_opath_unescape_part(mem_ctx, escaped);
+    raw = sbus_opath_unescape(mem_ctx, escaped);
     talloc_free(escaped);
     assert_non_null(raw);
     assert_string_equal(raw, "path_with_underscore");
     talloc_free(raw);
 
     /* empty string */
-    escaped = sbus_opath_escape_part(mem_ctx, "");
+    escaped = sbus_opath_escape(mem_ctx, "");
     assert_non_null(escaped);
     assert_string_equal(escaped, "_");
-    raw = sbus_opath_unescape_part(mem_ctx, escaped);
+    raw = sbus_opath_unescape(mem_ctx, escaped);
     talloc_free(escaped);
     assert_non_null(raw);
     assert_string_equal(raw, "");
     talloc_free(raw);
 
     /* negative tests */
-    escaped = sbus_opath_escape_part(mem_ctx, NULL);
+    escaped = sbus_opath_escape(mem_ctx, NULL);
     assert_null(escaped);
-    raw = sbus_opath_unescape_part(mem_ctx, "wrongpath_");
+    raw = sbus_opath_unescape(mem_ctx, "wrongpath_");
     assert_null(raw);
 
     assert_true(leak_check_teardown());
@@ -219,48 +222,48 @@ void test_sbus_opath_decompose_escaped(void **state)
     talloc_free(components);
 }
 
-void test_sbus_opath_decompose_exact_correct(void **state)
+void test_sbus_opath_decompose_expected_correct(void **state)
 {
     const char *path = "/object/path/parts";
     const char *expected[] = {"object", "path", "parts", NULL};
     char **components;
     errno_t ret;
 
-    ret = sbus_opath_decompose_exact(NULL, path, NULL, 3, &components);
+    ret = sbus_opath_decompose_expected(NULL, path, NULL, 3, &components);
     assert_int_equal(ret, EOK);
     check_opath_components(components, expected);
     talloc_free(components);
 }
 
-void test_sbus_opath_decompose_exact_wrong(void **state)
+void test_sbus_opath_decompose_expected_wrong(void **state)
 {
     const char *path = "/object/path/parts";
     char **components;
     errno_t ret;
 
-    ret = sbus_opath_decompose_exact(NULL, path, NULL, 2, &components);
+    ret = sbus_opath_decompose_expected(NULL, path, NULL, 2, &components);
     assert_int_equal(ret, ERR_SBUS_INVALID_PATH);
 }
 
-void test_sbus_opath_get_object_name(void **state)
+void test_sbus_opath_object_name(void **state)
 {
     const char *path = BASE_PATH "/redhat_2ecom";
     char *name;
 
-    name = sbus_opath_get_object_name(NULL, path, BASE_PATH);
+    name = sbus_opath_object_name(NULL, path, BASE_PATH);
     assert_non_null(name);
     assert_string_equal(name, "redhat.com");
     talloc_free(name);
 
-    name = sbus_opath_get_object_name(NULL, path, BASE_PATH "/");
+    name = sbus_opath_object_name(NULL, path, BASE_PATH "/");
     assert_non_null(name);
     assert_string_equal(name, "redhat.com");
     talloc_free(name);
 
-    name = sbus_opath_get_object_name(NULL, BASE_PATH, BASE_PATH);
+    name = sbus_opath_object_name(NULL, BASE_PATH, BASE_PATH);
     assert_null(name);
 
-    name = sbus_opath_get_object_name(NULL, "invalid", BASE_PATH);
+    name = sbus_opath_object_name(NULL, "invalid", BASE_PATH);
     assert_null(name);
 }
 
@@ -284,9 +287,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_sbus_opath_decompose_prefix_slash),
         cmocka_unit_test(test_sbus_opath_decompose_wrong_prefix),
         cmocka_unit_test(test_sbus_opath_decompose_escaped),
-        cmocka_unit_test(test_sbus_opath_decompose_exact_correct),
-        cmocka_unit_test(test_sbus_opath_decompose_exact_wrong),
-        cmocka_unit_test(test_sbus_opath_get_object_name)
+        cmocka_unit_test(test_sbus_opath_decompose_expected_correct),
+        cmocka_unit_test(test_sbus_opath_decompose_expected_wrong),
+        cmocka_unit_test(test_sbus_opath_object_name)
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

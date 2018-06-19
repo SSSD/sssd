@@ -46,7 +46,7 @@ sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
                         dbus_uint16_t *dp_err,
                         dbus_uint32_t *dp_ret,
-                        char **err_msg)
+                        const char **err_msg)
 {
     acct_cb_t cb;
 
@@ -119,13 +119,13 @@ sss_dp_req_recv(TALLOC_CTX *mem_ctx,
 void mock_account_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
                        acct_cb_t acct_cb, void *pvt)
 {
-    will_return(sss_dp_req_recv, dp_err);
-    will_return(sss_dp_req_recv, dp_ret);
-    will_return(sss_dp_req_recv, msg);
+    will_return(sss_dp_get_account_recv, dp_err);
+    will_return(sss_dp_get_account_recv, dp_ret);
+    will_return(sss_dp_get_account_recv, msg);
 
-    will_return(sss_dp_req_recv, acct_cb);
+    will_return(sss_dp_get_account_recv, acct_cb);
     if (acct_cb) {
-        will_return(sss_dp_req_recv, pvt);
+        will_return(sss_dp_get_account_recv, pvt);
     }
 }
 

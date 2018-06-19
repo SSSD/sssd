@@ -768,13 +768,6 @@ AC_DEFUN([WITH_SAMBA],
     AM_CONDITIONAL([BUILD_SAMBA], [test x"$with_samba" = xyes])
   ])
 
-AC_ARG_ENABLE([dbus-tests],
-              [AS_HELP_STRING([--enable-dbus-tests],
-                              [enable running tests using a dbus server instance [default=yes]])],
-              [build_dbus_tests=$enableval],
-              [build_dbus_tests=yes])
-AM_CONDITIONAL([BUILD_DBUS_TESTS], [test x$build_dbus_tests = xyes])
-
 AC_ARG_ENABLE([sss-default-nss-plugin],
               [AS_HELP_STRING([--enable-sss-default-nss-plugin],
                               [This option change standard behaviour of sss nss

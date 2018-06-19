@@ -25,7 +25,7 @@
 #include "lib/sifp/sss_sifp.h"
 #include "lib/sifp/sss_sifp_dbus.h"
 #include "lib/sifp/sss_sifp_private.h"
-#include "responder/ifp/ifp_iface.h"
+#include "responder/ifp/ifp_iface/ifp_iface.h"
 
 struct {
     sss_sifp_ctx *dbus_ctx;
@@ -2097,7 +2097,7 @@ void test_sss_sifp_fetch_domain_by_name(void **state)
 
     assert_string_equal(out->name, name);
     assert_string_equal(out->object_path, in);
-    assert_string_equal(out->interface, IFACE_IFP_DOMAINS);
+    assert_string_equal(out->interface, "org.freedesktop.sssd.infopipe.Domains");
 
     for (i = 0; props[i].name != NULL; i++) {
         assert_non_null(out->attrs[i]);

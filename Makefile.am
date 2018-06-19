@@ -225,12 +225,6 @@ if BUILD_SSH
     non_interactive_check_based_tests += sysdb_ssh-tests
 endif
 
-if BUILD_DBUS_TESTS
-    non_interactive_check_based_tests += \
-	sbus_tests \
-	sbus_codegen_tests
-endif # BUILD_DBUS_TESTS
-
 endif # HAVE_CHECK
 
 if HAVE_CMOCKA
@@ -251,7 +245,6 @@ if HAVE_CMOCKA
         test_utils \
         dp_opt_tests \
         responder-get-domains-tests \
-        sbus-internal-tests \
         config_check-tests \
         sss_sifp-tests \
         test_search_bases \
@@ -282,7 +275,6 @@ if HAVE_CMOCKA
         test_cert_utils \
         test_ldap_id_cleanup \
         test_data_provider_be \
-        test_dp_request_table \
         test_dp_request \
         test_dp_builtin \
         test_ipa_dn \
@@ -852,7 +844,6 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/test_expire_common.h \
     src/tests/cmocka/test_sdap_access.h \
     src/tests/cmocka/data_provider/mock_dp.h \
-    src/tests/sbus_codegen_tests_generated.h \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
@@ -2160,7 +2151,8 @@ libdlopen_test_providers_la_LIBADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_sbus_old.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 if BUILD_SYSTEMTAP
 libdlopen_test_providers_la_LIBADD += stap_generated_probes.lo
@@ -2497,8 +2489,6 @@ responder_socket_access_tests_SOURCES = \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_cmd.c \
     src/responder/common/cache_req/cache_req_domain.c \
-    src/responder/common/data_provider/rdp_message.c \
-    src/responder/common/data_provider/rdp_client.c \
     src/util/session_recording.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(NULL)
@@ -2511,7 +2501,9 @@ responder_socket_access_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
-    libsss_sbus_old.la
+    libsss_iface.la \
+    libsss_sbus.la \
+    $(NULL)
 endif
 
 stress_tests_SOURCES = \
@@ -2561,35 +2553,18 @@ test_ssh_client_LDADD = \
     $(SSSD_LIBS) \
     $(NULL)
 
-if BUILD_DBUS_TESTS
-
-sbus_tests_SOURCES = \
-   src/tests/common_dbus.c \
-   src/tests/sbus_tests.c
-sbus_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
-sbus_tests_LDADD = \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS) \
-    libsss_sbus_old.la
-
-sbus_codegen_tests_SOURCES = \
-    src/tests/common_dbus.c \
-    src/tests/sbus_codegen_tests.c \
-    src/tests/sbus_codegen_tests_generated.c \
+test_sbus_opath_SOURCES = \
+    src/tests/cmocka/sbus/test_sbus_opath.c \
     $(NULL)
-sbus_codegen_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
-sbus_codegen_tests_LDADD = \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS) \
-    libsss_sbus_old.la
-
-endif # BUILD_DBUS_TESTS
+test_sbus_opath_CFLAGS = \
+    $(AM_CFLAGS)
+test_sbus_opath_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    libsss_debug.la \
+    libsss_test_common.la \
+    libsss_sbus.la \
+    $(NULL)
 
 if HAVE_CMOCKA
 
@@ -2601,8 +2576,6 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/negcache_files.c \
      src/responder/common/negcache.c \
      src/responder/common/responder_common.c \
-     src/responder/common/data_provider/rdp_message.c \
-     src/responder/common/data_provider/rdp_client.c \
      src/responder/common/responder_utils.c \
      src/util/session_recording.c \
      $(SSSD_CACHE_REQ_OBJ) \
@@ -2658,7 +2631,9 @@ nss_srv_tests_LDADD = \
     libsss_test_common.la \
     libsss_cert.la \
     libsss_idmap.la \
-    libsss_sbus_old.la
+    libsss_iface.la \
+    libsss_sbus.la \
+    $(NULL)
 
 EXTRA_pam_srv_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES) \
@@ -2695,7 +2670,8 @@ pam_srv_tests_LDADD = \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_certmap.la \
-    libsss_sbus_old.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 EXTRA_ssh_srv_tests_DEPENDENCIES = \
@@ -2729,6 +2705,8 @@ ssh_srv_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \
@@ -2748,29 +2726,9 @@ responder_get_domains_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
-    libsss_sbus_old.la
-
-sbus_internal_tests_SOURCES = \
-    src/tests/cmocka/sbus_internal_tests.c \
-    src/sbus/sssd_dbus_request.c
-sbus_internal_tests_CFLAGS = \
-    $(AM_CFLAGS)
-sbus_internal_tests_LDFLAGS = \
-    -Wl,-wrap,dbus_bus_get \
-    -Wl,-wrap,dbus_pending_call_steal_reply \
-    -Wl,-wrap,dbus_pending_call_unref \
-    -Wl,-wrap,dbus_message_unref \
-    -Wl,-wrap,dbus_connection_unref \
-    -Wl,-wrap,dbus_connection_set_exit_on_disconnect \
-    -Wl,-wrap,hash_lookup
-sbus_internal_tests_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    libsss_util.la \
-    libsss_crypt.la \
-    libsss_debug.la \
-    libsss_test_common.la \
-    libsss_sbus_old.la
+    libsss_iface.la \
+    libsss_sbus.la \
+    $(NULL)
 
 config_check_tests_SOURCES = \
     src/tests/cmocka/test_config_check.c \
@@ -2830,7 +2788,9 @@ test_negcache_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
-    libsss_sbus_old.la
+    libsss_iface.la \
+    libsss_sbus.la \
+    $(NULL)
 
 test_authtok_SOURCES = \
     src/tests/cmocka/test_authtok.c \
@@ -2989,6 +2949,8 @@ test_search_bases_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_ldap_auth_SOURCES = \
@@ -3001,6 +2963,8 @@ test_ldap_auth_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_ldap_id_cleanup_SOURCES = \
@@ -3015,6 +2979,8 @@ test_ldap_id_cleanup_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_sdap_access_SOURCES = \
@@ -3027,6 +2993,8 @@ test_sdap_access_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_sdap_certmap_SOURCES = \
@@ -3058,6 +3026,8 @@ ad_access_filter_tests_LDADD = \
     libsss_ldap_common.la \
     libsss_ad_tests.la \
     libsss_test_common.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 ad_gpo_tests_SOURCES = \
@@ -3078,6 +3048,8 @@ ad_gpo_tests_LDADD = \
     libsss_ad_tests.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 ad_common_tests_SOURCES = \
@@ -3111,6 +3083,8 @@ ad_common_tests_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 dp_opt_tests_SOURCES = \
@@ -3173,7 +3147,9 @@ ifp_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
-    libsss_sbus_old.la
+    libsss_iface.la \
+    libsss_sbus.la \
+    $(NULL)
 
 sss_sifp_tests_SOURCES = \
     src/tests/cmocka/test_sss_sifp.c \
@@ -3430,21 +3406,9 @@ responder_cache_req_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
-    libsss_sbus_old.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
-
-test_sbus_opath_SOURCES = \
-    src/tests/cmocka/test_sbus_opath.c \
-    $(NULL)
-test_sbus_opath_CFLAGS = \
-    $(AM_CFLAGS)
-test_sbus_opath_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_debug.la \
-    libsss_test_common.la \
-    libsss_sbus_old.la
 
 if HAVE_LIBRESOLV
 test_resolv_fake_SOURCES = \
@@ -3507,6 +3471,8 @@ test_sdap_initgr_LDADD = \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_ad_subdom_SOURCES = \
@@ -3526,6 +3492,8 @@ test_ad_subdom_LDADD = \
     libsss_idmap.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_ipa_subdom_util_SOURCES = \
@@ -3575,6 +3543,8 @@ test_ipa_subdom_server_LDADD = \
     libsss_ad_tests.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_tools_colondb_SOURCES = \
@@ -3650,23 +3620,8 @@ test_data_provider_be_LDADD = \
     $(LIBADD_DL) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
-    $(NULL)
-
-test_dp_request_table_SOURCES = \
-    src/providers/data_provider/dp_request_table.c \
-    src/tests/cmocka/data_provider/test_dp_request_table.c \
-    $(NULL)
-test_dp_request_table_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING \
-    $(NULL)
-test_dp_request_table_LDFLAGS = \
-    $(NULL)
-test_dp_request_table_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
-    libsss_test_common.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_dp_request_SOURCES = \
@@ -3765,6 +3720,8 @@ simple_access_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 krb5_common_test_SOURCES = \
@@ -3782,6 +3739,8 @@ krb5_common_test_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_inotify_SOURCES = \
@@ -4260,6 +4219,7 @@ libsss_proxy_la_LIBADD = \
     $(DBUS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
+    libsss_sbus.la \
     $(NULL)
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
@@ -4581,7 +4541,9 @@ proxy_child_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_iface.la
+    libsss_iface.la \
+    libsss_sbus.la \
+    $(NULL)
 
 p11_child_SOURCES = \
     src/p11_child/p11_child_common.c \
