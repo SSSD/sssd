@@ -59,6 +59,8 @@ struct sdap_id_conn_ctx {
     bool ignore_mark_offline;
     /* do not fall back to user lookups for mpg domains on this connection */
     bool no_mpg_user_fallback;
+    /* check if this connection contains POSIX attributes */
+    bool check_posix_attrs;
 };
 
 struct sdap_id_ctx {
