@@ -47,49 +47,6 @@ struct cli_protocol_version *register_cli_protocol_version(void)
     return responder_test_cli_protocol_version;
 }
 
-static void
-mock_sss_dp_done(struct tevent_context *ev,
-                 struct tevent_immediate *imm,
-                 void *pvt);
-
-errno_t
-__wrap_sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
-                            const char *strkey, struct sss_domain_info *dom,
-                            dbus_msg_constructor msg_create, void *pvt,
-                            struct tevent_req *nreq)
-{
-    struct tevent_immediate *imm;
-
-    imm = tevent_create_immediate(rctx->ev);
-    if (imm == NULL) {
-        return ENOMEM;
-    }
-    tevent_schedule_immediate(imm, rctx->ev, mock_sss_dp_done, nreq);
-    return EOK;
-}
-
-static void
-mock_sss_dp_done(struct tevent_context *ev,
-                 struct tevent_immediate *imm,
-                 void *pvt)
-{
-    struct tevent_req *req;
-
-    talloc_free(imm);
-    req = talloc_get_type(pvt, struct tevent_req);
-    tevent_req_done(req);
-}
-
-errno_t
-__wrap_sss_dp_req_recv(TALLOC_CTX *mem_ctx,
-                       struct tevent_req *sidereq,
-                       dbus_uint16_t *dp_err,
-                       dbus_uint32_t *dp_ret,
-                       char **err_msg)
-{
-    return EOK;
-}
-
 struct parse_inp_test_ctx {
     struct sss_test_ctx *tctx;
     struct resp_ctx *rctx;
