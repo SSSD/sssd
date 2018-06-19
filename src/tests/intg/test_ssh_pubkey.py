@@ -24,6 +24,8 @@ import time
 import ldap
 import ldap.modlist
 import pytest
+import string
+import random
 
 import config
 import ds_openldap
@@ -230,3 +232,59 @@ def test_ssh_pubkey_retrieve(add_user_with_ssh_key):
 
     sshpubkey = get_call_output(["sss_ssh_authorizedkeys", "user2"])
     assert len(sshpubkey) == 0
+
+
+@pytest.fixture()
+def sighup_client(request):
+    test_ssh_cli_path = os.path.join(config.ABS_BUILDDIR,
+                                     "..", "..", "..", "test_ssh_client")
+    assert os.access(test_ssh_cli_path, os.X_OK)
+    return test_ssh_cli_path
+
+
+@pytest.fixture
+def add_user_with_many_keys(request, ldap_conn):
+    # Generate a large list of unique ssh pubkeys
+    pubkey_list = []
+    while len(pubkey_list) < 50:
+        new_pubkey = list(USER1_PUBKEY1)
+        new_pubkey[10] = random.choice(string.ascii_uppercase)
+        new_pubkey[11] = random.choice(string.ascii_uppercase)
+        new_pubkey[12] = random.choice(string.ascii_uppercase)
+        str_new_pubkey = ''.join(c for c in new_pubkey)
+        if str_new_pubkey in pubkey_list:
+            continue
+        pubkey_list.append(str_new_pubkey)
+
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001, sshPubKey=pubkey_list)
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_ssh_sighup(add_user_with_many_keys, sighup_client):
+    """
+    A regression test for https://pagure.io/SSSD/sssd/issue/3747
+
+    OpenSSH can close its end of the pipe towards sss_ssh_authorizedkeys
+    before all of the output is read. In that case, older versions
+    of sss_ssh_authorizedkeys were receiving a SIGPIPE
+    """
+    cli_path = sighup_client
+
+    # python actually does the sensible, but unexpected (for a C programmer)
+    # thing and handles SIGPIPE. In order to reproduce the bug, we need
+    # to unset the SIGPIPE handler
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+    process = subprocess.Popen([cli_path, "user1"],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    _, _ = process.communicate()
+    # If the test tool detects that sss_ssh_authorizedkeys was killed with a
+    # signal, it would have returned 1
+    assert process.returncode == 0
