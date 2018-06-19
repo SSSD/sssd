@@ -346,10 +346,8 @@ def test_ping_raw(dbus_system_bus, ldap_conn, simple_rfc2307):
     assert exc_info.errisinstance(dbus.exceptions.DBusException)
 
     ex = exc_info.value
-    assert ex.get_dbus_name() == 'org.freedesktop.DBus.Error.InvalidArgs'
-    assert ex.get_dbus_message() == 'Argument 0 is specified to be of type ' \
-                                    '"string", but is actually of type ' \
-                                    '"invalid"\n'
+    assert ex.get_dbus_name() == 'sbus.Error.Errno'
+    assert 'Unexpected argument type provided' in ex.get_dbus_message()
 
     # test wrong parameter type
     with pytest.raises(dbus.exceptions.DBusException) as exc_info:
@@ -357,10 +355,8 @@ def test_ping_raw(dbus_system_bus, ldap_conn, simple_rfc2307):
     assert exc_info.errisinstance(dbus.exceptions.DBusException)
 
     ex = exc_info.value
-    assert ex.get_dbus_name() == 'org.freedesktop.DBus.Error.InvalidArgs'
-    assert ex.get_dbus_message() == 'Argument 0 is specified to be of type ' \
-                                    '"string", but is actually of type ' \
-                                    '"int32"\n'
+    assert ex.get_dbus_name() == 'sbus.Error.Errno'
+    assert 'Unexpected argument type provided' in ex.get_dbus_message()
 
     # test wrong parameter value
     with pytest.raises(dbus.exceptions.DBusException) as exc_info:
@@ -369,7 +365,7 @@ def test_ping_raw(dbus_system_bus, ldap_conn, simple_rfc2307):
 
     ex = exc_info.value
     assert ex.get_dbus_name() == 'org.freedesktop.DBus.Error.InvalidArgs'
-    assert ex.get_dbus_message() == 'Ping() only accepts "ping" as a param\n'
+    assert ex.get_dbus_message() == 'Invalid argument'
 
     # positive test
     ret = sssd_interface.Ping('ping')
@@ -412,7 +408,7 @@ def test_ping_introspection(dbus_system_bus, ldap_conn, simple_rfc2307):
 
     ex = exc_info.value
     assert ex.get_dbus_name() == 'org.freedesktop.DBus.Error.InvalidArgs'
-    assert ex.get_dbus_message() == 'Ping() only accepts "ping" as a param\n'
+    assert ex.get_dbus_message() == 'Invalid argument'
 
     # positive test
     ret = sssd_interface.Ping('ping')
@@ -462,8 +458,8 @@ def test_get_user_attr(dbus_system_bus, ldap_conn, sanity_rfc2307):
     assert exc_info.errisinstance(dbus.exceptions.DBusException)
 
     ex = exc_info.value
-    assert ex.get_dbus_name() == 'org.freedesktop.DBus.Error.Failed'
-    assert ex.get_dbus_message() == 'No such user\n'
+    assert ex.get_dbus_name() == 'sbus.Error.NotFound'
+    assert ex.get_dbus_message() == 'No such file or directory'
 
     # test 0 attributes
     user_attrs = sssd_interface.GetUserAttr('user1', [])
@@ -506,8 +502,8 @@ def test_get_user_groups(dbus_system_bus, ldap_conn, sanity_rfc2307):
     assert exc_info.errisinstance(dbus.exceptions.DBusException)
 
     ex = exc_info.value
-    assert ex.get_dbus_name() == 'org.freedesktop.DBus.Error.Failed'
-    assert ex.get_dbus_message() == 'No such user\n'
+    assert ex.get_dbus_name() == 'sbus.Error.NotFound'
+    assert ex.get_dbus_message() == 'No such file or directory'
 
     # the same test via nss responder
     with pytest.raises(KeyError):

@@ -556,12 +556,12 @@ static int test_single_domain_setup_common(void **state,
     return 0;
 }
 
-static int test_single_domain_setup(void **state)
+int test_single_domain_setup(void **state)
 {
     return test_single_domain_setup_common(state, NULL);
 }
 
-static int test_single_domain_teardown(void **state)
+int test_single_domain_teardown(void **state)
 {
     struct cache_req_test_ctx *test_ctx;
 
@@ -576,7 +576,7 @@ static int test_single_domain_teardown(void **state)
     return 0;
 }
 
-static int test_single_domain_id_limits_setup(void **state)
+int test_single_domain_id_limits_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "min_id", "100" },
@@ -659,7 +659,7 @@ static int test_multi_domain_teardown(void **state)
     return 0;
 }
 
-static int test_subdomain_setup(void **state)
+int test_subdomain_setup(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     int ret;
@@ -704,7 +704,7 @@ static int test_subdomain_setup(void **state)
     return 0;
 }
 
-static int test_subdomain_teardown(void **state)
+int test_subdomain_teardown(void **state)
 {
     struct cache_req_test_ctx *test_ctx;
 
@@ -736,7 +736,7 @@ void test_user_by_name_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     mock_parse_inp(users[0].short_name, NULL, ERR_OK);
 
     /* Test. */
@@ -753,7 +753,7 @@ void test_user_by_name_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     mock_parse_inp(users[0].short_name, NULL, ERR_OK);
 
     /* Test. */
@@ -957,7 +957,7 @@ void test_user_by_upn_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
 
     /* Test. */
@@ -974,7 +974,7 @@ void test_user_by_upn_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
 
     /* Test. */
@@ -1112,7 +1112,7 @@ void test_user_by_id_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -1129,7 +1129,7 @@ void test_user_by_id_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -1164,7 +1164,7 @@ void test_user_by_id_multiple_domains_locator_cache_valid(void **state)
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, EOK);
+    will_return_always(sss_dp_get_account_recv, EOK);
 
     /* Test. */
     run_user_by_id(test_ctx, NULL, 0, ERR_OK);
@@ -1201,7 +1201,7 @@ void test_user_by_id_multiple_domains_locator_cache_expired(void **state)
     prepare_user(domain, &users[0], -1000, time(NULL));
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, EOK);
+    will_return_always(sss_dp_get_account_recv, EOK);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -1284,7 +1284,7 @@ void test_user_by_id_sub_domains_locator_cache_expired(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -1359,7 +1359,7 @@ void test_user_by_id_sub_domains_locator_missing_found(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -1447,7 +1447,7 @@ void test_user_by_id_sub_domains_locator_cache_expired_two_calls(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -1585,7 +1585,7 @@ void test_group_by_name_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
 
     /* Test. */
@@ -1602,7 +1602,7 @@ void test_group_by_name_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     mock_parse_inp(groups[0].short_name, NULL, ERR_OK);
 
     /* Test. */
@@ -1802,7 +1802,7 @@ void test_group_by_id_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -1819,7 +1819,7 @@ void test_group_by_id_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -1849,7 +1849,7 @@ void test_group_by_id_multiple_domains_outside_id_range(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -1885,7 +1885,7 @@ void test_group_by_id_multiple_domains_locator_cache_valid(void **state)
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, EOK);
+    will_return_always(sss_dp_get_account_recv, EOK);
 
     /* Test. */
     run_group_by_id(test_ctx, NULL, 0, ERR_OK);
@@ -1923,7 +1923,7 @@ void test_group_by_id_multiple_domains_locator_cache_expired(void **state)
     prepare_group(domain, &groups[0], -1000, time(NULL));
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, EOK);
+    will_return_always(sss_dp_get_account_recv, EOK);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -2006,7 +2006,7 @@ void test_group_by_id_sub_domains_locator_cache_expired(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -2081,7 +2081,7 @@ void test_group_by_id_sub_domains_locator_missing_found(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -2143,7 +2143,7 @@ void test_group_by_id_sub_domains_locator_cache_expired_two_calls(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -2452,7 +2452,7 @@ void test_users_by_filter_notfound(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
 }
 
-static void test_users_by_filter_multiple_domains_notfound(void **state)
+void test_users_by_filter_multiple_domains_notfound(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     struct sss_domain_info *domain = NULL;
@@ -2800,7 +2800,7 @@ void test_object_by_sid_user_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, users[0].sid, attrs, 0, ERR_OK);
@@ -2817,7 +2817,7 @@ void test_object_by_sid_user_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, users[0].sid, attrs, 0, ENOENT);
@@ -2956,7 +2956,7 @@ void test_object_by_sid_group_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, groups[0].sid, attrs, 0, ERR_OK);
@@ -2973,7 +2973,7 @@ void test_object_by_sid_group_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     /* Test. */
     run_object_by_sid(test_ctx, NULL, groups[0].sid, attrs, 0, ENOENT);
@@ -3119,7 +3119,7 @@ void test_object_by_id_user_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -3137,7 +3137,7 @@ void test_object_by_id_user_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -3286,7 +3286,7 @@ void test_object_by_id_group_multiple_domains_found(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -3304,7 +3304,7 @@ void test_object_by_id_group_multiple_domains_notfound(void **state)
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     /* Test. */
@@ -3340,7 +3340,7 @@ void test_object_by_id_user_multiple_domains_locator_cache_valid(void **state)
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, EOK);
+    will_return_always(sss_dp_get_account_recv, EOK);
 
     /* Test. */
     run_object_by_id(test_ctx, NULL, users[0].uid, attrs, 0, ERR_OK);
@@ -3378,7 +3378,7 @@ void test_object_by_id_user_multiple_domains_locator_cache_expired(void **state)
     prepare_user(domain, &users[0], -1000, time(NULL));
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, EOK);
+    will_return_always(sss_dp_get_account_recv, EOK);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -3463,7 +3463,7 @@ void test_object_by_id_user_sub_domains_locator_cache_expired(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -3540,7 +3540,7 @@ void test_object_by_id_user_sub_domains_locator_missing_found(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -3606,7 +3606,7 @@ void test_object_by_id_user_sub_domains_locator_cache_expired_two_calls(void **s
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -3654,7 +3654,7 @@ void test_object_by_id_group_multiple_domains_locator_cache_valid(void **state)
     will_return_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, EOK);
+    will_return_always(sss_dp_get_account_recv, EOK);
 
     /* Test. */
     run_object_by_id(test_ctx, NULL, groups[0].gid, attrs, 0, ERR_OK);
@@ -3692,7 +3692,7 @@ void test_object_by_id_group_multiple_domains_locator_cache_expired(void **state
     prepare_group(domain, &groups[0], -1000, time(NULL));
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, EOK);
+    will_return_always(sss_dp_get_account_recv, EOK);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -3777,7 +3777,7 @@ void test_object_by_id_group_sub_domains_locator_cache_expired(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -3854,7 +3854,7 @@ void test_object_by_id_group_sub_domains_locator_missing_found(void **state)
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
@@ -3920,7 +3920,7 @@ void test_object_by_id_group_sub_domains_locator_cache_expired_two_calls(void **
      * function, we use always b/c internally it mocks several values.
      */
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
-    will_return_always(sss_dp_req_recv, 0);
+    will_return_always(sss_dp_get_account_recv, 0);
 
     will_return(sss_dp_get_account_domain_recv, EOK);
     will_return(sss_dp_get_account_domain_recv, locator_domain);
