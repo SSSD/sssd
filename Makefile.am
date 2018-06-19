@@ -331,6 +331,7 @@ endif   # HAVE_CMOCKA
 check_PROGRAMS = \
     stress-tests \
     krb5-child-test \
+    test_ssh_client \
     $(non_interactive_cmocka_based_tests) \
     $(non_interactive_check_based_tests)
 
@@ -2291,6 +2292,18 @@ krb5_child_test_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
+test_ssh_client_SOURCES = \
+    src/tests/test_ssh_client.c \
+    $(NULL)
+test_ssh_client_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DSSH_CLIENT_DIR=\"$(abs_top_builddir)\" \
+    $(NULL)
+test_ssh_client_LDADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SSSD_LIBS) \
+    $(NULL)
+
 if BUILD_DBUS_TESTS
 
 sbus_tests_SOURCES = \
@@ -3446,7 +3459,6 @@ test_iobuf_LDADD = \
     $(SSSD_LIBS) \
     $(NULL)
 
-
 EXTRA_simple_access_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
 simple_access_tests_SOURCES = \
@@ -3655,6 +3667,7 @@ intgcheck-prepare:
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
 	    CFLAGS="-O2 -g $$CFLAGS -DKCM_PEER_UID=$$(id -u)"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
+	$(MAKE) $(AM_MAKEFLAGS) test_ssh_client; \
 	: Force single-thread install to workaround concurrency issues; \
 	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
 	: Remove .la files from LDB module directory to avoid loader warnings; \
