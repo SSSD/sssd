@@ -1027,6 +1027,7 @@ libsss_util_la_SOURCES = \
     src/sbus/sssd_dbus_utils.c \
     src/util/util.c \
     src/util/util_ext.c \
+    src/util/util_preauth.c \
     src/util/memory.c \
     src/util/safe-format-string.c \
     src/util/server.c \

@@ -438,63 +438,6 @@ static errno_t ipa_init_sdap_auth_ctx(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void cleanup_ipa_preauth_indicator(void)
-{
-    int ret;
-
-    ret = unlink(PAM_PREAUTH_INDICATOR);
-    if (ret != EOK) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to remove preauth indicator file [%s] %d [%s].\n",
-              PAM_PREAUTH_INDICATOR, ret, sss_strerror(ret));
-    }
-}
-
-static errno_t create_ipa_preauth_indicator(void)
-{
-    TALLOC_CTX *tmp_ctx;
-    errno_t ret;
-    int fd;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    fd = open(PAM_PREAUTH_INDICATOR, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW,
-              0644);
-    if (fd < 0) {
-        if (errno != EEXIST) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to create preauth indicator file [%s].\n",
-                  PAM_PREAUTH_INDICATOR);
-            ret = EOK;
-            goto done;
-        }
-
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Preauth indicator file [%s] already exists. "
-              "Maybe it is left after an unplanned exit. Continuing.\n",
-              PAM_PREAUTH_INDICATOR);
-    } else {
-        close(fd);
-    }
-
-    ret = atexit(cleanup_ipa_preauth_indicator);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "atexit failed. Continuing.\n");
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
-}
-
 static struct sdap_ext_member_ctx *
 ipa_create_ext_members_ctx(TALLOC_CTX *mem_ctx,
                            struct ipa_id_ctx *id_ctx)
@@ -563,7 +506,7 @@ static errno_t ipa_init_auth_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = create_ipa_preauth_indicator();
+    ret = create_preauth_indicator();
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, PREAUTH_INDICATOR_ERROR);
         sss_log(SSSDBG_CRIT_FAILURE, PREAUTH_INDICATOR_ERROR);
