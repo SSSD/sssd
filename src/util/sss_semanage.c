@@ -82,6 +82,10 @@ static int sss_is_selinux_managed(semanage_handle_t *handle)
         return EINVAL;
     }
 
+    if (!is_selinux_enabled()) {
+        return ERR_SELINUX_NOT_MANAGED;
+    }
+
     ret = semanage_is_managed(handle);
     if (ret == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "SELinux policy not managed via libsemanage\n");
