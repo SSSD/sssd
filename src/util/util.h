@@ -709,6 +709,9 @@ int sss_create_dir(const char *parent_dir_path,
 int selinux_file_context(const char *dst_name);
 int reset_selinux_file_context(void);
 
+/* from util_preauth.c */
+errno_t create_preauth_indicator(void);
+
 #ifdef SSSD_LIBEXEC_PATH
 #define P11_CHILD_LOG_FILE "p11_child"
 #define P11_CHILD_PATH SSSD_LIBEXEC_PATH"/p11_child"
