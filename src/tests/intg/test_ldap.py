@@ -1736,3 +1736,67 @@ def test_local_negative_timeout_disabled(ldap_conn,
     assert res == NssReturnCode.SUCCESS
 
     cleanup_ldap_entries(ldap_conn, ent_list)
+
+
+@pytest.fixture
+def users_with_email_setup(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user1", 1001, 2001, mail="user1.email@LDAP")
+
+    ent_list.add_user("emailuser", 1002, 2002)
+    ent_list.add_user("emailuser2", 1003, 2003, mail="emailuser@LDAP")
+
+    ent_list.add_user("userx", 1004, 2004, mail="userxy@LDAP")
+    ent_list.add_user("usery", 1005, 2005, mail="userxy@LDAP")
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_lookup_by_email(ldap_conn, users_with_email_setup):
+    """
+    Test the simple case of looking up a user by e-mail
+    """
+    ent.assert_passwd_by_name("user1.email@LDAP",
+                              dict(name="user1", uid=1001, gid=2001))
+
+
+def test_conflicting_mail_addresses_and_fqdn(ldap_conn,
+                                             users_with_email_setup):
+    """
+    Test that we handle the case where one user's mail address is the
+    same as another user's FQDN
+
+    This is a regression test for https://pagure.io/SSSD/sssd/issue/3607
+    """
+    # With #3607 unfixed, these two lookups would prime the cache with
+    # nameAlias: emailuser@LDAP for both entries..
+    ent.assert_passwd_by_name("emailuser@LDAP",
+                              dict(name="emailuser", uid=1002, gid=2002))
+    ent.assert_passwd_by_name("emailuser2@LDAP",
+                              dict(name="emailuser2", uid=1003, gid=2003))
+
+    # ..and subsequently, emailuser would not be returned because the cache
+    # lookup would have had returned two entries which is an error
+    ent.assert_passwd_by_name("emailuser@LDAP",
+                              dict(name="emailuser", uid=1002, gid=2002))
+    ent.assert_passwd_by_name("emailuser2@LDAP",
+                              dict(name="emailuser2", uid=1003, gid=2003))
+
+
+def test_conflicting_mail_addresses(ldap_conn,
+                                    users_with_email_setup):
+    """
+    Negative test: looking up a user by e-mail which belongs to more than
+    one account fails in the back end.
+    """
+    with pytest.raises(KeyError):
+        pwd.getpwnam("userxy@LDAP")
+
+    # However resolving the users on their own must work
+    ent.assert_passwd_by_name("userx", dict(name="userx", uid=1004, gid=2004))
+    ent.assert_passwd_by_name("usery", dict(name="usery", uid=1005, gid=2005))
