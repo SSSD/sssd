@@ -2118,49 +2118,6 @@ done:
     return ret;
 }
 
-static errno_t add_emails_to_aliases(struct sysdb_attrs *attrs,
-                                     struct sss_domain_info *dom)
-{
-    int ret;
-    const char **emails;
-    size_t c;
-    TALLOC_CTX *tmp_ctx;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    ret = sysdb_attrs_get_string_array(attrs, SYSDB_USER_EMAIL, tmp_ctx,
-                                       &emails);
-    if (ret == EOK) {
-        for (c = 0; emails[c] != NULL; c++) {
-            if (is_email_from_domain(emails[c], dom)) {
-                ret = sysdb_attrs_add_lc_name_alias_safe(attrs, emails[c]);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "Failed to add lower-cased version of email [%s] "
-                          "into the alias list\n", emails[c]);
-                    goto done;
-                }
-            }
-        }
-    } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, "No email addresses available.\n");
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sysdb_attrs_get_string_array failed, skipping ...\n");
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
-}
-
 static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct req_input *req_input,
                                     struct resp_attrs *attrs,
@@ -2312,12 +2269,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 DEBUG(SSSDBG_OP_FAILURE,
                       "sysdb_attrs_add_lc_name_alias_safe failed.\n");
                 goto done;
-            }
-
-            ret = add_emails_to_aliases(attrs->sysdb_attrs, dom);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "add_emails_to_aliases failed, skipping ...\n");
             }
 
             if (upn == NULL) {
