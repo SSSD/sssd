@@ -87,7 +87,6 @@ sdap_save_all_names(const char *name,
     int i;
     bool lowercase = !dom->case_sensitive;
     bool store_as_fqdn;
-    const char **emails;
 
     switch (entry_type) {
     case SYSDB_MEMBER_USER:
@@ -142,27 +141,6 @@ sdap_save_all_names(const char *name,
             }
         }
 
-    }
-
-    ret = sysdb_attrs_get_string_array(ldap_attrs, SYSDB_USER_EMAIL, tmp_ctx,
-                                       &emails);
-    if (ret == EOK) {
-        for (i = 0; emails[i] != NULL; i++) {
-            if (is_email_from_domain(emails[i], dom)) {
-                ret = sysdb_attrs_add_lc_name_alias_safe(attrs, emails[i]);
-                if (ret) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "Failed to add lower-cased version of email [%s] "
-                          "into the alias list\n", emails[i]);
-                    goto done;
-                }
-            }
-        }
-    } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, "No email addresses available.\n");
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sysdb_attrs_get_string_array failed, skipping ...\n");
     }
 
     ret = EOK;

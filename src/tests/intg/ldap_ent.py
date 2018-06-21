@@ -24,7 +24,8 @@ def user(base_dn, uid, uidNumber, gidNumber,
          homeDirectory=None,
          loginShell=None,
          cn=None,
-         sn=None):
+         sn=None,
+         mail=None):
     """
     Generate an RFC2307(bis) user add-modlist for passing to ldap.add*
     """
@@ -51,6 +52,8 @@ def user(base_dn, uid, uidNumber, gidNumber,
     )
     if gecos is not None:
         user[1].append(('gecos', [gecos.encode('utf-8')]))
+    if mail is not None:
+        user[1].append(('mail', [mail.encode('utf-8')]))
     return user
 
 
@@ -118,7 +121,8 @@ class List(list):
                  homeDirectory=None,
                  loginShell=None,
                  cn=None,
-                 sn=None):
+                 sn=None,
+                 mail=None):
         """Add an RFC2307(bis) user add-modlist."""
         self.append(user(base_dn or self.base_dn,
                          uid, uidNumber, gidNumber,
@@ -127,7 +131,8 @@ class List(list):
                          homeDirectory=homeDirectory,
                          loginShell=loginShell,
                          cn=cn,
-                         sn=sn))
+                         sn=sn,
+                         mail=mail))
 
     def add_group(self, cn, gidNumber, member_uids=[],
                   base_dn=None):
