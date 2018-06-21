@@ -1849,25 +1849,6 @@ static void test_sss_get_domain_mappings_content(void **state)
      * capaths might not be as expected. */
 }
 
-static void test_is_email_from_domain(void **state)
-{
-    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
-                                                      struct dom_list_test_ctx);
-    struct sss_domain_info *d;
-
-    d = find_domain_by_name(test_ctx->dom_list, "name_0.dom", false);
-    assert_non_null(d);
-
-    assert_false(is_email_from_domain(NULL, NULL));
-    assert_false(is_email_from_domain("hello", NULL));
-    assert_false(is_email_from_domain(NULL, d));
-    assert_false(is_email_from_domain("hello", d));
-    assert_false(is_email_from_domain("hello@hello", d));
-
-    assert_true(is_email_from_domain("hello@name_0.dom", d));
-    assert_true(is_email_from_domain("hello@NaMe_0.DoM", d));
-}
-
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1895,8 +1876,6 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_find_domain_by_name_missing_flat_name,
                                         setup_dom_list, teardown_dom_list),
         cmocka_unit_test_setup_teardown(test_find_domain_by_name_disabled,
-                                        setup_dom_list, teardown_dom_list),
-        cmocka_unit_test_setup_teardown(test_is_email_from_domain,
                                         setup_dom_list, teardown_dom_list),
 
         cmocka_unit_test_setup_teardown(test_sss_names_init,
