@@ -25,7 +25,8 @@ def user(base_dn, uid, uidNumber, gidNumber,
          loginShell=None,
          cn=None,
          sn=None,
-         sshPubKey=()):
+         sshPubKey=(),
+         mail=None):
     """
     Generate an RFC2307(bis) user add-modlist for passing to ldap.add*
     """
@@ -56,6 +57,8 @@ def user(base_dn, uid, uidNumber, gidNumber,
     if len(sshPubKey) > 0:
         pubkeys = [key.encode('utf-8') for key in sshPubKey]
         user[1].append(('sshPublicKey', pubkeys))
+    if mail is not None:
+        user[1].append(('mail', [mail.encode('utf-8')]))
     return user
 
 
@@ -124,7 +127,8 @@ class List(list):
                  loginShell=None,
                  cn=None,
                  sn=None,
-                 sshPubKey=()):
+                 sshPubKey=(),
+                 mail=None):
         """Add an RFC2307(bis) user add-modlist."""
         self.append(user(base_dn or self.base_dn,
                          uid, uidNumber, gidNumber,
@@ -134,7 +138,8 @@ class List(list):
                          loginShell=loginShell,
                          cn=cn,
                          sn=sn,
-                         sshPubKey=sshPubKey))
+                         sshPubKey=sshPubKey,
+                         mail=mail))
 
     def add_group(self, cn, gidNumber, member_uids=[],
                   base_dn=None):
