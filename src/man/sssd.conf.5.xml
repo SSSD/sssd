@@ -2631,16 +2631,13 @@ pam_account_locked_message = Account locked, please contact help desk.
                             after that"
                         </para>
                         <para>
-                            PLEASE NOTE: the support for non-unique named
-                            subpatterns is not available on all platforms
-                            (e.g. RHEL5 and SLES10). Only platforms with
-                            libpcre version 7 or higher can support non-unique
-                            named subpatterns.
-                        </para>
-                        <para>
-                            PLEASE NOTE ALSO: older version of libpcre only
-                            support the Python syntax (?P&lt;name&gt;) to label
-                            subpatterns.
+                            NOTE: Some Active Directory groups, typically
+                            those used for MS Exchange contain an
+                            <quote>@</quote> sign in the name, which
+                            clashes with the default re_expression value for
+                            the AD and IPA providers. To support these groups,
+                            consider changing the re_expression value to:
+                            <quote>((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+$))</quote>.
                         </para>
                     </listitem>
                 </varlistentry>
