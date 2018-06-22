@@ -3955,9 +3955,7 @@ intgcheck-prepare:
 	rm -Rf intg; \
 	$(MKDIR_P) intg/bld; \
 	: Use /hopefully/ short prefix to keep D-Bus socket path short; \
-	prefix=`mktemp --dry-run --tmpdir --directory sssd-intg.XXXXXXXX`; \
-	prefix=`echo $$prefix | tr '[:upper:]' '[:lower:]'`; \
-	mkdir -p $$prefix; \
+	prefix=`mktemp --tmpdir --directory sssd-intg.XXXXXXXX`; \
 	$(LN_S) "$$prefix" intg/pfx; \
 	cd intg/bld; \
 	$(abs_top_srcdir)/configure \
