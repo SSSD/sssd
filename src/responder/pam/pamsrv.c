@@ -345,6 +345,13 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                   "enabled or not.\n");
             goto done;
         }
+
+        ret = create_preauth_indicator();
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to create pre-authentication indicator file, "
+                  "Smartcard authentication might not work as expected.\n");
+        }
     }
 
     ret = EOK;
