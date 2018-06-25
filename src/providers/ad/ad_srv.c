@@ -38,6 +38,13 @@
 
 #define AD_SITE_DOMAIN_FMT "%s._sites.%s"
 
+char *ad_site_dns_discovery_domain(TALLOC_CTX *mem_ctx,
+                                   const char *site,
+                                   const char *domain)
+{
+    return talloc_asprintf(mem_ctx, AD_SITE_DOMAIN_FMT, site, domain);
+}
+
 static errno_t ad_sort_servers_by_dns(TALLOC_CTX *mem_ctx,
                                       const char *domain,
                                       struct fo_server_info **_srv,
@@ -154,8 +161,8 @@ static struct tevent_req *ad_get_dc_servers_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_FUNC, "Looking up domain controllers in domain "
               "%s and site %s\n", discovery_domain, site);
 
-        domains[0] = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
-                                     site, discovery_domain);
+        domains[0] = ad_site_dns_discovery_domain(domains,
+                                                  site, discovery_domain);
         if (domains[0] == NULL) {
             ret = ENOMEM;
             goto immediately;
@@ -775,9 +782,10 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
         if (strcmp(state->service, "gc") == 0) {
             if (state->forest != NULL) {
                 if (state->site != NULL) {
-                    primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
-                                                     state->site,
-                                                     state->forest);
+                    primary_domain = ad_site_dns_discovery_domain(
+                                                            state,
+                                                            state->site,
+                                                            state->forest);
                     if (primary_domain == NULL) {
                         ret = ENOMEM;
                         goto done;
@@ -791,7 +799,8 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
             }
         } else {
             if (state->site != NULL) {
-                primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
+                primary_domain = ad_site_dns_discovery_domain(
+                                                 state,
                                                  state->site,
                                                  state->discovery_domain);
                 if (primary_domain == NULL) {
