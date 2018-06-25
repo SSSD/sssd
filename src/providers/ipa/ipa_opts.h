@@ -64,4 +64,6 @@ extern struct sdap_attr_map ipa_sudocmdgroup_map[];
 
 extern struct sdap_attr_map ipa_sudocmd_map[];
 
+extern struct dp_option ipa_cli_ad_subdom_opts[];
+
 #endif /* IPA_OPTS_H_ */

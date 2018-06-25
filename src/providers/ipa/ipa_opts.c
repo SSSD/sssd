@@ -389,3 +389,9 @@ struct sdap_attr_map ipa_sudocmd_map[] = {
     { "ipa_sudocmd_memberof", "memberOf", SYSDB_MEMBEROF, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
+
+struct dp_option ipa_cli_ad_subdom_opts [] = {
+    { "ad_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ad_site", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    DP_OPTION_TERMINATOR
+};

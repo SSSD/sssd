@@ -175,6 +175,13 @@ enum ipa_sudocmd_attrs {
     IPA_OPTS_SUDOCMD
 };
 
+enum ipa_cli_ad_subdom_attrs {
+    IPA_CLI_AD_SERVER,
+    IPA_CLI_AD_SITE,
+
+    IPA_OPTS_CLI_AD_SUBDOM
+};
+
 struct ipa_auth_ctx {
     struct krb5_ctx *krb5_auth_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
