@@ -2322,3 +2322,190 @@ resolv_sort_srv_reply(struct ares_srv_reply **reply)
 
     return EOK;
 }
+
+struct resolv_hostport_list_state {
+    struct tevent_context *ev;
+    struct resolv_ctx *ctx;
+    struct resolv_hostport *hostport_list;
+    size_t list_size;
+    size_t limit;
+    enum restrict_family family_order;
+    enum host_database *db;
+
+    size_t hpindex;
+
+    struct resolv_hostport_addr **rhp_addrs;
+    size_t addrindex;
+};
+
+static errno_t resolv_hostport_list_step(struct tevent_req *req);
+static void resolv_hostport_list_resolv_hostname_done(struct tevent_req *subreq);
+
+struct tevent_req *resolv_hostport_list_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct resolv_ctx *ctx,
+                                             struct resolv_hostport *hostport_list,
+                                             size_t list_size,
+                                             size_t limit,
+                                             enum restrict_family family_order,
+                                             enum host_database *db)
+{
+    struct resolv_hostport_list_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct resolv_hostport_list_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->ev = ev;
+    state->ctx = ctx;
+    state->hostport_list = hostport_list;
+    state->family_order = family_order;
+    state->db = db;
+    state->list_size = list_size;
+    state->limit = limit;
+
+    state->rhp_addrs = talloc_array(state,
+                                    struct resolv_hostport_addr *,
+                                    state->list_size);
+    if (state->rhp_addrs == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    ret = resolv_hostport_list_step(req);
+    if (ret != EAGAIN) {
+        goto immediately;
+    }
+
+    return req;
+
+immediately:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static errno_t resolv_hostport_list_step(struct tevent_req *req)
+{
+    struct tevent_req *subreq = NULL;
+    struct resolv_hostport_list_state *state = tevent_req_data(req,
+                                        struct resolv_hostport_list_state);
+
+    if (state->hpindex >= state->list_size) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Done\n");
+        return EOK;
+    }
+
+    subreq = resolv_gethostbyname_send(state,
+                                       state->ev,
+                                       state->ctx,
+                                       state->hostport_list[state->hpindex].host,
+                                       state->family_order,
+                                       state->db);
+    if (subreq == NULL) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq,
+                            resolv_hostport_list_resolv_hostname_done, req);
+    return EAGAIN;
+}
+
+static struct resolv_hostport_addr*
+resolv_hostport_addr_new(TALLOC_CTX *mem_ctx,
+                         const char *host,
+                         int port,
+                         struct resolv_hostent *reply)
+{
+    struct resolv_hostport_addr *rhp_addr;
+
+    rhp_addr = talloc_zero(mem_ctx, struct resolv_hostport_addr);
+    if (rhp_addr == NULL) {
+        return NULL;
+    }
+
+    rhp_addr->origin.host = talloc_strdup(rhp_addr, host);
+    if (rhp_addr->origin.host == NULL) {
+        return NULL;
+    }
+
+    rhp_addr->origin.port = port;
+    rhp_addr->reply = talloc_steal(rhp_addr, reply);
+    return rhp_addr;
+}
+
+static void resolv_hostport_list_resolv_hostname_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct resolv_hostport_list_state *state = tevent_req_data(req,
+                                        struct resolv_hostport_list_state);
+    struct resolv_hostent *rhostent;
+    int resolv_status;
+
+    ret = resolv_gethostbyname_recv(subreq, state, &resolv_status, NULL,
+                                    &rhostent);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        /* Don't abort the request, just go to the next one */
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not resolve address for this machine, error [%d]: %s, "
+              "resolver returned: [%d]: %s\n", ret, sss_strerror(ret),
+              resolv_status, resolv_strerror(resolv_status));
+    } else {
+        state->rhp_addrs[state->addrindex] = \
+            resolv_hostport_addr_new(state->rhp_addrs,
+                                     state->hostport_list[state->hpindex].host,
+                                     state->hostport_list[state->hpindex].port,
+                                     rhostent);
+        state->addrindex++;
+
+        if (state->limit > 0 && state->addrindex >= state->limit) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                "Reached the limit or addresses to resolve\n");
+            tevent_req_done(req);
+            return;
+        }
+    }
+
+    state->hpindex++;
+
+    ret = resolv_hostport_list_step(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+        return;
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    /* Next iteration .. */
+}
+
+int resolv_hostport_list_recv(struct tevent_req *req,
+                              TALLOC_CTX *mem_ctx,
+                              size_t *_rhp_len,
+                              struct resolv_hostport_addr ***_rhp_addrs)
+{
+    struct resolv_hostport_list_state *state = tevent_req_data(req,
+                                        struct resolv_hostport_list_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_rhp_len) {
+        *_rhp_len = state->addrindex;
+    }
+
+    if (_rhp_addrs) {
+        *_rhp_addrs = talloc_steal(mem_ctx, state->rhp_addrs);
+    }
+
+    return EOK;
+}

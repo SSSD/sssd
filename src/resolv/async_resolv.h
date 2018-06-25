@@ -112,6 +112,36 @@ int resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                               int *status, int *timeouts,
                               struct resolv_hostent **rhostent);
 
+struct resolv_hostport {
+    const char *host;
+    int port;
+};
+
+struct resolv_hostport_addr {
+    struct resolv_hostport origin;
+    struct resolv_hostent *reply;
+};
+
+/* Resolves a list of resolv_hostport tuples into a list of
+ * resolv_hostport_addr. Any unresolvable addresses are skipped.
+ *
+ * Optionally takes a limit argument and stops after the request
+ * had resolved addresses up to the limit.
+ */
+struct tevent_req *resolv_hostport_list_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct resolv_ctx *ctx,
+                                             struct resolv_hostport *hostport_list,
+                                             size_t list_size,
+                                             size_t limit,
+                                             enum restrict_family family_order,
+                                             enum host_database *db);
+
+int resolv_hostport_list_recv(struct tevent_req *req,
+                              TALLOC_CTX *mem_ctx,
+                              size_t *_rhp_len,
+                              struct resolv_hostport_addr ***_rhp_addrs);
+
 char *
 resolv_get_string_address_index(TALLOC_CTX *mem_ctx,
                                 struct resolv_hostent *hostent,
