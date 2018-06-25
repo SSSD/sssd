@@ -965,6 +965,13 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         return ENOMEM;
     }
 
+    realm = dp_opt_get_string(options->basic, IPA_KRB5_REALM);
+    if (!realm) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm set\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     service = talloc_zero(tmp_ctx, struct ipa_service);
     if (!service) {
         ret = ENOMEM;
@@ -975,7 +982,13 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         ret = ENOMEM;
         goto done;
     }
-    service->krb5_service = talloc_zero(service, struct krb5_service);
+
+    service->krb5_service = krb5_service_new(service, ctx,
+                                             "IPA", realm,
+                                             true); /* The configured value
+                                                     * will be set later when
+                                                     * the auth provider is set up
+                                                     */
     if (!service->krb5_service) {
         ret = ENOMEM;
         goto done;
@@ -993,27 +1006,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    service->krb5_service->name = talloc_strdup(service, "IPA");
-    if (!service->krb5_service->name) {
-        ret = ENOMEM;
-        goto done;
-    }
     service->sdap->kinit_service_name = service->krb5_service->name;
-
-    realm = dp_opt_get_string(options->basic, IPA_KRB5_REALM);
-    if (!realm) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm set\n");
-        ret = EINVAL;
-        goto done;
-    }
-    service->krb5_service->realm =
-        talloc_strdup(service->krb5_service, realm);
-    if (!service->krb5_service->realm) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->krb5_service->be_ctx = ctx;
 
     if (!primary_servers) {
         DEBUG(SSSDBG_CONF_SETTINGS,

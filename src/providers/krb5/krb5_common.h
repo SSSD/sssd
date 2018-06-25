@@ -164,6 +164,12 @@ errno_t write_krb5info_file(struct krb5_service *krb5_service,
                             const char *server,
                             const char *service);
 
+struct krb5_service *krb5_service_new(TALLOC_CTX *mem_ctx,
+                                      struct be_ctx *be_ctx,
+                                      const char *service_name,
+                                      const char *realm,
+                                      bool use_kdcinfo);
+
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name,
                       const char *primary_servers,

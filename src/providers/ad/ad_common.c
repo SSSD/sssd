@@ -757,19 +757,13 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
-    service->krb5_service = talloc_zero(service, struct krb5_service);
+    service->krb5_service = krb5_service_new(service, bectx,
+                                             ad_service, krb5_realm,
+                                             use_kdcinfo);
     if (!service->krb5_service) {
         ret = ENOMEM;
         goto done;
     }
-
-    /* Set flag that controls whether we want to write the
-     * kdcinfo files at all
-     */
-    service->krb5_service->write_kdcinfo = use_kdcinfo;
-    DEBUG(SSSDBG_CONF_SETTINGS, "write_kdcinfo for realm %s set to %s\n",
-                       krb5_realm,
-                       service->krb5_service->write_kdcinfo ? "true" : "false");
 
     ret = be_fo_add_service(bectx, ad_service, ad_user_data_cmp);
     if (ret != EOK) {
@@ -783,12 +777,6 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         goto done;
     }
 
-    service->krb5_service->name = talloc_strdup(service->krb5_service,
-                                                ad_service);
-    if (!service->krb5_service->name) {
-        ret = ENOMEM;
-        goto done;
-    }
     service->sdap->kinit_service_name = service->krb5_service->name;
     service->gc->kinit_service_name = service->krb5_service->name;
 
@@ -797,14 +785,6 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         ret = EINVAL;
         goto done;
     }
-    service->krb5_service->realm =
-        talloc_strdup(service->krb5_service, krb5_realm);
-    if (!service->krb5_service->realm) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->krb5_service->be_ctx = bectx;
 
     if (!primary_servers) {
         DEBUG(SSSDBG_CONF_SETTINGS,

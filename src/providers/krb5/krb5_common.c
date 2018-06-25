@@ -807,6 +807,40 @@ static int krb5_user_data_cmp(void *ud1, void *ud2)
     return strcasecmp((char*) ud1, (char*) ud2);
 }
 
+struct krb5_service *krb5_service_new(TALLOC_CTX *mem_ctx,
+                                      struct be_ctx *be_ctx,
+                                      const char *service_name,
+                                      const char *realm,
+                                      bool use_kdcinfo)
+{
+    struct krb5_service *service;
+
+    service = talloc_zero(mem_ctx, struct krb5_service);
+    if (service == NULL) {
+        return NULL;
+    }
+
+    service->name = talloc_strdup(service, service_name);
+    if (service->name == NULL) {
+        talloc_free(service);
+        return NULL;
+    }
+
+    service->realm = talloc_strdup(service, realm);
+    if (service->realm == NULL) {
+        talloc_free(service);
+        return NULL;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "write_kdcinfo for realm %s set to %s\n",
+          realm,
+          use_kdcinfo ? "true" : "false");
+    service->write_kdcinfo = use_kdcinfo;
+    service->be_ctx = be_ctx;
+    return service;
+}
+
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name,
                       const char *primary_servers,
@@ -824,7 +858,7 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         return ENOMEM;
     }
 
-    service = talloc_zero(tmp_ctx, struct krb5_service);
+    service = krb5_service_new(tmp_ctx, ctx, service_name, realm, use_kdcinfo);
     if (!service) {
         ret = ENOMEM;
         goto done;
@@ -835,21 +869,6 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create failover service!\n");
         goto done;
     }
-
-    service->name = talloc_strdup(service, service_name);
-    if (!service->name) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->realm = talloc_strdup(service, realm);
-    if (!service->realm) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->write_kdcinfo = use_kdcinfo;
-    service->be_ctx = ctx;
 
     if (!primary_servers) {
         DEBUG(SSSDBG_CONF_SETTINGS,
