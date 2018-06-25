@@ -49,4 +49,8 @@ errno_t ad_srv_plugin_recv(TALLOC_CTX *mem_ctx,
                             struct fo_server_info **_backup_servers,
                             size_t *_num_backup_servers);
 
+char *ad_site_dns_discovery_domain(TALLOC_CTX *mem_ctx,
+                                   const char *site,
+                                   const char *domain);
+
 #endif /* __AD_SRV_H__ */
