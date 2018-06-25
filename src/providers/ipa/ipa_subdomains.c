@@ -76,6 +76,18 @@
                               "("IPA_ENABLED_FLAG"="IPA_TRUE_VALUE"))" \
                           "("OBJECTCLASS"="IPA_OC_CERTMAP_CONFIG_OBJECT"))"
 
+/* It doesn't make sense to resolve more servers than this from the SRV
+ * lookup because kinit would time out before we are able to cycle
+ * through the whole list
+ */
+#define MAX_SERVERS_FROM_SRV    5
+
+struct ipa_sd_k5_svc_list {
+    struct krb5_service *k5svc;
+
+    struct ipa_sd_k5_svc_list *next;
+    struct ipa_sd_k5_svc_list *prev;
+};
 
 struct ipa_subdomains_ctx {
     struct be_ctx *be_ctx;
@@ -88,6 +100,11 @@ struct ipa_subdomains_ctx {
 
     time_t last_refreshed;
     bool view_read_at_init;
+    /* List of krb5_service structures for each subdomain
+     * in order to write the kdcinfo files. For use on
+     * the client only
+     */
+    struct ipa_sd_k5_svc_list *k5svc_list;
 };
 
 static errno_t
@@ -635,6 +652,69 @@ done:
     return ret;
 }
 
+static struct krb5_service *
+ipa_subdom_get_k5_svc(struct ipa_subdomains_ctx *ctx,
+                      struct sss_domain_info *dom,
+                      bool use_kdcinfo)
+{
+    struct ipa_sd_k5_svc_list *k5svc_ent;
+
+    /* get the service by realm */
+    DLIST_FOR_EACH(k5svc_ent, ctx->k5svc_list) {
+        if (strcasecmp(dom->realm, k5svc_ent->k5svc->realm) == 0) {
+            break;
+        }
+    }
+
+    if (k5svc_ent != NULL) {
+        /* Already exists */
+        return k5svc_ent->k5svc;
+    }
+
+    /* Create a new service */
+    k5svc_ent = talloc_zero(ctx, struct ipa_sd_k5_svc_list);
+    if (k5svc_ent == NULL) {
+        return NULL;
+    }
+
+    k5svc_ent->k5svc = krb5_service_new(k5svc_ent,
+                                        ctx->be_ctx,
+                                        "IPA",
+                                        dom->realm,
+                                        use_kdcinfo);
+    if (k5svc_ent->k5svc == NULL) {
+        talloc_free(k5svc_ent);
+        return NULL;
+    }
+    DLIST_ADD(ctx->k5svc_list, k5svc_ent);
+
+    return k5svc_ent->k5svc;
+}
+
+static void ipa_subdom_remove_k5_svc(struct ipa_subdomains_ctx *ctx)
+{
+    /* Domain going away is such a rare operation that it makes
+     * more sense to just throw away the whole k5svc_list and let
+     * the write_kdcinfo request recreate them all again instead
+     * of coding up complex logic..
+     */
+    talloc_zfree(ctx->k5svc_list);
+}
+
+static void ipa_subdom_remove_step(struct ipa_subdomains_ctx *ctx,
+                                   struct sss_domain_info *dom)
+{
+    if (dp_opt_get_bool(ctx->ipa_id_ctx->ipa_options->basic,
+                        IPA_SERVER_MODE) == false) {
+        /* IPA clients keep track of krb5_service wrappers */
+        return ipa_subdom_remove_k5_svc(ctx);
+    } else {
+        /* IPA servers keeps track of AD contexts */
+        return ipa_ad_subdom_remove(ctx->be_ctx, ctx->ipa_id_ctx, dom);
+    }
+
+}
+
 static void ipa_subdom_store_step(struct sss_domain_info *parent,
                                   struct ipa_id_ctx *id_ctx,
                                   struct sdap_idmap_ctx *sdap_idmap_ctx,
@@ -697,8 +777,7 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
                 goto done;
             }
 
-            /* Remove the AD ID ctx from the list of LDAP domains */
-            ipa_ad_subdom_remove(ctx->be_ctx, ctx->ipa_id_ctx, dom);
+            ipa_subdom_remove_step(ctx, dom);
         } else {
             /* ok let's try to update it */
             ipa_subdom_store_step(parent, ctx->ipa_id_ctx,
@@ -1917,6 +1996,611 @@ static errno_t ipa_domain_resolution_order_recv(struct tevent_req *req)
     return EOK;
 }
 
+struct kdcinfo_from_server_list_state {
+    struct resolv_hostport *hostport_list;
+    enum host_database db[2];
+
+    struct resolv_hostport_addr **rhp_addrs;
+    size_t rhp_len;
+};
+
+static void kdcinfo_from_server_list_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+kdcinfo_from_server_list_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct be_resolv_ctx *be_res,
+                              const char *servers)
+{
+    struct kdcinfo_from_server_list_state *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    errno_t ret;
+    int server_list_len;
+    char **server_list;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct kdcinfo_from_server_list_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->db[0] = DB_DNS;
+    state->db[1] = DB_SENTINEL;
+
+    if (servers == NULL) {
+        ret = EOK;
+        goto immediately;
+    }
+
+    ret = split_on_separator(state, servers, ',', true, true,
+                             &server_list,
+                             &server_list_len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to parse server list!\n");
+        goto immediately;
+    }
+
+    state->hostport_list = talloc_array(state,
+                                        struct resolv_hostport,
+                                        server_list_len);
+    if (state->hostport_list == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    for (int i = 0; i < server_list_len; i++) {
+        state->hostport_list[i].host = server_list[i];
+        state->hostport_list[i].port = 0;
+    }
+
+    subreq = resolv_hostport_list_send(state,
+                                       ev,
+                                       be_res->resolv,
+                                       state->hostport_list,
+                                       server_list_len,
+                                       0,
+                                       be_res->family_order,
+                                       state->db);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    tevent_req_set_callback(subreq, kdcinfo_from_server_list_done, req);
+    return req;
+
+immediately:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void kdcinfo_from_server_list_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct kdcinfo_from_server_list_state *state = tevent_req_data(req,
+                                        struct kdcinfo_from_server_list_state);
+
+    ret = resolv_hostport_list_recv(subreq,
+                                    state,
+                                    &state->rhp_len,
+                                    &state->rhp_addrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to resolve address list [%d]: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t kdcinfo_from_server_list_recv(TALLOC_CTX *mem_ctx,
+                                             struct tevent_req *req,
+                                             struct resolv_hostport_addr ***_rhp_addrs,
+                                             size_t *_rhp_len)
+{
+    struct kdcinfo_from_server_list_state *state = tevent_req_data(req,
+                                        struct kdcinfo_from_server_list_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_rhp_addrs != NULL) {
+        *_rhp_addrs = talloc_steal(mem_ctx, state->rhp_addrs);
+    }
+
+    if (_rhp_len != NULL) {
+        *_rhp_len = state->rhp_len;
+    }
+
+    return EOK;
+}
+
+struct kdcinfo_from_site_state {
+    struct tevent_context *ev;
+    struct be_resolv_ctx *be_res;
+
+    const char *discovery_domains[2];
+    struct resolv_hostport *hostport_list;
+    enum host_database db[2];
+
+    struct resolv_hostport_addr **rhp_addrs;
+    size_t rhp_len;
+};
+
+static void kdcinfo_from_site_srv_done(struct tevent_req *subreq);
+static void kdcinfo_from_site_server_list_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+kdcinfo_from_site_send(TALLOC_CTX *mem_ctx,
+                       struct tevent_context *ev,
+                       struct be_resolv_ctx *be_res,
+                       const char *site,
+                       const char *domain)
+{
+    struct kdcinfo_from_site_state *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct kdcinfo_from_site_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->ev = ev;
+    state->be_res = be_res;
+    state->db[0] = DB_DNS;
+    state->db[1] = DB_SENTINEL;
+
+    state->discovery_domains[0] = ad_site_dns_discovery_domain(state,
+                                                               site,
+                                                               domain);
+    if (state->discovery_domains[0] == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    state->discovery_domains[1] = NULL;
+
+    subreq = fo_discover_srv_send(state,
+                                  state->ev,
+                                  state->be_res->resolv,
+                                  "kerberos", "tcp",
+                                  state->discovery_domains);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    tevent_req_set_callback(subreq, kdcinfo_from_site_srv_done, req);
+    return req;
+
+immediately:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void kdcinfo_from_site_srv_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct kdcinfo_from_site_state *state = tevent_req_data(req,
+                                        struct kdcinfo_from_site_state);
+    struct fo_server_info *servers;
+    size_t num_servers;
+
+    ret = fo_discover_srv_recv(state, subreq,
+                               NULL, NULL, /* not interested in TTL etc */
+                               &servers, &num_servers);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not resolve the site [%d]: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->hostport_list = talloc_array(state,
+                                        struct resolv_hostport,
+                                        num_servers);
+    if (state->hostport_list == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    for (size_t i = 0; i < num_servers; i++) {
+        state->hostport_list[i].host = servers[i].host;
+        state->hostport_list[i].port = servers[i].port;
+    }
+
+    subreq = resolv_hostport_list_send(state,
+                                       state->ev,
+                                       state->be_res->resolv,
+                                       state->hostport_list,
+                                       num_servers,
+                                       MAX_SERVERS_FROM_SRV,
+                                       state->be_res->family_order,
+                                       state->db);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, kdcinfo_from_site_server_list_done, req);
+}
+
+static void kdcinfo_from_site_server_list_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct kdcinfo_from_site_state *state = tevent_req_data(req,
+                                        struct kdcinfo_from_site_state);
+
+    ret = resolv_hostport_list_recv(subreq,
+                                    state,
+                                    &state->rhp_len,
+                                    &state->rhp_addrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to resolve address list [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+
+static errno_t kdcinfo_from_site_recv(TALLOC_CTX *mem_ctx,
+                                      struct tevent_req *req,
+                                      struct resolv_hostport_addr ***_rhp_addrs,
+                                      size_t *_rhp_len)
+{
+    struct kdcinfo_from_site_state *state = tevent_req_data(req,
+                                        struct kdcinfo_from_site_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_rhp_addrs != NULL) {
+        *_rhp_addrs = talloc_steal(mem_ctx, state->rhp_addrs);
+    }
+
+    if (_rhp_len != NULL) {
+        *_rhp_len = state->rhp_len;
+    }
+
+    return EOK;
+}
+
+/* Anything per-domain in this request goes here so that we
+ * can just free the whole struct without mixing data from
+ * different domains or the overhead of another request
+ */
+struct ipa_sd_per_dom_kdcinfo_ctx {
+    struct sss_domain_info *dom;
+
+    const char *servers;
+    const char *site;
+
+    const char *discovery_domains[2];
+    struct krb5_service *krb5_service;
+};
+
+struct ipa_subdomains_write_kdcinfo_state {
+    struct tevent_context *ev;
+    struct ipa_subdomains_ctx *ipa_sd_ctx;
+    struct be_ctx *be_ctx;
+
+    bool use_kdcinfo;
+    struct ipa_sd_per_dom_kdcinfo_ctx *pdctx;
+};
+
+static errno_t ipa_subdomains_write_kdcinfo_domain_step(struct sss_domain_info *start_dom,
+                                                        struct tevent_req *req);
+static void ipa_subdomains_write_kdcinfo_domain_done(struct tevent_req *subreq);
+static errno_t ipa_subdomains_write_kdcinfo_write_step(struct sss_domain_info *dom,
+                                                       struct krb5_service *krb5_service,
+                                                       struct resolv_hostport_addr **rhp_addrs,
+                                                       size_t rhp_len);
+
+static struct tevent_req *
+ipa_subdomains_write_kdcinfo_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct ipa_subdomains_ctx *ipa_sd_ctx,
+                                  struct be_ctx *be_ctx)
+{
+    struct ipa_subdomains_write_kdcinfo_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_subdomains_write_kdcinfo_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->ev = ev;
+    state->ipa_sd_ctx = ipa_sd_ctx;
+    state->be_ctx = be_ctx;
+
+    if (ipa_sd_ctx->ipa_id_ctx->server_mode != NULL) {
+        /* This request is valid for clients only */
+        ret = EOK;
+        goto immediately;
+    }
+
+    state->use_kdcinfo = dp_opt_get_bool(ipa_sd_ctx->ipa_id_ctx->ipa_options->auth,
+                                         KRB5_USE_KDCINFO);
+    if (state->use_kdcinfo == false) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "kdcinfo creation disabled\n");
+        ret = EOK;
+        goto immediately;
+    }
+
+    if (be_ctx->domain->subdomains == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "No subdomains, done\n");
+        ret = EOK;
+        goto immediately;
+    }
+
+    ret = ipa_subdomains_write_kdcinfo_domain_step(be_ctx->domain->subdomains,
+                                                   req);
+    if (ret != EAGAIN) {
+        goto immediately;
+    }
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static errno_t ipa_subdomains_write_kdcinfo_domain_step(struct sss_domain_info *start_dom,
+                                                        struct tevent_req *req)
+{
+    struct ipa_subdomains_write_kdcinfo_state *state = \
+                tevent_req_data(req,
+                                struct ipa_subdomains_write_kdcinfo_state);
+    struct dp_option *ipa_ad_subdom_opts;
+    struct tevent_req *subreq = NULL;
+    char *subdom_conf_path;
+    errno_t ret;
+    const char *servers;
+    const char *site;
+
+    for (struct sss_domain_info *dom = start_dom;
+            dom != NULL;
+            dom = get_next_domain(dom, 0)) {
+
+        talloc_zfree(state->pdctx);
+
+        subdom_conf_path = subdomain_create_conf_path(state, dom);
+        if (subdom_conf_path == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "subdom_conf_path failed for %s\n", dom->name);
+            /* Not fatal */
+            continue;
+        }
+
+        ret = dp_get_options(state, state->be_ctx->cdb,
+                             subdom_conf_path,
+                             ipa_cli_ad_subdom_opts,
+                             IPA_OPTS_CLI_AD_SUBDOM,
+                             &ipa_ad_subdom_opts);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot get options for %s: [%d]: %s\n",
+                  dom->name, ret, sss_strerror(ret));
+            /* Not fatal */
+            continue;
+        }
+
+        servers = dp_opt_get_string(ipa_ad_subdom_opts, IPA_CLI_AD_SERVER);
+        site = dp_opt_get_string(ipa_ad_subdom_opts, IPA_CLI_AD_SITE);
+
+        if (servers == NULL && site == NULL) {
+            /* If neither is set, just go to the next domain */
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "No site or server defined for %s, skipping\n",
+                  dom->name);
+            continue;
+        }
+
+        /* We will resolve this domain, create a per-domain context */
+        state->pdctx = talloc_zero(state, struct ipa_sd_per_dom_kdcinfo_ctx);
+        if (state->pdctx == NULL) {
+            return ENOMEM;
+        }
+        state->pdctx->dom = dom;
+        state->pdctx->servers = servers;
+        state->pdctx->site = site;
+        state->pdctx->krb5_service = ipa_subdom_get_k5_svc(state->ipa_sd_ctx,
+                                                           dom,
+                                                           state->use_kdcinfo);
+        if (state->pdctx->krb5_service == NULL) {
+            continue;
+        }
+
+        if (state->pdctx->servers != NULL) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Resolving servers [%s] for domain %s\n",
+                  state->pdctx->servers, dom->name);
+
+            subreq = kdcinfo_from_server_list_send(state,
+                                                   state->ev,
+                                                   state->be_ctx->be_res,
+                                                   state->pdctx->servers);
+        } else if (state->pdctx->site != NULL) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Resolving site %s for domain %s\n",
+                  state->pdctx->site, dom->name);
+
+            subreq = kdcinfo_from_site_send(state,
+                                            state->ev,
+                                            state->be_ctx->be_res,
+                                            state->pdctx->site,
+                                            state->pdctx->dom->name);
+        } else {
+            /* We should never get here */
+            return EINVAL;
+        }
+
+        if (subreq == NULL) {
+            return ENOMEM;
+        }
+        tevent_req_set_callback(subreq, ipa_subdomains_write_kdcinfo_domain_done, req);
+        return EAGAIN;
+    }
+
+    return EOK;
+}
+
+static void ipa_subdomains_write_kdcinfo_domain_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_subdomains_write_kdcinfo_state *state = \
+                tevent_req_data(req,
+                                struct ipa_subdomains_write_kdcinfo_state);
+    struct sss_domain_info *next_domain;
+    struct resolv_hostport_addr **rhp_addrs;
+    size_t rhp_len;
+
+    if (state->pdctx->servers != NULL) {
+        ret = kdcinfo_from_server_list_recv(state->pdctx, subreq,
+                                            &rhp_addrs, &rhp_len);
+    } else if (state->pdctx->site != NULL) {
+        ret = kdcinfo_from_site_recv(state->pdctx, subreq,
+                                     &rhp_addrs, &rhp_len);
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Neither site nor servers set\n");
+        ret = EINVAL;
+    }
+
+    if (ret == EOK) {
+        ret = ipa_subdomains_write_kdcinfo_write_step(state->pdctx->dom,
+                                                      state->pdctx->krb5_service,
+                                                      rhp_addrs, rhp_len);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not write kdcinfo file for %s\n", state->pdctx->dom->name);
+            /* Not fatal, loop to the next domain below */
+        }
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not get address list for %s\n", state->pdctx->dom->name);
+        /* Not fatal, loop to the next domain below */
+    }
+
+    next_domain = get_next_domain(state->pdctx->dom, 0);
+    ret = ipa_subdomains_write_kdcinfo_domain_step(next_domain, req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+        return;
+    } else if (ret != EAGAIN) {
+        /* the loop in ipa_subdomains_write_kdcinfo_domain_step already
+         * tries to be quite permissive, so any error is fatal
+         */
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Continue to the next domain */
+}
+
+static errno_t ipa_subdomains_write_kdcinfo_write_step(struct sss_domain_info *dom,
+                                                       struct krb5_service *krb5_service,
+                                                       struct resolv_hostport_addr **rhp_addrs,
+                                                       size_t rhp_len)
+{
+    errno_t ret;
+    char *address = NULL;
+    char *safe_address = NULL;
+    char **safe_addr_list;
+    int addr_index = 0;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    safe_addr_list = talloc_zero_array(tmp_ctx, char *, rhp_len+1);
+    if (safe_addr_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (size_t i = 0; i < rhp_len; i++) {
+        address = resolv_get_string_address(tmp_ctx, rhp_addrs[i]->reply);
+        if (address == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_string_address failed.\n");
+            continue;
+        }
+
+        if (rhp_addrs[i]->origin.port != 0) {
+            address = talloc_asprintf_append(address,
+                                             ":%d",
+                                             rhp_addrs[i]->origin.port);
+        }
+
+        safe_address = sss_escape_ip_address(tmp_ctx,
+                                             rhp_addrs[i]->reply->family,
+                                             address);
+        talloc_zfree(address);
+        if (safe_address == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_escape_ip_address failed.\n");
+            continue;
+        }
+
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Will write [%s] for %s\n",
+              safe_address, dom->name);
+
+        safe_addr_list[addr_index] = talloc_steal(safe_addr_list,
+                                                  safe_address);
+        addr_index++;
+    }
+
+    ret = write_krb5info_file(krb5_service,
+                              safe_addr_list,
+                              SSS_KRB5KDC_FO_SRV);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+                "write_krb5info_file failed, authentication might fail.\n");
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t ipa_subdomains_write_kdcinfo_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
 struct ipa_subdomains_refresh_state {
     struct tevent_context *ev;
     struct ipa_subdomains_ctx *sd_ctx;
@@ -1933,6 +2617,7 @@ static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_view_domain_resolution_order_done(
                                                     struct tevent_req *subreq);
 static void ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq);
+static void ipa_domain_refresh_kdcinfo_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 ipa_subdomains_refresh_send(TALLOC_CTX *mem_ctx,
@@ -2251,6 +2936,35 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
               ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
+    }
+
+    subreq = ipa_subdomains_write_kdcinfo_send(state,
+                                               state->ev,
+                                               state->sd_ctx,
+                                               state->sd_ctx->be_ctx);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, ipa_domain_refresh_kdcinfo_done, req);
+}
+
+static void
+ipa_domain_refresh_kdcinfo_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = ipa_subdomains_write_kdcinfo_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Unable to write the kdc info files, authentication might "
+              "fail or time out [%d]: %s\n",
+              ret, sss_strerror(ret));
+        /* Not fatal, let's hope DNS is set correctly */
     }
 
     tevent_req_done(req);
