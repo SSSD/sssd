@@ -408,12 +408,16 @@ sss_resp_get_shell_override(struct ldb_message *msg,
     const char *shell;
     int i;
 
-    /* Check whether we are unconditionally overriding
-     * the server for the login shell. */
-    if (domain->override_shell) {
-        return domain->override_shell;
-    } else if (rctx->override_shell) {
-        return rctx->override_shell;
+    /* Here we skip the files provider as it should always return *only*
+     * what's in the files and nothing else. */
+    if (strcasecmp(domain->provider, "files") != 0) {
+        /* Check whether we are unconditionally overriding
+         * the server for the login shell. */
+        if (domain->override_shell) {
+            return domain->override_shell;
+        } else if (rctx->override_shell) {
+            return rctx->override_shell;
+        }
     }
 
     shell = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_SHELL,
