@@ -466,10 +466,9 @@ done:
     return ret;
 }
 
-
-errno_t write_krb5info_file(struct krb5_service *krb5_service,
-                            const char *server,
-                            const char *service)
+static errno_t write_krb5info_file_contents(struct krb5_service *krb5_service,
+                                            const char *contents,
+                                            const char *service)
 {
     int ret;
     int fd = -1;
@@ -482,7 +481,7 @@ errno_t write_krb5info_file(struct krb5_service *krb5_service,
 
     if (krb5_service == NULL || krb5_service->realm == NULL
                              || *krb5_service->realm == '\0'
-                             || server == NULL || *server == '\0'
+                             || contents == NULL || *contents == '\0'
                              || service == NULL || *service == '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Missing or empty realm, server or service.\n");
@@ -505,7 +504,7 @@ errno_t write_krb5info_file(struct krb5_service *krb5_service,
         return EINVAL;
     }
 
-    server_len = strlen(server);
+    server_len = strlen(contents);
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -535,7 +534,7 @@ errno_t write_krb5info_file(struct krb5_service *krb5_service,
     }
 
     errno = 0;
-    written = sss_atomic_write_s(fd, discard_const(server), server_len);
+    written = sss_atomic_write_s(fd, discard_const(contents), server_len);
     if (written == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -592,12 +591,56 @@ done:
     return ret;
 }
 
+errno_t write_krb5info_file(struct krb5_service *krb5_service,
+                            char **server_list,
+                            const char *service)
+{
+    int i;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *contents = NULL;
+
+    if (krb5_service == NULL || server_list == NULL || service == NULL) {
+        return EINVAL;
+    }
+
+    if (server_list[0] == NULL) {
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    contents = talloc_strdup(tmp_ctx, "");
+    if (contents == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    i = 0;
+    do {
+        contents = talloc_asprintf_append(contents, "%s\n", server_list[i]);
+        if (contents == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        i++;
+    } while (server_list[i] != NULL);
+
+    ret = write_krb5info_file_contents(krb5_service, contents, service);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static void krb5_resolve_callback(void *private_data, struct fo_server *server)
 {
     struct krb5_service *krb5_service;
     struct resolv_hostent *srvaddr;
     char *address;
-    char *safe_address;
+    char *safe_addr_list[2] = { NULL, NULL };
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
 
@@ -630,26 +673,26 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    safe_address = sss_escape_ip_address(tmp_ctx,
-                                         srvaddr->family,
-                                         address);
-    if (safe_address == NULL) {
+    safe_addr_list[0] = sss_escape_ip_address(tmp_ctx,
+                                              srvaddr->family,
+                                              address);
+    if (safe_addr_list[0] == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_escape_ip_address failed.\n");
         talloc_free(tmp_ctx);
         return;
     }
 
     if (krb5_service->write_kdcinfo) {
-        safe_address = talloc_asprintf_append(safe_address, ":%d",
-                                            fo_get_server_port(server));
-        if (safe_address == NULL) {
+        safe_addr_list[0] = talloc_asprintf_append(safe_addr_list[0], ":%d",
+                                                   fo_get_server_port(server));
+        if (safe_addr_list[0] == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
             talloc_free(tmp_ctx);
             return;
         }
 
         ret = write_krb5info_file(krb5_service,
-                                  safe_address,
+                                  safe_addr_list,
                                   krb5_service->name);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,

@@ -766,7 +766,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     struct resolv_hostent *srvaddr;
     struct sockaddr_storage *sockaddr;
     char *address;
-    const char *safe_address;
+    char *safe_addr_list[2] = { NULL, NULL };
     char *new_uri;
     const char *srv_name;
     int ret;
@@ -829,17 +829,17 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     service->sdap->sockaddr = talloc_steal(service, sockaddr);
 
     if (service->krb5_service->write_kdcinfo) {
-        safe_address = sss_escape_ip_address(tmp_ctx,
+        safe_addr_list[0] = sss_escape_ip_address(tmp_ctx,
                                              srvaddr->family,
                                              address);
-        if (safe_address == NULL) {
+        if (safe_addr_list[0] == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sss_escape_ip_address failed.\n");
             talloc_free(tmp_ctx);
             return;
         }
 
         ret = write_krb5info_file(service->krb5_service,
-                                  safe_address,
+                                  safe_addr_list,
                                   SSS_KRB5KDC_FO_SRV);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
