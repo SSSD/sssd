@@ -1283,7 +1283,9 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_NSS_OVERRIDE_HOMEDIR, NULL);
-    if (tmp != NULL) {
+    /* Here we skip the files provider as it should always return *only*
+     * what's in the files and nothing else. */
+    if (tmp != NULL && strcasecmp(domain->provider, "files") != 0) {
         domain->override_homedir = talloc_strdup(domain, tmp);
         if (!domain->override_homedir) {
             ret = ENOMEM;
