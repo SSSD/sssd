@@ -848,7 +848,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     struct resolv_hostent *srvaddr;
     struct sockaddr_storage *sockaddr;
     char *address;
-    const char *safe_address;
+    char *safe_addr_list[2] = { NULL, NULL };
     char *new_uri;
     int new_port;
     const char *srv_name;
@@ -957,17 +957,17 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     if ((sdata == NULL || sdata->gc == false) &&
         service->krb5_service->write_kdcinfo) {
         /* Write krb5 info files */
-        safe_address = sss_escape_ip_address(tmp_ctx,
-                                            srvaddr->family,
-                                            address);
-        if (safe_address == NULL) {
+        safe_addr_list[0] = sss_escape_ip_address(tmp_ctx,
+                                                  srvaddr->family,
+                                                  address);
+        if (safe_addr_list[0] == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sss_escape_ip_address failed.\n");
             ret = ENOMEM;
             goto done;
         }
 
         ret = write_krb5info_file(service->krb5_service,
-                                  safe_address,
+                                  safe_addr_list,
                                   SSS_KRB5KDC_FO_SRV);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
