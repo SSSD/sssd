@@ -1015,6 +1015,12 @@ done
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
 %{_libdir}/%{name}/libsss_semanage.so
+%{_libdir}/%{name}/libsss_sbus.so
+%{_libdir}/%{name}/libsss_sbus_sync.so
+%{_libdir}/%{name}/libsss_iface.so
+%{_libdir}/%{name}/libsss_iface_sync.so
+%{_libdir}/%{name}/libifp_iface.so
+%{_libdir}/%{name}/libifp_iface_sync.so
 
 %{ldb_modulesdir}/memberof.so
 %{_bindir}/sss_ssh_authorizedkeys
