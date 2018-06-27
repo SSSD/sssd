@@ -311,7 +311,7 @@ def domain_resolution_order(request):
 
 
 @pytest.fixture
-def override_homedir(request):
+def override_homedir_and_shell(request):
     conf = unindent("""\
         [sssd]
         domains             = files
@@ -320,9 +320,11 @@ def override_homedir(request):
         [domain/files]
         id_provider = files
         override_homedir = /test/bar
+        override_shell = /bin/bar
 
         [nss]
         override_homedir = /test/foo
+        override_shell = /bin/foo
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -1220,7 +1222,14 @@ def test_files_with_domain_resolution_order(add_user_with_canary,
 
 
 def test_files_with_override_homedir(add_user_with_canary,
-                                     override_homedir):
+                                     override_homedir_and_shell):
     res, user = sssd_getpwnam_sync(USER1["name"])
     assert res == NssReturnCode.SUCCESS
     assert user["dir"] == USER1["dir"]
+
+
+def test_files_with_override_shell(add_user_with_canary,
+                                   override_homedir_and_shell):
+    res, user = sssd_getpwnam_sync(USER1["name"])
+    assert res == NssReturnCode.SUCCESS
+    assert user["shell"] == USER1["shell"]
