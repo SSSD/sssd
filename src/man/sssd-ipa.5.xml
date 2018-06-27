@@ -728,6 +728,98 @@
         </para>
     </refsect1>
 
+    <refsect1 id='trusted_domains'>
+        <title>TRUSTED DOMAINS CONFIGURATION</title>
+        <para>
+            Some configuration options can be also set for a trusted domain.
+            A trusted domain configuration can either be done using
+            a subsection, for example:
+<programlisting>
+[domain/ipa.domain.com/ad.domain.com]
+ad_server = dc.ad.domain.com
+</programlisting>
+        </para>
+        <para>
+            In addition, some options can be set in the parent domain
+            and inherited by the trusted domain using the
+            <quote>subdomain_inherit</quote> option. For more details,
+            see the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            Different configuration options are tunable for a trusted
+            domain depending on whether you are configuring SSSD on an
+            IPA server or an IPA client.
+        </para>
+        <refsect2 id='server_configuration'>
+            <title>OPTIONS TUNABLE ON IPA MASTERS</title>
+            <para>
+                The following options can be set in a subdomain
+                section on an IPA master:
+                <itemizedlist>
+                    <listitem>
+                        <para>ad_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ad_backup_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ad_site</para>
+                    </listitem>
+                    <listitem>
+                        <para>ldap_search_base</para>
+                    </listitem>
+                    <listitem>
+                        <para>ldap_user_search_base</para>
+                    </listitem>
+                    <listitem>
+                        <para>ldap_group_search_base</para>
+                    </listitem>
+                    <listitem>
+                        <para>use_fully_qualified_names</para>
+                    </listitem>
+                </itemizedlist>
+            </para>
+        </refsect2>
+        <refsect2 id='client_configuration'>
+            <title>OPTIONS TUNABLE ON IPA CLIENTS</title>
+            <para>
+                The following options can be set in a subdomain
+                section on an IPA client:
+                <itemizedlist>
+                    <listitem>
+                        <para>ad_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ad_site</para>
+                    </listitem>
+                </itemizedlist>
+            </para>
+            <para>
+                Note that if both options are set, only
+                <quote>ad_server</quote> is evaluated.
+            </para>
+            <para>
+                Since any request for a user or a group identity from a
+                trusted domain triggered from an IPA client is resolved
+                by the IPA server, the <quote>ad_server</quote> and
+                <quote>ad_site</quote> options only affect which AD DC will
+                the authentication be performed against. In particular,
+                the addresses resolved from these lists will be written to
+                <quote>kdcinfo</quote> files read by the Kerberos locator
+                plugin. Please refer to the
+                <citerefentry>
+                    <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+                    <manvolnum>8</manvolnum>
+                </citerefentry> manual page for more details on the Kerberos
+                locator plugin.
+            </para>
+        </refsect2>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/service_discovery.xml" />
