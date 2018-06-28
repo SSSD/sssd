@@ -207,6 +207,29 @@ static void test_check_if_pac_is_available(void **state)
     "BEAEUAVgBFAEwAdv///4yBQZ5ZQnp3qwj2lKGcd0UAAAAAdv//" \
     "/39fn4UneD5l6YxP8w/U0coAAAAA"
 
+#define TEST_PAC_RESOURCE_GROUPS_BASE64 \
+    "BQAAAAAAAAABAAAA8AEAAFgAAAAAAAAACgAAABQAAABIAgAA" \
+    "AAAAAAwAAABYAAAAYAIAAAAAAAAGAAAAEAAAALgCAAAAAAAA" \
+    "BwAAABQAAADIAgAAAAAAAAEQCADMzMzM4AEAAAAAAAAAAAIA" \
+    "Rr0gPUQO1AH/////////f/////////9/TRPNRwtu0wFN0zZy" \
+    "1G7TAf////////9/CgAKAAQAAgAKAAoACAACAAAAAAAMAAIA" \
+    "AAAAABAAAgAAAAAAFAACAAAAAAAYAAIACwAAAFEEAAABAgAA" \
+    "AwAAABwAAgAgAgAAAAAAAAAAAAAAAAAAAAAAAAQABgAgAAIA" \
+    "BgAIACQAAgAoAAIAAAAAAAAAAAAQAgAAAAAAAAAAAAAAAAAA" \
+    "AAAAAAAAAAAAAAAAAAAAAAEAAAAsAAIANAACAAEAAAA4AAIA" \
+    "BQAAAAAAAAAFAAAAdAB1AHMAZQByAAAABQAAAAAAAAAFAAAA" \
+    "dAB1AHMAZQByAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" \
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAECAAAHAAAA" \
+    "YgQAAAcAAABjBAAABwAAAAMAAAAAAAAAAgAAAEQAQwAEAAAA" \
+    "AAAAAAMAAABXAEkATgAAAAQAAAABBAAAAAAABRUAAAAkYm0r" \
+    "SyFumd73jX0BAAAAMAACAAcAAAABAAAAAQEAAAAAABIBAAAA" \
+    "BAAAAAEEAAAAAAAFFQAAACRibStLIW6Z3veNfQEAAABoBAAA" \
+    "BwAAIAAAAACAEuVfRA7UAQoAdAB1AHMAZQByAAAAAAAoABAA" \
+    "HAA4AAAAAAAAAAAAdAB1AHMAZQByAEAAdwBpAG4ALgB0AHIA" \
+    "dQBzAHQALgB0AGUAcwB0AFcASQBOAC4AVABSAFUAUwBUAC4A" \
+    "VABFAFMAVAAAAAAAEAAAAOGTj7I9Qn7XebOqdHb///+fHhrZ" \
+    "kBt0So4jOFBk84sDAAAAAA=="
+
 static void test_ad_get_data_from_pac(void **state)
 {
     int ret;
@@ -302,6 +325,73 @@ static void test_ad_get_sids_from_pac(void **state)
     talloc_free(sid_list);
     sss_idmap_free(idmap_ctx);
 }
+
+#ifdef HAVE_STRUCT_PAC_LOGON_INFO_RESOURCE_GROUPS
+static void test_ad_get_sids_from_pac_with_resource_groups(void **state)
+{
+    int ret;
+    struct PAC_LOGON_INFO *logon_info;
+    uint8_t *test_pac_blob;
+    size_t test_pac_blob_size;
+    char *user_sid;
+    char *primary_group_sid;
+    size_t num_sids;
+    char **sid_list;
+    struct sss_idmap_ctx *idmap_ctx;
+    enum idmap_error_code err;
+    size_t c;
+    size_t s;
+
+    const char *sid_check_list[] = { "S-1-5-21-728588836-2574131531-2106456030-513",
+                                     "S-1-5-21-728588836-2574131531-2106456030-1122",
+                                     "S-1-5-21-728588836-2574131531-2106456030-1123",
+                                     "S-1-5-21-728588836-2574131531-2106456030-1128",
+                                     "S-1-18-1",
+                                     NULL };
+
+    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+                                                  struct ad_common_test_ctx);
+
+    err = sss_idmap_init(sss_idmap_talloc, test_ctx, sss_idmap_talloc_free,
+                         &idmap_ctx);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    test_pac_blob = sss_base64_decode(test_ctx, TEST_PAC_RESOURCE_GROUPS_BASE64,
+                                      &test_pac_blob_size);
+    assert_non_null(test_pac_blob_size);
+
+    ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
+                               &logon_info);
+    assert_int_equal(ret, EOK);
+
+    ret = ad_get_sids_from_pac(test_ctx, idmap_ctx, logon_info, &user_sid,
+                               &primary_group_sid, &num_sids, &sid_list);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(user_sid,
+                        "S-1-5-21-728588836-2574131531-2106456030-1105");
+    assert_string_equal(primary_group_sid,
+                        "S-1-5-21-728588836-2574131531-2106456030-513");
+    assert_int_equal(num_sids, 5);
+
+    for (c = 0; sid_check_list[c] != NULL; c++) {
+        for (s = 0; s < num_sids; s++) {
+            if (strcmp(sid_check_list[c], sid_list[s]) == 0) {
+                break;
+            }
+        }
+        if (s == num_sids) {
+            fail_msg("SID [%s] not found in SID list.", sid_check_list[c]);
+        }
+    }
+
+    talloc_free(test_pac_blob);
+    talloc_free(logon_info);
+    talloc_free(user_sid);
+    talloc_free(primary_group_sid);
+    talloc_free(sid_list);
+    sss_idmap_free(idmap_ctx);
+}
+#endif
 
 static void test_ad_get_pac_data_from_user_entry(void **state)
 {
@@ -912,6 +1002,11 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_ad_get_sids_from_pac,
                                         test_ad_common_setup,
                                         test_ad_common_teardown),
+#ifdef HAVE_STRUCT_PAC_LOGON_INFO_RESOURCE_GROUPS
+        cmocka_unit_test_setup_teardown(test_ad_get_sids_from_pac_with_resource_groups,
+                                        test_ad_common_setup,
+                                        test_ad_common_teardown),
+#endif
         cmocka_unit_test_setup_teardown(test_ad_get_pac_data_from_user_entry,
                                         test_ad_common_setup,
                                         test_ad_common_teardown),

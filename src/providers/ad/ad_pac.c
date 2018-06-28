@@ -146,6 +146,87 @@ errno_t check_if_pac_is_available(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static errno_t
+add_sids_from_rid_array_to_hash_table(struct dom_sid *dom_sid,
+                                      struct samr_RidWithAttributeArray *groups,
+                                      struct sss_idmap_ctx *idmap_ctx,
+                                      hash_table_t *sid_table)
+{
+    enum idmap_error_code err;
+    char *dom_sid_str = NULL;
+    size_t dom_sid_str_len;
+    char *sid_str = NULL;
+    char *rid_start;
+    hash_key_t key;
+    hash_value_t value;
+    int ret;
+    size_t c;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    key.type = HASH_KEY_STRING;
+    value.type = HASH_VALUE_ULONG;
+
+    err = sss_idmap_smb_sid_to_sid(idmap_ctx, dom_sid, &dom_sid_str);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_idmap_smb_sid_to_sid failed.\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    dom_sid_str_len = strlen(dom_sid_str);
+    sid_str = talloc_zero_size(tmp_ctx, dom_sid_str_len + 12);
+    if (sid_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    rid_start = sid_str + dom_sid_str_len;
+
+    memcpy(sid_str, dom_sid_str, dom_sid_str_len);
+
+    for (c = 0; c < groups->count; c++) {
+        memset(rid_start, '\0', 12);
+        ret = snprintf(rid_start, 12, "-%lu",
+                       (unsigned long) groups->rids[c].rid);
+        if (ret < 0 || ret > 12) {
+            DEBUG(SSSDBG_OP_FAILURE, "snprintf failed.\n");
+            ret = EIO;
+            goto done;
+        }
+
+        key.str = sid_str;
+        value.ul = 0;
+
+        ret = hash_enter(sid_table, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed [%d][%s].\n",
+                                      ret, hash_error_string(ret));
+            ret = EIO;
+            goto done;
+        }
+
+    }
+
+    ret = EOK;
+
+done:
+    sss_idmap_free_sid(idmap_ctx, dom_sid_str);
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+struct resource_groups {
+    struct dom_sid2 *domain_sid;
+    struct samr_RidWithAttributeArray groups;
+};
+
 errno_t ad_get_sids_from_pac(TALLOC_CTX *mem_ctx,
                              struct sss_idmap_ctx *idmap_ctx,
                              struct PAC_LOGON_INFO *logon_info,
@@ -157,6 +238,7 @@ errno_t ad_get_sids_from_pac(TALLOC_CTX *mem_ctx,
     int ret;
     size_t s;
     struct netr_SamInfo3 *info3;
+    struct resource_groups resource_groups = { 0 };
     char *sid_str = NULL;
     char *msid_str = NULL;
     char *user_dom_sid_str = NULL;
@@ -188,9 +270,15 @@ errno_t ad_get_sids_from_pac(TALLOC_CTX *mem_ctx,
     }
 
     info3 = &logon_info->info3;
+#ifdef HAVE_STRUCT_PAC_LOGON_INFO_RESOURCE_GROUPS
+    resource_groups.domain_sid = logon_info->resource_groups.domain_sid;
+    resource_groups.groups.count = logon_info->resource_groups.groups.count;
+    resource_groups.groups.rids = logon_info->resource_groups.groups.rids;
+#endif
 
     ret = sss_hash_create(tmp_ctx,
-                          info3->sidcount + info3->base.groups.count + 2,
+                          info3->sidcount + info3->base.groups.count + 2
+                                          + resource_groups.groups.count,
                           &sid_table);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
@@ -265,28 +353,13 @@ errno_t ad_get_sids_from_pac(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-
-    for (s = 0; s < info3->base.groups.count; s++) {
-        memset(rid_start, '\0', 12);
-        ret = snprintf(rid_start, 12, "-%lu",
-                                (unsigned long) info3->base.groups.rids[s].rid);
-        if (ret < 0 || ret > 12) {
-            DEBUG(SSSDBG_OP_FAILURE, "snprintf failed.\n");
-            ret = EIO;
-            goto done;
-        }
-
-        key.str = sid_str;
-        value.ul = 0;
-
-        ret = hash_enter(sid_table, &key, &value);
-        if (ret != HASH_SUCCESS) {
-            DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed [%d][%s].\n",
-                                      ret, hash_error_string(ret));
-            ret = EIO;
-            goto done;
-        }
-
+    ret = add_sids_from_rid_array_to_hash_table(info3->base.domain_sid,
+                                                &info3->base.groups,
+                                                idmap_ctx, sid_table);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "add_sids_from_rid_array_to_hash_table failed.\n");
+        goto done;
     }
 
     for(s = 0; s < info3->sidcount; s++) {
@@ -307,6 +380,17 @@ errno_t ad_get_sids_from_pac(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed [%d][%s].\n",
                                       ret, hash_error_string(ret));
             ret = EIO;
+            goto done;
+        }
+    }
+
+    if (resource_groups.domain_sid != NULL) {
+        ret = add_sids_from_rid_array_to_hash_table(resource_groups.domain_sid,
+                                                    &resource_groups.groups,
+                                                    idmap_ctx, sid_table);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "add_sids_from_rid_array_to_hash_table failed.\n");
             goto done;
         }
     }
