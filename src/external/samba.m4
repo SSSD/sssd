@@ -122,3 +122,11 @@ int main(void)
     AC_DEFINE_UNQUOTED(SMB_IDMAP_INTERFACE_VERSION, $idmap_version,
                        [Detected version of Samba's idmap plugin interface])
 fi
+
+SAVE_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS -I/usr/include/samba-4.0"
+AC_CHECK_MEMBERS([struct PAC_LOGON_INFO.resource_groups], , ,
+                 [[ #include <ndr.h>
+                    #include <gen_ndr/krb5pac.h>
+                    #include <gen_ndr/krb5pac.h>]])
+CFLAGS=$SAVE_CFLAGS
