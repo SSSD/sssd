@@ -180,6 +180,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     char *value;
     int ret;
     int i;
+    bool server_mode;
 
     tmpctx = talloc_new(ipa_opts);
     if (!tmpctx) {
@@ -292,6 +293,59 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                                  SDAP_USER_SEARCH_BASE,
                                  &ipa_opts->id->sdom->user_search_bases);
     if (ret != EOK) goto done;
+
+    /* In server mode we need to search both cn=accounts,$SUFFIX and
+     * cn=trusts,$SUFFIX to allow trusted domain object accounts to be found.
+     * If cn=trusts,$SUFFIX is missing in the user search bases, add one
+     */
+    server_mode = dp_opt_get_bool(ipa_opts->basic, IPA_SERVER_MODE);
+    if (server_mode != false) {
+        /* bases is not NULL at this point already */
+        struct sdap_search_base **bases = ipa_opts->id->sdom->user_search_bases;
+        struct sdap_search_base *new_base = NULL;
+
+        for (i = 0; bases[i] != NULL; i++) {
+            if (strcasestr(bases[i]->basedn, "cn=trusts,") != NULL) {
+                break;
+            }
+        }
+        if (NULL == bases[i]) {
+            /* no cn=trusts in the base, add a new one */
+            char *new_dn = talloc_asprintf(bases,
+                                           "cn=trusts,%s",
+                                           basedn);
+            if (NULL == new_dn) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sdap_create_search_base(bases, new_dn,
+                                          LDAP_SCOPE_SUBTREE,
+                                          "(objectClass=ipaIDObject)",
+                                          &new_base);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            bases = talloc_realloc(ipa_opts->id,
+                                   ipa_opts->id->sdom->user_search_bases,
+                                   struct sdap_search_base*,
+                                   i + 2);
+
+            if (NULL == bases) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            bases[i] = new_base;
+            bases[i+1] = NULL;
+            ipa_opts->id->sdom->user_search_bases = bases;
+
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Option %s expanded to cover cn=trusts base\n",
+                  ipa_opts->id->basic[SDAP_USER_SEARCH_BASE].opt_name);
+        }
+    }
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_GROUP_SEARCH_BASE)) {
