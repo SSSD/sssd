@@ -262,19 +262,119 @@ done:
     return ret;
 }
 
+errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
+                                           struct ldb_message *msg,
+                                           struct certmap_info **certmap)
+{
+    int ret;
+    size_t d;
+    size_t num_values;
+    struct certmap_info *map = NULL;
+    const char *tmp_str;
+    uint64_t tmp_uint;
+    struct ldb_message_element *tmp_el;
+
+
+    map = talloc_zero(mem_ctx, struct certmap_info);
+    if (map == NULL) {
+        return ENOMEM;
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    if (tmp_str == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "The object [%s] doesn't have a name.\n",
+                                    ldb_dn_get_linearized(msg->dn));
+        ret = EINVAL;
+        goto done;
+    }
+
+    map->name = talloc_strdup(map, tmp_str);
+    if (map->name == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_CERTMAP_MAPPING_RULE,
+                                          NULL);
+    if (tmp_str != NULL) {
+        map->map_rule = talloc_strdup(map, tmp_str);
+        if (map->map_rule == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_CERTMAP_MATCHING_RULE,
+                                          NULL);
+    if (tmp_str != NULL) {
+        map->match_rule = talloc_strdup(map, tmp_str);
+        if (map->match_rule == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tmp_uint = ldb_msg_find_attr_as_uint64(msg, SYSDB_CERTMAP_PRIORITY,
+                                           (uint64_t) -1);
+    if (tmp_uint != (uint64_t) -1) {
+        if (tmp_uint > UINT32_MAX) {
+            DEBUG(SSSDBG_OP_FAILURE, "Priority value [%lu] too large.\n",
+                                     (unsigned long) tmp_uint);
+            ret = EINVAL;
+            goto done;
+        }
+
+        map->priority = (uint32_t) tmp_uint;
+    }
+
+    tmp_el = ldb_msg_find_element(msg, SYSDB_CERTMAP_DOMAINS);
+    if (tmp_el != NULL) {
+        num_values = tmp_el->num_values;
+    } else {
+        num_values = 0;
+    }
+
+    map->domains = talloc_zero_array(map, const char *, num_values + 1);
+    if (map->domains == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (d = 0; d < num_values; d++) {
+        map->domains[d] = talloc_strndup(map->domains,
+                                         (char *) tmp_el->values[d].data,
+                                         tmp_el->values[d].length);
+        if (map->domains[d] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    *certmap = map;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(map);
+    }
+
+    return ret;
+}
+
 errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                           struct certmap_info ***certmaps, bool *user_name_hint)
 {
     size_t c;
-    size_t d;
     struct ldb_dn *container_dn = NULL;
     int ret;
     struct certmap_info **maps = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_result *res;
-    const char *tmp_str;
-    uint64_t tmp_uint;
-    struct ldb_message_element *tmp_el;
     const char *attrs[] = {SYSDB_NAME,
                            SYSDB_CERTMAP_PRIORITY,
                            SYSDB_CERTMAP_MATCHING_RULE,
@@ -283,7 +383,6 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                            NULL};
     const char *config_attrs[] = {SYSDB_CERTMAP_USER_NAME_HINT,
                                   NULL};
-    size_t num_values;
     bool hint = false;
 
     tmp_ctx = talloc_new(NULL);
@@ -332,85 +431,11 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     }
 
     for (c = 0; c < res->count; c++) {
-        maps[c] = talloc_zero(maps, struct certmap_info);
-        if (maps[c] == NULL) {
-            ret = ENOMEM;
+        ret = sysdb_ldb_msg_attr_to_certmap_info(maps, res->msgs[c], &maps[c]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_ldb_msg_attr_to_certmap_info failed.\n");
             goto done;
-        }
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[c], SYSDB_NAME, NULL);
-        if (tmp_str == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "The object [%s] doesn't have a name.\n",
-                                       ldb_dn_get_linearized(res->msgs[c]->dn));
-            ret = EINVAL;
-            goto done;
-        }
-
-        maps[c]->name = talloc_strdup(maps, tmp_str);
-        if (maps[c]->name == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[c],
-                                              SYSDB_CERTMAP_MAPPING_RULE, NULL);
-        if (tmp_str != NULL) {
-            maps[c]->map_rule = talloc_strdup(maps, tmp_str);
-            if (maps[c]->map_rule == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
-        tmp_str = ldb_msg_find_attr_as_string(res->msgs[c],
-                                              SYSDB_CERTMAP_MATCHING_RULE, NULL);
-        if (tmp_str != NULL) {
-            maps[c]->match_rule = talloc_strdup(maps, tmp_str);
-            if (maps[c]->match_rule == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
-        tmp_uint = ldb_msg_find_attr_as_uint64(res->msgs[c],
-                                               SYSDB_CERTMAP_PRIORITY,
-                                               (uint64_t) -1);
-        if (tmp_uint != (uint64_t) -1) {
-            if (tmp_uint > UINT32_MAX) {
-                DEBUG(SSSDBG_OP_FAILURE, "Priority value [%lu] too large.\n",
-                                         (unsigned long) tmp_uint);
-                ret = EINVAL;
-                goto done;
-            }
-
-            maps[c]->priority = (uint32_t) tmp_uint;
-        }
-
-        tmp_el = ldb_msg_find_element(res->msgs[c], SYSDB_CERTMAP_DOMAINS);
-        if (tmp_el != NULL) {
-            num_values = tmp_el->num_values;
-        } else {
-            num_values = 0;
-        }
-
-        maps[c]->domains = talloc_zero_array(maps[c], const char *,
-                                             num_values + 1);
-        if (maps[c]->domains == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        for (d = 0; d < num_values; d++) {
-            maps[c]->domains[d] = talloc_strndup(maps[c]->domains,
-                                            (char *) tmp_el->values[d].data,
-                                            tmp_el->values[d].length);
-            if (maps[c]->domains[d] == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
         }
     }
 
