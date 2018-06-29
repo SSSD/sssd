@@ -263,8 +263,19 @@ done:
     return ret;
 }
 
+enum certmap_info_member {
+    SSS_CMIM_NAME = 0,
+    SSS_CMIM_MAPPING_RULE,
+    SSS_CMIM_MATCHING_RULE,
+    SSS_CMIM_PRIORITY,
+    SSS_CMIM_DOMAINS,
+
+    SSS_CMIM_SENTINEL
+};
+
 errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
                                            struct ldb_message *msg,
+                                           const char **attr_map,
                                            struct certmap_info **certmap)
 {
     int ret;
@@ -275,13 +286,24 @@ errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
     uint64_t tmp_uint;
     struct ldb_message_element *tmp_el;
 
+    if (msg == NULL || attr_map == NULL || certmap == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid input.\n");
+        return EINVAL;
+    }
+
+    for (d = 0; d < SSS_CMIM_SENTINEL; d++) {
+        if (attr_map[d] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid attribute map");
+            return EINVAL;
+        }
+    }
 
     map = talloc_zero(mem_ctx, struct certmap_info);
     if (map == NULL) {
         return ENOMEM;
     }
 
-    tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    tmp_str = ldb_msg_find_attr_as_string(msg, attr_map[SSS_CMIM_NAME], NULL);
     if (tmp_str == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE, "The object [%s] doesn't have a name.\n",
                                     ldb_dn_get_linearized(msg->dn));
@@ -295,7 +317,7 @@ errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_CERTMAP_MAPPING_RULE,
+    tmp_str = ldb_msg_find_attr_as_string(msg, attr_map[SSS_CMIM_MAPPING_RULE],
                                           NULL);
     if (tmp_str != NULL) {
         map->map_rule = talloc_strdup(map, tmp_str);
@@ -306,7 +328,7 @@ errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
         }
     }
 
-    tmp_str = ldb_msg_find_attr_as_string(msg, SYSDB_CERTMAP_MATCHING_RULE,
+    tmp_str = ldb_msg_find_attr_as_string(msg, attr_map[SSS_CMIM_MATCHING_RULE],
                                           NULL);
     if (tmp_str != NULL) {
         map->match_rule = talloc_strdup(map, tmp_str);
@@ -317,7 +339,7 @@ errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
         }
     }
 
-    tmp_uint = ldb_msg_find_attr_as_uint64(msg, SYSDB_CERTMAP_PRIORITY,
+    tmp_uint = ldb_msg_find_attr_as_uint64(msg, attr_map[SSS_CMIM_PRIORITY],
                                            (uint64_t) -1);
     if (tmp_uint != (uint64_t) -1) {
         if (tmp_uint > UINT32_MAX) {
@@ -332,7 +354,7 @@ errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
         map->priority = SSS_CERTMAP_MIN_PRIO;
     }
 
-    tmp_el = ldb_msg_find_element(msg, SYSDB_CERTMAP_DOMAINS);
+    tmp_el = ldb_msg_find_element(msg, attr_map[SSS_CMIM_DOMAINS]);
     if (tmp_el != NULL) {
         num_values = tmp_el->num_values;
     } else {
@@ -379,9 +401,9 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_result *res;
     const char *attrs[] = {SYSDB_NAME,
-                           SYSDB_CERTMAP_PRIORITY,
-                           SYSDB_CERTMAP_MATCHING_RULE,
                            SYSDB_CERTMAP_MAPPING_RULE,
+                           SYSDB_CERTMAP_MATCHING_RULE,
+                           SYSDB_CERTMAP_PRIORITY,
                            SYSDB_CERTMAP_DOMAINS,
                            NULL};
     const char *config_attrs[] = {SYSDB_CERTMAP_USER_NAME_HINT,
@@ -434,7 +456,8 @@ errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     }
 
     for (c = 0; c < res->count; c++) {
-        ret = sysdb_ldb_msg_attr_to_certmap_info(maps, res->msgs[c], &maps[c]);
+        ret = sysdb_ldb_msg_attr_to_certmap_info(maps, res->msgs[c], attrs,
+                                                 &maps[c]);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_ldb_msg_attr_to_certmap_info failed.\n");
