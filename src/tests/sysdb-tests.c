@@ -44,7 +44,7 @@
 #define TEST_ATTR_ADD_VALUE "test_attr_add_value"
 #define CUSTOM_TEST_CONTAINER "custom_test_container"
 #define CUSTOM_TEST_OBJECT "custom_test_object"
-#define TEST_DOM_NAME "local"
+#define TEST_DOM_NAME "files"
 
 #define ASQ_TEST_USER "testuser27010"
 #define ASQ_TEST_USER_UID 27010
@@ -113,7 +113,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
         return ret;
     }
 
-    val[0] = "LOCAL";
+    val[0] = "FILES";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     if (ret != EOK) {
@@ -122,9 +122,9 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
         return ret;
     }
 
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "id_provider", val);
+                           "config/domain/FILES", "id_provider", val);
     if (ret != EOK) {
         fail("Could not initialize provider");
         talloc_free(test_ctx);
@@ -133,18 +133,18 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
 
     val[0] = enumerate ? "TRUE" : "FALSE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "enumerate", val);
+                           "config/domain/FILES", "enumerate", val);
     if (ret != EOK) {
-        fail("Could not initialize LOCAL domain");
+        fail("Could not initialize FILES domain");
         talloc_free(test_ctx);
         return ret;
     }
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "cache_credentials", val);
+                           "config/domain/FILES", "cache_credentials", val);
     if (ret != EOK) {
-        fail("Could not initialize LOCAL domain");
+        fail("Could not initialize FILES domain");
         talloc_free(test_ctx);
         return ret;
     }
@@ -497,7 +497,7 @@ static int test_search_all_users(struct test_data *data)
     int ret;
 
     base_dn = ldb_dn_new_fmt(data, data->ctx->sysdb->ldb, SYSDB_TMPL_USER_BASE,
-                             "LOCAL");
+                             "FILES");
     if (base_dn == NULL) {
         return ENOMEM;
     }
@@ -514,7 +514,7 @@ static int test_delete_recursive(struct test_data *data)
     int ret;
 
     dn = ldb_dn_new_fmt(data, data->ctx->sysdb->ldb, SYSDB_DOM_BASE,
-                        "LOCAL");
+                        "FILES");
     if (!dn) {
         return ENOMEM;
     }
@@ -700,7 +700,7 @@ START_TEST (test_sysdb_user_new_id)
     fail_if(ret != EOK);
 
     ret = sysdb_add_user(test_ctx->domain, fqname,
-                         0, 0, fqname, "/", "/bin/bash",
+                         1234, 1234, fqname, "/", "/bin/bash",
                          NULL, attrs, 0, 0);
     fail_if(ret != EOK, "Could not store user %s", fqname);
 
@@ -1095,6 +1095,7 @@ START_TEST(test_user_group_by_name)
      * ldap provider differently with auto_private_groups.
      */
     test_ctx->domain->provider = discard_const_p(char, "ldap");
+    test_ctx->domain->mpg = true;
 
     data = test_data_new_user(test_ctx, _i);
     fail_if(data == NULL);
@@ -1335,6 +1336,8 @@ START_TEST (test_sysdb_enumgrent)
         fail("Could not set up the test");
         return;
     }
+
+    test_ctx->domain->mpg = true;
 
     ret = sysdb_enumgrent(test_ctx,
                           test_ctx->domain,
@@ -1837,6 +1840,10 @@ START_TEST (test_sysdb_get_new_id)
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Cannot setup sysdb tests\n");
 
+    /* sysdb_get_new_id() only works for local provider!
+     * For now, let's just set the provider to "local" till the moment where
+     * we'll be able to disable this test! */
+    test_ctx->domain->provider = discard_const_p(char, "local");
     ret = sysdb_get_new_id(test_ctx->domain, &id);
     fail_if(ret != EOK, "Cannot get new ID\n");
     fail_if(id != test_ctx->domain->id_min);
@@ -6634,20 +6641,20 @@ START_TEST(test_confdb_list_all_domain_names_single_dom)
     ck_assert(confdb != NULL);
 
     /* One domain */
-    val[0] = "LOCAL";
+    val[0] = "FILES";
     ret = confdb_add_param(confdb, true,
                            "config/sssd", "domains", val);
     ck_assert_int_eq(ret, EOK);
 
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(confdb, true,
-                           "config/domain/LOCAL", "id_provider", val);
+                           "config/domain/FILES", "id_provider", val);
     ck_assert_int_eq(ret, EOK);
 
     ret = confdb_list_all_domain_names(tmp_ctx, confdb, &names);
     ck_assert_int_eq(ret, EOK);
     ck_assert(names != NULL);
-    ck_assert_str_eq(names[0], "LOCAL");
+    ck_assert_str_eq(names[0], "FILES");
     ck_assert(names[1] == NULL);
 
     talloc_free(tmp_ctx);
@@ -7072,14 +7079,14 @@ START_TEST(test_confdb_list_all_domain_names_multi_dom)
     ck_assert(confdb != NULL);
 
     /* Two domains */
-    val[0] = "LOCAL";
+    val[0] = "FILES";
     ret = confdb_add_param(confdb, true,
                            "config/sssd", "domains", val);
     ck_assert_int_eq(ret, EOK);
 
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(confdb, true,
-                           "config/domain/LOCAL", "id_provider", val);
+                           "config/domain/FILES", "id_provider", val);
     ck_assert_int_eq(ret, EOK);
 
     val[0] = "REMOTE";
@@ -7087,7 +7094,7 @@ START_TEST(test_confdb_list_all_domain_names_multi_dom)
                            "config/sssd", "domains", val);
     ck_assert_int_eq(ret, EOK);
 
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(confdb, true,
                            "config/domain/REMOTE", "id_provider", val);
     ck_assert_int_eq(ret, EOK);
@@ -7095,7 +7102,7 @@ START_TEST(test_confdb_list_all_domain_names_multi_dom)
     ret = confdb_list_all_domain_names(tmp_ctx, confdb, &names);
     ck_assert_int_eq(ret, EOK);
     ck_assert(names != NULL);
-    ck_assert_str_eq(names[0], "LOCAL");
+    ck_assert_str_eq(names[0], "FILES");
     ck_assert_str_eq(names[1], "REMOTE");
     ck_assert(names[2] == NULL);
     talloc_free(tmp_ctx);
@@ -7668,7 +7675,7 @@ int main(int argc, const char *argv[]) {
     tests_set_cwd();
     talloc_enable_null_tracking();
 
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, "FILES");
 
     sysdb_suite = create_sysdb_suite();
     sr = srunner_create(sysdb_suite);
@@ -7677,7 +7684,7 @@ int main(int argc, const char *argv[]) {
     failure_count = srunner_ntests_failed(sr);
     srunner_free(sr);
     if (failure_count == 0 && !no_cleanup) {
-        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, "FILES");
     }
     return (failure_count==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
