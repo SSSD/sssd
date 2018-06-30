@@ -29,28 +29,6 @@
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_async.h"
 
-static void
-disable_gc(struct ad_options *ad_options)
-{
-    errno_t ret;
-
-    if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_GC) == false) {
-        return;
-    }
-
-    DEBUG(SSSDBG_IMPORTANT_INFO, "POSIX attributes were requested "
-          "but are not present on the server side. Global Catalog "
-          "lookups will be disabled\n");
-
-    ret = dp_opt_set_bool(ad_options->basic,
-                          AD_ENABLE_GC, false);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-                "Could not turn off GC support\n");
-        /* Not fatal */
-    }
-}
-
 static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
                                     struct sss_domain_info *domain,
                                     int filter_type,
@@ -296,14 +274,12 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     if (sdap_err == EOK) {
         tevent_req_done(req);
         return;
-    } else if (sdap_err == ERR_NO_POSIX) {
-        disable_gc(state->ad_options);
     } else if (sdap_err != ENOENT) {
         ret = EIO;
         goto fail;
     }
 
-    /* Ret is only ENOENT or ERR_NO_POSIX now. Try the next connection */
+    /* Ret is only ENOENT now. Try the next connection */
     state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
@@ -710,22 +686,7 @@ ad_enumeration_done(struct tevent_req *subreq)
 
     ret = sdap_dom_enum_ex_recv(subreq);
     talloc_zfree(subreq);
-    if (ret == ERR_NO_POSIX) {
-        /* Retry enumerating the same domain again, this time w/o
-         * connecting to GC
-         */
-        disable_gc(state->id_ctx->ad_options);
-        ret = ad_enum_sdom(req, state->sditer, state->id_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                "Could not retry domain %s\n", state->sditer->dom->name);
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        /* Execution will resume in ad_enumeration_done */
-        return;
-    } else if (ret != EOK) {
+    if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not enumerate domain %s\n", state->sditer->dom->name);
         tevent_req_error(req, ret);
