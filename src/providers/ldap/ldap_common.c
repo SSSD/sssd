@@ -884,20 +884,3 @@ sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
 
     return sdap_ctx;
 }
-
-bool should_run_posix_check(struct sdap_id_ctx *ctx,
-                            struct sdap_id_conn_ctx *conn,
-                            bool use_id_mapping,
-                            bool posix_request)
-{
-    if (use_id_mapping == false &&
-            posix_request == true &&
-            ctx->opts->schema_type == SDAP_SCHEMA_AD &&
-            conn->check_posix_attrs == true &&
-            ctx->srv_opts &&
-            ctx->srv_opts->posix_checked == false) {
-        return true;
-    }
-
-    return false;
-}

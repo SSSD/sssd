@@ -1388,7 +1388,6 @@ ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
         clist[cindex] = ad_ctx->gc_ctx;
         clist[cindex]->ignore_mark_offline = true;
         clist[cindex]->no_mpg_user_fallback = true;
-        clist[cindex]->check_posix_attrs = true;
         cindex++;
     }
 
@@ -1435,7 +1434,6 @@ ad_user_conn_list(TALLOC_CTX *mem_ctx,
             && IS_SUBDOMAIN(dom)) {
         clist[cindex] = ad_ctx->gc_ctx;
         clist[cindex]->ignore_mark_offline = true;
-        clist[cindex]->check_posix_attrs = true;
         cindex++;
     }
 
