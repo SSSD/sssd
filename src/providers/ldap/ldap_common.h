@@ -59,8 +59,6 @@ struct sdap_id_conn_ctx {
     bool ignore_mark_offline;
     /* do not fall back to user lookups for mpg domains on this connection */
     bool no_mpg_user_fallback;
-    /* check if this connection contains POSIX attributes */
-    bool check_posix_attrs;
 };
 
 struct sdap_id_ctx {
@@ -308,11 +306,6 @@ char *get_enterprise_principal_string_filter(TALLOC_CTX *mem_ctx,
                                              const char *attr_name,
                                              const char *princ,
                                              struct dp_option *sdap_basic_opts);
-
-bool should_run_posix_check(struct sdap_id_ctx *ctx,
-                            struct sdap_id_conn_ctx *conn,
-                            bool id_mapping,
-                            bool posix_request);
 
 char *sdap_get_access_filter(TALLOC_CTX *mem_ctx,
                              const char *base_filter);
