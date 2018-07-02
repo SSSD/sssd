@@ -419,6 +419,22 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
+    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize certificate mapping rules. "
+              "Authentication with certificates/Smartcards might not work "
+              "as expected.\n");
+        /* not fatal, ignored */
+    }
+
+    ret = sdap_init_certmap(sdap_id_ctx, sdap_id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialized certificate mapping.\n");
+        return ret;
+    }
+
     return EOK;
 }
 
