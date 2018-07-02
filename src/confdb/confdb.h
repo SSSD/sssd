@@ -267,6 +267,14 @@
 #define CONFDB_KCM_SOCKET "socket_path"
 #define CONFDB_KCM_DB "ccache_storage" /* Undocumented on purpose */
 
+/* Certificate mapping rules */
+#define CONFDB_CERTMAP_BASEDN "cn=certmap,cn=config"
+#define CONFDB_CERTMAP_NAME "cn"
+#define CONFDB_CERTMAP_MAPRULE "maprule"
+#define CONFDB_CERTMAP_MATCHRULE "matchrule"
+#define CONFDB_CERTMAP_DOMAINS "domains"
+#define CONFDB_CERTMAP_PRIORITY "priority"
+
 /* Prompting */
 #define CONFDB_PC_CONF_ENTRY "config/prompting"
 #define CONFDB_PC_TYPE_PASSWORD "password"
@@ -681,6 +689,21 @@ int confdb_get_sub_sections(TALLOC_CTX *mem_ctx,
                             const char *section,
                             char ***sections,
                             int *num_sections);
+
+/**
+ * @brief Convenience function to write the certificate mapping and matching
+ * rules from the configuration database to the cache of a domain
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] dom Target domain where to rules should be written to
+ *
+ * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - Typically internal processing error
+ */
+int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
+                            struct sss_domain_info *dom);
+
 /**
  * @}
  */
