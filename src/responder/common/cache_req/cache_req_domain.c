@@ -207,7 +207,7 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
          * NOTE: we do *not* want to use fully qualified names for the
          * files provider.*/
         if (resolution_order != NULL) {
-            if (strcmp(cr_domain->domain->provider, "files") != 0) {
+            if (!is_files_provider(cr_domain->domain)) {
                 sss_domain_info_set_output_fqnames(cr_domain->domain, true);
             }
         }

@@ -998,7 +998,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                   "Interpreting as true\n", domain->name);
         domain->enumerate = true;
     } else { /* assume the new format */
-        enum_default = strcasecmp(domain->provider, "files") == 0 ? true : false;
+        enum_default = is_files_provider(domain);
 
         ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
                                 CONFDB_DOMAIN_ENUMERATE, enum_default);
@@ -1009,7 +1009,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
-    if (strcasecmp(domain->provider, "files") == 0) {
+    if (is_files_provider(domain)) {
         /* The password field must be reported as 'x', else pam_unix won't
          * authenticate this entry. See man pwconv(8) for more details.
          */
@@ -1285,7 +1285,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                       CONFDB_NSS_OVERRIDE_HOMEDIR, NULL);
     /* Here we skip the files provider as it should always return *only*
      * what's in the files and nothing else. */
-    if (tmp != NULL && strcasecmp(domain->provider, "files") != 0) {
+    if (tmp != NULL && !is_files_provider(domain)) {
         domain->override_homedir = talloc_strdup(domain, tmp);
         if (!domain->override_homedir) {
             ret = ENOMEM;
@@ -1328,7 +1328,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                       CONFDB_NSS_OVERRIDE_SHELL, NULL);
     /* Here we skip the files provider as it should always return *only*
      * what's in the files and nothing else. */
-    if (tmp != NULL && strcasecmp(domain->provider, "files") != 0) {
+    if (tmp != NULL && !is_files_provider(domain)) {
         domain->override_shell = talloc_strdup(domain, tmp);
         if (!domain->override_shell) {
             ret = ENOMEM;

@@ -410,7 +410,7 @@ sss_resp_get_shell_override(struct ldb_message *msg,
 
     /* Here we skip the files provider as it should always return *only*
      * what's in the files and nothing else. */
-    if (strcasecmp(domain->provider, "files") != 0) {
+    if (!is_files_provider(domain)) {
         /* Check whether we are unconditionally overriding
          * the server for the login shell. */
         if (domain->override_shell) {
