@@ -593,6 +593,10 @@ errno_t get_dom_names(TALLOC_CTX *mem_ctx,
                       char ***_dom_names,
                       int *_dom_names_count);
 
+/* Returns true if the provider used for the passed domain is the "files"
+ * one. Otherwise returns false. */
+bool is_files_provider(struct sss_domain_info *domain);
+
 /* from util_lock.c */
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait);
