@@ -928,3 +928,9 @@ bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain)
 {
     return domain->output_fqnames;
 }
+
+bool is_files_provider(struct sss_domain_info *domain)
+{
+    return domain->provider != NULL &&
+           strcasecmp(domain->provider, "files") == 0;
+}
