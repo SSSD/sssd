@@ -131,7 +131,7 @@ static errno_t sysdb_certmap_add(struct sysdb_ctx *sysdb,
         }
     }
 
-    if (certmap->domains != NULL) {
+    if (certmap->domains != NULL && certmap->domains[0] != NULL) {
         for (c = 0; certmap->domains[c] != NULL; c++);
         el = talloc_zero(tmp_ctx, struct ldb_message_element);
         if (el == NULL) {
