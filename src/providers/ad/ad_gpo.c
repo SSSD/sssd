@@ -1586,6 +1586,7 @@ struct ad_gpo_access_state {
     struct ldb_context *ldb_ctx;
     struct ad_access_ctx *access_ctx;
     enum gpo_access_control_mode gpo_mode;
+    bool gpo_implicit_deny;
     enum gpo_map_type gpo_map_type;
     struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *sdap_op;
@@ -1712,6 +1713,8 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     state->gpo_mode = ctx->gpo_access_control_mode;
     state->gpo_timeout_option = ctx->gpo_cache_timeout;
     state->ad_hostname = dp_opt_get_string(ctx->ad_options, AD_HOSTNAME);
+    state->gpo_implicit_deny = dp_opt_get_bool(ctx->ad_options,
+                                               AD_GPO_IMPLICIT_DENY);
     state->access_ctx = ctx;
     state->opts = ctx->sdap_access_ctx->id_ctx->opts;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
@@ -2171,7 +2174,15 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
             }
         }
 
-        ret = EOK;
+        if (state->gpo_implicit_deny == true) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "No applicable GPOs have been found and ad_gpo_implicit_deny"
+                  " is set to 'true'. The user will be denied access.\n");
+            ret = ERR_ACCESS_DENIED;
+        } else {
+            ret = EOK;
+        }
+
         goto done;
     }
 

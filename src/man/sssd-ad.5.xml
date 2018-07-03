@@ -418,6 +418,27 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_gpo_implicit_deny (boolean)</term>
+                    <listitem>
+                        <para>
+                            Normally when no applicable GPOs are found the
+                            users are allowed access. When this option is set
+                            to True users will be allowed access only when
+                            explicitly allowed by a GPO rule. Otherwise users
+                            will be denied access. This can be used to harden
+                            security but be careful when using this option
+                            because it can deny access even to users in the
+                            built-in Administrators group if no GPO rules
+                            apply to them.
+                        </para>
+                        <para>
+                            Default: False (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+
+                <varlistentry>
                     <term>ad_gpo_cache_timeout (integer)</term>
                     <listitem>
                         <para>
