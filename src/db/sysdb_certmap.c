@@ -22,6 +22,7 @@
 
 #include "util/util.h"
 #include "db/sysdb_private.h"
+#include "lib/certmap/sss_certmap.h"
 
 static errno_t sysdb_create_certmap_container(struct sysdb_ctx *sysdb,
                                               bool user_name_hint)
@@ -327,6 +328,8 @@ errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
         }
 
         map->priority = (uint32_t) tmp_uint;
+    } else {
+        map->priority = SSS_CERTMAP_MIN_PRIO;
     }
 
     tmp_el = ldb_msg_find_element(msg, SYSDB_CERTMAP_DOMAINS);
