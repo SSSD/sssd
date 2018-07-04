@@ -54,8 +54,38 @@
 #define SLAVE_DOMAIN_FILTER      "(&"SLAVE_DOMAIN_FILTER_BASE")"
 #define FOREST_ROOT_FILTER_FMT   "(&"SLAVE_DOMAIN_FILTER_BASE"(cn=%s))"
 
+/* Attributes of schema objects. See e.g.
+ * https://docs.microsoft.com/en-us/windows/desktop/AD/characteristics-of-attributes
+ * for more details
+ */
+#define AD_SCHEMA_AT_OC         "attributeSchema"
+#define AD_AT_SCHEMA_NAME       "cn"
+#define AD_AT_SCHEMA_IS_REPL    "isMemberOfPartialAttributeSet"
+
 /* do not refresh more often than every 5 seconds for now */
 #define AD_SUBDOMAIN_REFRESH_LIMIT 5
+
+static void
+ad_disable_gc(struct ad_options *ad_options)
+{
+    errno_t ret;
+
+    if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_GC) == false) {
+        return;
+    }
+
+    DEBUG(SSSDBG_IMPORTANT_INFO, "POSIX attributes were requested "
+          "but are not present on the server side. Global Catalog "
+          "lookups will be disabled\n");
+
+    ret = dp_opt_set_bool(ad_options->basic,
+                          AD_ENABLE_GC, false);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+                "Could not turn off GC support\n");
+        /* Not fatal */
+    }
+}
 
 static struct sss_domain_info *
 ads_get_root_domain(struct be_ctx *be_ctx, struct sysdb_attrs *attrs)
@@ -1261,6 +1291,212 @@ static errno_t ad_get_root_domain_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static void ad_check_gc_usability_search_done(struct tevent_req *subreq);
+
+struct ad_check_gc_usability_state {
+    struct sdap_options *sdap_opts;
+
+    const char *attrs[3];
+
+    bool is_gc_usable;
+};
+
+static struct tevent_req *
+ad_check_gc_usability_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct ad_options *ad_options,
+                           struct sdap_options *sdap_opts,
+                           struct sdap_id_op *op,
+                           const char *domain_name,
+                           const char *domain_sid)
+{
+    struct ad_check_gc_usability_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    const char *filter = NULL;
+    errno_t ret;
+    bool uses_id_mapping;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_check_gc_usability_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->sdap_opts = sdap_opts;
+    state->is_gc_usable = false;
+
+    if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_GC) == false) {
+        DEBUG(SSSDBG_TRACE_FUNC, "GC explicitly disabled\n");
+        state->is_gc_usable = false;
+        ret = EOK;
+        goto immediately;
+    }
+
+    uses_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                        sdap_opts->idmap_ctx,
+                                                        domain_name,
+                                                        domain_sid);
+    if (uses_id_mapping == true) {
+        DEBUG(SSSDBG_TRACE_FUNC, "GC always usable while ID mapping\n");
+        state->is_gc_usable = true;
+        ret = EOK;
+        goto immediately;
+    }
+
+    /* The schema partition is replicated across all DCs in the forest, so
+     * it's safe to use the baseDN even if e.g. joined to a child domain
+     * even though the base DN "looks" like a part of the forest root
+     * tree. On the other hand, it doesn't make sense to guess the value
+     * if we can't detect it from the rootDSE.
+     */
+    if (state->sdap_opts->schema_basedn == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "No idea where to look for the schema, disabling GC\n");
+        state->is_gc_usable = false;
+        ret = EOK;
+        goto immediately;
+    }
+
+    state->attrs[0] = AD_AT_SCHEMA_NAME;
+    state->attrs[1] = AD_AT_SCHEMA_IS_REPL;
+    state->attrs[2] = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking for POSIX attributes in GC\n");
+
+    filter = talloc_asprintf(
+                        state,
+                        "(&(objectclass=%s)(|(%s=%s)(%s=%s)))",
+                        AD_SCHEMA_AT_OC,
+                        AD_AT_SCHEMA_NAME,
+                        state->sdap_opts->user_map[SDAP_AT_USER_UID].name,
+                        AD_AT_SCHEMA_NAME,
+                        state->sdap_opts->group_map[SDAP_AT_GROUP_GID].name);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    subreq = sdap_get_generic_send(state,
+                                   ev,
+                                   state->sdap_opts,
+                                   sdap_id_op_handle(op),
+                                   state->sdap_opts->schema_basedn,
+                                   LDAP_SCOPE_SUBTREE,
+                                   filter,
+                                   state->attrs,
+                                   NULL, 0,
+                                   dp_opt_get_int(state->sdap_opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    tevent_req_set_callback(subreq, ad_check_gc_usability_search_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void ad_check_gc_usability_search_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ad_check_gc_usability_state *state = tevent_req_data(req,
+                                          struct ad_check_gc_usability_state);
+    errno_t ret;
+    size_t reply_count;
+    struct sysdb_attrs **reply = NULL;
+    bool uid = false;
+    bool gid = false;
+
+    ret = sdap_get_generic_recv(subreq, state, &reply_count, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_get_generic_recv failed [%d]: %s\n",
+              ret, strerror(ret));
+        /* We continue to finish sdap_id_op. */
+    }
+
+    if (reply_count == 0) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Nothing found, so no POSIX attrs can exist\n");
+        state->is_gc_usable = false;
+        tevent_req_done(req);
+        return;
+    }
+
+    for (size_t i = 0; i < reply_count; i++) {
+        const char *name = NULL;
+        const char *is_in_partial_set = NULL;
+        bool *val = NULL;
+
+        ret = sysdb_attrs_get_string(reply[i], AD_AT_SCHEMA_NAME, &name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get "AD_AT_SCHEMA_NAME);
+            continue;
+        }
+
+        if (strcasecmp(name, state->sdap_opts->user_map[SDAP_AT_USER_UID].name) == 0) {
+            val = &uid;
+        } else if (strcasecmp(name, state->sdap_opts->user_map[SDAP_AT_USER_GID].name) == 0) {
+            val = &gid;
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected attribute\n");
+            continue;
+        }
+
+        ret = sysdb_attrs_get_string(reply[i],
+                                     AD_AT_SCHEMA_IS_REPL,
+                                     &is_in_partial_set);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get "AD_AT_SCHEMA_IS_REPL);
+            continue;
+        }
+
+        if (strcasecmp(is_in_partial_set, "true") == 0) {
+            *val = true;
+        }
+    }
+
+    if (uid == true && gid == true) {
+        state->is_gc_usable = true;
+    }
+
+    if (state->is_gc_usable == true) {
+        DEBUG(SSSDBG_FUNC_DATA, "Server has POSIX attributes. Global Catalog will "
+                                "be used for user and group lookups. Note that if "
+                                "only a subset of POSIX attributes is present "
+                                "in GC, the non-replicated attributes are "
+                                "currently not read from the LDAP port\n");
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t ad_check_gc_usability_recv(struct tevent_req *req,
+                                          bool *_is_gc_usable)
+{
+    struct ad_check_gc_usability_state *state = NULL;
+
+    state = tevent_req_data(req, struct ad_check_gc_usability_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_is_gc_usable = state->is_gc_usable;
+    return EOK;
+}
+
 struct ad_subdomains_refresh_state {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
@@ -1268,11 +1504,14 @@ struct ad_subdomains_refresh_state {
     struct sdap_id_op *sdap_op;
     struct sdap_id_ctx *id_ctx;
     struct ad_options *ad_options;
+
+    char *forest;
 };
 
 static errno_t ad_subdomains_refresh_retry(struct tevent_req *req);
 static void ad_subdomains_refresh_connect_done(struct tevent_req *subreq);
 static void ad_subdomains_refresh_master_done(struct tevent_req *subreq);
+static void ad_subdomains_refresh_gc_check_done(struct tevent_req *subreq);
 static void ad_subdomains_refresh_root_done(struct tevent_req *subreq);
 static void ad_subdomains_refresh_done(struct tevent_req *subreq);
 
@@ -1385,37 +1624,73 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
     struct ad_subdomains_refresh_state *state;
     struct tevent_req *req;
     const char *realm;
-    const char *ad_domain;
     char *master_sid;
     char *flat_name;
-    char *forest;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_subdomains_refresh_state);
 
     ret = ad_master_domain_recv(subreq, state, &flat_name, &master_sid,
-                                NULL, &forest);
+                                NULL, &state->forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get master domain information "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
+        tevent_req_error(req, ret);
+        return;
     }
 
     realm = dp_opt_get_cstring(state->ad_options->basic, AD_KRB5_REALM);
     if (realm == NULL) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Missing realm.\n");
-        ret = EINVAL;
-        goto done;
+        tevent_req_error(req, EINVAL);
+        return;
     }
 
     ret = sysdb_master_domain_add_info(state->be_ctx->domain, realm,
-                                       flat_name, master_sid, forest, NULL);
+                                       flat_name, master_sid, state->forest, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info [%d]: %s\n",
               ret, sss_strerror(ret));
-        goto done;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = ad_check_gc_usability_send(state,
+                                        state->ev,
+                                        state->ad_options,
+                                        state->id_ctx->opts,
+                                        state->sdap_op,
+                                        state->be_ctx->domain->name,
+                                        master_sid);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, ad_subdomains_refresh_gc_check_done, req);
+}
+
+static void ad_subdomains_refresh_gc_check_done(struct tevent_req *subreq)
+{
+    struct ad_subdomains_refresh_state *state;
+    struct tevent_req *req;
+    const char *ad_domain;
+    bool is_gc_usable;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_subdomains_refresh_state);
+
+    ret = ad_check_gc_usability_recv(subreq, &is_gc_usable);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get GC usability status\n");
+        is_gc_usable = false;
+    }
+
+    if (is_gc_usable == false) {
+        ad_disable_gc(state->ad_options);
     }
 
     /*
@@ -1428,7 +1703,8 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
                            state->be_ctx->domain->name) == 0) {
                 DEBUG(SSSDBG_TRACE_FUNC,
                       "No other enabled domain than master.\n");
-                goto done;
+                tevent_req_done(req);
+                return;
             }
         }
     }
@@ -1440,24 +1716,16 @@ static void ad_subdomains_refresh_master_done(struct tevent_req *subreq)
         ad_domain = state->sd_ctx->be_ctx->domain->name;
     }
 
-    subreq = ad_get_root_domain_send(state, state->ev, ad_domain, forest,
+    subreq = ad_get_root_domain_send(state, state->ev, ad_domain, state->forest,
                                      sdap_id_op_handle(state->sdap_op),
                                      state->sd_ctx);
     if (subreq == NULL) {
-        ret = ENOMEM;
-        goto done;
+        tevent_req_error(req, ENOMEM);
+        return;
     }
 
     tevent_req_set_callback(subreq, ad_subdomains_refresh_root_done, req);
     return;
-
-done:
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
 }
 
 static void ad_subdomains_refresh_root_done(struct tevent_req *subreq)
