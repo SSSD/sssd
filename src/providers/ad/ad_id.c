@@ -1080,7 +1080,6 @@ ad_enumeration_recv(struct tevent_req *req)
 static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req);
 static errno_t ad_get_account_domain_connect_retry(struct tevent_req *req);
 static void ad_get_account_domain_connect_done(struct tevent_req *subreq);
-static void ad_get_account_domain_posix_check_done(struct tevent_req *subreq);
 static void ad_get_account_domain_search(struct tevent_req *req);
 static void ad_get_account_domain_search_done(struct tevent_req *subreq);
 static void ad_get_account_domain_evaluate(struct tevent_req *req);
@@ -1300,79 +1299,6 @@ static void ad_get_account_domain_connect_done(struct tevent_req *subreq)
     if (ret != EOK) {
         state->dp_error = dp_error;
         tevent_req_error(req, ret);
-        return;
-    }
-
-    /* If POSIX attributes have been requested with an AD server and we
-     * have no idea about POSIX attributes support, run a one-time check
-     */
-    if (state->sdap_id_ctx->srv_opts &&
-        state->sdap_id_ctx->srv_opts->posix_checked == false) {
-        subreq = sdap_gc_posix_check_send(state,
-                                          state->ev,
-                                          state->sdap_id_ctx->opts,
-                                          sdap_id_op_handle(state->op),
-                                          dp_opt_get_int(
-                                              state->sdap_id_ctx->opts->basic,
-                                              SDAP_SEARCH_TIMEOUT));
-        if (subreq == NULL) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, ad_get_account_domain_posix_check_done, req);
-        return;
-    }
-
-    ad_get_account_domain_search(req);
-}
-
-static void ad_get_account_domain_posix_check_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct ad_get_account_domain_state *state = tevent_req_data(req,
-                                          struct ad_get_account_domain_state);
-    int dp_error = DP_ERR_FATAL;
-    bool has_posix;
-    errno_t ret;
-    errno_t ret2;
-
-    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* We can only finish the id_op on error as the connection
-         * is re-used by the real search
-         */
-        ret2 = sdap_id_op_done(state->op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret2 != EOK) {
-            /* retry */
-            ret = ad_get_account_domain_connect_retry(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
-            return;
-        }
-
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    state->sdap_id_ctx->srv_opts->posix_checked = true;
-
-    /*
-     * If the GC has no POSIX attributes, there is nothing we can do.
-     * Return an error and let the responders disable the functionality
-     * from now on.
-     */
-    if (has_posix == false) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "The Global Catalog has no POSIX attributes\n");
-
-        disable_gc(state->id_ctx->ad_options);
-        dp_reply_std_set(&state->reply,
-                         DP_ERR_DECIDE, ERR_GET_ACCT_DOM_NOT_SUPPORTED,
-                         NULL);
-        tevent_req_done(req);
         return;
     }
 
