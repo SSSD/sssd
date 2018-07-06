@@ -189,6 +189,16 @@ int sssm_files_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize certificate mapping rules. "
+              "Authentication with certificates/Smartcards might not work "
+              "as expected.\n");
+        /* not fatal, ignored */
+    }
+
+
     *_module_data = ctx;
     ret = EOK;
 done:
