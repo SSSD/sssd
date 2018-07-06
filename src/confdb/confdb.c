@@ -2203,6 +2203,56 @@ done:
     return ret;
 }
 
+static errno_t certmap_local_check(struct ldb_message *msg)
+{
+    const char *rule_name;
+    const char *tmp_str;
+    int ret;
+
+    rule_name = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_NAME, NULL);
+    if (rule_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Certficate mapping rule [%s] has no name.",
+                                   ldb_dn_get_linearized(msg->dn));
+        return EINVAL;
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_DOMAINS, NULL);
+    if (tmp_str != NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Option [%s] is ignored for local certmap rules.\n",
+              CONFDB_CERTMAP_DOMAINS);
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_MAPRULE, NULL);
+    if (tmp_str != NULL) {
+        if (tmp_str[0] != '(' || tmp_str[strlen(tmp_str) - 1] != ')') {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Mapping rule must be in braces (...).\n");
+            return EINVAL;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Using [%s] mapping rule of [%s].\n",
+                                tmp_str, ldb_dn_get_linearized(msg->dn));
+        return EOK;
+    }
+
+    tmp_str = talloc_asprintf(msg, "(%s)", rule_name);
+    if (tmp_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        return ENOMEM;
+    }
+    ret = ldb_msg_add_string(msg, CONFDB_CERTMAP_MAPRULE, tmp_str);
+    if (ret != LDB_SUCCESS) {
+        talloc_free(discard_const(tmp_str));
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_string failed.\n");
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Using [%s] as mapping rule for [%s].\n",
+                            tmp_str, ldb_dn_get_linearized(msg->dn));
+
+    return EOK;
+}
+
 static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
                                        struct confdb_ctx *cdb,
                                        struct sss_domain_info *dom,
@@ -2251,6 +2301,15 @@ static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
     }
 
     for (c = 0; c < res->count; c++) {
+        if (is_files_provider(dom)) {
+            ret = certmap_local_check(res->msgs[c]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "Invalid certificate mapping [%s] for local user, "
+                      "ignored.\n", ldb_dn_get_linearized(res->msgs[c]->dn));
+                continue;
+            }
+        }
         ret = sysdb_ldb_msg_attr_to_certmap_info(certmap_list, res->msgs[c],
                                                  attrs, &certmap_list[c]);
         if (ret != EOK) {

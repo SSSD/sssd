@@ -685,6 +685,7 @@ int confdb_get_sub_sections(TALLOC_CTX *mem_ctx,
  */
 int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
                             struct sss_domain_info *dom);
+
 /**
  * @}
  */
