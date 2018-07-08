@@ -1284,6 +1284,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
     const char *last_usn_name;
     const char *last_usn_value;
     const char *entry_usn_name;
+    const char *schema_nc = NULL;
     char *endptr = NULL;
     int ret;
     int i;
@@ -1399,6 +1400,15 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                   "Error detecting Active Directory compatibility level "
                    "(%s). Continuing without AD performance enhancements\n",
                    strerror(ret));
+        }
+
+        ret = sysdb_attrs_get_string(rootdse,
+                                     SDAP_ROOTDSE_ATTR_AD_SCHEMA_NC,
+                                     &schema_nc);
+        if (ret == EOK) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Will look for schema at [%s]\n", schema_nc);
+            opts->schema_basedn = talloc_strdup(opts, schema_nc);
         }
     }
 
