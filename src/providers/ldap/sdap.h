@@ -130,6 +130,7 @@ struct sdap_ppolicy_data {
 #define SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS "namingContexts"
 #define SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT "defaultNamingContext"
 #define SDAP_ROOTDSE_ATTR_AD_VERSION "domainControllerFunctionality"
+#define SDAP_ROOTDSE_ATTR_AD_SCHEMA_NC "schemaNamingContext"
 
 #define SDAP_IPA_USN "entryUSN"
 #define SDAP_IPA_LAST_USN "lastUSN"
@@ -496,8 +497,10 @@ struct sdap_options {
     /* The search bases for the domain or its subdomain */
     struct sdap_domain *sdom;
 
+    /* The options below are normally only used with AD */
     bool support_matching_rule;
     enum dc_functional_level dc_functional_level;
+    const char *schema_basedn;
 
     /* Certificate mapping support */
     struct sdap_certmap_ctx *sdap_certmap_ctx;
@@ -511,7 +514,6 @@ struct sdap_server_opts {
     char *max_group_value;
     char *max_service_value;
     char *max_sudo_value;
-    bool posix_checked;
 };
 
 struct sdap_id_ctx;

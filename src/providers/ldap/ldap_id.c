@@ -66,7 +66,6 @@ struct users_get_state {
 
 static int users_get_retry(struct tevent_req *req);
 static void users_get_connect_done(struct tevent_req *subreq);
-static void users_get_posix_check_done(struct tevent_req *subreq);
 static void users_get_search(struct tevent_req *req);
 static void users_get_done(struct tevent_req *subreq);
 
@@ -408,66 +407,6 @@ static void users_get_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    /* If POSIX attributes have been requested with an AD server and we
-     * have no idea about POSIX attributes support, run a one-time check
-     */
-    if (should_run_posix_check(state->ctx,
-                               state->conn,
-                               state->use_id_mapping,
-                               !state->non_posix)) {
-        subreq = sdap_gc_posix_check_send(state, state->ev, state->ctx->opts,
-                                          sdap_id_op_handle(state->op),
-                                          dp_opt_get_int(state->ctx->opts->basic,
-                                                         SDAP_SEARCH_TIMEOUT));
-        if (subreq == NULL) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, users_get_posix_check_done, req);
-        return;
-    }
-
-    users_get_search(req);
-}
-
-static void users_get_posix_check_done(struct tevent_req *subreq)
-{
-    errno_t ret;
-    errno_t ret2;
-    bool has_posix;
-    int dp_error;
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct users_get_state *state = tevent_req_data(req,
-                                                    struct users_get_state);
-
-    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* We can only finish the id_op on error as the connection
-         * is re-used by the user search
-         */
-        ret2 = sdap_id_op_done(state->op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret2 != EOK) {
-            /* retry */
-            ret = users_get_retry(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
-            return;
-        }
-    }
-
-    state->ctx->srv_opts->posix_checked = true;
-
-    /* If the check ran to completion, we know for certain about the attributes
-     */
-    if (ret == EOK && has_posix == false) {
-        state->sdap_ret = ERR_NO_POSIX;
-        tevent_req_done(req);
-        return;
-    }
-
     users_get_search(req);
 }
 
@@ -691,7 +630,6 @@ struct groups_get_state {
 
 static int groups_get_retry(struct tevent_req *req);
 static void groups_get_connect_done(struct tevent_req *subreq);
-static void groups_get_posix_check_done(struct tevent_req *subreq);
 static void groups_get_mpg_done(struct tevent_req *subreq);
 static errno_t groups_get_handle_no_group(struct tevent_req *req);
 static void groups_get_search(struct tevent_req *req);
@@ -950,65 +888,6 @@ static void groups_get_connect_done(struct tevent_req *subreq)
     if (ret != EOK) {
         state->dp_error = dp_error;
         tevent_req_error(req, ret);
-        return;
-    }
-
-    /* If POSIX attributes have been requested with an AD server and we
-     * have no idea about POSIX attributes support, run a one-time check
-     */
-    if (should_run_posix_check(state->ctx,
-                               state->conn,
-                               state->use_id_mapping,
-                               !state->non_posix)) {
-        subreq = sdap_gc_posix_check_send(state, state->ev, state->ctx->opts,
-                                          sdap_id_op_handle(state->op),
-                                          dp_opt_get_int(state->ctx->opts->basic,
-                                                         SDAP_SEARCH_TIMEOUT));
-        if (subreq == NULL) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, groups_get_posix_check_done, req);
-        return;
-    }
-
-    groups_get_search(req);
-}
-
-static void groups_get_posix_check_done(struct tevent_req *subreq)
-{
-    errno_t ret;
-    bool has_posix;
-    int dp_error;
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct groups_get_state *state = tevent_req_data(req,
-                                                     struct groups_get_state);
-
-    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* We can only finish the id_op on error as the connection
-         * is re-used by the group search
-         */
-        ret = sdap_id_op_done(state->op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret != EOK) {
-            /* retry */
-            ret = groups_get_retry(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
-            return;
-        }
-    }
-
-    state->ctx->srv_opts->posix_checked = true;
-
-    /* If the check ran to completion, we know for certain about the attributes
-     */
-    if (has_posix == false) {
-        state->sdap_ret = ERR_NO_POSIX;
-        tevent_req_done(req);
         return;
     }
 

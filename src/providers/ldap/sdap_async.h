@@ -281,19 +281,6 @@ int sdap_deref_search_recv(struct tevent_req *req,
                            size_t *reply_count,
                            struct sdap_deref_attrs ***reply);
 
-/*
- * This request should only be ran against a Global Catalog connection
- * because it uses a NULL search base to search all domains in the forest,
- * which would return an error with an LDAP port:
- *  https://technet.microsoft.com/en-us/library/cc755809(v=ws.10).aspx
- */
-struct tevent_req *
-sdap_gc_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
-                         struct sdap_options *opts, struct sdap_handle *sh,
-                         int timeout);
-
-int sdap_gc_posix_check_recv(struct tevent_req *req,
-                             bool *_has_posix);
 
 struct tevent_req *
 sdap_sd_search_send(TALLOC_CTX *memctx,

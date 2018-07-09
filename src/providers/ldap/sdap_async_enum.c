@@ -69,8 +69,6 @@ static errno_t sdap_dom_enum_ex_retry(struct tevent_req *req,
                                       tevent_req_fn tcb);
 static bool sdap_dom_enum_ex_connected(struct tevent_req *subreq);
 static void sdap_dom_enum_ex_get_users(struct tevent_req *subreq);
-static void sdap_dom_enum_ex_posix_check_done(struct tevent_req *subreq);
-static errno_t sdap_dom_enum_search_users(struct tevent_req *req);
 static void sdap_dom_enum_ex_users_done(struct tevent_req *subreq);
 static void sdap_dom_enum_ex_get_groups(struct tevent_req *subreq);
 static void sdap_dom_enum_ex_groups_done(struct tevent_req *subreq);
@@ -181,118 +179,19 @@ static void sdap_dom_enum_ex_get_users(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
                                                 struct sdap_dom_enum_ex_state);
-    bool use_id_mapping;
-    errno_t ret;
 
     if (sdap_dom_enum_ex_connected(subreq) == false) {
         return;
     }
 
-    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
-                                            state->ctx->opts->idmap_ctx,
-                                            state->sdom->dom->name,
-                                            state->sdom->dom->domain_id);
-
-    /* If POSIX attributes have been requested with an AD server and we
-     * have no idea about POSIX attributes support, run a one-time check
-     */
-    if (should_run_posix_check(state->ctx,
-                               state->user_conn,
-                               use_id_mapping,
-                               true)) {
-        subreq = sdap_gc_posix_check_send(state, state->ev, state->ctx->opts,
-                                          sdap_id_op_handle(state->user_op),
-                                          dp_opt_get_int(state->ctx->opts->basic,
-                                                         SDAP_SEARCH_TIMEOUT));
-        if (subreq == NULL) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq,
-                                sdap_dom_enum_ex_posix_check_done, req);
-        return;
-    }
-
-
-    ret = sdap_dom_enum_search_users(req);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    /* Execution resumes in sdap_dom_enum_ex_users_done */
-}
-
-static void sdap_dom_enum_ex_posix_check_done(struct tevent_req *subreq)
-{
-    errno_t ret;
-    bool has_posix;
-    int dp_error;
-
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
-                                                struct sdap_dom_enum_ex_state);
-
-    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
-    talloc_zfree(subreq);
-    if (ret != EOK && ret != ERR_NO_POSIX) {
-        /* We can only finish the id_op on error as the connection
-         * is re-used by the user search
-         */
-        ret = sdap_id_op_done(state->user_op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret != EOK) {
-            /* retry */
-            ret = sdap_dom_enum_ex_retry(req, state->user_op,
-                                         sdap_dom_enum_ex_get_users);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
-            return;
-        } else if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
-            tevent_req_done(req);
-            return;
-        } else {
-            /* Non-recoverable error */
-            DEBUG(SSSDBG_OP_FAILURE,
-                "POSIX check failed: %d: %s\n", ret, sss_strerror(ret));
-            tevent_req_error(req, ret);
-            return;
-        }
-    }
-
-    state->ctx->srv_opts->posix_checked = true;
-
-    /* If the check ran to completion, we know for certain about the attributes
-     */
-    if (has_posix == false) {
-        tevent_req_error(req, ERR_NO_POSIX);
-        return;
-    }
-
-
-    ret = sdap_dom_enum_search_users(req);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    /* Execution resumes in sdap_dom_enum_ex_users_done */
-}
-
-static errno_t sdap_dom_enum_search_users(struct tevent_req *req)
-{
-    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
-                                                struct sdap_dom_enum_ex_state);
-    struct tevent_req *subreq;
-
     subreq = enum_users_send(state, state->ev,
                              state->ctx, state->sdom,
                              state->user_op, state->purge);
     if (subreq == NULL) {
-        return ENOMEM;
+        tevent_req_error(req, ENOMEM);
+        return;
     }
     tevent_req_set_callback(subreq, sdap_dom_enum_ex_users_done, req);
-    return EOK;
 }
 
 static void sdap_dom_enum_ex_users_done(struct tevent_req *subreq)

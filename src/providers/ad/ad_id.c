@@ -29,28 +29,6 @@
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_async.h"
 
-static void
-disable_gc(struct ad_options *ad_options)
-{
-    errno_t ret;
-
-    if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_GC) == false) {
-        return;
-    }
-
-    DEBUG(SSSDBG_IMPORTANT_INFO, "POSIX attributes were requested "
-          "but are not present on the server side. Global Catalog "
-          "lookups will be disabled\n");
-
-    ret = dp_opt_set_bool(ad_options->basic,
-                          AD_ENABLE_GC, false);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-                "Could not turn off GC support\n");
-        /* Not fatal */
-    }
-}
-
 static bool ad_account_can_shortcut(struct sdap_idmap_ctx *idmap_ctx,
                                     struct sss_domain_info *domain,
                                     int filter_type,
@@ -296,14 +274,12 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     if (sdap_err == EOK) {
         tevent_req_done(req);
         return;
-    } else if (sdap_err == ERR_NO_POSIX) {
-        disable_gc(state->ad_options);
     } else if (sdap_err != ENOENT) {
         ret = EIO;
         goto fail;
     }
 
-    /* Ret is only ENOENT or ERR_NO_POSIX now. Try the next connection */
+    /* Ret is only ENOENT now. Try the next connection */
     state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
@@ -710,22 +686,7 @@ ad_enumeration_done(struct tevent_req *subreq)
 
     ret = sdap_dom_enum_ex_recv(subreq);
     talloc_zfree(subreq);
-    if (ret == ERR_NO_POSIX) {
-        /* Retry enumerating the same domain again, this time w/o
-         * connecting to GC
-         */
-        disable_gc(state->id_ctx->ad_options);
-        ret = ad_enum_sdom(req, state->sditer, state->id_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                "Could not retry domain %s\n", state->sditer->dom->name);
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        /* Execution will resume in ad_enumeration_done */
-        return;
-    } else if (ret != EOK) {
+    if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not enumerate domain %s\n", state->sditer->dom->name);
         tevent_req_error(req, ret);
@@ -1080,7 +1041,6 @@ ad_enumeration_recv(struct tevent_req *req)
 static errno_t ad_get_account_domain_prepare_search(struct tevent_req *req);
 static errno_t ad_get_account_domain_connect_retry(struct tevent_req *req);
 static void ad_get_account_domain_connect_done(struct tevent_req *subreq);
-static void ad_get_account_domain_posix_check_done(struct tevent_req *subreq);
 static void ad_get_account_domain_search(struct tevent_req *req);
 static void ad_get_account_domain_search_done(struct tevent_req *subreq);
 static void ad_get_account_domain_evaluate(struct tevent_req *req);
@@ -1300,79 +1260,6 @@ static void ad_get_account_domain_connect_done(struct tevent_req *subreq)
     if (ret != EOK) {
         state->dp_error = dp_error;
         tevent_req_error(req, ret);
-        return;
-    }
-
-    /* If POSIX attributes have been requested with an AD server and we
-     * have no idea about POSIX attributes support, run a one-time check
-     */
-    if (state->sdap_id_ctx->srv_opts &&
-        state->sdap_id_ctx->srv_opts->posix_checked == false) {
-        subreq = sdap_gc_posix_check_send(state,
-                                          state->ev,
-                                          state->sdap_id_ctx->opts,
-                                          sdap_id_op_handle(state->op),
-                                          dp_opt_get_int(
-                                              state->sdap_id_ctx->opts->basic,
-                                              SDAP_SEARCH_TIMEOUT));
-        if (subreq == NULL) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, ad_get_account_domain_posix_check_done, req);
-        return;
-    }
-
-    ad_get_account_domain_search(req);
-}
-
-static void ad_get_account_domain_posix_check_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct ad_get_account_domain_state *state = tevent_req_data(req,
-                                          struct ad_get_account_domain_state);
-    int dp_error = DP_ERR_FATAL;
-    bool has_posix;
-    errno_t ret;
-    errno_t ret2;
-
-    ret = sdap_gc_posix_check_recv(subreq, &has_posix);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* We can only finish the id_op on error as the connection
-         * is re-used by the real search
-         */
-        ret2 = sdap_id_op_done(state->op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret2 != EOK) {
-            /* retry */
-            ret = ad_get_account_domain_connect_retry(req);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-            }
-            return;
-        }
-
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    state->sdap_id_ctx->srv_opts->posix_checked = true;
-
-    /*
-     * If the GC has no POSIX attributes, there is nothing we can do.
-     * Return an error and let the responders disable the functionality
-     * from now on.
-     */
-    if (has_posix == false) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "The Global Catalog has no POSIX attributes\n");
-
-        disable_gc(state->id_ctx->ad_options);
-        dp_reply_std_set(&state->reply,
-                         DP_ERR_DECIDE, ERR_GET_ACCT_DOM_NOT_SUPPORTED,
-                         NULL);
-        tevent_req_done(req);
         return;
     }
 
