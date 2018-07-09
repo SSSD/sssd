@@ -63,7 +63,7 @@ int sss_hmac_sha1(const unsigned char *key,
     } else {
         /* keys shorter than blocksize are zero-padded */
         memcpy(ikey, key, key_len);
-        if (key_len != HMAC_SHA1_BLOCKSIZE) {
+        if (key_len < HMAC_SHA1_BLOCKSIZE) {
             memset(ikey + key_len, 0, HMAC_SHA1_BLOCKSIZE - key_len);
         }
     }
