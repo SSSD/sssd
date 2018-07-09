@@ -148,6 +148,7 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
     int flag = SSS_GND_ALL_DOMAINS;
     int i;
     bool enforce_non_fqnames = false;
+    bool files_provider = false;
     errno_t ret;
 
     /* Firstly, in case a domains' resolution order is passed ... iterate over
@@ -190,6 +191,8 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
             continue;
         }
 
+        files_provider = is_files_provider(dom);
+
         cr_domain = talloc_zero(mem_ctx, struct cache_req_domain);
         if (cr_domain == NULL) {
             ret = ENOMEM;
@@ -207,9 +210,19 @@ cache_req_domain_new_list_from_string_list(TALLOC_CTX *mem_ctx,
          * NOTE: we do *not* want to use fully qualified names for the
          * files provider.*/
         if (resolution_order != NULL) {
-            if (!is_files_provider(cr_domain->domain)) {
+            if (!files_provider) {
                 sss_domain_info_set_output_fqnames(cr_domain->domain, true);
             }
+        }
+
+        /* The implicit files provider should always be searched firstly,
+         * doesn't matter whether the domain_resolution_order set!
+         *
+         * By doing this we avoid querying other domains for local users.
+         */
+        if (files_provider) {
+            DLIST_ADD(cr_domains, cr_domain);
+            continue;
         }
 
         DLIST_ADD_END(cr_domains, cr_domain, struct cache_req_domain *);
