@@ -87,6 +87,26 @@ files_account_info_handler_send(TALLOC_CTX *mem_ctx,
                        ? true \
                        : false;
         break;
+    case BE_REQ_BY_CERT:
+        if (data->filter_type != BE_FILTER_CERT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unexpected filter type for lookup by cert: %d\n",
+                  data->filter_type);
+            ret = EINVAL;
+            goto immediate;
+        }
+        if (id_ctx->sss_certmap_ctx == NULL) {
+            DEBUG(SSSDBG_TRACE_ALL, "Certificate mapping not configured.\n");
+            ret = EOK;
+            goto immediate;
+        }
+
+        ret = files_map_cert_to_user(id_ctx, data);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "files_map_cert_to_user failed");
+        }
+        goto immediate;
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unexpected entry type: %d\n", data->entry_type & BE_REQ_TYPE_MASK);
