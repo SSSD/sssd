@@ -114,7 +114,7 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd);
 
 errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
-                                struct certmap_info **certmap_list);
+                                struct sss_domain_info *domains);
 
 errno_t
 pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,

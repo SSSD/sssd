@@ -142,11 +142,14 @@ static void ext_debug(void *private, const char *file, long line,
 }
 
 errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
-                                struct certmap_info **certmap_list)
+                                struct sss_domain_info *domains)
 {
     int ret;
     struct sss_certmap_ctx *sss_certmap_ctx = NULL;
     size_t c;
+    struct sss_domain_info *dom;
+    bool certmap_found = false;
+    struct certmap_info **certmap_list;
 
     ret = sss_certmap_init(pctx, ext_debug, NULL, &sss_certmap_ctx);
     if (ret != EOK) {
@@ -154,7 +157,15 @@ errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
         goto done;
     }
 
-    if (certmap_list == NULL || *certmap_list == NULL) {
+    DLIST_FOR_EACH(dom, domains) {
+        certmap_list = dom->certmaps;
+        if (certmap_list != NULL && *certmap_list != NULL) {
+            certmap_found = true;
+            break;
+        }
+    }
+
+    if (!certmap_found) {
         /* Try to add default matching rule */
         ret = sss_certmap_add_rule(sss_certmap_ctx, SSS_CERTMAP_MIN_PRIO,
                                    CERT_AUTH_DEFAULT_MATCHING_RULE, NULL, NULL);
@@ -166,23 +177,31 @@ errno_t p11_refresh_certmap_ctx(struct pam_ctx *pctx,
         goto done;
     }
 
-    for (c = 0; certmap_list[c] != NULL; c++) {
-        DEBUG(SSSDBG_TRACE_ALL,
-              "Trying to add rule [%s][%d][%s][%s].\n",
-              certmap_list[c]->name, certmap_list[c]->priority,
-              certmap_list[c]->match_rule, certmap_list[c]->map_rule);
-
-        ret = sss_certmap_add_rule(sss_certmap_ctx, certmap_list[c]->priority,
-                                   certmap_list[c]->match_rule,
-                                   certmap_list[c]->map_rule,
-                                   certmap_list[c]->domains);
-        if (ret != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_certmap_add_rule failed for rule [%s] "
-                  "with error [%d][%s], skipping. "
-                  "Please check for typos and if rule syntax is supported.\n",
-                  certmap_list[c]->name, ret, sss_strerror(ret));
+    DLIST_FOR_EACH(dom, domains) {
+        certmap_list = dom->certmaps;
+        if (certmap_list == NULL || *certmap_list == NULL) {
             continue;
+        }
+
+        for (c = 0; certmap_list[c] != NULL; c++) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Trying to add rule [%s][%d][%s][%s].\n",
+                  certmap_list[c]->name, certmap_list[c]->priority,
+                  certmap_list[c]->match_rule, certmap_list[c]->map_rule);
+
+            ret = sss_certmap_add_rule(sss_certmap_ctx,
+                                       certmap_list[c]->priority,
+                                       certmap_list[c]->match_rule,
+                                       certmap_list[c]->map_rule,
+                                       certmap_list[c]->domains);
+            if (ret != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sss_certmap_add_rule failed for rule [%s] "
+                      "with error [%d][%s], skipping. "
+                      "Please check for typos and if rule syntax is supported.\n",
+                      certmap_list[c]->name, ret, sss_strerror(ret));
+                continue;
+            }
         }
     }
 
@@ -204,19 +223,21 @@ errno_t p11_child_init(struct pam_ctx *pctx)
     int ret;
     struct certmap_info **certmaps;
     bool user_name_hint;
-    struct sss_domain_info *dom = pctx->rctx->domains;
+    struct sss_domain_info *dom;
 
-    ret = sysdb_get_certmap(dom, dom->sysdb, &certmaps, &user_name_hint);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_certmap failed.\n");
-        return ret;
+    DLIST_FOR_EACH(dom, pctx->rctx->domains) {
+        ret = sysdb_get_certmap(dom, dom->sysdb, &certmaps, &user_name_hint);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_certmap failed.\n");
+            return ret;
+        }
+
+        dom->user_name_hint = user_name_hint;
+        talloc_free(dom->certmaps);
+        dom->certmaps = certmaps;
     }
 
-    dom->user_name_hint = user_name_hint;
-    talloc_free(dom->certmaps);
-    dom->certmaps = certmaps;
-
-    ret = p11_refresh_certmap_ctx(pctx, dom->certmaps);
+    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "p11_refresh_certmap_ctx failed.\n");
         return ret;

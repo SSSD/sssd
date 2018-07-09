@@ -1737,7 +1737,7 @@ static void pam_forwarder_cb(struct tevent_req *req)
         goto done;
     }
 
-    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains->certmaps);
+    ret = p11_refresh_certmap_ctx(pctx, pctx->rctx->domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "p11_refresh_certmap_ctx failed, "
