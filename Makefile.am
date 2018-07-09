@@ -4285,6 +4285,8 @@ libsss_proxy_la_LDFLAGS = \
 libsss_files_la_SOURCES = \
     src/providers/files/files_init.c \
     src/providers/files/files_id.c \
+    src/providers/files/files_auth.c \
+    src/providers/files/files_certmap.c \
     src/providers/files/files_ops.c \
     src/util/inotify.c \
     $(NULL)

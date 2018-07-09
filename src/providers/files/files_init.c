@@ -196,8 +196,15 @@ int sssm_files_init(TALLOC_CTX *mem_ctx,
               "Authentication with certificates/Smartcards might not work "
               "as expected.\n");
         /* not fatal, ignored */
+    } else {
+        ret = files_init_certmap(ctx, ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "files_init_certmap failed. "
+                  "Authentication with certificates/Smartcards might not work "
+                  "as expected.\n");
+            /* not fatal, ignored */
+        }
     }
-
 
     *_module_data = ctx;
     ret = EOK;
@@ -231,6 +238,18 @@ int sssm_files_id_init(TALLOC_CTX *mem_ctx,
                   default_account_domain_recv,
                   NULL, void,
                   struct dp_get_acct_domain_data, struct dp_reply_std);
+
+    return EOK;
+}
+
+int sssm_files_auth_init(TALLOC_CTX *mem_ctx,
+                         struct be_ctx *be_ctx,
+                         void *module_data,
+                         struct dp_method *dp_methods)
+{
+    dp_set_method(dp_methods, DPM_AUTH_HANDLER,
+                  files_auth_handler_send, files_auth_handler_recv, NULL, void,
+                  struct pam_data, struct pam_data *);
 
     return EOK;
 }
