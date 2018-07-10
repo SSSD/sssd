@@ -365,11 +365,10 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
             if (posix != NULL && strcmp(posix, "FALSE") == 0) {
                 continue;
             } else {
-                DEBUG(SSSDBG_CRIT_FAILURE,
+                DEBUG(SSSDBG_MINOR_FAILURE,
                       "Incomplete group object [%s] for initgroups! "
-                      "Aborting.\n", ldb_dn_get_linearized(msg->dn));
-                ret = EINVAL;
-                goto done;
+                      "Skipping.\n", ldb_dn_get_linearized(msg->dn));
+                continue;
             }
         }
 
