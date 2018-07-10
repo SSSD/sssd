@@ -701,7 +701,7 @@ int main(int argc, const char *argv[])
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
 
-    kerr = become_user(ibuf->uid, ibuf->gid);
+    kerr = become_user_ex(ibuf->uid, ibuf->gid, true);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
         goto fail;

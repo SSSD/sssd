@@ -484,7 +484,7 @@ int server_setup(const char *name, int flags,
                   "Cannot chown the debug files, debugging might not work!\n");
         }
 
-        ret = become_user(uid, gid);
+        ret = become_user_ex(uid, gid, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_FUNC_DATA,
                   "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);

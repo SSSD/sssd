@@ -70,6 +70,93 @@ void test_become_user(void **state)
     assert_int_equal(WEXITSTATUS(status), 0);
 }
 
+void test_become_user_ex(void **state)
+{
+    struct passwd *sssd;
+    TALLOC_CTX *tmp_ctx;
+    gid_t *groups, *actual_groups;
+    errno_t ret;
+    pid_t pid, wpid;
+    int status;
+    int group_count, actual_group_count;
+
+    assert_true(leak_check_setup());
+
+    tmp_ctx = talloc_new(global_talloc_context);
+    assert_non_null(tmp_ctx);
+    check_leaks_push(tmp_ctx);
+
+    /* Must root as root, real or fake */
+    assert_int_equal(geteuid(), 0);
+
+    sssd = getpwnam("_sssd");
+    assert_non_null(sssd);
+
+    getgrouplist(sssd->pw_name, sssd->pw_gid, NULL, &group_count);
+    assert_int_not_equal(group_count, 0);
+    groups = talloc_array(tmp_ctx, gid_t, group_count);
+    assert_non_null(groups);
+    actual_groups = talloc_array(tmp_ctx, gid_t, group_count);
+    assert_non_null(actual_groups);
+    status = getgrouplist(sssd->pw_name, sssd->pw_gid, groups, &group_count);
+    assert_int_equal(status, group_count);
+
+    pid = fork();
+    if (pid == 0) {
+        /* Change the UID in a child */
+        ret = become_user_ex(sssd->pw_uid, sssd->pw_gid, true);
+        assert_int_equal(ret, EOK);
+
+        /* Make sure we have the requested UID and GID now and there
+         * are no supplementary groups
+         */
+        assert_int_equal(geteuid(), sssd->pw_uid);
+        assert_int_equal(getegid(), sssd->pw_gid);
+        assert_int_equal(getuid(), sssd->pw_uid);
+        assert_int_equal(getgid(), sssd->pw_gid);
+
+        /* Another become_user is a no-op */
+        ret = become_user(sssd->pw_uid, sssd->pw_gid);
+        assert_int_equal(ret, EOK);
+
+        actual_group_count = getgroups(0, NULL);
+        assert_int_equal(actual_group_count, group_count);
+        status = getgroups(actual_group_count, actual_groups);
+        assert_int_not_equal(status, -1);
+
+        for (int i = 0; i < group_count; i++) {
+            bool found_group = false;
+            if (actual_groups[i] == sssd->pw_gid) {
+                /* in general getgroups is not guaranteed to return effective gid */
+                continue;
+            }
+            for (int j = 0; j < group_count; j++) {
+                if (groups[j] != actual_groups[i]) {
+                    continue;
+                } else {
+                    found_group = true;
+                    break;
+                }
+            }
+            assert_true(found_group);
+        }
+        exit(0);
+    }
+
+    assert_int_not_equal(pid, -1);
+
+    wpid = waitpid(pid, &status, 0);
+    assert_int_equal(wpid, pid);
+    assert_true(WIFEXITED(status));
+    assert_int_equal(WEXITSTATUS(status), 0);
+
+    talloc_free(groups);
+    talloc_free(actual_groups);
+    assert_true(check_leaks_pop(tmp_ctx));
+    talloc_free(tmp_ctx);
+    assert_true(leak_check_teardown());
+}
+
 void test_switch_user(void **state)
 {
     errno_t ret;
@@ -138,6 +225,7 @@ int main(int argc, const char *argv[])
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_become_user),
         cmocka_unit_test(test_switch_user),
+        cmocka_unit_test(test_become_user_ex),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */

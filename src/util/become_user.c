@@ -24,11 +24,13 @@
 
 #include "util/util.h"
 #include <grp.h>
+#include <pwd.h>
 
-errno_t become_user(uid_t uid, gid_t gid)
+errno_t become_user_ex(uid_t uid, gid_t gid, bool suppl_groups)
 {
     uid_t cuid;
     int ret;
+    struct passwd *pwd;
 
     DEBUG(SSSDBG_FUNC_DATA,
           "Trying to become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
@@ -40,13 +42,32 @@ errno_t become_user(uid_t uid, gid_t gid)
         return EOK;
     }
 
-    /* drop supplementary groups first */
-    ret = setgroups(0, NULL);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "setgroups failed [%d][%s].\n", ret, strerror(ret));
-        return ret;
+    if (suppl_groups) {
+        /* init supplmentary groups */
+        errno = 0;
+        pwd = getpwuid(uid);
+        if (pwd == NULL || pwd->pw_name == NULL) {
+            ret = errno ?: ENOENT;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "getpwuid failed [%d][%s].\n", ret, strerror(ret));
+		    return ret;
+	    }
+        ret = initgroups(pwd->pw_name, gid);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "initgroups failed [%d][%s].\n", ret, strerror(ret));
+            return ret;
+        }
+    } else {
+        /* drop supplementary groups */
+        ret = setgroups(0, NULL);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "setgroups failed [%d][%s].\n", ret, strerror(ret));
+            return ret;
+        }
     }
 
     /* change GID so that root cannot be regained (changes saved GID too) */
@@ -69,6 +90,11 @@ errno_t become_user(uid_t uid, gid_t gid)
     }
 
     return EOK;
+}
+
+errno_t become_user(uid_t uid, gid_t gid)
+{
+    return become_user_ex(uid, gid, false);
 }
 
 struct sss_creds {

@@ -1,2 +1,3 @@
 sssd:x:123:
+_keytab:x:321:_sssd
 foogroup:x:10001:
