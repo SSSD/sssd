@@ -3000,8 +3000,9 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     } else if (count == 1) {
         state->orig_user = usr_attrs[0];
     } else if (count != 1) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Expected one user entry and got %zu\n", count);
+        DEBUG(SSSDBG_FUNC_DATA,
+              "The search returned %zu entries, need to match the correct one\n",
+              count);
 
         /* When matching against a search base, it's sufficient to pick only
          * the first search base because all bases in a single domain would
@@ -3010,9 +3011,10 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         ret = sdap_search_initgr_user_in_batch(state, usr_attrs, count);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "sdap_search_initgr_user_in_batch failed. "
-                  "No matching DN found.\n");
-            tevent_req_error(req, EINVAL);
+                  "sdap_search_initgr_user_in_batch failed [%d]: %s :"
+                  "SSSD can't select a user that matches domain %s\n",
+                  ret, sss_strerror(ret), state->dom->name);
+            tevent_req_error(req, ret);
             return;
         }
     }
