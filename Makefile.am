@@ -242,6 +242,7 @@ if HAVE_CMOCKA
         test-authtok \
         sss_nss_idmap-tests \
         dyndns-tests \
+        domain_resolution_order-tests \
         fqnames-tests \
         nestedgroups-tests \
         test_sss_idmap \
@@ -2626,6 +2627,16 @@ dyndns_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
+
+domain_resolution_order_tests_SOURCES = \
+	src/tests/cmocka/test_domain_resolution_order.c \
+	src/responder/common/cache_req/cache_req_domain.c
+domain_resolution_order_tests_CFLAGS = \
+	$(AM_CFLAGS)
+domain_resolution_order_tests_LDADD = \
+	$(CMOCKA_LIBS) \
+	$(SSSD_INTERNAL_LTLIBS) \
+	libsss_test_common.la
 
 fqnames_tests_SOURCES = \
     src/tests/cmocka/test_fqnames.c
