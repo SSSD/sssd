@@ -152,12 +152,10 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
         /* Integrity check
          * - data->name cannot point outside strings
          * - all strings must be within copy of record
-         * - record must not end outside data table
          * - rec_name is a zero-terminated string */
         if (data->name < strs_offset
             || data->name >= strs_offset + data->strs_len
-            || data->strs_len > rec->len
-            || (uint8_t *) rec + rec->len > gr_mc_ctx.data_table + data_size) {
+            || data->strs_len > rec->len) {
             ret = ENOENT;
             goto done;
         }
