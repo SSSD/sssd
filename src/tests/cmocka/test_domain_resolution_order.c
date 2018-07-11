@@ -93,6 +93,34 @@ test_domain_resolution_order_with_implicit_files_provider(void **state)
     }
 }
 
+static void test_domain_resolution_order_output_fqnames(void **state)
+{
+    struct domain_resolution_order_test_ctx *test_ctx;
+    struct cache_req_domain *cr_domains = NULL;
+    struct cache_req_domain *cr_domain;
+    errno_t ret;
+
+    test_ctx = talloc_get_type(*state,
+                               struct domain_resolution_order_test_ctx);
+
+    cr_domains = talloc_zero(test_ctx, struct cache_req_domain);
+    ret = cache_req_domain_new_list_from_domain_resolution_order(
+                                                    test_ctx,
+                                                    test_ctx->dom_list,
+                                                    DOMAIN_RESOLUTION_ORDER,
+                                                    &cr_domains);
+    assert_int_equal(ret, EOK);
+
+    for (cr_domain = cr_domains; cr_domain != NULL;
+            cr_domain = cr_domain->next) {
+        struct sss_domain_info *dom = cr_domain->domain;
+        bool expected = !is_files_provider(dom);
+        bool output_fqnames = sss_domain_info_get_output_fqnames(dom);
+
+        assert_true(expected == output_fqnames);
+    }
+}
+
 static int setup_domains_list_helper(void **state, bool with_files_provider)
 {
     struct domain_resolution_order_test_ctx *test_ctx;
@@ -170,6 +198,10 @@ int main(int argc, const char *argv[])
                                         teardown_domains_list),
         cmocka_unit_test_setup_teardown(
                     test_domain_resolution_order_with_implicit_files_provider,
+                    setup_domains_list_with_implicit_files_provider,
+                    teardown_domains_list),
+        cmocka_unit_test_setup_teardown(
+                    test_domain_resolution_order_output_fqnames,
                     setup_domains_list_with_implicit_files_provider,
                     teardown_domains_list),
     };
