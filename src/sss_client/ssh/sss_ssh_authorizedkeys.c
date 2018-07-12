@@ -46,7 +46,6 @@ int main(int argc, const char **argv)
     poptContext pc = NULL;
     struct sss_ssh_ent *ent;
     size_t i;
-    char *repr;
     int ret;
 
     debug_prg_name = argv[0];
@@ -108,38 +107,10 @@ int main(int argc, const char **argv)
 
     /* print results */
     for (i = 0; i < ent->num_pubkeys; i++) {
-        char *repr_break = NULL;
-
-        ret = sss_ssh_format_pubkey(mem_ctx, &ent->pubkeys[i], &repr);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "sss_ssh_format_pubkey() failed (%d): %s\n",
-                    ret, strerror(ret));
-            continue;
-        }
-
-        /* OpenSSH expects a linebreak after each key */
-        repr_break = talloc_asprintf(mem_ctx, "%s\n", repr);
-        talloc_zfree(repr);
-        if (repr_break == NULL) {
-            ret = ENOMEM;
-            goto fini;
-        }
-
-        ret = sss_atomic_write_s(STDOUT_FILENO, repr_break, strlen(repr_break));
-        /* Avoid spiking memory with too many large keys */
-        talloc_zfree(repr_break);
-        if (ret < 0) {
-            ret = errno;
-            if (ret == EPIPE) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      "SSHD closed the pipe before all keys could be written\n");
-                /* Return 0 so that openssh doesn't abort pubkey auth */
-                ret = 0;
-                goto fini;
-            }
+        ret = sss_ssh_print_pubkey(&ent->pubkeys[i]);
+        if (ret != EOK && ret != EINVAL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_atomic_write_s() failed (%d): %s\n",
+                  "ssh_ssh_print_pubkey() failed (%d): %s\n",
                   ret, strerror(ret));
             goto fini;
         }
