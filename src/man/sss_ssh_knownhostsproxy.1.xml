@@ -84,6 +84,16 @@ GlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-k</option>,<option>--pubkeys</option>
+                </term>
+                <listitem>
+                    <para>
+                        Print the host ssh public keys for host <replaceable>HOST</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
         </variablelist>
     </refsect1>

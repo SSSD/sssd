@@ -197,6 +197,7 @@ int main(int argc, const char **argv)
     const char *pc_domain = NULL;
     const char *pc_host = NULL;
     const char **pc_args = NULL;
+    int pc_pubkeys = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0,
@@ -205,6 +206,8 @@ int main(int argc, const char **argv)
           _("The port to use to connect to the host"), NULL },
         { "domain", 'd', POPT_ARG_STRING, &pc_domain, 0,
           _("The SSSD domain to use"), NULL },
+        { "pubkey", 'k', POPT_ARG_NONE, &pc_pubkeys, 0,
+          _("Print the host ssh public keys"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -213,7 +216,7 @@ int main(int argc, const char **argv)
     struct addrinfo *ai = NULL;
     char canonhost[NI_MAXHOST];
     const char *host = NULL;
-    struct sss_ssh_ent *ent;
+    struct sss_ssh_ent *ent = NULL;
     int ret;
 
     debug_prg_name = argv[0];
@@ -300,6 +303,25 @@ int main(int argc, const char **argv)
             DEBUG(SSSDBG_OP_FAILURE,
                   "sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret));
         }
+    }
+
+    if (pc_pubkeys) {
+        /* print results */
+        if (ent != NULL) {
+            for (size_t i = 0; i < ent->num_pubkeys; i++) {
+                ret = sss_ssh_print_pubkey(&ent->pubkeys[i]);
+                if (ret != EOK && ret != EINVAL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "ssh_ssh_print_pubkey() failed (%d): %s\n",
+                          ret, strerror(ret));
+                    ret = EXIT_FAILURE;
+                    goto fini;
+                }
+            }
+        }
+
+        ret = EXIT_SUCCESS;
+        goto fini;
     }
 
     /* connect to server */
