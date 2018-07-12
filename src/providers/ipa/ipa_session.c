@@ -768,7 +768,7 @@ ipa_pam_session_handler_save_deskprofile_rules(
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to save a Desktop Profile Rule to disk [%d]: %s\n",
                   ret, sss_strerror(ret));
-            goto done;
+            continue;
         }
     }
 
