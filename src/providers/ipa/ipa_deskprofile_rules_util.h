@@ -30,6 +30,21 @@
 #endif /* IPA_DESKPROFILE_RULES_USER_DIR */
 
 errno_t
+ipa_deskprofile_get_filename_path(TALLOC_CTX *mem_ctx,
+                                  uint16_t config_priority,
+                                  const char *rules_dir,
+                                  const char *domain,
+                                  const char *username,
+                                  const char *priority,
+                                  const char *user_priority,
+                                  const char *group_priority,
+                                  const char *host_priority,
+                                  const char *hostgroup_priority,
+                                  const char *rule_name,
+                                  const char *extension,
+                                  char **_filename_path);
+
+errno_t
 ipa_deskprofile_rules_create_user_dir(
                                     const char *username, /* fully-qualified */
                                     uid_t uid,
