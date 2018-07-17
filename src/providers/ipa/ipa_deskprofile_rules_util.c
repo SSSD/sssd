@@ -96,7 +96,7 @@ enum deskprofile_name {
  * - permuts's matrix;
  * - vals array;
  */
-static errno_t
+errno_t
 ipa_deskprofile_get_filename_path(TALLOC_CTX *mem_ctx,
                                   uint16_t config_priority,
                                   const char *rules_dir,
