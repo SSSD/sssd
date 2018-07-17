@@ -241,6 +241,7 @@ if HAVE_CMOCKA
         test-negcache \
         test-authtok \
         sss_nss_idmap-tests \
+        deskprofile_utils-tests \
         dyndns-tests \
         domain_resolution_order-tests \
         fqnames-tests \
@@ -2606,6 +2607,17 @@ sss_nss_idmap_tests_LDADD = \
     $(CMOCKA_LIBS) \
     libsss_nss_idmap_tests.la \
     $(NULL)
+
+deskprofile_utils_tests_SOURCES = \
+    src/tests/cmocka/test_deskprofile_utils.c \
+    src/providers/ipa/ipa_deskprofile_rules_util.c \
+    src/providers/ipa/ipa_rules_common.c
+deskprofile_utils_tests_CFLAGS = \
+    $(AM_CFLAGS)
+deskprofile_utils_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
 
 EXTRA_dyndns_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
