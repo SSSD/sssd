@@ -78,27 +78,27 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
     assert_int_equal(ret, EOK);
 
-    val[0] = "LOCAL";
+    val[0] = "FILES";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     assert_int_equal(ret, EOK);
 
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "id_provider", val);
+                           "config/domain/FILES", "id_provider", val);
     assert_int_equal(ret, EOK);
 
     val[0] = enumerate ? "TRUE" : "FALSE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "enumerate", val);
+                           "config/domain/FILES", "enumerate", val);
     assert_int_equal(ret, EOK);
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "cache_credentials", val);
+                           "config/domain/FILES", "cache_credentials", val);
     assert_int_equal(ret, EOK);
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "local",
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "files",
                            TESTS_PATH, &test_ctx->domain);
     assert_int_equal(ret, EOK);
 
@@ -331,12 +331,12 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     tests_set_cwd();
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, "FILES");
     test_dom_suite_setup(TESTS_PATH);
     rv = cmocka_run_group_tests(tests, NULL, NULL);
 
     if (rv == 0 && no_cleanup == 0) {
-        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, "FILES");
     }
     return rv;
 }
