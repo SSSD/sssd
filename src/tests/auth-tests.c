@@ -98,7 +98,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
-    val[0] = "LOCAL";
+    val[0] = "FILES";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     if (ret != EOK) {
@@ -107,9 +107,9 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
-    val[0] = "local";
+    val[0] = "files";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "id_provider", val);
+                           "config/domain/FILES", "id_provider", val);
     if (ret != EOK) {
         fail("Could not initialize provider");
         talloc_free(test_ctx);
@@ -118,23 +118,23 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "enumerate", val);
+                           "config/domain/FILES", "enumerate", val);
     if (ret != EOK) {
-        fail("Could not initialize LOCAL domain");
+        fail("Could not initialize FILES domain");
         talloc_free(test_ctx);
         return ret;
     }
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domain/LOCAL", "cache_credentials", val);
+                           "config/domain/FILES", "cache_credentials", val);
     if (ret != EOK) {
-        fail("Could not initialize LOCAL domain");
+        fail("Could not initialize FILES domain");
         talloc_free(test_ctx);
         return ret;
     }
 
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "local",
+    ret = sssd_domain_init(test_ctx, test_ctx->confdb, "files",
                            TESTS_PATH, &test_ctx->domain);
     if (ret != EOK) {
         fail("Could not initialize connection to the sysdb (%d)", ret);
@@ -261,30 +261,60 @@ Suite *auth_suite (void)
 
 static int clean_db_dir(void)
 {
+    TALLOC_CTX *tmp_ctx;
+    char *path;
     int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
     ret = unlink(TESTS_PATH"/"TEST_CONF_FILE);
     if (ret != EOK && errno != ENOENT) {
         fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
                 errno, strerror(errno));
-        return ret;
+        goto done;
     }
 
-    ret = unlink(TESTS_PATH"/"LOCAL_SYSDB_FILE);
+    path = talloc_asprintf(tmp_ctx, TESTS_PATH"/"CACHE_SYSDB_FILE, "FILES");
+    if (path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = unlink(path);
     if (ret != EOK && errno != ENOENT) {
-        fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
+        fprintf(stderr, "Could not delete cache ldb file (%d) (%s)\n",
                 errno, strerror(errno));
-        return ret;
+        goto done;
+    }
+
+    path = talloc_asprintf(tmp_ctx, TESTS_PATH"/"CACHE_TIMESTAMPS_FILE, "FILES");
+    if (path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = unlink(path);
+    if (ret != EOK && errno != ENOENT) {
+        fprintf(stderr, "Could not delete timestamps ldb file (%d) (%s)\n",
+                errno, strerror(errno));
+        goto done;
     }
 
     ret = rmdir(TESTS_PATH);
     if (ret != EOK && errno != ENOENT) {
         fprintf(stderr, "Could not delete the test directory (%d) (%s)\n",
                 errno, strerror(errno));
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 int main(int argc, const char *argv[])
