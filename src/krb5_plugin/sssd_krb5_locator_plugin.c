@@ -323,7 +323,7 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
 
     krb5info_name = calloc(1, len + 1);
     if (krb5info_name == NULL) {
-        PLUGIN_DEBUG("malloc failed.\n");
+        PLUGIN_DEBUG("calloc failed.\n");
         return ENOMEM;
     }
 
