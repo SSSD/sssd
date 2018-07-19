@@ -82,7 +82,7 @@ struct sssd_ctx {
     bool disabled;
 };
 
-void plugin_debug_fn(const char *format, ...)
+static void plugin_debug_fn(const char *format, ...)
 {
     va_list ap;
     char *s = NULL;
