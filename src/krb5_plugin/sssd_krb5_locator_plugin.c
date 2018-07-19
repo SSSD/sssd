@@ -82,6 +82,9 @@ struct sssd_ctx {
     bool disabled;
 };
 
+#ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
+__attribute__((format(printf, 1, 2)))
+#endif
 static void plugin_debug_fn(const char *format, ...)
 {
     va_list ap;
