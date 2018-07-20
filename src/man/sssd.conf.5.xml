@@ -1389,6 +1389,20 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_cert_pam_services (list)</term>
+                    <listitem>
+                        <para>
+                            Which PAM services are permitted to perform
+                            certificate based Smartcard authentication.
+                        </para>
+                        <para>
+                            Default: login, su, su-l, gdm-smartcard,
+                                     gdm-password, kdm, sudo, sudo-i,
+                                     gnome-screensaver
+                        </para>
+                    </listitem>
+                </varlistentry>
 
             </variablelist>
         </refsect2>

@@ -230,6 +230,10 @@ bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd)
     const char *sc_services[] = { "login", "su", "su-l", "gdm-smartcard",
                                   "gdm-password", "kdm", "sudo", "sudo-i",
                                   "gnome-screensaver", NULL };
+    char **pam_cert_pam_services = NULL;
+    int ret;
+    bool result;
+
     if (!pctx->cert_auth) {
         return false;
     }
@@ -244,23 +248,40 @@ bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd)
         return false;
     }
 
-    /* TODO: make services configurable */
     if (pd->service == NULL || *pd->service == '\0') {
         return false;
     }
-    for (c = 0; sc_services[c] != NULL; c++) {
-        if (strcmp(pd->service, sc_services[c]) == 0) {
+
+    ret = confdb_get_string_as_list(pctx->rctx->cdb, pctx,
+                                    CONFDB_PAM_CONF_ENTRY,
+                                    CONFDB_PAM_CERT_PAM_SERVICES,
+                                    &pam_cert_pam_services);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Failed to read list of PAM services "
+              "allowed to perform smartcard authentication, using default.\n");
+        pam_cert_pam_services = (char**) sc_services;
+    }
+
+    for (c = 0; pam_cert_pam_services[c] != NULL; c++) {
+        if (strcmp(pd->service, pam_cert_pam_services[c]) == 0) {
             break;
         }
     }
-    if  (sc_services[c] == NULL) {
+
+    result = pam_cert_pam_services[c] != NULL;
+
+    if (pam_cert_pam_services != sc_services) {
+        talloc_free(pam_cert_pam_services);
+    }
+
+    if (result == false) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Smartcard authentication for service [%s] not supported.\n",
               pd->service);
-        return false;
     }
 
-    return true;
+    return result;
 }
 
 static errno_t get_p11_child_write_buffer(TALLOC_CTX *mem_ctx,
