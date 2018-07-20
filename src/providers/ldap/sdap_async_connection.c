@@ -734,6 +734,7 @@ static void simple_bind_done(struct sdap_op *op,
     ber_int_t pp_expire;
     LDAPPasswordPolicyError pp_error;
     int result = LDAP_OTHER;
+    bool on_grace_login_limit = false;
 
     if (error) {
         tevent_req_error(req, error);
@@ -772,6 +773,7 @@ static void simple_bind_done(struct sdap_op *op,
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Server returned control [%s].\n",
                    response_controls[c]->ldctl_oid);
+
             if (strcmp(response_controls[c]->ldctl_oid,
                        LDAP_CONTROL_PASSWORDPOLICYRESPONSE) == 0) {
                 lret = ldap_parse_passwordpolicy_control(state->sh->ldap,
@@ -799,13 +801,26 @@ static void simple_bind_done(struct sdap_op *op,
                 state->ppolicy->grace = pp_grace;
                 state->ppolicy->expire = pp_expire;
                 if (result == LDAP_SUCCESS) {
-
+                    /* We have to set the on_grace_login_limit as when going
+                     * through the response controls 389-ds may return both
+                     * an warning and an error (and the order is not ensured)
+                     * for the GraceLimit:
+                     * - [1.3.6.1.4.1.42.2.27.8.5.1] for the GraceLimit itself
+                     * - [2.16.840.1.113730.3.4.4] for the PasswordExpired
+                     *
+                     * So, in order to avoid bulldozing the GraceLimit, let's
+                     * set it to true when pp_grace >= 0 and, in the end of
+                     * this function, just return EOK when LDAP returns the
+                     * PasswordExpired error but the GraceLimit is still valid.
+                     */
+                    on_grace_login_limit = false;
                     if (pp_error == PP_changeAfterReset) {
                         DEBUG(SSSDBG_TRACE_LIBS,
                               "Password was reset. "
                                "User must set a new password.\n");
                         ret = ERR_PASSWORD_EXPIRED;
                     } else if (pp_grace >= 0) {
+                        on_grace_login_limit = true;
                         DEBUG(SSSDBG_TRACE_LIBS,
                               "Password expired. "
                                "[%d] grace logins remaining.\n",
@@ -873,6 +888,10 @@ static void simple_bind_done(struct sdap_op *op,
 
     if (result != LDAP_SUCCESS && ret == EOK) {
         ret = ERR_AUTH_FAILED;
+    }
+
+    if (ret == ERR_PASSWORD_EXPIRED && on_grace_login_limit) {
+        ret = EOK;
     }
 
 done:
