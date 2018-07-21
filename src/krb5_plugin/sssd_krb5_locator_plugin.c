@@ -270,7 +270,7 @@ static int buf_to_addr_port_list(struct sssd_ctx *ctx,
             addr_str++;
         }
 
-        PLUGIN_DEBUG("Found [%s][%d].\n", addr_str, port);
+        PLUGIN_DEBUG("Found [%s][%ld].\n", addr_str, port);
 
         l[c].addr = strdup(addr_str);
         if (l[c].addr == NULL) {
