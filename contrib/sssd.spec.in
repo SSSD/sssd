@@ -962,8 +962,6 @@ done
 %{_unitdir}/sssd-ssh.service
 %{_unitdir}/sssd-sudo.socket
 %{_unitdir}/sssd-sudo.service
-%{_unitdir}/sssd-secrets.socket
-%{_unitdir}/sssd-secrets.service
 %else
 %{_initrddir}/%{name}
 %endif
@@ -973,9 +971,6 @@ done
 %{_libexecdir}/%{servicename}/sssd_nss
 %{_libexecdir}/%{servicename}/sssd_pam
 %{_libexecdir}/%{servicename}/sssd_autofs
-%if (0%{?with_secrets} == 1)
-%{_libexecdir}/%{servicename}/sssd_secrets
-%endif
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
 %{_libexecdir}/%{servicename}/p11_child
@@ -1008,9 +1003,6 @@ done
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,sssd,sssd) %dir %{dbpath}
 %attr(755,sssd,sssd) %dir %{mcpath}
-%if (0%{?with_secrets} == 1)
-%attr(700,root,root) %dir %{secdbpath}
-%endif
 %attr(751,sssd,sssd) %dir %{deskprofilepath}
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/passwd
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
@@ -1045,9 +1037,6 @@ done
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
 %{_mandir}/man5/sssd-session-recording.5*
-%if (0%{?with_secrets} == 1)
-%{_mandir}/man5/sssd-secrets.5*
-%endif
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*
 %if (0%{?enable_systemtap} == 1)
@@ -1320,12 +1309,23 @@ done
 
 %if (0%{?with_kcm} == 1)
 %files kcm -f sssd_kcm.lang
+%if (0%{?with_secrets} == 1)
+%attr(700,root,root) %dir %{secdbpath}
+%endif
 %{_libexecdir}/%{servicename}/sssd_kcm
+%if (0%{?with_secrets} == 1)
+%{_libexecdir}/%{servicename}/sssd_secrets
+%endif
 %dir %{_datadir}/sssd-kcm
 %{_datadir}/sssd-kcm/kcm_default_ccache
 %{_unitdir}/sssd-kcm.socket
 %{_unitdir}/sssd-kcm.service
+%{_unitdir}/sssd-secrets.socket
+%{_unitdir}/sssd-secrets.service
 %{_mandir}/man8/sssd-kcm.8*
+%if (0%{?with_secrets} == 1)
+%{_mandir}/man5/sssd-secrets.5*
+%endif
 %endif
 
 %pre common
