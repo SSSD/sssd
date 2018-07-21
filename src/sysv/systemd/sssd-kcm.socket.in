@@ -4,7 +4,7 @@ Documentation=man:sssd-kcm(8)
 Requires=sssd-secrets.socket
 
 [Socket]
-ListenStream=@localstatedir@/run/.heim_org.h5l.kcm-socket
+ListenStream=@runstatedir@/.heim_org.h5l.kcm-socket
 
 [Install]
 WantedBy=sockets.target
