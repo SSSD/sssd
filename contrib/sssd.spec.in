@@ -195,6 +195,10 @@ BuildRequires: dbus-devel
 BuildRequires: dbus-libs
 BuildRequires: openldap-devel
 BuildRequires: pam-devel
+%if (0%{?use_openssl} == 1)
+BuildRequires: p11-kit-devel
+BuildRequires: openssl-devel
+%endif
 BuildRequires: nss-devel
 BuildRequires: nspr-devel
 BuildRequires: pcre-devel
@@ -233,8 +237,6 @@ BuildRequires: nss_wrapper
 # slots with are flagged as 'removable' softhsm version 2.1.0 or higher is
 # needed.
 %if (0%{?use_openssl} == 1)
-BuildRequires: p11-kit-devel
-BuildRequires: openssl-devel
 BuildRequires: gnutls-utils
 BuildRequires: softhsm >= 2.1.0
 %endif
