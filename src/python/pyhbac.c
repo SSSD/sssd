@@ -232,7 +232,7 @@ str_concat_sequence(PyObject *seq, const char *delim)
     Py_ssize_t i;
     PyObject *item;
     char *s = NULL;
-    char *part;
+    const char *part;
 
     size = PySequence_Size(seq);
 
