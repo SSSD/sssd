@@ -45,7 +45,7 @@ static char **PyList_AsStringList(TALLOC_CTX *mem_ctx, PyObject *list,
 
     ret = talloc_array(mem_ctx, char *, PyList_Size(list)+1);
     for (i = 0; i < PyList_Size(list); i++) {
-        char *itemstr;
+        const char *itemstr;
         Py_ssize_t itemlen;
         PyObject *item = PyList_GetItem(list, i);
 #ifdef IS_PY3K
