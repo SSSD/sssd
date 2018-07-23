@@ -112,7 +112,7 @@
     %global enable_systemtap_opt --enable-systemtap
 %endif
 
-%if (0%{?fedora} || (0%{?rhel} >= 7 && 0%{rhel7_minor} >= 4))
+%if (0%{?fedora} || 0%{?rhel} >= 7)
     %global with_secrets 1
 %else
     %global with_secret_responder --without-secrets
@@ -125,7 +125,7 @@
     %global with_kcm_option --without-kcm
 %endif
 
-%if (0%{?fedora} >= 27 || (0%{?rhel} >= 7 && 0%{?rhel7_minor} > 4))
+%if (0%{?fedora} >= 27 || 0%{?rhel} >= 7)
     %global with_gdm_pam_extensions 1
 %else
     %global with_gdm_pam_extensions 0
