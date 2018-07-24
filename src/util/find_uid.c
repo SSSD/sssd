@@ -89,9 +89,15 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
                   "Proc file [%s] is not available anymore, continuing.\n",
                       path);
             return EOK;
+        } else if (error == EPERM) {
+            /* case of hidepid=1 mount option for /proc */
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "Proc file [%s] is not permissible, continuing.\n",
+                      path);
+            return EOK;
         }
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "open failed [%d][%s].\n", error, strerror(error));
+              "open failed [%s][%d][%s].\n", path, error, strerror(error));
         return error;
     }
 
