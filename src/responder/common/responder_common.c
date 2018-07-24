@@ -468,6 +468,26 @@ struct accept_fd_ctx {
     connection_setup_t connection_setup;
 };
 
+/*
+ * Use this function only before the client context is established
+ */
+static void accept_and_terminate_cli(int fd)
+{
+    struct sockaddr_un addr;
+    int client_fd;
+    socklen_t len;
+
+    /* accept and close to signal the client we have a problem */
+    memset(&addr, 0, sizeof(addr));
+    len = sizeof(addr);
+    client_fd = accept(fd, (struct sockaddr *)&addr, &len);
+    if (client_fd == -1) {
+        return;
+    }
+    close(client_fd);
+    return;
+}
+
 static void accept_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
@@ -481,14 +501,14 @@ static void accept_fd_handler(struct tevent_context *ev,
     struct stat stat_buf;
     int ret;
     int fd = accept_ctx->is_private ? rctx->priv_lfd : rctx->lfd;
-    int client_fd;
 
     if (accept_ctx->is_private) {
         ret = stat(rctx->priv_sock_name, &stat_buf);
         if (ret == -1) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "stat on privileged pipe failed: [%d][%s].\n", errno,
-                      strerror(errno));
+                  "stat on privileged pipe failed: [%d][%s].\n",
+                  errno, strerror(errno));
+            accept_and_terminate_cli(fd);
             return;
         }
 
@@ -496,25 +516,17 @@ static void accept_fd_handler(struct tevent_context *ev,
                (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "privileged pipe has an illegal status.\n");
-    /* TODO: what is the best response to this condition? Terminate? */
+            accept_and_terminate_cli(fd);
             return;
         }
     }
 
     cctx = talloc_zero(rctx, struct cli_ctx);
     if (!cctx) {
-        struct sockaddr_un addr;
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Out of memory trying to setup client context%s!\n",
-                  accept_ctx->is_private ? " on privileged pipe": "");
-        /* accept and close to signal the client we have a problem */
-        memset(&addr, 0, sizeof(addr));
-        len = sizeof(addr);
-        client_fd = accept(fd, (struct sockaddr *)&addr, &len);
-        if (client_fd == -1) {
-            return;
-        }
-        close(client_fd);
+              accept_ctx->is_private ? " on privileged pipe": "");
+        accept_and_terminate_cli(fd);
         return;
     }
 
