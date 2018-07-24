@@ -67,7 +67,8 @@ static void sudo_dp_reconnect_init(struct sbus_connection *conn,
 
 int sudo_process_init(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
-                      struct confdb_ctx *cdb)
+                      struct confdb_ctx *cdb,
+                      int pipe_fd)
 {
     struct resp_ctx *rctx;
     struct sss_cmd_table *sudo_cmds;
@@ -79,8 +80,8 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     sudo_cmds = get_sudo_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            sudo_cmds,
-                           NULL, -1,                   /* No public socket */
-                           SSS_SUDO_SOCKET_NAME, -1,   /* Private socket only */
+                           SSS_SUDO_SOCKET_NAME, pipe_fd,   /* custom permissions on socket */
+                           NULL, -1,                   /* No private socket */
                            CONFDB_SUDO_CONF_ENTRY,
                            SSS_SUDO_SBUS_SERVICE_NAME,
                            SSS_SUDO_SBUS_SERVICE_VERSION,
@@ -182,6 +183,7 @@ int main(int argc, const char *argv[])
     char *opt_logger = NULL;
     struct main_context *main_ctx;
     int ret;
+    int pipe_fd = -1;
     uid_t uid;
     gid_t gid;
 
@@ -219,6 +221,27 @@ int main(int argc, const char *argv[])
 
     sss_set_logger(opt_logger);
 
+    if (!is_socket_activated()) {
+        /* Create pipe file descriptors here with right ownerschip */
+        ret = create_pipe_fd(SSS_SUDO_SOCKET_NAME, &pipe_fd, SSS_DFL_UMASK);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "create_pipe_fd failed [%d]: %s.\n",
+                  ret, sss_strerror(ret));
+            return 4;
+        }
+
+        ret = chown(SSS_SUDO_SOCKET_NAME, uid, 0);
+        if (ret != 0) {
+            ret = errno;
+            close(pipe_fd);
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "create_pipe_fd failed [%d]: %s.\n",
+                  ret, sss_strerror(ret));
+            return 5;
+        }
+    }
+
     ret = server_setup("sssd[sudo]", 0, uid, gid, CONFDB_SUDO_CONF_ENTRY,
                        &main_ctx);
     if (ret != EOK) {
@@ -234,7 +257,7 @@ int main(int argc, const char *argv[])
 
     ret = sudo_process_init(main_ctx,
                             main_ctx->event_ctx,
-                            main_ctx->confdb_ctx);
+                            main_ctx->confdb_ctx, pipe_fd);
     if (ret != EOK) {
         return 3;
     }
