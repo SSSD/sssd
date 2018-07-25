@@ -1028,6 +1028,7 @@ done
 %{_libdir}/%{name}/libsss_iface_sync.so
 %{_libdir}/%{name}/libifp_iface.so
 %{_libdir}/%{name}/libifp_iface_sync.so
+%{_libdir}/%{name}/libsss_secrets.so
 
 %{ldb_modulesdir}/memberof.so
 %{_bindir}/sss_ssh_authorizedkeys
