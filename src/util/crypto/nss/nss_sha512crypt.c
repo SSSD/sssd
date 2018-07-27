@@ -267,7 +267,7 @@ static int sha512_crypt_r(const char *key,
         goto done;
     }
 
-    cp = memcpy(buffer, sha512_salt_prefix, SALT_PREF_SIZE);
+    cp = stpncpy(buffer, sha512_salt_prefix, SALT_PREF_SIZE);
     buflen -= SALT_PREF_SIZE;
 
     if (rounds_custom) {
