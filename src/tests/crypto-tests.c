@@ -201,6 +201,37 @@ START_TEST(test_sss_encrypt_decrypt)
 }
 END_TEST
 
+START_TEST(test_s3crypt_sha512)
+{
+    int ret;
+    char *salt;
+    char *userhash;
+    char *comphash;
+    const char *password = "password123";
+    const char *expected_hash = "$6$tU67Q/9h3tm5WJ.U$aL9gjCfiSZQewHTI6A4/MHCVWrMCiJZ.gNXEIw6HO39XGbg.s2nTyGlYXeoQyQtDll3XSbIZN41fJEC3v7ELy0";
+
+    test_ctx = talloc_new(NULL);
+    fail_if(test_ctx == NULL);
+
+    ret = s3crypt_gen_salt(test_ctx, &salt);
+    fail_if(ret != 0);
+
+    ret = s3crypt_sha512(test_ctx, password, salt, &userhash);
+    fail_if(ret != 0);
+
+    ret = s3crypt_sha512(test_ctx, password, userhash, &comphash);
+    fail_if(ret != 0);
+    ck_assert_str_eq(userhash, comphash);
+    talloc_free(comphash);
+
+    ret = s3crypt_sha512(test_ctx, password, expected_hash, &comphash);
+    fail_if(ret != 0);
+    ck_assert_str_eq(expected_hash, comphash);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *crypto_suite(void)
 {
     Suite *s = suite_create("sss_crypto");
@@ -216,6 +247,7 @@ Suite *crypto_suite(void)
     tcase_add_test(tc, test_base64_encode);
     tcase_add_test(tc, test_base64_decode);
     tcase_add_test(tc, test_sss_encrypt_decrypt);
+    tcase_add_test(tc, test_s3crypt_sha512);
     /* Add all test cases to the test suite */
     suite_add_tcase(s, tc);
 
