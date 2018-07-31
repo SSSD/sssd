@@ -255,6 +255,9 @@ static void cert_to_ssh_key_done(int child_status,
     int ret;
     bool valid = false;
 
+    PIPE_FD_CLOSE(state->io->read_from_child_fd);
+    PIPE_FD_CLOSE(state->io->write_to_child_fd);
+
     if (WIFEXITED(child_status)) {
         if (WEXITSTATUS(child_status) != 0) {
             DEBUG(SSSDBG_OP_FAILURE,
