@@ -209,7 +209,7 @@ bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64)
     ret = b64_to_cert(cert_b64, &cert);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to convert certificate.\n");
-        return EINVAL;
+        return false;
     }
 
     res = do_verification(p11_ctx, cert);
