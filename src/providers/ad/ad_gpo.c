@@ -2766,7 +2766,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
      */
     ret = ad_gpo_store_policy_settings(state->host_domain,
                                        cse_filtered_gpo->policy_filename);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ad_gpo_store_policy_settings failed: [%d](%s)\n",
               ret, sss_strerror(ret));
