@@ -419,6 +419,7 @@ static errno_t cleanup_dn_filter(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     char *dn_filter;
+    char *sanitized_linearized_dn = NULL;
     errno_t ret;
 
     if (ts_res->count == 0) {
@@ -438,11 +439,20 @@ static errno_t cleanup_dn_filter(TALLOC_CTX *mem_ctx,
     }
 
     for (size_t i = 0; i < ts_res->count; i++) {
+        ret = sss_filter_sanitize(tmp_ctx,
+                                  ldb_dn_get_linearized(ts_res->msgs[i]->dn),
+                                  &sanitized_linearized_dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_filter_sanitize() failed: (%s) [%d]\n",
+                  sss_strerror(ret), ret);
+            goto done;
+        }
         dn_filter = talloc_asprintf_append(
                                     dn_filter,
                                     "(%s=%s)",
                                     SYSDB_DN,
-                                    ldb_dn_get_linearized(ts_res->msgs[i]->dn));
+                                    sanitized_linearized_dn);
         if (dn_filter == NULL) {
             ret = ENOMEM;
             goto done;
