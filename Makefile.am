@@ -1788,6 +1788,7 @@ sssd_secrets_LDADD = \
     $(CURL_LIBS) \
     libsss_iface.la \
     libsss_sbus.la \
+    libsss_secrets.la \
     $(NULL)
 endif
 

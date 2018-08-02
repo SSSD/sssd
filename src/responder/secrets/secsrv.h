@@ -30,25 +30,14 @@
 #include <tevent.h>
 #include <ldb.h>
 
-struct sec_quota {
-    int max_secrets;
-    int max_uid_secrets;
-    int max_payload_size;
-    int containers_nest_level;
-};
-
-struct sec_hive_config {
-    const char *confdb_section;
-
-    struct sec_quota quota;
-};
+#include "util/secrets/secrets.h"
 
 struct sec_ctx {
     struct resp_ctx *rctx;
     int fd_limit;
 
-    struct sec_hive_config sec_config;
-    struct sec_hive_config kcm_config;
+    struct sss_sec_hive_config sec_config;
+    struct sss_sec_hive_config kcm_config;
     int max_payload_size;
 
     struct provider_handle **providers;
