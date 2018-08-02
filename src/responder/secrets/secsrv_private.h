@@ -104,14 +104,6 @@ int sec_get_provider(struct sec_ctx *sctx, const char *name,
 int sec_add_provider(struct sec_ctx *sctx, struct provider_handle *handle);
 
 #define SEC_BASEPATH            "/secrets/"
-#define SEC_KCM_BASEPATH        "/kcm/"
-
-/* The KCM responder must "impersonate" the owner of the credentials.
- * Only a trusted UID can do that -- root by default, but unit
- * tests might choose otherwise */
-#ifndef KCM_PEER_UID
-#define KCM_PEER_UID            0
-#endif /* KCM_PEER_UID */
 
 /* providers.c */
 int sec_req_routing(TALLOC_CTX *mem_ctx, struct sec_req_ctx *secreq,
