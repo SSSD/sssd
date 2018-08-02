@@ -4606,6 +4606,7 @@ gpo_child_SOURCES = \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
+    src/util/util_errors.c \
     src/util/signal.c \
     src/util/sss_chain_id.c
 gpo_child_CFLAGS = \
