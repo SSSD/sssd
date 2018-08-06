@@ -847,10 +847,9 @@ static void ccdb_sec_nextid_list_done(struct tevent_req *subreq)
         }
     }
 
-    DEBUG(SSSDBG_MINOR_FAILURE,
-          "Failed to find a random key, trying again..\n");
     if (i < sec_key_list_len) {
-        /* Try again */
+        DEBUG(SSSDBG_MINOR_FAILURE,
+            "Failed to find a random key, trying again..\n");
         ret = ccdb_sec_nextid_generate(req);
         if (ret != EOK) {
             tevent_req_error(req, ret);
