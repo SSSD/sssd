@@ -67,14 +67,19 @@ endif
 
 EXTRA_DIST = $(wildcard $(srcdir)/*.xml) $(wildcard $(srcdir)/include/*.xml)
 man_MANS = \
-    sss_useradd.8 sss_userdel.8 sss_usermod.8 \
-    sss_groupadd.8 sss_groupdel.8 sss_groupmod.8 \
     sssd.8 sssd.conf.5 sssd-ldap.5 \
     sssd-krb5.5 sssd-simple.5 sss-certmap.5 \
-    sssd_krb5_locator_plugin.8 sss_groupshow.8 \
+    sssd_krb5_locator_plugin.8 \
     pam_sss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8 sss_seed.8 \
     sss_override.8 idmap_sss.8 sssctl.8 sssd-session-recording.5 \
     $(NULL)
+
+if BUILD_LOCAL_PROVIDER
+man_MANS += \
+	sss_useradd.8 sss_userdel.8 sss_usermod.8 \
+	sss_groupadd.8 sss_groupdel.8 sss_groupmod.8 \
+	sss_groupshow.8
+endif
 
 if BUILD_SAMBA
 man_MANS += sssd-ipa.5 sssd-ad.5

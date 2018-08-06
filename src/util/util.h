@@ -399,6 +399,9 @@ bool is_socket_activated(void);
 /* Returns true if the responder has been dbus-activated */
 bool is_dbus_activated(void);
 
+/* Returns true if SSSD was built with local provider support */
+bool local_provider_is_built(void);
+
 /**
  * @brief Add two list of strings
  *

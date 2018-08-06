@@ -753,7 +753,8 @@ static uint32_t confdb_get_min_id(struct sss_domain_info *domain)
 {
     uint32_t defval = SSSD_MIN_ID;
 
-    if (domain && strcasecmp(domain->provider, "local") == 0) {
+    if (domain && local_provider_is_built()
+            && strcasecmp(domain->provider, "local") == 0) {
         defval = SSSD_LOCAL_MINID;
     }
 
@@ -944,7 +945,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    if (strcasecmp(domain->provider, "local") == 0) {
+    if (local_provider_is_built()
+            && strcasecmp(domain->provider, "local") == 0) {
         /* If this is the local provider, we need to ensure that
          * no other provider was specified for other types, since
          * the local provider cannot load them.
@@ -1368,6 +1370,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     if (domain->case_sensitive == false &&
+        local_provider_is_built() &&
         strcasecmp(domain->provider, "local") == 0) {
         DEBUG(SSSDBG_FATAL_FAILURE,
              "Local ID provider does not support the case insensitive flag\n");
