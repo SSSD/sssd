@@ -952,7 +952,7 @@ static PyTypeObject pysss_local_type = {
 /* ==================== obfuscation python wrappers ========================*/
 
 /*
- * The sss.local object
+ * The sss.password object
  */
 typedef struct {
     PyObject_HEAD
