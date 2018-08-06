@@ -153,11 +153,11 @@ static void test_kcm_ccache_marshall_unmarshall(void **state)
     struct cli_creds owner;
     struct kcm_ccache *cc;
     struct kcm_ccache *cc2;
-    const char *url;
     struct sss_iobuf *payload;
     const char *name;
     const char *key;
     uint8_t *data;
+    uuid_t uuid;
 
     owner.ucred.uid = getuid();
     owner.ucred.gid = getuid();
@@ -176,15 +176,16 @@ static void test_kcm_ccache_marshall_unmarshall(void **state)
     ret = kcm_ccache_to_sec_input(test_ctx,
                                   cc,
                                   &owner,
-                                  &url,
                                   &payload);
     assert_int_equal(ret, EOK);
 
-    key = strrchr(url, '/') + 1;
-    assert_non_null(key);
-
     data = sss_iobuf_get_data(payload);
     assert_non_null(data);
+
+    ret = kcm_cc_get_uuid(cc, uuid);
+    assert_int_equal(ret, EOK);
+    key = sec_key_create(test_ctx, name, uuid);
+    assert_non_null(key);
 
     ret = sec_kv_to_ccache(test_ctx,
                            key,

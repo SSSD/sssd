@@ -34,6 +34,9 @@
 #define UUID_BYTES    16
 #define UUID_STR_SIZE 37
 
+/* Just to keep the name of the ccache readable */
+#define MAX_CC_NUM          99999
+
 /*
  * Credentials are opaque to the KCM server
  *
@@ -319,17 +322,9 @@ const char *sec_key_get_name(const char *sec_key);
 errno_t sec_key_get_uuid(const char *sec_key,
                          uuid_t uuid);
 
-/* Create a URL for the default client's ccache */
-const char *sec_dfl_url_create(TALLOC_CTX *mem_ctx,
-                               struct cli_creds *client);
-
-/* Create a URL for the client's ccache container */
-const char *sec_container_url_create(TALLOC_CTX *mem_ctx,
-                                     struct cli_creds *client);
-
-const char *sec_cc_url_create(TALLOC_CTX *mem_ctx,
-                              struct cli_creds *client,
-                              const char *sec_key);
+const char *sec_key_create(TALLOC_CTX *mem_ctx,
+                           const char *name,
+                           uuid_t uuid);
 
 /*
  * sec_key is a concatenation of the ccache's UUID and name
@@ -345,7 +340,6 @@ errno_t sec_kv_to_ccache(TALLOC_CTX *mem_ctx,
 errno_t kcm_ccache_to_sec_input(TALLOC_CTX *mem_ctx,
                                 struct kcm_ccache *cc,
                                 struct cli_creds *client,
-                                const char **_url,
                                 struct sss_iobuf **_payload);
 
 #endif /* _KCMSRV_CCACHE_H_ */

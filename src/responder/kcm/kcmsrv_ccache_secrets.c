@@ -31,6 +31,26 @@
 #include "responder/kcm/kcmsrv_ccache_pvt.h"
 #include "responder/kcm/kcmsrv_ccache_be.h"
 
+/* The base for storing secrets is:
+ *  http://localhost/kcm/persistent/$uid
+ *
+ * Under $base, there are two containers:
+ *  /ccache     - stores the ccaches
+ *  /ntlm       - stores NTLM creds [Not implement yet]
+ *
+ * There is also a special entry that contains the UUID of the default
+ * cache for this UID:
+ *  /default    - stores the UUID of the default ccache for this UID
+ *
+ * Each ccache has a name and an UUID. On the secrets level, the 'secret'
+ * is a concatenation of the stringified UUID and the name separated
+ * by a plus-sign.
+ */
+#define KCM_SEC_URL        "http://localhost/kcm/persistent"
+#define KCM_SEC_BASE_FMT    KCM_SEC_URL"/%"SPRIuid"/"
+#define KCM_SEC_CCACHE_FMT  KCM_SEC_BASE_FMT"ccache/"
+#define KCM_SEC_DFL_FMT     KCM_SEC_BASE_FMT"default"
+
 #ifndef SSSD_SECRETS_SOCKET
 #define SSSD_SECRETS_SOCKET VARDIR"/run/secrets.socket"
 #endif  /* SSSD_SECRETS_SOCKET */
@@ -38,9 +58,6 @@
 #ifndef SEC_TIMEOUT
 #define SEC_TIMEOUT         5
 #endif /* SEC_TIMEOUT */
-
-/* Just to keep the name of the ccache readable */
-#define MAX_CC_NUM          99999
 
 /* Compat definition of json_array_foreach for older systems */
 #ifndef json_array_foreach
@@ -121,6 +138,74 @@ static errno_t http2errno(int http_code)
     }
 
     return EIO;
+}
+
+static const char *sec_container_url_create(TALLOC_CTX *mem_ctx,
+                                            struct cli_creds *client)
+{
+    return talloc_asprintf(mem_ctx,
+                           KCM_SEC_CCACHE_FMT,
+                           cli_creds_get_uid(client));
+}
+
+static const char *sec_cc_url_create(TALLOC_CTX *mem_ctx,
+                                     struct cli_creds *client,
+                                     const char *sec_key)
+{
+    return talloc_asprintf(mem_ctx,
+                           KCM_SEC_CCACHE_FMT"%s",
+                           cli_creds_get_uid(client),
+                           sec_key);
+}
+
+static const char *sec_dfl_url_create(TALLOC_CTX *mem_ctx,
+                                      struct cli_creds *client)
+{
+    return talloc_asprintf(mem_ctx,
+                           KCM_SEC_DFL_FMT,
+                           cli_creds_get_uid(client));
+}
+
+static errno_t kcm_ccache_to_sec_kv(TALLOC_CTX *mem_ctx,
+                                    struct kcm_ccache *cc,
+                                    struct cli_creds *client,
+                                    const char **_url,
+                                    struct sss_iobuf **_payload)
+{
+    errno_t ret;
+    const char *url;
+    const char *key;
+    TALLOC_CTX *tmp_ctx;
+    struct sss_iobuf *payload;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    key = sec_key_create(mem_ctx, cc->name, cc->uuid);
+    if (key == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    url = sec_cc_url_create(tmp_ctx, client, key);
+    if (url == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = kcm_ccache_to_sec_input(mem_ctx, cc, client, &payload);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+    *_url = talloc_steal(mem_ctx, url);
+    *_payload = talloc_steal(mem_ctx, payload);
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 /*
@@ -1564,7 +1649,7 @@ static struct tevent_req *ccdb_sec_create_send(TALLOC_CTX *mem_ctx,
 
     /* Do the encoding asap so that if we fail, we don't even attempt any
      * writes */
-    ret = kcm_ccache_to_sec_input(state, cc, client, &state->key_url, &state->ccache_payload);
+    ret = kcm_ccache_to_sec_kv(state, cc, client, &state->key_url, &state->ccache_payload);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot convert cache %s to JSON [%d]: %s\n",
@@ -1761,7 +1846,7 @@ static void ccdb_sec_mod_cred_get_done(struct tevent_req *subreq)
 
     kcm_mod_cc(cc, state->mod_cc);
 
-    ret = kcm_ccache_to_sec_input(state, cc, state->client, &url, &payload);
+    ret = kcm_ccache_to_sec_kv(state, cc, state->client, &url, &payload);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to marshall modified ccache to payload [%d]: %s\n",
@@ -1887,7 +1972,7 @@ static void ccdb_sec_store_cred_get_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = kcm_ccache_to_sec_input(state, cc, state->client, &url, &payload);
+    ret = kcm_ccache_to_sec_kv(state, cc, state->client, &url, &payload);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to marshall modified ccache to payload [%d]: %s\n",
