@@ -1196,3 +1196,12 @@ bool is_dbus_activated(void)
     return false;
 #endif
 }
+
+bool local_provider_is_built(void)
+{
+#ifdef BUILD_LOCAL_PROVIDER
+    return true;
+#else
+    return false;
+#endif
+}

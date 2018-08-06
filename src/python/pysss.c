@@ -33,6 +33,22 @@
 #include "tools/sss_sync_ops.h"
 #include "util/crypto/sss_crypto.h"
 
+
+static void PyErr_SetSssErrorWithMessage(int ret, const char *message)
+{
+    PyObject *exc = Py_BuildValue(discard_const_p(char, "(is)"),
+                                  ret, message);
+
+    PyErr_SetObject(PyExc_IOError, exc);
+    Py_XDECREF(exc);
+}
+
+static void PyErr_SetSssError(int ret)
+{
+    PyErr_SetSssErrorWithMessage(ret, strerror(ret));
+}
+
+#ifdef BUILD_LOCAL_PROVIDER
 /*
  * function taken from samba sources tree as of Aug 20 2009,
  * file source4/lib/ldb/pyldb.c
@@ -72,7 +88,7 @@ static char **PyList_AsStringList(TALLOC_CTX *mem_ctx, PyObject *list,
 /* ======================= sysdb python wrappers ==========================*/
 
 /*
- * The sss.password object
+ * The sss.local object
  */
 typedef struct {
     PyObject_HEAD
@@ -91,20 +107,6 @@ typedef struct {
 /*
  * Error reporting
  */
-static void PyErr_SetSssErrorWithMessage(int ret, const char *message)
-{
-    PyObject *exc = Py_BuildValue(discard_const_p(char, "(is)"),
-                                  ret, message);
-
-    PyErr_SetObject(PyExc_IOError, exc);
-    Py_XDECREF(exc);
-}
-
-static void PyErr_SetSssError(int ret)
-{
-    PyErr_SetSssErrorWithMessage(ret, strerror(ret));
-}
-
 /*
  * Common init of all methods
  */
@@ -945,6 +947,7 @@ static PyTypeObject pysss_local_type = {
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc   = sss_py_const_p(char, "SSS DB manipulation"),
 };
+#endif
 
 /* ==================== obfuscation python wrappers ========================*/
 
@@ -1119,7 +1122,9 @@ static PyTypeObject pysss_password_type = {
  * Module methods
  */
 static PyMethodDef module_methods[] = {
+#ifdef BUILD_LOCAL_PROVIDER
         {"getgrouplist", py_sss_getgrouplist, METH_VARARGS, py_sss_getgrouplist__doc__},
+#endif
         {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
@@ -1148,8 +1153,10 @@ initpysss(void)
 {
     PyObject *m;
 
+#ifdef BUILD_LOCAL_PROVIDER
     if (PyType_Ready(&pysss_local_type) < 0)
         MODINITERROR;
+#endif
     if (PyType_Ready(&pysss_password_type) < 0)
         MODINITERROR;
 
@@ -1161,8 +1168,10 @@ initpysss(void)
     if (m == NULL)
         MODINITERROR;
 
+#ifdef BUILD_LOCAL_PROVIDER
     Py_INCREF(&pysss_local_type);
     PyModule_AddObject(m, discard_const_p(char, "local"), (PyObject *)&pysss_local_type);
+#endif
     Py_INCREF(&pysss_password_type);
     PyModule_AddObject(m, discard_const_p(char, "password"), (PyObject *)&pysss_password_type);
 

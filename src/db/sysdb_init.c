@@ -140,7 +140,8 @@ int sysdb_get_db_file(TALLOC_CTX *mem_ctx,
     char *ts_file = NULL;
 
     /* special case for the local domain */
-    if (strcasecmp(provider, "local") == 0) {
+    if (local_provider_is_built()
+            && strcasecmp(provider, "local") == 0) {
         ldb_file = talloc_asprintf(mem_ctx, "%s/"LOCAL_SYSDB_FILE,
                                    base_path);
     } else {

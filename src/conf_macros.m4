@@ -941,3 +941,15 @@ AS_IF([test x$enable_files_domain = xyes],
       AC_DEFINE_UNQUOTED([ADD_FILES_DOMAIN], [1],
           [whether to build unconditionally enable files domain]))
 AM_CONDITIONAL([ADD_FILES_DOMAIN], [test x$enable_files_domain = xyes])
+
+AC_ARG_ENABLE([local-provider],
+              [AS_HELP_STRING([--enable-local-provider],
+                              [If this feature is enabled, then local-provider
+                               will be built by default.
+                              [default=no]])],
+              [enable_local_provider=$enableval],
+              [enable_local_provider=no])
+AS_IF([test x$enable_local_provider = xyes],
+      AC_DEFINE_UNQUOTED([BUILD_LOCAL_PROVIDER], [1],
+          [whether to build unconditionally enable local provider]))
+AM_CONDITIONAL([BUILD_LOCAL_PROVIDER], [test x$enable_local_provider = xyes])

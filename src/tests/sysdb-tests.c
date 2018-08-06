@@ -1830,6 +1830,7 @@ START_TEST (test_sysdb_remove_nonexistent_group)
 }
 END_TEST
 
+#ifdef BUILD_LOCAL_PROVIDER
 START_TEST (test_sysdb_get_new_id)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -1840,15 +1841,13 @@ START_TEST (test_sysdb_get_new_id)
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Cannot setup sysdb tests\n");
 
-    /* sysdb_get_new_id() only works for local provider!
-     * For now, let's just set the provider to "local" till the moment where
-     * we'll be able to disable this test! */
     test_ctx->domain->provider = discard_const_p(char, "local");
     ret = sysdb_get_new_id(test_ctx->domain, &id);
     fail_if(ret != EOK, "Cannot get new ID\n");
     fail_if(id != test_ctx->domain->id_min);
 }
 END_TEST
+#endif
 
 START_TEST (test_sysdb_store_custom)
 {
@@ -7197,8 +7196,10 @@ Suite *create_sysdb_suite(void)
 
     TCase *tc_sysdb = tcase_create("SYSDB Tests");
 
+#ifdef BUILD_LOCAL_PROVIDER
     /* test getting next id works */
     tcase_add_test(tc_sysdb, test_sysdb_get_new_id);
+#endif
 
     /* Add a user with an automatic ID */
     tcase_add_test(tc_sysdb, test_sysdb_user_new_id);

@@ -135,18 +135,23 @@ endif
 
 sbin_PROGRAMS = \
     sssd \
-    sss_useradd \
-    sss_userdel \
-    sss_groupadd \
-    sss_groupdel \
-    sss_usermod \
-    sss_groupmod \
-    sss_groupshow \
     sss_cache \
     sss_override \
     sss_seed \
     sssctl \
     $(NULL)
+
+if BUILD_LOCAL_PROVIDER
+sbin_PROGRAMS += \
+    sss_useradd \
+    sss_userdel \
+    sss_usermod \
+    sss_groupadd \
+    sss_groupdel \
+    sss_groupmod \
+    sss_groupshow \
+    $(NULL)
+endif
 
 sssdlibexec_PROGRAMS = \
     sssd_nss \
@@ -3910,6 +3915,7 @@ intgcheck-prepare:
 	    --enable-intgcheck-reqs \
 	    --without-semanage \
 	    --with-session-recording-shell=/bin/false \
+	    --enable-local-provider \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
 	    CFLAGS="-O2 -g $$CFLAGS -DKCM_PEER_UID=$$(id -u)"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \

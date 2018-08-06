@@ -1405,7 +1405,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         }
 
         /* skip local domain, it doesn't have a backend */
-        if (strcasecmp(dom->provider, "local") == 0) {
+        if (local_provider_is_built()
+                && strcasecmp(dom->provider, "local") == 0) {
             continue;
         }
 

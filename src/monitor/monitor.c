@@ -640,7 +640,9 @@ static int service_signal(struct mt_svc *svc,
     struct sbus_connection *conn;
     struct tevent_req *req;
 
-    if (svc->provider && strcasecmp(svc->provider, "local") == 0) {
+    if (svc->provider
+            && (local_provider_is_built()
+                && strcasecmp(svc->provider, "local") == 0)) {
         /* The local provider requires no signaling */
         return EOK;
     }
@@ -758,7 +760,8 @@ static int check_local_domain_unique(struct sss_domain_info *domains)
     struct sss_domain_info *dom = domains;
 
     while (dom) {
-        if (strcasecmp(dom->provider, "local") == 0) {
+        if (local_provider_is_built()
+                && strcasecmp(dom->provider, "local") == 0) {
             count++;
         }
 
@@ -1303,7 +1306,8 @@ static int add_new_provider(struct mt_ctx *ctx,
     }
     svc->restarts = restarts;
 
-    if (strcasecmp(svc->provider, "local") == 0) {
+    if (local_provider_is_built()
+            && strcasecmp(svc->provider, "local") == 0) {
         /* The LOCAL provider requires no back-end currently
          * We'll add it to the service list, but we don't need
          * to poll it.

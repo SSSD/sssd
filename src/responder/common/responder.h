@@ -55,12 +55,12 @@ extern hash_table_t *dp_requests;
  */
 #define NEED_CHECK_PROVIDER(provider) \
     (provider != NULL && \
-     (strcmp(provider, "local") != 0 && \
+     ((!local_provider_is_built() || strcmp(provider, "local") != 0) && \
       strcmp(provider, "files") != 0))
 
 #define NEED_CHECK_AUTH_PROVIDER(provider) \
     (provider != NULL && \
-      strcmp(provider, "local") != 0)
+      (!local_provider_is_built() || strcmp(provider, "local") != 0))
 
 /* needed until nsssrv.h is updated */
 struct cli_request {

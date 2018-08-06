@@ -405,7 +405,8 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
         int i;
 
         /* skip local */
-        if (strcasecmp(dom->provider, "local") == 0) {
+        if (local_provider_is_built()
+                && strcasecmp(dom->provider, "local") == 0) {
             continue;
         }
 

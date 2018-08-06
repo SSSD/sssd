@@ -145,6 +145,12 @@
     %global with_idmap_version --with-smb-idmap-interface-version=5
 %endif
 
+%global with_local_provider 0
+%if (0%{?fedora} <= 28 || 0%{?rhel <= 7})
+    %global with_local_provider 1
+    %global enable_local_provider --enable-local-provider
+%endif
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
@@ -809,6 +815,7 @@ autoreconf -ivf
     %{?with_secret_responder} \
     %{?with_kcm_option} \
     %{?with_idmap_version} \
+    %{?enable_local_provider} \
     %{?experimental}
 
 make %{?_smp_mflags} all
@@ -1187,6 +1194,7 @@ done
 %files tools -f sssd_tools.lang
 %defattr(-,root,root,-)
 %license COPYING
+%if (0%{with_local_provider} == 1)
 %{_sbindir}/sss_useradd
 %{_sbindir}/sss_userdel
 %{_sbindir}/sss_usermod
@@ -1194,11 +1202,13 @@ done
 %{_sbindir}/sss_groupdel
 %{_sbindir}/sss_groupmod
 %{_sbindir}/sss_groupshow
+%endif
 %{_sbindir}/sss_obfuscate
 %{_sbindir}/sss_override
 %{_sbindir}/sss_debuglevel
 %{_sbindir}/sss_seed
 %{_sbindir}/sssctl
+%if (0%{with_local_provider} == 1)
 %{_mandir}/man8/sss_groupadd.8*
 %{_mandir}/man8/sss_groupdel.8*
 %{_mandir}/man8/sss_groupmod.8*
@@ -1206,6 +1216,7 @@ done
 %{_mandir}/man8/sss_useradd.8*
 %{_mandir}/man8/sss_userdel.8*
 %{_mandir}/man8/sss_usermod.8*
+%endif
 %{_mandir}/man8/sss_obfuscate.8*
 %{_mandir}/man8/sss_override.8*
 %{_mandir}/man8/sss_debuglevel.8*
