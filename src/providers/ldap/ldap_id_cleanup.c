@@ -179,6 +179,7 @@ static int cleanup_users(struct sdap_options *opts,
     const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_MEMBEROF, NULL };
     time_t now = time(NULL);
     char *subfilter = NULL;
+    char *ts_subfilter = NULL;
     int account_cache_expiration;
     hash_table_t *uid_table;
     struct ldb_message **msgs;
@@ -198,29 +199,41 @@ static int cleanup_users(struct sdap_options *opts,
 
     if (account_cache_expiration > 0) {
         subfilter = talloc_asprintf(tmpctx,
-                                    "(&(!(%s=0))(%s<=%ld)(|(!(%s=*))(%s<=%ld)))",
+                                    "(&(!(%s=0))(|(!(%s=*))(%s<=%ld)))",
                                     SYSDB_CACHE_EXPIRE,
-                                    SYSDB_CACHE_EXPIRE,
-                                    (long) now,
                                     SYSDB_LAST_LOGIN,
                                     SYSDB_LAST_LOGIN,
                                     (long) (now - (account_cache_expiration * 86400)));
+
+        ts_subfilter = talloc_asprintf(tmpctx,
+                            "(&(!(%s=0))(%s<=%ld)(|(!(%s=*))(%s<=%ld)))",
+                            SYSDB_CACHE_EXPIRE,
+                            SYSDB_CACHE_EXPIRE,
+                            (long) now,
+                            SYSDB_LAST_LOGIN,
+                            SYSDB_LAST_LOGIN,
+                            (long) (now - (account_cache_expiration * 86400)));
     } else {
         subfilter = talloc_asprintf(tmpctx,
-                                    "(&(!(%s=0))(%s<=%ld)(!(%s=*)))",
+                                    "(&(!(%s=0))(!(%s=*)))",
                                     SYSDB_CACHE_EXPIRE,
-                                    SYSDB_CACHE_EXPIRE,
-                                    (long) now,
                                     SYSDB_LAST_LOGIN);
+
+        ts_subfilter = talloc_asprintf(tmpctx,
+                                       "(&(!(%s=0))(%s<=%ld)(!(%s=*)))",
+                                       SYSDB_CACHE_EXPIRE,
+                                       SYSDB_CACHE_EXPIRE,
+                                       (long) now,
+                                       SYSDB_LAST_LOGIN);
     }
-    if (!subfilter) {
+    if (subfilter == NULL || ts_subfilter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_search_users_by_timestamp(tmpctx, dom, subfilter, attrs,
-                                          &count, &msgs);
+    ret = sysdb_search_users_by_timestamp(tmpctx, dom, subfilter, ts_subfilter,
+                                          attrs, &count, &msgs);
     if (ret == ENOENT) {
         count = 0;
     } else if (ret != EOK) {
@@ -370,6 +383,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter;
+    char *ts_subfilter;
     const char *dn;
     gid_t gid;
     struct ldb_message **msgs;
@@ -386,17 +400,24 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         return ENOMEM;
     }
 
-    subfilter = talloc_asprintf(tmpctx, "(&(!(%s=0))(%s<=%ld))",
-                                SYSDB_CACHE_EXPIRE,
-                                SYSDB_CACHE_EXPIRE, (long)now);
-    if (!subfilter) {
+    subfilter = talloc_asprintf(tmpctx, "(!(%s=0))", SYSDB_CACHE_EXPIRE);
+    if (subfilter == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_search_groups_by_timestamp(tmpctx, domain, subfilter, attrs,
-                                           &count, &msgs);
+    ts_subfilter = talloc_asprintf(tmpctx, "(&(!(%s=0))(%s<=%ld))",
+                                   SYSDB_CACHE_EXPIRE,
+                                   SYSDB_CACHE_EXPIRE, (long)now);
+    if (ts_subfilter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_groups_by_timestamp(tmpctx, domain, subfilter,
+                                           ts_subfilter, attrs, &count, &msgs);
     if (ret == ENOENT) {
         count = 0;
     } else if (ret != EOK) {
