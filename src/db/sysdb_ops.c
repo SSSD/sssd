@@ -3756,6 +3756,7 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
 int sysdb_search_users_by_timestamp(TALLOC_CTX *mem_ctx,
                                     struct sss_domain_info *domain,
                                     const char *sub_filter,
+                                    const char *ts_sub_filter,
                                     const char **attrs,
                                     size_t *_msgs_count,
                                     struct ldb_message ***_msgs)
@@ -3773,10 +3774,10 @@ int sysdb_search_users_by_timestamp(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_ts_users(tmp_ctx, domain, sub_filter, NULL, &ts_res);
+    ret = sysdb_search_ts_users(tmp_ctx, domain, ts_sub_filter, NULL, &ts_res);
     if (ret == ERR_NO_TS) {
         ret = sysdb_cache_search_users(tmp_ctx, domain, domain->sysdb->ldb,
-                                       sub_filter, attrs, &msgs_count, &msgs);
+                                       ts_sub_filter, attrs, &msgs_count, &msgs);
         if (ret != EOK) {
             goto done;
         }
@@ -4036,6 +4037,7 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
 int sysdb_search_groups_by_timestamp(TALLOC_CTX *mem_ctx,
                                      struct sss_domain_info *domain,
                                      const char *sub_filter,
+                                     const char *ts_sub_filter,
                                      const char **attrs,
                                      size_t *_msgs_count,
                                      struct ldb_message ***_msgs)
@@ -4053,10 +4055,10 @@ int sysdb_search_groups_by_timestamp(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_ts_groups(tmp_ctx, domain, sub_filter, NULL, &ts_res);
+    ret = sysdb_search_ts_groups(tmp_ctx, domain, ts_sub_filter, NULL, &ts_res);
     if (ret == ERR_NO_TS) {
         ret = sysdb_cache_search_groups(tmp_ctx, domain, domain->sysdb->ldb,
-                                        sub_filter, attrs, &msgs_count, &msgs);
+                                        ts_sub_filter, attrs, &msgs_count, &msgs);
         if (ret != EOK) {
             goto done;
         }
