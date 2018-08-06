@@ -31,27 +31,6 @@
 #include "util/crypto/sss_crypto.h"
 #include "responder/kcm/kcmsrv_ccache_pvt.h"
 
-/* The base for storing secrets is:
- *  http://localhost/kcm/persistent/$uid
- *
- * Under $base, there are two containers:
- *  /ccache     - stores the ccaches
- *  /ntlm       - stores NTLM creds [Not implement yet]
- *
- * There is also a special entry that contains the UUID of the default
- * cache for this UID:
- *  /default    - stores the UUID of the default ccache for this UID
- *
- * Each ccache has a name and an UUID. On the secrets level, the 'secret'
- * is a concatenation of the stringified UUID and the name separated
- * by a plus-sign.
- */
-#define KCM_SEC_URL        "http://localhost/kcm/persistent"
-#define KCM_SEC_BASE_FMT    KCM_SEC_URL"/%"SPRIuid"/"
-#define KCM_SEC_CCACHE_FMT  KCM_SEC_BASE_FMT"ccache/"
-#define KCM_SEC_DFL_FMT     KCM_SEC_BASE_FMT"default"
-
-
 /*
  * We keep the JSON representation of the ccache versioned to allow
  * us to modify the format in a future version
@@ -72,35 +51,9 @@
             idx++)
 #endif
 
-const char *sec_container_url_create(TALLOC_CTX *mem_ctx,
-                                     struct cli_creds *client)
-{
-    return talloc_asprintf(mem_ctx,
-                           KCM_SEC_CCACHE_FMT,
-                           cli_creds_get_uid(client));
-}
-
-const char *sec_cc_url_create(TALLOC_CTX *mem_ctx,
-                              struct cli_creds *client,
-                              const char *sec_key)
-{
-    return talloc_asprintf(mem_ctx,
-                           KCM_SEC_CCACHE_FMT"%s",
-                           cli_creds_get_uid(client),
-                           sec_key);
-}
-
-const char *sec_dfl_url_create(TALLOC_CTX *mem_ctx,
-                               struct cli_creds *client)
-{
-    return talloc_asprintf(mem_ctx,
-                           KCM_SEC_DFL_FMT,
-                           cli_creds_get_uid(client));
-}
-
-static const char *sec_key_create(TALLOC_CTX *mem_ctx,
-                                  const char *name,
-                                  uuid_t uuid)
+const char *sec_key_create(TALLOC_CTX *mem_ctx,
+                           const char *name,
+                           uuid_t uuid)
 {
     char uuid_str[UUID_STR_SIZE];
 
@@ -455,10 +408,9 @@ static json_t *ccache_to_json(struct kcm_ccache *cc)
     return jcc;
 }
 
-static errno_t ccache_to_sec_kv(TALLOC_CTX *mem_ctx,
-                                struct kcm_ccache *cc,
-                                const char **_sec_key,
-                                const char **_sec_value)
+static errno_t ccache_to_sec_val(TALLOC_CTX *mem_ctx,
+                                 struct kcm_ccache *cc,
+                                 const char **_sec_value)
 {
     json_t *jcc = NULL;
     char *jdump;
@@ -480,11 +432,10 @@ static errno_t ccache_to_sec_kv(TALLOC_CTX *mem_ctx,
         return ERR_JSON_ENCODING;
     }
 
-    *_sec_key = sec_key_create(mem_ctx, cc->name, cc->uuid);
     *_sec_value = talloc_strdup(mem_ctx, jdump);
     free(jdump);
     json_decref(jcc);
-    if (*_sec_key == NULL || *_sec_value == NULL) {
+    if (*_sec_value == NULL) {
         return ENOMEM;
     }
 
@@ -494,13 +445,10 @@ static errno_t ccache_to_sec_kv(TALLOC_CTX *mem_ctx,
 errno_t kcm_ccache_to_sec_input(TALLOC_CTX *mem_ctx,
                                 struct kcm_ccache *cc,
                                 struct cli_creds *client,
-                                const char **_url,
                                 struct sss_iobuf **_payload)
 {
     errno_t ret;
-    const char *key;
     const char *value;
-    const char *url;
     struct sss_iobuf *payload;
     TALLOC_CTX *tmp_ctx;
 
@@ -509,17 +457,11 @@ errno_t kcm_ccache_to_sec_input(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = ccache_to_sec_kv(mem_ctx, cc, &key, &value);
+    ret = ccache_to_sec_val(mem_ctx, cc, &value);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot convert cache %s to JSON [%d]: %s\n",
               cc->name, ret, sss_strerror(ret));
-        goto done;
-    }
-
-    url = sec_cc_url_create(tmp_ctx, client, key);
-    if (url == NULL) {
-        ret = ENOMEM;
         goto done;
     }
 
@@ -533,7 +475,6 @@ errno_t kcm_ccache_to_sec_input(TALLOC_CTX *mem_ctx,
     }
 
     ret = EOK;
-    *_url = talloc_steal(mem_ctx, url);
     *_payload = talloc_steal(mem_ctx, payload);
 done:
     talloc_free(tmp_ctx);
