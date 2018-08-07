@@ -113,8 +113,6 @@ struct dp_option default_basic_opts[] = {
     { "ldap_idmap_default_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_idmap_default_domain_sid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_idmap_helper_table_size", DP_OPT_NUMBER, { .number = 10 }, NULL_NUMBER },
-    { "ldap_groups_use_matching_rule_in_chain", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_initgroups_use_matching_rule_in_chain", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_use_tokengroups", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE},
     { "ldap_rfc2307_fallback_to_local_users", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_disable_range_retrieval", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
