@@ -1799,6 +1799,7 @@ sssd_kcm_SOURCES = \
     src/responder/kcm/kcmsrv_ccache.c \
     src/responder/kcm/kcmsrv_ccache_mem.c \
     src/responder/kcm/kcmsrv_ccache_json.c \
+    src/responder/kcm/kcmsrv_ccache_secdb.c \
     src/responder/kcm/kcmsrv_ccache_secrets.c \
     src/responder/kcm/kcmsrv_ops.c \
     src/responder/kcm/kcmsrv_op_queue.c \
@@ -1825,6 +1826,7 @@ sssd_kcm_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_iface.la \
     libsss_sbus.la \
+    libsss_secrets.la \
     $(NULL)
 endif
 
