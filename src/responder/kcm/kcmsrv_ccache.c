@@ -251,6 +251,10 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FUNC_DATA, "KCM back end: sssd-secrets\n");
         ccdb->ops = &ccdb_sec_ops;
         break;
+    case CCDB_BE_SECDB:
+        DEBUG(SSSDBG_FUNC_DATA, "KCM back end: libsss_secrets\n");
+        ccdb->ops = &ccdb_secdb_ops;
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown ccache database\n");
         break;

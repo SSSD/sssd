@@ -201,5 +201,6 @@ struct kcm_ccdb_ops {
 
 extern const struct kcm_ccdb_ops ccdb_mem_ops;
 extern const struct kcm_ccdb_ops ccdb_sec_ops;
+extern const struct kcm_ccdb_ops ccdb_secdb_ops;
 
 #endif /* _KCMSRV_CCACHE_BE_ */

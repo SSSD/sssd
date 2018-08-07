@@ -54,6 +54,7 @@ struct kcm_resp_ctx {
 enum kcm_ccdb_be {
     CCDB_BE_MEMORY,
     CCDB_BE_SECRETS,
+    CCDB_BE_SECDB,
 };
 
 /*
