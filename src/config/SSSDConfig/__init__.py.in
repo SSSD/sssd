@@ -405,8 +405,6 @@ option_strings = {
     'ldap_idmap_default_domain_sid' : _('SID of the default domain for ID-mapping'),
     'ldap_idmap_helper_table_size' : _('Number of secondary slices'),
 
-    'ldap_groups_use_matching_rule_in_chain' : _('Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups'),
-    'ldap_initgroups_use_matching_rule_in_chain' : _('Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups'),
     'ldap_use_tokengroups' : _('Whether to use Token-Groups'),
     'ldap_min_id' : _('Set lower boundary for allowed IDs from the LDAP server'),
     'ldap_max_id' : _('Set upper boundary for allowed IDs from the LDAP server'),
