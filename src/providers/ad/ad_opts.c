@@ -81,7 +81,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_sudo_hostnames", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_ip", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sudo_include_netgroups", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
-    { "ldap_sudo_include_regexp", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "ldap_sudo_include_regexp", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
     { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_autofs_map_master_name", DP_OPT_STRING, { "auto.master" }, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ad" }, NULL_STRING },

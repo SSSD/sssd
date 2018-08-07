@@ -2655,8 +2655,14 @@ ldap_access_filter = (employeeType=admin)
                             is <emphasis>false</emphasis> then this option
                             has no effect.
                         </para>
+                        <note>
+                            <para>
+                                Using wildcard is an operation that is very
+                                costly to evaluate on the LDAP server side!
+                            </para>
+                        </note>
                         <para>
-                            Default: true
+                            Default: false
                         </para>
                     </listitem>
                 </varlistentry>
