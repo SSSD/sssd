@@ -1135,6 +1135,103 @@ done:
     return ret;
 }
 
+errno_t sss_sec_update(struct sss_sec_req *req,
+                       const char *secret)
+{
+    struct ldb_message *msg;
+    const char *enctype = "masterkey";
+    char *enc_secret;
+    int ret;
+
+    if (req == NULL || secret == NULL) {
+        return EINVAL;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Adding a secret to [%s]\n", req->path);
+
+    msg = ldb_msg_new(req);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = req->req_dn;
+
+    /* make sure containers exist */
+    ret = local_db_check_containers(msg, req->sctx, msg->dn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_check_containers failed for [%s]: [%d]: %s\n",
+              ldb_dn_get_linearized(msg->dn), ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = local_db_check_number_of_secrets(msg, req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_check_number_of_secrets failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = local_db_check_peruid_number_of_secrets(msg, req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_db_check_number_of_secrets failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = local_check_max_payload_size(req, strlen(secret));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_check_max_payload_size failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = local_encrypt(req->sctx, msg, secret, enctype, &enc_secret);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "local_encrypt failed [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* FIXME - should we have a lastUpdate timestamp? */
+    ret = ldb_msg_add_empty(msg, "secret", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(ret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "secret", enc_secret);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_msg_add_string failed: [%s]\n", ldb_strerror(ret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_modify(req->sctx->ldb, msg);
+    if (ret == LDB_ERR_NO_SUCH_OBJECT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "No such object to modify\n");
+        ret = ENOENT;
+        goto done;
+    } else if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_modify failed: [%s](%d)[%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(req->sctx->ldb));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(msg);
+    return ret;
+}
+
 errno_t sss_sec_delete(struct sss_sec_req *req)
 {
     TALLOC_CTX *tmp_ctx;

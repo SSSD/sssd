@@ -88,6 +88,9 @@ errno_t sss_sec_get(TALLOC_CTX *mem_ctx,
 errno_t sss_sec_put(struct sss_sec_req *req,
                     const char *secret);
 
+errno_t sss_sec_update(struct sss_sec_req *req,
+                       const char *secret);
+
 errno_t sss_sec_create_container(struct sss_sec_req *req);
 
 bool sss_sec_req_is_list(struct sss_sec_req *req);
