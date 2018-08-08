@@ -226,6 +226,11 @@ struct ccdb_secdb {
     struct sss_sec_ctx *sctx;
 };
 
+/* Since with the synchronous database, the database operations are just
+ * fake-async wrappers around otherwise sync operations, we don't often
+ * need any state structure, unless the _recv() function returns anything,
+ * so we use this empty structure instead
+ */
 struct ccdb_secdb_state {
 };
 
@@ -531,6 +536,7 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot initialize the security database\n");
+        talloc_free(secdb);
         return ret;
     }
 
