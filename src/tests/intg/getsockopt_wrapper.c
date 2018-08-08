@@ -3,6 +3,7 @@
 /* for RTLD_NEXT */
 #define _GNU_SOURCE 1
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <sys/types.h>
@@ -25,6 +26,35 @@ static bool is_dbus_socket(int fd)
     unix_socket = (struct sockaddr_un *)&addr;
 
     return NULL != strstr(unix_socket->sun_path, "system_bus_socket");
+}
+
+static bool is_secrets_socket(int fd)
+{
+    int ret;
+    struct sockaddr_storage addr = { 0 };
+    socklen_t addrlen = sizeof(addr);
+    struct sockaddr_un *unix_socket;
+
+    ret = getsockname(fd, (struct sockaddr *)&addr, &addrlen);
+    if (ret != 0) return false;
+
+    if (addr.ss_family != AF_UNIX) return false;
+
+    unix_socket = (struct sockaddr_un *)&addr;
+
+    return NULL != strstr(unix_socket->sun_path, "secrets.socket");
+}
+
+static uid_t fake_secret_peer(uid_t orig_id)
+{
+    char *val;
+
+    val = getenv("SSSD_INTG_SECRETS_PEER");
+    if (val == NULL) {
+        return orig_id;
+    }
+
+    return atoi(val);
 }
 
 typedef typeof(getsockopt) getsockopt_fn_t;
@@ -52,6 +82,8 @@ int getsockopt(int sockfd, int level, int optname,
         cr = optval;
         if (cr->uid != 0 && is_dbus_socket(sockfd)) {
             cr->uid = 0;
+        } else if (is_secrets_socket(sockfd)) {
+            cr->uid = fake_secret_peer(cr->uid);
         }
     }
 

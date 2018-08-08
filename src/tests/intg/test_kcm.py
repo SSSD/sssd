@@ -167,7 +167,10 @@ def setup_for_kcm_mem(request, kdc_instance):
 
 @pytest.fixture
 def setup_secrets(request):
-    create_sssd_secrets_fixture(request)
+    kcm_env = dict(os.environ)
+    # Tell sssd-secrets it's root talking
+    kcm_env['SSSD_INTG_SECRETS_PEER'] = '0'
+    create_sssd_secrets_fixture(request, env=kcm_env)
 
 
 @pytest.fixture

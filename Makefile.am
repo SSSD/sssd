@@ -3942,7 +3942,7 @@ intgcheck-prepare:
 	    --with-session-recording-shell=/bin/false \
 	    --enable-local-provider \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
-	    CFLAGS="-O2 -g $$CFLAGS -DKCM_PEER_UID=$$(id -u)"; \
+	    CFLAGS="-O2 -g $$CFLAGS"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
 	$(MAKE) $(AM_MAKEFLAGS) test_ssh_client; \
 	: Force single-thread install to workaround concurrency issues; \
