@@ -110,6 +110,11 @@ def create_sssd_kcm_fixture(sock_path, request):
         if kcm_pid == 0:
             return
         os.kill(kcm_pid, signal.SIGTERM)
+        try:
+            os.unlink(os.path.join(config.SECDB_PATH, "secrets.ldb"))
+        except OSError as osex:
+            if osex.errno == 2:
+                pass
 
     request.addfinalizer(kcm_teardown)
     return kcm_pid
