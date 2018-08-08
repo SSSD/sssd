@@ -30,14 +30,8 @@
 #include "util/secrets/sec_pvt.h"
 #include "util/secrets/secrets.h"
 
-/* The KCM responder must "impersonate" the owner of the credentials.
- * Only a trusted UID can do that -- root by default, but unit
- * tests might choose otherwise */
-#ifndef KCM_PEER_UID
 #define KCM_PEER_UID            0
-#endif /* KCM_PEER_UID */
-
-#define MKEY_SIZE (256 / 8)
+#define MKEY_SIZE               (256 / 8)
 
 #define SECRETS_BASEDN  "cn=secrets"
 #define KCM_BASEDN      "cn=kcm"
