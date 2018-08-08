@@ -1302,7 +1302,7 @@ static void ccdb_sec_getbyname_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Got ccache by UUID\n");
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Got ccache by name\n");
     tevent_req_done(req);
 }
 
