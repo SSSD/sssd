@@ -184,6 +184,16 @@ def setup_for_kcm_sec(request, kdc_instance):
     return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
 
 
+@pytest.fixture
+def setup_for_kcm_secdb(request, kdc_instance):
+    """
+    Set up the KCM responder backed by libsss_secrets
+    """
+    kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
+    sssd_conf = create_sssd_conf(kcm_path, "secdb")
+    return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
+
+
 def kcm_init_list_destroy(testenv):
     """
     Test that kinit, kdestroy and klist work with KCM
@@ -224,6 +234,11 @@ def test_kcm_sec_init_list_destroy(setup_for_kcm_sec,
     kcm_init_list_destroy(testenv)
 
 
+def test_kcm_secdb_init_list_destroy(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
+    kcm_init_list_destroy(testenv)
+
+
 def kcm_overwrite(testenv):
     """
     Test that reusing a ccache reinitializes the cache and doesn't
@@ -251,6 +266,11 @@ def test_kcm_mem_overwrite(setup_for_kcm_mem):
 def test_kcm_sec_overwrite(setup_for_kcm_sec,
                            setup_secrets):
     testenv = setup_for_kcm_sec
+    kcm_overwrite(testenv)
+
+
+def test_kcm_secdb_overwrite(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     kcm_overwrite(testenv)
 
 
@@ -325,6 +345,11 @@ def test_kcm_sec_collection_init_list_destroy(setup_for_kcm_sec,
     collection_init_list_destroy(testenv)
 
 
+def test_kcm_secdb_collection_init_list_destroy(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
+    collection_init_list_destroy(testenv)
+
+
 def exercise_kswitch(testenv):
     """
     Test switching between principals
@@ -378,6 +403,11 @@ def test_kcm_mem_kswitch(setup_for_kcm_mem):
 def test_kcm_sec_kswitch(setup_for_kcm_sec,
                          setup_secrets):
     testenv = setup_for_kcm_sec
+    exercise_kswitch(testenv)
+
+
+def test_kcm_secdb_kswitch(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     exercise_kswitch(testenv)
 
 
@@ -436,6 +466,11 @@ def test_kcm_sec_subsidiaries(setup_for_kcm_sec,
     exercise_subsidiaries(testenv)
 
 
+def test_kcm_secdb_subsidiaries(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
+    exercise_subsidiaries(testenv)
+
+
 def kdestroy_nocache(testenv):
     """
     Destroying a non-existing ccache should not throw an error
@@ -458,6 +493,11 @@ def test_kcm_mem_kdestroy_nocache(setup_for_kcm_mem):
 def test_kcm_sec_kdestroy_nocache(setup_for_kcm_sec,
                                   setup_secrets):
     testenv = setup_for_kcm_sec
+    exercise_subsidiaries(testenv)
+
+
+def test_kcm_secdb_kdestroy_nocache(setup_for_kcm_secdb):
+    testenv = setup_for_kcm_secdb
     exercise_subsidiaries(testenv)
 
 
