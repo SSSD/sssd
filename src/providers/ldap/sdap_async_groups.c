@@ -1174,18 +1174,14 @@ struct sdap_process_group_state {
     struct sysdb_attrs *group;
     struct ldb_message_element* sysdb_dns;
     struct ldb_message_element* ghost_dns;
-    char **queued_members;
-    int queue_len;
     const char **attrs;
     const char *filter;
-    size_t queue_idx;
     size_t count;
     size_t check_count;
 
     bool enumeration;
 };
 
-#define GROUPMEMBER_REQ_PARALLEL 50
 static void sdap_process_group_members(struct tevent_req *subreq);
 
 static int sdap_process_group_members_2307bis(struct tevent_req *req,
@@ -1262,9 +1258,6 @@ sdap_process_group_send(TALLOC_CTX *memctx,
     grp_state->sysdb = sysdb;
     grp_state->group =  group;
     grp_state->check_count = 0;
-    grp_state->queue_idx = 0;
-    grp_state->queued_members = NULL;
-    grp_state->queue_len = 0;
     grp_state->filter = filter;
     grp_state->attrs = attrs;
     grp_state->enumeration = enumeration;
@@ -1359,47 +1352,23 @@ sdap_process_missing_member_2307bis(struct tevent_req *req,
         tevent_req_data(req, struct sdap_process_group_state);
     struct tevent_req *subreq;
 
-    /*
-     * Issue at most GROUPMEMBER_REQ_PARALLEL LDAP searches at once.
-     * The rest is sent while the results are being processed.
-     * We limit the number as of request here, as the Server might
-     * enforce limits on the number of pending operations per
-     * connection.
-     */
-    if (grp_state->check_count > GROUPMEMBER_REQ_PARALLEL) {
-        DEBUG(SSSDBG_TRACE_LIBS, " queueing search for: %s\n", user_dn);
-        if (!grp_state->queued_members) {
-            DEBUG(SSSDBG_TRACE_LIBS,
-                  "Allocating queue for %zu members\n",
-                   num_users - grp_state->check_count);
-
-            grp_state->queued_members = talloc_array(grp_state, char *,
-                    num_users - grp_state->check_count + 1);
-            if (!grp_state->queued_members) {
-                return ENOMEM;
-            }
-        }
-        grp_state->queued_members[grp_state->queue_len] = user_dn;
-        grp_state->queue_len++;
-    } else {
-        subreq = sdap_get_generic_send(grp_state,
-                                       grp_state->ev,
-                                       grp_state->opts,
-                                       grp_state->sh,
-                                       user_dn,
-                                       LDAP_SCOPE_BASE,
-                                       grp_state->filter,
-                                       grp_state->attrs,
-                                       grp_state->opts->user_map,
-                                       grp_state->opts->user_map_cnt,
-                                       dp_opt_get_int(grp_state->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT),
-                                       false);
-        if (!subreq) {
-            return ENOMEM;
-        }
-        tevent_req_set_callback(subreq, sdap_process_group_members, req);
+    subreq = sdap_get_generic_send(grp_state,
+                                   grp_state->ev,
+                                   grp_state->opts,
+                                   grp_state->sh,
+                                   user_dn,
+                                   LDAP_SCOPE_BASE,
+                                   grp_state->filter,
+                                   grp_state->attrs,
+                                   grp_state->opts->user_map,
+                                   grp_state->opts->user_map_cnt,
+                                   dp_opt_get_int(grp_state->opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
+    if (!subreq) {
+        return ENOMEM;
     }
+    tevent_req_set_callback(subreq, sdap_process_group_members, req);
 
     grp_state->check_count++;
     return EOK;
@@ -1472,10 +1441,6 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
                        i, (char *)memberel->values[i].data);
             return ret;
         }
-    }
-
-    if (state->queue_len > 0) {
-        state->queued_members[state->queue_len]=NULL;
     }
 
     if (state->check_count == 0) {
@@ -1725,28 +1690,6 @@ next:
               "Error reading group member[%d]: %s. Skipping\n",
                ret, strerror(ret));
         state->count--;
-    }
-    /* Are there more searches for uncached users to submit? */
-    if (state->queued_members && state->queued_members[state->queue_idx]) {
-        subreq = sdap_get_generic_send(state,
-                                       state->ev, state->opts, state->sh,
-                                       state->queued_members[state->queue_idx],
-                                       LDAP_SCOPE_BASE,
-                                       state->filter,
-                                       state->attrs,
-                                       state->opts->user_map,
-                                       state->opts->user_map_cnt,
-                                       dp_opt_get_int(state->opts->basic,
-                                                      SDAP_SEARCH_TIMEOUT),
-                                       false);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-
-        tevent_req_set_callback(subreq,
-                                sdap_process_group_members, req);
-        state->queue_idx++;
     }
 
     if (state->check_count == 0) {
