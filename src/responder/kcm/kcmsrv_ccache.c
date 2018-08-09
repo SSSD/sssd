@@ -247,10 +247,12 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FUNC_DATA, "KCM back end: memory\n");
         ccdb->ops = &ccdb_mem_ops;
         break;
+#ifdef BUILD_SECRETS
     case CCDB_BE_SECRETS:
         DEBUG(SSSDBG_FUNC_DATA, "KCM back end: sssd-secrets\n");
         ccdb->ops = &ccdb_sec_ops;
         break;
+#endif /* BUILD_SECRETS */
     case CCDB_BE_SECDB:
         DEBUG(SSSDBG_FUNC_DATA, "KCM back end: libsss_secrets\n");
         ccdb->ops = &ccdb_secdb_ops;

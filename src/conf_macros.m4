@@ -883,11 +883,11 @@ AC_DEFUN([SSSD_RUNSTATEDIR],
 AC_DEFUN([WITH_SECRETS],
   [ AC_ARG_WITH([secrets],
                 [AC_HELP_STRING([--with-secrets],
-                                [Whether to build with secrets support [yes]]
+                                [Whether to build with secrets support [no]]
                                )
                 ],
                 [with_secrets=$withval],
-                with_secrets=yes
+                with_secrets=no
                )
 
     if test x"$with_secrets" = xyes; then
