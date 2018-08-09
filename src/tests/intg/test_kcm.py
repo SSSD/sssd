@@ -179,6 +179,12 @@ def setup_for_kcm_sec(request, kdc_instance):
     Just set up the local provider for tests and enable the KCM
     responder
     """
+    sec_resp_path = os.path.join(config.LIBEXEC_PATH, "sssd", "sssd_secrets")
+    if not os.access(sec_resp_path, os.X_OK):
+        # It would be cleaner to use pytest.mark.skipif on the package level
+        # but upstream insists on supporting RHEL-6.
+        pytest.skip("No Secrets responder, skipping")
+
     kcm_path = os.path.join(config.RUNSTATEDIR, "kcm.socket")
     sssd_conf = create_sssd_conf(kcm_path, "secrets")
     return common_setup_for_kcm_mem(request, kdc_instance, kcm_path, sssd_conf)
