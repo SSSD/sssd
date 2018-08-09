@@ -57,7 +57,7 @@ static errno_t kcm_get_ccdb_be(struct kcm_ctx *kctx)
                             kctx->rctx,
                             kctx->rctx->confdb_service_path,
                             CONFDB_KCM_DB,
-                            "secrets",
+                            "secdb",
                             &str_db);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
