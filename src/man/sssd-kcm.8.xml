@@ -121,17 +121,9 @@ systemctl enable sssd-kcm.socket
     <refsect1 id='storage'>
         <title>THE CREDENTIAL CACHE STORAGE</title>
         <para>
-            The credential caches are stored in the SSSD secrets service (see
-            <citerefentry>
-                <refentrytitle>sssd-secrets</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>
-            for more details). Therefore it is important that also the sssd-secrets
-            service is enabled and its socket is started:
-            <programlisting>
-systemctl start sssd-secrets.socket
-systemctl enable sssd-secrets.socket
-            </programlisting>
-            Your distribution should already set the dependencies between the services.
+            The credential caches are stored in a database, much like SSSD
+            caches user or group entries. The database is typically
+            located at <quote>/var/lib/sss/secrets</quote>.
         </para>
     </refsect1>
 
