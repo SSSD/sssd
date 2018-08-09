@@ -403,13 +403,9 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Failed to store initgroups %s (%s) in mem-cache [%d]: %s!\n",
                   rawname.str, domain->name, ret, sss_strerror(ret));
+            sss_packet_set_size(packet, 0);
+            return ret;
         }
-    }
-
-done:
-    if (ret != EOK) {
-        sss_packet_set_size(packet, 0);
-        return ret;
     }
 
     sss_packet_get_body(packet, &body, &body_len);
