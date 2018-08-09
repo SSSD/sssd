@@ -57,7 +57,7 @@ def create_sssd_secrets_fixture(request, teardown=True):
     assert secpid >= 0
 
     if secpid == 0:
-        os.execv(resp_path, ("--uid=0", "--gid=0"))
+        os.execv(resp_path, (resp_path, "--uid=0", "--gid=0"))
         print("sssd_secrets failed to start")
         sys.exit(99)
     else:
