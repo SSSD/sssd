@@ -212,6 +212,7 @@ m4_include([src/external/test_ca.m4])
 
 if test x$with_secrets = xyes; then
     m4_include([src/external/libhttp_parser.m4])
+    m4_include([src/external/libcurl.m4])
 fi
 
 if test x$with_kcm = xyes; then
@@ -219,9 +220,13 @@ if test x$with_kcm = xyes; then
 fi
 
 if test x$with_kcm = xyes -o x$with_secrets = xyes; then
-    m4_include([src/external/libcurl.m4])
+    BUILD_WITH_LIBSECRET=1
+    AC_DEFINE_UNQUOTED(BUILD_WITH_LIBSECRET, 1, [libsecret will be built])
     m4_include([src/external/libjansson.m4])
 fi
+
+AM_CONDITIONAL([BUILD_WITH_LIBSECRET],
+               [test x"$BUILD_WITH_LIBSECRET" != "x"])
 
 # This variable is defined by external/libcurl.m4, but conditionals
 # must be always evaluated
