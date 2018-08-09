@@ -1903,8 +1903,14 @@ check_LTLIBRARIES += \
     $(NULL)
 endif
 
+# libdlopen_test_providers is a helper library to provide missing symbols for
+# dlopen_tests. It is mainly used for the backend modules but is used as well
+# to provide __wrap_sss_nss_make_request_timeout needed make make dlopen_tests
+# pass for libsss_nss_idmap_tests.
 libdlopen_test_providers_la_SOURCES = \
-    $(sssd_be_SOURCES)
+    $(sssd_be_SOURCES) \
+    src/tests/cmocka/wrap_sss_nss_make_request_timeout.c \
+    $(NULL)
 libdlopen_test_providers_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS) \
@@ -1932,6 +1938,7 @@ libsss_nss_idmap_tests_la_LDFLAGS = \
     $(libsss_nss_idmap_la_LDFLAGS) \
     -shared \
     -rpath $(libdir) \
+    -Wl,-wrap,sss_nss_make_request_timeout \
     -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.unit_tests
 
 dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.unit_tests
