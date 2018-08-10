@@ -406,7 +406,6 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
         }
     }
 
-done:
     if (ret != EOK) {
         sss_packet_set_size(packet, 0);
         return ret;
