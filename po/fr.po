@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2018-06-08 21:01+0200\n"
+"POT-Creation-Date: 2018-08-12 13:03+0000\n"
 "PO-Revision-Date: 2016-02-24 03:43+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French (http://www.transifex.com/projects/p/sssd/language/"
@@ -1661,7 +1661,7 @@ msgstr ""
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr ""
 
-#: src/providers/data_provider_be.c:555
+#: src/providers/data_provider_be.c:556
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
@@ -1785,8 +1785,8 @@ msgstr "Mot de passe actuel : "
 msgid "Password expired. Change your password now."
 msgstr "Mot de passe expiré. Changez votre mot de passe maintenant."
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:203 src/tools/sss_useradd.c:48
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:204 src/tools/sss_useradd.c:48
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:668
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
@@ -1794,8 +1794,8 @@ msgstr "Mot de passe expiré. Changez votre mot de passe maintenant."
 msgid "The debug level to run with"
 msgstr "Le niveau de débogage utilisé avec"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:43
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:208
 msgid "The SSSD domain to use"
 msgstr "Le domaine SSSD à utiliser"
 
@@ -1819,19 +1819,23 @@ msgstr "Utilisateur non spécifié\n"
 msgid "Error looking up public keys\n"
 msgstr "Erreur lors de la recherche des clés publiques\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:205
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:206
 msgid "The port to use to connect to the host"
 msgstr "Le port à utiliser pour se connecter à l'hôte"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:249
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:210
+msgid "Print the host ssh public keys"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:252
 msgid "Invalid port\n"
 msgstr "Port invalide\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:254
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:257
 msgid "Host not specified\n"
 msgstr "Hôte non spécifié\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:260
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:263
 msgid "The path to the proxy command must be absolute\n"
 msgstr "Le chemin vers la commande de proxy doit être absolue\n"
 
