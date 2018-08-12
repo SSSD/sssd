@@ -86,7 +86,7 @@ GlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts
             </varlistentry>
             <varlistentry>
                 <term>
-                    <option>-k</option>,<option>--pubkeys</option>
+                    <option>-k</option>,<option>--pubkey</option>
                 </term>
                 <listitem>
                     <para>
