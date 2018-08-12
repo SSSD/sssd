@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2018-06-08 21:01+0200\n"
+"POT-Creation-Date: 2018-08-12 13:03+0000\n"
 "PO-Revision-Date: 2018-03-09 08:59+0000\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/sssd/language/"
@@ -1700,7 +1700,7 @@ msgstr "Вимагає перетворення реєстраційного з�
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Використовувати нетипову версію krb5_get_init_creds_password"
 
-#: src/providers/data_provider_be.c:555
+#: src/providers/data_provider_be.c:556
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -1819,8 +1819,8 @@ msgstr "Поточний пароль: "
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:203 src/tools/sss_useradd.c:48
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:204 src/tools/sss_useradd.c:48
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:668
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
@@ -1828,8 +1828,8 @@ msgstr "Строк дії пароля вичерпано. Змініть ваш
 msgid "The debug level to run with"
 msgstr "Рівень діагностики під час запуску"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:43
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:208
 msgid "The SSSD domain to use"
 msgstr "Домен SSSD, який слід використовувати"
 
@@ -1853,19 +1853,23 @@ msgstr "Не вказано користувача\n"
 msgid "Error looking up public keys\n"
 msgstr "Помилка під час спроби пошуку відкритих ключів\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:205
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:206
 msgid "The port to use to connect to the host"
 msgstr "Порт, яким слід користуватися для встановлення з’єднань з вузлом"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:249
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:210
+msgid "Print the host ssh public keys"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:252
 msgid "Invalid port\n"
 msgstr "Некоректний порт.\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:254
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:257
 msgid "Host not specified\n"
 msgstr "Не вказано вузол\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:260
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:263
 msgid "The path to the proxy command must be absolute\n"
 msgstr "Має бути вказано абсолютний шлях до команди проксі-сервера\n"
 

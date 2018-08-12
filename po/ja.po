@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2018-06-08 21:01+0200\n"
+"POT-Creation-Date: 2018-08-12 13:03+0000\n"
 "PO-Revision-Date: 2016-08-18 08:06+0000\n"
 "Last-Translator: Noriko Mizumoto <noriko@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
@@ -1571,7 +1571,7 @@ msgstr ""
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr ""
 
-#: src/providers/data_provider_be.c:555
+#: src/providers/data_provider_be.c:556
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
@@ -1688,8 +1688,8 @@ msgstr "現在のパスワード: "
 msgid "Password expired. Change your password now."
 msgstr "パスワードの期限が切れました。いますぐパスワードを変更してください。"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:203 src/tools/sss_useradd.c:48
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:41
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:204 src/tools/sss_useradd.c:48
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:668
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
@@ -1697,8 +1697,8 @@ msgstr "パスワードの期限が切れました。いますぐパスワード
 msgid "The debug level to run with"
 msgstr "実行するデバッグレベル"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:42
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:207
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:43
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:208
 msgid "The SSSD domain to use"
 msgstr "使用する SSSD ドメイン"
 
@@ -1722,19 +1722,23 @@ msgstr "ユーザーが指定されていません\n"
 msgid "Error looking up public keys\n"
 msgstr "公開鍵の検索中にエラーが発生しました\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:205
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:206
 msgid "The port to use to connect to the host"
 msgstr "ホストへの接続に使用するポート"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:249
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:210
+msgid "Print the host ssh public keys"
+msgstr ""
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:252
 msgid "Invalid port\n"
 msgstr "無効なポート\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:254
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:257
 msgid "Host not specified\n"
 msgstr "ホストが指定されていません\n"
 
-#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:260
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:263
 msgid "The path to the proxy command must be absolute\n"
 msgstr "プロキシーコマンドへのパスは絶対パスにする必要があります\n"
 
