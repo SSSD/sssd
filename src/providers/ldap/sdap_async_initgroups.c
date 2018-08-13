@@ -3089,19 +3089,6 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
                                                          cname, orig_dn,
                                                          state->timeout,
                                                          state->use_id_mapping);
-        } else if (state->opts->support_matching_rule
-                    && dp_opt_get_bool(state->opts->basic,
-                                       SDAP_AD_MATCHING_RULE_INITGROUPS)) {
-            /* Take advantage of AD's extensibleMatch filter to look up
-             * all parent groups in a single request.
-             */
-            subreq = sdap_get_ad_match_rule_initgroups_send(state, state->ev,
-                                                            state->opts,
-                                                            state->sysdb,
-                                                            state->dom,
-                                                            state->sh,
-                                                            cname, orig_dn,
-                                                            state->timeout);
         } else {
             subreq = sdap_initgr_rfc2307bis_send(
                     state, state->ev, state->opts,
@@ -3277,11 +3264,6 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
             && dp_opt_get_bool(state->opts->basic, SDAP_AD_USE_TOKENGROUPS)) {
 
             ret = sdap_ad_tokengroups_initgroups_recv(subreq);
-        }
-        else if (state->opts->support_matching_rule
-                && dp_opt_get_bool(state->opts->basic,
-                                   SDAP_AD_MATCHING_RULE_INITGROUPS)) {
-            ret = sdap_get_ad_match_rule_initgroups_recv(subreq);
         } else {
             ret = sdap_initgr_rfc2307bis_recv(subreq);
         }
