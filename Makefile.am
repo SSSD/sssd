@@ -1209,28 +1209,6 @@ libsss_iface_sync_la_LDFLAGS = \
     -avoid-version \
     $(NULL)
 
-if BUILD_WITH_LIBSECRET
-pkglib_LTLIBRARIES += libsss_secrets.la
-
-libsss_secrets_la_SOURCES = \
-    src/util/secrets/secrets.c \
-    src/util/secrets/config.c \
-    $(NULL)
-libsss_secrets_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-libsss_secrets_la_LIBADD = \
-    $(TALLOC_LIBS) \
-    $(LDB_LIBS) \
-    libsss_crypt.la \
-    libsss_debug.la \
-    libsss_util.la \
-    $(NULL)
-libsss_secrets_la_LDFLAGS = \
-    -avoid-version \
-    $(NULL)
-endif
-
 pkglib_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
     src/confdb/confdb.c \
@@ -1313,6 +1291,27 @@ if BUILD_SYSTEMTAP
 libsss_util_la_LIBADD += stap_generated_probes.lo
 endif
 libsss_util_la_LDFLAGS = -avoid-version
+
+if BUILD_WITH_LIBSECRET
+pkglib_LTLIBRARIES += libsss_secrets.la
+libsss_secrets_la_SOURCES = \
+    src/util/secrets/secrets.c \
+    src/util/secrets/config.c \
+    $(NULL)
+libsss_secrets_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+libsss_secrets_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(LDB_LIBS) \
+    libsss_crypt.la \
+    libsss_debug.la \
+    libsss_util.la \
+    $(NULL)
+libsss_secrets_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
+endif
 
 pkglib_LTLIBRARIES += libsss_semanage.la
 libsss_semanage_la_CFLAGS = \
