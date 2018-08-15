@@ -66,67 +66,7 @@ SSSD_CACHE_REQ_OBJ = \
     ../../../src/responder/common/cache_req/plugins/cache_req_host_by_name.c \
     $(NULL)
 
-SSSD_SBUS_OBJ = \
-    ../../../src/util/check_and_open.c \
-    ../../../src/util/debug.c \
-    ../../../src/util/sss_ptr_hash.c \
-    ../../../src/util/sss_ptr_list.c \
-    ../../../src/util/sss_utf8.c \
-    ../../../src/util/util.c \
-    ../../../src/util/util_errors.c \
-    ../../../src/util/util_ext.c \
-    ../../../src/util/strtonum.c \
-    ../../../src/sbus/sbus_errors.c \
-    ../../../src/sbus/sbus_opath.c \
-    ../../../src/sbus/connection/sbus_connection.c \
-    ../../../src/sbus/connection/sbus_connection_connect.c \
-    ../../../src/sbus/connection/sbus_dbus.c \
-    ../../../src/sbus/connection/sbus_dispatcher.c \
-    ../../../src/sbus/connection/sbus_reconnect.c \
-    ../../../src/sbus/connection/sbus_send.c \
-    ../../../src/sbus/connection/sbus_watch.c \
-    ../../../src/sbus/interface_dbus/sbus_dbus_arguments.c \
-    ../../../src/sbus/interface_dbus/sbus_dbus_client_async.c \
-    ../../../src/sbus/interface_dbus/sbus_dbus_invokers.c \
-    ../../../src/sbus/interface_dbus/sbus_dbus_keygens.c \
-    ../../../src/sbus/interface_dbus/sbus_dbus_symbols.c \
-    ../../../src/sbus/interface/sbus_interface.c \
-    ../../../src/sbus/interface/sbus_introspection.c \
-    ../../../src/sbus/interface/sbus_iterator_readers.c \
-    ../../../src/sbus/interface/sbus_iterator_writers.c \
-    ../../../src/sbus/interface/sbus_properties.c \
-    ../../../src/sbus/interface/sbus_properties_parser.c \
-    ../../../src/sbus/interface/sbus_std_signals.c \
-    ../../../src/sbus/request/sbus_message.c \
-    ../../../src/sbus/request/sbus_request.c \
-    ../../../src/sbus/request/sbus_request_call.c \
-    ../../../src/sbus/request/sbus_request_hash.c \
-    ../../../src/sbus/request/sbus_request_sender.c \
-    ../../../src/sbus/request/sbus_request_util.c \
-    ../../../src/sbus/router/sbus_router.c \
-    ../../../src/sbus/router/sbus_router_handler.c \
-    ../../../src/sbus/router/sbus_router_hash.c \
-    ../../../src/sbus/server/sbus_server_handler.c \
-    ../../../src/sbus/server/sbus_server_interface.c \
-    ../../../src/sbus/server/sbus_server_match.c \
-    ../../../src/sbus/server/sbus_server.c \
-    $(NULL)
-
-SSSD_IFACE_OBJ = \
-    ../../../src/sss_iface/sbus_sss_arguments.c \
-    ../../../src/sss_iface/sbus_sss_client_async.c \
-    ../../../src/sss_iface/sbus_sss_invokers.c \
-    ../../../src/sss_iface/sbus_sss_keygens.c \
-    ../../../src/sss_iface/sbus_sss_symbols.c \
-    ../../../src/sss_iface/sss_iface_types.c \
-    ../../../src/sss_iface/sss_iface.c \
-    ../../../src/util/domain_info_utils.c \
-    ../../../src/util/sss_pam_data.c \
-    $(NULL)
-
 SSSD_RESPONDER_IFACE_OBJ = \
-    $(SSSD_SBUS_OBJ) \
-    $(SSSD_IFACE_OBJ) \
     ../../../src/responder/common/responder_iface.c \
     $(NULL)
 
@@ -244,6 +184,8 @@ responder_common_tests_LDADD = \
     $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_test_common.la \
+    $(abs_top_builddir)/libsss_iface.la \
+    $(abs_top_builddir)/libsss_sbus.la \
     $(NULL)
 
 negcache_tests_SOURCES =\
@@ -262,6 +204,8 @@ negcache_tests_LDADD = \
     $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_test_common.la \
+    $(abs_top_builddir)/libsss_iface.la \
+    $(abs_top_builddir)/libsss_sbus.la \
     $(NULL)
 
 tests: $(check_PROGRAMS)
