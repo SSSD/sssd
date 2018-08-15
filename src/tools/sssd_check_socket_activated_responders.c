@@ -149,10 +149,12 @@ done:
 
 int main(int argc, const char *argv[])
 {
+    TALLOC_CTX *tmp_ctx;
     int ret;
     int opt;
     poptContext pc;
     char *responder = NULL;
+    char *err_msg = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -160,6 +162,11 @@ int main(int argc, const char *argv[])
          _("The name of the responder to be checked"), NULL},
         POPT_TABLEEND
     };
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while ((opt = poptGetNextOpt(pc)) != -1) {
@@ -181,20 +188,37 @@ int main(int argc, const char *argv[])
 
     ret = check_socket_activated_responder(responder);
     if (ret != EOK) {
-        DEBUG(SSSDBG_DEFAULT,
-              "Misconfiguration found for the %s responder.\n"
-              "The %s responder has been configured to be socket-activated "
-              "but it's still mentioned in the services' line in %s.\n"
-              "Please, consider either adjusting your services' line in %s "
-              "or disabling the %s's socket by calling:\n"
-              "\"systemctl disable sssd-%s.socket\"",
-              responder, responder, SSSD_CONFIG_FILE, SSSD_CONFIG_FILE,
-              responder, responder);
+        err_msg = talloc_asprintf(
+                tmp_ctx,
+                "There's a misconfiguration in the \"services\" line of "
+                "\"%s\"!\n"
+                "The \"services\" line contains \"%s\", meaning that the "
+                "responder's process will be started and managed by SSSD's "
+                "monitor. "
+                "However, SSSD relies on systemd to start "
+                "sssd-%s.socket and then manage the responder's process, "
+                "causing then a configuration conflict.\n"
+                "In order to solve this misconfiguration, please, either "
+                "remove \"%s\" from the \"services\" line in \"%s\" or call "
+                "`systemctl mask sssd-%s.socket`\n"
+                "Please, refer to \"sssd.conf\" man page for more info and "
+                "mind that the recommended way to go is to take advantage "
+                "of systemd, as much as possible, avoiding then to have a "
+                "\"services\" line in \"%s\"!",
+                SSSD_CONFIG_FILE, responder, responder, responder,
+                SSSD_CONFIG_FILE, responder, SSSD_CONFIG_FILE);
+        if (err_msg == NULL) {
+            goto done;
+        }
+
+        DEBUG(SSSDBG_IMPORTANT_INFO, "%s\n", err_msg);
+        sss_log(SSS_LOG_WARNING, "%s\n", err_msg);
         goto done;
     }
 
     ret = EOK;
 done:
     poptFreeContext(pc);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
