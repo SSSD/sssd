@@ -301,9 +301,9 @@ sbus_method_in_s_out_raw_recv
         return EINVAL;
     }
 
-    ret = sbus_message_bound_ref(mem_ctx, state->reply);
+    ret = sbus_message_bound_steal(mem_ctx, state->reply);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to bound message [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to steal message [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
@@ -513,9 +513,9 @@ sbus_method_in_ss_out_raw_recv
         return EINVAL;
     }
 
-    ret = sbus_message_bound_ref(mem_ctx, state->reply);
+    ret = sbus_message_bound_steal(mem_ctx, state->reply);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to bound message [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to steal message [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
