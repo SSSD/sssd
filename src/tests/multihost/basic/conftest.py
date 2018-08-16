@@ -6,7 +6,10 @@ from sssd.testlib.common.exceptions import PkiLibException
 from sssd.testlib.common.authconfig import RedHatAuthConfig
 from sssd.testlib.common.utils import LdapOperations
 import pytest
-import ConfigParser
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
 import os
 import tempfile
 import ldap
@@ -27,24 +30,10 @@ def multihost(session_multihost, request):
 
 
 @pytest.fixture(scope="session")
-def config_authconfig(session_multihost, request):
+def run_authselect(session_multihost, request):
     """ Run authconfig to configure Kerberos and SSSD auth on remote host """
-    authconfig = RedHatAuthConfig(session_multihost.master[0])
-    session_multihost.master[0].log.info("Take backup of current authconfig")
-    authconfig.backup('/root/authconfig_backup')
-    krbrealm = 'EXAMPLE.TEST'
-    kerberos_server = session_multihost.master[0].sys_hostname
-    authconfig.enable("sssd")
-    authconfig.enable("sssdauth")
-    authconfig.add_parameter("krb5kdc", kerberos_server)
-    authconfig.add_parameter("krb5adminserver", kerberos_server)
-    authconfig.add_parameter("krb5realm", krbrealm)
-    authconfig.execute()
-
-    def restore_authconfig():
-        """ Restore authconfig """
-        authconfig.restore('/root/authconfig_backup')
-    request.addfinalizer(restore_authconfig)
+    authselect_cmd = 'authselect enable-feature sssd'
+    session_multihost.master[0].run_command(authselect_cmd)
 
 
 @pytest.fixture(scope="session")
@@ -113,7 +102,7 @@ def setup_sssd(session_multihost, request):
     sssdConfig.add_section('kcm')
     sssdConfig.set('kcm', 'debug_level', '9')
     temp_fd, temp_file_path = tempfile.mkstemp(suffix='conf', prefix='sssd')
-    with open(temp_file_path, "wb") as outfile:
+    with open(temp_file_path, "w") as outfile:
         sssdConfig.write(outfile)
     session_multihost.master[0].transport.put_file(temp_file_path,
                                                    '/etc/sssd/sssd.conf')
@@ -132,9 +121,8 @@ def setup_sssd(session_multihost, request):
 
     def stop_sssd():
         session_multihost.master[0].service_sssd('stop')
-        session_multihost.master[0].run_command(['systemctl',
-                                                 'stop',
-                                                 'sssd-kcm'])
+        stop_kcm = 'systemctl stop sssd-kcm'
+        session_multihost.master[0].run_command(stop_kcm)
         sssd_cache = ['cache_%s.ldb' % ('EXAMPLE.TEST'), 'config.ldb',
                       'sssd.ldb', 'timestamps_%s.ldb' % ('EXAMPLE.TEST')]
         for cache_file in sssd_cache:
@@ -173,14 +161,14 @@ def create_posix_usersgroups(session_multihost):
     group_dn = 'cn=ldapusers,ou=Groups,dc=example,dc=test'
     for i in range(1, 10):
         user_dn = 'uid=foo%d,ou=People,dc=example,dc=test' % i
-        add_member = [(ldap.MOD_ADD, 'uniqueMember', user_dn)]
+        add_member = [(ldap.MOD_ADD, 'uniqueMember', user_dn.encode('utf-8'))]
         (ret, _) = ldap_inst.modify_ldap(group_dn, add_member)
         assert ret == 'Success'
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_session(request, session_multihost,
-                  config_authconfig,
+                  run_authselect,
                   setup_ldap,
                   setup_kerberos):
     tp = TestPrep(session_multihost)
@@ -197,8 +185,8 @@ class TestPrep(object):
 
     def setup(self):
         print("\n............Session Setup...............")
-        reqd_packages = '389-ds-base authconfig krb5-server krb5-workstation '\
-                        'sssd-kcm openldap-clients'
+        reqd_packages = '389-ds-base authselect krb5-server krb5-workstation '\
+                        'sssd-kcm openldap-clients 389-ds-base-legacy-tools'
         install_cmd = 'dnf -y  install %s' % reqd_packages
         self.multihost.master[0].run_command(install_cmd)
 
