@@ -49,7 +49,7 @@ sbus_message_bound(TALLOC_CTX *mem_ctx, DBusMessage *msg);
  *
  * DO NOT USE dbus_message_unref() on such message anymore since it would not
  * release internal data about the bound. The message will be automatically
- * unreferenced whent the talloc context is freed.
+ * unreferenced when the talloc context is freed.
  *
  * @param mem_ctx Memory context to bound the message with. It can not be NULL.
  * @param msg     Message to be bound with memory context.
