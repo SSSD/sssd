@@ -4,6 +4,6 @@ domains:
   - name: testrealm.test
     type: sssd
     hosts:
-      - name: idm1.example.test
-        external_hostname: idm1.example.test
+      - name: hostname1
+        external_hostname: hostname1
         role: master

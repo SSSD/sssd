@@ -1,5 +1,9 @@
 from __future__ import print_function
-import ConfigParser
+
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
 import tempfile
 import os
 import subprocess
@@ -62,7 +66,7 @@ class krb5srv(object):
 
         (krb_config, krb_config_path) = tempfile.mkstemp(suffix='cfg')
         os.close(krb_config)
-        with open(krb_config_path, "wb") as outfile:
+        with open(krb_config_path, "w") as outfile:
             config.write(outfile)
         return krb_config_path
 
@@ -74,7 +78,7 @@ class krb5srv(object):
         acl = "*/%s@%s *" % ('admin', self.krb_realm)
         (acl_config, acl_config_path) = tempfile.mkstemp(suffix='cfg')
         os.close(acl_config)
-        with open(acl_config_path, "wb") as outfile:
+        with open(acl_config_path, "w") as outfile:
             outfile.write(acl)
         return acl_config_path
 

@@ -1,5 +1,6 @@
 """ This module defines classes regarding sssd tools,
 AD Operations and LDAP Operations"""
+
 from __future__ import print_function
 import os
 import tempfile
@@ -8,9 +9,15 @@ import array
 import random
 import socket
 import shlex
-import ConfigParser
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
 from subprocess import CalledProcessError
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 import ldap
 import ldif
 import paramiko
@@ -99,7 +106,7 @@ class sssdTools(object):
         sambaconfig.set("global", "client signing", "yes")
         sambaconfig.set("global", "client use spnego", "yes")
         tmp_fd, tmp_file_path = tempfile.mkstemp(suffix='conf', prefix='smb')
-        with open(tmp_file_path, "wb") as outfile:
+        with open(tmp_file_path, "w") as outfile:
             sambaconfig.write(outfile)
         self.multihost.transport.put_file(tmp_file_path, '/etc/samba/smb.conf')
         os.close(tmp_fd)
@@ -197,7 +204,9 @@ class sssdTools(object):
                     raise Exception("Error: %s", cmd.stderr_text)
                 else:
                     print("Successfully deleted %s" % (relative_path))
-                    return True
+        else:
+            raise Exception('%s path not found' % cache_path)
+        return True
 
     def domain_from_suffix(self, suffix):
         """ Domain name from the suffix
@@ -264,6 +273,7 @@ class sssdTools(object):
                         '-l ' + username + ' localhost whoami' + '\n'
         expect_script += 'expect "*assword: "\n'
         expect_script += 'send "' + password + '\r"\n'
+        expect_script += 'sleep 30 \n'
         expect_script += 'expect {\n'
         expect_script += '\ttimeout { set result_code 0 }\n'
         expect_script += '\t"' + username + '" { set result_code 3 }\n'
@@ -272,9 +282,9 @@ class sssdTools(object):
         expect_script += '}\n'
         expect_script += 'exit $result_code\n'
         print(expect_script)
-        rand_tag = ''.join(random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789')
-                           for _ in range(10))
-        exp_file = "/tmp/qe_pytest_expect_file" + rand_tag
+        randtag = ''.join(random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789')
+                          for _ in range(10))
+        exp_file = "/tmp/qe_pytest_expect_file" + randtag
         self.multihost.put_file_contents(exp_file, expect_script)
         print(("remote side expect script filename: %s") % exp_file)
 
@@ -335,7 +345,7 @@ class sssdTools(object):
             krb5config.set("pam", "forwardable", "true")
             temp_fd, temp_file_path = tempfile.mkstemp(suffix='conf',
                                                        prefix='krb5conf')
-            with open(temp_file_path, "wb") as outfile:
+            with open(temp_file_path, "w") as outfile:
                 krb5config.write(outfile)
             self.multihost.run_command(['cp', '-f', '/etc/krb5.conf',
                                         '/etc/krb5.conf.orig'])
@@ -355,7 +365,7 @@ class sssdTools(object):
         config.set('libdefaults', 'default_ccache_name', "KCM:")
         temp_fd, temp_file_path = tempfile.mkstemp(suffix='conf',
                                                    prefix='krb5cc')
-        with open(temp_file_path, 'wb') as kcmfile:
+        with open(temp_file_path, 'w') as kcmfile:
             config.write(kcmfile)
         self.multihost.transport.put_file(temp_file_path, kcm_cache_file)
         os.close(temp_fd)
@@ -399,13 +409,11 @@ class LdapOperations(object):
     """
 
     def __init__(self, uri, binddn, bindpw):
-        self.uri = uri
+        self.uri = uri if not port else '%s:%s' % (uri, port)
         self.binddn = binddn
         self.bindpw = bindpw
         self.conn = ldap.initialize(uri)
         self.conn = self.bind()
-        if type(self.conn).__name__ != "instance":
-            raise self.conn[0]
 
     def bind(self):
         """ Bind to ldap server
@@ -531,11 +539,15 @@ class LdapOperations(object):
             location = 'US'
 
         attr = {
-            'objectClass': ['top', 'posixAccount', 'inetOrgPerson'],
-            'cn': common_name, 'uid': uid, 'sn': surname, 'loginShell': shell,
-            'homeDirectory': home_directory, 'uidNumber': uidnumber,
-            'gidNumber': gidnumber, 'userPassword': password,
-            'mail': mail, 'gecos': gecos, 'l': location}
+            'objectClass': [b'top', b'posixAccount', b'inetOrgPerson'],
+            'cn': common_name.encode('utf-8'), 'uid': uid.encode('utf-8'),
+            'sn': surname.encode('utf-8'), 'loginShell': shell.encode('utf-8'),
+            'homeDirectory': home_directory.encode('utf-8'),
+            'uidNumber': uidnumber.encode('utf-8'),
+            'gidNumber': gidnumber.encode('utf-8'),
+            'userPassword': password.encode('utf-8'),
+            'mail': mail.encode('utf-8'), 'gecos': gecos.encode('utf-8'),
+            'l': location.encode('utf-8')}
 
         user_dn = 'uid=%s,%s,%s' % (uid, org_unit, basedn)
         (ret, _) = self.add_entry(attr, user_dn)
@@ -544,23 +556,32 @@ class LdapOperations(object):
         else:
             raise Exception('Unable to add User to ldap')
 
-    def posix_group(self, org_unit, basedn, group_attr):
+    def posix_group(self, org_unit, basedn, group_attr, memberUid=False):
         """ Add POSIX group
             :param str ou: Organizational unit (ou=Groups)
             :param str basedn: Base dn ('dc=example,dc=test')
             :param dict group_attr: Entry attributes
+            :param memberUid: set by default to false, True when
+             posix group add with memberUid
             :Return bool: Return True
             :Exception: Raise Exception if unable to add user
         """
+        attr = {}
         group_cn = group_attr['cn']
         gidnumber = group_attr['gidNumber']
-        member_dn = group_attr['uniqueMember']
+        if memberUid:
+            member_uid = group_attr['memberUid']
+            objectClass = ['posixGroup', 'top']
+            attr['memberUid'] = member_uid
+        else:
+            member_dn = group_attr['uniqueMember']
+            objectClass = ['posixGroup', 'top', 'groupOfUniqueNames']
+            attr['uniqueMember'] = member_dn
         user_password = '{crypt}x'
-        attr = {
-            'objectClass': ['posixGroup', 'top', 'groupOfUniqueNames'],
-            'gidNumber': gidnumber, 'cn': group_cn,
-            'userPassword': user_password, 'uniqueMember': member_dn}
-
+        attr['objectClass'] = objectClass
+        attr['gidNumber'] = gidnumber
+        attr['cn'] = group_cn
+        attr['userPassword'] = user_password
         group_dn = 'cn=%s,%s,%s' % (group_cn, org_unit, basedn)
         (ret, _) = self.add_entry(attr, group_dn)
         if ret != 'Success':
@@ -772,6 +793,7 @@ class ADOperations(object):
     ADOperations class consists of methods related to managing AD User With
     Unix properties.
     """
+
     def __init__(self, ad_host):
         self.ad_host = ad_host
         self.ad_uri = 'ldap://%s' % ad_host.external_hostname
@@ -820,24 +842,26 @@ class ADOperations(object):
                                         user_dn])
         ad_conn_inst = self.ad_conn()
         if cmd.returncode == 0:
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain', self.ad_netbiosname)]
+            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain',
+                       self.ad_netbiosname.encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'uidNumber', str(uid))]
+            mod_dn = [(ldap.MOD_ADD, 'uidNumber', str(uid).encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(uid))]
+            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(uid).encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
             mod_dn = [(ldap.MOD_ADD, 'unixHomeDirectory',
-                       '/home/%s' % (username))]
+                       b'/home/%s' % (username))]
             (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
             mod_dn = [(ldap.MOD_ADD, 'loginShell', '/bin/bash')]
             (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', username)]
+            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', username.encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(user_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain', self.ad_netbiosname)]
+            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain',
+                       self.ad_netbiosname.encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(uid))]
+            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(uid).encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', groupname)]
+            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', groupname.encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
         else:
             return False
@@ -856,11 +880,12 @@ class ADOperations(object):
         cmd = self.ad_host.run_command(['dsadd.exe', 'group', group_dn])
         ad_conn_inst = self.ad_conn()
         if cmd.returncode == 0:
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain', self.ad_netbiosname)]
+            mod_dn = [(ldap.MOD_ADD, 'msSFU30NisDomain',
+                       self.ad_netbiosname.encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(gid))]
+            mod_dn = [(ldap.MOD_ADD, 'gidNumber', str(gid).encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
-            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', groupname)]
+            mod_dn = [(ldap.MOD_ADD, 'msSFU30Name', groupname.encode('utf-8'))]
             (_, _) = ad_conn_inst.modify_ldap(group_dn, mod_dn)
         else:
             return False
@@ -943,7 +968,7 @@ class SSHClient(paramiko.SSHClient):
             self.connect(self.hostname, port=self.port,
                          username=self.username,
                          password=self.password,
-                         timeout=30)
+                         timeout=30, allow_agent=False, look_for_keys=False)
         except (paramiko.AuthenticationException,
                 paramiko.SSHException,
                 socket.error):

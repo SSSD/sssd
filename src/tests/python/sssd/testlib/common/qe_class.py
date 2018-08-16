@@ -110,7 +110,7 @@ class QeHost(QeBaseHost):
                 return cmd.returncode
             else:
                 raise Exception('Unable to %s sssd' % action, 1)
-        elif '7.' in self.distro.split()[6]:
+        elif '7.' or '8.' in self.distro.split()[6]:
             cmd = self.run_command(['systemctl', action, 'sssd'],
                                    raiseonerr=False)
             if cmd.returncode == 0:
