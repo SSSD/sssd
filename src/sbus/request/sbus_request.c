@@ -564,10 +564,9 @@ sbus_incoming_request_recv(TALLOC_CTX *mem_ctx,
         return EOK;
     }
 
-    /* Create new reference to the reply and bound it with caller mem_ctx. */
-    ret = sbus_message_bound_ref(mem_ctx, state->reply);
+    ret = sbus_message_bound_steal(mem_ctx, state->reply);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to bound message [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to steal message [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }
@@ -709,10 +708,9 @@ sbus_outgoing_request_recv(TALLOC_CTX *mem_ctx,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    /* Create new reference to the reply and bound it with caller mem_ctx. */
-    ret = sbus_message_bound_ref(mem_ctx, state->reply);
+    ret = sbus_message_bound_steal(mem_ctx, state->reply);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to bound message [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to steal message [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }

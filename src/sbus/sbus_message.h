@@ -45,11 +45,7 @@ errno_t
 sbus_message_bound(TALLOC_CTX *mem_ctx, DBusMessage *msg);
 
 /**
- * Reference the message and bound it with talloc context.
- *
- * DO NOT USE dbus_message_unref() on such message anymore since it would not
- * release internal data about the bound. The message will be automatically
- * unreferenced when the talloc context is freed.
+ * Steal previously bound D-Bus message to a new talloc parent.
  *
  * @param mem_ctx Memory context to bound the message with. It can not be NULL.
  * @param msg     Message to be bound with memory context.
@@ -57,7 +53,7 @@ sbus_message_bound(TALLOC_CTX *mem_ctx, DBusMessage *msg);
  * @return EOK on success, other errno code on error.
  */
 errno_t
-sbus_message_bound_ref(TALLOC_CTX *mem_ctx, DBusMessage *msg);
+sbus_message_bound_steal(TALLOC_CTX *mem_ctx, DBusMessage *msg);
 
 /**
  * Create an empty D-Bus method call.

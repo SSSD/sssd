@@ -526,9 +526,9 @@ sbus_method_in_sas_out_raw
         goto done;
     }
 
-    ret = sbus_message_bound_ref(mem_ctx, reply);
+    ret = sbus_message_bound_steal(mem_ctx, reply);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to bound message [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to steal message [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }

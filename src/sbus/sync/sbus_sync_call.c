@@ -63,10 +63,9 @@ sbus_sync_call_method(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Create new reference to the reply and bound it with caller mem_ctx. */
-    ret = sbus_message_bound_ref(mem_ctx, reply);
+    ret = sbus_message_bound_steal(mem_ctx, reply);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to bound message [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to steal message [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
     }
