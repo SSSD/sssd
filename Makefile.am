@@ -270,6 +270,7 @@ if HAVE_CMOCKA
         test_copy_keytab \
         test_child_common \
         responder_cache_req-tests \
+        test_sbus_message \
         test_sbus_opath \
         test_fo_srv \
         pam-srv-tests \
@@ -2592,6 +2593,19 @@ test_ssh_client_CFLAGS = \
 test_ssh_client_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SSSD_LIBS) \
+    $(NULL)
+
+test_sbus_message_SOURCES = \
+    src/tests/cmocka/sbus/test_sbus_message.c \
+    $(NULL)
+test_sbus_message_CFLAGS = \
+    $(AM_CFLAGS)
+test_sbus_message_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    libsss_debug.la \
+    libsss_test_common.la \
+    libsss_sbus.la \
     $(NULL)
 
 test_sbus_opath_SOURCES = \
