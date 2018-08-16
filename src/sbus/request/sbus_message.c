@@ -83,6 +83,11 @@ sbus_message_bound(TALLOC_CTX *mem_ctx, DBusMessage *msg)
         return EINVAL;
     }
 
+    if (msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Message can not be NULL!\n");
+        return EINVAL;
+    }
+
     /* Create a talloc context that will unreference this message when
      * the parent context is freed. */
     talloc_msg = talloc(mem_ctx, struct sbus_talloc_msg);
@@ -122,6 +127,11 @@ sbus_message_bound(TALLOC_CTX *mem_ctx, DBusMessage *msg)
 errno_t
 sbus_message_bound_ref(TALLOC_CTX *mem_ctx, DBusMessage *msg)
 {
+    if (msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Message can not be NULL!\n");
+        return EINVAL;
+    }
+
     dbus_message_ref(msg);
     return sbus_message_bound(mem_ctx, msg);
 }
