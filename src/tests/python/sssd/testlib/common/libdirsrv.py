@@ -1,7 +1,10 @@
 """This module contains methods to create Directory Server Instance."""
 from __future__ import print_function
 import os
-import ConfigParser
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
 import tempfile
 import subprocess
 import socket
@@ -75,7 +78,7 @@ class DirSrv(object):
 
         (ds_config, ds_config_file_path) = tempfile.mkstemp(suffix='cfg')
         os.close(ds_config)
-        with open(ds_config_file_path, "wb") as outfile:
+        with open(ds_config_file_path, "w") as outfile:
             config.write(outfile)
         return ds_config_file_path
 
@@ -145,7 +148,7 @@ class DirSrv(object):
             return True
         else:
             self.multihost.log.info('DS instance stopped successfully')
-        nss_db_files = ['cert8.db', 'key3.db', 'secmod.db', 'pin.txt']
+        nss_db_files = ['cert9.db', 'key4.db', 'pin.txt']
         dirsrv_cert_path = '/etc/dirsrv/' + self.ds_inst_name + '/cacert.pem'
         cacert_file_path = '%s/cacert.pem' % ('/etc/openldap/cacerts')
         for db_file in nss_db_files:
@@ -202,31 +205,26 @@ class DirSrv(object):
                                   bindpw=self.dsrootdn_pwd)
         # Enable TLS
         mod_dn1 = 'cn=encryption,cn=config'
-        add_tls = [(ldap.MOD_ADD, 'nsTLS1', 'on')]
+        add_tls = [(ldap.MOD_ADD, 'nsTLS1', [b'on'])]
         (ret, return_value) = ldap_obj.modify_ldap(mod_dn1, add_tls)
         if not return_value:
             raise LdapException('fail to enable TLS, Error:%s' % (ret))
         else:
             print('Enabled nsTLS1=on')
-
-        entry1 = {
-            'objectClass': ['top', 'nsEncryptionModule'],
-            'cn': 'RSA',
-            'nsSSLtoken': 'internal (software)',
-            'nsSSLPersonalitySSL': 'Server-Cert-%s' % (self.dsinstance_host),
-            'nsSSLActivation': 'on'
-            }
-        dn1 = 'cn=RSA,cn=encryption,cn=config'
-        (ret, return_value) = ldap_obj.add_entry(entry1, dn1)
+        mod_dn2 = 'cn=RSA,cn=encryption,cn=config'
+        mod_security = [(ldap.MOD_REPLACE, 'nsSSLPersonalitySSL',
+                         [b'Server-Cert-%s' %
+                          ((self.dsinstance_host.encode()))])]
+        (ret, return_value) = ldap_obj.add_entry(mod_dn2, mod_security)
         if not return_value:
             raise LdapException('fail to set Server-Cert nick:%s' % (ret))
         else:
             print('Enabled Server-Cert nick')
 
         # Enable security
-        mod_dn2 = 'cn=config'
-        enable_security = [(ldap.MOD_REPLACE, 'nsslapd-security', 'on')]
-        (ret, return_value) = ldap_obj.modify_ldap(mod_dn2, enable_security)
+        mod_dn3 = 'cn=config'
+        enable_security = [(ldap.MOD_REPLACE, 'nsslapd-security', [b'on'])]
+        (ret, return_value) = ldap_obj.modify_ldap(mod_dn3, enable_security)
         if not return_value:
             raise LdapException(
                 'fail to enable nsslapd-security, Error:%s' % (ret))
@@ -234,10 +232,10 @@ class DirSrv(object):
             print('Enabled nsslapd-security')
 
         # set the appropriate TLS port
-        mod_dn3 = 'cn=config'
+        mod_dn4 = 'cn=config'
         enable_ssl_port = [(ldap.MOD_REPLACE, 'nsslapd-securePort',
-                            str(tls_port))]
-        (ret, return_value) = ldap_obj.modify_ldap(mod_dn3, enable_ssl_port)
+                            str(tls_port).encode())]
+        (ret, return_value) = ldap_obj.modify_ldap(mod_dn4, enable_ssl_port)
         if not return_value:
             raise LdapException(
                 'fail to set nsslapd-securePort, Error:%s' % (ret))
@@ -555,5 +553,4 @@ class DirSrvWrap(object):
                 del self.ds_used_ports[instance_name]
                 return True
         else:
-            raise DirSrvException('%s Instance could not found' %
-                                  (instance_name))
+            raise DirSrvException('%s Instance not found' % instance_name)

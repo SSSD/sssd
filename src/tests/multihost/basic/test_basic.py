@@ -1,5 +1,5 @@
 from sssd.testlib.common.utils import SSHClient
-import ConfigParser
+import configparser as ConfigParser
 import paramiko
 import pytest
 import time
@@ -68,7 +68,7 @@ class Test_basic_sssd(object):
             sssdconfig.set(domain_section, 'krb5_store_password_if_offline',
                            'True')
             sssdconfig.set('pam', 'offline_credentials_expiration', '0')
-            with open('/tmp/sssd.conf', "wb") as fd:
+            with open('/tmp/sssd.conf', "w") as fd:
                 sssdconfig.write(fd)
         else:
             print("Could not fetch sssd.conf")
@@ -84,10 +84,10 @@ class Test_basic_sssd(object):
             pytest.fail("Unable to authenticate as %s" % ('foo4'))
         else:
             ssh.close()
-            multihost.master[0].run_command(['systemctl',
-                                             'stop',
-                                             'dirsrv@example1'])
-            multihost.master[0].run_command(['systemctl', 'stop', 'krb5kdc'])
+            stop_dirsrv = 'systemctl stop dirsrv@example1'
+            stop_krb5kdc = 'systemctl stop krb5kdc'
+            multihost.master[0].run_command(stop_dirsrv)
+            multihost.master[0].run_command(stop_krb5kdc)
             try:
                 ssh = SSHClient(multihost.master[0].sys_hostname,
                                 username='foo4', password='Secret123')
