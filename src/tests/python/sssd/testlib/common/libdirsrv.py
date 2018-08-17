@@ -215,7 +215,7 @@ class DirSrv(object):
         mod_security = [(ldap.MOD_REPLACE, 'nsSSLPersonalitySSL',
                          [b'Server-Cert-%s' %
                           ((self.dsinstance_host.encode()))])]
-        (ret, return_value) = ldap_obj.add_entry(mod_dn2, mod_security)
+        (ret, return_value) = ldap_obj.modify_ldap(mod_dn2, mod_security)
         if not return_value:
             raise LdapException('fail to set Server-Cert nick:%s' % (ret))
         else:

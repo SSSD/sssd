@@ -408,7 +408,7 @@ class LdapOperations(object):
         conn: ldap bind object (already  initialized)
     """
 
-    def __init__(self, uri, binddn, bindpw):
+    def __init__(self, uri, binddn, bindpw, port=None):
         self.uri = uri if not port else '%s:%s' % (uri, port)
         self.binddn = binddn
         self.bindpw = bindpw
@@ -571,17 +571,17 @@ class LdapOperations(object):
         gidnumber = group_attr['gidNumber']
         if memberUid:
             member_uid = group_attr['memberUid']
-            objectClass = ['posixGroup', 'top']
-            attr['memberUid'] = member_uid
+            objectClass = [b'posixGroup', b'top']
+            attr['memberUid'] = member_uid.encode('utf-8')
         else:
             member_dn = group_attr['uniqueMember']
-            objectClass = ['posixGroup', 'top', 'groupOfUniqueNames']
-            attr['uniqueMember'] = member_dn
+            objectClass = [b'posixGroup', b'top', b'groupOfUniqueNames']
+            attr['uniqueMember'] = member_dn.encode('utf-8')
         user_password = '{crypt}x'
         attr['objectClass'] = objectClass
-        attr['gidNumber'] = gidnumber
-        attr['cn'] = group_cn
-        attr['userPassword'] = user_password
+        attr['gidNumber'] = gidnumber.encode('utf-8')
+        attr['cn'] = group_cn.encode('utf-8')
+        attr['userPassword'] = user_password.encode('utf-8')
         group_dn = 'cn=%s,%s,%s' % (group_cn, org_unit, basedn)
         (ret, _) = self.add_entry(attr, group_dn)
         if ret != 'Success':
