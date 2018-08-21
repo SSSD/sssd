@@ -506,7 +506,7 @@ ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
          * inherit the MPG setting from the parent domain so that the
          * auto_private_groups options works for trusted domains as well
          */
-        mpg = domain->mpg;
+        mpg = sss_domain_is_mpg(domain);
     }
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,

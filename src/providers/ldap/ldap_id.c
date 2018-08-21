@@ -977,7 +977,7 @@ static void groups_get_done(struct tevent_req *subreq)
     }
 
     if (ret == ENOENT
-            && state->domain->mpg == true
+            && sss_domain_is_mpg(state->domain) == true
             && !state->conn->no_mpg_user_fallback) {
         /* The requested filter did not find a group. Before giving up, we must
          * also check if the GID can be resolved through a primary group of a

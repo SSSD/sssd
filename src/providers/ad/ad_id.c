@@ -1100,7 +1100,7 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
     state->attrs[0] = "objectclass";
     state->attrs[1] = NULL;
 
-    if (params->be_ctx->domain->mpg == true
+    if (sss_domain_is_mpg(params->be_ctx->domain) == true
             || state->entry_type == BE_REQ_USER_AND_GROUP) {
         state->twopass = true;
         if (state->entry_type == BE_REQ_USER_AND_GROUP) {

@@ -75,7 +75,9 @@ nss_get_id_type(struct nss_cmd_ctx *cmd_ctx,
         return EOK;
     }
 
-    ret = find_sss_id_type(result->msgs[0], result->domain->mpg, _type);
+    ret = find_sss_id_type(result->msgs[0],
+                           sss_domain_is_mpg(result->domain),
+                           _type);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to find ID type [%d]: %s\n", ret, sss_strerror(ret));
