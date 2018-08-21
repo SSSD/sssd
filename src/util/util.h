@@ -573,6 +573,8 @@ void sss_domain_info_set_output_fqnames(struct sss_domain_info *domain,
 
 bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain);
 
+bool sss_domain_is_mpg(struct sss_domain_info *domain);
+
 #define IS_SUBDOMAIN(dom) ((dom)->parent != NULL)
 
 #define DOM_HAS_VIEWS(dom) ((dom)->has_views)

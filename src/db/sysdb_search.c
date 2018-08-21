@@ -909,7 +909,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         /* In case the domain supports magic private groups we *must*
          * check whether the searched name is the very same as the
          * originalADname attribute.
@@ -1108,7 +1108,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
         }
     }
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         /* In case the domain supports magic private groups we *must*
          * check whether the searched gid is the very same as the
          * originalADgidNumber attribute.
@@ -1216,7 +1216,7 @@ int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         base_filter = SYSDB_GRENT_MPG_FILTER;
         base_dn = sysdb_domain_dn(tmp_ctx, domain);
     } else {
