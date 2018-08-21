@@ -2352,7 +2352,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             }
 
             gid = 0;
-            if (dom->mpg == false) {
+            if (sss_domain_is_mpg(dom) == false) {
                 gid = attrs->a.user.pw_gid;
             } else {
                 /* The extdom plugin always returns the objects with the
@@ -2423,7 +2423,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                    missing[0] == NULL ? NULL
                                                       : discard_const(missing),
                                    dom->user_timeout, now);
-            if (ret == EEXIST && dom->mpg == true) {
+            if (ret == EEXIST && sss_domain_is_mpg(dom) == true) {
                 /* This handles the case where getgrgid() was called for
                  * this user, so a group was created in the cache
                  */

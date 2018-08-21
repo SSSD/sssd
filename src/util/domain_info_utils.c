@@ -935,3 +935,8 @@ bool is_files_provider(struct sss_domain_info *domain)
            domain->provider != NULL &&
            strcasecmp(domain->provider, "files") == 0;
 }
+
+bool sss_domain_is_mpg(struct sss_domain_info *domain)
+{
+    return domain->mpg;
+}
