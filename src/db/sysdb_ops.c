@@ -494,7 +494,8 @@ static int sysdb_search_by_name(TALLOC_CTX *mem_ctx,
         break;
     case SYSDB_GROUP:
         def_attrs[1] = SYSDB_GIDNUM;
-        if (domain->mpg && strcasecmp(domain->provider, "local") != 0) {
+        if (sss_domain_is_mpg(domain)
+                && strcasecmp(domain->provider, "local") != 0) {
             /* When searching a group by name in a MPG domain, we also
              * need to search the user space in order to be able to match
              * a user private group/
@@ -1971,7 +1972,7 @@ int sysdb_add_user(struct sss_domain_info *domain,
     int ret;
     bool posix;
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         if (gid != 0) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Cannot add user with arbitrary GID in MPG domain!\n");
@@ -2008,7 +2009,7 @@ int sysdb_add_user(struct sss_domain_info *domain,
         return ret;
     }
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         /* In MPG domains you can't have groups with the same name or GID
          * as users, search if a group with the same name exists.
          * Don't worry about users, if we try to add a user with the same
@@ -2092,7 +2093,7 @@ int sysdb_add_user(struct sss_domain_info *domain,
         ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_UIDNUM, id);
         if (ret) goto done;
 
-        if (domain->mpg) {
+        if (sss_domain_is_mpg(domain)) {
             ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_GIDNUM, id);
             if (ret) goto done;
         }
@@ -2226,7 +2227,7 @@ int sysdb_add_group(struct sss_domain_info *domain,
         return ret;
     }
 
-    if (domain->mpg) {
+    if (sss_domain_is_mpg(domain)) {
         /* In MPG domains you can't have groups with the same name as users,
          * search if a group with the same name exists.
          * Don't worry about users, if we try to add a user with the same
@@ -2840,7 +2841,7 @@ static errno_t sysdb_store_user_attrs(struct sss_domain_info *domain,
         if (ret) return ret;
     }
 
-    if (uid && !gid && domain->mpg) {
+    if (uid && !gid && sss_domain_is_mpg(domain)) {
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, uid);
         if (ret) return ret;
     }
