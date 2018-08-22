@@ -54,7 +54,10 @@ static errno_t check_socket_activated_responder(const char *responder)
     }
 
     ret = ini_config_file_open(SSSD_CONFIG_FILE, 0, &file_ctx);
-    if (ret != 0) {
+    if (ret == ENOENT) {
+        ret = EOK;
+        goto done;
+    } else if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ini_config_file_open() failed [%d][%s]\n",
               ret, sss_strerror(ret));
         goto done;
