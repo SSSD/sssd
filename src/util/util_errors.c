@@ -75,6 +75,7 @@ struct err_string error_to_str[] = {
     { "LDAP search returned a referral" }, /* ERR_REFERRAL */
     { "Error setting SELinux user context" }, /* ERR_SELINUX_CONTEXT */
     { "SELinux is not managed by libsemanage" }, /* ERR_SELINUX_NOT_MANAGED */
+    { "SELinux user does not exist" }, /* ERR_SELINUX_USER_NOT_FOUND */
     { "Username format not allowed by re_expression" }, /* ERR_REGEX_NOMATCH */
     { "Time specification not supported" }, /* ERR_TIMESPEC_NOT_SUPPORTED */
     { "Invalid SSSD configuration detected" }, /* ERR_INVALID_CONFIG */
