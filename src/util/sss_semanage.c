@@ -248,6 +248,36 @@ done:
     return ret;
 }
 
+int sss_seuser_exists(const char *linuxuser)
+{
+    int ret;
+    int exists;
+    semanage_seuser_key_t *sm_key = NULL;
+    semanage_handle_t *sm_handle = NULL;
+
+    ret = sss_semanage_init(&sm_handle);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = semanage_seuser_key_create(sm_handle, linuxuser, &sm_key);
+    if (ret < 0) {
+        sss_semanage_close(sm_handle);
+        return EIO;
+    }
+
+    ret = semanage_seuser_exists(sm_handle, sm_key, &exists);
+    semanage_seuser_key_free(sm_key);
+    sss_semanage_close(sm_handle);
+    if (ret < 0) {
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "seuser exists: %s\n", exists ? "yes" : "no");
+
+    return exists ? EOK : ERR_SELINUX_USER_NOT_FOUND;
+}
+
 int sss_get_seuser(const char *linuxuser,
                    char **selinuxuser,
                    char **level)

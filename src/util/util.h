@@ -663,6 +663,7 @@ int sss_del_seuser(const char *login_name);
 int sss_get_seuser(const char *linuxuser,
                    char **selinuxuser,
                    char **level);
+int sss_seuser_exists(const char *linuxuser);
 
 /* convert time from generalized form to unix time */
 errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *unix_time);
