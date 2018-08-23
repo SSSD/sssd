@@ -176,13 +176,16 @@ static bool seuser_needs_update(const char *username,
 
     ret = sss_get_seuser(username, &db_seuser, &db_mls_range);
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "getseuserbyname: ret: %d seuser: %s mls: %s\n",
+          "sss_get_seuser: ret: %d seuser: %s mls: %s\n",
           ret, db_seuser ? db_seuser : "unknown",
           db_mls_range ? db_mls_range : "unknown");
     if (ret == EOK && db_seuser && db_mls_range &&
             strcmp(db_seuser, seuser) == 0 &&
             strcmp(db_mls_range, mls_range) == 0) {
-        needs_update = false;
+        ret = sss_seuser_exists(username);
+        if (ret == EOK) {
+            needs_update = false;
+        }
     }
     /* OR */
     if (ret == ERR_SELINUX_NOT_MANAGED) {
@@ -191,6 +194,9 @@ static bool seuser_needs_update(const char *username,
 
     free(db_seuser);
     free(db_mls_range);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "The SELinux user does %sneed an update\n",
+          needs_update ? "" : "not ");
     return needs_update;
 }
 
