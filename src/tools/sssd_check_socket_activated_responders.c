@@ -27,7 +27,8 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 
-static errno_t check_socket_activated_responder(const char *responder)
+static errno_t
+check_socket_activated_responder_in_sssd_conf(const char *responder)
 {
     errno_t ret;
     struct ini_cfgfile *file_ctx = NULL;
@@ -145,6 +146,74 @@ done:
     talloc_free(tmp_ctx);
 
     return ret;
+}
+
+static errno_t
+check_socket_activated_responder_in_confdb(const char *responder)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct confdb_ctx *cdb;
+    char *cdb_file = NULL;
+    char **services;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    cdb_file = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
+    if (cdb_file == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_init(tmp_ctx, &cdb, cdb_file);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = confdb_get_string_as_list(cdb, tmp_ctx,
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_SERVICES,
+                                    &services);
+    if (ret == ENOENT) {
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    for (int i = 0; services[i] != NULL; i++) {
+        if (strcmp(services[i], responder) == 0) {
+            ret = EEXIST;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+check_socket_activated_responder(const char *responder)
+{
+    errno_t ret;
+
+    ret = check_socket_activated_responder_in_sssd_conf(responder);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = check_socket_activated_responder_in_confdb(responder);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
 }
 
 int main(int argc, const char *argv[])
