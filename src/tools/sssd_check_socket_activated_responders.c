@@ -260,7 +260,7 @@ int main(int argc, const char *argv[])
         err_msg = talloc_asprintf(
                 tmp_ctx,
                 "There's a misconfiguration in the \"services\" line of "
-                "\"%s\"!\n"
+                "\"%s\" or the responder is being implicitly started!\n"
                 "The \"services\" line contains \"%s\", meaning that the "
                 "responder's process will be started and managed by SSSD's "
                 "monitor. "
