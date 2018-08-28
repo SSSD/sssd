@@ -595,7 +595,10 @@ static struct tevent_req *ccdb_secdb_nextid_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = sss_sec_list(state, sreq, &keys, &nkeys);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        keys = NULL;
+        nkeys = 0;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot list keys [%d]: %s\n",
               ret, sss_strerror(ret));
