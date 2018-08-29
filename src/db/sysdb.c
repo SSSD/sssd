@@ -29,6 +29,10 @@
 #include "util/probes.h"
 #include <time.h>
 
+//This is the global definition for the userLoginAttempt variable
+#include "globals/globals.h"
+char userLoginAttempt[];
+
 errno_t sysdb_dn_sanitize(TALLOC_CTX *mem_ctx, const char *input,
                           char **sanitized)
 {
@@ -1323,9 +1327,28 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
          * We have no way of resolving this deterministically,
          * so we'll use the first value as a fallback.
          */
-        DEBUG(SSSDBG_MINOR_FAILURE,
+        DEBUG(SSSDBG_TRACE_INTERNAL, "The user logged in using [%s], we can at least see if that matches a uid.\n", userLoginAttempt);
+
+        for(int k = 0; k < sysdb_name_el->num_values; k++){
+
+                DEBUG(SSSDBG_TRACE_INTERNAL, "Checking for uid [%s] in login input [%s}\n",
+                        (char * restrict)sysdb_name_el->values[k].data,
+                        userLoginAttempt);
+                if(strcasestr(userLoginAttempt, (char * restrict)sysdb_name_el->values[k].data) != NULL){
+                        DEBUG(SSSDBG_TRACE_INTERNAL, "Found a match, using [%s] as login.\n", userLoginAttempt);
+                        *_primary = (char * restrict)sysdb_name_el->values[k].data;
+                        ret = EOK;
+                        goto done;
+                }
+                else{
+                        DEBUG(SSSDBG_TRACE_INTERNAL, "Match not found, continuing\n");
+                }
+        }
+
+	DEBUG(SSSDBG_MINOR_FAILURE,
               "The entry has multiple names and the RDN attribute does "
                   "not match. Will use the first value as fallback.\n");
+
         *_primary = (const char *)sysdb_name_el->values[0].data;
         ret = EOK;
         goto done;

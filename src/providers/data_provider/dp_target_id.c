@@ -28,6 +28,10 @@
 #include "providers/backend.h"
 #include "util/util.h"
 
+#include "globals/globals.h"
+char userLoginAttempt[40];
+
+
 #define FILTER_TYPE(str, type) {str "=", sizeof(str "=") - 1, type}
 
 static bool check_and_parse_filter(struct dp_id_data *data,
@@ -451,6 +455,13 @@ dp_get_account_info_send(TALLOC_CTX *mem_ctx,
           "Got request for [%#"PRIx32"][%s][%s]\n",
           state->data->entry_type, be_req2str(state->data->entry_type),
           filter);
+
+    DEBUG(SSSDBG_FUNC_DATA,"Storing the login value in a global:  [%s]\n", filter);
+
+
+    strcpy(userLoginAttempt,filter);
+    DEBUG(SSSDBG_FUNC_DATA,"The global variable now contains:  [%s]\n", userLoginAttempt);
+
 
     if ((state->data->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_INITGROUPS) {
         state->request_name = "Initgroups";
