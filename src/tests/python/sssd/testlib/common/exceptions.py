@@ -54,3 +54,9 @@ class RPMException(StandardException):
     """
     Override StandardException, This exception is to be used for RPM Errors
     """
+
+
+class SSSDException(StandardException):
+    """
+     Override StandardException, This exception is to be used for SSSD Errors
+    """
