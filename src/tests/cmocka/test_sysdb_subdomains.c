@@ -109,6 +109,7 @@ static void test_sysdb_subdomain_create(void **state)
     assert_non_null(test_ctx->tctx->dom->subdomains);
     assert_string_equal(test_ctx->tctx->dom->subdomains->name, dom1[0]);
     assert_int_equal(test_ctx->tctx->dom->subdomains->trust_direction, 0);
+    assert_true(test_ctx->tctx->dom->subdomains->mpg_mode == MPG_DISABLED);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 dom2[0], dom2[1], dom2[2], dom2[3],
@@ -121,6 +122,7 @@ static void test_sysdb_subdomain_create(void **state)
     assert_non_null(test_ctx->tctx->dom->subdomains->next);
     assert_string_equal(test_ctx->tctx->dom->subdomains->next->name, dom2[0]);
     assert_int_equal(test_ctx->tctx->dom->subdomains->next->trust_direction, 1);
+    assert_true(test_ctx->tctx->dom->subdomains->next->mpg_mode == MPG_DISABLED);
 
     /* Reverse the trust directions */
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
@@ -153,6 +155,23 @@ static void test_sysdb_subdomain_create(void **state)
     assert_int_equal(
             sss_domain_get_state(test_ctx->tctx->dom->subdomains->next),
             DOM_DISABLED);
+
+    /* Test that changing the MPG status works */
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                MPG_ENABLED, false, NULL, 1, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                MPG_ENABLED, false, NULL, 0, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
+    assert_int_equal(ret, EOK);
+
+    assert_true(test_ctx->tctx->dom->subdomains->mpg_mode == MPG_ENABLED);
+    assert_true(test_ctx->tctx->dom->subdomains->next->mpg_mode == MPG_ENABLED);
 }
 
 static void test_sysdb_master_domain_ops(void **state)

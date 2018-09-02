@@ -945,3 +945,15 @@ enum sss_domain_mpg_mode get_domain_mpg_mode(struct sss_domain_info *domain)
 {
     return domain->mpg_mode;
 }
+
+const char *str_domain_mpg_mode(enum sss_domain_mpg_mode mpg_mode)
+{
+    switch (mpg_mode) {
+    case MPG_ENABLED:
+        return "true";
+    case MPG_DISABLED:
+        return "false";
+    }
+
+    return NULL;
+}
