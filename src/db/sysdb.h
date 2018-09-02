@@ -523,7 +523,8 @@ sysdb_set_site(struct sss_domain_info *dom,
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id,
-                              bool mpg, bool enumerate, const char *forest,
+                              enum sss_domain_mpg_mode mpg_mode,
+                              bool enumerate, const char *forest,
                               uint32_t trust_direction,
                               struct ldb_message_element *upn_suffixes);
 

@@ -875,6 +875,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     char *default_domain;
     bool fqnames_default = false;
     int memcache_timeout;
+    bool is_mpg;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -939,7 +940,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = get_entry_as_bool(res->msgs[0], &domain->mpg,
+    ret = get_entry_as_bool(res->msgs[0], &is_mpg,
                             CONFDB_DOMAIN_AUTO_UPG, 0);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -954,7 +955,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
             ret = EINVAL;
             goto done;
         }
+    }
 
+    if (is_mpg) {
+        domain->mpg_mode = MPG_ENABLED;
+    } else {
+        domain->mpg_mode = MPG_DISABLED;
+    }
+
+    if (local_provider_is_built()
+            && strcasecmp(domain->provider, "local") == 0) {
         /* If this is the local provider, we need to ensure that
          * no other provider was specified for other types, since
          * the local provider cannot load them.
@@ -990,7 +1000,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
 
         /* The LOCAL provider use always Magic Private Groups */
-        domain->mpg = true;
+        domain->mpg_mode = MPG_ENABLED;
     }
 
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
