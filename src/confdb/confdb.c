@@ -875,7 +875,6 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     char *default_domain;
     bool fqnames_default = false;
     int memcache_timeout;
-    bool is_mpg;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -940,12 +939,9 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    ret = get_entry_as_bool(res->msgs[0], &is_mpg,
-                            CONFDB_DOMAIN_AUTO_UPG, 0);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for %s\n", CONFDB_DOMAIN_AUTO_UPG);
-        goto done;
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_DOMAIN_AUTO_UPG, NULL);
+    if (tmp == NULL || *tmp == '\0') {
+        tmp = "false";
     }
 
     if (strcasecmp(domain->provider, "local") == 0) {
@@ -957,10 +953,15 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
-    if (is_mpg) {
+    if (strcasecmp(tmp, "FALSE") == 0) {
+        domain->mpg_mode = MPG_DISABLED;
+    } else if (strcasecmp(tmp, "TRUE") == 0) {
         domain->mpg_mode = MPG_ENABLED;
     } else {
-        domain->mpg_mode = MPG_DISABLED;
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for %s\n", CONFDB_DOMAIN_AUTO_UPG);
+        ret = EINVAL;
+        goto done;
     }
 
     if (local_provider_is_built()

@@ -320,7 +320,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
     const char *flat;
     const char *id;
     const char *forest;
-    bool is_mpg;
+    const char *str_mpg_mode;
     enum sss_domain_mpg_mode mpg_mode;
     bool enumerate;
     uint32_t trust_direction;
@@ -377,11 +377,20 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         id = ldb_msg_find_attr_as_string(res->msgs[i],
                                          SYSDB_SUBDOMAIN_ID, NULL);
 
-        is_mpg = ldb_msg_find_attr_as_bool(res->msgs[i],
-                                           SYSDB_SUBDOMAIN_MPG, false);
-        if (is_mpg) {
+        str_mpg_mode = ldb_msg_find_attr_as_string(res->msgs[i],
+                                                   SYSDB_SUBDOMAIN_MPG, NULL);
+        if (str_mpg_mode == NULL || *str_mpg_mode == '\0') {
+            str_mpg_mode = "false";
+        }
+
+        if (strcasecmp(str_mpg_mode, "FALSE") == 0) {
+            mpg_mode = MPG_DISABLED;
+        } else if (strcasecmp(str_mpg_mode, "TRUE") == 0) {
             mpg_mode = MPG_ENABLED;
         } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Invalid value for %s\n, assuming disabled",
+                  SYSDB_SUBDOMAIN_MPG);
             mpg_mode = MPG_DISABLED;
         }
 
@@ -991,11 +1000,23 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
             }
         }
 
-        tmp_bool = ldb_msg_find_attr_as_bool(res->msgs[0], SYSDB_SUBDOMAIN_MPG,
-                                             !(mpg_mode == MPG_ENABLED));
-        if (tmp_bool != (mpg_mode == MPG_ENABLED)) {
-            mpg_flags = LDB_FLAG_MOD_REPLACE;
+        tmp_str = ldb_msg_find_attr_as_string(res->msgs[0],
+                                              SYSDB_SUBDOMAIN_MPG,
+                                              "false");
+        /* If mpg_mode changed we need to replace the old  value in sysdb */
+        switch (mpg_mode) {
+        case MPG_ENABLED:
+            if (strcasecmp(tmp_str, "true") != 0) {
+                mpg_flags = LDB_FLAG_MOD_REPLACE;
+            }
+            break;
+        case MPG_DISABLED:
+            if (strcasecmp(tmp_str, "false") != 0) {
+                mpg_flags = LDB_FLAG_MOD_REPLACE;
+            }
+            break;
         }
+
         tmp_bool = ldb_msg_find_attr_as_bool(res->msgs[0], SYSDB_SUBDOMAIN_ENUM,
                                              !enumerate);
         if (tmp_bool != enumerate) {
@@ -1105,8 +1126,14 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
             goto done;
         }
 
-        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_MPG,
-                                 (mpg_mode == MPG_ENABLED) ? "TRUE" : "FALSE");
+        tmp_str = str_domain_mpg_mode(mpg_mode);
+        if (tmp_str == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Couldn't convert mpg_mode to string\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_MPG, tmp_str);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;
