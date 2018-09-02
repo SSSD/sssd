@@ -575,6 +575,8 @@ bool sss_domain_info_get_output_fqnames(struct sss_domain_info *domain);
 
 bool sss_domain_is_mpg(struct sss_domain_info *domain);
 
+enum sss_domain_mpg_mode get_domain_mpg_mode(struct sss_domain_info *domain);
+
 #define IS_SUBDOMAIN(dom) ((dom)->parent != NULL)
 
 #define DOM_HAS_VIEWS(dom) ((dom)->has_views)

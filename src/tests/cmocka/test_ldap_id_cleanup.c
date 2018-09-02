@@ -121,7 +121,7 @@ static int test_sysdb_setup(void **state)
     ret = setup_sysdb_tests(&test_ctx);
     assert_int_equal(ret, EOK);
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
 
     /* set options */
     test_ctx->opts = talloc_zero(test_ctx, struct sdap_options);

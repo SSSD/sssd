@@ -451,7 +451,8 @@ ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
     struct ldb_message_element *el;
     char *sid_str = NULL;
     uint32_t trust_type;
-    bool mpg;
+    bool use_id_mapping;
+    enum sss_domain_mpg_mode mpg_mode;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -500,17 +501,20 @@ ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
         goto done;
     }
 
-    mpg = sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, name, sid_str);
-    if (mpg == false) {
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx,
+                                                               name, sid_str);
+    if (use_id_mapping == true) {
+        mpg_mode = MPG_ENABLED;
+    } else {
         /* Domains that use the POSIX attributes set by the admin must
          * inherit the MPG setting from the parent domain so that the
          * auto_private_groups options works for trusted domains as well
          */
-        mpg = sss_domain_is_mpg(domain);
+        mpg_mode = get_domain_mpg_mode(domain);
     }
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
-                                mpg, enumerate, domain->forest, 0, NULL);
+                                mpg_mode, enumerate, domain->forest, 0, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;

@@ -158,7 +158,7 @@ static void test_sysdb_store_override(void **state)
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
     name = sss_create_internal_fqname(test_ctx, TEST_USER_NAME,
                                       test_ctx->domain->name);
     assert_non_null(name);
@@ -388,7 +388,7 @@ void test_sysdb_delete_view_tree(void **state)
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
 
     ret = sysdb_update_view_name(test_ctx->domain->sysdb, TEST_VIEW_NAME);
     assert_int_equal(ret, EOK);
@@ -455,7 +455,7 @@ void test_sysdb_invalidate_overrides(void **state)
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
     name = sss_create_internal_fqname(test_ctx, TEST_USER_NAME,
                                       test_ctx->domain->name);
     assert_non_null(name);

@@ -938,5 +938,10 @@ bool is_files_provider(struct sss_domain_info *domain)
 
 bool sss_domain_is_mpg(struct sss_domain_info *domain)
 {
-    return domain->mpg;
+    return domain->mpg_mode == MPG_ENABLED;
+}
+
+enum sss_domain_mpg_mode get_domain_mpg_mode(struct sss_domain_info *domain)
+{
+    return domain->mpg_mode;
 }

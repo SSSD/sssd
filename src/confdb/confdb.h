@@ -310,6 +310,11 @@ enum sss_domain_type {
     DOM_TYPE_APPLICATION,
 };
 
+enum sss_domain_mpg_mode {
+    MPG_DISABLED,
+    MPG_ENABLED,
+};
+
 /**
  * Data structure storing all of the basic features
  * of a domain.
@@ -324,7 +329,7 @@ struct sss_domain_info {
     bool enumerate;
     char **sd_enumerate;
     bool fqnames;
-    bool mpg;
+    enum sss_domain_mpg_mode mpg_mode;
     bool ignore_group_members;
     uint32_t id_min;
     uint32_t id_max;
