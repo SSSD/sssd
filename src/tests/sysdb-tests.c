@@ -1095,7 +1095,7 @@ START_TEST(test_user_group_by_name)
      * ldap provider differently with auto_private_groups.
      */
     test_ctx->domain->provider = discard_const_p(char, "ldap");
-    test_ctx->domain->mpg = true;
+    test_ctx->domain->mpg_mode = MPG_ENABLED;
 
     data = test_data_new_user(test_ctx, _i);
     fail_if(data == NULL);
@@ -1337,7 +1337,7 @@ START_TEST (test_sysdb_enumgrent)
         return;
     }
 
-    test_ctx->domain->mpg = true;
+    test_ctx->domain->mpg_mode = MPG_ENABLED;
 
     ret = sysdb_enumgrent(test_ctx,
                           test_ctx->domain,
@@ -1541,7 +1541,7 @@ START_TEST (test_sysdb_get_user_attr_subdomain)
     /* Create subdomain */
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               "test.sub", "TEST.SUB", "test", "S-3",
-                              false, false, NULL, NULL, 0, NULL);
+                              MPG_DISABLED, false, NULL, NULL, 0, NULL);
     fail_if(subdomain == NULL, "Failed to create new subdomain.");
 
     ret = sss_names_init_from_args(test_ctx,
@@ -5946,7 +5946,7 @@ START_TEST(test_sysdb_search_object_by_id)
     fail_unless(ret == EOK, "sysdb_add_group failed with [%d][%s].",
                 ret, strerror(ret));
 
-    test_ctx->domain->mpg = false;
+    test_ctx->domain->mpg_mode = MPG_DISABLED;
     ret = sysdb_add_user(test_ctx->domain, "user1", 4001, id,
                          "User 1", "/home/user1", "/bin/bash",
                          NULL, NULL, 0, 0);
@@ -6271,7 +6271,7 @@ START_TEST(test_sysdb_subdomain_store_user)
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[3],
-                              false, false, NULL, NULL, 0, NULL);
+                              MPG_DISABLED, false, NULL, NULL, 0, NULL);
     fail_unless(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
@@ -6350,7 +6350,7 @@ START_TEST(test_sysdb_subdomain_user_ops)
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[3],
-                              false, false, NULL, NULL, 0, NULL);
+                              MPG_DISABLED, false, NULL, NULL, 0, NULL);
     fail_unless(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
@@ -6423,7 +6423,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
 
     subdomain = new_subdomain(test_ctx, test_ctx->domain,
                               testdom[0], testdom[1], testdom[2], testdom[3],
-                              false, false, NULL, NULL, 0, NULL);
+                              MPG_DISABLED, false, NULL, NULL, 0, NULL);
     fail_unless(subdomain != NULL, "Failed to create new subdomain.");
     ret = sysdb_subdomain_store(test_ctx->sysdb,
                                 testdom[0], testdom[1], testdom[2], testdom[3],
