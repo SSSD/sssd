@@ -29,8 +29,7 @@
 #include "util/probes.h"
 #include <time.h>
 
-//This is the global definition for the userLoginAttempt variable
-#include "globals/globals.h"
+//This is the global definition for the userLoginAttempt variabl
 char userLoginAttempt[];
 
 errno_t sysdb_dn_sanitize(TALLOC_CTX *mem_ctx, const char *input,
