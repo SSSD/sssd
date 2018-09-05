@@ -117,7 +117,6 @@ dp_init_send(TALLOC_CTX *mem_ctx,
 
 errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
                      struct tevent_req *req,
-                     struct data_provider **_provider,
                      const char **_sbus_name);
 
 bool _dp_target_enabled(struct data_provider *provider,

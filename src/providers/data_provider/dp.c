@@ -120,6 +120,7 @@ static int dp_destructor(struct data_provider *provider)
 }
 
 struct dp_init_state {
+    struct be_ctx *be_ctx;
     struct data_provider *provider;
     char *sbus_name;
 };
@@ -158,6 +159,7 @@ dp_init_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    state->be_ctx = be_ctx;
     state->provider->ev = ev;
     state->provider->uid = uid;
     state->provider->gid = gid;
@@ -224,12 +226,14 @@ static void dp_init_done(struct tevent_req *subreq)
     sbus_server_set_on_connection(state->provider->sbus_server,
                                   dp_client_init, state->provider);
 
+    /* be_ctx->provider must be accessible from modules and targets */
+    state->be_ctx->provider = talloc_steal(state->be_ctx, state->provider);
+
     ret = dp_init_modules(state->provider, &state->provider->modules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP modules "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     ret = dp_init_targets(state->provider, state->provider->be_ctx,
@@ -237,25 +241,27 @@ static void dp_init_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP targets "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     ret = dp_init_interface(state->provider);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize DP interface "
               "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        talloc_zfree(state->be_ctx->provider);
         tevent_req_error(req, ret);
-        return;
     }
 
     tevent_req_done(req);
-    return;
 }
 
 errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
                      struct tevent_req *req,
-                     struct data_provider **_provider,
                      const char **_sbus_name)
 {
     struct dp_init_state *state;
@@ -263,7 +269,6 @@ errno_t dp_init_recv(TALLOC_CTX *mem_ctx,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *_provider = talloc_steal(mem_ctx, state->provider);
     *_sbus_name = talloc_steal(mem_ctx, state->sbus_name);
 
     return EOK;
