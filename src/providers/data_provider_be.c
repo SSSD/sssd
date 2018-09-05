@@ -541,7 +541,7 @@ static void dp_initialized(struct tevent_req *req)
 
     be_ctx = tevent_req_callback_data(req, struct be_ctx);
 
-    ret = dp_init_recv(be_ctx, req, &be_ctx->provider, &be_ctx->sbus_name);
+    ret = dp_init_recv(be_ctx, req, &be_ctx->sbus_name);
     talloc_zfree(req);
     if (ret !=  EOK) {
         goto done;
