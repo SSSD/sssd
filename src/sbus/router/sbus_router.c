@@ -364,6 +364,13 @@ errno_t
 sbus_router_reset(struct sbus_connection *conn)
 {
     errno_t ret;
+    bool bret;
+
+    bret = sbus_router_filter_add(conn->router);
+    if (!bret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register message filter!\n");
+        return EFAULT;
+    }
 
     ret = sbus_router_reset_listeners(conn);
     if (ret != EOK) {
