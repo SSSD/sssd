@@ -214,7 +214,7 @@ static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = proxy_client_init(dp_sbus_conn(provider), auth_ctx);
+    ret = proxy_client_init(dp_sbus_conn(be_ctx->provider), auth_ctx);
     if (ret != EOK) {
         goto done;
     }
