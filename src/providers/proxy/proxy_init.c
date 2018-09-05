@@ -192,6 +192,7 @@ static errno_t proxy_auth_conf(TALLOC_CTX *mem_ctx,
 
 static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
                                    struct be_ctx *be_ctx,
+                                   struct data_provider *provider,
                                    struct proxy_auth_ctx **_auth_ctx)
 {
     struct proxy_auth_ctx *auth_ctx;
@@ -213,7 +214,7 @@ static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = proxy_client_init(dp_sbus_conn(be_ctx->provider), auth_ctx);
+    ret = proxy_client_init(dp_sbus_conn(provider), auth_ctx);
     if (ret != EOK) {
         goto done;
     }
@@ -273,7 +274,7 @@ errno_t sssm_proxy_init(TALLOC_CTX *mem_ctx,
 
     /* Initialize auth_ctx since one of the access, auth or chpass is set. */
 
-    ret = proxy_init_auth_ctx(mem_ctx, be_ctx, &auth_ctx);
+    ret = proxy_init_auth_ctx(mem_ctx, be_ctx, provider, &auth_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context [%d]: %s\n",
               ret, sss_strerror(ret));
