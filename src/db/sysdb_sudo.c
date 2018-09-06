@@ -418,7 +418,17 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
         ret = EINVAL;
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_FUNC, "original name: %s\n", orig_name);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Original name: %s\n", orig_name);
+
+    orig_name = sss_get_cased_name(tmp_ctx, orig_name, domain->case_sensitive);
+    if (orig_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Cased name: %s\n", orig_name);
 
     if (_uid != NULL) {
         uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
@@ -450,8 +460,9 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                     continue;
                 }
 
-                sysdb_groupnames[num_groups] = talloc_strdup(sysdb_groupnames,
-                                                             groupname);
+                sysdb_groupnames[num_groups] = \
+                    sss_get_cased_name(sysdb_groupnames, groupname,
+                                       domain->case_sensitive);
                 if (sysdb_groupnames[num_groups] == NULL) {
                     DEBUG(SSSDBG_MINOR_FAILURE, "Cannot strdup %s\n", groupname);
                     continue;
