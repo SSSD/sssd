@@ -45,6 +45,23 @@ static bool is_secrets_socket(int fd)
     return NULL != strstr(unix_socket->sun_path, "secrets.socket");
 }
 
+static bool peer_is_private_pam(int fd)
+{
+    int ret;
+    struct sockaddr_storage addr = { 0 };
+    socklen_t addrlen = sizeof(addr);
+    struct sockaddr_un *unix_socket;
+
+    ret = getpeername(fd, (struct sockaddr *)&addr, &addrlen);
+    if (ret != 0) return false;
+
+    if (addr.ss_family != AF_UNIX) return false;
+
+    unix_socket = (struct sockaddr_un *)&addr;
+
+    return NULL != strstr(unix_socket->sun_path, "private/pam");
+}
+
 static uid_t fake_secret_peer(uid_t orig_id)
 {
     char *val;
@@ -55,6 +72,21 @@ static uid_t fake_secret_peer(uid_t orig_id)
     }
 
     return atoi(val);
+}
+
+static void fake_peer_uid_gid(uid_t *uid, gid_t *gid)
+{
+    char *val;
+
+    val = getenv("SSSD_INTG_PEER_UID");
+    if (val != NULL) {
+        *uid = atoi(val);
+    }
+
+    val = getenv("SSSD_INTG_PEER_GID");
+    if (val != NULL) {
+        *gid = atoi(val);
+    }
 }
 
 typedef typeof(getsockopt) getsockopt_fn_t;
@@ -84,6 +116,8 @@ int getsockopt(int sockfd, int level, int optname,
             cr->uid = 0;
         } else if (is_secrets_socket(sockfd)) {
             cr->uid = fake_secret_peer(cr->uid);
+        } else if (peer_is_private_pam(sockfd)) {
+            fake_peer_uid_gid(&cr->uid, &cr->gid);
         }
     }
 
