@@ -46,6 +46,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         pyldb
         rpm-build
         uid_wrapper
+        pam_wrapper
         python-requests
         curl-devel
         krb5-server
@@ -117,6 +118,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         fakeroot
         libnss-wrapper
         libuid-wrapper
+        libpam-wrapper
         python-pytest
         python-ldap
         python-ldb

@@ -495,6 +495,7 @@ AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
 AM_CHECK_CMOCKA
 AM_CHECK_UID_WRAPPER
 AM_CHECK_NSS_WRAPPER
+AM_CHECK_PAM_WRAPPER
 AM_CHECK_TEST_CA
 
 # Check if the user wants SSSD to be compiled with systemtap probes

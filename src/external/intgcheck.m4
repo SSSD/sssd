@@ -22,6 +22,7 @@ AC_DEFUN([SSS_ENABLE_INTGCHECK_REQS], [
     if test x"$enable_intgcheck_reqs" = xyes; then
         SSS_INTGCHECK_REQ([HAVE_UID_WRAPPER], [uid_wrapper])
         SSS_INTGCHECK_REQ([HAVE_NSS_WRAPPER], [nss_wrapper])
+        SSS_INTGCHECK_REQ([HAVE_PAM_WRAPPER], [pam_wrapper])
         SSS_INTGCHECK_REQ([HAVE_SLAPD], [slapd])
         SSS_INTGCHECK_REQ([HAVE_LDAPMODIFY], [ldapmodify])
         SSS_INTGCHECK_REQ([HAVE_FAKEROOT], [fakeroot])
