@@ -33,7 +33,7 @@ endif
 ca_all: clean serial SSSD_test_CA.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(extra)
 
 $(pwdfile):
-	@echo "12345678" > $@
+	@echo "123456" > $@
 
 SSSD_test_CA.pem: $(openssl_ca_key) $(openssl_ca_config) serial
 	$(OPENSSL) req -batch -config ${openssl_ca_config} -x509 -new -nodes -key $< -sha256 -days 1024 -set_serial 0 -extensions v3_ca -out $@
@@ -65,18 +65,18 @@ SSSD_test_cert_pubsshkey_%.h: SSSD_test_cert_pubsshkey_%.pub
 # - src/tests/cmocka/test_pam_srv.c
 p11_nssdb: SSSD_test_cert_pkcs12_0001.pem SSSD_test_CA.pem $(pwdfile)
 	mkdir $@
-	$(CERTUTIL) -d sql:./$@ -N --empty-password
-	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem
-	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0001.pem -w $(pwdfile)
+	$(CERTUTIL) -d sql:./$@ -N -f $(pwdfile)
+	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem -f $(pwdfile)
+	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0001.pem -w $(pwdfile) -k $(pwdfile)
 
 # This nss db is used in
 # - src/tests/cmocka/test_pam_srv.c
 p11_nssdb_2certs: SSSD_test_cert_pkcs12_0001.pem SSSD_test_cert_pkcs12_0002.pem SSSD_test_CA.pem $(pwdfile)
 	mkdir $@
-	$(CERTUTIL) -d sql:./$@ -N --empty-password
-	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem
-	$(PK12UTIL) -d sql:./$@ p11_nssdb -i SSSD_test_cert_pkcs12_0001.pem -w $(pwdfile)
-	$(PK12UTIL) -d sql:./$@ p11_nssdb -i SSSD_test_cert_pkcs12_0002.pem -w $(pwdfile)
+	$(CERTUTIL) -d sql:./$@ -N -f $(pwdfile)
+	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem -f $(pwdfile)
+	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0001.pem -w $(pwdfile) -k $(pwdfile)
+	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0002.pem -w $(pwdfile) -k $(pwdfile)
 
 # The softhsm2 PKCS#11 setups are used in
 # - src/tests/cmocka/test_pam_srv.c
