@@ -27,12 +27,9 @@ import signal
 import errno
 import subprocess
 import time
-import pytest
+import shutil
 
 import config
-import shutil
-from util import unindent
-
 import intg.ds_openldap
 
 import pytest
@@ -109,24 +106,35 @@ def format_basic_conf(ldap_conn):
     """).format(**locals())
 
 
-def format_pam_cert_auth_conf():
+USER1 = dict(name='user1', passwd='x', uid=10001, gid=20001,
+             gecos='User for tests',
+             dir='/home/user1',
+             shell='/bin/bash')
+
+
+def format_pam_cert_auth_conf(config):
     """Format a basic SSSD configuration"""
     return unindent("""\
         [sssd]
+        debug_level = 10
         domains = auth_only
-        services = pam
+        services = pam, nss
 
         [nss]
+        debug_level = 10
 
         [pam]
         pam_cert_auth = True
+        pam_p11_allowed_services = +pam_sss_service
+        pam_cert_db_path = {config.PAM_CERT_DB_PATH}
         debug_level = 10
 
         [domain/auth_only]
-        id_provider = ldap
-        auth_provider = ldap
-        chpass_provider = ldap
-        access_provider = ldap
+        debug_level = 10
+        id_provider = files
+
+        [certmap/auth_only/user1]
+        matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
     """).format(**locals())
 
 
@@ -193,12 +201,42 @@ def create_sssd_fixture(request):
     request.addfinalizer(cleanup_sssd_process)
 
 
+def create_nssdb():
+    os.mkdir(config.SYSCONFDIR + "/pki")
+    os.mkdir(config.SYSCONFDIR + "/pki/nssdb")
+    if subprocess.call(["certutil", "-N", "-d",
+                        "sql:" + config.SYSCONFDIR + "/pki/nssdb/",
+                        "--empty-password"]) != 0:
+        raise Exception("certutil failed")
+
+    pkcs11_txt = open(config.SYSCONFDIR + "/pki/nssdb/pkcs11.txt", "w")
+    pkcs11_txt.write("library=libsoftokn3.so\nname=soft\n" +
+                     "parameters=configdir='sql:" + config.ABS_BUILDDIR +
+                     "/../test_CA/p11_nssdb' " +
+                     "dbSlotDescription='SSSD Test Slot' " +
+                     "dbTokenDescription='SSSD Test Token' " +
+                     "secmod='secmod.db' flags=readOnly)\n\n")
+    pkcs11_txt.close()
+
+
+def cleanup_nssdb():
+    shutil.rmtree(config.SYSCONFDIR + "/pki")
+
+
+def create_nssdb_fixture(request):
+    create_nssdb()
+    request.addfinalizer(cleanup_nssdb)
+
+
 @pytest.fixture
-def simple_pam_cert_auth(request):
+def simple_pam_cert_auth(request, passwd_ops_setup):
     """Setup SSSD with pam_cert_auth=True"""
-    conf = format_pam_cert_auth_conf()
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+    conf = format_pam_cert_auth_conf(config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
+    create_nssdb_fixture(request)
+    passwd_ops_setup.useradd(**USER1)
     return None
 
 
@@ -281,3 +319,50 @@ def env_for_sssctl(request):
     env_for_sssctl['LD_PRELOAD'] += ':' + os.environ['PAM_WRAPPER_PATH']
 
     return env_for_sssctl
+
+
+def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
+                               "--action=auth", "--service=pam_sss_service"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="111")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user1]: " +
+                    "Authentication failure") != -1
+
+
+def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
+                               "--action=auth", "--service=pam_sss_service"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user1]: Success") != -1
