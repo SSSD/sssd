@@ -126,6 +126,7 @@ intgcheck-installed: config.py passwd group
 	PATH="$$(dirname -- $(SLAPD)):$$PATH" \
 	PATH="$(DESTDIR)$(sbindir):$(DESTDIR)$(bindir):$$PATH" \
 	PATH="$$PATH:$(abs_builddir):$(abs_srcdir)" \
+	LANG=C \
 	PYTHONPATH="$(abs_builddir):$(abs_srcdir)" \
 	LDB_MODULES_PATH="$(DESTDIR)$(ldblibdir)" \
 	NON_WRAPPED_UID=$$(id -u) \
