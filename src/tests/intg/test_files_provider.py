@@ -644,6 +644,10 @@ def test_enum_users(setup_pw_with_canary, files_domain_only):
         user = user_generator(i)
         setup_pw_with_canary.useradd(**user)
 
+    # syncing with the help of the canary is not reliable after adding
+    # multiple users because the canary might still be in some caches so that
+    # the data is not refreshed properly.
+    subprocess.call(["sss_cache", "-E"])
     sssd_getpwnam_sync(CANARY["name"])
     user_list = call_sssd_enumeration()
     # +1 because the canary is added
@@ -1043,6 +1047,10 @@ def test_getgrnam_add_remove_ghosts(setup_pw_with_canary,
 
     # Add this user and verify it's been added as a member
     pwd_ops.useradd(**USER2)
+    # The negative cache might still have user2 from the previous request,
+    # flushing the caches might help to prevent a failed lookup after adding
+    # the user.
+    subprocess.call(["sss_cache", "-E"])
     res, groups = sssd_id_sync('user2')
     assert res == sssd_id.NssReturnCode.SUCCESS
     assert len(groups) == 2
