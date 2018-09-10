@@ -58,7 +58,7 @@ AC_DEFUN([AM_CHECK_TEST_CA],
             AC_MSG_NOTICE([Could not find p11tool])
         fi
 
-        AM_CONDITIONAL([BUILD_TEST_CA], [test -x "$OPENSSL" -a -x "$SSH_KEYGEN" -a -x "$SOFTHSM2_PATH" -a -x "$SOFTHSM2_UTIL" -a -x "$P11TOOL"])
+        AM_CONDITIONAL([BUILD_TEST_CA], [test -x "$OPENSSL" -a -x "$SSH_KEYGEN" -a -r "$SOFTHSM2_PATH" -a -x "$SOFTHSM2_UTIL" -a -x "$P11TOOL"])
     fi
 
     AM_COND_IF([BUILD_TEST_CA],
