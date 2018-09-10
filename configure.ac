@@ -373,6 +373,13 @@ them please use argument --without-python3-bindings when running configure.])])
     SSS_CLEAN_PYTHON_VARIABLES
 fi
 
+if test x$HAVE_PYTHON3_BINDINGS = x1; then
+    PYTHON_EXEC=$PYTHON3
+else
+    PYTHON_EXEC=$PYTHON2
+fi
+AC_SUBST(PYTHON_EXEC)
+
 AM_CONDITIONAL([BUILD_PYTHON_BINDINGS],
                [test x"$with_python2_bindings" = xyes \
                      -o x"$with_python3_bindings" = xyes])
@@ -524,4 +531,5 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/config/setup.py
                  src/systemtap/sssd.stp
                  src/config/SSSDConfig/__init__.py])
+AC_CONFIG_FILES([sbus_generate.sh], [chmod +x sbus_generate.sh])
 AC_OUTPUT

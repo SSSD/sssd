@@ -1020,14 +1020,14 @@ libsss_cert_la_LDFLAGS = \
     $(NULL)
 
 generate-sbus-code:
-	$(srcdir)/sbus_generate.sh $(abs_srcdir)
+	$(builddir)/sbus_generate.sh $(abs_srcdir)
 
 .PHONY: generate-sbus-code
 
 BUILT_SOURCES += generate-sbus-code
 
 EXTRA_DIST += \
-    sbus_generate.sh \
+    sbus_generate.sh.in \
     src/sbus/codegen/dbus.xml \
     src/sbus/codegen/sbus_CodeGen.py \
     src/sbus/codegen/sbus_DataType.py \
