@@ -13,7 +13,7 @@ generate() {
 
     echo "Generating sbus code for: $XML"
 
-    python $CODEGEN --sbus sbus --util util \
+    @PYTHON_EXEC@ $CODEGEN --sbus sbus --util util \
         --headers "$HEADERS" \
         --dest "$SRCDIR/src/$DEST" \
         --fileprefix "sbus_${PREFIX}_" \
