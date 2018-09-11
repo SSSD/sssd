@@ -24,6 +24,8 @@ import paramiko
 from ldap import modlist
 from .authconfig import RedHatAuthConfig
 from .exceptions import PkiLibException
+from .exceptions import LdapException
+from .exceptions import OSException
 
 
 PARAMIKO_VERSION = (int(paramiko.__version__.split('.')[0]),
@@ -46,22 +48,20 @@ class sssdTools(object):
 
             :param str ip_addr: IP Address to be added in resolv.conf
             :return: None
-            :Exception: Raises exception of builtin type Exception
+            :Exception: Raises OSException of builtin type Exception
         """
         self.multihost.log.info("Taking backup of /etc/resolv.conf")
-        output = self.multihost.run_command(['cp', '-f', '/etc/resolv.conf',
-                                             '/etc/resolv.conf.backup'],
-                                            set_env=False, raiseonerr=False)
-        if output.returncode == 0:
-            self.multihost.log.info("/etc/resolv.conf successfully backed up")
-            self.multihost.log.info("Add ip addr %s in resolv.conf" % ip_addr)
-            nameserver = 'nameserver %s\n' % ip_addr
-            contents = self.multihost.get_file_contents('/etc/resolv.conf')
-            if not contents.startswith(nameserver):
-                contents = nameserver + contents.replace(nameserver, '')
-                self.multihost.put_file_contents('/etc/resolv.conf', contents)
+        bkup_cmd = 'cp -f /etc/resolv.conf /etc/resolv.conf.bkup'
+        output = self.multihost.run_command(bkup_cmd, raiseonerr=False)
+        self.multihost.log.info("/etc/resolv.conf successfully backed up")
+        self.multihost.log.info("Add ip addr %s in resolv.conf" % ip_addr)
+        nameserver = 'nameserver %s\n' % ip_addr
+        contents = self.multihost.get_file_contents('/etc/resolv.conf')
+        if not contents.startswith(nameserver):
+            contents = nameserver + contents.replace(nameserver, '')
+            self.multihost.put_file_contents('/etc/resolv.conf', contents)
         else:
-            raise Exception("Updating resolv.conf with ip %s failed" % ip_addr)
+            raise OSException("modifying resolv.conf failed")
 
     def config_authconfig(self, hostname, domainname):
         """ Run authconfig to configure Kerberos and SSSD auth on remote host
@@ -325,7 +325,6 @@ class sssdTools(object):
             krb5config.set("libdefaults", "default_realm", realm.upper())
             krb5config.set("libdefaults", "dns_lookup_realm", "false")
             krb5config.set("libdefaults", "dns_lookup_kdc", "false")
-            krb5config.set("libdefaults", "allow_weak_crypto", "yes")
             krb5config.set("libdefaults", "forwardable", "true")
             krb5config.set("libdefaults", "rdns", "false")
             krb5config.add_section("realms")
@@ -358,17 +357,21 @@ class sssdTools(object):
             :Return: None
             :Exception: Raise Exception("message")
         """
-        kcm_cache_file = '/etc/krb5.conf.d/kcm_default_ccache'
-        config = ConfigParser.SafeConfigParser()
-        config.optionxform = str
-        config.add_section('libdefaults')
-        config.set('libdefaults', 'default_ccache_name', "KCM:")
-        temp_fd, temp_file_path = tempfile.mkstemp(suffix='conf',
-                                                   prefix='krb5cc')
-        with open(temp_file_path, 'w') as kcmfile:
-            config.write(kcmfile)
-        self.multihost.transport.put_file(temp_file_path, kcm_cache_file)
-        os.close(temp_fd)
+        self.multihost.transport.get_file('/etc/krb5.conf', '/tmp/krb5.conf')
+        str1 = 'includedir /var/lib/sss/pubconf/krb5.include.d/'
+        str2 = 'includedir /etc/krb5.conf.d/'
+        with open('/tmp/krb5.conf', 'r') as krb_org_file:
+            with open('/tmp/krb5.conf.kcm', 'w+') as krb_new_file:
+                krb_new_file.write(str1)
+                krb_new_file.write('\n')
+                krb_new_file.write(str2)
+                krb_new_file.write('\n')
+                krb_new_file.write('\n')
+                krb_new_file.write(krb_org_file.read())
+        backup_krb5_conf = 'cp -f /etc/krb5.conf /etc/krb5.conf.orig'
+        self.multihost.run_command(backup_krb5_conf)
+        self.multihost.transport.put_file('/tmp/krb5.conf.kcm',
+                                          '/etc/krb5.conf')
         enable_sssd_kcm_socket = 'systemctl enable sssd-kcm.socket'
         cmd = self.multihost.run_command(enable_sssd_kcm_socket,
                                          raiseonerr=False)
@@ -383,8 +386,8 @@ class sssdTools(object):
                                          raiseonerr=False)
         if cmd.returncode != 0:
             raise Exception("sssd-kcm.socket service not started")
-        start_sssd_kcm_service = 'systemctl enable sssd-kcm.service'
-        cmd = self.multihost.run_command(start_sssd_kcm_service,
+        enable_kcm_service = 'systemctl enable sssd-kcm.service'
+        cmd = self.multihost.run_command(enable_kcm_service,
                                          raiseonerr=False)
         symlink = '/etc/systemd/system/sockets.target.wants/sssd-kcm.socket'
         if cmd.returncode != 0:
@@ -564,7 +567,7 @@ class LdapOperations(object):
             :param memberUid: set by default to false, True when
              posix group add with memberUid
             :Return bool: Return True
-            :Exception: Raise Exception if unable to add user
+            :Exception: Raise LdapException if unable to add user
         """
         attr = {}
         group_cn = group_attr['cn']
@@ -585,7 +588,7 @@ class LdapOperations(object):
         group_dn = 'cn=%s,%s,%s' % (group_cn, org_unit, basedn)
         (ret, _) = self.add_entry(attr, group_dn)
         if ret != 'Success':
-            raise Exception('Unable to add group to ldap')
+            raise LdapException('Unable to add group to ldap')
 
     def enable_autofs_schema(self, basedn):
         """ Enable autofs schema
@@ -739,9 +742,10 @@ class PkiTools(object):
         pin_filename = 'pin.txt'
         nss_dir = self.create_nssdb()
         pin_filepath = os.path.join(nss_dir, pin_filename)
-        ca_certpath = os.path.join(nss_dir, 'cacert.der')
         ca_pempath = os.path.join(nss_dir, 'cacert.pem')
         server_pempath = os.path.join(nss_dir, 'server.pem')
+        ca_p12_path = os.path.join(nss_dir, 'ca.p12')
+        server_p12_path = os.path.join(nss_dir, 'server.p12')
         with open(self.noisefilepath, 'w') as outfile:
             outfile.write(str(self.noise))
         ca_args = 'certutil -d %s -f %s -S -n "%s" -s %s' \
@@ -750,9 +754,8 @@ class PkiTools(object):
                                            self.noisefilepath)
 
         ca_pem = 'certutil -d %s -f %s -L -n "%s"' \
-                 '-a -o %s' % (nss_dir, self.pwdfilepath,
-                               canickname, ca_pempath)
-
+                 ' -a -o %s' % (nss_dir, self.pwdfilepath,
+                                canickname, ca_pempath)
         with open(pin_filepath, 'w') as outfile:
             outfile.write('Internal (Software) Token:%s' % nss_passphrase)
         _, _, return_code = self.execute(shlex.split(ca_args))
@@ -785,6 +788,17 @@ class PkiTools(object):
                 _, _, return_code = self.execute(shlex.split(server_pem))
                 if return_code != 0:
                     raise PkiLibException('Could not create Server pem file')
+                export_ca_p12 = 'pk12util -d %s -o %s -n "%s"'\
+                                ' -k %s -w %s' % (nss_dir, ca_p12_path,
+                                                  canickname, self.pwdfilepath,
+                                                  self.pwdfilepath)
+                _, _, return_code = self.execute(shlex.split(export_ca_p12))
+                export_svr_p12 = 'pk12util -d %s -o %s -n %s'\
+                                 ' -k %s -w %s' % (nss_dir, server_p12_path,
+                                                   server_nickname,
+                                                   self.pwdfilepath,
+                                                   self.pwdfilepath)
+                _, _, return_code = self.execute(shlex.split(export_svr_p12))
                 return nss_dir
 
 
