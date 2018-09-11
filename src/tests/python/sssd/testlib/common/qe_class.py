@@ -4,6 +4,7 @@ import pytest_multihost.host
 import logging
 import pytest
 import time
+from .exceptions import SSSDException
 
 
 class QeConfig(pytest_multihost.config.Config):
@@ -109,7 +110,7 @@ class QeHost(QeBaseHost):
                 time.sleep(10)
                 return cmd.returncode
             else:
-                raise Exception('Unable to %s sssd' % action, 1)
+                raise SSSDException('Unable to %s sssd' % action, 1)
         elif '7.' or '8.' in self.distro.split()[6]:
             cmd = self.run_command(['systemctl', action, 'sssd'],
                                    raiseonerr=False)
@@ -117,7 +118,7 @@ class QeHost(QeBaseHost):
                 time.sleep(10)
                 return cmd.returncode
             else:
-                raise Exception('Unable to %s sssd' % action, 1)
+                raise SSSDException('Unable to %s sssd' % action, 1)
         elif '6.' in self.distro.split()[6]:
             cmd = self.run_command(['service', 'sssd', action],
                                    raiseonerr=False)
@@ -125,7 +126,7 @@ class QeHost(QeBaseHost):
                 time.sleep(10)
                 return cmd.returncode
             else:
-                raise Exception('Unable to %s sssd' % action, 1)
+                raise SSSDException('Unable to %s sssd' % action, 1)
         elif 'Atomic' in self.distro.split():
             cmd = self.run_command(['systemctl', action, 'sssd'],
                                    raiseonerr=False)
@@ -133,7 +134,7 @@ class QeHost(QeBaseHost):
                 time.sleep(10)
                 return cmd.returncode
             else:
-                raise Exception('Unable to %s sssd' % action, 1)
+                raise SSSDException('Unable to %s sssd' % action, 1)
 
     def yum_install(self, package):
         """ Install packages through yum
