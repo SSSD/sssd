@@ -1,10 +1,12 @@
 from sssd.testlib.common.qe_class import session_multihost, create_testdir
 from sssd.testlib.common.libkrb5 import krb5srv
 from sssd.testlib.common.utils import sssdTools, PkiTools
+from sssd.testlib.common.utils import LdapOperations
 from sssd.testlib.common.libdirsrv import DirSrvWrap
 from sssd.testlib.common.exceptions import PkiLibException
-from sssd.testlib.common.authconfig import RedHatAuthConfig
-from sssd.testlib.common.utils import LdapOperations
+from sssd.testlib.common.exceptions import LdapException
+from sssd.testlib.common.exceptions import LdapException
+from sssd.testlib.common.exceptions import SSSDException
 import pytest
 try:
     import ConfigParser
@@ -25,23 +27,39 @@ def pytest_namespace():
 
 
 @pytest.fixture(scope="class")
-def multihost(session_multihost, request):
+def multihost(session_multihost):
+    """ multihost fixture """
     return session_multihost
 
 
 @pytest.fixture(scope="session")
-def run_authselect(session_multihost, request):
+def package_install(session_multihost):
+    """ Install required packages """
+    distro = session_multihost.master[0].distro
+    pkg_list = 'authselect nss-tools 389-ds-base krb5-server '\
+               'openldap-clients krb5-workstation '\
+               '389-ds-base-legacy-tools sssd sssd-dbus sssd-kcm'
+    if 'Fedora' in distro:
+        cmd = 'dnf install -y %s' % (pkg_list)
+    elif '8.' in distro.split()[5]:
+        cmd = 'dnf module -y install idm:4 389-ds:1.4'
+    session_multihost.master[0].run_command(cmd)
+
+
+@pytest.fixture(scope="session")
+def run_authselect(session_multihost):
     """ Run authconfig to configure Kerberos and SSSD auth on remote host """
-    authselect_cmd = 'authselect enable-feature sssd'
+    authselect_cmd = 'authselect select sssd --force'
     session_multihost.master[0].run_command(authselect_cmd)
 
 
 @pytest.fixture(scope="session")
-def nssdir(session_multihost, request):
-    serverList = [session_multihost.master[0].sys_hostname]
+def nssdir(session_multihost):
+    """ Setup Self signed CA """
+    server_list = [session_multihost.master[0].sys_hostname]
     pki_inst = PkiTools()
     try:
-        certdb = pki_inst.createselfsignedcerts(serverList)
+        certdb = pki_inst.createselfsignedcerts(server_list)
     except PkiLibException as err:
         return (err.msg, err.rval)
     else:
@@ -50,28 +68,33 @@ def nssdir(session_multihost, request):
 
 @pytest.fixture(scope="session")
 def setup_ldap(session_multihost, nssdir, request):
+    """ Setup Directory Server """
     ds_obj = DirSrvWrap(session_multihost.master[0], ssl=True, ssldb=nssdir)
     ds_obj.create_ds_instance('example1', 'dc=example,dc=test')
 
     def remove_ldap():
+        """ Remove ldap server instance """
         ds_obj.remove_ds_instance('example1')
     request.addfinalizer(remove_ldap)
 
 
 @pytest.fixture(scope="session")
 def setup_kerberos(session_multihost, request):
+    """ Setup kerberos """
     tools = sssdTools(session_multihost.master[0])
     tools.config_etckrb5('EXAMPLE.TEST')
     krb = krb5srv(session_multihost.master[0], 'EXAMPLE.TEST')
     krb.krb_setup_new()
 
     def remove_kerberos():
+        """ Remove kerberos instance """
         krb.destroy_krb5server()
     request.addfinalizer(remove_kerberos)
 
 
 @pytest.fixture(scope='class', autouse=True)
 def setup_sssd(session_multihost, request):
+    """ Configure sssd.conf """
     domain_section = 'domain/EXAMPLE.TEST'
     ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
     krb5_server = session_multihost.master[0].sys_hostname
@@ -111,18 +134,14 @@ def setup_sssd(session_multihost, request):
     os.close(temp_fd)
     try:
         session_multihost.master[0].service_sssd('restart')
-    except Exception:
+    except SSSDException:
         journalctl_cmd = "journalctl -x -n 50 --no-pager"
         session_multihost.master[0].run_command(journalctl_cmd)
         assert False
-    tools = sssdTools(session_multihost.master[0])
-    tools.enable_kcm()
-    session_multihost.master[0].run_command(['systemctl', 'start', 'sssd-kcm'])
 
     def stop_sssd():
+        """ Stop sssd service """
         session_multihost.master[0].service_sssd('stop')
-        stop_kcm = 'systemctl stop sssd-kcm'
-        session_multihost.master[0].run_command(stop_kcm)
         sssd_cache = ['cache_%s.ldb' % ('EXAMPLE.TEST'), 'config.ldb',
                       'sssd.ldb', 'timestamps_%s.ldb' % ('EXAMPLE.TEST')]
         for cache_file in sssd_cache:
@@ -133,8 +152,30 @@ def setup_sssd(session_multihost, request):
     request.addfinalizer(stop_sssd)
 
 
+@pytest.fixture
+def enable_kcm(session_multihost, request):
+    """ Enable sssd kcm """
+    backup_krb5_conf = 'cp /etc/krb5.conf /etc/krb5.conf.nokcm'
+    session_multihost.master[0].run_command(backup_krb5_conf)
+    session_multihost.master[0].service_sssd('stop')
+    tools = sssdTools(session_multihost.master[0])
+    tools.enable_kcm()
+    start_kcm = 'systemctl start sssd-kcm'
+    session_multihost.master[0].service_sssd('start')
+    session_multihost.master[0].run_command(start_kcm)
+
+    def disable_kcm():
+        """ Disable sssd kcm """
+        restore_krb5_conf = 'cp /etc/krb5.conf.nokcm /etc/krb5.conf'
+        session_multihost.master[0].run_command(restore_krb5_conf)
+        stop_kcm = 'systemctl stop sssd-kcm'
+        session_multihost.master[0].run_command(stop_kcm)
+    request.addfinalizer(disable_kcm)
+
+
 @pytest.fixture(scope='class', autouse=True)
 def create_posix_usersgroups(session_multihost):
+    """ Create posix user and groups """
     ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
     ds_rootdn = 'cn=Directory Manager'
     ds_rootpw = 'Secret123'
@@ -156,7 +197,7 @@ def create_posix_usersgroups(session_multihost):
                   'uniqueMember': memberdn}
     try:
         ldap_inst.posix_group("ou=Groups", "dc=example,dc=test", group_info)
-    except Exception:
+    except LdapException:
         assert False
     group_dn = 'cn=ldapusers,ou=Groups,dc=example,dc=test'
     for i in range(1, 10):
@@ -168,27 +209,32 @@ def create_posix_usersgroups(session_multihost):
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_session(request, session_multihost,
+                  package_install,
                   run_authselect,
                   setup_ldap,
                   setup_kerberos):
+    """ Run all session scoped fixtures """
+    # pylint: disable=unused-argument
+    _pytest_fixture = [package_install, run_authselect,
+                       setup_ldap, setup_kerberos]
     tp = TestPrep(session_multihost)
     tp.setup()
 
     def teardown_session():
+        """ Run teardown session scoped fixtures """
         tp.teardown()
     request.addfinalizer(teardown_session)
 
 
 class TestPrep(object):
+    """ Initialize Session """
     def __init__(self, multihost):
         self.multihost = multihost
 
     def setup(self):
+        """ Start session """
         print("\n............Session Setup...............")
-        reqd_packages = '389-ds-base authselect krb5-server krb5-workstation '\
-                        'sssd-kcm openldap-clients 389-ds-base-legacy-tools'
-        install_cmd = 'dnf -y  install %s' % reqd_packages
-        self.multihost.master[0].run_command(install_cmd)
 
     def teardown(self):
+        """ End session """
         print("\n............Session Ends.................")
