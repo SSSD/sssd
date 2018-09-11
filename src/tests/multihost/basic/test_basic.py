@@ -1,14 +1,15 @@
+""" SSSD Sanity Test Cases """
+import time
 from sssd.testlib.common.utils import SSHClient
 import configparser as ConfigParser
 import paramiko
 import pytest
-import time
 
 
-class Test_basic_sssd(object):
-
+class TestSanitySSSD(object):
+    """ Basic Sanity Test cases """
     def test_ssh_user_login(self, multihost):
-        """ Check ssh login as LDAP user with Kerberos credentials """
+        """Check ssh login as LDAP user with Kerberos credentials """
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
                             username='foo1', password='Secret123')
@@ -37,6 +38,8 @@ class Test_basic_sssd(object):
 
     def test_kinit_kcm(self, multihost):
         """ Run kinit with KRB5CCNAME=KCM: """
+        start_kcm = 'systemctl start sssd-kcm'
+        multihost.master[0].run_command(start_kcm)
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
                             username='foo3', password='Secret123')
@@ -95,3 +98,22 @@ class Test_basic_sssd(object):
                 pytest.fail("Unable to authenticate as %s" % ('foo4'))
             else:
                 ssh.close()
+                start_dirsrv = 'systemctl start dirsrv@example1'
+                start_krb5kdc = 'systemctl start krb5kdc'
+                multihost.master[0].run_command(start_dirsrv)
+                multihost.master[0].run_command(start_krb5kdc)
+
+    def test_ssh_login_kcm(self, multihost, enable_kcm):
+        """ Verify ssh logins are successuful with kcm as default """
+        # pylint: disable=unused-argument
+        _pytest_fixture = [enable_kcm]
+        try:
+            ssh = SSHClient(multihost.master[0].sys_hostname,
+                            username='foo4', password='Secret123')
+        except paramiko.ssh_exception.AuthenticationException:
+            journalctl_cmd = 'journalctl -u sssd -n 50 --no-pager'
+            multihost.master[0].run_command(journalctl_cmd)
+            pytest.fail("Authentication Failed as user %s" % ('foo4'))
+        else:
+            assert True
+            ssh.close()
