@@ -148,9 +148,6 @@ sbus_server_filter(DBusConnection *dbus_conn,
         return DBUS_HANDLER_RESULT_HANDLED;
     }
 
-    destination = dbus_message_get_destination(message);
-    type = dbus_message_get_type(message);
-
     conn = dbus_connection_get_data(dbus_conn, server->data_slot);
     if (conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown connection!\n");
@@ -172,6 +169,11 @@ sbus_server_filter(DBusConnection *dbus_conn,
                          "Unable to set sender");
         return DBUS_HANDLER_RESULT_HANDLED;
     }
+
+    /* Set sender may reallocate internal fields so this needs to be read
+     * after we call dbus_message_set_sender(). */
+    destination = dbus_message_get_destination(message);
+    type = dbus_message_get_type(message);
 
     if (type == DBUS_MESSAGE_TYPE_SIGNAL) {
         return sbus_server_route_signal(server, conn, message, destination);
