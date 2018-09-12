@@ -280,6 +280,7 @@ sbus_watch_remove(DBusWatch *dbus_watch, void *data)
 
     if (watch_fd->dbus_watch.read == NULL
             && watch_fd->dbus_watch.write == NULL) {
+        talloc_free(watch_fd->fdevent);
         talloc_free(watch_fd);
     }
 }
