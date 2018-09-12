@@ -384,6 +384,10 @@ sbus_router_listeners_delete_cb(hash_entry_t *item,
         return;
     }
 
+    if (conn->disconnecting) {
+        return;
+    }
+
     /* If we still have the D-Bus connection available, we try to unregister
      * the previously registered listener when its removed from table. */
 
