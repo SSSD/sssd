@@ -40,6 +40,7 @@
 struct p11_ctx {
     X509_STORE *x509_store;
     const char *ca_db;
+    bool wait_for_card;
 };
 
 static int talloc_cleanup_openssl(struct p11_ctx *p11_ctx)
@@ -48,8 +49,9 @@ static int talloc_cleanup_openssl(struct p11_ctx *p11_ctx)
 
     return 0;
 }
+
 errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
-                     struct p11_ctx **p11_ctx)
+                     bool wait_for_card, struct p11_ctx **p11_ctx)
 {
     int ret;
     struct p11_ctx *ctx;
@@ -73,6 +75,7 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
     }
 
     ctx->ca_db = ca_db;
+    ctx->wait_for_card = wait_for_card;
     talloc_set_destructor(ctx, talloc_cleanup_openssl);
 
     *p11_ctx = ctx;
@@ -547,6 +550,45 @@ done:
     return ret;
 }
 
+static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id)
+{
+    CK_FLAGS wait_flags = 0;
+    CK_RV rv;
+    CK_SLOT_INFO info;
+
+    rv = module->C_WaitForSlotEvent(wait_flags, slot_id, NULL);
+    if (rv != CKR_OK) {
+        if (rv != CKR_FUNCTION_NOT_SUPPORTED) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "C_WaitForSlotEvent failed [%lu][%s].\n",
+                  rv, p11_kit_strerror(rv));
+            return EIO;
+        }
+
+        /* Poor man's wait */
+        do {
+            sleep(10);
+            rv = module->C_GetSlotInfo(*slot_id, &info);
+            if (rv != CKR_OK) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
+                return EIO;
+            }
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Description [%s] Manufacturer [%s] flags [%lu] "
+                  "removable [%s] token present [%s].\n",
+                  info.slotDescription, info.manufacturerID, info.flags,
+                  (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
+                  (info.flags & CKF_TOKEN_PRESENT) ? "true": "false");
+            if ((info.flags & CKF_REMOVABLE_DEVICE)
+                    && (info.flags & CKF_TOKEN_PRESENT)) {
+                break;
+            }
+        } while (true);
+    }
+
+    return EOK;
+}
+
 #define MAX_SLOTS 64
 
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
@@ -588,39 +630,62 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         return EIO;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "Module List:\n");
-    for (c = 0; modules[c] != NULL; c++) {
-        mod_name = p11_kit_module_get_name(modules[c]);
-        mod_file_name = p11_kit_module_get_filename(modules[c]);
-        DEBUG(SSSDBG_TRACE_ALL, "common name: [%s].\n", mod_name);
-        DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
-        free(mod_name);
-        free(mod_file_name);
+    for (;;) {
+        DEBUG(SSSDBG_TRACE_ALL, "Module List:\n");
+        for (c = 0; modules[c] != NULL; c++) {
+            mod_name = p11_kit_module_get_name(modules[c]);
+            mod_file_name = p11_kit_module_get_filename(modules[c]);
+            DEBUG(SSSDBG_TRACE_ALL, "common name: [%s].\n", mod_name);
+            DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
+            free(mod_name);
+            free(mod_file_name);
 
-        num_slots = MAX_SLOTS;
-        rv = modules[c]->C_GetSlotList(CK_TRUE, slots, &num_slots);
-        if (rv != CKR_OK) {
-            DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed.\n");
-            ret = EIO;
-            goto done;
-        }
-
-        for (s = 0; s < num_slots; s++) {
-            rv = modules[c]->C_GetSlotInfo(slots[s], &info);
+            num_slots = MAX_SLOTS;
+            rv = modules[c]->C_GetSlotList(CK_FALSE, slots, &num_slots);
             if (rv != CKR_OK) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
+                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed.\n");
                 ret = EIO;
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_ALL,
-                  "Description [%s] Manufacturer [%s] flags [%lu] removable [%s].\n",
-                  info.slotDescription, info.manufacturerID, info.flags,
-                  (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false");
-            if ((info.flags & CKF_REMOVABLE_DEVICE)) {
+
+            for (s = 0; s < num_slots; s++) {
+                rv = modules[c]->C_GetSlotInfo(slots[s], &info);
+                if (rv != CKR_OK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
+                    ret = EIO;
+                    goto done;
+                }
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Description [%s] Manufacturer [%s] flags [%lu] "
+                      "removable [%s] token present [%s].\n",
+                      info.slotDescription, info.manufacturerID, info.flags,
+                      (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
+                      (info.flags & CKF_TOKEN_PRESENT) ? "true": "false");
+                if ((info.flags & CKF_REMOVABLE_DEVICE)) {
+                    break;
+                }
+            }
+            if (s != num_slots) {
                 break;
             }
         }
-        if (s != num_slots) {
+
+        /* When e.g. using Yubikeys the slot isn't present until the device is
+         * inserted, so we should wait for a slot as well. */
+        if (p11_ctx->wait_for_card && modules[c] == NULL) {
+            p11_kit_modules_finalize_and_release(modules);
+
+            sleep(PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME);
+
+            modules = p11_kit_modules_load_and_initialize(0);
+            if (modules == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "p11_kit_modules_load_and_initialize failed.\n");
+                ret = EIO;
+                goto done;
+            }
+
+        } else {
             break;
         }
     }
@@ -631,14 +696,29 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         goto done;
     }
 
-    rv = modules[c]->C_GetTokenInfo(slots[s], &token_info);
+    slot_id = slots[s];
+
+    if (!(info.flags & CKF_TOKEN_PRESENT)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
+        if (p11_ctx->wait_for_card) {
+            ret = wait_for_card(modules[c], &slot_id);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
+                goto done;
+            }
+        } else {
+            ret = EIO;
+            goto done;
+        }
+    }
+
+    rv = modules[c]->C_GetTokenInfo(slot_id, &token_info);
     if (rv != CKR_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed.\n");
         ret = EIO;
         goto done;
     }
 
-    slot_id = slots[s];
     module_id = c;
     slot_name = p11_kit_space_strdup(info.slotDescription,
                                      sizeof(info.slotDescription));
