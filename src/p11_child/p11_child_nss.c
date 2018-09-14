@@ -51,6 +51,7 @@ struct p11_ctx {
     CERTCertDBHandle *handle;
     struct cert_verify_opts *cert_verify_opts;
     const char *nss_db;
+    bool wait_for_card;
 };
 
 #define EXP_USAGES (  certificateUsageSSLClient \
@@ -139,6 +140,19 @@ static int talloc_free_handle(struct p11_ctx *p11_ctx)
     }
 
     return 0;
+}
+
+static NSSInitContext *get_nss_ctx(const char *nss_db)
+{
+    uint32_t flags = NSS_INIT_READONLY
+                                   | NSS_INIT_FORCEOPEN
+                                   | NSS_INIT_NOROOTINIT
+                                   | NSS_INIT_OPTIMIZESPACE
+                                   | NSS_INIT_PK11RELOAD;
+    NSSInitParameters parameters = { 0 };
+    parameters.length =  sizeof (parameters);
+
+    return NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters, flags);
 }
 
 errno_t init_verification(struct p11_ctx *p11_ctx,
@@ -256,14 +270,15 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     SECItem signed_random_value = {0};
     SECKEYPublicKey *pub_key;
     CERTCertificate *found_cert = NULL;
-    PK11SlotList *list = NULL;
-    PK11SlotListElement *le;
     const char *label;
     char *key_id_str = NULL;
     CERTCertList *valid_certs = NULL;
     char *cert_b64 = NULL;
     char *multi = NULL;
     PRCList *node;
+    CK_SLOT_INFO slInfo;
+    PK11TokenStatus token_status;
+    size_t s;
 
     PK11_SetPasswordFunc(password_passthrough);
 
@@ -297,28 +312,50 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                                 mod_list_item->module->dllName);
     }
 
-    list = PK11_GetAllTokens(CKM_INVALID_MECHANISM, PR_FALSE, PR_TRUE,
-                             NULL);
-    if (list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "PK11_GetAllTokens failed.\n");
-        ret = EIO;
-        goto done;
-    }
+    for (;;)  {
+        mod_list = SECMOD_GetDefaultModuleList();
+        for (mod_list_item = mod_list; mod_list_item != NULL;
+                                       mod_list_item = mod_list_item->next) {
+            for (s = 0; s < mod_list_item->module->slotCount; s++) {
+                slInfo.flags = 0;
+                rv = PK11_GetSlotInfo(mod_list_item->module->slots[s], &slInfo);
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Description [%s] Manufacturer [%s] flags [%lu] "
+                      "removable [%s] token present [%s].\n",
+                      slInfo.slotDescription, slInfo.manufacturerID,
+                      slInfo.flags,
+                      (slInfo.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
+                      (slInfo.flags & CKF_TOKEN_PRESENT) ? "true": "false");
 
-    for (le = list->head; le; le = le->next) {
-        CK_SLOT_INFO slInfo;
+                if (rv == SECSuccess && (slInfo.flags & CKF_REMOVABLE_DEVICE)) {
+                    slot = PK11_ReferenceSlot(mod_list_item->module->slots[s]);
+                    break;
+                }
+            }
+        }
 
-        slInfo.flags = 0;
-        rv = PK11_GetSlotInfo(le->slot, &slInfo);
-        DEBUG(SSSDBG_TRACE_ALL,
-              "Description [%s] Manufacturer [%s] flags [%lu].\n",
-              slInfo.slotDescription, slInfo.manufacturerID, slInfo.flags);
-        if (rv == SECSuccess && (slInfo.flags & CKF_REMOVABLE_DEVICE)) {
-            slot = PK11_ReferenceSlot(le->slot);
+        /* When e.g. using Yubikeys the slot isn't present until the device is
+         * inserted, so we should wait for a slot as well. */
+        if (p11_ctx->wait_for_card && slot == NULL) {
+            rv = NSS_ShutdownContext(p11_ctx->nss_ctx);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE, "NSS_ShutdownContext failed [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
+            }
+
+            sleep(PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME);
+
+            p11_ctx->nss_ctx = get_nss_ctx(p11_ctx->nss_db);
+            if (p11_ctx->nss_ctx == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "NSS_InitContext failed [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
+                return EIO;
+            }
+        } else {
             break;
         }
     }
-    PK11_FreeSlotList(list);
+
     if (slot == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "No removable slots found.\n");
         ret = EIO;
@@ -331,6 +368,22 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     token_name = PK11_GetTokenName(slot);
     module = PK11_GetModule(slot);
     module_name = module->dllName == NULL ? "NSS-Internal" : module->dllName;
+
+    if (!(slInfo.flags & CKF_TOKEN_PRESENT)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
+        if (p11_ctx->wait_for_card) {
+            token_status = PK11_WaitForTokenEvent(slot, PK11TokenPresentEvent,
+                                                 PR_INTERVAL_NO_TIMEOUT, 0, 0);
+            if (token_status != PK11TokenPresent) {
+                DEBUG(SSSDBG_OP_FAILURE, "PK11_WaitForTokenEvent failed.\n");
+                ret = EIO;
+                goto done;
+            }
+        } else {
+            ret = EIO;
+            goto done;
+        }
+    }
 
     DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in slot [%s][%d] of module [%d][%s].\n",
           token_name, slot_name, (int) slot_id, (int) module_id, module_name);
@@ -651,26 +704,18 @@ static int talloc_nss_shutdown(struct p11_ctx *p11_ctx)
 }
 
 errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *nss_db,
-                     struct p11_ctx **p11_ctx)
+                     bool wait_for_card, struct p11_ctx **p11_ctx)
 {
     struct p11_ctx *ctx;
-    uint32_t flags = NSS_INIT_READONLY
-                                   | NSS_INIT_FORCEOPEN
-                                   | NSS_INIT_NOROOTINIT
-                                   | NSS_INIT_OPTIMIZESPACE
-                                   | NSS_INIT_PK11RELOAD;
-    NSSInitParameters parameters = { 0 };
-    parameters.length =  sizeof (parameters);
-
     ctx = talloc_zero(mem_ctx, struct p11_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
     ctx->nss_db = nss_db;
+    ctx->wait_for_card = wait_for_card;
 
-    ctx->nss_ctx = NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters,
-                                    flags);
+    ctx->nss_ctx = get_nss_ctx(nss_db);
     if (ctx->nss_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "NSS_InitContext failed [%d][%s].\n",
               PR_GetError(), PORT_ErrorToString(PR_GetError()));
