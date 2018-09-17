@@ -50,6 +50,9 @@
             <arg choice='opt'>
                 <replaceable>prompt_always</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>try_cert_auth</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -197,6 +200,26 @@ auth sufficient pam_sss.so allow_missing_name
                         prompt for credentials again. Based on the pre-auth
                         reply by SSSD pam_sss might prompt for a password, a
                         Smartcard PIN or other credentials.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>try_cert_auth</option>
+                </term>
+                <listitem>
+                    <para>
+                        Try to use certificate based authentication, i.e.
+                        authentication with a Smartcard or similar devices. If a
+                        Smartcard is available and the service is allowed for
+                        Smartcard authentication the use will be prompted for a
+                        PIN and the certificate based authentication will
+                        continue
+                    </para>
+                    <para>
+                        If no Smartcard is available or certificate based
+                        authentication is not allowed for the current service
+                        PAM_AUTHINFO_UNAVAIL is returned.
                     </para>
                 </listitem>
             </varlistentry>
