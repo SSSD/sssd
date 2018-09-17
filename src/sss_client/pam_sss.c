@@ -1997,6 +1997,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             *flags |= PAM_CLI_FLAGS_ALLOW_MISSING_NAME;
         } else if (strcmp(*argv, "prompt_always") == 0) {
             *flags |= PAM_CLI_FLAGS_PROMPT_ALWAYS;
+        } else if (strcmp(*argv, "try_cert_auth") == 0) {
+            *flags |= PAM_CLI_FLAGS_TRY_CERT_AUTH;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -2403,6 +2405,13 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                          * as a fallback, errors can be ignored here.
                          */
                     }
+                }
+
+                if (flags & PAM_CLI_FLAGS_TRY_CERT_AUTH
+                        && pi.cert_list == NULL) {
+                    D(("No certificates for authentication available."));
+                    overwrite_and_free_pam_items(&pi);
+                    return PAM_AUTHINFO_UNAVAIL;
                 }
 
                 if (strcmp(pi.pam_service, "gdm-smartcard") == 0) {
