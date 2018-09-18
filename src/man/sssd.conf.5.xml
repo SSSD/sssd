@@ -1464,6 +1464,20 @@ pam_p11_allowed_services = +my_pam_service, -login
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>p11_wait_for_card_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            If Smartcard authentication is required how many
+                            extra seconds in addition to p11_child_timeout
+                            should the PAM responder wait until a Smartcard is
+                            inserted.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

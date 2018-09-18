@@ -1297,6 +1297,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                           struct pam_data *pd)
 {
     int p11_child_timeout;
+    int wait_for_card_timeout;
     char *cert_verification_opts;
     errno_t ret;
     struct tevent_req *req;
@@ -1310,6 +1311,20 @@ static errno_t check_cert(TALLOC_CTX *mctx,
               "Failed to read p11_child_timeout from confdb: [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
+    }
+    if ((pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH) && pd->priv == 1) {
+        ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                             CONFDB_PAM_WAIT_FOR_CARD_TIMEOUT,
+                             P11_WAIT_FOR_CARD_TIMEOUT_DEFAULT,
+                             &wait_for_card_timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read wait_for_card_timeout from confdb: [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            return ret;
+        }
+
+        p11_child_timeout += wait_for_card_timeout;
     }
 
     ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_MONITOR_CONF_ENTRY,
