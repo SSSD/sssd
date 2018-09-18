@@ -317,6 +317,11 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                                              size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
+                case SSS_PAM_ITEM_FLAGS:
+                    ret = extract_uint32_t(&pd->cli_flags, size,
+                                           body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
                 default:
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Ignoring unknown data type [%d].\n", type);
@@ -1447,6 +1452,13 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
                   "No certificate found and no logon name given, " \
                   "authentication not possible.\n");
             ret = ENOENT;
+        } else if (pd->cli_flags & PAM_CLI_FLAGS_TRY_CERT_AUTH) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "try_cert_auth flag set but no certificate available, "
+                  "request finished.\n");
+            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+            pam_reply(preq);
+            return;
         } else {
             if (pd->cmd == SSS_PAM_AUTHENTICATE) {
                 DEBUG(SSSDBG_CRIT_FAILURE,

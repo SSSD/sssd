@@ -134,6 +134,7 @@ static void free_cai(struct cert_auth_info *cai)
         free(cai->cert_user);
         free(cai->cert);
         free(cai->token_name);
+        free(cai->module_name);
         free(cai->key_id);
         free(cai->prompt_str);
         free(cai);
@@ -1247,6 +1248,8 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
     pi->cert_list = NULL;
     pi->selected_cert = NULL;
 
+    pi->flags = flags;
+
     return PAM_SUCCESS;
 }
 
@@ -1267,6 +1270,7 @@ static void print_pam_items(struct pam_items *pi)
     D(("Newauthtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_newauthtok)));
     D(("Cli_PID: %d", pi->cli_pid));
     D(("Requested domains: %s", pi->requested_domains));
+    D(("Flags: %d", pi->flags));
 }
 
 static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
@@ -1999,6 +2003,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             *flags |= PAM_CLI_FLAGS_PROMPT_ALWAYS;
         } else if (strcmp(*argv, "try_cert_auth") == 0) {
             *flags |= PAM_CLI_FLAGS_TRY_CERT_AUTH;
+        } else if (strcmp(*argv, "require_cert_auth") == 0) {
+            *flags |= PAM_CLI_FLAGS_REQUIRE_CERT_AUTH;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -2274,55 +2280,51 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
     return PAM_SUCCESS;
 }
 
-#define SC_ENTER_FMT "Please enter smart card labeled\n %s\nand press enter"
+#define SC_ENTER_LABEL_FMT "Please enter smart card labeled\n %s"
+#define SC_ENTER_FMT "Please enter smart card"
 
 static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
-                                  bool quiet_mode)
+                                  int retries, bool quiet_mode)
 {
     int ret;
     int pam_status;
     char *login_token_name;
     char *prompt = NULL;
-    size_t size;
-    char *answer = NULL;
-    /* TODO: check multiple cert case */
-    struct cert_auth_info *cai = pi->cert_list;
-
-    if (cai == NULL) {
-        D(("No certificate information available"));
-        return EINVAL;
-    }
+    uint32_t orig_flags = pi->flags;
 
     login_token_name = getenv("PKCS11_LOGIN_TOKEN_NAME");
-    if (login_token_name == NULL) {
+    if (login_token_name == NULL
+            && !(pi->flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
         return PAM_SUCCESS;
     }
 
-    while (cai->token_name == NULL
-               || strcmp(login_token_name, cai->token_name) != 0) {
-        size = sizeof(SC_ENTER_FMT) + strlen(login_token_name);
-        prompt = malloc(size);
-        if (prompt == NULL) {
-            D(("malloc failed."));
-            return ENOMEM;
-        }
+    if (login_token_name == NULL) {
+        ret = asprintf(&prompt, SC_ENTER_FMT);
+    } else {
+        ret = asprintf(&prompt, SC_ENTER_LABEL_FMT, login_token_name);
+    }
+    if (ret == -1) {
+        return ENOMEM;
+    }
 
-        ret = snprintf(prompt, size, SC_ENTER_FMT,
-                       login_token_name);
-        if (ret < 0 || ret >= size) {
-            D(("snprintf failed."));
-            free(prompt);
-            return EFAULT;
-        }
+    pi->flags |= PAM_CLI_FLAGS_REQUIRE_CERT_AUTH;
 
-        ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt,
-                                  NULL, &answer);
-        free(prompt);
+    /* TODO: check multiple cert case */
+    while (pi->cert_list == NULL || pi->cert_list->token_name == NULL
+                || (login_token_name != NULL
+                        && strcmp(login_token_name,
+                                  pi->cert_list->token_name) != 0)) {
+
+        if (retries < 0) {
+            ret = PAM_AUTHINFO_UNAVAIL;
+            goto done;
+        }
+        retries--;
+
+        ret = do_pam_conversation(pamh, PAM_TEXT_INFO, prompt, NULL, NULL);
         if (ret != PAM_SUCCESS) {
             D(("do_pam_conversation failed."));
-            return ret;
-        } else {
-            free(answer);
+            goto done;
         }
 
         pam_status = send_and_receive(pamh, pi, SSS_PAM_PREAUTH, quiet_mode);
@@ -2335,7 +2337,14 @@ static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
         }
     }
 
-    return PAM_SUCCESS;
+    ret = PAM_SUCCESS;
+
+done:
+
+    pi->flags = orig_flags;
+    free(prompt);
+
+    return ret;
 }
 
 static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
@@ -2394,8 +2403,19 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                         && (pi.pam_authtok == NULL
                                 || (flags & PAM_CLI_FLAGS_PROMPT_ALWAYS))
                         && access(PAM_PREAUTH_INDICATOR, F_OK) == 0) {
+
+                    if (flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH) {
+                        /* Do not use PAM_CLI_FLAGS_REQUIRE_CERT_AUTH in the first
+                         * SSS_PAM_PREAUTH run. In case a card is already inserted
+                         * we do not have to prompt to insert a card. */
+                        pi.flags &= ~PAM_CLI_FLAGS_REQUIRE_CERT_AUTH;
+                        pi.flags |= PAM_CLI_FLAGS_TRY_CERT_AUTH;
+                    }
+
                     pam_status = send_and_receive(pamh, &pi, SSS_PAM_PREAUTH,
                                                   quiet_mode);
+
+                    pi.flags = flags;
                     if (pam_status != PAM_SUCCESS) {
                         D(("send_and_receive returned [%d] during pre-auth",
                            pam_status));
@@ -2414,8 +2434,10 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                     return PAM_AUTHINFO_UNAVAIL;
                 }
 
-                if (strcmp(pi.pam_service, "gdm-smartcard") == 0) {
-                    ret = check_login_token_name(pamh, &pi, quiet_mode);
+                if (strcmp(pi.pam_service, "gdm-smartcard") == 0
+                        || (flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
+                    ret = check_login_token_name(pamh, &pi, retries,
+                                                 quiet_mode);
                     if (ret != PAM_SUCCESS) {
                         D(("check_login_token_name failed.\n"));
                         return ret;
