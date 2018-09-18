@@ -945,8 +945,14 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    if (local_provider_is_built()
-            && strcasecmp(domain->provider, "local") == 0) {
+    if (strcasecmp(domain->provider, "local") == 0) {
+        if (!local_provider_is_built()) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "ID provider 'local' no longer supported, disabling\n");
+            ret = EINVAL;
+            goto done;
+        }
+
         /* If this is the local provider, we need to ensure that
          * no other provider was specified for other types, since
          * the local provider cannot load them.
