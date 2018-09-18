@@ -51,6 +51,7 @@ struct pam_items {
     enum sss_authtok_type pam_newauthtok_type;
     size_t pam_newauthtok_size;
     pid_t cli_pid;
+    uint32_t flags;
     const char *login_name;
     char *domain_name;
     const char *requested_domains;

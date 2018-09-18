@@ -126,6 +126,7 @@ int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer)
     len += 3*sizeof(uint32_t); /* cli_pid */
     len += *pi->requested_domains != '\0' ?
                 2*sizeof(uint32_t) + pi->requested_domains_size : 0;
+    len += 3*sizeof(uint32_t); /* flags */
 
     buf = malloc(len);
     if (buf == NULL) {
@@ -163,6 +164,9 @@ int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer)
     rp += add_authtok_item(SSS_PAM_ITEM_NEWAUTHTOK, pi->pam_newauthtok_type,
                            pi->pam_newauthtok, pi->pam_newauthtok_size,
                            &buf[rp]);
+
+    rp += add_uint32_t_item(SSS_PAM_ITEM_FLAGS, (uint32_t) pi->flags,
+                            &buf[rp]);
 
     SAFEALIGN_SETMEM_UINT32(buf + rp, SSS_END_OF_PAM_REQUEST, &rp);
 
