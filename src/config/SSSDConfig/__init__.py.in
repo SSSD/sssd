@@ -104,6 +104,7 @@ option_strings = {
     'p11_child_timeout' : _('How many seconds will pam_sss wait for p11_child to finish'),
     'pam_app_services' : _('Which PAM services are permitted to contact application domains'),
     'pam_p11_allowed_services' : _('Allowed services for using smartcards'),
+    'p11_wait_for_card_timeout' : _('Additional timeout to wait for a card if requested'),
 
     # [sudo]
     'sudo_timed' : _('Whether to evaluate the time-based attributes in sudo rules'),
