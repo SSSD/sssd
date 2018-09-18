@@ -365,6 +365,15 @@ enum pam_item_type {
     SSS_PAM_ITEM_REQUESTED_DOMAINS,
 };
 
+#define PAM_CLI_FLAGS_USE_FIRST_PASS (1 << 0)
+#define PAM_CLI_FLAGS_FORWARD_PASS   (1 << 1)
+#define PAM_CLI_FLAGS_USE_AUTHTOK    (1 << 2)
+#define PAM_CLI_FLAGS_IGNORE_UNKNOWN_USER (1 << 3)
+#define PAM_CLI_FLAGS_IGNORE_AUTHINFO_UNAVAIL (1 << 4)
+#define PAM_CLI_FLAGS_USE_2FA (1 << 5)
+#define PAM_CLI_FLAGS_ALLOW_MISSING_NAME (1 << 6)
+#define PAM_CLI_FLAGS_PROMPT_ALWAYS (1 << 7)
+
 #define SSS_NSS_MAX_ENTRIES 256
 #define SSS_NSS_HEADER_SIZE (sizeof(uint32_t) * 4)
 struct sss_cli_req_data {
