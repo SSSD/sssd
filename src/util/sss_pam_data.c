@@ -176,6 +176,7 @@ void pam_print_data(int l, struct pam_data *pd)
     DEBUG(l, "priv: %d\n", pd->priv);
     DEBUG(l, "cli_pid: %d\n", pd->cli_pid);
     DEBUG(l, "logon name: %s\n", PAM_SAFE_ITEM(pd->logon_name));
+    DEBUG(l, "flags: %d\n", pd->cli_flags);
 }
 
 int pam_add_response(struct pam_data *pd, enum response_type type,
