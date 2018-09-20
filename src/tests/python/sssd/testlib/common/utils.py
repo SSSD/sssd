@@ -590,6 +590,20 @@ class LdapOperations(object):
         if ret != 'Success':
             raise LdapException('Unable to add group to ldap')
 
+    def org_unit(self, org_unit, basedn):
+        """ Add Organizational Unit
+            :param str ou: Organizational unit name
+            :param str basedn: Base dn ('dc=example,dc=test')
+            :Exception: Raise LdapException if unable to organizational
+        """
+        attr = {
+            'objectClass': [b'top', b'organizationalUnit'],
+            'ou': org_unit.encode('utf-8')}
+        org_dn = 'ou=%s,%s' % (org_unit, basedn)
+        (ret, _) = self.add_entry(attr, org_dn)
+        if ret != 'Success':
+            raise LdapException('Unable to add organizational unit to ldap')
+
     def enable_autofs_schema(self, basedn):
         """ Enable autofs schema
 
