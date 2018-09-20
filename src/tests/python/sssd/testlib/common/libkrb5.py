@@ -198,20 +198,14 @@ class krb5srv(object):
             :Exception: subprocess.CalledProcessError
         """
         # stop the Kerberos server
-        try:
-            self.multihost.run_command(['systemctl', 'stop', 'krb5kdc'])
-        except subprocess.CalledProcessError:
-            raise
-        else:
-            self.multihost.log.info("stopped krb5kdc service")
-
-        # stop kadmin service
-        try:
-            self.multihost.run_command(['systemctl', 'stop', 'krb5kdc'])
-        except subprocess.CalledProcessError:
-            raise
-        else:
-            self.multihost.log.info("stopped kadmin service")
+        for service in ('krb5kdc', 'kadmin'):
+            stop_cmd = 'systemctl stop %s' % service
+            try:
+                self.multihost.run_command(stop_cmd)
+            except subprocess.CalledProcessError:
+                raise
+            else:
+                self.multihost.log.info("stopped %s service ")
 
         # destroy Kerberos database
         try:
