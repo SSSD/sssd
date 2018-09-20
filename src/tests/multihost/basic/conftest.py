@@ -104,7 +104,7 @@ def setup_sssd(session_multihost, request):
     sssdConfig.add_section('sssd')
     sssdConfig.set('sssd', 'domains', 'EXAMPLE.TEST')
     sssdConfig.set('sssd', 'config_file_version', '2')
-    sssdConfig.set('sssd', 'services', 'nss, pam, ifp')
+    sssdConfig.set('sssd', 'services', 'nss, pam, sudo, ifp')
     sssdConfig.add_section(domain_section)
     sssdConfig.set(domain_section, 'enumerate', 'false')
     sssdConfig.set(domain_section, 'id_provider', 'ldap')
@@ -173,7 +173,90 @@ def enable_kcm(session_multihost, request):
     request.addfinalizer(disable_kcm)
 
 
-@pytest.fixture(scope='class', autouse=True)
+@pytest.fixture
+def create_casesensitive_posix_user(session_multihost):
+    """ Create a case sensitive posix user """
+    ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
+    krb = krb5srv(session_multihost.master[0], 'EXAMPLE.TEST')
+    ds_rootdn = 'cn=Directory Manager'
+    ds_rootpw = 'Secret123'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    username = 'CAPSUSER-1'
+    user_info = {'cn': username,
+                 'uid': username,
+                 'uidNumber': '24583100',
+                 'gidNumber': '14564100'}
+    ldap_inst.posix_user("ou=People", "dc=example,dc=test", user_info)
+    krb.add_principal('CAPSUSER-1', 'user', 'Secret123')
+
+
+@pytest.fixture
+def set_case_sensitive_false(session_multihost):
+    """ Set case_sensitive to false in sssd domain section """
+    session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
+                                                   '/tmp/sssd.conf')
+    sssdconfig = ConfigParser.SafeConfigParser()
+    sssdconfig.read('/tmp/sssd.conf')
+    domain_section = "%s/%s" % ('domain', 'EXAMPLE.TEST')
+    if domain_section in sssdconfig.sections():
+        sssdconfig.set(domain_section, 'case_sensitive', 'false')
+        with open('/tmp/sssd.conf', "w") as sssconf:
+            sssdconfig.write(sssconf)
+    session_multihost.master[0].transport.put_file('/tmp/sssd.conf',
+                                                   '/etc/sssd/sssd.conf')
+    session_multihost.master[0].service_sssd('restart')
+
+
+@pytest.fixture
+def create_sudorule(session_multihost, create_casesensitive_posix_user):
+    """ Create posix user and groups """
+    # pylint: disable=unused-argument
+    _pytest_fixtures = [create_casesensitive_posix_user]
+    ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
+    ds_rootdn = 'cn=Directory Manager'
+    ds_rootpw = 'Secret123'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    ldap_inst.org_unit('sudoers', 'dc=example,dc=test')
+    sudo_ou = 'ou=sudoers,dc=example,dc=test'
+    rule_dn1 = "%s,%s" % ('cn=lessrule', sudo_ou)
+    rule_dn2 = "%s,%s" % ('cn=morerule', sudo_ou)
+    sudo_options = ["!requiretty", "!authenticate"]
+    try:
+        ldap_inst.add_sudo_rule(rule_dn1, 'ALL',
+                                '/usr/bin/less', 'capsuser-1',
+                                sudo_options)
+    except LdapException:
+        pytest.fail("Failed to add sudo rule %s" % rule_dn1)
+    try:
+        ldap_inst.add_sudo_rule(rule_dn2, 'ALL',
+                                '/usr/bin/more', 'CAPSUSER-1',
+                                sudo_options)
+    except LdapException:
+        pytest.fail("Failed to add sudo rule %s" % rule_dn2)
+
+
+@pytest.fixture
+def enable_sss_sudo_nsswitch(session_multihost, tmpdir, request):
+    """Enable sss backend for sudoers in nsswitch.conf """
+    conf = '/etc/nsswitch.conf'
+    local_conf = tmpdir.mkdir("tmpdir").join('nsswitch.conf')
+    backup_cmd = "cp -f /etc/nsswitch.conf /etc/nsswitch.conf.backup"
+    session_multihost.master[0].run_command(backup_cmd)
+    content = '\nsudoers: sss\n'
+    session_multihost.master[0].transport.get_file(conf, str(local_conf))
+
+    local_conf.write(content, mode='a')
+    session_multihost.master[0].transport.put_file(str(local_conf),
+                                                   '/etc/nsswitch.conf')
+
+    def restore_nsswitch():
+        """ Restore nsswitch.conf """
+        restore_cmd = 'cp -f /etc/nsswitch.conf.backup /etc/nsswitch.conf'
+        session_multihost.master[0].run_command(restore_cmd)
+    request.addfinalizer(restore_nsswitch)
+
+
+@pytest.fixture(scope='session')
 def create_posix_usersgroups(session_multihost):
     """ Create posix user and groups """
     ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
@@ -212,11 +295,12 @@ def setup_session(request, session_multihost,
                   package_install,
                   run_authselect,
                   setup_ldap,
-                  setup_kerberos):
+                  setup_kerberos,
+                  create_posix_usersgroups):
     """ Run all session scoped fixtures """
     # pylint: disable=unused-argument
     _pytest_fixture = [package_install, run_authselect,
-                       setup_ldap, setup_kerberos]
+                       setup_ldap, setup_kerberos, create_posix_usersgroups]
     tp = TestPrep(session_multihost)
     tp.setup()
 
