@@ -89,6 +89,8 @@ def setup_kerberos(session_multihost, request):
     def remove_kerberos():
         """ Remove kerberos instance """
         krb.destroy_krb5server()
+        remove_keytab = 'rm -f /etc/krb5.keytab'
+        session_multihost.master[0].run_command(remove_keytab)
     request.addfinalizer(remove_kerberos)
 
 
