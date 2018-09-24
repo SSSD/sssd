@@ -34,14 +34,16 @@ sss_dp_account_files_params(struct sss_domain_info *dom,
                             enum sss_dp_acct_type *_type_out,
                             const char **_opt_name_out)
 {
-    if (sss_domain_get_state(dom) != DOM_INCONSISTENT) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "The entries in the files domain are up-to-date\n");
-        return EOK;
-    }
+    if (type_in != SSS_DP_CERT) {
+        if (sss_domain_get_state(dom) != DOM_INCONSISTENT) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "The entries in the files domain are up-to-date\n");
+            return EOK;
+        }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Domain files is not consistent, issuing update\n");
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Domain files is not consistent, issuing update\n");
+    }
 
     switch(type_in) {
     case SSS_DP_USER:
@@ -56,12 +58,16 @@ sss_dp_account_files_params(struct sss_domain_info *dom,
         *_type_out = type_in;
         *_opt_name_out = DP_REQ_OPT_FILES_INITGR;
         return EAGAIN;
+    case SSS_DP_CERT:
+        /* Let the backend handle certificate mapping for local users */
+        *_type_out = type_in;
+        *_opt_name_out = opt_name_in;
+        return EAGAIN;
     /* These are not handled by the files provider, just fall back */
     case SSS_DP_NETGR:
     case SSS_DP_SERVICES:
     case SSS_DP_SECID:
     case SSS_DP_USER_AND_GROUP:
-    case SSS_DP_CERT:
     case SSS_DP_WILDCARD_USER:
     case SSS_DP_WILDCARD_GROUP:
         return EOK;

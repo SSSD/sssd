@@ -702,6 +702,11 @@ errno_t sysdb_update_certmap(struct sysdb_ctx *sysdb,
                              struct certmap_info **certmaps,
                              bool user_name_hint);
 
+errno_t sysdb_ldb_msg_attr_to_certmap_info(TALLOC_CTX *mem_ctx,
+                                           struct ldb_message *msg,
+                                           const char **attr_map,
+                                           struct certmap_info **certmap);
+
 errno_t sysdb_get_certmap(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                           struct certmap_info ***certmaps,
                           bool *user_name_hint);

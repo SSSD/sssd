@@ -2202,3 +2202,161 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+static errno_t certmap_local_check(struct ldb_message *msg)
+{
+    const char *rule_name;
+    const char *tmp_str;
+    int ret;
+
+    rule_name = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_NAME, NULL);
+    if (rule_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Certficate mapping rule [%s] has no name.",
+                                   ldb_dn_get_linearized(msg->dn));
+        return EINVAL;
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_DOMAINS, NULL);
+    if (tmp_str != NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Option [%s] is ignored for local certmap rules.\n",
+              CONFDB_CERTMAP_DOMAINS);
+    }
+
+    tmp_str = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_MAPRULE, NULL);
+    if (tmp_str != NULL) {
+        if (tmp_str[0] != '(' || tmp_str[strlen(tmp_str) - 1] != ')') {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Mapping rule must be in braces (...).\n");
+            return EINVAL;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Using [%s] mapping rule of [%s].\n",
+                                tmp_str, ldb_dn_get_linearized(msg->dn));
+        return EOK;
+    }
+
+    tmp_str = talloc_asprintf(msg, "(%s)", rule_name);
+    if (tmp_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        return ENOMEM;
+    }
+    ret = ldb_msg_add_string(msg, CONFDB_CERTMAP_MAPRULE, tmp_str);
+    if (ret != LDB_SUCCESS) {
+        talloc_free(discard_const(tmp_str));
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_string failed.\n");
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Using [%s] as mapping rule for [%s].\n",
+                            tmp_str, ldb_dn_get_linearized(msg->dn));
+
+    return EOK;
+}
+
+static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
+                                       struct confdb_ctx *cdb,
+                                       struct sss_domain_info *dom,
+                                       struct certmap_info ***_certmap_list)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_dn *dn = NULL;
+    struct ldb_result *res = NULL;
+    /* The attributte order is important, because it is used in
+     * sysdb_ldb_msg_attr_to_certmap_info and must match
+     * enum certmap_info_member. */
+    static const char *attrs[] = { CONFDB_CERTMAP_NAME,
+                                   CONFDB_CERTMAP_MAPRULE,
+                                   CONFDB_CERTMAP_MATCHRULE,
+                                   CONFDB_CERTMAP_PRIORITY,
+                                   CONFDB_CERTMAP_DOMAINS,
+                                   NULL};
+    struct certmap_info **certmap_list = NULL;
+    size_t c;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, cdb->ldb, "cn=%s,%s", dom->name,
+                                                       CONFDB_CERTMAP_BASEDN);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_ONELEVEL,
+                     attrs, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    certmap_list = talloc_zero_array(tmp_ctx, struct certmap_info *,
+                                     res->count + 1);
+    if (certmap_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; c < res->count; c++) {
+        if (is_files_provider(dom)) {
+            ret = certmap_local_check(res->msgs[c]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "Invalid certificate mapping [%s] for local user, "
+                      "ignored.\n", ldb_dn_get_linearized(res->msgs[c]->dn));
+                continue;
+            }
+        }
+        ret = sysdb_ldb_msg_attr_to_certmap_info(certmap_list, res->msgs[c],
+                                                 attrs, &certmap_list[c]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_ldb_msg_attr_to_certmap_info failed.\n");
+            goto done;
+        }
+    }
+
+    *_certmap_list = talloc_steal(mem_ctx, certmap_list);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int confdb_certmap_to_sysdb(struct confdb_ctx *cdb,
+                            struct sss_domain_info *dom)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct certmap_info **certmap_list;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = confdb_get_all_certmaps(tmp_ctx, cdb, dom, &certmap_list);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "confdb_get_all_certmaps failed.\n");
+        goto done;
+    }
+
+    ret = sysdb_update_certmap(dom->sysdb, certmap_list, false /* TODO */);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_certmap failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
