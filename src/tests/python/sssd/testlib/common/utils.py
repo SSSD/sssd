@@ -604,6 +604,31 @@ class LdapOperations(object):
         if ret != 'Success':
             raise LdapException('Unable to add organizational unit to ldap')
 
+    def add_sudo_rule(self, ruledn, sudoHost,
+                      sudoCommand, sudoUser, sudoOption=None):
+        """ Add Sudo rules in Directory Server
+            parm str ruledn: sudo rule DN
+            param str sudoHost: Host on which sudo command should run
+            param str sudoCommand: Command to run with sudo
+            param str sudoUser: Posix user name
+            param list sudoOption: options like requiretty,authenticate
+        """
+        rulename = ruledn.split(',')[0].split('=')[1]
+        sudo_attr = {
+            'objectClass': [b'top', b'sudoRole'],
+            'cn': rulename.encode('utf-8'),
+            'sudoHost': sudoHost.encode('utf-8'),
+            'sudoCommand': sudoCommand.encode('utf-8'),
+            'sudoUser': sudoUser.encode('utf-8')}
+        (ret, _) = self.add_entry(sudo_attr, ruledn)
+
+        if ret != 'Success':
+            raise LdapException("Unable to add sudo rule %s" % ruledn)
+        if sudoOption:
+            for option in sudoOption:
+                mod = [(ldap.MOD_ADD, 'sudoOption', option.encode('utf-8'))]
+                (_, _) = self.modify_ldap(ruledn, mod)
+
     def enable_autofs_schema(self, basedn):
         """ Enable autofs schema
 
