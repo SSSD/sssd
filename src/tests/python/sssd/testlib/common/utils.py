@@ -767,7 +767,7 @@ class PkiTools(object):
                               serverlist,
                               ca_dn=None,
                               passphrase='Secret123',
-                              canickname='Example CA'):
+                              canickname='ExampleCA'):
         """
         Creates a NSS DB in /tmp/nssDirxxxx where self signed Root CA
         and Server Certs are created
@@ -776,7 +776,7 @@ class PkiTools(object):
         :param str Server_DN: Distinguished Name for Server Cert
         """
         if ca_dn is None:
-            ca_dn = 'CN=Example CA,O=Example,L=Raleigh,C=US'
+            ca_dn = 'CN=ExampleCA,O=Example,L=Raleigh,C=US'
         nss_passphrase = passphrase
         pin_filename = 'pin.txt'
         nss_dir = self.create_nssdb()
