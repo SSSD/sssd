@@ -113,6 +113,20 @@ pam_sss_service:
 	echo "password required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
 	echo "session  required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
 
+pam_sss_sc_required:
+	$(MKDIR_P) $(PAM_SERVICE_DIR)
+	echo "auth     required       $(DESTDIR)$(pammoddir)/pam_sss.so require_cert_auth retry=1"  > $(PAM_SERVICE_DIR)/$@
+	echo "account  required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+	echo "password required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+	echo "session  required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+
+pam_sss_try_sc:
+	$(MKDIR_P) $(PAM_SERVICE_DIR)
+	echo "auth     required       $(DESTDIR)$(pammoddir)/pam_sss.so try_cert_auth"  > $(PAM_SERVICE_DIR)/$@
+	echo "account  required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+	echo "password required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+	echo "session  required       $(DESTDIR)$(pammoddir)/pam_sss.so" >> $(PAM_SERVICE_DIR)/$@
+
 CLEANFILES=config.py config.pyc passwd group
 
 clean-local:
@@ -127,7 +141,7 @@ PAM_CERT_DB_PATH="$(abs_builddir)/../test_CA/SSSD_test_CA.pem"
 SOFTHSM2_CONF="$(abs_builddir)/../test_CA/softhsm2_one.conf"
 endif
 
-intgcheck-installed: config.py passwd group pam_sss_service
+intgcheck-installed: config.py passwd group pam_sss_service pam_sss_sc_required pam_sss_try_sc
 	pipepath="$(DESTDIR)$(pipepath)"; \
 	if test $${#pipepath} -gt 80; then \
 	    echo "error: Pipe directory path too long," \

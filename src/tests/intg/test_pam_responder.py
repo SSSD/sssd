@@ -41,6 +41,11 @@ USER1 = dict(name='user1', passwd='x', uid=10001, gid=20001,
              dir='/home/user1',
              shell='/bin/bash')
 
+USER2 = dict(name='user2', passwd='x', uid=10002, gid=20002,
+             gecos='User with no Smartcard mapping',
+             dir='/home/user2',
+             shell='/bin/bash')
+
 
 def format_pam_cert_auth_conf(config):
     """Format a basic SSSD configuration"""
@@ -55,8 +60,11 @@ def format_pam_cert_auth_conf(config):
 
         [pam]
         pam_cert_auth = True
-        pam_p11_allowed_services = +pam_sss_service
+        pam_p11_allowed_services = +pam_sss_service, +pam_sss_sc_required, \
+                                   +pam_sss_try_sc
         pam_cert_db_path = {config.PAM_CERT_DB_PATH}
+        p11_child_timeout = 5
+        p11_wait_for_card_timeout = 5
         debug_level = 10
 
         [domain/auth_only]
@@ -149,6 +157,15 @@ def create_nssdb():
     pkcs11_txt.close()
 
 
+def create_nssdb_no_cert():
+    os.mkdir(config.SYSCONFDIR + "/pki")
+    os.mkdir(config.SYSCONFDIR + "/pki/nssdb")
+    if subprocess.call(["certutil", "-N", "-d",
+                        "sql:" + config.SYSCONFDIR + "/pki/nssdb/",
+                        "--empty-password"]) != 0:
+        raise Exception("certutil failed")
+
+
 def cleanup_nssdb():
     shutil.rmtree(config.SYSCONFDIR + "/pki")
 
@@ -158,14 +175,42 @@ def create_nssdb_fixture(request):
     request.addfinalizer(cleanup_nssdb)
 
 
+def create_nssdb_no_cert_fixture(request):
+    create_nssdb_no_cert()
+    request.addfinalizer(cleanup_nssdb)
+
+
 @pytest.fixture
-def simple_pam_cert_auth(request):
+def simple_pam_cert_auth(request, passwd_ops_setup):
     """Setup SSSD with pam_cert_auth=True"""
     config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
     conf = format_pam_cert_auth_conf(config)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     create_nssdb_fixture(request)
+    passwd_ops_setup.useradd(**USER1)
+    passwd_ops_setup.useradd(**USER2)
+    return None
+
+
+@pytest.fixture
+def simple_pam_cert_auth_no_cert(request, passwd_ops_setup):
+    """Setup SSSD with pam_cert_auth=True"""
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+
+    old_softhsm2_conf = os.environ['SOFTHSM2_CONF']
+    del os.environ['SOFTHSM2_CONF']
+
+    conf = format_pam_cert_auth_conf(config)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    create_nssdb_no_cert_fixture(request)
+
+    os.environ['SOFTHSM2_CONF'] = old_softhsm2_conf
+
+    passwd_ops_setup.useradd(**USER1)
+    passwd_ops_setup.useradd(**USER2)
+
     return None
 
 
@@ -176,26 +221,26 @@ def test_preauth_indicator(simple_pam_cert_auth):
 
 
 @pytest.fixture
-def pam_wrapper_setup(request):
+def env_for_sssctl(request):
     pwrap_runtimedir = os.getenv("PAM_WRAPPER_SERVICE_DIR")
     if pwrap_runtimedir is None:
         raise ValueError("The PAM_WRAPPER_SERVICE_DIR variable is unset\n")
 
+    env_for_sssctl = os.environ.copy()
+    env_for_sssctl['PAM_WRAPPER'] = "1"
+    env_for_sssctl['SSSD_INTG_PEER_UID'] = "0"
+    env_for_sssctl['SSSD_INTG_PEER_GID'] = "0"
+    env_for_sssctl['LD_PRELOAD'] += ':' + os.environ['PAM_WRAPPER_PATH']
 
-def test_sc_auth_wrong_pin(simple_pam_cert_auth, pam_wrapper_setup,
-                           passwd_ops_setup):
+    return env_for_sssctl
 
-    passwd_ops_setup.useradd(**USER1)
-    current_env = os.environ.copy()
-    current_env['PAM_WRAPPER'] = "1"
-    current_env['SSSD_INTG_PEER_UID'] = "0"
-    current_env['SSSD_INTG_PEER_GID'] = "0"
-    current_env['LD_PRELOAD'] += ':' + os.environ['PAM_WRAPPER_PATH']
+
+def test_sc_auth_wrong_pin(simple_pam_cert_auth, env_for_sssctl):
 
     sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
                                "--action=auth", "--service=pam_sss_service"],
                               universal_newlines=True,
-                              env=current_env, stdin=subprocess.PIPE,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
@@ -214,19 +259,120 @@ def test_sc_auth_wrong_pin(simple_pam_cert_auth, pam_wrapper_setup,
                     "Authentication failure") != -1
 
 
-def test_sc_auth(simple_pam_cert_auth, pam_wrapper_setup, passwd_ops_setup):
-
-    passwd_ops_setup.useradd(**USER1)
-    current_env = os.environ.copy()
-    current_env['PAM_WRAPPER'] = "1"
-    current_env['SSSD_INTG_PEER_UID'] = "0"
-    current_env['SSSD_INTG_PEER_GID'] = "0"
-    current_env['LD_PRELOAD'] += ':' + os.environ['PAM_WRAPPER_PATH']
+def test_sc_auth(simple_pam_cert_auth, env_for_sssctl):
 
     sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
                                "--action=auth", "--service=pam_sss_service"],
                               universal_newlines=True,
-                              env=current_env, stdin=subprocess.PIPE,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user1]: Success") != -1
+
+
+def test_require_sc_auth(simple_pam_cert_auth, env_for_sssctl):
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
+                               "--action=auth",
+                               "--service=pam_sss_sc_required"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user1]: Success") != -1
+
+
+def test_require_sc_auth_no_cert(simple_pam_cert_auth_no_cert, env_for_sssctl):
+
+    # We have to wait about 20s before the command returns because there will
+    # be 2 run since retry=1 in the PAM configuration and both
+    # p11_child_timeout and p11_wait_for_card_timeout are 5s in sssd.conf,
+    # so 2*(5+5)=20. */
+    start_time = time.time()
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
+                               "--action=auth",
+                               "--service=pam_sss_sc_required"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    end_time = time.time()
+    assert end_time > start_time and \
+        (end_time - start_time) >= 20 and \
+        (end_time - start_time) < 40
+    assert out.find("Please enter smart card\nPlease enter smart card") != -1
+    assert err.find("pam_authenticate for user [user1]: Authentication " +
+                    "service cannot retrieve authentication info") != -1
+
+
+def test_try_sc_auth_no_map(simple_pam_cert_auth, env_for_sssctl):
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user2",
+                               "--action=auth",
+                               "--service=pam_sss_try_sc"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user2]: Authentication " +
+                    "service cannot retrieve authentication info") != -1
+
+
+def test_try_sc_auth(simple_pam_cert_auth, env_for_sssctl):
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1",
+                               "--action=auth",
+                               "--service=pam_sss_try_sc"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     try:
