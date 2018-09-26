@@ -42,7 +42,7 @@ def package_install(session_multihost):
     if 'Fedora' in distro:
         cmd = 'dnf install -y %s' % (pkg_list)
     elif '8.' in distro.split()[5]:
-        cmd = 'dnf module -y install idm:4 389-ds:1.4'
+        cmd = 'dnf module -y install 389-ds:1.4'
     session_multihost.master[0].run_command(cmd)
 
 
