@@ -2179,7 +2179,7 @@ pam_p11_allowed_services = +my_pam_service, -login
                         <para>
                             <quote>proxy</quote>: Support a legacy NSS provider.
                         </para>
-                        <para>
+                        <para condition="enable_local_provider">
                             <quote>local</quote>: SSSD internal provider for
                             local users (DEPRECATED).
                         </para>
@@ -2324,7 +2324,7 @@ pam_p11_allowed_services = +my_pam_service, -login
                         <para>
                             <quote>proxy</quote> for relaying authentication to some other PAM target.
                         </para>
-                        <para>
+                        <para condition="enable_local_provider">
                             <quote>local</quote>: SSSD internal provider for
                             local users
                         </para>
@@ -2836,9 +2836,12 @@ pam_p11_allowed_services = +my_pam_service, -login
                     <term>case_sensitive (string)</term>
                     <listitem>
                         <para>
-                            Treat user and group names as case sensitive. At
-                            the moment, this option is not supported in
-                            the local provider. Possible option values are:
+                            Treat user and group names as case sensitive.
+                            <phrase condition="enable_local_provider">
+                                At the moment, this option is not supported in
+                                the local provider.
+                            </phrase>
+                            Possible option values are:
                         <variablelist>
                             <varlistentry>
                                 <term>True</term>
@@ -3148,7 +3151,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
 </programlisting>
         </refsect2>
 
-        <refsect2 id='local_domain'>
+        <refsect2 id='local_domain' condition="enable_local_provider">
             <title>The local domain section</title>
             <para>
                 This section contains settings for domain that stores users and
