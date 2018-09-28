@@ -1510,7 +1510,17 @@ static void kcm_op_get_default_ccache_byuuid_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot get ccahe by UUID [%d]: %s\n",
               ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
+        /* Instead of failing the whole operation, return the first
+         * ccache as a fallback
+         */
+        subreq = kcm_ccdb_list_send(state, state->ev,
+                                    state->op_ctx->kcm_data->db,
+                                    state->op_ctx->client);
+        if (subreq == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, kcm_op_get_default_ccache_list_done, req);
         return;
     }
 
