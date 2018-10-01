@@ -51,6 +51,27 @@
                 <manvolnum>5</manvolnum>
             </citerefentry>.
         </para>
+        <para>
+            Another reason is to provide efficient caching of local users and groups.
+        </para>
+        <para>
+            Please note that some distributions enable the files domain automatically,
+            prepending the domain before any explicitly configured domains.
+            See enable_files_domain in
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+        <para>
+            SSSD never handles resolution of user/group "root". Also resolution of
+            UID/GID 0 is not handled by SSSD. Such requests are passed to next
+            NSS module (usually files).
+        </para>
+        <para>
+            When SSSD is not running or responding, nss_sss returns the UNAVAIL code
+            which causes the request to be passed to the next module.
+        </para>
     </refsect1>
 
     <refsect1 id='configuration-options'>
@@ -112,9 +133,20 @@
 id_provider = files
 </programlisting>
         </para>
+        <para>
+            To leverage caching of local users and groups by SSSD
+            nss_sss module must be listed before nss_files module
+            in /etc/nsswitch.conf.
+        </para>
+        <para>
+<programlisting>
+passwd:     sss files
+group:      sss files
+</programlisting>
+        </para>
     </refsect1>
 
-	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+        <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
 </reference>
