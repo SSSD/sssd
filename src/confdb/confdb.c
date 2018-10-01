@@ -39,6 +39,9 @@
 #define SAME_DOMAINS_ERROR_MSG "Domain '%s' is the same as or differs only "\
                                "in case from domain '%s'.\n"
 
+#define RETRIEVE_DOMAIN_ERROR_MSG "Error (%d [%s]) retrieving domain [%s], "\
+                                  "skipping!\n"
+
 static char *prepend_cn(char *str, int *slen, const char *comp, int clen)
 {
     char *ret;
@@ -1522,8 +1525,12 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         ret = confdb_get_domain_internal(cdb, cdb, domlist[i], &domain);
         if (ret) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Error (%d [%s]) retrieving domain [%s], skipping!\n",
+                  RETRIEVE_DOMAIN_ERROR_MSG,
                   ret, sss_strerror(ret), domlist[i]);
+            sss_log(SSS_LOG_CRIT,
+                    RETRIEVE_DOMAIN_ERROR_MSG,
+                    ret, sss_strerror(ret), domlist[i]);
+
             continue;
         }
 
