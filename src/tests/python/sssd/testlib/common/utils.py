@@ -590,6 +590,45 @@ class LdapOperations(object):
         if ret != 'Success':
             raise LdapException('Unable to add group to ldap')
 
+    def org_unit(self, org_unit, basedn):
+        """ Add Organizational Unit
+            :param str ou: Organizational unit name
+            :param str basedn: Base dn ('dc=example,dc=test')
+            :Exception: Raise LdapException if unable to organizational
+        """
+        attr = {
+            'objectClass': [b'top', b'organizationalUnit'],
+            'ou': org_unit.encode('utf-8')}
+        org_dn = 'ou=%s,%s' % (org_unit, basedn)
+        (ret, _) = self.add_entry(attr, org_dn)
+        if ret != 'Success':
+            raise LdapException('Unable to add organizational unit to ldap')
+
+    def add_sudo_rule(self, ruledn, sudoHost,
+                      sudoCommand, sudoUser, sudoOption=None):
+        """ Add Sudo rules in Directory Server
+            parm str ruledn: sudo rule DN
+            param str sudoHost: Host on which sudo command should run
+            param str sudoCommand: Command to run with sudo
+            param str sudoUser: Posix user name
+            param list sudoOption: options like requiretty,authenticate
+        """
+        rulename = ruledn.split(',')[0].split('=')[1]
+        sudo_attr = {
+            'objectClass': [b'top', b'sudoRole'],
+            'cn': rulename.encode('utf-8'),
+            'sudoHost': sudoHost.encode('utf-8'),
+            'sudoCommand': sudoCommand.encode('utf-8'),
+            'sudoUser': sudoUser.encode('utf-8')}
+        (ret, _) = self.add_entry(sudo_attr, ruledn)
+
+        if ret != 'Success':
+            raise LdapException("Unable to add sudo rule %s" % ruledn)
+        if sudoOption:
+            for option in sudoOption:
+                mod = [(ldap.MOD_ADD, 'sudoOption', option.encode('utf-8'))]
+                (_, _) = self.modify_ldap(ruledn, mod)
+
     def enable_autofs_schema(self, basedn):
         """ Enable autofs schema
 
@@ -728,7 +767,7 @@ class PkiTools(object):
                               serverlist,
                               ca_dn=None,
                               passphrase='Secret123',
-                              canickname='Example CA'):
+                              canickname='ExampleCA'):
         """
         Creates a NSS DB in /tmp/nssDirxxxx where self signed Root CA
         and Server Certs are created
@@ -737,7 +776,7 @@ class PkiTools(object):
         :param str Server_DN: Distinguished Name for Server Cert
         """
         if ca_dn is None:
-            ca_dn = 'CN=Example CA,O=Example,L=Raleigh,C=US'
+            ca_dn = 'CN=ExampleCA,O=Example,L=Raleigh,C=US'
         nss_passphrase = passphrase
         pin_filename = 'pin.txt'
         nss_dir = self.create_nssdb()
