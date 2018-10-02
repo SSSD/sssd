@@ -572,8 +572,10 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     char *slot_name = NULL;
     char *token_name = NULL;
     CK_SESSION_HANDLE session = 0;
+    struct cert_list *all_cert_list = NULL;
     struct cert_list *cert_list = NULL;
     struct cert_list *item = NULL;
+    struct cert_list *tmp_cert = NULL;
     char *multi = NULL;
     bool pkcs11_session = false;
     bool pkcs11_login = false;
@@ -691,10 +693,52 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         DEBUG(SSSDBG_TRACE_ALL, "Login NOT required.\n");
     }
 
-    ret = read_certs(mem_ctx, module, session, p11_ctx, &cert_list);
+    ret = read_certs(mem_ctx, module, session, p11_ctx, &all_cert_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "read_certs failed.\n");
         goto done;
+    }
+
+    DLIST_FOR_EACH(item, all_cert_list) {
+        /* Check if we found the certificates we needed for authentication or
+         * the requested ones for pre-auth. For authentication all attributes
+         * must be given and match, for pre-auth only the given ones must
+         * match. */
+        DEBUG(SSSDBG_TRACE_ALL, "%s %s %s %s %s %s.\n",
+              module_name_in, module_file_name, token_name_in, token_name,
+              key_id_in, item->id);
+
+        if ((mode == OP_AUTH
+                && module_name_in != NULL
+                && token_name_in != NULL
+                && key_id_in != NULL
+                && item->id != NULL
+                && strcmp(key_id_in, item->id) == 0
+                && strcmp(token_name_in, token_name) == 0
+                && strcmp(module_name_in, module_file_name) == 0)
+            || (mode == OP_PREAUTH
+                && (module_name_in == NULL
+                    || (module_name_in != NULL
+                        && strcmp(module_name_in, module_file_name) == 0))
+                && (token_name_in == NULL
+                    || (token_name_in != NULL
+                        && strcmp(token_name_in, token_name) == 0))
+                && (key_id_in == NULL
+                    || (key_id_in != NULL && item->id != NULL
+                        && strcmp(key_id_in, item->id) == 0)))) {
+
+            tmp_cert = talloc_memdup(mem_ctx, item, sizeof(struct cert_list));
+            if (tmp_cert == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_memdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            tmp_cert->prev = NULL;
+            tmp_cert->next = NULL;
+
+            DLIST_ADD(cert_list, tmp_cert);
+
+        }
     }
 
     /* TODO: check module_name_in, token_name_in, key_id_in */
