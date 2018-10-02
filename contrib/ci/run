@@ -41,7 +41,7 @@ declare -r COVERAGE_MIN_FUNCS=0
 
 # Those values are a sum up of the default warnings in all our
 # supported distros in our CI.
-# debian_testing: E121,E123,E126,E226,E24,E704,W503
+# debian_testing: E121,E123,E126,E226,E24,E704,W503,W504,W605
 # fedora22:
 # fedora23:
 # fedora24: E121,E123,E126,E226,E24,E704
@@ -51,7 +51,7 @@ declare -r COVERAGE_MIN_FUNCS=0
 # fedora_rawhide: E121,E123,E126,E226,E24,E704
 # rhel6:
 # rhel7:
-declare PEP8_IGNORE="--ignore=E121,E123,E126,E226,E24,E704,W503"
+declare PEP8_IGNORE="--ignore=E121,E123,E126,E226,E24,E704,W503,W504,W605"
 declare BASE_PFX=""
 declare DEPS=true
 declare BASE_DIR=`pwd`
