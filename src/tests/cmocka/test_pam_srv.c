@@ -2443,6 +2443,40 @@ void test_pam_cert_preauth_2certs_two_mappings(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_cert_auth_2certs_one_mapping(void **state)
+{
+    int ret;
+
+#ifdef HAVE_NSS
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_2CERTS);
+#else
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_two.conf"));
+#endif
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", "SSSD Test Token",
+                        TEST_MODULE_NAME,
+                        "C554C9F82C2A9D58B70921C143304153A8A42F17", NULL,
+                        test_lookup_by_cert_double_cb, SSSD_TEST_CERT_0001,
+                        true);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_simple_check_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+
 void test_filter_response(void **state)
 {
     int ret;
@@ -2874,6 +2908,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_one_mapping,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_two_mappings,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth_2certs_one_mapping,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth_no_logon_name,
                                         pam_test_setup, pam_test_teardown),
