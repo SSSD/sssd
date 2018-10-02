@@ -37,15 +37,23 @@ dp_backend_is_online(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *domain;
 
     if (SBUS_REQ_STRING_IS_EMPTY(domname)) {
-        *_is_online = be_is_offline(be_ctx);
-        return EOK;
+        domain = be_ctx->domain;
+    } else {
+        domain = find_domain_by_name(be_ctx->domain, domname, false);
+        if (domain == NULL) {
+            return ERR_DOMAIN_NOT_FOUND;
+        }
     }
 
-    domain = find_domain_by_name(be_ctx->domain, domname, false);
-    if (domain == NULL) {
-        return ERR_DOMAIN_NOT_FOUND;
+    /**
+     * FIXME: https://pagure.io/SSSD/sssd/issue/3831
+     * domain->state is set only for subdomains not for the main domain
+     */
+    if (be_ctx->domain == domain) {
+        *_is_online = be_is_offline(be_ctx) == false;
+    } else {
+        *_is_online = domain->state == DOM_ACTIVE;
     }
 
-    *_is_online = domain->state == DOM_ACTIVE;
     return EOK;
 }
