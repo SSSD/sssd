@@ -54,6 +54,13 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         dbus-python
         python-pep8
     )
+
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
+        DEPS_LIST+=(
+            http-parser-devel
+        )
+    fi
+
     _DEPS_LIST_SPEC=`
         sed -e 's/@PACKAGE_VERSION@/0/g' \
             -e 's/@PACKAGE_NAME@/package-name/g' \
