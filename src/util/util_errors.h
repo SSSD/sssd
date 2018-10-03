@@ -178,4 +178,7 @@ enum sssd_errors {
  */
 const char *sss_strerror(errno_t error);
 
+/* return ldb error converted to an errno */
+errno_t sss_ldb_error_to_errno(int ldberr);
+
 #endif /* __SSSD_UTIL_ERRORS_H__ */

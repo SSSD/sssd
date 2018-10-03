@@ -842,7 +842,7 @@ static int confdb_get_domain_section(TALLOC_CTX *mem_ctx,
     ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
                      LDB_SCOPE_BASE, NULL, NULL);
     if (ret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         goto done;
     }
 
@@ -2076,7 +2076,7 @@ static int confdb_merge_parent_domain(const char *name,
 
         ret = ldb_modify(cdb->ldb, replace_msg);
         if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);
+            ret = sss_ldb_error_to_errno(ret);
             DEBUG(SSSDBG_OP_FAILURE,
                 "Inheriting options from parent domain failed [%d]: %s\n",
                 ret, sss_strerror(ret));
@@ -2131,7 +2131,7 @@ static int confdb_merge_parent_domain(const char *name,
      */
     ret = sss_ldb_modify_permissive(cdb->ldb, app_msg);
     if (ret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         DEBUG(SSSDBG_OP_FAILURE,
               "Adding app-specific options failed [%d]: %s\n",
               ret, sss_strerror(ret));

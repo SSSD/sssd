@@ -96,7 +96,7 @@ static int confdb_purge(struct confdb_ctx *cdb)
     ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
                      LDB_SCOPE_SUBTREE, attrs, NULL);
     if (ret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         goto done;
     }
 
@@ -104,7 +104,7 @@ static int confdb_purge(struct confdb_ctx *cdb)
         /* Delete this DN */
         ret = ldb_delete(cdb->ldb, res->msgs[i]->dn);
         if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);
+            ret = sss_ldb_error_to_errno(ret);
             goto done;
         }
     }
@@ -313,7 +313,7 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to start a transaction for "
                "updating the configuration\n");
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         goto done;
     }
     in_transaction = true;
