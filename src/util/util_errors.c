@@ -19,6 +19,7 @@
 */
 
 #include "util/util.h"
+#include <ldb.h>
 
 struct err_string {
     const char *msg;
@@ -146,3 +147,27 @@ const char *sss_strerror(errno_t error)
     return strerror(error);
 }
 
+/* TODO: make a more complete and precise mapping */
+errno_t sss_ldb_error_to_errno(int ldberr)
+{
+    switch (ldberr) {
+    case LDB_SUCCESS:
+        return EOK;
+    case LDB_ERR_OPERATIONS_ERROR:
+        return EIO;
+    case LDB_ERR_NO_SUCH_OBJECT:
+        return ENOENT;
+    case LDB_ERR_BUSY:
+        return EBUSY;
+    case LDB_ERR_ATTRIBUTE_OR_VALUE_EXISTS:
+    case LDB_ERR_ENTRY_ALREADY_EXISTS:
+        return EEXIST;
+    case LDB_ERR_INVALID_ATTRIBUTE_SYNTAX:
+        return EINVAL;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "LDB returned unexpected error: [%i]\n",
+              ldberr);
+        return EFAULT;
+    }
+}

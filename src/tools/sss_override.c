@@ -936,7 +936,7 @@ static errno_t override_object_del(struct sss_domain_info *domain,
     ret = ldb_msg_add_empty(msg, SYSDB_OVERRIDE_DN, LDB_FLAG_MOD_DELETE, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_empty() failed\n");
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         goto done;
     }
 
@@ -945,7 +945,7 @@ static errno_t override_object_del(struct sss_domain_info *domain,
         DEBUG(SSSDBG_OP_FAILURE,
               "ldb_modify() failed: [%s](%d)[%s]\n",
               ldb_strerror(ret), ret, ldb_errstring(ldb));
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         goto done;
     }
 
@@ -1025,7 +1025,7 @@ static errno_t append_name(struct sss_domain_info *domain,
 
     ret = ldb_msg_add_string(override, ORIGNAME, fqname);
     if (ret != LDB_SUCCESS) {
-        ret = sysdb_error_to_errno(ret);
+        ret = sss_ldb_error_to_errno(ret);
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add attribute to msg\n");
         goto done;
     }

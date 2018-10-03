@@ -192,7 +192,7 @@ static errno_t cache_req_sr_overlay_match_users(
             }
             lret = ldb_msg_add_string(msg, SYSDB_SESSION_RECORDING, enabled_str);
             if (lret != LDB_SUCCESS) {
-                ret = sysdb_error_to_errno(lret);
+                ret = sss_ldb_error_to_errno(lret);
                 CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                                 "Failed adding %s attribute: %s\n",
                                 SYSDB_SESSION_RECORDING, sss_strerror(ret));
@@ -279,7 +279,7 @@ static void cache_req_sr_overlay_match_all_step_done(
         }
         lret = ldb_msg_add_string(msg, SYSDB_SESSION_RECORDING, enabled_copy);
         if (lret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(lret);
+            ret = sss_ldb_error_to_errno(lret);
             CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->cr,
                             "Failed adding %s attribute: %s\n",
                             SYSDB_SESSION_RECORDING, sss_strerror(ret));
