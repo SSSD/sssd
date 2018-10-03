@@ -119,7 +119,7 @@ ifp_cache_get_cached_objects(TALLOC_CTX *mem_ctx,
                          SYSDB_IFP_CACHED);
     if (ldb_ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to search the cache\n");
-        ret = sysdb_error_to_errno(ldb_ret);
+        ret = sss_ldb_error_to_errno(ldb_ret);
         goto done;
     }
 

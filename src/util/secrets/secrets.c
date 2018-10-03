@@ -417,17 +417,16 @@ static int local_db_create(struct sss_sec_req *req)
     }
 
     ret = ldb_add(req->sctx->ldb, msg);
-    if (ret != EOK) {
+    if (ret != LDB_SUCCESS) {
         if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Secret %s already exists\n", ldb_dn_get_linearized(msg->dn));
-            ret = EEXIST;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to add secret [%s]: [%d]: %s\n",
                   ldb_dn_get_linearized(msg->dn), ret, ldb_strerror(ret));
-            ret = EIO;
         }
+        ret = sss_ldb_error_to_errno (ret);
         goto done;
     }
 
@@ -1109,17 +1108,16 @@ errno_t sss_sec_put(struct sss_sec_req *req,
     }
 
     ret = ldb_add(req->sctx->ldb, msg);
-    if (ret != EOK) {
+    if (ret != LDB_SUCCESS) {
         if (ret == LDB_ERR_ENTRY_ALREADY_EXISTS) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Secret %s already exists\n", ldb_dn_get_linearized(msg->dn));
-            ret = EEXIST;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to add secret [%s]: [%d]: %s\n",
                   ldb_dn_get_linearized(msg->dn), ret, ldb_strerror(ret));
-            ret = EIO;
         }
+        ret = sss_ldb_error_to_errno (ret);
         goto done;
     }
 
@@ -1210,13 +1208,13 @@ errno_t sss_sec_update(struct sss_sec_req *req,
     ret = ldb_modify(req->sctx->ldb, msg);
     if (ret == LDB_ERR_NO_SUCH_OBJECT) {
         DEBUG(SSSDBG_MINOR_FAILURE, "No such object to modify\n");
-        ret = ENOENT;
+        ret = sss_ldb_error_to_errno (ret);
         goto done;
     } else if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "ldb_modify failed: [%s](%d)[%s]\n",
               ldb_strerror(ret), ret, ldb_errstring(req->sctx->ldb));
-        ret = EIO;
+        ret = sss_ldb_error_to_errno (ret);
         goto done;
     }
 
@@ -1282,20 +1280,12 @@ errno_t sss_sec_delete(struct sss_sec_req *req)
         /* fall through */
     }
 
-    switch (ret) {
-    case LDB_SUCCESS:
-        ret = EOK;
-        break;
-    case LDB_ERR_NO_SUCH_OBJECT:
-        ret = ENOENT;
-        break;
-    default:
+    if (ret != LDB_SUCCESS && ret != LDB_ERR_NO_SUCH_OBJECT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "LDB returned unexpected error: [%s]\n",
                ldb_strerror(ret));
-        ret = EFAULT;
-        break;
     }
+    ret = sss_ldb_error_to_errno (ret);
 
 done:
     talloc_free(tmp_ctx);
