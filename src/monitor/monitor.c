@@ -2514,13 +2514,17 @@ int main(int argc, const char *argv[])
         }
     }
 
-    /* Check if the SSSD is already running */
-    ret = check_file(SSSD_PIDFILE, 0, 0, S_IFREG|0600, 0, NULL, false);
-    if (ret == EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "pidfile exists at %s\n", SSSD_PIDFILE);
-        ERROR("SSSD is already running\n");
-        return 2;
+    /* Check if the SSSD is already running unless we're only interested
+     * in re-reading the configuration
+     */
+    if (opt_genconf == 0) {
+        ret = check_file(SSSD_PIDFILE, 0, 0, S_IFREG|0600, 0, NULL, false);
+        if (ret == EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                "pidfile exists at %s\n", SSSD_PIDFILE);
+            ERROR("SSSD is already running\n");
+            return 2;
+        }
     }
 
     /* Parse config file, fail if cannot be done */
