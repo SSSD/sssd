@@ -58,11 +58,9 @@
                 </listitem>
                 <listitem>
                     <para>
-                        the SSSD implementation stores the ccaches in the SSSD
-                        <citerefentry>
-                            <refentrytitle>sssd-secrets</refentrytitle><manvolnum>5</manvolnum>
-                        </citerefentry>
-                        secrets store, allowing the ccaches to survive KCM server restarts or machine reboots.
+                        the SSSD implementation stores the ccaches in a database,
+                        typically located at <replaceable>/var/lib/sss/secrets</replaceable>
+                        allowing the ccaches to survive KCM server restarts or machine reboots.
                     </para>
                 </listitem>
             </itemizedlist>
