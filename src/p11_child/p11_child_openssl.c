@@ -29,6 +29,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <p11-kit/p11-kit.h>
+#include <p11-kit/uri.h>
 
 #include <popt.h>
 
@@ -42,6 +43,72 @@ struct p11_ctx {
     const char *ca_db;
     bool wait_for_card;
 };
+
+
+static char *get_pkcs11_uri(TALLOC_CTX *mem_ctx, CK_INFO *module_info,
+                            CK_SLOT_INFO *slot_info, CK_SLOT_ID slot_id,
+                            CK_TOKEN_INFO *token_info, CK_ATTRIBUTE *label,
+                            CK_ATTRIBUTE *id)
+{
+    P11KitUri *uri;
+    char *uri_str = NULL;
+    char *tmp_str = NULL;
+    int ret;
+    CK_OBJECT_CLASS cert_class = CKO_CERTIFICATE;
+    CK_ATTRIBUTE class_attr = {CKA_CLASS, &cert_class, sizeof(CK_OBJECT_CLASS)};
+
+    uri = p11_kit_uri_new();
+    if (uri == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_new failed.\n");
+        return NULL;
+    }
+
+    ret = p11_kit_uri_set_attribute(uri, label);
+    if (ret != P11_KIT_URI_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_set_attribute failed.\n");
+        goto done;
+    }
+
+    ret = p11_kit_uri_set_attribute(uri, id);
+    if (ret != P11_KIT_URI_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_set_attribute failed.\n");
+        goto done;
+    }
+
+    ret = p11_kit_uri_set_attribute(uri, &class_attr);
+    if (ret != P11_KIT_URI_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_set_attribute failed.\n");
+        goto done;
+    }
+
+
+    memcpy(p11_kit_uri_get_token_info(uri), token_info, sizeof(CK_TOKEN_INFO));
+
+    memcpy(p11_kit_uri_get_slot_info(uri), slot_info, sizeof(CK_SLOT_INFO));
+    ret = p11_kit_uri_set_slot_id(uri, slot_id);
+
+    memcpy(p11_kit_uri_get_module_info(uri), module_info, sizeof(CK_INFO));
+
+    ret = p11_kit_uri_format(uri, P11_KIT_URI_FOR_ANY, &tmp_str);
+    if (ret != P11_KIT_URI_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_format failed [%s].\n",
+                                 p11_kit_uri_message(ret));
+        goto done;
+    }
+
+    if (tmp_str != NULL) {
+        uri_str = talloc_strdup(mem_ctx, tmp_str);
+        free(tmp_str);
+        if (uri_str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        }
+    }
+
+done:
+    p11_kit_uri_free(uri);
+
+    return uri_str;
+}
 
 static int talloc_cleanup_openssl(struct p11_ctx *p11_ctx)
 {
@@ -234,6 +301,7 @@ struct cert_list {
     X509 *cert;
     char *subject_dn;
     char *cert_b64;
+    char *uri;
     CK_KEY_TYPE key_type;
     CK_OBJECT_HANDLE private_key;
 };
@@ -608,6 +676,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     CK_SLOT_ID slot_id;
     CK_SLOT_INFO info;
     CK_TOKEN_INFO token_info;
+    CK_INFO module_info;
     CK_RV rv;
     size_t module_id;
     char *module_file_name = NULL;
@@ -819,6 +888,17 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             DLIST_ADD(cert_list, tmp_cert);
 
         }
+    }
+
+    memset(&module_info, 0, sizeof(CK_INFO));
+    module->C_GetInfo(&module_info);
+
+    DLIST_FOR_EACH(item, cert_list) {
+        item->uri = get_pkcs11_uri(mem_ctx, &module_info, &info, slot_id,
+                                   &token_info,
+                                   &item->attributes[1] /* label */,
+                                   &item->attributes[0] /* id */);
+        DEBUG(SSSDBG_TRACE_ALL, "uri: %s.\n", item->uri);
     }
 
     /* TODO: check module_name_in, token_name_in, key_id_in */
