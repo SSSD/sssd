@@ -106,6 +106,17 @@ void config_check_test_bad_section_name(void **state)
     config_check_test_common(cfg_str, 1, expected_errors);
 }
 
+void config_check_test_bad_chars_in_section_name(void **state)
+{
+    char cfg_str[] = "[domain/LD@P]";
+    const char *expected_errors[] = {
+        "[rule/allowed_sections]: Section [domain/LD@P] is not allowed. "
+        "Check for typos.",
+    };
+
+    config_check_test_common(cfg_str, 1, expected_errors);
+}
+
 void config_check_test_too_many_subdomains(void **state)
 {
     char cfg_str[] = "[domain/ad.test/b.test/c.test]";
@@ -264,6 +275,7 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(config_check_test_bad_section_name),
+        cmocka_unit_test(config_check_test_bad_chars_in_section_name),
         cmocka_unit_test(config_check_test_too_many_subdomains),
         cmocka_unit_test(config_check_test_bad_sssd_option_name),
         cmocka_unit_test(config_check_test_bad_pam_option_name),
