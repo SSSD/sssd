@@ -480,7 +480,7 @@ bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64)
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
-                const char *key_id_in, char **_multi)
+                const char *key_id_in, const char *uri, char **_multi)
 {
     int ret;
     SECStatus rv;
