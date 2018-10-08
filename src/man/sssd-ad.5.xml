@@ -432,7 +432,7 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                             apply to them.
                         </para>
                         <para>
-                            Default: False (seconds)
+                            Default: False
                         </para>
                     </listitem>
                 </varlistentry>
