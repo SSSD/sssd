@@ -1645,7 +1645,8 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                      preq->current_cert != NULL;
                      preq->current_cert = sss_cai_get_next(preq->current_cert)) {
 
-                    ret = add_pam_cert_response(preq->pd, "",
+                    ret = add_pam_cert_response(preq->pd,
+                                       preq->cctx->rctx->domains, "",
                                        preq->current_cert,
                                        preq->cctx->rctx->domains->user_name_hint
                                             ? SSS_PAM_CERT_INFO_WITH_HINT
@@ -1699,7 +1700,8 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
 
             if (preq->cctx->rctx->domains->user_name_hint
                     && preq->pd->cmd == SSS_PAM_PREAUTH) {
-                ret = add_pam_cert_response(preq->pd, cert_user,
+                ret = add_pam_cert_response(preq->pd,
+                                            preq->cctx->rctx->domains, cert_user,
                                             preq->cert_list,
                                             SSS_PAM_CERT_INFO_WITH_HINT);
                 preq->pd->pam_status = PAM_SUCCESS;
@@ -1725,7 +1727,8 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
              * SSS_PAM_CERT_INFO message to send the name to the caller. */
             if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
                     && preq->pd->logon_name == NULL) {
-                ret = add_pam_cert_response(preq->pd, cert_user,
+                ret = add_pam_cert_response(preq->pd,
+                                            preq->cctx->rctx->domains, cert_user,
                                             preq->cert_list,
                                             SSS_PAM_CERT_INFO);
                 if (ret != EOK) {
@@ -2117,7 +2120,9 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                                   "the backend.\n");
                         }
 
-                        ret = add_pam_cert_response(preq->pd, cert_user,
+                        ret = add_pam_cert_response(preq->pd,
+                                                    preq->cctx->rctx->domains,
+                                                    cert_user,
                                                     preq->current_cert,
                                                     SSS_PAM_CERT_INFO);
                         if (ret != EOK) {

@@ -1145,7 +1145,8 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
  * used when running gdm-password. */
 #define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
 
-errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
+errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
+                              const char *sysdb_username,
                               struct cert_auth_info *cert_info,
                               enum response_type type)
 {
@@ -1153,6 +1154,10 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
     char *env = NULL;
     size_t msg_len;
     int ret;
+    char *short_name = NULL;
+    char *domain_name = NULL;
+    const char *cert_info_name = sysdb_username;
+
 
     if (type != SSS_PAM_CERT_INFO && type != SSS_PAM_CERT_INFO_WITH_HINT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid response type [%d].\n", type);
@@ -1174,9 +1179,30 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
      * Smartcard. If this type of name is irritating at the PIN prompt or the
      * re_expression config option was set in a way that user@domain cannot be
      * handled anymore some more logic has to be added here. But for the time
-     * being I think using sysdb_username is fine. */
+     * being I think using sysdb_username is fine.
+     * As special case is the files provider which handles local users which
+     * by definition only have a short name. To avoid confusion by other
+     * modules on the PAM stack the short name is returned in this case. */
 
-    ret = pack_cert_data(pd, sysdb_username, cert_info, &msg, &msg_len);
+    if (sysdb_username != NULL) {
+        ret = sss_parse_internal_fqname(pd, sysdb_username,
+                                        &short_name, &domain_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s, "
+                                       "using full name.\n",
+                                        sysdb_username, ret, sss_strerror(ret));
+        } else {
+            if (domain_name != NULL
+                    &&  is_files_provider(find_domain_by_name(dom, domain_name,
+                                                              false))) {
+                cert_info_name = short_name;
+            }
+        }
+    }
+
+    ret = pack_cert_data(pd, cert_info_name, cert_info, &msg, &msg_len);
+    talloc_free(short_name);
+    talloc_free(domain_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "pack_cert_data failed.\n");
         return ret;
