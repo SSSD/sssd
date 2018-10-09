@@ -98,6 +98,7 @@ static errno_t sss_tool_confdb_init(TALLOC_CTX *mem_ctx,
 
     ret = confdb_setup(mem_ctx, path,
                        SSSD_CONFIG_FILE, CONFDB_DEFAULT_CONFIG_DIR,
+                       NULL,
                        &confdb);
     talloc_zfree(path);
     if (ret != EOK) {
