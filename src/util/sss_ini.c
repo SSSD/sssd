@@ -414,6 +414,7 @@ void sss_ini_config_destroy(struct sss_ini_initdata *init_data)
 
 int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
                            struct sss_ini_initdata *init_data,
+                           const char *only_section,
                            const char **config_ldif)
 {
     int ret, i, j;
@@ -436,6 +437,14 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 #else
     struct collection_item *obj = NULL;
 #endif
+    bool section_handled = true;
+
+    if (only_section != NULL) {
+        /* If the section is specified, we must handle it, either by adding
+         * its contents or by deleting the section if it doesn't exist
+         */
+        section_handled = false;
+    }
 
     ldif_len = strlen(CONFDB_INTERNAL_LDIF);
     ldif = talloc_array(mem_ctx, char, ldif_len+1);
@@ -464,6 +473,18 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         ret = parse_section(tmp_ctx, sections[i], &sec_dn, &rdn);
         if (ret != EOK) {
             goto error;
+        }
+
+        if (only_section != NULL) {
+            if (strcasecmp(only_section, sections[i])) {
+                DEBUG(SSSDBG_TRACE_FUNC, "Skipping section %s\n", sections[i]);
+                continue;
+            } else {
+                /* Mark the requested section as handled so that we don't
+                 * try to re-add it later
+                 */
+                section_handled = true;
+            }
         }
 
         dn = talloc_asprintf(tmp_ctx,
@@ -550,6 +571,39 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
         free_attribute_list(attrs);
         talloc_free(dn);
+    }
+
+
+    if (only_section != NULL && section_handled == false) {
+        /* If only a single section was supposed to be
+         * handled, but it wasn't found in the INI file,
+         * create an LDIF that would remove the section
+         */
+        ret = parse_section(tmp_ctx, only_section, &sec_dn, NULL);
+        if (ret != EOK) {
+            goto error;
+        }
+
+        dn = talloc_asprintf(tmp_ctx,
+                             "dn: %s,cn=config\n"
+                             "changetype: delete\n\n",
+                             sec_dn);
+        if (dn == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+        dn_size = strlen(dn);
+
+        tmp_ldif = talloc_realloc(mem_ctx, ldif, char,
+                                  ldif_len+dn_size+1);
+        if (!tmp_ldif) {
+            ret = ENOMEM;
+            goto error;
+        }
+
+        ldif = tmp_ldif;
+        memcpy(ldif+ldif_len, dn, dn_size);
+        ldif_len += dn_size;
     }
 
     ldif[ldif_len] = '\0';
