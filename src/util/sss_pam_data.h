@@ -58,6 +58,7 @@ struct pam_data {
     struct sss_auth_token *newauthtok;
     uint32_t cli_pid;
     char *logon_name;
+    uint32_t cli_flags;
 
     int pam_status;
     int response_delay;

@@ -52,15 +52,6 @@
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)
 
-#define FLAGS_USE_FIRST_PASS (1 << 0)
-#define FLAGS_FORWARD_PASS   (1 << 1)
-#define FLAGS_USE_AUTHTOK    (1 << 2)
-#define FLAGS_IGNORE_UNKNOWN_USER (1 << 3)
-#define FLAGS_IGNORE_AUTHINFO_UNAVAIL (1 << 4)
-#define FLAGS_USE_2FA (1 << 5)
-#define FLAGS_ALLOW_MISSING_NAME (1 << 6)
-#define FLAGS_PROMPT_ALWAYS (1 << 7)
-
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
 #define FD_DESTRUCTOR "pam_sss:fd_destructor"
 #define PAM_SSS_AUTHOK_TYPE "pam_sss:authtok_type"
@@ -143,6 +134,7 @@ static void free_cai(struct cert_auth_info *cai)
         free(cai->cert_user);
         free(cai->cert);
         free(cai->token_name);
+        free(cai->module_name);
         free(cai->key_id);
         free(cai->prompt_str);
         free(cai);
@@ -1193,13 +1185,13 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
     pi->pam_service_size=strlen(pi->pam_service)+1;
 
     ret = pam_get_item(pamh, PAM_USER, (const void **) &(pi->pam_user));
-    if (ret == PAM_PERM_DENIED && (flags & FLAGS_ALLOW_MISSING_NAME)) {
+    if (ret == PAM_PERM_DENIED && (flags & PAM_CLI_FLAGS_ALLOW_MISSING_NAME)) {
         pi->pam_user = "";
         ret = PAM_SUCCESS;
     }
     if (ret != PAM_SUCCESS) return ret;
     if (pi->pam_user == NULL) {
-        if (flags & FLAGS_ALLOW_MISSING_NAME) {
+        if (flags & PAM_CLI_FLAGS_ALLOW_MISSING_NAME) {
             pi->pam_user = "";
         } else {
             D(("No user found, aborting."));
@@ -1256,6 +1248,8 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
     pi->cert_list = NULL;
     pi->selected_cert = NULL;
 
+    pi->flags = flags;
+
     return PAM_SUCCESS;
 }
 
@@ -1276,6 +1270,7 @@ static void print_pam_items(struct pam_items *pi)
     D(("Newauthtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_newauthtok)));
     D(("Cli_PID: %d", pi->cli_pid));
     D(("Requested domains: %s", pi->requested_domains));
+    D(("Flags: %d", pi->flags));
 }
 
 static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
@@ -1959,11 +1954,11 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
 
     for (; argc-- > 0; ++argv) {
         if (strcmp(*argv, "forward_pass") == 0) {
-            *flags |= FLAGS_FORWARD_PASS;
+            *flags |= PAM_CLI_FLAGS_FORWARD_PASS;
         } else if (strcmp(*argv, "use_first_pass") == 0) {
-            *flags |= FLAGS_USE_FIRST_PASS;
+            *flags |= PAM_CLI_FLAGS_USE_FIRST_PASS;
         } else if (strcmp(*argv, "use_authtok") == 0) {
-            *flags |= FLAGS_USE_AUTHTOK;
+            *flags |= PAM_CLI_FLAGS_USE_AUTHTOK;
         } else if (strncmp(*argv, OPT_DOMAINS_KEY, strlen(OPT_DOMAINS_KEY)) == 0) {
             if (*(*argv+strlen(OPT_DOMAINS_KEY)) == '\0') {
                 logger(pamh, LOG_ERR, "Missing argument to option domains.");
@@ -1997,15 +1992,19 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
         } else if (strcmp(*argv, "quiet") == 0) {
             *quiet_mode = true;
         } else if (strcmp(*argv, "ignore_unknown_user") == 0) {
-            *flags |= FLAGS_IGNORE_UNKNOWN_USER;
+            *flags |= PAM_CLI_FLAGS_IGNORE_UNKNOWN_USER;
         } else if (strcmp(*argv, "ignore_authinfo_unavail") == 0) {
-            *flags |= FLAGS_IGNORE_AUTHINFO_UNAVAIL;
+            *flags |= PAM_CLI_FLAGS_IGNORE_AUTHINFO_UNAVAIL;
         } else if (strcmp(*argv, "use_2fa") == 0) {
-            *flags |= FLAGS_USE_2FA;
+            *flags |= PAM_CLI_FLAGS_USE_2FA;
         } else if (strcmp(*argv, "allow_missing_name") == 0) {
-            *flags |= FLAGS_ALLOW_MISSING_NAME;
+            *flags |= PAM_CLI_FLAGS_ALLOW_MISSING_NAME;
         } else if (strcmp(*argv, "prompt_always") == 0) {
-            *flags |= FLAGS_PROMPT_ALWAYS;
+            *flags |= PAM_CLI_FLAGS_PROMPT_ALWAYS;
+        } else if (strcmp(*argv, "try_cert_auth") == 0) {
+            *flags |= PAM_CLI_FLAGS_TRY_CERT_AUTH;
+        } else if (strcmp(*argv, "require_cert_auth") == 0) {
+            *flags |= PAM_CLI_FLAGS_REQUIRE_CERT_AUTH;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -2020,10 +2019,10 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
 {
     int ret;
 
-    if ((flags & FLAGS_USE_FIRST_PASS)
+    if ((flags & PAM_CLI_FLAGS_USE_FIRST_PASS)
             || ( pi->pamstack_authtok != NULL
                     && *(pi->pamstack_authtok) != '\0'
-                    && !(flags & FLAGS_PROMPT_ALWAYS))) {
+                    && !(flags & PAM_CLI_FLAGS_PROMPT_ALWAYS))) {
         pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
         pi->pam_authtok = strdup(pi->pamstack_authtok);
         if (pi->pam_authtok == NULL) {
@@ -2032,7 +2031,7 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
         }
         pi->pam_authtok_size = strlen(pi->pam_authtok);
     } else {
-        if (flags & FLAGS_USE_2FA
+        if (flags & PAM_CLI_FLAGS_USE_2FA
                 || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
                         && pi->otp_challenge != NULL)) {
             if (pi->password_prompting) {
@@ -2062,7 +2061,7 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
             return ret;
         }
 
-        if (flags & FLAGS_FORWARD_PASS) {
+        if (flags & PAM_CLI_FLAGS_FORWARD_PASS) {
             if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_PASSWORD) {
                 ret = pam_set_item(pamh, PAM_AUTHTOK, pi->pam_authtok);
             } else if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_2FA
@@ -2193,8 +2192,8 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
     /* we query for the old password during PAM_PRELIM_CHECK to make
      * pam_sss work e.g. with pam_cracklib */
     if (pam_flags & PAM_PRELIM_CHECK) {
-        if ( (getuid() != 0 || exp_data ) && !(flags & FLAGS_USE_FIRST_PASS)) {
-            if (flags & FLAGS_USE_2FA
+        if ( (getuid() != 0 || exp_data ) && !(flags & PAM_CLI_FLAGS_USE_FIRST_PASS)) {
+            if (flags & PAM_CLI_FLAGS_USE_2FA
                     || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
                             && pi->otp_challenge != NULL)) {
                 if (pi->password_prompting) {
@@ -2253,7 +2252,7 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
         }
     }
 
-    if (flags & FLAGS_USE_AUTHTOK) {
+    if (flags & PAM_CLI_FLAGS_USE_AUTHTOK) {
         pi->pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
         pi->pam_newauthtok =  strdup(pi->pamstack_authtok);
         if (pi->pam_newauthtok == NULL) {
@@ -2268,7 +2267,7 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
             return ret;
         }
 
-        if (flags & FLAGS_FORWARD_PASS) {
+        if (flags & PAM_CLI_FLAGS_FORWARD_PASS) {
             ret = pam_set_item(pamh, PAM_AUTHTOK, pi->pam_newauthtok);
             if (ret != PAM_SUCCESS) {
                 D(("Failed to set PAM_AUTHTOK [%s], "
@@ -2281,55 +2280,51 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
     return PAM_SUCCESS;
 }
 
-#define SC_ENTER_FMT "Please enter smart card labeled\n %s\nand press enter"
+#define SC_ENTER_LABEL_FMT "Please enter smart card labeled\n %s"
+#define SC_ENTER_FMT "Please enter smart card"
 
 static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
-                                  bool quiet_mode)
+                                  int retries, bool quiet_mode)
 {
     int ret;
     int pam_status;
     char *login_token_name;
     char *prompt = NULL;
-    size_t size;
-    char *answer = NULL;
-    /* TODO: check multiple cert case */
-    struct cert_auth_info *cai = pi->cert_list;
-
-    if (cai == NULL) {
-        D(("No certificate information available"));
-        return EINVAL;
-    }
+    uint32_t orig_flags = pi->flags;
 
     login_token_name = getenv("PKCS11_LOGIN_TOKEN_NAME");
-    if (login_token_name == NULL) {
+    if (login_token_name == NULL
+            && !(pi->flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
         return PAM_SUCCESS;
     }
 
-    while (cai->token_name == NULL
-               || strcmp(login_token_name, cai->token_name) != 0) {
-        size = sizeof(SC_ENTER_FMT) + strlen(login_token_name);
-        prompt = malloc(size);
-        if (prompt == NULL) {
-            D(("malloc failed."));
-            return ENOMEM;
-        }
+    if (login_token_name == NULL) {
+        ret = asprintf(&prompt, SC_ENTER_FMT);
+    } else {
+        ret = asprintf(&prompt, SC_ENTER_LABEL_FMT, login_token_name);
+    }
+    if (ret == -1) {
+        return ENOMEM;
+    }
 
-        ret = snprintf(prompt, size, SC_ENTER_FMT,
-                       login_token_name);
-        if (ret < 0 || ret >= size) {
-            D(("snprintf failed."));
-            free(prompt);
-            return EFAULT;
-        }
+    pi->flags |= PAM_CLI_FLAGS_REQUIRE_CERT_AUTH;
 
-        ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt,
-                                  NULL, &answer);
-        free(prompt);
+    /* TODO: check multiple cert case */
+    while (pi->cert_list == NULL || pi->cert_list->token_name == NULL
+                || (login_token_name != NULL
+                        && strcmp(login_token_name,
+                                  pi->cert_list->token_name) != 0)) {
+
+        if (retries < 0) {
+            ret = PAM_AUTHINFO_UNAVAIL;
+            goto done;
+        }
+        retries--;
+
+        ret = do_pam_conversation(pamh, PAM_TEXT_INFO, prompt, NULL, NULL);
         if (ret != PAM_SUCCESS) {
             D(("do_pam_conversation failed."));
-            return ret;
-        } else {
-            free(answer);
+            goto done;
         }
 
         pam_status = send_and_receive(pamh, pi, SSS_PAM_PREAUTH, quiet_mode);
@@ -2342,7 +2337,14 @@ static int check_login_token_name(pam_handle_t *pamh, struct pam_items *pi,
         }
     }
 
-    return PAM_SUCCESS;
+    ret = PAM_SUCCESS;
+
+done:
+
+    pi->flags = orig_flags;
+    free(prompt);
+
+    return ret;
 }
 
 static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
@@ -2376,10 +2378,10 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     ret = get_pam_items(pamh, flags, &pi);
     if (ret != PAM_SUCCESS) {
         D(("get items returned error: %s", pam_strerror(pamh,ret)));
-        if (flags & FLAGS_IGNORE_UNKNOWN_USER && ret == PAM_USER_UNKNOWN) {
+        if (flags & PAM_CLI_FLAGS_IGNORE_UNKNOWN_USER && ret == PAM_USER_UNKNOWN) {
             ret = PAM_IGNORE;
         }
-        if (flags & FLAGS_IGNORE_AUTHINFO_UNAVAIL
+        if (flags & PAM_CLI_FLAGS_IGNORE_AUTHINFO_UNAVAIL
                 && ret == PAM_AUTHINFO_UNAVAIL) {
             ret = PAM_IGNORE;
         }
@@ -2393,16 +2395,27 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
             case SSS_PAM_AUTHENTICATE:
                 /*
                  * Only do preauth if
-                 * - FLAGS_USE_FIRST_PASS is not set
-                 * - no password is on the stack or FLAGS_PROMPT_ALWAYS is set
+                 * - PAM_CLI_FLAGS_USE_FIRST_PASS is not set
+                 * - no password is on the stack or PAM_CLI_FLAGS_PROMPT_ALWAYS is set
                  * - preauth indicator file exists.
                  */
-                if ( !(flags & FLAGS_USE_FIRST_PASS)
+                if ( !(flags & PAM_CLI_FLAGS_USE_FIRST_PASS)
                         && (pi.pam_authtok == NULL
-                                || (flags & FLAGS_PROMPT_ALWAYS))
+                                || (flags & PAM_CLI_FLAGS_PROMPT_ALWAYS))
                         && access(PAM_PREAUTH_INDICATOR, F_OK) == 0) {
+
+                    if (flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH) {
+                        /* Do not use PAM_CLI_FLAGS_REQUIRE_CERT_AUTH in the first
+                         * SSS_PAM_PREAUTH run. In case a card is already inserted
+                         * we do not have to prompt to insert a card. */
+                        pi.flags &= ~PAM_CLI_FLAGS_REQUIRE_CERT_AUTH;
+                        pi.flags |= PAM_CLI_FLAGS_TRY_CERT_AUTH;
+                    }
+
                     pam_status = send_and_receive(pamh, &pi, SSS_PAM_PREAUTH,
                                                   quiet_mode);
+
+                    pi.flags = flags;
                     if (pam_status != PAM_SUCCESS) {
                         D(("send_and_receive returned [%d] during pre-auth",
                            pam_status));
@@ -2414,8 +2427,17 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                     }
                 }
 
-                if (strcmp(pi.pam_service, "gdm-smartcard") == 0) {
-                    ret = check_login_token_name(pamh, &pi, quiet_mode);
+                if (flags & PAM_CLI_FLAGS_TRY_CERT_AUTH
+                        && pi.cert_list == NULL) {
+                    D(("No certificates for authentication available."));
+                    overwrite_and_free_pam_items(&pi);
+                    return PAM_AUTHINFO_UNAVAIL;
+                }
+
+                if (strcmp(pi.pam_service, "gdm-smartcard") == 0
+                        || (flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
+                    ret = check_login_token_name(pamh, &pi, retries,
+                                                 quiet_mode);
                     if (ret != PAM_SUCCESS) {
                         D(("check_login_token_name failed.\n"));
                         return ret;
@@ -2443,14 +2465,14 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                  * The means the preauth step has to be done here as well but
                  * only if
                  * - PAM_PRELIM_CHECK is set
-                 * - FLAGS_USE_FIRST_PASS is not set
-                 * - no password is on the stack or FLAGS_PROMPT_ALWAYS is set
+                 * - PAM_CLI_FLAGS_USE_FIRST_PASS is not set
+                 * - no password is on the stack or PAM_CLI_FLAGS_PROMPT_ALWAYS is set
                  * - preauth indicator file exists.
                  */
                 if ( (pam_flags & PAM_PRELIM_CHECK)
-                        && !(flags & FLAGS_USE_FIRST_PASS)
+                        && !(flags & PAM_CLI_FLAGS_USE_FIRST_PASS)
                         && (pi.pam_authtok == NULL
-                                || (flags & FLAGS_PROMPT_ALWAYS))
+                                || (flags & PAM_CLI_FLAGS_PROMPT_ALWAYS))
                         && access(PAM_PREAUTH_INDICATOR, F_OK) == 0) {
                     pam_status = send_and_receive(pamh, &pi, SSS_PAM_PREAUTH,
                                                   quiet_mode);
@@ -2497,11 +2519,11 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
         pam_status = send_and_receive(pamh, &pi, task, quiet_mode);
 
-        if (flags & FLAGS_IGNORE_UNKNOWN_USER
+        if (flags & PAM_CLI_FLAGS_IGNORE_UNKNOWN_USER
                 && pam_status == PAM_USER_UNKNOWN) {
             pam_status = PAM_IGNORE;
         }
-        if (flags & FLAGS_IGNORE_AUTHINFO_UNAVAIL
+        if (flags & PAM_CLI_FLAGS_IGNORE_AUTHINFO_UNAVAIL
                 && pam_status == PAM_AUTHINFO_UNAVAIL) {
             pam_status = PAM_IGNORE;
         }
@@ -2581,7 +2603,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
             retry = true;
             retries--;
 
-            flags &= ~FLAGS_USE_FIRST_PASS;
+            flags &= ~PAM_CLI_FLAGS_USE_FIRST_PASS;
             ret = pam_set_item(pamh, PAM_AUTHTOK, NULL);
             if (ret != PAM_SUCCESS) {
                 D(("Failed to unset PAM_AUTHTOK [%s]",

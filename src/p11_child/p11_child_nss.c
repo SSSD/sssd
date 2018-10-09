@@ -39,6 +39,7 @@
 #include <pk11pub.h>
 #include <prerror.h>
 #include <ocsp.h>
+#include <pkcs11uri.h>
 
 #include "util/child_common.h"
 #include "providers/backend.h"
@@ -51,6 +52,7 @@ struct p11_ctx {
     CERTCertDBHandle *handle;
     struct cert_verify_opts *cert_verify_opts;
     const char *nss_db;
+    bool wait_for_card;
 };
 
 #define EXP_USAGES (  certificateUsageSSLClient \
@@ -61,6 +63,239 @@ struct p11_ctx {
                     | certificateUsageObjectSigner \
                     | certificateUsageStatusResponder \
                     | certificateUsageSSLCA )
+
+
+static char *get_pkcs11_string(TALLOC_CTX *mem_ctx, const char *in, size_t len)
+{
+    size_t c = len;
+
+    if (in == NULL || len == 0) {
+        return NULL;
+    }
+
+    while(c > 0 && in[c - 1] == ' ') {
+        c--;
+    }
+
+    return talloc_strndup(mem_ctx, in, c);
+}
+
+static char *pct_encode(TALLOC_CTX *mem_ctx, SECItem *data)
+{
+    char *pct;
+    size_t c;
+    int ret;
+
+    pct = talloc_zero_size(mem_ctx, sizeof(char) * (3*data->len + 1));
+    if (pct == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
+        return NULL;
+    }
+
+    for (c = 0; c < data->len; c++) {
+        ret = snprintf(pct + 3*c, 4, "%%%02X", data->data[c]);
+        if (ret != 3) {
+            DEBUG(SSSDBG_OP_FAILURE, "snprintf failed.\n");
+            talloc_free(pct);
+            return NULL;
+        }
+    }
+
+    return pct;
+}
+
+static char *get_key_id_pct(TALLOC_CTX *mem_ctx, PK11SlotInfo *slot,
+                            CERTCertificate *cert)
+{
+    SECItem *key_id = NULL;
+    char *key_id_str = NULL;
+
+    key_id = PK11_GetLowLevelKeyIDForCert(slot, cert, NULL);
+    if (key_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "PK11_GetLowLevelKeyIDForCert failed [%d][%s].\n",
+              PR_GetError(), PORT_ErrorToString(PR_GetError()));
+        return NULL;
+    }
+
+    key_id_str = pct_encode(mem_ctx, key_id);
+    SECITEM_FreeItem(key_id, PR_TRUE);
+    if (key_id_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "pct_encode failed.\n");
+        return NULL;
+    }
+
+    return key_id_str;
+}
+
+static char *get_pkcs11_uri(TALLOC_CTX *mem_ctx, SECMODModule *mod,
+                            PK11SlotInfo *slot,
+                            const char *label, CERTCertificate *cert)
+{
+    CK_INFO module_info;
+    CK_SLOT_INFO slot_info;
+    CK_TOKEN_INFO token_info;
+    char *values[13];
+    PK11URIAttribute attrs[13];
+    size_t nattrs = 0;
+    SECStatus rv;
+    char *tmp_str;
+    char *uri_str;
+    PK11URI *uri;
+    CK_SLOT_ID slot_id;
+    char *id_pct;
+
+    rv = PK11_GetModInfo(mod, &module_info);
+    if (rv != SECSuccess) {
+        DEBUG(SSSDBG_OP_FAILURE, "PK11_GetModInfo failed.\n");
+        return NULL;
+    }
+
+    rv = PK11_GetSlotInfo(slot, &slot_info);
+    if (rv != SECSuccess) {
+        DEBUG(SSSDBG_OP_FAILURE, "PK11_GetSlotInfo failed.\n");
+        return NULL;
+    }
+
+    rv = PK11_GetTokenInfo(slot, &token_info);
+    if (rv != SECSuccess) {
+        DEBUG(SSSDBG_OP_FAILURE, "PK11_GetTokenInfo failed.\n");
+        return NULL;
+    }
+    values[nattrs] = get_pkcs11_string(mem_ctx,
+                                       (char *)module_info.libraryDescription,
+                                       sizeof(module_info.libraryDescription));
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_LIBRARY_DESCRIPTION;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    values[nattrs] = get_pkcs11_string(mem_ctx,
+                                       (char *)module_info.manufacturerID,
+                                       sizeof(module_info.manufacturerID));
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_LIBRARY_MANUFACTURER;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    values[nattrs] = talloc_asprintf(mem_ctx, "%d.%d",
+                                     module_info.libraryVersion.major,
+                                     module_info.libraryVersion.minor);
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_LIBRARY_VERSION;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    values[nattrs] = get_pkcs11_string(mem_ctx,
+                                       (char *)slot_info.slotDescription,
+                                       sizeof(slot_info.slotDescription));
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_SLOT_DESCRIPTION;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    values[nattrs] = get_pkcs11_string(mem_ctx,
+                                       (char *)slot_info.manufacturerID,
+                                       sizeof(slot_info.manufacturerID));
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_SLOT_MANUFACTURER;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    slot_id = PK11_GetSlotID(slot);
+    values[nattrs] = talloc_asprintf(mem_ctx, "%d", (int) slot_id);
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_SLOT_ID;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    values[nattrs] = get_pkcs11_string(mem_ctx, (char *)token_info.model,
+                                       sizeof(token_info.model));
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_MODEL;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    values[nattrs] = get_pkcs11_string(mem_ctx,
+                                       (char *)token_info.manufacturerID,
+                                       sizeof(token_info.manufacturerID));
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_MANUFACTURER;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    values[nattrs] = get_pkcs11_string(mem_ctx,
+                                       (char *)token_info.serialNumber,
+                                       sizeof(token_info.serialNumber));
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_SERIAL;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    values[nattrs] = get_pkcs11_string(mem_ctx, (char *)token_info.label,
+                                       sizeof(token_info.label));
+    if (values[nattrs] != NULL && *values[nattrs] != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_TOKEN;
+        attrs[nattrs].value = values[nattrs];
+        nattrs++;
+    }
+
+    if (label != NULL && *label != '\0') {
+        attrs[nattrs].name = PK11URI_PATTR_OBJECT;
+        attrs[nattrs].value = label;
+        nattrs++;
+    }
+
+    attrs[nattrs].name = PK11URI_PATTR_TYPE;
+    attrs[nattrs].value = "cert";
+    nattrs++;
+
+    uri = PK11URI_CreateURI(attrs, nattrs, NULL, 0);
+    if (uri == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "PK11URI_CreateURI failed.\n");
+        return NULL;
+    }
+
+    tmp_str = PK11URI_FormatURI(NULL, uri);
+    PK11URI_DestroyURI(uri);
+    if (tmp_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "PK11URI_FormatURI failed.\n");
+        return NULL;
+    }
+
+    /* Currently I have no idea how to get the ID properly formatted with the
+     * NSS  PK11 calls. Since all attribute values are treated as strings zeros
+     * in the IDs cannot be handled. And the IDs cannot be set percent-encoded
+     * since all attribute values will be escaped which means the '%' sign
+     * will be escaped to '%25'. Hence for the time being the ID is added
+     * manually to the end of the URI. */
+    id_pct = get_key_id_pct(mem_ctx, slot, cert);
+    if (id_pct == NULL || *id_pct == '\0') {
+        DEBUG(SSSDBG_OP_FAILURE, "get_key_id_pct failed.\n");
+        PORT_Free(tmp_str);
+        return NULL;
+    }
+
+    uri_str = talloc_asprintf(mem_ctx, "%s;%s=%s", tmp_str,
+                                                   PK11URI_PATTR_ID, id_pct);
+    talloc_free(id_pct);
+    if (uri_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        return NULL;
+    }
+
+    return uri_str;
+
+}
 
 static char *password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
 {
@@ -139,6 +374,19 @@ static int talloc_free_handle(struct p11_ctx *p11_ctx)
     }
 
     return 0;
+}
+
+static NSSInitContext *get_nss_ctx(const char *nss_db)
+{
+    uint32_t flags = NSS_INIT_READONLY
+                                   | NSS_INIT_FORCEOPEN
+                                   | NSS_INIT_NOROOTINIT
+                                   | NSS_INIT_OPTIMIZESPACE
+                                   | NSS_INIT_PK11RELOAD;
+    NSSInitParameters parameters = { 0 };
+    parameters.length =  sizeof (parameters);
+
+    return NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters, flags);
 }
 
 errno_t init_verification(struct p11_ctx *p11_ctx,
@@ -232,7 +480,7 @@ bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64)
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
-                const char *key_id_in, char **_multi)
+                const char *key_id_in, const char *uri, char **_multi)
 {
     int ret;
     SECStatus rv;
@@ -256,14 +504,15 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     SECItem signed_random_value = {0};
     SECKEYPublicKey *pub_key;
     CERTCertificate *found_cert = NULL;
-    PK11SlotList *list = NULL;
-    PK11SlotListElement *le;
     const char *label;
     char *key_id_str = NULL;
     CERTCertList *valid_certs = NULL;
     char *cert_b64 = NULL;
     char *multi = NULL;
     PRCList *node;
+    CK_SLOT_INFO slInfo;
+    PK11TokenStatus token_status;
+    size_t s;
 
     PK11_SetPasswordFunc(password_passthrough);
 
@@ -297,28 +546,50 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                                 mod_list_item->module->dllName);
     }
 
-    list = PK11_GetAllTokens(CKM_INVALID_MECHANISM, PR_FALSE, PR_TRUE,
-                             NULL);
-    if (list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "PK11_GetAllTokens failed.\n");
-        ret = EIO;
-        goto done;
-    }
+    for (;;)  {
+        mod_list = SECMOD_GetDefaultModuleList();
+        for (mod_list_item = mod_list; mod_list_item != NULL;
+                                       mod_list_item = mod_list_item->next) {
+            for (s = 0; s < mod_list_item->module->slotCount; s++) {
+                slInfo.flags = 0;
+                rv = PK11_GetSlotInfo(mod_list_item->module->slots[s], &slInfo);
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Description [%s] Manufacturer [%s] flags [%lu] "
+                      "removable [%s] token present [%s].\n",
+                      slInfo.slotDescription, slInfo.manufacturerID,
+                      slInfo.flags,
+                      (slInfo.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
+                      (slInfo.flags & CKF_TOKEN_PRESENT) ? "true": "false");
 
-    for (le = list->head; le; le = le->next) {
-        CK_SLOT_INFO slInfo;
+                if (rv == SECSuccess && (slInfo.flags & CKF_REMOVABLE_DEVICE)) {
+                    slot = PK11_ReferenceSlot(mod_list_item->module->slots[s]);
+                    break;
+                }
+            }
+        }
 
-        slInfo.flags = 0;
-        rv = PK11_GetSlotInfo(le->slot, &slInfo);
-        DEBUG(SSSDBG_TRACE_ALL,
-              "Description [%s] Manufacturer [%s] flags [%lu].\n",
-              slInfo.slotDescription, slInfo.manufacturerID, slInfo.flags);
-        if (rv == SECSuccess && (slInfo.flags & CKF_REMOVABLE_DEVICE)) {
-            slot = PK11_ReferenceSlot(le->slot);
+        /* When e.g. using Yubikeys the slot isn't present until the device is
+         * inserted, so we should wait for a slot as well. */
+        if (p11_ctx->wait_for_card && slot == NULL) {
+            rv = NSS_ShutdownContext(p11_ctx->nss_ctx);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE, "NSS_ShutdownContext failed [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
+            }
+
+            sleep(PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME);
+
+            p11_ctx->nss_ctx = get_nss_ctx(p11_ctx->nss_db);
+            if (p11_ctx->nss_ctx == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "NSS_InitContext failed [%d][%s].\n",
+                      PR_GetError(), PORT_ErrorToString(PR_GetError()));
+                return EIO;
+            }
+        } else {
             break;
         }
     }
-    PK11_FreeSlotList(list);
+
     if (slot == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "No removable slots found.\n");
         ret = EIO;
@@ -331,6 +602,22 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     token_name = PK11_GetTokenName(slot);
     module = PK11_GetModule(slot);
     module_name = module->dllName == NULL ? "NSS-Internal" : module->dllName;
+
+    if (!(slInfo.flags & CKF_TOKEN_PRESENT)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
+        if (p11_ctx->wait_for_card) {
+            token_status = PK11_WaitForTokenEvent(slot, PK11TokenPresentEvent,
+                                                 PR_INTERVAL_NO_TIMEOUT, 0, 0);
+            if (token_status != PK11TokenPresent) {
+                DEBUG(SSSDBG_OP_FAILURE, "PK11_WaitForTokenEvent failed.\n");
+                ret = EIO;
+                goto done;
+            }
+        } else {
+            ret = EIO;
+            goto done;
+        }
+    }
 
     DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in slot [%s][%d] of module [%d][%s].\n",
           token_name, slot_name, (int) slot_id, (int) module_id, module_name);
@@ -411,6 +698,9 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
               "found cert[%s][%s]\n",
               cert_list_node->cert->nickname,
               cert_list_node->cert->subjectName);
+
+        DEBUG(SSSDBG_TRACE_ALL, "module uri: %s.\n", PK11_GetModuleURI(module));
+        DEBUG(SSSDBG_TRACE_ALL, "token uri: %s.\n", PK11_GetTokenURI(slot));
 
         if (p11_ctx->handle != NULL) {
             if (!do_verification(p11_ctx, cert_list_node->cert)) {
@@ -598,6 +888,9 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 
         DEBUG(SSSDBG_TRACE_ALL, "Found certificate has key id [%s].\n",
               key_id_str);
+        DEBUG(SSSDBG_TRACE_ALL, "uri: %s.\n", get_pkcs11_uri(mem_ctx, module,
+                                                             slot, label,
+                                                             found_cert));
 
         multi = talloc_asprintf_append(multi, "%s\n%s\n%s\n%s\n%s\n",
                                        token_name, module_name, key_id_str,
@@ -651,26 +944,18 @@ static int talloc_nss_shutdown(struct p11_ctx *p11_ctx)
 }
 
 errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *nss_db,
-                     struct p11_ctx **p11_ctx)
+                     bool wait_for_card, struct p11_ctx **p11_ctx)
 {
     struct p11_ctx *ctx;
-    uint32_t flags = NSS_INIT_READONLY
-                                   | NSS_INIT_FORCEOPEN
-                                   | NSS_INIT_NOROOTINIT
-                                   | NSS_INIT_OPTIMIZESPACE
-                                   | NSS_INIT_PK11RELOAD;
-    NSSInitParameters parameters = { 0 };
-    parameters.length =  sizeof (parameters);
-
     ctx = talloc_zero(mem_ctx, struct p11_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
     ctx->nss_db = nss_db;
+    ctx->wait_for_card = wait_for_card;
 
-    ctx->nss_ctx = NSS_InitContext(nss_db, "", "", SECMOD_DB, &parameters,
-                                    flags);
+    ctx->nss_ctx = get_nss_ctx(nss_db);
     if (ctx->nss_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "NSS_InitContext failed [%d][%s].\n",
               PR_GetError(), PORT_ErrorToString(PR_GetError()));

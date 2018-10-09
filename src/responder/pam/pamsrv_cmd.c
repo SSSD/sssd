@@ -317,6 +317,11 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                                              size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
+                case SSS_PAM_ITEM_FLAGS:
+                    ret = extract_uint32_t(&pd->cli_flags, size,
+                                           body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
                 default:
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Ignoring unknown data type [%d].\n", type);
@@ -1297,9 +1302,11 @@ static errno_t check_cert(TALLOC_CTX *mctx,
                           struct pam_data *pd)
 {
     int p11_child_timeout;
+    int wait_for_card_timeout;
     char *cert_verification_opts;
     errno_t ret;
     struct tevent_req *req;
+    char *uri = NULL;
 
     ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_P11_CHILD_TIMEOUT,
@@ -1310,6 +1317,20 @@ static errno_t check_cert(TALLOC_CTX *mctx,
               "Failed to read p11_child_timeout from confdb: [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
+    }
+    if ((pd->cli_flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH) && pd->priv == 1) {
+        ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                             CONFDB_PAM_WAIT_FOR_CARD_TIMEOUT,
+                             P11_WAIT_FOR_CARD_TIMEOUT_DEFAULT,
+                             &wait_for_card_timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to read wait_for_card_timeout from confdb: [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            return ret;
+        }
+
+        p11_child_timeout += wait_for_card_timeout;
     }
 
     ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_MONITOR_CONF_ENTRY,
@@ -1322,10 +1343,19 @@ static errno_t check_cert(TALLOC_CTX *mctx,
         return ret;
     }
 
+    ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_P11_URI, NULL, &uri);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read certificate_verification from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
     req = pam_check_cert_send(mctx, ev, pctx->p11_child_debug_fd,
                               pctx->nss_db, p11_child_timeout,
                               cert_verification_opts, pctx->sss_certmap_ctx,
-                              pd);
+                              uri, pd);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
         return ENOMEM;
@@ -1432,6 +1462,13 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
                   "No certificate found and no logon name given, " \
                   "authentication not possible.\n");
             ret = ENOENT;
+        } else if (pd->cli_flags & PAM_CLI_FLAGS_TRY_CERT_AUTH) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "try_cert_auth flag set but no certificate available, "
+                  "request finished.\n");
+            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+            pam_reply(preq);
+            return;
         } else {
             if (pd->cmd == SSS_PAM_AUTHENTICATE) {
                 DEBUG(SSSDBG_CRIT_FAILURE,

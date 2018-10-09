@@ -29,6 +29,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <p11-kit/p11-kit.h>
+#include <p11-kit/uri.h>
 
 #include <popt.h>
 
@@ -40,7 +41,74 @@
 struct p11_ctx {
     X509_STORE *x509_store;
     const char *ca_db;
+    bool wait_for_card;
 };
+
+
+static char *get_pkcs11_uri(TALLOC_CTX *mem_ctx, CK_INFO *module_info,
+                            CK_SLOT_INFO *slot_info, CK_SLOT_ID slot_id,
+                            CK_TOKEN_INFO *token_info, CK_ATTRIBUTE *label,
+                            CK_ATTRIBUTE *id)
+{
+    P11KitUri *uri;
+    char *uri_str = NULL;
+    char *tmp_str = NULL;
+    int ret;
+    CK_OBJECT_CLASS cert_class = CKO_CERTIFICATE;
+    CK_ATTRIBUTE class_attr = {CKA_CLASS, &cert_class, sizeof(CK_OBJECT_CLASS)};
+
+    uri = p11_kit_uri_new();
+    if (uri == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_new failed.\n");
+        return NULL;
+    }
+
+    ret = p11_kit_uri_set_attribute(uri, label);
+    if (ret != P11_KIT_URI_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_set_attribute failed.\n");
+        goto done;
+    }
+
+    ret = p11_kit_uri_set_attribute(uri, id);
+    if (ret != P11_KIT_URI_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_set_attribute failed.\n");
+        goto done;
+    }
+
+    ret = p11_kit_uri_set_attribute(uri, &class_attr);
+    if (ret != P11_KIT_URI_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_set_attribute failed.\n");
+        goto done;
+    }
+
+
+    memcpy(p11_kit_uri_get_token_info(uri), token_info, sizeof(CK_TOKEN_INFO));
+
+    memcpy(p11_kit_uri_get_slot_info(uri), slot_info, sizeof(CK_SLOT_INFO));
+    p11_kit_uri_set_slot_id(uri, slot_id);
+
+    memcpy(p11_kit_uri_get_module_info(uri), module_info, sizeof(CK_INFO));
+
+    ret = p11_kit_uri_format(uri, P11_KIT_URI_FOR_ANY, &tmp_str);
+    if (ret != P11_KIT_URI_OK) {
+        DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_format failed [%s].\n",
+                                 p11_kit_uri_message(ret));
+        goto done;
+    }
+
+    if (tmp_str != NULL) {
+        uri_str = talloc_strdup(mem_ctx, tmp_str);
+        free(tmp_str);
+        if (uri_str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        }
+    }
+
+done:
+    p11_kit_uri_free(uri);
+
+    return uri_str;
+}
 
 static int talloc_cleanup_openssl(struct p11_ctx *p11_ctx)
 {
@@ -48,8 +116,9 @@ static int talloc_cleanup_openssl(struct p11_ctx *p11_ctx)
 
     return 0;
 }
+
 errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
-                     struct p11_ctx **p11_ctx)
+                     bool wait_for_card, struct p11_ctx **p11_ctx)
 {
     int ret;
     struct p11_ctx *ctx;
@@ -73,6 +142,7 @@ errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *ca_db,
     }
 
     ctx->ca_db = ca_db;
+    ctx->wait_for_card = wait_for_card;
     talloc_set_destructor(ctx, talloc_cleanup_openssl);
 
     *p11_ctx = ctx;
@@ -231,6 +301,7 @@ struct cert_list {
     X509 *cert;
     char *subject_dn;
     char *cert_b64;
+    char *uri;
     CK_KEY_TYPE key_type;
     CK_OBJECT_HANDLE private_key;
 };
@@ -547,12 +618,51 @@ done:
     return ret;
 }
 
+static errno_t wait_for_card(CK_FUNCTION_LIST *module, CK_SLOT_ID *slot_id)
+{
+    CK_FLAGS wait_flags = 0;
+    CK_RV rv;
+    CK_SLOT_INFO info;
+
+    rv = module->C_WaitForSlotEvent(wait_flags, slot_id, NULL);
+    if (rv != CKR_OK) {
+        if (rv != CKR_FUNCTION_NOT_SUPPORTED) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "C_WaitForSlotEvent failed [%lu][%s].\n",
+                  rv, p11_kit_strerror(rv));
+            return EIO;
+        }
+
+        /* Poor man's wait */
+        do {
+            sleep(10);
+            rv = module->C_GetSlotInfo(*slot_id, &info);
+            if (rv != CKR_OK) {
+                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
+                return EIO;
+            }
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Description [%s] Manufacturer [%s] flags [%lu] "
+                  "removable [%s] token present [%s].\n",
+                  info.slotDescription, info.manufacturerID, info.flags,
+                  (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
+                  (info.flags & CKF_TOKEN_PRESENT) ? "true": "false");
+            if ((info.flags & CKF_REMOVABLE_DEVICE)
+                    && (info.flags & CKF_TOKEN_PRESENT)) {
+                break;
+            }
+        } while (true);
+    }
+
+    return EOK;
+}
+
 #define MAX_SLOTS 64
 
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
-                const char *key_id_in, char **_multi)
+                const char *key_id_in, const char *uri_str, char **_multi)
 {
     int ret;
     size_t c;
@@ -564,8 +674,10 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     CK_ULONG num_slots;
     CK_SLOT_ID slots[MAX_SLOTS];
     CK_SLOT_ID slot_id;
+    CK_SLOT_ID uri_slot_id;
     CK_SLOT_INFO info;
     CK_TOKEN_INFO token_info;
+    CK_INFO module_info;
     CK_RV rv;
     size_t module_id;
     char *module_file_name = NULL;
@@ -579,6 +691,19 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
     char *multi = NULL;
     bool pkcs11_session = false;
     bool pkcs11_login = false;
+    P11KitUri *uri = NULL;
+
+    if (uri_str != NULL) {
+        uri = p11_kit_uri_new();
+        ret = p11_kit_uri_parse(uri_str, P11_KIT_URI_FOR_ANY, uri);
+        if (ret != P11_KIT_URI_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "p11_kit_uri_parse failed [%d][%s].\n",
+                                     ret, p11_kit_uri_message(ret));
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
 
     /* Maybe use P11_KIT_MODULE_TRUSTED ? */
     modules = p11_kit_modules_load_and_initialize(0);
@@ -588,39 +713,105 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         return EIO;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "Module List:\n");
-    for (c = 0; modules[c] != NULL; c++) {
-        mod_name = p11_kit_module_get_name(modules[c]);
-        mod_file_name = p11_kit_module_get_filename(modules[c]);
-        DEBUG(SSSDBG_TRACE_ALL, "common name: [%s].\n", mod_name);
-        DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
-        free(mod_name);
-        free(mod_file_name);
+    for (;;) {
+        DEBUG(SSSDBG_TRACE_ALL, "Module List:\n");
+        for (c = 0; modules[c] != NULL; c++) {
+            mod_name = p11_kit_module_get_name(modules[c]);
+            mod_file_name = p11_kit_module_get_filename(modules[c]);
+            DEBUG(SSSDBG_TRACE_ALL, "common name: [%s].\n", mod_name);
+            DEBUG(SSSDBG_TRACE_ALL, "dll name: [%s].\n", mod_file_name);
+            free(mod_name);
+            free(mod_file_name);
 
-        num_slots = MAX_SLOTS;
-        rv = modules[c]->C_GetSlotList(CK_TRUE, slots, &num_slots);
-        if (rv != CKR_OK) {
-            DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed.\n");
-            ret = EIO;
-            goto done;
-        }
+            if (uri != NULL) {
+                memset(&module_info, 0, sizeof(CK_INFO));
+                modules[c]->C_GetInfo(&module_info);
 
-        for (s = 0; s < num_slots; s++) {
-            rv = modules[c]->C_GetSlotInfo(slots[s], &info);
+                /* Skip modules which do not match the PKCS#11 URI */
+                if (p11_kit_uri_match_module_info(uri, &module_info) != 1) {
+                    DEBUG(SSSDBG_TRACE_ALL,
+                          "Not matching URI [%s], skipping.\n", uri_str);
+                    continue;
+                }
+            }
+
+            num_slots = MAX_SLOTS;
+            rv = modules[c]->C_GetSlotList(CK_FALSE, slots, &num_slots);
             if (rv != CKR_OK) {
-                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
+                DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotList failed.\n");
                 ret = EIO;
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_ALL,
-                  "Description [%s] Manufacturer [%s] flags [%lu] removable [%s].\n",
-                  info.slotDescription, info.manufacturerID, info.flags,
-                  (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false");
-            if ((info.flags & CKF_REMOVABLE_DEVICE)) {
+
+            for (s = 0; s < num_slots; s++) {
+                rv = modules[c]->C_GetSlotInfo(slots[s], &info);
+                if (rv != CKR_OK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "C_GetSlotInfo failed\n");
+                    ret = EIO;
+                    goto done;
+                }
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Description [%s] Manufacturer [%s] flags [%lu] "
+                      "removable [%s] token present [%s].\n",
+                      info.slotDescription, info.manufacturerID, info.flags,
+                      (info.flags & CKF_REMOVABLE_DEVICE) ? "true": "false",
+                      (info.flags & CKF_TOKEN_PRESENT) ? "true": "false");
+
+                /* Skip slots which do not match the PKCS#11 URI */
+                if (uri != NULL) {
+                    uri_slot_id = p11_kit_uri_get_slot_id(uri);
+                    if ((uri_slot_id != (CK_SLOT_ID)-1
+                                && uri_slot_id != slots[s])
+                            || p11_kit_uri_match_slot_info(uri, &info) != 1) {
+                        DEBUG(SSSDBG_TRACE_ALL,
+                              "Not matching URI [%s], skipping.\n", uri_str);
+                        continue;
+                    }
+                }
+
+                if ((info.flags & CKF_TOKEN_PRESENT) && uri != NULL) {
+                    rv = modules[c]->C_GetTokenInfo(slots[s], &token_info);
+                    if (rv != CKR_OK) {
+                        DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed.\n");
+                        ret = EIO;
+                        goto done;
+                    }
+                    DEBUG(SSSDBG_TRACE_ALL, "Token label [%s].\n",
+                          token_info.label);
+
+                    if (p11_kit_uri_match_token_info(uri, &token_info) != 1) {
+                        DEBUG(SSSDBG_CONF_SETTINGS,
+                              "No matching uri [%s], skipping.\n", uri_str);
+                        continue;
+                    }
+
+                }
+
+                if ((info.flags & CKF_REMOVABLE_DEVICE)) {
+                    break;
+                }
+            }
+            if (s != num_slots) {
                 break;
             }
         }
-        if (s != num_slots) {
+
+        /* When e.g. using Yubikeys the slot isn't present until the device is
+         * inserted, so we should wait for a slot as well. */
+        if (p11_ctx->wait_for_card && modules[c] == NULL) {
+            p11_kit_modules_finalize_and_release(modules);
+
+            sleep(PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME);
+
+            modules = p11_kit_modules_load_and_initialize(0);
+            if (modules == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "p11_kit_modules_load_and_initialize failed.\n");
+                ret = EIO;
+                goto done;
+            }
+
+        } else {
             break;
         }
     }
@@ -631,14 +822,36 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         goto done;
     }
 
-    rv = modules[c]->C_GetTokenInfo(slots[s], &token_info);
+    slot_id = slots[s];
+
+    if (!(info.flags & CKF_TOKEN_PRESENT)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Token not present.\n");
+        if (p11_ctx->wait_for_card) {
+            ret = wait_for_card(modules[c], &slot_id);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "wait_for_card failed.\n");
+                goto done;
+            }
+        } else {
+            ret = EIO;
+            goto done;
+        }
+    }
+
+    rv = modules[c]->C_GetTokenInfo(slot_id, &token_info);
     if (rv != CKR_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "C_GetTokenInfo failed.\n");
         ret = EIO;
         goto done;
     }
 
-    slot_id = slots[s];
+    if (uri != NULL && p11_kit_uri_match_token_info(uri, &token_info) != 1) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "No token matching uri [%s] found.",
+                                    uri_str);
+        ret = ENOENT;
+        goto done;
+    }
+
     module_id = c;
     slot_name = p11_kit_space_strdup(info.slotDescription,
                                      sizeof(info.slotDescription));
@@ -741,6 +954,17 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
         }
     }
 
+    memset(&module_info, 0, sizeof(CK_INFO));
+    module->C_GetInfo(&module_info);
+
+    DLIST_FOR_EACH(item, cert_list) {
+        item->uri = get_pkcs11_uri(mem_ctx, &module_info, &info, slot_id,
+                                   &token_info,
+                                   &item->attributes[1] /* label */,
+                                   &item->attributes[0] /* id */);
+        DEBUG(SSSDBG_TRACE_ALL, "uri: %s.\n", item->uri);
+    }
+
     /* TODO: check module_name_in, token_name_in, key_id_in */
 
     if (cert_list == NULL) {
@@ -810,6 +1034,7 @@ done:
     free(token_name);
     free(module_file_name);
     p11_kit_modules_finalize_and_release(modules);
+    p11_kit_uri_free(uri);
 
     return ret;
 }

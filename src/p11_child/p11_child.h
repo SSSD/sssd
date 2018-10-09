@@ -25,6 +25,9 @@
 #ifndef __P11_CHILD_H__
 #define __P11_CHILD_H__
 
+/* Time to wait during a C_Finalize C_Initialize cycle to discover
+ * new slots. */
+#define PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME 3
 struct p11_ctx;
 
 enum op_mode {
@@ -41,7 +44,7 @@ enum pin_mode {
 };
 
 errno_t init_p11_ctx(TALLOC_CTX *mem_ctx, const char *nss_db,
-                     struct p11_ctx **p11_ctx);
+                     bool wait_for_card, struct p11_ctx **p11_ctx);
 
 errno_t init_verification(struct p11_ctx *p11_ctx,
                           struct cert_verify_opts *cert_verify_opts);
@@ -51,5 +54,5 @@ bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64);
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
-                const char *key_id_in, char **_multi);
+                const char *key_id_in, const char *uri, char **_multi);
 #endif /* __P11_CHILD_H__ */
