@@ -127,6 +127,39 @@ systemctl enable sssd-kcm.socket
         </para>
     </refsect1>
 
+    <refsect1 id='debugging'>
+        <title>OBTAINING DEBUG LOGS</title>
+        <para>
+            The sssd-kcm service is typically socket-activated
+            <citerefentry>
+                <refentrytitle>systemd</refentrytitle>
+                <manvolnum>1</manvolnum>
+            </citerefentry>. To generate debug logs, add the following
+            either to the <filename>/etc/sssd/sssd.conf</filename>
+            file directly or as a configuration snippet to
+            <filename>/etc/sssd/conf.d/</filename> directory:
+            <programlisting>
+[kcm]
+debug_level = 10
+            </programlisting>
+            Then, restart the sssd-kcm service:
+            <programlisting>
+systemctl restart sssd-kcm.service
+            </programlisting>
+            Finally, run whatever use-case doesn't work for you. The KCM
+            logs will be generated at
+            <filename>/var/log/sssd/sssd_kcm.log</filename>. It is
+            recommended to disable the debug logs when you no longer need
+            the debugging to be enabled as the sssd-kcm service can generate
+            quite a large amount of debugging information.
+        </para>
+        <para>
+            Please note that configuration snippets are, at the moment,
+            only processed if the main configuration file at
+            <filename>/etc/sssd/sssd.conf</filename> exists at all.
+        </para>
+    </refsect1>
+
     <refsect1 id='options'>
         <title>CONFIGURATION OPTIONS</title>
         <para>
