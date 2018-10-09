@@ -31,3 +31,11 @@ class TestImplicitFilesProvider(object):
         """ Test that the files provider can resolve a user """
         exit_status, _ = get_sss_user(multihost, 'lcl1')
         assert exit_status == 0
+
+    def test_files_enumeration(self, multihost):
+        """
+        Since nss_files enumerates and libc would concatenate the results,
+        the files provider of SSSD should not enumerate
+        """
+        cmd = multihost.master[0].run_command('getent passwd -s sss')
+        assert len(cmd.stdout_text) == 0

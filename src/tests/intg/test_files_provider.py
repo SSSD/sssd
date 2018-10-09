@@ -32,7 +32,6 @@ import ent
 import sssd_id
 from sssd_nss import NssReturnCode
 from sssd_passwd import (call_sssd_getpwnam,
-                         call_sssd_enumeration,
                          call_sssd_getpwuid)
 from sssd_group import call_sssd_getgrnam, call_sssd_getgrgid
 from files_ops import passwd_ops_setup, group_ops_setup, PasswdOps, GroupOps
@@ -631,27 +630,6 @@ def test_mod_user_shell(add_user_with_canary, files_domain_only):
     add_user_with_canary.usermod(**moduser)
 
     check_user(moduser)
-
-
-def test_enum_users(setup_pw_with_canary, files_domain_only):
-    """
-    Test that enumerating all users works with the default configuration. Also
-    test that removing all entries and then enumerating again returns an empty
-    set
-    """
-    num_users = 10
-    for i in range(1, num_users+1):
-        user = user_generator(i)
-        setup_pw_with_canary.useradd(**user)
-
-    # syncing with the help of the canary is not reliable after adding
-    # multiple users because the canary might still be in some caches so that
-    # the data is not refreshed properly.
-    subprocess.call(["sss_cache", "-E"])
-    sssd_getpwnam_sync(CANARY["name"])
-    user_list = call_sssd_enumeration()
-    # +1 because the canary is added
-    assert len(user_list) == num_users+1
 
 
 def incomplete_user_setup(pwd_ops, del_field, exp_field):
