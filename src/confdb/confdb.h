@@ -133,6 +133,7 @@
 #define CONFDB_PAM_WAIT_FOR_CARD_TIMEOUT "p11_wait_for_card_timeout"
 #define CONFDB_PAM_APP_SERVICES "pam_app_services"
 #define CONFDB_PAM_P11_ALLOWED_SERVICES "pam_p11_allowed_services"
+#define CONFDB_PAM_P11_URI "p11_uri"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"

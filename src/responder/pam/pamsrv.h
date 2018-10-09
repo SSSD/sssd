@@ -103,6 +103,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        time_t timeout,
                                        const char *verify_opts,
                                        struct sss_certmap_ctx *sss_certmap_ctx,
+                                       const char *uri,
                                        struct pam_data *pd);
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                             struct cert_auth_info **cert_list);

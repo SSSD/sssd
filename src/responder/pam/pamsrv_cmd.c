@@ -1306,6 +1306,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
     char *cert_verification_opts;
     errno_t ret;
     struct tevent_req *req;
+    char *uri = NULL;
 
     ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_P11_CHILD_TIMEOUT,
@@ -1342,10 +1343,19 @@ static errno_t check_cert(TALLOC_CTX *mctx,
         return ret;
     }
 
+    ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_P11_URI, NULL, &uri);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read certificate_verification from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
     req = pam_check_cert_send(mctx, ev, pctx->p11_child_debug_fd,
                               pctx->nss_db, p11_child_timeout,
                               cert_verification_opts, pctx->sss_certmap_ctx,
-                              pd);
+                              uri, pd);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
         return ENOMEM;
