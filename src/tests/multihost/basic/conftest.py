@@ -210,6 +210,39 @@ def set_case_sensitive_false(session_multihost):
 
 
 @pytest.fixture
+def enable_files_domain(session_multihost):
+    """
+    Enable the implicit files domain
+    """
+    session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
+                                                   '/tmp/sssd.conf')
+    sssdconfig = ConfigParser.SafeConfigParser()
+    sssdconfig.read('/tmp/sssd.conf')
+    sssd_section = 'sssd'
+    if sssd_section in sssdconfig.sections():
+        sssdconfig.set(sssd_section, 'enable_files_domain', 'true')
+        with open('/tmp/sssd.conf', "w") as sssconf:
+            sssdconfig.write(sssconf)
+    session_multihost.master[0].transport.put_file('/tmp/sssd.conf',
+                                                   '/etc/sssd/sssd.conf')
+    session_multihost.master[0].service_sssd('restart')
+
+
+@pytest.fixture(scope="class")
+def files_domain_users_class(request, session_multihost):
+    users = ('lcl1', 'lcl2', 'lcl3')
+    for user in users:
+        useradd_cmd = "useradd %s" % (user)
+        session_multihost.master[0].run_command(useradd_cmd)
+
+    def teardown_files_domain_users():
+        for user in users:
+            userdel_cmd = "userdel %s" % (user)
+            session_multihost.master[0].run_command(userdel_cmd)
+    request.addfinalizer(teardown_files_domain_users)
+
+
+@pytest.fixture
 def create_sudorule(session_multihost, create_casesensitive_posix_user):
     """ Create posix user and groups """
     # pylint: disable=unused-argument
