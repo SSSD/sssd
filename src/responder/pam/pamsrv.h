@@ -108,7 +108,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                             struct cert_auth_info **cert_list);
 
-errno_t add_pam_cert_response(struct pam_data *pd, const char *sysdb_username,
+errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
+                              const char *sysdb_username,
                               struct cert_auth_info *cert_info,
                               enum response_type type);
 
