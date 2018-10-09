@@ -138,6 +138,7 @@ static int confdb_create_base(struct confdb_ctx *cdb)
 static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
                                      const char *config_file,
                                      const char *config_dir,
+                                     const char *only_section,
                                      struct sss_ini_initdata *init_data,
                                      const char **_timestr,
                                      const char **_ldif)
@@ -222,7 +223,7 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sss_confdb_create_ldif(mem_ctx, init_data, _ldif);
+    ret = sss_confdb_create_ldif(mem_ctx, init_data, only_section, _ldif);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not create LDIF for confdb\n");
         return ret;
@@ -249,7 +250,50 @@ static int confdb_fallback_ldif(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static int confdb_init_db(const char *config_file, const char *config_dir,
+static int confdb_write_ldif(struct confdb_ctx *cdb,
+                             const char *config_ldif,
+                             bool replace_whole_db)
+{
+    int ret;
+    struct ldb_ldif *ldif;
+
+    while ((ldif = ldb_ldif_read_string(cdb->ldb, &config_ldif))) {
+        if (ldif->changetype == LDB_CHANGETYPE_DELETE) {
+            /* We should remove this section */
+            ret = ldb_delete(cdb->ldb, ldif->msg->dn);
+            if (ret == LDB_ERR_NO_SUCH_OBJECT) {
+                /* Removing a non-existing section is not an error */
+                ret = LDB_SUCCESS;
+            }
+        } else {
+            ret = ldb_add(cdb->ldb, ldif->msg);
+            if (ret != LDB_SUCCESS && replace_whole_db == false) {
+                /* This section already existed, remove and re-add it. We
+                * really want to replace the whole thing instead of messing
+                * around with changetypes and flags on individual elements
+                */
+                ret = ldb_delete(cdb->ldb, ldif->msg->dn);
+                if (ret == LDB_SUCCESS) {
+                    ret = ldb_add(cdb->ldb, ldif->msg);
+                }
+            }
+        }
+
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                "Failed to initialize DB (%d,[%s]), aborting!\n",
+                ret, ldb_errstring(cdb->ldb));
+            return EIO;
+        }
+        ldb_ldif_read_free(cdb->ldb, ldif);
+    }
+
+    return EOK;
+}
+
+static int confdb_init_db(const char *config_file,
+                          const char *config_dir,
+                          const char *only_section,
                           struct confdb_ctx *cdb)
 {
     TALLOC_CTX *tmp_ctx;
@@ -259,7 +303,6 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
     const char *timestr = NULL;
     const char *config_ldif;
     const char *vals[2] = { NULL, NULL };
-    struct ldb_ldif *ldif;
     struct sss_ini_initdata *init_data;
 
     tmp_ctx = talloc_new(cdb);
@@ -281,6 +324,7 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
         ret = confdb_ldif_from_ini_file(tmp_ctx,
                                         config_file,
                                         config_dir,
+                                        only_section,
                                         init_data,
                                         &timestr,
                                         &config_ldif);
@@ -318,24 +362,21 @@ static int confdb_init_db(const char *config_file, const char *config_dir,
     }
     in_transaction = true;
 
-    /* Purge existing database */
-    ret = confdb_purge(cdb);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not purge existing configuration\n");
-        goto done;
-    }
-
-    while ((ldif = ldb_ldif_read_string(cdb->ldb, &config_ldif))) {
-        ret = ldb_add(cdb->ldb, ldif->msg);
-        if (ret != LDB_SUCCESS) {
+    /* Purge existing database, if we are reinitializing the confdb completely */
+    if (only_section == NULL) {
+        ret = confdb_purge(cdb);
+        if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Failed to initialize DB (%d,[%s]), aborting!\n",
-                  ret, ldb_errstring(cdb->ldb));
-            ret = EIO;
+                "Could not purge existing configuration\n");
             goto done;
         }
-        ldb_ldif_read_free(cdb->ldb, ldif);
+    }
+
+    ret = confdb_write_ldif(cdb,
+                            config_ldif,
+                            only_section == NULL ? true : false);
+    if (ret != EOK) {
+        goto done;
     }
 
     /* now store the lastUpdate time so that we do not re-init if nothing
@@ -377,6 +418,7 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
                      const char *cdb_file,
                      const char *config_file,
                      const char *config_dir,
+                     const char *only_section,
                      struct confdb_ctx **_cdb)
 {
     TALLOC_CTX *tmp_ctx;
@@ -432,7 +474,7 @@ errno_t confdb_setup(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = confdb_init_db(config_file, config_dir, cdb);
+    ret = confdb_init_db(config_file, config_dir, only_section, cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "ConfDB initialization has failed "
               "[%d]: %s\n", ret, sss_strerror(ret));

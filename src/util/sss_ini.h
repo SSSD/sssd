@@ -77,6 +77,7 @@ void sss_ini_config_destroy(struct sss_ini_initdata *init_data);
 /* Create LDIF */
 int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
                            struct sss_ini_initdata *init_data,
+                           const char *only_section,
                            const char **config_ldif);
 
 /* Validate sssd.conf if libini_config support it */
