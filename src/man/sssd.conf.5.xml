@@ -1478,6 +1478,39 @@ pam_p11_allowed_services = +my_pam_service, -login
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>p11_uri (string)</term>
+                    <listitem>
+                        <para>
+                            PKCS#11 URI (see RFC-7512 for details) which can be
+                            used to restrict the selection of devices used for
+                            Smartcard authentication. By default SSSD's
+                            p11_child will search for a PKCS#11 slot (reader)
+                            where the 'removable' flags is set and read the
+                            certificates from the inserted token from the first
+                            slot found. If multiple readers are connected
+                            p11_uri can be use to tell p11_child to use a
+                            specific reader.
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+p11_uri = slot-description=My%20Smartcar%20Reader
+                            </programlisting>
+                            or
+                            <programlisting>
+p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
+                            </programlisting>
+                            To find suitable URI please check the debug output
+                            of p11_child. As an alternative the GnuTLS utility
+                            'p11tool' with e.g. the '--list-all' will show
+                            PKCS#11 URIs as well.
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
