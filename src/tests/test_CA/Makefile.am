@@ -24,7 +24,7 @@ pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 if HAVE_NSS
 extra = p11_nssdb p11_nssdb_2certs
 else
-extra = softhsm2_none softhsm2_one softhsm2_two
+extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens
 endif
 
 # If openssl is run in parallel there might be conflicts with the serial
@@ -111,6 +111,20 @@ softhsm2_two: softhsm2_two.conf
 
 softhsm2_two.conf:
 	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_two" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+
+softhsm2_2tokens: softhsm2_2tokens.conf
+	mkdir $@
+	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0001.pem --login  --label 'SSSD test cert 0001' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17' pkcs11:token=SSSD%20Test%20Token
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0001.pem --login  --label 'SSSD test cert 0001' --id 'C554C9F82C2A9D58B70921C143304153A8A42F17' pkcs11:token=SSSD%20Test%20Token
+	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token Number 2" --pin 654321 --so-pin 654321 --free
+	GNUTLS_PIN=654321 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0002.pem --login  --label 'SSSD test cert 0002' --id '5405842D56CF31F0BB025A695C5F3E907051C5B9' pkcs11:token=SSSD%20Test%20Token%20Number%202
+	GNUTLS_PIN=654321 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0002.pem --login  --label 'SSSD test cert 0002' --id '5405842D56CF31F0BB025A695C5F3E907051C5B9' pkcs11:token=SSSD%20Test%20Token%20Number%202
+
+softhsm2_2tokens.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_2tokens" > $@
 	@echo "objectstore.backend = file" >> $@
 	@echo "slots.removable = true" >> $@
 
