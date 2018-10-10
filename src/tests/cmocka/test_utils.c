@@ -1612,6 +1612,8 @@ static void test_parse_cert_verify_opts(void **state)
                                  &cv_opts);
     assert_int_equal(ret, EINVAL);
 
+/* Only NSS requires that both are set */
+#ifdef HAVE_NSS
     ret = parse_cert_verify_opts(global_talloc_context,
                                  "ocsp_default_responder=abc", &cv_opts);
     assert_int_equal(ret, EINVAL);
@@ -1620,6 +1622,7 @@ static void test_parse_cert_verify_opts(void **state)
                                  "ocsp_default_responder_signing_cert=def",
                                  &cv_opts);
     assert_int_equal(ret, EINVAL);
+#endif
 
     ret = parse_cert_verify_opts(global_talloc_context,
                                  "ocsp_default_responder=abc,"

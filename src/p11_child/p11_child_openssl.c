@@ -28,6 +28,7 @@
 #include <openssl/x509.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <openssl/ocsp.h>
 #include <p11-kit/p11-kit.h>
 #include <p11-kit/uri.h>
 
@@ -42,8 +43,344 @@ struct p11_ctx {
     X509_STORE *x509_store;
     const char *ca_db;
     bool wait_for_card;
+    struct cert_verify_opts *cert_verify_opts;
 };
 
+static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
+                                      const char *path,
+                                      OCSP_REQUEST *req, int req_timeout)
+{
+    int fd;
+    int rv;
+    OCSP_REQ_CTX *ctx = NULL;
+    OCSP_RESPONSE *rsp = NULL;
+    fd_set confds;
+    struct timeval tv;
+
+    if (req_timeout != -1) {
+        BIO_set_nbio(cbio, 1);
+    }
+
+    rv = BIO_do_connect(cbio);
+
+    if ((rv <= 0) && ((req_timeout == -1) || !BIO_should_retry(cbio))) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error connecting BIO\n");
+        return NULL;
+    }
+
+    if (BIO_get_fd(cbio, &fd) < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Can't get connection fd\n");
+        goto err;
+    }
+
+    if (req_timeout != -1 && rv <= 0) {
+        FD_ZERO(&confds);
+        FD_SET(fd, &confds);
+        tv.tv_usec = 0;
+        tv.tv_sec = req_timeout;
+        rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
+        if (rv == 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Timeout on connect\n");
+            return NULL;
+        }
+    }
+
+    ctx = OCSP_sendreq_new(cbio, path, NULL, -1);
+    if (ctx == NULL) {
+        return NULL;
+    }
+
+    if (OCSP_REQ_CTX_add1_header(ctx, "Host", host) == 0) {
+        goto err;
+    }
+
+    if (!OCSP_REQ_CTX_set1_req(ctx, req)) {
+        goto err;
+    }
+
+    for (;;) {
+        rv = OCSP_sendreq_nbio(&rsp, ctx);
+        if (rv != -1)
+            break;
+        if (req_timeout == -1)
+            continue;
+        FD_ZERO(&confds);
+        FD_SET(fd, &confds);
+        tv.tv_usec = 0;
+        tv.tv_sec = req_timeout;
+        if (BIO_should_read(cbio)) {
+            rv = select(fd + 1, (void *)&confds, NULL, NULL, &tv);
+        } else if (BIO_should_write(cbio)) {
+            rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Unexpected retry condition\n");
+            goto err;
+        }
+        if (rv == 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "Timeout on request\n");
+            break;
+        }
+        if (rv == -1) {
+            DEBUG(SSSDBG_OP_FAILURE, "Select error\n");
+            break;
+        }
+
+    }
+ err:
+    OCSP_REQ_CTX_free(ctx);
+
+    return rsp;
+}
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define TLS_client_method SSLv23_client_method
+#define X509_STORE_get0_objects(store) (store->objs)
+#define X509_OBJECT_get_type(object) (object->type)
+#define X509_OBJECT_get0_X509(object) (object->data.x509)
+#endif
+
+OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
+                                 const char *host, const char *path,
+                                 const char *port, int use_ssl,
+                                 int req_timeout)
+{
+    BIO *cbio = NULL;
+    SSL_CTX *ctx = NULL;
+    OCSP_RESPONSE *resp = NULL;
+
+    cbio = BIO_new_connect(host);
+    if (cbio == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error creating connect BIO\n");
+        goto end;
+    }
+    if (port != NULL)
+        BIO_set_conn_port(cbio, port);
+    if (use_ssl == 1) {
+        BIO *sbio;
+        ctx = SSL_CTX_new(TLS_client_method());
+        if (ctx == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Error creating SSL context.\n");
+            goto end;
+        }
+        SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
+        sbio = BIO_new_ssl(ctx, 1);
+        cbio = BIO_push(sbio, cbio);
+    }
+
+    resp = query_responder(cbio, host, path, req, req_timeout);
+    if (resp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error querying OCSP responder\n");
+    }
+
+ end:
+    BIO_free_all(cbio);
+    SSL_CTX_free(ctx);
+    return resp;
+}
+
+static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
+{
+    OCSP_REQUEST *ocsp_req = NULL;
+    OCSP_RESPONSE *ocsp_resp = NULL;
+    OCSP_BASICRESP *ocsp_basic = NULL;
+    OCSP_CERTID *cid = NULL;
+    STACK_OF(OPENSSL_STRING) *ocsp_urls = NULL;
+    char *url_str;
+    X509 *issuer = NULL;
+    int req_timeout = -1;
+    int status;
+    int ret = EIO;
+    int reason;
+    ASN1_GENERALIZEDTIME *revtime;
+    ASN1_GENERALIZEDTIME *thisupd;
+    ASN1_GENERALIZEDTIME *nextupd;
+    long grace_time = (5 * 60); /* Allow 5 minutes time difference when
+                                 * checking the validity of the OCSP response */
+    char *host = NULL;
+    char *path = NULL;
+    char *port = NULL;
+    int use_ssl;
+    X509_NAME *issuer_name = NULL;
+    X509_OBJECT *x509_obj;
+    STACK_OF(X509_OBJECT) *store_objects;
+
+    ocsp_urls = X509_get1_ocsp(cert);
+    if (ocsp_urls == NULL
+            && p11_ctx->cert_verify_opts->ocsp_default_responder == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "No OCSP URL in certificate and no default responder defined, "
+              "skipping OCSP check.\n");
+        return EOK;
+    }
+
+    if (p11_ctx->cert_verify_opts->ocsp_default_responder != NULL) {
+        url_str = p11_ctx->cert_verify_opts->ocsp_default_responder;
+    } else {
+        if (sk_OPENSSL_STRING_num(ocsp_urls) > 1) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Found more than 1 OCSP URLs, just using the first.\n");
+        }
+
+        url_str = sk_OPENSSL_STRING_value(ocsp_urls, 0);
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Using OCSP URL [%s].\n", url_str);
+
+    ret = OCSP_parse_url(url_str, &host, &port, &path, &use_ssl);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "OCSP_parse_url failed to parse [%s].\n",
+                                 url_str);
+        ret = EIO;
+        goto done;
+    }
+
+    issuer_name = X509_get_issuer_name(cert);
+    if (issuer_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Certificate has no issuer, "
+                                   "cannot run OCSP check.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    store_objects = X509_STORE_get0_objects(p11_ctx->x509_store);
+    if (store_objects == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "No objects found in certificate store, OCSP failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    x509_obj = X509_OBJECT_retrieve_by_subject(store_objects, X509_LU_X509,
+                                               issuer_name);
+    if (x509_obj == NULL || X509_OBJECT_get_type(x509_obj) != X509_LU_X509) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Issuer not found.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    issuer = X509_OBJECT_get0_X509(x509_obj);
+
+    ocsp_req = OCSP_REQUEST_new();
+    if (ocsp_req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "OCSP_REQUEST_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    cid = OCSP_cert_to_id(EVP_sha1(), cert, issuer);
+    if (cid == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "OCSP_cert_to_id failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    if (OCSP_request_add0_id(ocsp_req, cid) == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "OCSP_request_add0_id failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    OCSP_request_add1_nonce(ocsp_req, NULL, -1);
+
+    ocsp_resp = process_responder(ocsp_req, host, path, port, use_ssl,
+                                  req_timeout);
+    if (ocsp_resp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "process_responder failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    status = OCSP_response_status(ocsp_resp);
+    if (status != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "OCSP response error: [%d][%s].\n",
+                                   status, OCSP_response_status_str(status));
+        ret = EIO;
+        goto done;
+    }
+
+    ocsp_basic = OCSP_response_get1_basic(ocsp_resp);
+    if (ocsp_resp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "OCSP_response_get1_basic failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    switch (OCSP_check_nonce(ocsp_req, ocsp_basic)) {
+    case -1:
+        DEBUG(SSSDBG_CRIT_FAILURE, "No nonce in OCSP response. This might "
+              "indicate a replay attack or an OCSP responder which does not "
+              "support nonces.  Accepting response.\n");
+        break;
+    case 0:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Nonce in OCSP response does not match the "
+                                   "one used in the request.\n");
+        ret = EIO;
+        goto done;
+        break;
+    case 1:
+        DEBUG(SSSDBG_TRACE_ALL, "Nonce in OCSP response is the same as the one "
+                                "used in the request.\n");
+        break;
+    case 2:
+    case 3:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing nonce in OCSP request, this should"
+                                   "never happen.\n");
+        ret = EIO;
+        goto done;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected result of OCSP_check_nonce.\n");
+    }
+
+    status = OCSP_basic_verify(ocsp_basic, NULL, p11_ctx->x509_store, 0);
+    if (status != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "OCSP_base_verify failed to verify OCSP "
+                                   "response.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = OCSP_resp_find_status(ocsp_basic, cid, &status, &reason,
+                                &revtime, &thisupd, &nextupd);
+    if (ret != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "OCSP response does not contain status of "
+                                   "our certificate.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    if (status != V_OCSP_CERTSTATUS_GOOD) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "OCSP check failed with [%d][%s].\n",
+                                   status, OCSP_cert_status_str(status));
+        if (status == V_OCSP_CERTSTATUS_REVOKED) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Certificate is revoked [%d][%s].\n",
+                                       reason, OCSP_crl_reason_str(reason));
+        }
+        ret = EIO;
+        goto done;
+    }
+
+    if (OCSP_check_validity(thisupd, nextupd, grace_time, -1) != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "OCSP response is not valid anymore.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "OCSP check was successful.\n");
+    ret = EOK;
+
+done:
+    OCSP_BASICRESP_free(ocsp_basic);
+    OCSP_RESPONSE_free(ocsp_resp);
+    OCSP_REQUEST_free(ocsp_req);
+
+    OPENSSL_free(host);
+    OPENSSL_free(port);
+    OPENSSL_free(path);
+    X509_email_free(ocsp_urls);
+
+    return ret;
+}
 
 static char *get_pkcs11_uri(TALLOC_CTX *mem_ctx, CK_INFO *module_info,
                             CK_SLOT_INFO *slot_info, CK_SLOT_ID slot_id,
@@ -191,6 +528,7 @@ errno_t init_verification(struct p11_ctx *p11_ctx,
     }
 
     p11_ctx->x509_store = store;
+    p11_ctx->cert_verify_opts = cert_verify_opts;
     talloc_set_destructor(p11_ctx, talloc_free_x509_store);
 
     ret = EOK;
@@ -260,6 +598,14 @@ bool do_verification(struct p11_ctx *p11_ctx, X509 *cert)
                                  ret, X509_verify_cert_error_string(ret));
         ret = EINVAL;
         goto done;
+    }
+
+    if (p11_ctx->cert_verify_opts->do_ocsp) {
+        ret = do_ocsp(p11_ctx, cert);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "do_ocsp failed.\n");
+            goto done;
+        }
     }
 
     res = true;
