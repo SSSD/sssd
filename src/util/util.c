@@ -1123,6 +1123,7 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
         }
     }
 
+#ifdef HAVE_NSS
     if ((cert_verify_opts->ocsp_default_responder == NULL
             && cert_verify_opts->ocsp_default_responder_signing_cert != NULL)
         || (cert_verify_opts->ocsp_default_responder != NULL
@@ -1135,6 +1136,7 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
         ret = EINVAL;
         goto done;
     }
+#endif
 
     ret = EOK;
 
