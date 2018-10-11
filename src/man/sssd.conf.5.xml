@@ -503,6 +503,30 @@
                                         pam_cert_db_path.</para>
                                     </listitem>
                                 </varlistentry>
+                                <varlistentry>
+                                    <term>crl_file=/PATH/TO/CRL/FILE</term>
+                                    <listitem>
+                                        <para>(NSS Version) This option is
+                                        ignored, please see
+                                            <citerefentry>
+                                                <refentrytitle>crlutil</refentrytitle>
+                                                <manvolnum>1</manvolnum>
+                                            </citerefentry>
+                                        how to import a Certificate Revocation
+                                        List (CRL) into a NSS database.</para>
+
+                                        <para>(OpenSSL Version) Use the
+                                        Certificate Revocation List (CRL) from
+                                        the given file during the verification
+                                        of the certificate. The CRL must be
+                                        given in PEM format, see
+                                            <citerefentry>
+                                                <refentrytitle>crl</refentrytitle>
+                                                <manvolnum>1ssl</manvolnum>
+                                            </citerefentry>
+                                        for details.</para>
+                                    </listitem>
+                                </varlistentry>
                                 </variablelist>
                             </para>
                             <para condition="with_nss">
