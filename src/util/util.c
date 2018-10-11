@@ -1024,6 +1024,7 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
     cert_verify_opts->do_verification = true;
     cert_verify_opts->ocsp_default_responder = NULL;
     cert_verify_opts->ocsp_default_responder_signing_cert = NULL;
+    cert_verify_opts->crl_file = NULL;
 
     return cert_verify_opts;
 }
@@ -1035,6 +1036,8 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
                                           "ocsp_default_responder_signing_cert="
 #define OCSP_DEFAUL_RESPONDER_SIGNING_CERT_LEN \
                                 (sizeof(OCSP_DEFAUL_RESPONDER_SIGNING_CERT) - 1)
+#define CRL_FILE "crl_file="
+#define CRL_FILE_LEN (sizeof(CRL_FILE) -1)
 
 errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                                struct cert_verify_opts **_cert_verify_opts)
@@ -1116,6 +1119,16 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
             DEBUG(SSSDBG_TRACE_ALL,
                   "Using OCSP default responder signing cert nickname [%s]\n",
                   cert_verify_opts->ocsp_default_responder_signing_cert);
+        } else if (strncasecmp(opts[c], CRL_FILE, CRL_FILE_LEN) == 0) {
+            cert_verify_opts->crl_file = talloc_strdup(cert_verify_opts,
+                                                       &opts[c][CRL_FILE_LEN]);
+            if (cert_verify_opts->crl_file == NULL
+                    || *cert_verify_opts->crl_file == '\0') {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to parse crl_file option [%s].\n", opts[c]);
+                ret = EINVAL;
+                goto done;
+            }
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unsupported certificate verification option [%s], " \

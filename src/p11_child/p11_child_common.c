@@ -48,7 +48,7 @@ static const char *op_mode_str(enum op_mode mode)
         return "pre-auth";
         break;
     case OP_VERIFIY:
-        return "verifiy";
+        return "verify";
         break;
     default:
         return "unknown";
@@ -219,7 +219,7 @@ int main(int argc, const char *argv[])
         case 'a':
             if (mode != OP_NONE) {
                 fprintf(stderr,
-                        "\n--verifiy, --auth and --pre are mutually " \
+                        "\n--verify, --auth and --pre are mutually " \
                         "exclusive and should be only used once.\n\n");
                 poptPrintUsage(pc, stderr, 0);
                 _exit(-1);
@@ -229,7 +229,7 @@ int main(int argc, const char *argv[])
         case 'p':
             if (mode != OP_NONE) {
                 fprintf(stderr,
-                        "\n--verifiy, --auth and --pre are mutually " \
+                        "\n--verify, --auth and --pre are mutually " \
                         "exclusive and should be only used once.\n\n");
                 poptPrintUsage(pc, stderr, 0);
                 _exit(-1);
@@ -239,7 +239,7 @@ int main(int argc, const char *argv[])
         case 'v':
             if (mode != OP_NONE) {
                 fprintf(stderr,
-                        "\n--verifiy, --auth and --pre are mutually " \
+                        "\n--verify, --auth and --pre are mutually " \
                         "exclusive and should be only used once.\n\n");
                 poptPrintUsage(pc, stderr, 0);
                 _exit(-1);
@@ -283,7 +283,7 @@ int main(int argc, const char *argv[])
 
     if (mode == OP_NONE) {
         fprintf(stderr, "\nMissing operation mode, either " \
-                        "--verifiy, --auth or --pre must be specified.\n\n");
+                        "--verify, --auth or --pre must be specified.\n\n");
         poptPrintUsage(pc, stderr, 0);
         _exit(-1);
     } else if (mode == OP_AUTH && pin_mode == PIN_NONE) {
@@ -350,7 +350,7 @@ int main(int argc, const char *argv[])
 
     ret = parse_cert_verify_opts(main_ctx, verify_opts, &cert_verify_opts);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verifiy option.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verify option.\n");
         goto fail;
     }
 
