@@ -1036,8 +1036,8 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
 {
     int ret;
     size_t c;
-    size_t s;
-    CK_FUNCTION_LIST **modules;
+    size_t s = 0;
+    CK_FUNCTION_LIST **modules = NULL;
     CK_FUNCTION_LIST *module = NULL;
     char *mod_name;
     char *mod_file_name;
