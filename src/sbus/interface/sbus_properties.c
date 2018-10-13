@@ -355,6 +355,8 @@ sbus_request_property(TALLOC_CTX *mem_ctx,
     case SBUS_PROPERTY_WRITABLE:
         type = SBUS_REQUEST_PROPERTY_SET;
         break;
+    default:
+        return EINVAL;
     }
 
     sbus_req = sbus_request_create(mem_ctx, conn, type, destination,
