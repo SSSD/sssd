@@ -662,6 +662,7 @@ dist_noinst_HEADERS = \
     src/util/sss_nss.h \
     src/util/sss_ldap.h \
     src/util/sss_python.h \
+    src/util/sss_regexp.h \
     src/util/sss_krb5.h \
     src/util/sss_selinux.h \
     src/util/sss_sockets.h \
@@ -1265,6 +1266,7 @@ libsss_util_la_SOURCES = \
     src/util/sss_ptr_hash.c \
     src/util/files.c \
     src/util/selinux.c \
+    src/util/sss_regexp.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \

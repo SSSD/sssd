@@ -26,13 +26,13 @@
 
 #include <stdint.h>
 #include <sys/un.h>
-#include <pcre.h>
 #include <sys/resource.h>
 #include <talloc.h>
 #include <tevent.h>
 #include <ldb.h>
 #include <dhash.h>
 
+#include "util/sss_regexp.h"
 #include "sss_iface/sss_iface_async.h"
 #include "responder/common/negcache.h"
 #include "sss_client/sss_cli.h"
