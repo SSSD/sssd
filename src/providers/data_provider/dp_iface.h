@@ -188,4 +188,7 @@ errno_t
 dp_access_control_refresh_rules_recv(TALLOC_CTX *mem_ctx,
                                      struct tevent_req *req);
 
+
+errno_t
+dp_add_sr_attribute(struct be_ctx *be_ctx);
 #endif /* DP_IFACE_H_ */

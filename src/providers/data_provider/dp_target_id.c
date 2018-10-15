@@ -328,6 +328,68 @@ done:
     talloc_free(tmp_ctx);
 }
 
+errno_t dp_add_sr_attribute(struct be_ctx *be_ctx)
+{
+    int ret;
+    struct dp_initgr_ctx *dp_initgr_ctx = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct dp_id_data *data;
+    size_t msgs_count;
+    struct ldb_message **msgs = NULL;
+    const char *attrs[] = {SYSDB_NAME, NULL};
+    size_t c;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_users(tmp_ctx, be_ctx->domain, "("SYSDB_NAME "=*)", attrs,
+                            &msgs_count, &msgs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_users failed.\n");
+        goto done;
+    }
+
+    data = talloc_zero(tmp_ctx, struct dp_id_data);
+    if (data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    data->entry_type = BE_REQ_INITGROUPS;
+    data->filter_type = BE_FILTER_NAME;
+    data->filter_value = NULL;
+    data->extra_value = NULL;
+    data->domain = be_ctx->domain->name;
+
+    for (c = 0; c < msgs_count; c++) {
+        data->filter_value = ldb_msg_find_attr_as_string(msgs[c], SYSDB_NAME,
+                                                         NULL);
+        if (data->filter_value == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cache object [%s] does not have a name, skipping.\n",
+                  ldb_dn_get_linearized(msgs[c]->dn));
+            continue;
+        }
+
+        talloc_free(dp_initgr_ctx);
+        ret = dp_create_initgroups_ctx(tmp_ctx, be_ctx, data, &dp_initgr_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "dp_create_initgroups_ctx failed.\n");
+            goto done;
+        }
+
+        dp_req_initgr_pp_sr_overlay(be_ctx->provider, dp_initgr_ctx);
+    }
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static errno_t set_initgroups_expire_attribute(struct sss_domain_info *domain,
                                                const char *name)
 {
