@@ -48,7 +48,7 @@
 #include "resolv/async_resolv.h"
 #include "sss_iface/sss_iface_async.h"
 
-/* org.freedesktop.sssd.service */
+/* sssd.service */
 static errno_t
 data_provider_res_init(TALLOC_CTX *mem_ctx,
                        struct sbus_request *sbus_req,
