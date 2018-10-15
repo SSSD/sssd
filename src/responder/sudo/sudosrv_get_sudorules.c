@@ -576,10 +576,15 @@ static void sudosrv_refresh_rules_done(struct tevent_req *subreq)
     ret = sss_dp_get_sudoers_recv(state, subreq, &err_maj, &err_min, &err_msg);
     talloc_zfree(subreq);
     if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh rules [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    } else if (err_maj != 0 || err_min != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to get information from Data Provider, "
               "Error: %u, %u, %s\n",
-              (unsigned int)err_maj, (unsigned int)err_min, err_msg);
+              (unsigned int)err_maj, (unsigned int)err_min,
+              (err_msg == NULL ? "(null)" : err_msg));
         goto done;
     }
 
