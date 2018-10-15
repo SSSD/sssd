@@ -64,6 +64,8 @@
    Memcheck:Leak
    fun:malloc
    fun:pcre_compile2
+   fun:sss_regexp_pcre1_compile
+   fun:sss_regexp_new
    fun:sss_names_init_from_args
    ...
 }

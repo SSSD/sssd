@@ -43,7 +43,7 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
                                          const char *upn);
 
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
-                             const char *template, pcre *illegal_re,
+                             const char *template, sss_regexp_t *illegal_re,
                              bool file_mode, bool case_sensitive);
 
 errno_t get_domain_or_subdomain(struct be_ctx *be_ctx,

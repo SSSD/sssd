@@ -203,29 +203,29 @@ done:
 #define L_EXP_USERNAME (sizeof(S_EXP_USERNAME) - 1)
 
 static errno_t
-check_ccache_re(const char *filename, pcre *illegal_re)
+check_ccache_re(const char *filename, sss_regexp_t *illegal_re)
 {
     errno_t ret;
 
-    ret = pcre_exec(illegal_re, NULL, filename, strlen(filename),
-                    0, 0, NULL, 0);
+    ret = sss_regexp_match(illegal_re, filename, 0, 0);
+
     if (ret == 0) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Illegal pattern in ccache directory name [%s].\n", filename);
         return EINVAL;
-    } else if (ret == PCRE_ERROR_NOMATCH) {
+    } else if (ret == SSS_REGEXP_ERROR_NOMATCH) {
         DEBUG(SSSDBG_TRACE_LIBS,
               "Ccache directory name [%s] does not contain "
                "illegal patterns.\n", filename);
         return EOK;
     }
 
-    DEBUG(SSSDBG_CRIT_FAILURE, "pcre_exec failed [%d].\n", ret);
+    DEBUG(SSSDBG_CRIT_FAILURE, "regexp match failed [%d].\n", ret);
     return EFAULT;
 }
 
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
-                             const char *template, pcre *illegal_re,
+                             const char *template, sss_regexp_t *illegal_re,
                              bool file_mode, bool case_sensitive)
 {
     char *copy;
