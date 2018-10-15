@@ -26,8 +26,8 @@
 #ifndef __KRB5_AUTH_H__
 #define __KRB5_AUTH_H__
 
-#include <pcre.h>
 
+#include "util/sss_regexp.h"
 #include "util/sss_krb5.h"
 #include "providers/backend.h"
 #include "util/child_common.h"

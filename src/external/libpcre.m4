@@ -1,13 +1,45 @@
 AC_SUBST(PCRE_LIBS)
 AC_SUBST(PCRE_CFLAGS)
 
-PKG_CHECK_MODULES([PCRE], [libpcre], [found_libpcre=yes], [found_libpcre=no])
-PKG_CHECK_EXISTS(libpcre >= 7,
-                 [AC_MSG_NOTICE([PCRE version is 7 or higher])],
-                 [AC_MSG_NOTICE([PCRE version is below 7])
-                  AC_DEFINE([HAVE_LIBPCRE_LESSER_THAN_7],
-                            1,
-                            [Define if libpcre version is less than 7])])
+PKG_CHECK_MODULES(
+    [PCRE],
+    [libpcre],
+    [
+        found_libpcre=yes
+        PKG_CHECK_EXISTS(
+            libpcre >= 7,
+            [AC_MSG_NOTICE([PCRE version is 7 or higher])],
+            [
+                AC_MSG_NOTICE([PCRE version is below 7])
+                AC_DEFINE(
+                    [HAVE_LIBPCRE_LESSER_THAN_7],
+                    1,
+                    [Define if libpcre version is less than 7]
+                )
+            ]
+        )
+    ],
+    [
+        PKG_CHECK_MODULES(
+            [PCRE2],
+            [libpcre2-8],
+            [
+                found_libpcre=yes
+                AC_DEFINE(
+                    [HAVE_LIBPCRE2],
+                    1,
+                    [Define if libpcre2 is present]
+                )
+                AC_DEFINE(
+                    [PCRE2_CODE_UNIT_WIDTH],
+                    8,
+                    [Define libpcre2 unit size]
+                )
+            ],
+            [found_libpcre=no]
+        )
+    ]
+)
 
 SSS_AC_EXPAND_LIB_DIR()
 AS_IF([test x"$found_libpcre" != xyes],

@@ -191,17 +191,15 @@ START_TEST(test_illegal_patterns)
     char *cwd;
     char *dirname;
     char *filename;
-    pcre *illegal_re;
-    const char *errstr;
-    int errval;
-    int errpos;
+    sss_regexp_t *illegal_re;
+    int err;
     char *result = NULL;
 
-    illegal_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
-                               &errval, &errstr, &errpos, NULL);
-    fail_unless(illegal_re != NULL, "Invalid Regular Expression pattern at "
-                                    " position %d. (Error: %d [%s])\n",
-                                    errpos, errval, errstr);
+
+    err = sss_regexp_new(NULL, ILLEGAL_PATH_PATTERN, 0, &illegal_re);
+
+    fail_unless(err == 0, "Invalid Regular Expression pattern error %d.\n", err);
+    fail_unless(illegal_re != NULL, "No error but illegal_re is NULL.\n");
 
     cwd = getcwd(NULL, 0);
     fail_unless(cwd != NULL, "getcwd failed.");
@@ -233,7 +231,7 @@ START_TEST(test_illegal_patterns)
                                 "illegal pattern '//' in filename [%s].",
                                 filename);
 
-    pcre_free(illegal_re);
+    talloc_free(illegal_re);
 }
 END_TEST
 
@@ -816,4 +814,3 @@ int main(int argc, const char *argv[])
 
     return EXIT_FAILURE;
 }
-

@@ -20,7 +20,6 @@
 */
 
 #include <pwd.h>
-#include <pcre.h>
 #include <errno.h>
 #include <talloc.h>
 #include <pwd.h>
@@ -33,11 +32,7 @@
 #include "util/safe-format-string.h"
 #include "responder/common/responder.h"
 
-#ifdef HAVE_LIBPCRE_LESSER_THAN_7
-#define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_EXTENDED)
-#else
-#define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_DUPNAMES | PCRE_EXTENDED)
-#endif
+#define NAME_DOMAIN_PATTERN_OPTIONS (SSS_REGEXP_DUPNAMES | SSS_REGEXP_EXTENDED)
 
 /* Function returns given realm name as new uppercase string */
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name)
@@ -59,15 +54,6 @@ char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name)
     return realm;
 }
 
-
-static int sss_names_ctx_destructor(struct sss_names_ctx *snctx)
-{
-    if (snctx->re) {
-        pcre_free(snctx->re);
-        snctx->re = NULL;
-    }
-    return 0;
-}
 
 #define IPA_AD_DEFAULT_RE "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
                          "((?P<name>[^@]+)@(?P<domain>.+$))|" \
@@ -161,14 +147,11 @@ int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
                              const char *fq_fmt, struct sss_names_ctx **out)
 {
     struct sss_names_ctx *ctx;
-    const char *errstr;
     int errval;
-    int errpos;
     int ret;
 
     ctx = talloc_zero(mem_ctx, struct sss_names_ctx);
     if (!ctx) return ENOMEM;
-    talloc_set_destructor(ctx, sss_names_ctx_destructor);
 
     ctx->re_pattern = talloc_strdup(ctx, re_pattern);
     if (ctx->re_pattern == NULL) {
@@ -185,13 +168,11 @@ int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
         goto done;
     }
 
-    ctx->re = pcre_compile2(ctx->re_pattern,
+    errval = sss_regexp_new(ctx,
+                            ctx->re_pattern,
                             NAME_DOMAIN_PATTERN_OPTIONS,
-                            &errval, &errstr, &errpos, NULL);
-    if (!ctx->re) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Invalid Regular Expression pattern at position %d."
-                  " (Error: %d [%s])\n", errpos, errval, errstr);
+                            &(ctx->re));
+    if (errval != 0) {
         ret = EFAULT;
         goto done;
     }
@@ -308,16 +289,12 @@ int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **_domain, char **_name)
 {
-    pcre *re = snctx->re;
+    sss_regexp_t *re = snctx->re;
     const char *result;
-    int ovec[30];
-    int origlen;
-    int ret, strnum;
+    int ret;
 
-    origlen = strlen(orig);
-
-    ret = pcre_exec(re, NULL, orig, origlen, 0, PCRE_NOTEMPTY, ovec, 30);
-    if (ret == PCRE_ERROR_NOMATCH) {
+    ret = sss_regexp_match(re, orig, 0, SSS_REGEXP_NOTEMPTY);
+    if (ret == SSS_REGEXP_ERROR_NOMATCH) {
         return ERR_REGEX_NOMATCH;
     } else if (ret < 0) {
         DEBUG(SSSDBG_MINOR_FAILURE, "PCRE Matching error, %d\n", ret);
@@ -329,24 +306,20 @@ int sss_parse_name(TALLOC_CTX *memctx,
               "Too many matches, the pattern is invalid.\n");
     }
 
-    strnum = ret;
-
     if (_name != NULL) {
         result = NULL;
-        ret = pcre_get_named_substring(re, orig, ovec, strnum, "name", &result);
+        ret = sss_regexp_get_named_substring(re, "name", &result);
         if (ret < 0  || !result) {
             DEBUG(SSSDBG_OP_FAILURE, "Name not found!\n");
             return EINVAL;
         }
         *_name = talloc_strdup(memctx, result);
-        pcre_free_substring(result);
         if (!*_name) return ENOMEM;
     }
 
     if (_domain != NULL) {
         result = NULL;
-        ret = pcre_get_named_substring(re, orig, ovec, strnum, "domain",
-                                       &result);
+        ret = sss_regexp_get_named_substring(re, "domain", &result);
         if (ret < 0  || !result) {
             DEBUG(SSSDBG_CONF_SETTINGS, "Domain not provided!\n");
             *_domain = NULL;
@@ -354,10 +327,8 @@ int sss_parse_name(TALLOC_CTX *memctx,
             /* ignore "" string */
             if (*result) {
                 *_domain = talloc_strdup(memctx, result);
-                pcre_free_substring(result);
                 if (!*_domain) return ENOMEM;
             } else {
-                pcre_free_substring(result);
                 *_domain = NULL;
             }
         }

@@ -28,7 +28,6 @@
 #include <libintl.h>
 #include <locale.h>
 #include <time.h>
-#include <pcre.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
@@ -44,6 +43,7 @@
 #include "util/atomic_io.h"
 #include "util/util_errors.h"
 #include "util/sss_format.h"
+#include "util/sss_regexp.h"
 #include "util/debug.h"
 
 /* name of the monitor server instance */
@@ -208,7 +208,7 @@ struct sss_names_ctx {
     char *re_pattern;
     char *fq_fmt;
 
-    pcre *re;
+    sss_regexp_t *re;
 };
 
 /* initialize sss_names_ctx directly from arguments */

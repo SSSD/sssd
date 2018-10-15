@@ -123,16 +123,6 @@ static errno_t krb5_init_kdc(struct krb5_ctx *ctx, struct be_ctx *be_ctx)
     return EOK;
 }
 
-int krb5_ctx_re_destructor(struct krb5_ctx *ctx)
-{
-    if (ctx->illegal_path_re != NULL) {
-        pcre_free(ctx->illegal_path_re);
-        ctx->illegal_path_re = NULL;
-    }
-
-    return 0;
-}
-
 errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
                        struct be_ctx *be_ctx,
                        struct data_provider *provider,
@@ -140,9 +130,6 @@ errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
                        void **_module_data)
 {
     struct krb5_ctx *ctx;
-    const char *errstr;
-    int errval;
-    int errpos;
     errno_t ret;
 
     ctx = talloc_zero(mem_ctx, struct krb5_ctx);
@@ -181,15 +168,11 @@ errno_t sssm_krb5_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ctx->illegal_path_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
-                                         &errval, &errstr, &errpos, NULL);
-    if (ctx->illegal_path_re == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid Regular Expression pattern "
-              "at position %d. (Error: %d [%s])\n", errpos, errval, errstr);
+    ret = sss_regexp_new(ctx, ILLEGAL_PATH_PATTERN, 0, &(ctx->illegal_path_re));
+    if (ret != EOK) {
         ret = EFAULT;
         goto done;
     }
-    talloc_set_destructor(ctx, krb5_ctx_re_destructor);
 
     ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, NULL);
     if (ret != EOK) {

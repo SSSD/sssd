@@ -126,7 +126,7 @@ struct krb5_ctx {
     struct krb5_service *kpasswd_service;
     int child_debug_fd;
 
-    pcre *illegal_path_re;
+    sss_regexp_t *illegal_path_re;
 
     struct deferred_auth_ctx *deferred_auth_ctx;
     struct renew_tgt_ctx *renew_tgt_ctx;
