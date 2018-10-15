@@ -66,7 +66,7 @@ sss_dp_get_sudoers_msg(TALLOC_CTX *mem_ctx,
 
     msg = dbus_message_new_method_call(bus_name,
                                        SSS_BUS_PATH,
-                                       "org.freedesktop.sssd.dataprovider",
+                                       "sssd.dataprovider",
                                        "sudoHandler");
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
