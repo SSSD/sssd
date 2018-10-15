@@ -26,6 +26,7 @@
 #include "db/sysdb.h"
 #include "util/inotify.h"
 #include "util/util.h"
+#include "providers/data_provider/dp_iface.h"
 
 /* When changing this constant, make sure to also adjust the files integration
  * test for reallocation branch
@@ -769,6 +770,12 @@ static errno_t sf_enum_files(struct files_id_ctx *id_ctx,
                 goto done;
             }
         }
+    }
+
+    ret = dp_add_sr_attribute(id_ctx->be);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to add session recording attribute, ignored.\n");
     }
 
     ret = sysdb_transaction_commit(id_ctx->domain->sysdb);
