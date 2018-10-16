@@ -252,10 +252,10 @@ def files_domain_users_class(request, session_multihost):
 
 
 @pytest.fixture
-def create_sudorule(session_multihost, create_casesensitive_posix_user):
+def case_sensitive_sudorule(session_multihost,
+                            create_casesensitive_posix_user,
+                            request):
     """ Create posix user and groups """
-    # pylint: disable=unused-argument
-    _pytest_fixtures = [create_casesensitive_posix_user]
     ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
     ds_rootdn = 'cn=Directory Manager'
     ds_rootpw = 'Secret123'
@@ -277,6 +277,16 @@ def create_sudorule(session_multihost, create_casesensitive_posix_user):
                                 sudo_options)
     except LdapException:
         pytest.fail("Failed to add sudo rule %s" % rule_dn2)
+
+    def del_sensitive_sudo_rule():
+        """ Delete sudo rule """
+        (ret, _) = ldap_inst.del_dn(rule_dn1)
+        assert ret == 'Success'
+        (ret, _) = ldap_inst.del_dn(rule_dn2)
+        assert ret == 'Success'
+        (ret, _) = ldap_inst.del_dn(sudo_ou)
+        assert ret == 'Success'
+    request.addfinalizer(del_sensitive_sudo_rule)
 
 
 @pytest.fixture
