@@ -2,6 +2,7 @@
 from sssd.testlib.common.utils import SSHClient
 import paramiko
 import pytest
+import time
 
 
 class TestSanitySudo(object):
@@ -28,4 +29,28 @@ class TestSanitySudo(object):
                     result.append(line.strip('(root) NOPASSWD: '))
             assert '/usr/bin/less\n' in result
             assert '/usr/bin/more\n' in result
+            ssh.close()
+
+    def test_refresh_expired_rule(self, multihost,
+                                  enable_sss_sudo_nsswitch,
+                                  generic_sudorule,
+                                  set_entry_cache_sudo_timeout):
+        """ Verify refreshing expired sudo rules doesn't crash sssd_sudo """
+        # pylint: disable=unused-argument
+        _pytest_fixtures = [enable_sss_sudo_nsswitch, generic_sudorule,
+                            set_entry_cache_sudo_timeout]
+        try:
+            ssh = SSHClient(multihost.master[0].sys_hostname,
+                            username='foo1', password='Secret123')
+        except paramiko.ssh_exception.AuthenticationException:
+            pytest.fail("%s failed to login" % 'foo1')
+        else:
+            print("Executing %s command as %s user" % ('sudo -l', 'foo1'))
+            (_, _, exit_status) = ssh.execute_cmd('sudo -l')
+            assert exit_status == 0
+            time.sleep(30)
+            if exit_status != 0:
+                journalctl_cmd = 'journalctl -x -n 100 --no-pager'
+                multihost.master[0].run_command(journalctl_cmd)
+                pytest.fail("%s cmd failed for user %s" % ('sudo -l', 'foo1'))
             ssh.close()
