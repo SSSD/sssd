@@ -6,12 +6,12 @@ import pytest
 
 class TestSanitySudo(object):
     """ Basic Sanity Test cases for sudo service in sssd """
-    def test_case_senitivity(self, multihost, create_sudorule,
+    def test_case_senitivity(self, multihost, case_sensitive_sudorule,
                              enable_sss_sudo_nsswitch,
                              set_case_sensitive_false):
         """ Verify case sensitivity in sudo responder """
         # pylint: disable=unused-argument
-        _pytest_fixtures = [create_sudorule, enable_sss_sudo_nsswitch,
+        _pytest_fixtures = [case_sensitive_sudorule, enable_sss_sudo_nsswitch,
                             set_case_sensitive_false]
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
