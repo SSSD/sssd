@@ -48,20 +48,20 @@ class sssdTools(object):
 
             :param str ip_addr: IP Address to be added in resolv.conf
             :return: None
-            :Exception: Raises OSException of builtin type Exception
         """
         self.multihost.log.info("Taking backup of /etc/resolv.conf")
         bkup_cmd = 'cp -f /etc/resolv.conf /etc/resolv.conf.bkup'
-        output = self.multihost.run_command(bkup_cmd, raiseonerr=False)
+        self.multihost.run_command(bkup_cmd, raiseonerr=False)
         self.multihost.log.info("/etc/resolv.conf successfully backed up")
         self.multihost.log.info("Add ip addr %s in resolv.conf" % ip_addr)
         nameserver = 'nameserver %s\n' % ip_addr
-        contents = self.multihost.get_file_contents('/etc/resolv.conf')
-        if not contents.startswith(nameserver):
-            contents = nameserver + contents.replace(nameserver, '')
-            self.multihost.put_file_contents('/etc/resolv.conf', contents)
+        resolv_conf = self.multihost.get_file_contents('/etc/resolv.conf')
+        if isinstance(resolv_conf, bytes):
+            contents = resolv_conf.decode('utf-8')
         else:
-            raise OSException("modifying resolv.conf failed")
+            contents = resolv_conf
+        contents = nameserver + contents.replace(nameserver, '')
+        self.multihost.put_file_contents('/etc/resolv.conf', contents)
 
     def config_authconfig(self, hostname, domainname):
         """ Run authconfig to configure Kerberos and SSSD auth on remote host
