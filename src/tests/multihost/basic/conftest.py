@@ -219,6 +219,59 @@ def set_case_sensitive_false(session_multihost, request):
 
 
 @pytest.fixture
+def set_entry_cache_sudo_timeout(session_multihost, request):
+    """ Set entry cache sudo timeout in sssd.conf """
+    bkup_sssd = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
+    session_multihost.master[0].run_command(bkup_sssd)
+    session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
+                                                   '/tmp/sssd.conf')
+    sssdconfig = ConfigParser.ConfigParser()
+    sssdconfig.read('/tmp/sssd.conf')
+    domain_section = "%s/%s" % ('domain', 'EXAMPLE.TEST')
+    if domain_section in sssdconfig.sections():
+        sssdconfig.set(domain_section, 'entry_cache_sudo_timeout', '30')
+        with open('/tmp/sssd.conf', "w") as sssconf:
+            sssdconfig.write(sssconf)
+    session_multihost.master[0].transport.put_file('/tmp/sssd.conf',
+                                                   '/etc/sssd/sssd.conf')
+    session_multihost.master[0].service_sssd('restart')
+
+    def restore_sssd():
+        """ Restore sssd.conf """
+        restore_sssd = 'cp -f /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
+        session_multihost.master[0].run_command(restore_sssd)
+        session_multihost.master[0].service_sssd('restart')
+    request.addfinalizer(restore_sssd)
+
+
+@pytest.fixture
+def generic_sudorule(session_multihost, request):
+    """ Create a generic sudo rule """
+    ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
+    ds_rootdn = 'cn=Directory Manager'
+    ds_rootpw = 'Secret123'
+    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    ldap_inst.org_unit('sudoers', 'dc=example,dc=test')
+    sudo_ou = 'ou=sudoers,dc=example,dc=test'
+    rule_dn1 = "%s,%s" % ('cn=lessrule', sudo_ou)
+    sudo_options = ["!requiretty", "!authenticate"]
+    try:
+        ldap_inst.add_sudo_rule(rule_dn1, 'ALL',
+                                '/usr/bin/less', 'foo1',
+                                sudo_options)
+    except LdapException:
+        pytest.fail("Failed to add sudo rule %s" % rule_dn1)
+
+    def del_sudo_rule():
+        """ Delete sudo rule """
+        (ret, _) = ldap_inst.del_dn(rule_dn1)
+        assert ret == 'Success'
+        (ret, _) = ldap_inst.del_dn(sudo_ou)
+        assert ret == 'Success'
+    request.addfinalizer(del_sudo_rule)
+
+
+@pytest.fixture
 def enable_files_domain(session_multihost):
     """
     Enable the implicit files domain
