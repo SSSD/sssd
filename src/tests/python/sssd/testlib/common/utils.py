@@ -25,7 +25,7 @@ from ldap import modlist
 from .authconfig import RedHatAuthConfig
 from .exceptions import PkiLibException
 from .exceptions import LdapException
-from .exceptions import OSException
+from .exceptions import SSSDException
 
 
 PARAMIKO_VERSION = (int(paramiko.__version__.split('.')[0]),
@@ -121,9 +121,7 @@ class sssdTools(object):
             :param str client_software: client software to be used (sssd/samba)
             :param str server_software: server software (active-directory/ipa)
             :param str membership_software: membership software (samba/adcli)
-            :return bool: True if successfully joined to AD/IPA
-                          else raises Exception
-            :Exception: Raises exception(builtin)
+            :Exception: Raises SSSDException
         """
 
         cmd = self.multihost.run_command(['realm', 'join', domainname,
@@ -137,9 +135,7 @@ class sssdTools(object):
                                          raiseonerr=False)
 
         if cmd.returncode != 0:
-            raise Exception("Error: %s" % cmd.stderr_text)
-        else:
-            return True
+            raise SSSDException("Error: %s" % cmd.stderr_text)
 
     def realm_leave(self, domainname):
         """ Leave system from AD/IPA Domain
@@ -147,16 +143,14 @@ class sssdTools(object):
             :param str domainname: domain name of AD/IPA
             :return bool: True if successfully dis-joined to AD/IPA
              else raises Exception
-            :Exception: Raises exception(builtin)
+            :Exception: Raises SSSDException
         """
 
         cmd = self.multihost.run_command(['realm', 'leave',
                                           domainname, '-v'],
                                          raiseonerr=False)
         if cmd.returncode != 0:
-            raise Exception("Error: %s", cmd.stderr_text)
-        else:
-            return True
+            raise SSSDException("Error: %s", cmd.stderr_text)
 
     def export_nfs_fs(self, path_list, nfs_client):
         """ Add local file systems directories to /etc/exports
@@ -174,7 +168,7 @@ class sssdTools(object):
             cmd = self.multihost.run_command(['mkdir', '-p', local_dir],
                                              raiseonerr=False)
             if cmd.returncode != 0:
-                raise Exception("Unable to create %s directory" % local_dir)
+                raise SSSDException("fail to create %s directory" % local_dir)
             exp_share = '{}{}{}{}'.format(local_dir, ' ', nfs_client,
                                           '(rw,sync,fsid=0)')
 
@@ -201,11 +195,11 @@ class sssdTools(object):
                                                       relative_path],
                                                      raiseonerr=False)
                 if rm_file.returncode != 0:
-                    raise Exception("Error: %s", cmd.stderr_text)
+                    raise SSSDException("Error: %s", cmd.stderr_text)
                 else:
                     print("Successfully deleted %s" % (relative_path))
         else:
-            raise Exception('%s path not found' % cache_path)
+            raise SSSDException('%s path not found' % cache_path)
         return True
 
     def domain_from_suffix(self, suffix):
@@ -237,7 +231,7 @@ class sssdTools(object):
         path = ("/var/log/sssd/sssd_%s.log" % domainname)
         cmd = self.multihost.run_command(['rm', '-rf', path], raiseonerr=False)
         if cmd.returncode != 0:
-            raise Exception("Error: %s", cmd.stderr_text)
+            raise SSSDException("Error: %s", cmd.stderr_text)
         else:
             return True
 
@@ -254,7 +248,7 @@ class sssdTools(object):
         cmd = self.multihost.run_command(['net', 'ads', 'dn', user_dn],
                                          raiseonerr=False)
         if cmd.returncode != 0:
-            raise Exception("Error: %s", cmd.stderr_text)
+            raise SSSDException("Error: %s", cmd.stderr_text)
         else:
             return(True, cmd.stdout_text)
 
@@ -307,7 +301,7 @@ class sssdTools(object):
         if krb5_server is None:
             krb5_server = self.multihost.sys_hostname
         if realm is None:
-            raise Exception("Error: realm should be passed")
+            raise SSSDException("Error: realm should be passed")
         else:
             realm_def = ("{\n"
                          "kdc = %s\n"
@@ -355,7 +349,7 @@ class sssdTools(object):
         """ Enable kcm
             :param: None
             :Return: None
-            :Exception: Raise Exception("message")
+            :Exception: Raise SSSDException
         """
         self.multihost.transport.get_file('/etc/krb5.conf', '/tmp/krb5.conf')
         str1 = 'includedir /var/lib/sss/pubconf/krb5.include.d/'
@@ -380,23 +374,23 @@ class sssdTools(object):
             self.multihost.run_command(['ls', '-l', symlink])
         except subprocess.CalledProcessError:
             self.multihost.log.info("kcm socket not enabled")
-            raise Exception("kcm socket not enabled")
+            raise SSSDException("kcm socket not enabled")
         start_ssd_kcm_socket = 'systemctl start sssd-kcm.socket'
         cmd = self.multihost.run_command(start_ssd_kcm_socket,
                                          raiseonerr=False)
         if cmd.returncode != 0:
-            raise Exception("sssd-kcm.socket service not started")
+            raise SSSDException("sssd-kcm.socket service not started")
         enable_kcm_service = 'systemctl enable sssd-kcm.service'
         cmd = self.multihost.run_command(enable_kcm_service,
                                          raiseonerr=False)
         symlink = '/etc/systemd/system/sockets.target.wants/sssd-kcm.socket'
         if cmd.returncode != 0:
-            raise Exception("sssd-kcm.service not enabled")
+            raise SSSDException("sssd-kcm.service not enabled")
         try:
             self.multihost.run_command(['ls', '-l', symlink])
         except subprocess.CalledProcessError:
             self.multihost.log.info("kcm socket not enabled")
-            raise Exception("kcm socket not enabled")
+            raise SSSDException("kcm socket not enabled")
 
 
 class LdapOperations(object):
@@ -506,7 +500,7 @@ class LdapOperations(object):
             :param str basedn: Base dn ('dc=example,dc=test')
             :param dict user_attr: Entry attributes
             :Return bool: Return True
-            :Exception: Raise Exception if unable to add user
+            :Exception: Raise SSSDException if unable to add user
         """
         common_name = user_attr['cn']
         uid = user_attr['uid']
@@ -557,7 +551,7 @@ class LdapOperations(object):
         if ret == 'Success':
             return True
         else:
-            raise Exception('Unable to add User to ldap')
+            raise LdapException('Unable to add User to ldap')
 
     def posix_group(self, org_unit, basedn, group_attr, memberUid=False):
         """ Add POSIX group
@@ -739,7 +733,7 @@ class PkiTools(object):
         :param str cwd: Current working Directory
 
         :return stdout, stderr and returncode: if command return code is 0
-        :Exception: raises exception if raiseonerr is True
+        :Exception: raises subprocess.CalledProcessError Exception
         """
 
         p_in = None
@@ -925,7 +919,7 @@ class ADOperations(object):
 
         :param str groupname: Windows AD Group name
         :Return bool : True if AD group was created with Unix Attributes
-        :Exceptions: None
+        :Exception: None
         """
 
         gid = random.randint(9999, 999999)
