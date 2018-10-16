@@ -101,7 +101,7 @@ def setup_sssd(session_multihost, request):
     ldap_uri = 'ldap://%s' % (session_multihost.master[0].sys_hostname)
     krb5_server = session_multihost.master[0].sys_hostname
     cacert_loc = '/etc/openldap/cacerts/cacert.pem'
-    sssdConfig = ConfigParser.SafeConfigParser()
+    sssdConfig = ConfigParser.ConfigParser()
     sssdConfig.optionxform = str
     sssdConfig.add_section('sssd')
     sssdConfig.set('sssd', 'domains', 'EXAMPLE.TEST')
@@ -199,7 +199,7 @@ def set_case_sensitive_false(session_multihost, request):
     session_multihost.master[0].run_command(bkup_sssd)
     session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
                                                    '/tmp/sssd.conf')
-    sssdconfig = ConfigParser.SafeConfigParser()
+    sssdconfig = ConfigParser.ConfigParser()
     sssdconfig.read('/tmp/sssd.conf')
     domain_section = "%s/%s" % ('domain', 'EXAMPLE.TEST')
     if domain_section in sssdconfig.sections():
