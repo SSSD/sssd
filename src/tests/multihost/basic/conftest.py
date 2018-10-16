@@ -193,8 +193,10 @@ def create_casesensitive_posix_user(session_multihost):
 
 
 @pytest.fixture
-def set_case_sensitive_false(session_multihost):
+def set_case_sensitive_false(session_multihost, request):
     """ Set case_sensitive to false in sssd domain section """
+    bkup_sssd = 'cp -f /etc/sssd/sssd.conf /etc/sssd/sssd.conf.orig'
+    session_multihost.master[0].run_command(bkup_sssd)
     session_multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
                                                    '/tmp/sssd.conf')
     sssdconfig = ConfigParser.SafeConfigParser()
@@ -207,6 +209,13 @@ def set_case_sensitive_false(session_multihost):
     session_multihost.master[0].transport.put_file('/tmp/sssd.conf',
                                                    '/etc/sssd/sssd.conf')
     session_multihost.master[0].service_sssd('restart')
+
+    def restore_sssd():
+        """ Restore sssd.conf """
+        restore_sssd = 'cp -f /etc/sssd/sssd.conf.orig /etc/sssd/sssd.conf'
+        session_multihost.master[0].run_command(restore_sssd)
+        session_multihost.master[0].service_sssd('restart')
+    request.addfinalizer(restore_sssd)
 
 
 @pytest.fixture
