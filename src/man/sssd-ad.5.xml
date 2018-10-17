@@ -437,6 +437,25 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ad_gpo_ignore_unreadable (boolean)</term>
+                    <listitem>
+                        <para>
+                            Normally when some group policy containers (AD
+                            object) of applicable group policy objects are
+                            not readable by SSSD then users are denied access.
+                            This option allows to ignore group policy
+                            containers and with them associated policies
+                            if their attributes in group policy containers
+                            are not readable for SSSD.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+
 
                 <varlistentry>
                     <term>ad_gpo_cache_timeout (integer)</term>
