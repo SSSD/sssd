@@ -3603,6 +3603,7 @@ struct ad_gpo_process_gpo_state {
     struct ad_access_ctx *access_ctx;
     struct tevent_context *ev;
     struct sdap_id_op *sdap_op;
+    struct dp_option *ad_options;
     struct sdap_options *opts;
     char *server_hostname;
     struct sss_domain_info *host_domain;
@@ -3647,6 +3648,7 @@ ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->sdap_op = sdap_op;
+    state->ad_options = access_ctx->ad_options;
     state->opts = opts;
     state->server_hostname = server_hostname;
     state->host_domain = host_domain;
@@ -3872,6 +3874,54 @@ static bool machine_ext_names_is_blank(char *attr_value)
 }
 
 static errno_t
+ad_gpo_missing_or_unreadable_attr(struct ad_gpo_process_gpo_state *state,
+                                  struct tevent_req *req)
+{
+    bool ignore_unreadable = dp_opt_get_bool(state->ad_options,
+                                             AD_GPO_IGNORE_UNREADABLE);
+
+    if (ignore_unreadable) {
+        /* If admins decided to skip GPOs with unreadable
+         * attributes just log the SID of skipped GPO */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Group Policy Container with DN [%s] has unreadable or missing "
+              "attributes -> skipping this GPO "
+              "(ad_gpo_ignore_unreadable = True)\n",
+              state->candidate_gpos[state->gpo_index]->gpo_dn);
+        state->gpo_index++;
+        return ad_gpo_get_gpo_attrs_step(req);
+    } else {
+        /* Inform in logs and syslog that this GPO can
+         * not be processed due to unreadable or missing
+         * attributes and point to possible server side
+         * and client side solutions. */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Group Policy Container with DN [%s] is unreadable or has "
+              "unreadable or missing attributes. In order to fix this "
+              "make sure that this AD object has following attributes "
+              "readable: nTSecurityDescriptor, cn, gPCFileSysPath, "
+              "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
+              "Alternatively if you do not have access to the server or can "
+              "not change permissions on this object, you can use option "
+              "ad_gpo_ignore_unreadable = True which will skip this GPO."
+              "See 'man ad_gpo_ignore_unreadable for details.'\n",
+              state->candidate_gpos[state->gpo_index]->gpo_dn);
+        sss_log(SSSDBG_CRIT_FAILURE,
+                "Group Policy Container with DN [%s] is unreadable or has "
+                "unreadable or missing attributes. In order to fix this "
+                "make sure that this AD object has following attributes "
+                "readable: nTSecurityDescriptor, cn, gPCFileSysPath, "
+                "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
+                "Alternatively if you do not have access to the server or can "
+                "not change permissions on this object, you can use option "
+                "ad_gpo_ignore_unreadable = True which will skip this GPO."
+                "See 'man ad_gpo_ignore_unreadable for details.'\n",
+                state->candidate_gpos[state->gpo_index]->gpo_dn);
+        return EFAULT;
+    }
+}
+
+static errno_t
 ad_gpo_sd_process_attrs(struct tevent_req *req,
                         char *smb_host,
                         struct sysdb_attrs *result)
@@ -3890,7 +3940,10 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
 
     /* retrieve AD_AT_CN */
     ret = sysdb_attrs_get_string(result, AD_AT_CN, &gpo_guid);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_attrs_get_string failed: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -3911,7 +3964,10 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
                                  AD_AT_FILE_SYS_PATH,
                                  &raw_file_sys_path);
 
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_attrs_get_string failed: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -3959,7 +4015,10 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
     /* retrieve AD_AT_FLAGS */
     ret = sysdb_attrs_get_int32_t(result, AD_AT_FLAGS,
                                   &gp_gpo->gpo_flags);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_attrs_get_int32_t failed: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -3977,7 +4036,7 @@ ad_gpo_sd_process_attrs(struct tevent_req *req,
     if ((ret == ENOENT) || (el->num_values == 0)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "nt_sec_desc attribute not found or has no value\n");
-        ret = ENOENT;
+        ret = ad_gpo_missing_or_unreadable_attr(state, req);
         goto done;
     }
 
