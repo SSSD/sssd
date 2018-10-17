@@ -39,6 +39,7 @@ struct dp_option ad_basic_opts[] = {
     { "ad_enable_gc", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ad_gpo_access_control", DP_OPT_STRING, { AD_GPO_ACCESS_MODE_DEFAULT }, NULL_STRING },
     { "ad_gpo_implicit_deny", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ad_gpo_ignore_unreadable", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ad_gpo_cache_timeout", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ad_gpo_map_interactive", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ad_gpo_map_remote_interactive", DP_OPT_STRING, NULL_STRING, NULL_STRING },
