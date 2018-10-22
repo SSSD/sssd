@@ -400,12 +400,11 @@ static char *nsupdate_msg_add_ptr(char *update_msg,
 static char *
 nsupdate_msg_add_realm_cmd(TALLOC_CTX *mem_ctx, const char *realm)
 {
-#ifdef HAVE_NSUPDATE_REALM
     if (realm != NULL) {
         return talloc_asprintf(mem_ctx, "realm %s\n", realm);
+    } else {
+        return talloc_asprintf(mem_ctx, "\n");
     }
-#endif
-    return talloc_asprintf(mem_ctx, "\n");
 }
 
 static char *
