@@ -156,8 +156,13 @@ int sss_ini_get_stat(struct sss_ini_initdata *init_data)
 
     return EOK;
 #else
+    int ret;
 
-    return fstat(init_data->file, &init_data->cstat);
+    ret = fstat(init_data->file, &init_data->cstat);
+    if (ret != 0) {
+        return errno;
+    }
+    return EOK;
 #endif
 }
 
