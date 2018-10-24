@@ -215,12 +215,95 @@ static PyTypeObject pysss_password_type = {
     .tp_doc   = sss_py_const_p(char, "SSS password obfuscation"),
 };
 
+/*
+ * Get list of groups user belongs to
+ */
+PyDoc_STRVAR(py_sss_getgrouplist__doc__,
+    "Get list of groups user belongs to.\n\n"
+    "NOTE: The interface uses the system NSS calls and is not limited to "
+    "users served by the SSSD!\n"
+    ":param username: name of user to get list for\n");
+
+static PyObject *py_sss_getgrouplist(PyObject *self, PyObject *args)
+{
+    char *username = NULL;
+    gid_t *groups = NULL;
+    struct passwd *pw;
+    struct group *gr;
+    int ngroups;
+    int ret;
+    Py_ssize_t i, idx;
+    PyObject *groups_tuple;
+
+    if(!PyArg_ParseTuple(args, discard_const_p(char, "s"), &username)) {
+        goto fail;
+    }
+
+    pw = getpwnam(username);
+    if (pw == NULL) {
+        goto fail;
+    }
+
+    ngroups = 32;
+    groups = malloc(sizeof(gid_t) * ngroups);
+    if (groups == NULL) {
+        goto fail;
+    }
+
+    do {
+        ret = getgrouplist(username, pw->pw_gid, groups, &ngroups);
+        if (ret < ngroups) {
+            gid_t *tmp_groups = realloc(groups, ngroups * sizeof(gid_t));
+            if (tmp_groups == NULL) {
+                goto fail;
+            }
+            groups = tmp_groups;
+        }
+    } while (ret != ngroups);
+
+    groups_tuple = PyTuple_New((Py_ssize_t) ngroups);
+    if (groups_tuple == NULL) {
+        goto fail;
+    }
+
+    /* Populate a tuple with names of groups
+     * In unlikely case of group not being able to resolve, skip it
+     * We also need to resize resulting tuple to avoid empty elements there */
+    idx = 0;
+    for (i = 0; i < ngroups; i++) {
+        gr = getgrgid(groups[i]);
+        if (gr) {
+            PyTuple_SetItem(groups_tuple, idx,
+#ifdef IS_PY3K
+                    PyUnicode_FromString(gr->gr_name)
+#else
+                    PyString_FromString(gr->gr_name)
+#endif
+                    );
+            idx++;
+        }
+    }
+    free(groups);
+    groups = NULL;
+
+    if (i != idx) {
+        _PyTuple_Resize(&groups_tuple, idx);
+    }
+
+    return groups_tuple;
+
+fail:
+    free(groups);
+    return NULL;
+}
+
 /* ==================== the sss module initialization =======================*/
 
 /*
  * Module methods
  */
 static PyMethodDef module_methods[] = {
+        {"getgrouplist", py_sss_getgrouplist, METH_VARARGS, py_sss_getgrouplist__doc__},
         {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
