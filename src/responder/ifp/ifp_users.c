@@ -584,6 +584,12 @@ ifp_users_find_by_name_and_cert_send(TALLOC_CTX *mem_ctx,
     }
 
     if (!SBUS_REQ_STRING_IS_EMPTY(pem_cert)) {
+        state->pem_cert = talloc_strdup(state, pem_cert);
+        if (state->pem_cert == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
         ret = sss_cert_pem_to_derb64(state, pem_cert, &state->derb64);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
@@ -741,7 +747,7 @@ static void ifp_users_find_by_name_and_cert_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = ifp_users_list_by_cert_step(req);
+    ret = ifp_users_find_by_name_and_cert_step(req);
     if (ret == EOK) {
         tevent_req_done(req);
     } else if (ret != EAGAIN) {
