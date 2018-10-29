@@ -49,6 +49,7 @@ struct be_nsupdate_ctx {
 
 enum dp_dyndns_opts {
     DP_OPT_DYNDNS_UPDATE,
+    DP_OPT_DYNDNS_UPDATE_PER_FAMILY,
     DP_OPT_DYNDNS_REFRESH_INTERVAL,
     DP_OPT_DYNDNS_IFACE,
     DP_OPT_DYNDNS_TTL,
@@ -84,14 +85,15 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
                            const char *servername,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
+                           bool update_per_family,
                            char **_update_msg);
 
 errno_t
 be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *servername, const char *hostname,
-                           const unsigned int ttl,
-                           struct sockaddr_storage *address,
-                           bool delete,
+                           const char *servername,
+                           const char *hostname, const unsigned int ttl,
+                           uint8_t remove_af, struct sss_iface_addr *addresses,
+                           bool update_per_family,
                            char **_update_msg);
 
 /* Returns:

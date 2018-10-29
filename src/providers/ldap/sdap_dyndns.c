@@ -55,13 +55,12 @@ struct sdap_dyndns_update_state {
     struct sss_iface_addr *dns_addrlist;
     uint8_t remove_af;
 
+    bool update_per_family;
     bool update_ptr;
     bool check_diff;
     enum be_nsupdate_auth auth_type;
     bool fallback_mode;
     char *update_msg;
-    struct sss_iface_addr *ptr_addr_iter;
-    bool del_phase;
 };
 
 static void sdap_dyndns_update_addrs_done(struct tevent_req *subreq);
@@ -72,12 +71,6 @@ static errno_t sdap_dyndns_update_step(struct tevent_req *req);
 static errno_t sdap_dyndns_update_ptr_step(struct tevent_req *req);
 static void sdap_dyndns_update_done(struct tevent_req *subreq);
 static void sdap_dyndns_update_ptr_done(struct tevent_req *subreq);
-static errno_t
-sdap_dyndns_next_ptr_record(struct sdap_dyndns_update_state *state,
-                            struct tevent_req *req);
-static struct sss_iface_addr*
-sdap_get_address_to_delete(struct sss_iface_addr *address_it,
-                           uint8_t remove_af);
 
 static bool should_retry(int nsupdate_ret, int child_status)
 {
@@ -113,6 +106,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
     state->check_diff = check_diff;
+    state->update_per_family = dp_opt_get_bool(opts, DP_OPT_DYNDNS_UPDATE_PER_FAMILY);
     state->update_ptr = dp_opt_get_bool(opts, DP_OPT_DYNDNS_UPDATE_PTR);
     state->hostname = hostname;
     state->realm = realm;
@@ -123,8 +117,6 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->opts = opts;
     state->auth_type = auth_type;
-    state->ptr_addr_iter = NULL;
-    state->del_phase = true;
 
     /* fallback servername is overriden by user option */
     conf_servername = dp_opt_get_string(opts, DP_OPT_DYNDNS_SERVER);
@@ -346,6 +338,7 @@ sdap_dyndns_update_step(struct tevent_req *req)
                                      state->hostname,
                                      state->ttl, state->remove_af,
                                      state->addresses,
+                                     state->update_per_family,
                                      &state->update_msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Can't get addresses for DNS update\n");
@@ -400,65 +393,12 @@ sdap_dyndns_update_done(struct tevent_req *subreq)
 
     talloc_free(state->update_msg);
 
-    /* init iterator for addresses to be deleted */
-    state->ptr_addr_iter = sdap_get_address_to_delete(state->dns_addrlist,
-                                                      state->remove_af);
-    if (state->ptr_addr_iter == NULL) {
-        /* init iterator for addresses to be added */
-        state->del_phase = false;
-        state->ptr_addr_iter = state->addresses;
-    }
-
     ret = sdap_dyndns_update_ptr_step(req);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
     /* Execution will resume in sdap_dyndns_update_ptr_done */
-}
-
-
-static bool remove_addr(int address_family, uint8_t remove_af)
-{
-    bool ret = false;
-
-    switch(address_family) {
-    case AF_INET:
-        if (remove_af & DYNDNS_REMOVE_A) {
-            ret = true;
-        }
-        break;
-    case AF_INET6:
-        if (remove_af & DYNDNS_REMOVE_AAAA) {
-            ret = true;
-        }
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
-        ret = false;
-    }
-
-    return ret;
-}
-
-static struct sss_iface_addr*
-sdap_get_address_to_delete(struct sss_iface_addr *address_it,
-                           uint8_t remove_af)
-{
-    struct sockaddr_storage* address;
-
-    while (address_it != NULL) {
-        address = sss_iface_addr_get_address(address_it);
-
-        /* skip addresses that are not to be deleted */
-        if (remove_addr(address->ss_family, remove_af)) {
-            break;
-        }
-
-        address_it = sss_iface_addr_get_next(address_it);
-    }
-
-    return address_it;
 }
 
 static errno_t
@@ -469,7 +409,6 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
     const char *servername;
     const char *realm;
     struct tevent_req *subreq;
-    struct sockaddr_storage *address;
 
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
@@ -480,13 +419,11 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
         realm = state->realm;
     }
 
-    address = sss_iface_addr_get_address(state->ptr_addr_iter);
-    if (address == NULL) {
-        return EIO;
-    }
-
-    ret = be_nsupdate_create_ptr_msg(state, realm, servername, state->hostname,
-                                     state->ttl, address, state->del_phase,
+    ret = be_nsupdate_create_ptr_msg(state, realm, servername,
+                                     state->hostname,
+                                     state->ttl, state->remove_af,
+                                     state->addresses,
+                                     state->update_per_family,
                                      &state->update_msg);
 
     if (ret != EOK) {
@@ -532,53 +469,11 @@ sdap_dyndns_update_ptr_done(struct tevent_req *subreq)
             }
         }
 
-        ret = sdap_dyndns_next_ptr_record(state, req);
-        if (ret == EAGAIN) {
-            return;
-        }
-
         tevent_req_error(req, ret);
         return;
     }
 
-    ret = sdap_dyndns_next_ptr_record(state, req);
-    if (ret == EAGAIN) {
-        return;
-    }
-
     tevent_req_done(req);
-}
-
-static errno_t
-sdap_dyndns_next_ptr_record(struct sdap_dyndns_update_state *state,
-                            struct tevent_req *req)
-{
-    errno_t ret;
-
-    if (state->del_phase) {
-        /* iterate to next address to delete */
-        state->ptr_addr_iter = sdap_get_address_to_delete(
-            sss_iface_addr_get_next(state->ptr_addr_iter), state->remove_af);
-        if (state->ptr_addr_iter == NULL) {
-            /* init iterator for addresses to be added */
-            state->del_phase = false;
-            state->ptr_addr_iter = state->addresses;
-        }
-    } else {
-        /* iterate to next address to add */
-        state->ptr_addr_iter = sss_iface_addr_get_next(state->ptr_addr_iter);
-    }
-
-    if (state->ptr_addr_iter != NULL) {
-
-        state->fallback_mode = false;
-        ret = sdap_dyndns_update_ptr_step(req);
-        if (ret == EOK) {
-            return EAGAIN;
-        }
-    }
-
-    return EOK;
 }
 
 errno_t
