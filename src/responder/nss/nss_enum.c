@@ -138,7 +138,7 @@ static void nss_setent_internal_done(struct tevent_req *subreq)
     switch (ret) {
     case EOK:
         talloc_zfree(state->enum_ctx->result);
-        state->enum_ctx->result = talloc_steal(state->nss_ctx, result);
+        state->enum_ctx->result = talloc_steal(state->enum_ctx, result);
 
         if (state->type == CACHE_REQ_NETGROUP_BY_NAME) {
             /* We need to expand the netgroup into triples and members. */
