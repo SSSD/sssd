@@ -431,7 +431,7 @@ sbus_server_new_connection(DBusServer *dbus_server,
 
     sbus_conn = sbus_connection_init(sbus_server, sbus_server->ev, dbus_conn,
                                      NULL, NULL, SBUS_CONNECTION_CLIENT,
-                                     NULL);
+                                     NULL, sbus_server->uid);
     if (sbus_conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Closing connection, unable to setup\n");
         dbus_connection_close(dbus_conn);

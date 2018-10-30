@@ -177,7 +177,8 @@ sbus_connection_init(TALLOC_CTX *mem_ctx,
                      const char *address,
                      const char *dbus_name,
                      enum sbus_connection_type type,
-                     time_t *last_activity_time);
+                     time_t *last_activity_time,
+                     uid_t uid);
 
 /* Replace current D-Bus connection context with a new one. */
 errno_t sbus_connection_replace(struct sbus_connection *sbus_conn,

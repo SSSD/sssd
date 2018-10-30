@@ -111,7 +111,7 @@ sss_iface_connect_address(TALLOC_CTX *mem_ctx,
     }
 
     conn = sbus_connect_private(mem_ctx, ev, address,
-                                conn_name, last_request_time);
+                                conn_name, last_request_time, geteuid());
     if (conn == NULL) {
         return ENOMEM;
     }

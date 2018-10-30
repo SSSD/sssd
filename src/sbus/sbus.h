@@ -82,7 +82,8 @@ sbus_connect_private(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      const char *address,
                      const char *dbus_name,
-                     time_t *last_activity_time);
+                     time_t *last_activity_time,
+                     uid_t uid);
 
 /**
  * Connect to a private D-Bus bus at @address an perform its initialization
@@ -112,7 +113,8 @@ sbus_connect_private_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           const char *address,
                           const char *dbus_name,
-                          time_t *last_activity_time);
+                          time_t *last_activity_time,
+                          uid_t uid);
 
 /**
  * Recieve reply from @sbus_connect_private_send.

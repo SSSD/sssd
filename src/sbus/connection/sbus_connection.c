@@ -121,6 +121,19 @@ fail:
     return ENOMEM;
 }
 
+static dbus_bool_t
+auth_user (DBusConnection *conn,
+            unsigned long req_uid,
+            void *mem_ctx)
+{
+    /* allow connection either for sssd user or root */
+    uid_t *uid = talloc_get_type(mem_ctx, uid_t);
+    if (uid) {
+        return ( 0 == req_uid || *uid == req_uid );
+    }
+    return FALSE;
+}
+
 struct sbus_connection *
 sbus_connection_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
@@ -128,13 +141,25 @@ sbus_connection_init(TALLOC_CTX *mem_ctx,
                      const char *address,
                      const char *dbus_name,
                      enum sbus_connection_type type,
-                     time_t *last_activity_time)
+                     time_t *last_activity_time,
+                     uid_t uid)
 {
     struct sbus_connection *sbus_conn;
     errno_t ret;
 
     /* We do not want to exit if the connection is dropped. */
     dbus_connection_set_exit_on_disconnect(dbus_conn, FALSE);
+
+    /* Setup user authorization */
+    uid_t* uidp = talloc(mem_ctx, uid_t);
+    if (uidp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
+        return NULL;
+    }
+    *uidp = uid;
+
+    dbus_connection_set_unix_user_function(dbus_conn, auth_user,
+                                           uidp, NULL);
 
     /* Create a new sbus connection */
     sbus_conn = talloc_zero(mem_ctx, struct sbus_connection);
