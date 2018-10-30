@@ -942,7 +942,7 @@ static errno_t nss_cmd_setpwent(struct cli_ctx *cli_ctx)
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
-    return nss_setent(cli_ctx, CACHE_REQ_ENUM_USERS, &nss_ctx->pwent);
+    return nss_setent(cli_ctx, CACHE_REQ_ENUM_USERS, nss_ctx->pwent);
 }
 
 static errno_t nss_cmd_getpwent(struct cli_ctx *cli_ctx)
@@ -955,7 +955,7 @@ static errno_t nss_cmd_getpwent(struct cli_ctx *cli_ctx)
 
     return nss_getent(cli_ctx, CACHE_REQ_ENUM_USERS,
                       &state_ctx->pwent, nss_protocol_fill_pwent,
-                      &nss_ctx->pwent);
+                      nss_ctx->pwent);
 }
 
 static errno_t nss_cmd_endpwent(struct cli_ctx *cli_ctx)
@@ -998,7 +998,7 @@ static errno_t nss_cmd_setgrent(struct cli_ctx *cli_ctx)
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
-    return nss_setent(cli_ctx, CACHE_REQ_ENUM_GROUPS, &nss_ctx->grent);
+    return nss_setent(cli_ctx, CACHE_REQ_ENUM_GROUPS, nss_ctx->grent);
 }
 
 static errno_t nss_cmd_getgrent(struct cli_ctx *cli_ctx)
@@ -1011,7 +1011,7 @@ static errno_t nss_cmd_getgrent(struct cli_ctx *cli_ctx)
 
     return nss_getent(cli_ctx, CACHE_REQ_ENUM_GROUPS,
                       &state_ctx->grent, nss_protocol_fill_grent,
-                      &nss_ctx->grent);
+                      nss_ctx->grent);
 }
 
 static errno_t nss_cmd_endgrent(struct cli_ctx *cli_ctx)
@@ -1093,7 +1093,7 @@ static errno_t nss_cmd_setservent(struct cli_ctx *cli_ctx)
 
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
 
-    return nss_setent(cli_ctx, CACHE_REQ_ENUM_SVC, &nss_ctx->svcent);
+    return nss_setent(cli_ctx, CACHE_REQ_ENUM_SVC, nss_ctx->svcent);
 }
 
 static errno_t nss_cmd_getservent(struct cli_ctx *cli_ctx)
@@ -1106,7 +1106,7 @@ static errno_t nss_cmd_getservent(struct cli_ctx *cli_ctx)
 
     return nss_getent(cli_ctx, CACHE_REQ_ENUM_SVC,
                       &state_ctx->svcent, nss_protocol_fill_svcent,
-                      &nss_ctx->svcent);
+                      nss_ctx->svcent);
 }
 
 static errno_t nss_cmd_endservent(struct cli_ctx *cli_ctx)

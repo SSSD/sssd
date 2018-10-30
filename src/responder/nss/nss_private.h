@@ -78,9 +78,9 @@ struct nss_ctx {
     const char **extra_attributes;
 
     /* Enumeration. */
-    struct nss_enum_ctx pwent;
-    struct nss_enum_ctx grent;
-    struct nss_enum_ctx svcent;
+    struct nss_enum_ctx *pwent;
+    struct nss_enum_ctx *grent;
+    struct nss_enum_ctx *svcent;
     hash_table_t *netgrent;
 
     /* Memory cache. */

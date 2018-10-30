@@ -345,6 +345,27 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    nctx->pwent = talloc_zero(nctx, struct nss_enum_ctx);
+    if (nctx->pwent == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize pwent context!\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    nctx->grent = talloc_zero(nctx, struct nss_enum_ctx);
+    if (nctx->grent == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize grent context!\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    nctx->svcent = talloc_zero(nctx, struct nss_enum_ctx);
+    if (nctx->svcent == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize svcent context!\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
     nctx->netgrent = sss_ptr_hash_create(nctx, NULL, NULL);
     if (nctx->netgrent == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize netgroups table!\n");
