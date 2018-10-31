@@ -400,6 +400,22 @@ sbus_server_filter_add(struct sbus_server *server,
     return true;
 }
 
+static dbus_bool_t
+sbus_server_check_connection_uid(DBusConnection *dbus_conn,
+                                 unsigned long uid,
+                                 void *data)
+{
+    struct sbus_server *sbus_server;
+
+    sbus_server = talloc_get_type(data, struct sbus_server);
+
+    if (uid == 0 || uid == sbus_server->uid) {
+        return true;
+    }
+
+    return false;
+}
+
 static void
 sbus_server_new_connection(DBusServer *dbus_server,
                            DBusConnection *dbus_conn,
@@ -414,6 +430,11 @@ sbus_server_new_connection(DBusServer *dbus_server,
     sbus_server = talloc_get_type(data, struct sbus_server);
 
     DEBUG(SSSDBG_FUNC_DATA, "Adding connection %p.\n", dbus_conn);
+
+    /* Allow access from uid that is associated with this sbus server. */
+    dbus_connection_set_unix_user_function(dbus_conn,
+                                           sbus_server_check_connection_uid,
+                                           sbus_server, NULL);
 
     /* First, add a message filter that will take care of routing messages
      * between connections. */
