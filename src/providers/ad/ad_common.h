@@ -191,7 +191,6 @@ ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom);
 /* AD dynamic DNS updates */
 errno_t ad_dyndns_init(struct be_ctx *be_ctx,
                        struct ad_options *ctx);
-void ad_dyndns_timer(void *pvt);
 
 errno_t ad_sudo_init(TALLOC_CTX *mem_ctx,
                     struct be_ctx *be_ctx,

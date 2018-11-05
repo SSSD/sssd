@@ -30,12 +30,34 @@
 #include "providers/data_provider.h"
 #include "providers/be_dyndns.h"
 
-void ipa_dyndns_update(void *pvt);
+struct ipa_dyndns_update_state {
+    struct ipa_options *ipa_ctx;
+    struct sdap_id_op *sdap_op;
+};
+
+static void
+ipa_dyndns_sdap_update_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_dyndns_update_send(TALLOC_CTX *mem_ctx,
+                      struct tevent_context *ev,
+                      struct be_ctx *be_ctx,
+                      struct be_ptask *be_ptask,
+                      void *pvt);
+
+static errno_t
+ipa_dyndns_update_recv(struct tevent_req *req);
+
+static void
+ipa_dyndns_update_connect_done(struct tevent_req *subreq);
+
 
 errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
                         struct ipa_options *ctx)
 {
     errno_t ret;
+    const time_t ptask_first_delay = 10;
+    int period;
 
     ctx->be_res = be_ctx->be_res;
     if (ctx->be_res == NULL) {
@@ -44,123 +66,114 @@ errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
         return EINVAL;
     }
 
-    ret = be_nsupdate_init_timer(ctx->dyndns_ctx, be_ctx->ev,
-                                 ipa_dyndns_timer, ctx);
+    period = dp_opt_get_int(ctx->dyndns_ctx->opts, DP_OPT_DYNDNS_REFRESH_INTERVAL);
+    if (period == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Dyndns task can't be started, "
+              "dyndns_refresh_interval is 0\n");
+        return EINVAL;
+    }
+    ret = be_ptask_create(ctx, be_ctx, period, ptask_first_delay, 0, 0, period,
+                          BE_PTASK_OFFLINE_DISABLE, 0,
+                          ipa_dyndns_update_send, ipa_dyndns_update_recv, ctx,
+                          "Dyndns update", NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up periodic update\n");
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "
+              "[%d]: %s\n", ret, sss_strerror(ret));
     }
-
-    ret = be_add_online_cb(be_ctx, be_ctx,
-                           ipa_dyndns_update,
-                           ctx, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up online callback\n");
-        return ret;
-    }
-
-    return EOK;
+    return ret;
 }
-
-struct ipa_dyndns_timer_ctx {
-    struct sdap_id_op *sdap_op;
-    struct tevent_context *ev;
-
-    struct ipa_options *ctx;
-};
-
-static void ipa_dyndns_timer_connected(struct tevent_req *req);
-
-void ipa_dyndns_timer(void *pvt)
-{
-    struct ipa_options *ctx = talloc_get_type(pvt, struct ipa_options);
-    struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
-    struct tevent_req *req;
-
-    req = sdap_dyndns_timer_conn_send(ctx, sdap_ctx->be->ev, sdap_ctx,
-                                      ctx->dyndns_ctx);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
-        /* Not much we can do. Just attempt to reschedule */
-        be_nsupdate_timer_schedule(sdap_ctx->be->ev, ctx->dyndns_ctx);
-        return;
-    }
-    tevent_req_set_callback(req, ipa_dyndns_timer_connected, ctx);
-}
-
-static void ipa_dyndns_timer_connected(struct tevent_req *req)
-{
-    errno_t ret;
-    struct ipa_options *ctx = tevent_req_callback_data(req,
-                                                struct ipa_options);
-
-    ret = sdap_dyndns_timer_conn_recv(req);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to connect to IPA: [%d](%s)\n",
-              ret, sss_strerror(ret));
-        return;
-    }
-
-    return ipa_dyndns_update(ctx);
-}
-
-static struct tevent_req *ipa_dyndns_update_send(struct ipa_options *ctx);
-static errno_t ipa_dyndns_update_recv(struct tevent_req *req);
-
-static void ipa_dyndns_nsupdate_done(struct tevent_req *subreq);
-
-void ipa_dyndns_update(void *pvt)
-{
-    struct ipa_options *ctx = talloc_get_type(pvt, struct ipa_options);
-    struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
-
-    /* Schedule timer after provider went offline */
-    be_nsupdate_timer_schedule(sdap_ctx->be->ev, ctx->dyndns_ctx);
-
-    struct tevent_req *req = ipa_dyndns_update_send(ctx);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not update DNS\n");
-        return;
-    }
-    tevent_req_set_callback(req, ipa_dyndns_nsupdate_done, NULL);
-}
-
-static void ipa_dyndns_nsupdate_done(struct tevent_req *req)
-{
-    int ret = ipa_dyndns_update_recv(req);
-    talloc_free(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Updating DNS entry failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return;
-    }
-
-    DEBUG(SSSDBG_OP_FAILURE, "DNS update finished\n");
-}
-
-struct ipa_dyndns_update_state {
-    struct ipa_options *ipa_ctx;
-};
-
-static void ipa_dyndns_sdap_update_done(struct tevent_req *subreq);
 
 static struct tevent_req *
-ipa_dyndns_update_send(struct ipa_options *ctx)
+ipa_dyndns_update_send(TALLOC_CTX *mem_ctx,
+                      struct tevent_context *ev,
+                      struct be_ctx *be_ctx,
+                      struct be_ptask *be_ptask,
+                      void *pvt)
 {
     int ret;
+    struct ipa_options *ctx;
     struct ipa_dyndns_update_state *state;
     struct tevent_req *req, *subreq;
-    struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
+    struct sdap_id_ctx *sdap_ctx;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Performing update\n");
+
+    ctx = talloc_get_type(pvt, struct ipa_options);
+    sdap_ctx = ctx->id_ctx->sdap_id_ctx;
 
     req = tevent_req_create(ctx, &state, struct ipa_dyndns_update_state);
     if (req == NULL) {
         return NULL;
     }
     state->ipa_ctx = ctx;
+
+    if (ctx->dyndns_ctx->last_refresh + 60 > time(NULL) ||
+        ctx->dyndns_ctx->timer_in_progress) {
+        DEBUG(SSSDBG_FUNC_DATA, "Last periodic update ran recently or timer "
+              "in progress, not scheduling another update\n");
+        tevent_req_done(req);
+        tevent_req_post(req, sdap_ctx->be->ev);
+        return req;
+    }
+    state->ipa_ctx->dyndns_ctx->last_refresh = time(NULL);
+
+    /* Make sure to have a valid LDAP connection */
+    state->sdap_op = sdap_id_op_create(state, sdap_ctx->conn->conn_cache);
+    if (state->sdap_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+    if (!subreq) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: [%d](%s)\n",
+              ret, sss_strerror(ret));
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ipa_dyndns_update_connect_done, req);
+    ret = EOK;
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, sdap_ctx->be->ev);
+    }
+    return req;
+}
+
+static void
+ipa_dyndns_update_connect_done(struct tevent_req *subreq)
+{
+    int dp_error;
+    int ret;
+    struct ipa_options *ctx;
+    struct tevent_req *req;
+    struct ipa_dyndns_update_state *state;
+    struct sdap_id_ctx *sdap_ctx;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_dyndns_update_state);
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "No server is available, "
+                  "dynamic DNS update is skipped in offline mode.\n");
+            tevent_req_error(req, ERR_DYNDNS_OFFLINE);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to connect to LDAP server: [%d](%s)\n",
+                  ret, sss_strerror(ret));
+            tevent_req_error(req, ERR_NETWORK_IO);
+        }
+        return;
+    }
+
+    ctx = state->ipa_ctx;
+    sdap_ctx = ctx->id_ctx->sdap_id_ctx;
 
     /* The following three checks are here to prevent SEGFAULT
      * from ticket #3076. */
@@ -181,16 +194,6 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
         ret = EINVAL;
         goto done;
     }
-
-    if (ctx->dyndns_ctx->last_refresh + 60 > time(NULL) ||
-        ctx->dyndns_ctx->timer_in_progress) {
-        DEBUG(SSSDBG_FUNC_DATA, "Last periodic update ran recently or timer "
-              "in progress, not scheduling another update\n");
-        tevent_req_done(req);
-        tevent_req_post(req, sdap_ctx->be->ev);
-        return req;
-    }
-    state->ipa_ctx->dyndns_ctx->last_refresh = time(NULL);
 
     if (strncmp(ctx->service->sdap->uri,
                 "ldap://", 7) != 0) {
@@ -228,7 +231,6 @@ done:
         tevent_req_error(req, ret);
         tevent_req_post(req, sdap_ctx->be->ev);
     }
-    return req;
 }
 
 static void ipa_dyndns_sdap_update_done(struct tevent_req *subreq)
