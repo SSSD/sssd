@@ -70,14 +70,6 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
                  struct dp_option *defopts,
                  struct be_nsupdate_ctx **_ctx);
 
-errno_t be_nsupdate_init_timer(struct be_nsupdate_ctx *ctx,
-                               struct tevent_context *ev,
-                               nsupdate_timer_fn_t timer_callback,
-                               void *timer_pvt);
-
-void be_nsupdate_timer_schedule(struct tevent_context *ev,
-                                struct be_nsupdate_ctx *ctx);
-
 errno_t
 sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
                         struct sss_iface_addr **_addrlist);
