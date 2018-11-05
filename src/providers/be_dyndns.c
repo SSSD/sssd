@@ -1129,45 +1129,6 @@ be_nsupdate_recv(struct tevent_req *req, int *child_status)
     return EOK;
 }
 
-static void be_nsupdate_timer(struct tevent_context *ev,
-                              struct tevent_timer *te,
-                              struct timeval current_time,
-                              void *pvt)
-{
-    struct be_nsupdate_ctx *ctx = talloc_get_type(pvt, struct be_nsupdate_ctx);
-
-    talloc_zfree(ctx->refresh_timer);
-    ctx->timer_callback(ctx->timer_pvt);
-
-    /* timer_callback is responsible for calling be_nsupdate_timer_schedule
-     * again */
-}
-
-void be_nsupdate_timer_schedule(struct tevent_context *ev,
-                                struct be_nsupdate_ctx *ctx)
-{
-    int refresh;
-    struct timeval tv;
-
-    if (ctx->refresh_timer) {
-        DEBUG(SSSDBG_FUNC_DATA, "Timer already scheduled\n");
-        return;
-    }
-
-    refresh = dp_opt_get_int(ctx->opts, DP_OPT_DYNDNS_REFRESH_INTERVAL);
-    if (refresh == 0) return;
-    DEBUG(SSSDBG_FUNC_DATA, "Scheduling timer in %d seconds\n", refresh);
-
-    tv = tevent_timeval_current_ofs(refresh, 0);
-    ctx->refresh_timer = tevent_add_timer(ev, ctx, tv,
-                                          be_nsupdate_timer, ctx);
-
-    if (!ctx->refresh_timer) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-                "Failed to add dyndns refresh timer event\n");
-    }
-}
-
 errno_t
 be_nsupdate_check(void)
 {
@@ -1239,20 +1200,6 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
     }
 
     *_ctx = ctx;
-    return ERR_OK;
-}
-
-errno_t be_nsupdate_init_timer(struct be_nsupdate_ctx *ctx,
-                               struct tevent_context *ev,
-                               nsupdate_timer_fn_t timer_callback,
-                               void *timer_pvt)
-{
-    if (ctx == NULL) return EINVAL;
-
-    ctx->timer_callback = timer_callback;
-    ctx->timer_pvt = timer_pvt;
-    be_nsupdate_timer_schedule(ev, ctx);
-
     return ERR_OK;
 }
 

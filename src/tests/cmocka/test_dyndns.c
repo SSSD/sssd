@@ -885,49 +885,6 @@ void dyndns_test_timeout(void **state)
     talloc_free(tmp_ctx);
 }
 
-void dyndns_test_timer(void *pvt)
-{
-    struct dyndns_test_ctx *ctx = talloc_get_type(pvt, struct dyndns_test_ctx);
-    static int ncalls = 0;
-
-    ncalls++;
-    if (ncalls == 1) {
-        be_nsupdate_timer_schedule(ctx->tctx->ev, ctx->update_ctx);
-    } else if (ncalls == 2) {
-        ctx->tctx->done = true;
-    }
-    ctx->tctx->error = ERR_OK;
-}
-
-void dyndns_test_interval(void **state)
-{
-    errno_t ret;
-    TALLOC_CTX *tmp_ctx;
-
-    tmp_ctx = talloc_new(global_talloc_context);
-    assert_non_null(tmp_ctx);
-    check_leaks_push(tmp_ctx);
-
-    ret = be_nsupdate_init(tmp_ctx, dyndns_test_ctx->be_ctx, NULL,
-                           &dyndns_test_ctx->update_ctx);
-    assert_int_equal(ret, EOK);
-
-    ret = be_nsupdate_init_timer(dyndns_test_ctx->update_ctx,
-                                 dyndns_test_ctx->be_ctx->ev,
-                                 dyndns_test_timer, dyndns_test_ctx);
-    assert_int_equal(ret, EOK);
-
-    /* Wait until the timer hits */
-    ret = test_ev_loop(dyndns_test_ctx->tctx);
-    DEBUG(SSSDBG_TRACE_LIBS,
-          "Child request returned [%d]: %s\n", ret, strerror(ret));
-    assert_int_equal(ret, ERR_OK);
-
-    talloc_free(dyndns_test_ctx->update_ctx);
-    assert_true(check_leaks_pop(tmp_ctx) == true);
-    talloc_free(tmp_ctx);
-}
-
 /* Testsuite setup and teardown */
 static int dyndns_test_setup(void **state)
 {
@@ -1014,9 +971,6 @@ int main(int argc, const char *argv[])
                                         dyndns_test_setup,
                                         dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_timeout,
-                                        dyndns_test_setup,
-                                        dyndns_test_teardown),
-        cmocka_unit_test_setup_teardown(dyndns_test_interval,
                                         dyndns_test_setup,
                                         dyndns_test_teardown),
 
