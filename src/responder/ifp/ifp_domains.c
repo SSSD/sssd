@@ -1001,7 +1001,7 @@ static void ifp_domains_domain_refresh_access_rules_done(struct tevent_req *subr
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
 
-    ret = sbus_call_dp_access_RefreshRules_recv(req);
+    ret = sbus_call_dp_access_RefreshRules_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
