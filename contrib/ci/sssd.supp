@@ -164,6 +164,7 @@
    fun:ares_init_options
    fun:recreate_ares_channel
    fun:resolv_init
+   ...
    fun:be_res_init
    fun:be_init_failover
    fun:test_ipa_server_create_trusts_setup
