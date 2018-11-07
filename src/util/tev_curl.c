@@ -97,7 +97,9 @@ static errno_t curl_code2errno(CURLcode crv)
         return ETIMEDOUT;
     case CURLE_SSL_ISSUER_ERROR:
     case CURLE_SSL_CACERT_BADFILE:
+#if LIBCURL_VERSION_NUM < 0x073e00
     case CURLE_SSL_CACERT:
+#endif
     case CURLE_SSL_CERTPROBLEM:
         return ERR_INVALID_CERT;
 
