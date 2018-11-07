@@ -2378,6 +2378,10 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     ret = get_pam_items(pamh, flags, &pi);
     if (ret != PAM_SUCCESS) {
         D(("get items returned error: %s", pam_strerror(pamh,ret)));
+        if ((flags & PAM_CLI_FLAGS_TRY_CERT_AUTH)
+                || (flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH) ) {
+            return PAM_AUTHINFO_UNAVAIL;
+        }
         if (flags & PAM_CLI_FLAGS_IGNORE_UNKNOWN_USER && ret == PAM_USER_UNKNOWN) {
             ret = PAM_IGNORE;
         }

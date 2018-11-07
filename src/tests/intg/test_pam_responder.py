@@ -388,3 +388,31 @@ def test_try_sc_auth(simple_pam_cert_auth, env_for_sssctl):
         raise Exception("sssctl failed")
 
     assert err.find("pam_authenticate for user [user1]: Success") != -1
+
+
+def test_try_sc_auth_root(simple_pam_cert_auth, env_for_sssctl):
+    """
+    Make sure pam_sss returns PAM_AUTHINFO_UNAVAIL even for root if
+    try_cert_auth is set.
+    """
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "root",
+                               "--action=auth",
+                               "--service=pam_sss_try_sc"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [root]: Authentication " +
+                    "service cannot retrieve authentication info") != -1
