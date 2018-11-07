@@ -1293,6 +1293,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
     const char *fmt_filter;
     struct ldb_dn *base_dn;
     struct ldb_result *res = NULL;
+    struct ldb_result *mpg_res = NULL;
     int ret;
     static const char *default_attrs[] = SYSDB_GRSRC_ATTRS;
     const char **attrs = NULL;
@@ -1321,6 +1322,10 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
          * In case those are not the same, we're dealing with an
          * override and in order to return the proper overridden group
          * we must use the very same search used by a non-mpg domain
+         * to make sure that if the GID points to a group, it will
+         * be resolved. But we must also make sure to fall back
+         * to using the MPG result if the GID does not resolve
+         * to a group
          */
         fmt_filter = SYSDB_GRGID_MPG_FILTER;
         base_dn = sysdb_domain_dn(tmp_ctx, domain);
@@ -1343,6 +1348,7 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
             if (ul_originalad_gid != 0 && ul_originalad_gid != ul_gid) {
                 fmt_filter = SYSDB_GRGID_FILTER;
                 base_dn = sysdb_group_base_dn(tmp_ctx, domain);
+                mpg_res = res;
                 res = NULL;
             }
         }
@@ -1365,6 +1371,14 @@ int sysdb_getgrgid_attrs(TALLOC_CTX *mem_ctx,
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
+    }
+
+    if (mpg_res != NULL && mpg_res->count > 0
+            && (res == NULL || res->count == 0)) {
+        /* The overriden group does not resolve to a proper group object,
+         * just use it as a result
+         */
+        res = mpg_res;
     }
 
     ret = mpg_res_convert(res);
