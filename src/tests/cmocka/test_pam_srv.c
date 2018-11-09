@@ -356,6 +356,10 @@ static void pam_test_setup_common(void)
 {
     errno_t ret;
 
+#ifndef HAVE_NSS
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_one.conf"));
+#endif
+
     pam_test_ctx->pam_user_fqdn = \
                     sss_create_internal_fqname(pam_test_ctx,
                                                "pamuser",
@@ -1926,6 +1930,7 @@ void test_pam_preauth_cert_nocert(void **state)
     set_cert_auth_param(pam_test_ctx->pctx, "/no/path");
 #else
     set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    unsetenv("SOFTHSM2_CONF");
 #endif
 
 
