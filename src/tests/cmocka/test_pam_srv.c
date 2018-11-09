@@ -42,9 +42,13 @@
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_x509_0001.h"
 #include "tests/test_CA/SSSD_test_cert_x509_0002.h"
+
+#include "tests/test_ECC_CA/SSSD_test_ECC_cert_x509_0001.h"
 #else
 #define SSSD_TEST_CERT_0001 ""
 #define SSSD_TEST_CERT_0002 ""
+
+#define SSSD_TEST_ECC_CERT_0001 ""
 #endif
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
@@ -58,10 +62,16 @@
 
 #define NSS_DB_PATH_2CERTS TESTS_PATH "_2certs"
 #define NSS_DB_2CERTS "sql:"NSS_DB_PATH_2CERTS
+
+#define NSS_DB_PATH_ECC TESTS_PATH "_ecc"
+#define NSS_DB_ECC "sql:"NSS_DB_PATH_ECC
+
 #ifdef HAVE_NSS
 #define CA_DB NSS_DB
+#define ECC_CA_DB NSS_DB_ECC
 #else
 #define CA_DB ABS_BUILD_DIR"/src/tests/test_CA/SSSD_test_CA.pem"
+#define ECC_CA_DB ABS_BUILD_DIR"/src/tests/test_ECC_CA/SSSD_test_ECC_CA.pem"
 #endif
 
 #define TEST_TOKEN_NAME "SSSD Test Token"
@@ -122,6 +132,13 @@ static errno_t setup_nss_db(void)
         return ret;
     }
 
+    ret = mkdir(NSS_DB_PATH_ECC, 0775);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to create " NSS_DB_PATH_ECC ".\n");
+        return ret;
+    }
+
     child_pid = fork();
     if (child_pid == 0) { /* child */
         ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
@@ -142,6 +159,22 @@ static errno_t setup_nss_db(void)
     if (child_pid == 0) { /* child */
         ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
                      NSS_DB_2CERTS, NULL);
+        if (ret == -1) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
+            exit(-1);
+        }
+    } else if (child_pid > 0) {
+        wait(&status);
+    } else {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed\n");
+        return ret;
+    }
+
+    child_pid = fork();
+    if (child_pid == 0) { /* child */
+        ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
+                     NSS_DB_ECC, NULL);
         if (ret == -1) {
             DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
             exit(-1);
@@ -196,6 +229,27 @@ static errno_t setup_nss_db(void)
         return ret;
     }
 
+    fp = fopen(NSS_DB_PATH_ECC"/pkcs11.txt", "w");
+    if (fp == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fopen() failed.\n");
+        return ret;
+    }
+    ret = fprintf(fp, "library=libsoftokn3.so\nname=soft\n");
+    if (ret < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
+        return ret;
+    }
+    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/test_ECC_CA/p11_ecc_nssdb' dbSlotDescription='SSSD Test ECC Slot' dbTokenDescription='SSSD Test ECC Token' secmod='secmod.db' flags=readOnly \n\n", ABS_BUILD_DIR);
+    if (ret < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
+        return ret;
+    }
+    ret = fclose(fp);
+    if (ret != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fclose() failed.\n");
+        return ret;
+    }
+
     return EOK;
 }
 
@@ -239,6 +293,26 @@ static void cleanup_nss_db(void)
     }
 
     ret = rmdir(NSS_DB_PATH_2CERTS);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_ECC"/cert9.db");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove cert9.db.\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_ECC"/key4.db");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove key4.db.\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_ECC"/pkcs11.txt");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove pkcs11.db.\n");
+    }
+
+    ret = rmdir(NSS_DB_PATH_ECC);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
     }
@@ -2347,6 +2421,44 @@ void test_pam_cert_auth(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_ecc_cert_auth(void **state)
+{
+    int ret;
+
+#ifndef HAVE_NSS
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_ECC_CA/softhsm2_ecc_one.conf"));
+#endif
+    set_cert_auth_param(pam_test_ctx->pctx, ECC_CA_DB);
+
+    /* Here the last option must be set to true because the backend is only
+     * connected once. During authentication the backend is connected first to
+     * see if it can handle Smartcard authentication, but before that the user
+     * is looked up. Since the first mocked reply already adds the certificate
+     * to the user entry the lookup by certificate will already find the user
+     * in the cache and no second request to the backend is needed. */
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456",
+                        "SSSD Test ECC Token",
+                        TEST_MODULE_NAME,
+                        "190E513C9A3DFAACDE5D2D0592F0FDFF559C10CB", NULL,
+                        test_lookup_by_cert_cb, SSSD_TEST_ECC_CERT_0001, true);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+
+    set_cmd_cb(test_pam_simple_check_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_pam_cert_auth_no_logon_name(void **state)
 {
     int ret;
@@ -3022,6 +3134,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_cert_auth,
                                         pam_test_setup_no_verification,
                                         pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_ecc_cert_auth,
+                                        pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth_double_cert,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_2certs_one_mapping,
