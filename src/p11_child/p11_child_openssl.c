@@ -137,6 +137,7 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
 #define X509_STORE_get0_objects(store) (store->objs)
 #define X509_OBJECT_get_type(object) (object->type)
 #define X509_OBJECT_get0_X509(object) (object->data.x509)
+#define EVP_MD_CTX_free EVP_MD_CTX_destroy
 #endif
 
 OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
@@ -860,6 +861,243 @@ done:
     return ret;
 }
 
+/* Currently this funtion is only used the print the curve type in the debug
+ * messages. */
+static void get_ec_curve_type(CK_FUNCTION_LIST *module,
+                              CK_SESSION_HANDLE session,
+                              CK_OBJECT_HANDLE key_handle)
+{
+    CK_ATTRIBUTE attribute;
+    CK_RV rv;
+    EC_GROUP *ec_group;
+    const unsigned char *p;
+    int len;
+    char der_buf[128]; /* FIXME: any other size ?? */
+    char oid_buf[128]; /* FIXME: any other size ?? */
+
+    attribute.type = CKA_ECDSA_PARAMS;
+    attribute.pValue = &der_buf;
+    attribute.ulValueLen = sizeof(der_buf);
+
+    rv = module->C_GetAttributeValue(session, key_handle, &attribute, 1);
+    if (rv != CKR_OK) {
+        free(attribute.pValue);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "C_GetAttributeValue failed [%lu][%s].\n",
+              rv, p11_kit_strerror(rv));
+        return;
+    }
+
+    p = (const unsigned char *) attribute.pValue;
+    ec_group = d2i_ECPKParameters(NULL, &p, attribute.ulValueLen);
+    len = OBJ_obj2txt(oid_buf, sizeof(oid_buf),
+                      OBJ_nid2obj(EC_GROUP_get_curve_name(ec_group)), 1);
+    DEBUG(SSSDBG_TRACE_ALL, "Curve name [%s][%s][%.*s].\n",
+                            OBJ_nid2sn(EC_GROUP_get_curve_name(ec_group)),
+                            OBJ_nid2ln(EC_GROUP_get_curve_name(ec_group)),
+                            len, oid_buf);
+
+    return;
+}
+
+static CK_KEY_TYPE get_key_type(CK_FUNCTION_LIST *module,
+                                CK_SESSION_HANDLE session,
+                                CK_OBJECT_HANDLE key_handle)
+{
+    CK_ATTRIBUTE attribute;
+    CK_RV rv;
+    CK_KEY_TYPE type;
+
+    attribute.type = CKA_KEY_TYPE;
+    attribute.pValue = &type;
+    attribute.ulValueLen = sizeof(CK_KEY_TYPE);
+
+    rv = module->C_GetAttributeValue(session, key_handle, &attribute, 1);
+    if (rv != CKR_OK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "C_GetAttributeValue failed [%lu][%s].\n",
+              rv, p11_kit_strerror(rv));
+        return CK_UNAVAILABLE_INFORMATION;
+    }
+
+    if (attribute.ulValueLen == -1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Key type attribute cannot be read.\n");
+        return CK_UNAVAILABLE_INFORMATION;
+    }
+
+    if (type == CKK_EC && DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
+        get_ec_curve_type(module, session, key_handle);
+    }
+
+    return type;
+}
+
+static int do_hash(TALLOC_CTX *mem_ctx, const EVP_MD *evp_md,
+                   CK_BYTE *in, size_t in_len,
+                   CK_BYTE **hash, size_t *hash_len)
+{
+    EVP_MD_CTX *md_ctx = NULL;
+    int ret;
+    unsigned char md_value[EVP_MAX_MD_SIZE];
+    unsigned int md_len;
+    CK_BYTE *out = NULL;
+
+    md_ctx = EVP_MD_CTX_create();
+    if (md_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "EVP_MD_CTX_create failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EVP_DigestInit(md_ctx, evp_md);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "EVP_DigestInit failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_DigestUpdate(md_ctx, in, in_len);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "EVP_DigestUpdate failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_DigestFinal_ex(md_ctx, md_value, &md_len);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "EVP_DigestFinal failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    out = talloc_size(mem_ctx, md_len * sizeof(CK_BYTE));
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    memcpy(out, md_value, md_len);
+
+    *hash = out;
+    *hash_len = md_len;
+
+    ret = EOK;
+
+done:
+
+    if (ret != EOK) {
+        free(out);
+        EVP_MD_CTX_free(md_ctx);
+    }
+
+    return ret;
+}
+
+/* A ECDSA signature consists of 2 integer values r and s. According to the
+ * "PKCS #11 Cryptographic Token Interface Current Mechanisms Specification":
+ *
+ * """
+ * For the purposes of these mechanisms, an ECDSA signature is an octet string
+ * of even length which is at most two times nLen octets, where nLen is the
+ * length in octets of the base point order n. The signature octets correspond
+ * to the concatenation of the ECDSA values r and s, both represented as an
+ * octet string of equal length of at most nLen with the most significant byte
+ * first. If r and s have different octet length, the shorter of both must be
+ * padded with leading zero octets such that both have the same octet length.
+ * Loosely spoken, the first half of the signature is r and the second half is
+ * s. For signatures created by a token, the resulting signature is always of
+ * length 2nLen.
+ * """
+ *
+ * Unfortunately OpenSSL expects the 2 integer values r and s DER encoded as
+ * specified in X9.62 "Public Key Cryptography For The Financial Services
+ * Industry: The Elliptic Curve Digital Signature Algorithm (ECDSA)":
+ *
+ * """
+ * When a digital signature is identified by the OID ecdsa-with-SHA1 , the
+ * digital signature shall be ASN.1 encoded using the following syntax:
+ *   ECDSA-Sig-Value ::= SEQUENCE {
+ *     r  INTEGER,
+ *     s  INTEGER
+ *   }
+ *  """
+ *
+ *  The following function translates from the PKCS#11 to the X9.62 format by
+ *  manually creating the DER sequence after splitting the PKCS#11 signature.
+ *  Since r and s are positive values we have to make sure that the leading
+ *  bit is not set in the DER encoding by prepending a 0-byte if needed.
+ */
+static int rs_to_seq(TALLOC_CTX *mem_ctx, CK_BYTE *rs_sig, CK_ULONG rs_sig_len,
+                     CK_BYTE **seq_sig, CK_ULONG *seq_sig_len)
+{
+    CK_BYTE *r;
+    size_t r_len;
+    CK_BYTE *s;
+    size_t s_len;
+    size_t r_add = 0;
+    size_t s_add = 0;
+    CK_BYTE *out;
+    size_t out_len;
+
+    if (rs_sig_len % 2 != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected signature size [%lu].\n",
+                                   rs_sig_len);
+        return EINVAL;
+    }
+
+    r_len = s_len = rs_sig_len / 2;
+    r = rs_sig;
+    s = rs_sig + r_len;
+
+    /* Remove padding */
+    while(r_len > 1 && *r == 0x00) {
+            r++;
+            r_len--;
+    }
+    while(s_len > 1 && *s == 0x00) {
+            s++;
+            s_len--;
+    }
+
+    /* r and s are positive, check if the highest bit is set which would
+     * indicate a negative value. In this case a 0x00 must be added. */
+    if ( *r & 0x80 ) {
+        r_add = 1;
+    }
+    if ( *s & 0x80 ) {
+        s_add = 1;
+    }
+
+    out_len = r_len + r_add + s_len + s_add + 6;
+    out = talloc_size(mem_ctx, out_len * sizeof(CK_BYTE));
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        return ENOMEM;
+    }
+
+    out[0] = 0x30;
+    out[1] = (CK_BYTE) (out_len - 2);
+    out[2] = 0x02;
+    out[3] = (CK_BYTE) (r_len + r_add);
+    if (r_add == 1) {
+        out[4] = 0x00;
+    }
+    memcpy(&out[4 + r_add], r, r_len);
+    out[4 + r_add + r_len] = 0x02;
+    out[5 + r_add + r_len] = (CK_BYTE) (s_len + s_add);
+    if (s_add == 1)  {
+        out[6 + r_add + r_len] = 0x00;
+    }
+    memcpy(&out[6 + r_add + r_len + s_add], s, s_len);
+
+    *seq_sig = out;
+    *seq_sig_len = out_len;
+
+    return EOK;
+}
+
 static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
                      struct cert_list *cert)
 {
@@ -870,17 +1108,25 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
       {CKA_SIGN, &key_sign, sizeof(key_sign)},
       {CKA_ID, NULL, 0}
     };
-    CK_MECHANISM mechanism = { CKM_SHA1_RSA_PKCS, NULL, 0 };
+    CK_MECHANISM mechanism = { CK_UNAVAILABLE_INFORMATION, NULL, 0 };
     CK_OBJECT_HANDLE priv_key_object;
     CK_ULONG object_count;
     CK_BYTE random_value[128];
     CK_BYTE *signature = NULL;
     CK_ULONG signature_size = 0;
+    CK_BYTE *seq_sig = NULL;
+    CK_ULONG seq_sig_size = 0;
     CK_RV rv;
     CK_RV rv_f;
     EVP_PKEY *cert_pub_key = NULL;
     EVP_MD_CTX *md_ctx;
     int ret;
+    const EVP_MD *evp_md = NULL;
+    CK_BYTE *hash_val = NULL;
+    size_t hash_len = 0;
+    CK_BYTE *val_to_sign = NULL;
+    size_t val_to_sign_len = 0;
+    bool card_does_hash = false;
 
     key_template[2].pValue = cert->attributes[ATTR_ID].pValue;
     key_template[2].ulValueLen = cert->attributes[ATTR_ID].ulValueLen;
@@ -910,9 +1156,31 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         return EINVAL;
     }
 
+    switch (get_key_type(module, session, priv_key_object)) {
+    case CKK_RSA:
+        DEBUG(SSSDBG_TRACE_ALL, "Found RSA key using CKM_SHA1_RSA_PKCS.\n");
+        mechanism.mechanism = CKM_SHA1_RSA_PKCS;
+        evp_md = EVP_sha1();
+        card_does_hash = true;
+        break;
+    case CKK_EC:
+        DEBUG(SSSDBG_TRACE_ALL, "Found ECC key using CKM_ECDSA.\n");
+        mechanism.mechanism = CKM_ECDSA;
+        evp_md = EVP_sha1();
+        card_does_hash = false;
+        break;
+    case CK_UNAVAILABLE_INFORMATION:
+        DEBUG(SSSDBG_CRIT_FAILURE, "get_key_type failed.\n");
+        return EIO;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported key type.\n");
+        return EIO;
+    }
+
     rv = module->C_SignInit(session, &mechanism, priv_key_object);
     if (rv != CKR_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "C_SignInit failed [%lu][%s].",
+        DEBUG(SSSDBG_OP_FAILURE, "C_SignInit failed [%lu][%s].\n",
                                  rv, p11_kit_strerror(rv));
         return EIO;
     }
@@ -923,7 +1191,22 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         return EINVAL;
     }
 
-    rv = module->C_Sign(session, random_value, sizeof(random_value), NULL,
+    if (card_does_hash) {
+        val_to_sign = random_value;
+        val_to_sign_len = sizeof(random_value);
+    } else {
+        ret = do_hash(cert, evp_md, random_value, sizeof(random_value),
+                      &hash_val, &hash_len);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "do_hash failed.\n");
+            return ret;
+        }
+
+        val_to_sign = hash_val;
+        val_to_sign_len = hash_len;
+    }
+
+    rv = module->C_Sign(session, val_to_sign, val_to_sign_len, NULL,
                         &signature_size);
     if (rv != CKR_OK || signature_size == 0) {
         DEBUG(SSSDBG_OP_FAILURE, "C_Sign failed [%lu][%s].\n",
@@ -937,7 +1220,7 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         return ENOMEM;
     }
 
-    rv = module->C_Sign(session, random_value, sizeof(random_value), signature,
+    rv = module->C_Sign(session, val_to_sign, val_to_sign_len, signature,
                         &signature_size);
     if (rv != CKR_OK) {
         DEBUG(SSSDBG_OP_FAILURE, "C_Sign failed [%lu][%s].\n",
@@ -958,7 +1241,7 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         ret = ENOMEM;
         goto done;
     }
-    ret = EVP_VerifyInit(md_ctx, EVP_sha1());
+    ret = EVP_VerifyInit(md_ctx, evp_md);
     if (ret != 1) {
         DEBUG(SSSDBG_OP_FAILURE, "EVP_VerifyInit failed.\n");
         ret = EINVAL;
@@ -972,11 +1255,27 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         goto done;
     }
 
-    ret = EVP_VerifyFinal(md_ctx, signature, signature_size, cert_pub_key);
-    if (ret != 1) {
-        DEBUG(SSSDBG_OP_FAILURE, "EVP_VerifyFinal failed.\n");
-        ret = EINVAL;
-        goto done;
+    if (mechanism.mechanism == CKM_ECDSA) {
+        ret = rs_to_seq(signature, signature, signature_size,
+                        &seq_sig, &seq_sig_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "rs_to_seq failed.\n");
+            goto done;
+        }
+
+        ret = EVP_VerifyFinal(md_ctx, seq_sig, seq_sig_size, cert_pub_key);
+        if (ret != 1) {
+            DEBUG(SSSDBG_OP_FAILURE, "EVP_VerifyFinal failed.\n");
+            ret = EINVAL;
+            goto done;
+        }
+    } else {
+        ret = EVP_VerifyFinal(md_ctx, signature, signature_size, cert_pub_key);
+        if (ret != 1) {
+            DEBUG(SSSDBG_OP_FAILURE, "EVP_VerifyFinal failed.\n");
+            ret = EINVAL;
+            goto done;
+        }
     }
 
     ret = EOK;
