@@ -477,6 +477,40 @@ bool do_verification_b64(struct p11_ctx *p11_ctx, const char *cert_b64)
     return res;
 }
 
+static const char *keytype2str(KeyType keyType) {
+    switch (keyType) {
+        case nullKey:
+            return "nullKey";
+            break;
+        case rsaKey:
+            return "rsaKey";
+            break;
+        case dsaKey:
+            return "dsaKey";
+            break;
+        case fortezzaKey:
+            return "fortezzaKey";
+            break;
+        case dhKey:
+            return "dhKey";
+            break;
+        case keaKey:
+            return "keaKey";
+            break;
+        case ecKey:
+            return "ecKey";
+            break;
+        case rsaPssKey:
+            return "rsaPssKey";
+            break;
+        case rsaOaepKey:
+            return "rsaOaepKey";
+            break;
+        default:
+            return "Unknown key type";
+    }
+}
+
 errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
@@ -798,6 +832,8 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
             goto done;
         }
 
+        DEBUG(SSSDBG_TRACE_ALL, "Private key has type [%s].\n",
+                                keytype2str(priv_key->keyType));
         algtag = SEC_GetSignatureAlgorithmOidTag(priv_key->keyType,
                                                   SEC_OID_SHA1);
         if (algtag == SEC_OID_UNKNOWN) {
