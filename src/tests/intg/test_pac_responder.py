@@ -27,6 +27,12 @@ import pytest
 from util import unindent
 
 
+def have_sssd_responder(responder_name):
+    responder_path = os.path.join(config.LIBEXEC_PATH, "sssd", responder_name)
+
+    return os.access(responder_path, os.X_OK)
+
+
 def stop_sssd():
     with open(config.PIDFILE_PATH, "r") as pid_file:
         pid = int(pid_file.read())
@@ -99,6 +105,8 @@ def timeout_handler(signum, frame):
     raise Exception("Timeout")
 
 
+@pytest.mark.skipif(not have_sssd_responder("sssd_pac"),
+                    reason="No PAC responder, skipping")
 def test_multithreaded_pac_client(local_domain_only, sssd_pac_test_client):
     """
     Test for ticket
