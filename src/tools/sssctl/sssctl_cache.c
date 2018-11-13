@@ -154,6 +154,11 @@ static errno_t get_attr_expire(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    if (is_files_provider(dom)) {
+        *_value = "Never";
+        return EOK;
+    }
+
     if (value < time(NULL)) {
         *_value = "Expired";
         return EOK;
@@ -177,6 +182,11 @@ static errno_t attr_initgr(TALLOC_CTX *mem_ctx,
         return EOK;
     } else if (ret != EOK) {
         return ret;
+    }
+
+    if (is_files_provider(dom)) {
+        *_value = "Never";
+        return EOK;
     }
 
     if (value < time(NULL)) {
