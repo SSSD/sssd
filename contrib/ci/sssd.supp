@@ -170,7 +170,6 @@
    fun:test_ipa_server_create_trusts_setup
    ...
    fun:_cmocka_run_group_tests
-   fun:main
 }
 
 # Leaks in bash if p11_child returns and error because due to libtool the
