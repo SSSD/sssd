@@ -56,7 +56,9 @@ sss_iface_domain_bus(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    bus_name = talloc_asprintf(mem_ctx, "sssd.domain.%s", safe_name);
+    /* Parts of bus names must not start with digit thus we concatenate
+     * the name with underscore instead of period. */
+    bus_name = talloc_asprintf(mem_ctx, "sssd.domain_%s", safe_name);
     talloc_free(safe_name);
 
     return bus_name;
@@ -66,7 +68,9 @@ char *
 sss_iface_proxy_bus(TALLOC_CTX *mem_ctx,
                     uint32_t id)
 {
-    return talloc_asprintf(mem_ctx, "sssd.proxy.%"PRIu32, id);
+    /* Parts of bus names must not start with digit thus we concatenate
+     * the name with underscore instead of period. */
+    return talloc_asprintf(mem_ctx, "sssd.proxy_%"PRIu32, id);
 }
 
 errno_t
