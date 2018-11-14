@@ -171,50 +171,19 @@ done:
 #define SSH_RSA_HEADER "ssh-rsa"
 #define SSH_RSA_HEADER_LEN (sizeof(SSH_RSA_HEADER) - 1)
 
-errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
-                              const uint8_t *der_blob, size_t der_size,
-                              uint8_t **key_blob, size_t *key_size)
+static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_pub_key,
+                                  uint8_t **key_blob, size_t *key_size)
 {
     int ret;
-    size_t size;
-    const unsigned char *d;
-    uint8_t *buf = NULL;
     size_t c;
-    X509 *cert = NULL;
-    EVP_PKEY *cert_pub_key = NULL;
+    size_t size;
+    uint8_t *buf = NULL;
     const BIGNUM *n;
     const BIGNUM *e;
     int modulus_len;
     unsigned char modulus[OPENSSL_RSA_MAX_MODULUS_BITS/8];
     int exponent_len;
     unsigned char exponent[OPENSSL_RSA_MAX_PUBEXP_BITS/8];
-
-    if (der_blob == NULL || der_size == 0) {
-        return EINVAL;
-    }
-
-    d = (const unsigned char *) der_blob;
-
-    cert = d2i_X509(NULL, &d, (int) der_size);
-    if (cert == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "d2i_X509 failed.\n");
-        return EINVAL;
-    }
-
-    cert_pub_key = X509_get_pubkey(cert);
-    if (cert_pub_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "X509_get_pubkey failed.\n");
-        ret = EIO;
-        goto done;
-    }
-
-    if (EVP_PKEY_base_id(cert_pub_key) != EVP_PKEY_RSA) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Expected RSA public key, found unsupported [%d].\n",
-              EVP_PKEY_base_id(cert_pub_key));
-        ret = EINVAL;
-        goto done;
-    }
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
     RSA *rsa_pub_key = NULL;
@@ -268,6 +237,56 @@ done:
     if (ret != EOK)  {
         talloc_free(buf);
     }
+
+    return ret;
+}
+
+errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
+                              const uint8_t *der_blob, size_t der_size,
+                              uint8_t **key_blob, size_t *key_size)
+{
+    int ret;
+    const unsigned char *d;
+    X509 *cert = NULL;
+    EVP_PKEY *cert_pub_key = NULL;
+
+    if (der_blob == NULL || der_size == 0) {
+        return EINVAL;
+    }
+
+    d = (const unsigned char *) der_blob;
+
+    cert = d2i_X509(NULL, &d, (int) der_size);
+    if (cert == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "d2i_X509 failed.\n");
+        return EINVAL;
+    }
+
+    cert_pub_key = X509_get_pubkey(cert);
+    if (cert_pub_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "X509_get_pubkey failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    switch (EVP_PKEY_base_id(cert_pub_key)) {
+    case EVP_PKEY_RSA:
+        ret = rsa_pub_key_to_ssh(mem_ctx, cert_pub_key, key_blob, key_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "rsa_pub_key_to_ssh failed.\n");
+            goto done;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected RSA public key, found unsupported [%d].\n",
+              EVP_PKEY_base_id(cert_pub_key));
+        ret = EINVAL;
+        goto done;
+    }
+
+done:
+
     EVP_PKEY_free(cert_pub_key);
     X509_free(cert);
 
