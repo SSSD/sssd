@@ -223,58 +223,16 @@ done:
 #define SSH_RSA_HEADER "ssh-rsa"
 #define SSH_RSA_HEADER_LEN (sizeof(SSH_RSA_HEADER) - 1)
 
-errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
-                              uint8_t *der_blob, size_t der_size,
-                              uint8_t **key_blob, size_t *key_size)
+static errno_t rsa_pub_key_to_ssh(TALLOC_CTX *mem_ctx,
+                                  SECKEYPublicKey *cert_pub_key,
+                                  uint8_t **key_blob, size_t *key_size)
 {
-    CERTCertDBHandle *handle;
-    CERTCertificate *cert = NULL;
-    SECItem der_item;
-    SECKEYPublicKey *cert_pub_key = NULL;
     int ret;
     size_t size;
     uint8_t *buf = NULL;
     size_t c;
     size_t exponent_prefix_len;
     size_t modulus_prefix_len;
-
-    if (der_blob == NULL || der_size == 0) {
-        return EINVAL;
-    }
-
-    /* initialize NSS if needed */
-    ret = nspr_nss_init();
-    if (ret != EOK) {
-        ret = EIO;
-        goto done;
-    }
-
-    handle = CERT_GetDefaultCertDB();
-
-    der_item.len = der_size;
-    der_item.data = discard_const(der_blob);
-
-    cert = CERT_NewTempCertificate(handle, &der_item, NULL, PR_FALSE, PR_TRUE);
-    if (cert == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_NewTempCertificate failed.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    cert_pub_key = CERT_ExtractPublicKey(cert);
-    if (cert_pub_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "CERT_ExtractPublicKey failed.\n");
-        ret = EIO;
-        goto done;
-    }
-
-    if (cert_pub_key->keyType != rsaKey) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Expected RSA public key, found unsupported [%d].\n",
-              cert_pub_key->keyType);
-        ret = EINVAL;
-        goto done;
-    }
 
     /* Looks like nss drops the leading 00 which AFAIK is added to make sure
      * the bigint is handled as positive number if the leading bit is set. */
@@ -330,6 +288,68 @@ done:
     if (ret != EOK)  {
         talloc_free(buf);
     }
+
+    return ret;
+}
+
+errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
+                              uint8_t *der_blob, size_t der_size,
+                              uint8_t **key_blob, size_t *key_size)
+{
+    CERTCertDBHandle *handle;
+    CERTCertificate *cert = NULL;
+    SECItem der_item;
+    SECKEYPublicKey *cert_pub_key = NULL;
+    int ret;
+
+    if (der_blob == NULL || der_size == 0) {
+        return EINVAL;
+    }
+
+    /* initialize NSS if needed */
+    ret = nspr_nss_init();
+    if (ret != EOK) {
+        ret = EIO;
+        goto done;
+    }
+
+    handle = CERT_GetDefaultCertDB();
+
+    der_item.len = der_size;
+    der_item.data = discard_const(der_blob);
+
+    cert = CERT_NewTempCertificate(handle, &der_item, NULL, PR_FALSE, PR_TRUE);
+    if (cert == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_NewTempCertificate failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    cert_pub_key = CERT_ExtractPublicKey(cert);
+    if (cert_pub_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_ExtractPublicKey failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    switch (cert_pub_key->keyType) {
+    case rsaKey:
+        ret = rsa_pub_key_to_ssh(mem_ctx, cert_pub_key, key_blob, key_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "rsa_pub_key_to_ssh failed.\n");
+            goto done;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected RSA public key, found unsupported [%d].\n",
+              cert_pub_key->keyType);
+        ret = EINVAL;
+        goto done;
+    }
+
+done:
+
     SECKEY_DestroyPublicKey(cert_pub_key);
     CERT_DestroyCertificate(cert);
 
