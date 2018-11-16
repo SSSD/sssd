@@ -220,6 +220,118 @@ done:
     return ret;
 }
 
+/* taken from NSS's lib/cryptohi/seckey.c */
+static SECOidTag
+sss_SECKEY_GetECCOid(const SECKEYECParams *params)
+{
+    SECItem oid = { siBuffer, NULL, 0 };
+    SECOidData *oidData = NULL;
+
+    /*
+     * params->data needs to contain the ASN encoding of an object ID (OID)
+     * representing a named curve. Here, we strip away everything
+     * before the actual OID and use the OID to look up a named curve.
+     */
+    if (params->data[0] != SEC_ASN1_OBJECT_ID)
+        return 0;
+    oid.len = params->len - 2;
+    oid.data = params->data + 2;
+    if ((oidData = SECOID_FindOID(&oid)) == NULL)
+        return 0;
+
+    return oidData->offset;
+}
+
+/* SSH EC keys are defined in https://tools.ietf.org/html/rfc5656 */
+#define ECDSA_SHA2_HEADER "ecdsa-sha2-"
+/* Looks like OpenSSH currently only supports the following 3 required
+ * curves. */
+#define IDENTIFIER_NISTP256 "nistp256"
+#define IDENTIFIER_NISTP384 "nistp384"
+#define IDENTIFIER_NISTP521 "nistp521"
+
+static errno_t ec_pub_key_to_ssh(TALLOC_CTX *mem_ctx,
+                                 SECKEYPublicKey *cert_pub_key,
+                                 uint8_t **key_blob, size_t *key_size)
+{
+    int ret;
+    size_t c;
+    uint8_t *buf = NULL;
+    size_t buf_len;
+    SECOidTag curve_tag;
+    int key_len;
+    const char *identifier = NULL;
+    int identifier_len;
+    const char *header = NULL;
+    int header_len;
+    SECItem *ec_public_key;
+
+    curve_tag = sss_SECKEY_GetECCOid(&cert_pub_key->u.ec.DEREncodedParams);
+    switch(curve_tag) {
+    case SEC_OID_ANSIX962_EC_PRIME256V1:
+        identifier = IDENTIFIER_NISTP256;
+        header = ECDSA_SHA2_HEADER IDENTIFIER_NISTP256;
+        break;
+    case SEC_OID_SECG_EC_SECP384R1:
+        identifier = IDENTIFIER_NISTP384;
+        header = ECDSA_SHA2_HEADER IDENTIFIER_NISTP384;
+        break;
+    case SEC_OID_SECG_EC_SECP521R1:
+        identifier = IDENTIFIER_NISTP521;
+        header = ECDSA_SHA2_HEADER IDENTIFIER_NISTP521;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported curve [%s]\n",
+              SECOID_FindOIDTagDescription(curve_tag));
+        ret = EINVAL;
+        goto done;
+    }
+
+    header_len = strlen(header);
+    identifier_len = strlen(identifier);
+
+    ec_public_key = &cert_pub_key->u.ec.publicValue;
+
+    key_len = ec_public_key->len;
+    if (key_len == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "EC_POINT_point2oct failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    buf_len = header_len + identifier_len + key_len + 3 * sizeof(uint32_t);
+    buf = talloc_size(mem_ctx, buf_len * sizeof(uint8_t));
+    if (buf == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    c = 0;
+
+    SAFEALIGN_SET_UINT32(buf, htobe32(header_len), &c);
+    safealign_memcpy(&buf[c], header, header_len, &c);
+
+    SAFEALIGN_SET_UINT32(&buf[c], htobe32(identifier_len), &c);
+    safealign_memcpy(&buf[c], identifier , identifier_len, &c);
+
+    SAFEALIGN_SET_UINT32(&buf[c], htobe32(key_len), &c);
+
+    safealign_memcpy(&buf[c], ec_public_key->data, key_len, &c);
+
+    *key_size = buf_len;
+    *key_blob = buf;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(buf);
+    }
+
+    return ret;
+}
+
 #define SSH_RSA_HEADER "ssh-rsa"
 #define SSH_RSA_HEADER_LEN (sizeof(SSH_RSA_HEADER) - 1)
 
@@ -340,9 +452,16 @@ errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
             goto done;
         }
         break;
+    case ecKey:
+        ret = ec_pub_key_to_ssh(mem_ctx, cert_pub_key, key_blob, key_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "rsa_pub_key_to_ssh failed.\n");
+            goto done;
+        }
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Expected RSA public key, found unsupported [%d].\n",
+              "Expected RSA or EC public key, found unsupported [%d].\n",
               cert_pub_key->keyType);
         ret = EINVAL;
         goto done;
