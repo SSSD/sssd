@@ -847,15 +847,18 @@ int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
     }
 
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to bind on socket '%s'\n", sock_name);
-        ret = EIO;
+              "Unable to bind on socket '%s' [%d]: %s\n",
+              sock_name, ret, sss_strerror(ret));
         goto done;
     }
+
     if (listen(fd, 10) == -1) {
+        ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to listen on socket '%s'\n", sock_name);
-        ret = EIO;
+              "Unable to listen on socket '%s' [%d]: %s\n",
+              sock_name, ret, sss_strerror(ret));
         goto done;
     }
 
