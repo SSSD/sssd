@@ -88,7 +88,7 @@ static int setup_ccache(void **state)
     test_creds.times.starttime = 2222;
     test_creds.times.endtime = 3333;
     test_creds.times.renew_till = 4444;
-    test_creds.is_skey = 1;
+    test_creds.is_skey = 0;
     test_creds.ticket_flags = 5555;
     test_creds.addresses = addrs;
 
