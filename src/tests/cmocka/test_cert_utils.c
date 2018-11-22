@@ -54,7 +54,7 @@
 /* When run under valgrind with --trace-children=yes we have to increase the
  * timeout not because p11_child needs much more time under valgrind but
  * because of the way valgrind handles the children. */
-#define P11_CHILD_TIMEOUT 40
+#define P11_CHILD_TIMEOUT 80
 
 /* TODO: create a certificate for this test */
 const uint8_t test_cert_der[] = {
