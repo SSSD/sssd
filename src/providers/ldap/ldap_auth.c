@@ -636,6 +636,7 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct auth_state *state;
+    errno_t ret;
 
     req = tevent_req_create(memctx, &state, struct auth_state);
     if (!req) return NULL;
@@ -645,11 +646,11 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
         if (sss_authtok_get_type(authtok) == SSS_AUTHTOK_TYPE_SC_PIN
             || sss_authtok_get_type(authtok) == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
             /* Tell frontend that we do not support Smartcard authentication */
-            tevent_req_error(req, ERR_SC_AUTH_NOT_SUPPORTED);
+            ret = ERR_SC_AUTH_NOT_SUPPORTED;
         } else {
-            tevent_req_error(req, ERR_AUTH_FAILED);
+            ret = ERR_AUTH_FAILED;
         }
-        return tevent_req_post(req, ev);
+        goto fail;
     }
 
     state->ev = ev;
@@ -663,13 +664,17 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
         state->sdap_service = ctx->service;
     }
 
-    if (!auth_connect_send(req)) goto fail;
+    if (auth_connect_send(req) == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
 
     return req;
 
 fail:
-    talloc_zfree(req);
-    return NULL;
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
 }
 
 static struct tevent_req *auth_connect_send(struct tevent_req *req)
