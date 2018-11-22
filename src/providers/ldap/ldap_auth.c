@@ -664,6 +664,18 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
         state->sdap_service = ctx->service;
     }
 
+    ret = get_user_dn(state, state->ctx->be->domain,
+                      state->ctx->opts, state->username, &state->dn,
+                      &state->pw_expire_type, &state->pw_expire_data);
+    if (ret == EAGAIN) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Need to look up the DN of %s later\n", state->username);
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get user DN [%d]: %s\n", ret, sss_strerror(ret));
+        goto fail;
+    }
+
     if (auth_connect_send(req) == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -683,6 +695,8 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
     struct auth_state *state = tevent_req_data(req,
                                                struct auth_state);
     bool use_tls;
+    bool skip_conn_auth = false;
+    const char *sasl_mech;
 
     /* Check for undocumented debugging feature to disable TLS
      * for authentication. This should never be used in production
@@ -695,10 +709,33 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
                                "for debugging purposes only.");
     }
 
+    if (state->dn != NULL) {
+        /* In case the user's DN is known, the connection will only be used
+         * to bind as the user to perform the authentication. In that case,
+         * we don't need to authenticate the connection, because we're not
+         * looking up any information using the connection. This might be
+         * needed e.g. in case both ID and AUTH providers are set to LDAP
+         * and the server is AD, because otherwise the connection would
+         * both do a startTLS and later bind using GSSAPI which doesn't work
+         * well with AD.
+         */
+        skip_conn_auth = true;
+    }
+
+    if (skip_conn_auth == false) {
+        sasl_mech = dp_opt_get_string(state->ctx->opts->basic,
+                                      SDAP_SASL_MECH);
+        if (sasl_mech && strcasecmp(sasl_mech, "GSSAPI") == 0) {
+            /* Don't force TLS on if we're told to use GSSAPI */
+            use_tls = false;
+        }
+    }
+
     subreq = sdap_cli_connect_send(state, state->ev, state->ctx->opts,
                                    state->ctx->be,
                                    state->sdap_service, false,
-                                   use_tls ? CON_TLS_ON : CON_TLS_OFF, false);
+                                   use_tls ? CON_TLS_ON : CON_TLS_OFF,
+                                   skip_conn_auth);
 
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
@@ -739,15 +776,7 @@ static void auth_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = get_user_dn(state, state->ctx->be->domain,
-                      state->ctx->opts, state->username, &state->dn,
-                      &state->pw_expire_type, &state->pw_expire_data);
-    if (ret == EOK) {
-        /* All required user data was pre-cached during an identity lookup.
-         * We can proceed with the bind */
-        auth_do_bind(req);
-        return;
-    } else if (ret == EAGAIN) {
+    if (state->dn == NULL) {
         /* The cached user entry was missing the bind DN. Need to look
          * it up based on user name in order to perform the bind */
         subreq = get_user_dn_send(req, state->ev, state->ctx->be->domain,
@@ -760,7 +789,9 @@ static void auth_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    tevent_req_error(req, ret);
+    /* All required user data was pre-cached during an identity lookup.
+     * We can proceed with the bind */
+    auth_do_bind(req);
     return;
 }
 
