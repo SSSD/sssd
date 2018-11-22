@@ -223,7 +223,7 @@ static int ssh_test_setup(void **state)
      * the timeout not because p11_child needs much more time under valgrind
      * but because of the way valgrind handles the children. */
     struct sss_test_conf_param ssh_params[] = {
-        { "p11_child_timeout", "40" },
+        { "p11_child_timeout", "80" },
         { NULL, NULL },             /* Sentinel */
     };
 
