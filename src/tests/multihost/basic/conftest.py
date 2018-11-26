@@ -406,6 +406,14 @@ def create_posix_usersgroups(session_multihost):
         assert ret == 'Success'
 
 
+@pytest.fixture(scope='session')
+def create_many_user_principals(session_multihost):
+    krb = krb5srv(session_multihost.master[0], 'EXAMPLE.TEST')
+    for i in range(1, 65):
+        username = "user%04d" % i
+        krb.add_principal(username, 'user', 'Secret123')
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_session(request, session_multihost,
                   package_install,
