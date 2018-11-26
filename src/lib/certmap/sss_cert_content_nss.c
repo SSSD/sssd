@@ -887,8 +887,25 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-
-    cont->key_usage = cert->keyUsage;
+    /* According to X.509 https://www.itu.int/rec/T-REC-X.509-201610-I
+     * section 13.3.2 "Certificate match" "keyUsage matches if all of the
+     * bits set in the presented value are also set in the key usage
+     * extension in the stored attribute value, or if there is no key
+     * usage extension in the stored attribute value;". So we set all bits
+     * in our key_usage to make sure everything matches is keyUsage is not
+     * set in the certificate.
+     *
+     * Please note that NSS currently
+     * (https://bugzilla.mozilla.org/show_bug.cgi?id=549952) does not
+     * support 'decipherOnly' and will only use 0xff in this case. To have
+     * a consistent behavior with both libraries we will use UINT32_MAX
+     * for NSS as well. Since comparisons should be always done with a
+     * bit-wise and-operation the difference should not matter. */
+    if (cert->keyUsagePresent == PR_FALSE) {
+        cont->key_usage = UINT32_MAX;
+    } else {
+        cont->key_usage = cert->keyUsage;
+    }
 
     ret = get_extended_key_usage_oids(cont, cert,
                                       &(cont->extended_key_usage_oids));
