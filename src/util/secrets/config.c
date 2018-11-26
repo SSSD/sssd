@@ -24,10 +24,10 @@
 
 errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
                           const char *section_config_path,
-                          int default_max_containers_nest_level,
-                          int default_max_num_secrets,
-                          int default_max_num_uid_secrets,
-                          int default_max_payload,
+                          struct sss_sec_quota_opt *dfl_max_containers_nest_level,
+                          struct sss_sec_quota_opt *dfl_max_num_secrets,
+                          struct sss_sec_quota_opt *dfl_max_num_uid_secrets,
+                          struct sss_sec_quota_opt *dfl_max_payload,
                           struct sss_sec_quota *quota)
 {
     int ret;
@@ -38,8 +38,8 @@ errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
 
     ret = confdb_get_int(cdb,
                          section_config_path,
-                         CONFDB_SEC_CONTAINERS_NEST_LEVEL,
-                         default_max_containers_nest_level,
+                         dfl_max_containers_nest_level->opt_name,
+                         dfl_max_containers_nest_level->default_value,
                          &quota->containers_nest_level);
 
     if (ret != EOK) {
@@ -51,8 +51,8 @@ errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
 
     ret = confdb_get_int(cdb,
                          section_config_path,
-                         CONFDB_SEC_MAX_SECRETS,
-                         default_max_num_secrets,
+                         dfl_max_num_secrets->opt_name,
+                         dfl_max_num_secrets->default_value,
                          &quota->max_secrets);
 
     if (ret != EOK) {
@@ -64,8 +64,8 @@ errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
 
     ret = confdb_get_int(cdb,
                          section_config_path,
-                         CONFDB_SEC_MAX_UID_SECRETS,
-                         default_max_num_uid_secrets,
+                         dfl_max_num_uid_secrets->opt_name,
+                         dfl_max_num_uid_secrets->default_value,
                          &quota->max_uid_secrets);
 
     if (ret != EOK) {
@@ -77,8 +77,8 @@ errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
 
     ret = confdb_get_int(cdb,
                          section_config_path,
-                         CONFDB_SEC_MAX_PAYLOAD_SIZE,
-                         default_max_payload,
+                         dfl_max_payload->opt_name,
+                         dfl_max_payload->default_value,
                          &quota->max_payload_size);
 
     if (ret != EOK) {
@@ -93,10 +93,10 @@ errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
 
 errno_t sss_sec_get_hive_config(struct confdb_ctx *cdb,
                                 const char *hive_name,
-                                int default_max_containers_nest_level,
-                                int default_max_num_secrets,
-                                int default_max_num_uid_secrets,
-                                int default_max_payload,
+                                struct sss_sec_quota_opt *dfl_max_containers_nest_level,
+                                struct sss_sec_quota_opt *dfl_max_num_secrets,
+                                struct sss_sec_quota_opt *dfl_max_num_uid_secrets,
+                                struct sss_sec_quota_opt *dfl_max_payload,
                                 struct sss_sec_hive_config *hive_config)
 {
     int ret;
@@ -122,10 +122,10 @@ errno_t sss_sec_get_hive_config(struct confdb_ctx *cdb,
 
     ret = sss_sec_get_quota(cdb,
                             confdb_section,
-                            default_max_containers_nest_level,
-                            default_max_num_secrets,
-                            default_max_num_uid_secrets,
-                            default_max_payload,
+                            dfl_max_containers_nest_level,
+                            dfl_max_num_secrets,
+                            dfl_max_num_uid_secrets,
+                            dfl_max_payload,
                             &hive_config->quota);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,

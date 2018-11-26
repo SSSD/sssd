@@ -47,6 +47,11 @@ struct sss_sec_ctx;
 
 struct sss_sec_req;
 
+struct sss_sec_quota_opt {
+    const char *opt_name;
+    int default_value;
+};
+
 struct sss_sec_quota {
     int max_secrets;
     int max_uid_secrets;
@@ -98,18 +103,18 @@ bool sss_sec_req_is_list(struct sss_sec_req *req);
 
 errno_t sss_sec_get_quota(struct confdb_ctx *cdb,
                           const char *section_config_path,
-                          int default_max_containers_nest_level,
-                          int default_max_num_secrets,
-                          int default_max_num_uid_secrets,
-                          int default_max_payload,
+                          struct sss_sec_quota_opt *dfl_max_containers_nest_level,
+                          struct sss_sec_quota_opt *dfl_max_num_secrets,
+                          struct sss_sec_quota_opt *dfl_max_num_uid_secrets,
+                          struct sss_sec_quota_opt *dfl_max_payload,
                           struct sss_sec_quota *quota);
 
 errno_t sss_sec_get_hive_config(struct confdb_ctx *cdb,
                                 const char *hive_name,
-                                int default_max_containers_nest_level,
-                                int default_max_num_secrets,
-                                int default_max_num_uid_secrets,
-                                int default_max_payload,
+                                struct sss_sec_quota_opt *dfl_max_containers_nest_level,
+                                struct sss_sec_quota_opt *dfl_max_num_secrets,
+                                struct sss_sec_quota_opt *dfl_max_num_uid_secrets,
+                                struct sss_sec_quota_opt *dfl_max_payload,
                                 struct sss_sec_hive_config *hive_config);
 
 #endif /* __SECRETS_H_ */
