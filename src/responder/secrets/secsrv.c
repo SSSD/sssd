@@ -47,6 +47,39 @@ static void adjust_global_quota(struct sec_ctx *sctx,
 static int sec_get_config(struct sec_ctx *sctx)
 {
     int ret;
+    struct sss_sec_quota_opt dfl_sec_nest_level = {
+        .opt_name = CONFDB_SEC_CONTAINERS_NEST_LEVEL,
+        .default_value = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
+    };
+    struct sss_sec_quota_opt dfl_sec_max_secrets = {
+        .opt_name = CONFDB_SEC_MAX_SECRETS,
+        .default_value = DEFAULT_SEC_MAX_SECRETS,
+    };
+    struct sss_sec_quota_opt dfl_sec_max_uid_secrets = {
+        .opt_name = CONFDB_SEC_MAX_UID_SECRETS,
+        .default_value = DEFAULT_SEC_MAX_UID_SECRETS,
+    };
+    struct sss_sec_quota_opt dfl_sec_max_payload_size = {
+        .opt_name = CONFDB_SEC_MAX_PAYLOAD_SIZE,
+        .default_value = DEFAULT_SEC_MAX_PAYLOAD_SIZE,
+    };
+
+    struct sss_sec_quota_opt dfl_kcm_nest_level = {
+        .opt_name = CONFDB_SEC_CONTAINERS_NEST_LEVEL,
+        .default_value = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
+    };
+    struct sss_sec_quota_opt dfl_kcm_max_secrets = {
+        .opt_name = CONFDB_SEC_MAX_SECRETS,
+        .default_value = DEFAULT_SEC_KCM_MAX_SECRETS,
+    };
+    struct sss_sec_quota_opt dfl_kcm_max_uid_secrets = {
+        .opt_name = CONFDB_SEC_MAX_UID_SECRETS,
+        .default_value = DEFAULT_SEC_KCM_MAX_UID_SECRETS,
+    };
+    struct sss_sec_quota_opt dfl_kcm_max_payload_size = {
+        .opt_name = CONFDB_SEC_MAX_PAYLOAD_SIZE,
+        .default_value = DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE,
+    };
 
     ret = confdb_get_int(sctx->rctx->cdb,
                          sctx->rctx->confdb_service_path,
@@ -65,15 +98,12 @@ static int sec_get_config(struct sec_ctx *sctx)
     sctx->max_payload_size = 1;
 
     /* Read the global quota first -- this should be removed in a future release */
-    /* Note that this sets the defaults for the sec_config quota to be used
-     * in sec_get_hive_config()
-     */
     ret = sss_sec_get_quota(sctx->rctx->cdb,
                             sctx->rctx->confdb_service_path,
-                            DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
-                            DEFAULT_SEC_MAX_SECRETS,
-                            DEFAULT_SEC_MAX_UID_SECRETS,
-                            DEFAULT_SEC_MAX_PAYLOAD_SIZE,
+                            &dfl_sec_nest_level,
+                            &dfl_sec_max_secrets,
+                            &dfl_sec_max_uid_secrets,
+                            &dfl_sec_max_payload_size,
                             &sctx->sec_config.quota);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -81,13 +111,23 @@ static int sec_get_config(struct sec_ctx *sctx)
         goto fail;
     }
 
+    /* Use the global quota values as defaults for the secrets/secrets section */
+    dfl_sec_nest_level.default_value = \
+                                sctx->sec_config.quota.containers_nest_level;
+    dfl_sec_max_secrets.default_value = \
+                                sctx->sec_config.quota.max_secrets;
+    dfl_sec_max_uid_secrets.default_value = \
+                                sctx->sec_config.quota.max_uid_secrets;
+    dfl_sec_max_payload_size.default_value = \
+                                sctx->sec_config.quota.max_payload_size;
+
     /* Read the per-hive configuration */
     ret = sss_sec_get_hive_config(sctx->rctx->cdb,
                                  "secrets",
-                                 sctx->sec_config.quota.containers_nest_level,
-                                 sctx->sec_config.quota.max_secrets,
-                                 sctx->sec_config.quota.max_uid_secrets,
-                                 sctx->sec_config.quota.max_payload_size,
+                                 &dfl_sec_nest_level,
+                                 &dfl_sec_max_secrets,
+                                 &dfl_sec_max_uid_secrets,
+                                 &dfl_sec_max_payload_size,
                                  &sctx->sec_config);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -98,10 +138,10 @@ static int sec_get_config(struct sec_ctx *sctx)
 
     ret = sss_sec_get_hive_config(sctx->rctx->cdb,
                                   "kcm",
-                                  DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
-                                  DEFAULT_SEC_KCM_MAX_SECRETS,
-                                  DEFAULT_SEC_KCM_MAX_UID_SECRETS,
-                                  DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE,
+                                  &dfl_kcm_nest_level,
+                                  &dfl_kcm_max_secrets,
+                                  &dfl_kcm_max_uid_secrets,
+                                  &dfl_kcm_max_payload_size,
                                   &sctx->kcm_config);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
