@@ -747,6 +747,31 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
     return subreq;
 }
 
+static void check_encryption(LDAP *ldap)
+{
+    ber_len_t sasl_ssf = 0;
+    int tls_inplace = 0;
+    int ret;
+
+    ret = ldap_get_option(ldap, LDAP_OPT_X_SASL_SSF, &sasl_ssf);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_TRACE_LIBS, "ldap_get_option failed to get sasl ssf, "
+                                 "assuming SASL is not used.\n");
+    }
+
+    tls_inplace = ldap_tls_inplace(ldap);
+
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Encryption used: SASL SSF [%lu] tls_inplace [%s].\n", sasl_ssf,
+          tls_inplace == 1 ? "TLS inplace" : "TLS NOT inplace");
+
+    if (sasl_ssf <= 1 && tls_inplace != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "No encryption detected on LDAP connection.\n");
+        sss_log(SSS_LOG_CRIT, "No encryption detected on LDAP connection.\n");
+    }
+}
+
 static void auth_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -775,6 +800,8 @@ static void auth_connect_done(struct tevent_req *subreq)
         }
         return;
     }
+
+    check_encryption(state->sh->ldap);
 
     if (state->dn == NULL) {
         /* The cached user entry was missing the bind DN. Need to look
