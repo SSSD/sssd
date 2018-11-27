@@ -914,3 +914,145 @@ void sss_certmap_free_filter_and_domains(char *filter, char **domains)
     talloc_free(filter);
     talloc_free(domains);
 }
+
+static const char *sss_eku_oid2name(const char *oid)
+{
+    size_t c;
+
+    for (c = 0; sss_ext_key_usage[c].name != NULL; c++) {
+        if (strcmp(sss_ext_key_usage[c].oid, oid) == 0) {
+            return sss_ext_key_usage[c].name;
+        }
+    }
+
+    return NULL;
+}
+
+struct parsed_template san_parsed_template[] = {
+    { NULL, NULL, NULL }, /* SAN_OTHER_NAME handled separately */
+    { "subject_rfc822_name", NULL, NULL},
+    { "subject_dns_name", NULL, NULL},
+    { "subject_x400_address", NULL, NULL},
+    { "subject_directory_name", NULL, NULL},
+    { "subject_ediparty_name", NULL, NULL},
+    { "subject_uri", NULL, NULL},
+    { "subject_ip_address", NULL, NULL},
+    { "subject_registered_id", NULL, NULL},
+    { "subject_pkinit_principal", NULL, NULL},
+    { "subject_nt_principal", NULL, NULL},
+    { "subject_principal", NULL, NULL},
+    { NULL, NULL, NULL }, /* SAN_STRING_OTHER_NAME handled separately */
+    { NULL, NULL, NULL }  /* SAN_END */
+};
+
+int sss_cert_dump_content(TALLOC_CTX *mem_ctx, struct sss_cert_content *c,
+                          char **content_str)
+{
+    char *out = NULL;
+    size_t o;
+    struct san_list *s;
+    struct sss_certmap_ctx *ctx = NULL;
+    char *expanded = NULL;
+    int ret;
+    char *b64 = NULL;
+    const char *eku_str = NULL;
+
+    ret = sss_certmap_init(mem_ctx, NULL, NULL, &ctx);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    out = talloc_strdup(mem_ctx, "sss cert content (format might change):\n");
+    if (out == NULL) return ENOMEM;
+
+    out = talloc_asprintf_append(out, "Issuer: %s\n", c->issuer_str != NULL
+                                                         ? c->issuer_str
+                                                         : "- not available -");
+    if (out == NULL) return ENOMEM;
+    out = talloc_asprintf_append(out, "Subject: %s\n", c->subject_str != NULL
+                                                         ? c->subject_str
+                                                         : "- not available -");
+    if (out == NULL) return ENOMEM;
+
+    out = talloc_asprintf_append(out, "Key Usage: %u(0x%04x)", c->key_usage,
+                                                               c->key_usage);
+    if (out == NULL) return ENOMEM;
+
+    if (c->key_usage != 0) {
+        out = talloc_asprintf_append(out, " (");
+        if (out == NULL) return ENOMEM;
+        for (o = 0; sss_key_usage[o].name != NULL; o++) {
+            if ((c->key_usage & sss_key_usage[o].flag) != 0) {
+                out = talloc_asprintf_append(out, "%s%s",
+                                             o == 0 ? "" : ",",
+                                             sss_key_usage[o].name);
+                if (out == NULL) return ENOMEM;
+            }
+        }
+        out = talloc_asprintf_append(out, ")");
+        if (out == NULL) return ENOMEM;
+    }
+    out = talloc_asprintf_append(out, "\n");
+    if (out == NULL) return ENOMEM;
+
+    for (o = 0; c->extended_key_usage_oids[o] != NULL; o++) {
+        eku_str = sss_eku_oid2name(c->extended_key_usage_oids[o]);
+        out = talloc_asprintf_append(out, "Extended Key Usage #%zu: %s%s%s%s\n",
+                                          o, c->extended_key_usage_oids[o],
+                                          eku_str == NULL ? "" : " (",
+                                          eku_str == NULL ? "" : eku_str,
+                                          eku_str == NULL ? "" : ")");
+        if (out == NULL) return ENOMEM;
+    }
+
+    DLIST_FOR_EACH(s, c->san_list) {
+        out = talloc_asprintf_append(out, "SAN type: %s\n",
+                                     s->san_opt < SAN_END
+                                                ? sss_san_names[s->san_opt].name
+                                                : "- unsupported -");
+        if (out == NULL) return ENOMEM;
+
+        if (san_parsed_template[s->san_opt].name != NULL) {
+            ret = expand_san(ctx, &san_parsed_template[s->san_opt], c->san_list,
+                             &expanded);
+            if (ret != EOK) {
+                return ret;
+            }
+            out = talloc_asprintf_append(out, " %s=%s\n\n",
+                                         san_parsed_template[s->san_opt].name,
+                                         expanded);
+            talloc_free(expanded);
+            if (out == NULL) return ENOMEM;
+        } else if (s->san_opt == SAN_STRING_OTHER_NAME) {
+            b64 = sss_base64_encode(mem_ctx, s->bin_val, s->bin_val_len);
+            out = talloc_asprintf_append(out, " %s=%s\n\n", s->other_name_oid,
+                                              b64 != NULL ? b64
+                                                          : "- cannot encode -");
+            talloc_free(b64);
+        }
+    }
+
+    *content_str = out;
+
+    return EOK;
+}
+
+int sss_certmap_display_cert_content(TALLOC_CTX *mem_cxt,
+                                     const uint8_t *der_cert, size_t der_size,
+                                     char **desc)
+{
+    int ret;
+    struct sss_cert_content *content;
+
+    ret = sss_cert_get_content(mem_cxt, der_cert, der_size, &content);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sss_cert_dump_content(mem_cxt, content, desc);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return 0;
+}
