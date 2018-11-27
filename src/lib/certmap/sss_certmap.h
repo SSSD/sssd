@@ -147,6 +147,24 @@ int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
 void sss_certmap_free_filter_and_domains(char *filter, char **domains);
 
 /**
+ * @brief Get a string with the content of the certificate used by the library
+ *
+ * @param[in]  mem_ctx    Talloc memory context, may be NULL
+ * @param[in]  der_cert   binary blog with the DER encoded certificate
+ * @param[in]  der_size   size of the certificate blob
+ * @param[out] desc       Multiline string showing the certificate content
+ *                        which is used by libsss_certmap
+ *
+ * @return
+ *  - 0:      success
+ *  - EINVAL: certificate cannot be parsed
+ *  - ENOMEM: memory allocation failure
+ */
+int sss_certmap_display_cert_content(TALLOC_CTX *mem_cxt,
+                                     const uint8_t *der_cert, size_t der_size,
+                                     char **desc);
+
+/**
  * @}
  */
 #endif /* _SSS_CERTMAP_H_ */
