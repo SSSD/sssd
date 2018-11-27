@@ -4,9 +4,11 @@ dist_noinst_DATA = \
     SSSD_test_cert_0001.config \
     SSSD_test_cert_0002.config \
     SSSD_test_cert_0003.config \
+    SSSD_test_cert_0004.config \
     SSSD_test_cert_key_0001.pem \
     SSSD_test_cert_key_0002.pem \
     SSSD_test_cert_key_0003.pem \
+    SSSD_test_cert_key_0004.pem \
     $(NULL)
 
 openssl_ca_config = $(srcdir)/SSSD_test_CA.config
@@ -40,7 +42,11 @@ SSSD_test_CA.pem: $(openssl_ca_key) $(openssl_ca_config) serial
 
 
 SSSD_test_cert_req_%.pem: $(srcdir)/SSSD_test_cert_key_%.pem $(srcdir)/SSSD_test_cert_%.config
-	$(OPENSSL) req -new -nodes -key $< -reqexts req_exts -config $(srcdir)/SSSD_test_cert_$*.config -out $@
+	if [ $(shell grep -c req_exts $(srcdir)/SSSD_test_cert_$*.config) -eq 0 ]; then \
+		$(OPENSSL) req -new -nodes -key $< -config $(srcdir)/SSSD_test_cert_$*.config -out $@ ; \
+	else \
+		$(OPENSSL) req -new -nodes -key $< -reqexts req_exts -config $(srcdir)/SSSD_test_cert_$*.config -out $@ ; \
+	fi
 
 SSSD_test_cert_x509_%.pem: SSSD_test_cert_req_%.pem $(openssl_ca_config) SSSD_test_CA.pem
 	$(OPENSSL) ca -config ${openssl_ca_config} -batch -notext -keyfile $(openssl_ca_key) -in $< -days 200 -extensions usr_cert -out $@
