@@ -2125,7 +2125,7 @@ libsss_certmap_la_LIBADD = \
     $(NULL)
 libsss_certmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/certmap/sss_certmap.exports \
-    -version-info 0:0:0
+    -version-info 1:0:1
 
 if HAVE_NSS
 libsss_certmap_la_SOURCES += \
