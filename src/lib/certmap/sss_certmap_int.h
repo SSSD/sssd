@@ -205,9 +205,6 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
                          const uint8_t *der_blob, size_t der_size,
                          struct sss_cert_content **content);
 
-int sss_cert_dump_content(TALLOC_CTX *mem_ctx, struct sss_cert_content *c,
-                          char **content_str);
-
 char *check_ad_attr_name(TALLOC_CTX *mem_ctx, const char *rdn);
 
 char *openssl_2_nss_attr_name(const char *attr);

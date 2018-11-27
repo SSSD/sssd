@@ -283,6 +283,8 @@ int main(int argc, const char **argv)
         SSS_TOOL_DELIMITER("Configuration files tools:"),
         SSS_TOOL_COMMAND_FLAGS("config-check", "Perform static analysis of SSSD configuration", 0, sssctl_config_check, SSS_TOOL_FLAG_SKIP_CMD_INIT),
 #endif
+        SSS_TOOL_DELIMITER("Certificate related tools:"),
+        SSS_TOOL_COMMAND("cert-show", "Print information about the certificate", 0, sssctl_cert_show),
         SSS_TOOL_LAST
     };
 

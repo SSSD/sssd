@@ -945,8 +945,9 @@ struct parsed_template san_parsed_template[] = {
     { NULL, NULL, NULL }  /* SAN_END */
 };
 
-int sss_cert_dump_content(TALLOC_CTX *mem_ctx, struct sss_cert_content *c,
-                          char **content_str)
+static int sss_cert_dump_content(TALLOC_CTX *mem_ctx,
+                                 struct sss_cert_content *c,
+                                 char **content_str)
 {
     char *out = NULL;
     size_t o;
@@ -956,44 +957,51 @@ int sss_cert_dump_content(TALLOC_CTX *mem_ctx, struct sss_cert_content *c,
     int ret;
     char *b64 = NULL;
     const char *eku_str = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
 
-    ret = sss_certmap_init(mem_ctx, NULL, NULL, &ctx);
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sss_certmap_init(tmp_ctx, NULL, NULL, &ctx);
     if (ret != EOK) {
         return ret;
     }
 
-    out = talloc_strdup(mem_ctx, "sss cert content (format might change):\n");
-    if (out == NULL) return ENOMEM;
+    ret = ENOMEM; /* default error code for upcoming memory allocation issues */
+    out = talloc_strdup(tmp_ctx, "sss cert content (format might change):\n");
+    if (out == NULL) goto done;
 
     out = talloc_asprintf_append(out, "Issuer: %s\n", c->issuer_str != NULL
                                                          ? c->issuer_str
                                                          : "- not available -");
-    if (out == NULL) return ENOMEM;
+    if (out == NULL) goto done;
     out = talloc_asprintf_append(out, "Subject: %s\n", c->subject_str != NULL
                                                          ? c->subject_str
                                                          : "- not available -");
-    if (out == NULL) return ENOMEM;
+    if (out == NULL) goto done;
 
     out = talloc_asprintf_append(out, "Key Usage: %u(0x%04x)", c->key_usage,
                                                                c->key_usage);
-    if (out == NULL) return ENOMEM;
+    if (out == NULL) goto done;
 
     if (c->key_usage != 0) {
         out = talloc_asprintf_append(out, " (");
-        if (out == NULL) return ENOMEM;
+        if (out == NULL) goto done;
         for (o = 0; sss_key_usage[o].name != NULL; o++) {
             if ((c->key_usage & sss_key_usage[o].flag) != 0) {
                 out = talloc_asprintf_append(out, "%s%s",
                                              o == 0 ? "" : ",",
                                              sss_key_usage[o].name);
-                if (out == NULL) return ENOMEM;
+                if (out == NULL) goto done;
             }
         }
         out = talloc_asprintf_append(out, ")");
-        if (out == NULL) return ENOMEM;
+        if (out == NULL) goto done;
     }
     out = talloc_asprintf_append(out, "\n");
-    if (out == NULL) return ENOMEM;
+    if (out == NULL) goto done;
 
     for (o = 0; c->extended_key_usage_oids[o] != NULL; o++) {
         eku_str = sss_eku_oid2name(c->extended_key_usage_oids[o]);
@@ -1002,7 +1010,7 @@ int sss_cert_dump_content(TALLOC_CTX *mem_ctx, struct sss_cert_content *c,
                                           eku_str == NULL ? "" : " (",
                                           eku_str == NULL ? "" : eku_str,
                                           eku_str == NULL ? "" : ")");
-        if (out == NULL) return ENOMEM;
+        if (out == NULL) goto done;
     }
 
     DLIST_FOR_EACH(s, c->san_list) {
@@ -1010,31 +1018,40 @@ int sss_cert_dump_content(TALLOC_CTX *mem_ctx, struct sss_cert_content *c,
                                      s->san_opt < SAN_END
                                                 ? sss_san_names[s->san_opt].name
                                                 : "- unsupported -");
-        if (out == NULL) return ENOMEM;
+        if (out == NULL) goto done;
 
         if (san_parsed_template[s->san_opt].name != NULL) {
             ret = expand_san(ctx, &san_parsed_template[s->san_opt], c->san_list,
                              &expanded);
             if (ret != EOK) {
-                return ret;
+                goto done;
             }
             out = talloc_asprintf_append(out, " %s=%s\n\n",
                                          san_parsed_template[s->san_opt].name,
                                          expanded);
             talloc_free(expanded);
-            if (out == NULL) return ENOMEM;
+            if (out == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
         } else if (s->san_opt == SAN_STRING_OTHER_NAME) {
-            b64 = sss_base64_encode(mem_ctx, s->bin_val, s->bin_val_len);
+            b64 = sss_base64_encode(tmp_ctx, s->bin_val, s->bin_val_len);
             out = talloc_asprintf_append(out, " %s=%s\n\n", s->other_name_oid,
                                               b64 != NULL ? b64
                                                           : "- cannot encode -");
             talloc_free(b64);
+            if (out == NULL) goto done;
         }
     }
 
-    *content_str = out;
+    *content_str = talloc_steal(mem_ctx, out);
 
-    return EOK;
+    ret = EOK;
+
+done:
+
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 int sss_certmap_display_cert_content(TALLOC_CTX *mem_cxt,
@@ -1042,7 +1059,7 @@ int sss_certmap_display_cert_content(TALLOC_CTX *mem_cxt,
                                      char **desc)
 {
     int ret;
-    struct sss_cert_content *content;
+    struct sss_cert_content *content = NULL;
 
     ret = sss_cert_get_content(mem_cxt, der_cert, der_size, &content);
     if (ret != EOK) {
@@ -1050,6 +1067,7 @@ int sss_certmap_display_cert_content(TALLOC_CTX *mem_cxt,
     }
 
     ret = sss_cert_dump_content(mem_cxt, content, desc);
+    talloc_free(content);
     if (ret != EOK) {
         return ret;
     }
