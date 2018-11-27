@@ -46,8 +46,10 @@
 
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_x509_0003.h"
+#include "tests/test_CA/SSSD_test_cert_x509_0004.h"
 #else
 #define SSSD_TEST_CERT_0003 ""
+#define SSSD_TEST_CERT_0004 ""
 #endif
 
 struct priv_sss_debug {
@@ -960,6 +962,48 @@ void test_sss_cert_get_content_test_cert_0003(void **state)
     talloc_free(content);
 }
 
+void test_sss_cert_get_content_test_cert_0004(void **state)
+{
+    int ret;
+    uint8_t *der;
+    size_t der_size;
+    struct sss_cert_content *content;
+
+    der = sss_base64_decode(NULL, SSSD_TEST_CERT_0004, &der_size);
+    assert_non_null(der);
+
+    ret = sss_cert_get_content(NULL, der, der_size, &content);
+    assert_int_equal(ret, 0);
+    assert_non_null(content);
+    assert_non_null(content->issuer_str);
+    assert_string_equal(content->issuer_str,
+                        "CN=SSSD test CA,OU=SSSD test,O=SSSD");
+
+    assert_non_null(content->issuer_rdn_list);
+    assert_string_equal(content->issuer_rdn_list[0], "O=SSSD");
+    assert_string_equal(content->issuer_rdn_list[1], "OU=SSSD test");
+    assert_string_equal(content->issuer_rdn_list[2], "CN=SSSD test CA");
+    assert_null(content->issuer_rdn_list[3]);
+
+    assert_non_null(content->subject_str);
+    assert_string_equal(content->subject_str,
+                        "CN=SSSD test cert 0004,OU=SSSD test,O=SSSD");
+
+    assert_non_null(content->subject_rdn_list);
+    assert_string_equal(content->issuer_rdn_list[0], "O=SSSD");
+    assert_string_equal(content->issuer_rdn_list[1], "OU=SSSD test");
+    assert_string_equal(content->subject_rdn_list[2], "CN=SSSD test cert 0004");
+    assert_null(content->subject_rdn_list[3]);
+
+    assert_int_equal(content->key_usage, UINT32_MAX);
+
+    assert_non_null(content->extended_key_usage_oids);
+    assert_null(content->extended_key_usage_oids[0]);
+
+    assert_null(content->san_list);
+
+    talloc_free(content);
+}
 
 static void test_sss_certmap_match_cert(void **state)
 {
@@ -1572,6 +1616,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_sss_cert_get_content_2),
 #ifdef HAVE_TEST_CA
         cmocka_unit_test(test_sss_cert_get_content_test_cert_0003),
+        cmocka_unit_test(test_sss_cert_get_content_test_cert_0004),
 #endif
         cmocka_unit_test(test_sss_certmap_match_cert),
         cmocka_unit_test(test_sss_certmap_add_mapping_rule),
