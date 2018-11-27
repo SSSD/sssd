@@ -17,13 +17,13 @@ import tempfile
 import ldap
 
 
-def pytest_namespace():
-    return {'num_masters': 1,
-            'num_ad': 0,
-            'num_atomic': 0,
-            'num_replicas': 0,
-            'num_clients': 0,
-            'num_others': 0}
+def pytest_configure():
+    pytest.num_masters = 1
+    pytest.num_ad = 0
+    pytest.num_atomic = 0
+    pytest.num_replicas = 0
+    pytest.num_clients = 0
+    pytest.num_others = 0
 
 
 @pytest.fixture(scope="class")
