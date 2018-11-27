@@ -2042,6 +2042,7 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_config.c \
     src/tools/sssctl/sssctl_user_checks.c \
     src/tools/sssctl/sssctl_access_report.c \
+    src/tools/sssctl/sssctl_cert.c \
     $(SSSD_TOOLS_OBJ) \
     $(NULL)
 sssctl_LDADD = \
@@ -2051,6 +2052,7 @@ sssctl_LDADD = \
     $(PAM_LIBS) \
     $(PAM_MISC_LIBS) \
     $(LIBADD_DL) \
+    libsss_certmap.la \
     libifp_iface_sync.la \
     libsss_iface_sync.la \
     libsss_sbus_sync.la \
