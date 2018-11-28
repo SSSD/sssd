@@ -170,6 +170,8 @@ static int kcm_data_destructor(void *ptr)
 
 static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
+                                           struct confdb_ctx *cdb,
+                                           const char *confdb_service_path,
                                            enum kcm_ccdb_be cc_be)
 {
     struct kcm_resp_ctx *kcm_data;
@@ -181,7 +183,11 @@ static struct kcm_resp_ctx *kcm_data_setup(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    kcm_data->db = kcm_ccdb_init(kcm_data, ev, cc_be);
+    kcm_data->db = kcm_ccdb_init(kcm_data,
+                                 ev,
+                                 cdb,
+                                 confdb_service_path,
+                                 cc_be);
     if (kcm_data->db == NULL) {
         talloc_free(kcm_data);
         return NULL;
@@ -235,7 +241,11 @@ static int kcm_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    kctx->kcm_data = kcm_data_setup(kctx, ev, kctx->cc_be);
+    kctx->kcm_data = kcm_data_setup(kctx,
+                                    ev,
+                                    kctx->rctx->cdb,
+                                    kctx->rctx->confdb_service_path,
+                                    kctx->cc_be);
     if (kctx->kcm_data == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "fatal error initializing responder data\n");

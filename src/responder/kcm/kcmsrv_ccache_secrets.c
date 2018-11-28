@@ -659,7 +659,9 @@ static errno_t sec_get_ccache_recv(struct tevent_req *req,
 /*
  * The actual sssd-secrets back end
  */
-static errno_t ccdb_sec_init(struct kcm_ccdb *db)
+static errno_t ccdb_sec_init(struct kcm_ccdb *db,
+                             struct confdb_ctx *cdb,
+                             const char *confdb_service_path)
 {
     struct ccdb_sec *secdb = NULL;
 

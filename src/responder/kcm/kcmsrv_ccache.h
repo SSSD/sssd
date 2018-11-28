@@ -125,6 +125,8 @@ struct kcm_ccdb;
  */
 struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
                                struct tevent_context *ev,
+                               struct confdb_ctx *cdb,
+                               const char *confdb_service_path,
                                enum kcm_ccdb_be cc_be);
 
 /*

@@ -520,7 +520,9 @@ done:
     return ret;
 }
 
-static errno_t ccdb_secdb_init(struct kcm_ccdb *db)
+static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
+                               struct confdb_ctx *cdb,
+                               const char *confdb_service_path)
 {
     struct ccdb_secdb *secdb = NULL;
     errno_t ret;
@@ -529,8 +531,6 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db)
     if (secdb == NULL) {
         return ENOMEM;
     }
-
-    /* TODO: read configuration from the config file, adjust quotas */
 
     ret = sss_sec_init(db, NULL, &secdb->sctx);
     if (ret != EOK) {
