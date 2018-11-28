@@ -526,13 +526,72 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
 {
     struct ccdb_secdb *secdb = NULL;
     errno_t ret;
+    struct sss_sec_hive_config **kcm_section_quota;
+    struct sss_sec_quota_opt dfl_kcm_nest_level = {
+        .opt_name = CONFDB_SEC_CONTAINERS_NEST_LEVEL,
+        .default_value = DEFAULT_SEC_CONTAINERS_NEST_LEVEL,
+    };
+    struct sss_sec_quota_opt dfl_kcm_max_secrets = {
+        .opt_name = CONFDB_KCM_MAX_CCACHES,
+        .default_value = DEFAULT_SEC_KCM_MAX_SECRETS,
+    };
+    struct sss_sec_quota_opt dfl_kcm_max_uid_secrets = {
+        .opt_name = CONFDB_KCM_MAX_UID_CCACHES,
+        .default_value = DEFAULT_SEC_KCM_MAX_UID_SECRETS,
+    };
+    struct sss_sec_quota_opt dfl_kcm_max_payload_size = {
+        .opt_name = CONFDB_KCM_MAX_CCACHE_SIZE,
+        .default_value = DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE,
+    };
+
 
     secdb = talloc_zero(db, struct ccdb_secdb);
     if (secdb == NULL) {
         return ENOMEM;
     }
 
-    ret = sss_sec_init(db, NULL, &secdb->sctx);
+    kcm_section_quota = talloc_zero_array(secdb,
+                                          struct sss_sec_hive_config *,
+                                          2);
+    if (kcm_section_quota == NULL) {
+        talloc_free(secdb);
+        return ENOMEM;
+    }
+
+    kcm_section_quota[0] = talloc_zero(kcm_section_quota,
+                                       struct sss_sec_hive_config);
+    if (kcm_section_quota == NULL) {
+        talloc_free(secdb);
+        return ENOMEM;
+    }
+    kcm_section_quota[0]->hive_name = "kcm";
+
+    ret = sss_sec_get_quota(cdb,
+                            confdb_service_path,
+                            &dfl_kcm_nest_level,
+                            &dfl_kcm_max_secrets,
+                            &dfl_kcm_max_uid_secrets,
+                            &dfl_kcm_max_payload_size,
+                            &kcm_section_quota[0]->quota);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get KCM global quotas [%d]: %s\n",
+              ret, sss_strerror(ret));
+        talloc_free(secdb);
+        return ret;
+    }
+
+    if (kcm_section_quota[0]->quota.max_uid_secrets > 0) {
+        /* Even cn=default is considered a secret that adds up to
+         * the quota. To avoid off-by-one-confusion, increase
+         * the quota by two to 1) account for the cn=default object
+         * and 2) always allow writing to cn=defaults even if we
+         * are exactly at the quota limit
+         */
+        kcm_section_quota[0]->quota.max_uid_secrets += 2;
+    }
+
+    ret = sss_sec_init(db, kcm_section_quota, &secdb->sctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot initialize the security database\n");
