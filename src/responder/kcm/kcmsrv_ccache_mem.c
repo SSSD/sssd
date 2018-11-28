@@ -151,7 +151,9 @@ static int ccwrap_destructor(void *ptr)
     return 0;
 }
 
-static errno_t ccdb_mem_init(struct kcm_ccdb *db)
+static errno_t ccdb_mem_init(struct kcm_ccdb *db,
+                             struct confdb_ctx *cdb,
+                             const char *confdb_service_path)
 {
     struct ccdb_mem *memdb = NULL;
 
