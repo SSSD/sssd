@@ -201,6 +201,43 @@ systemctl restart sssd-kcm.service
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry>
+                <term>max_ccaches (integer)</term>
+                <listitem>
+                    <para>
+                        How many credential caches does the KCM database allow
+                        for all users.
+                    </para>
+                    <para>
+                        Default: 0 (unlimited, only the per-UID quota is enforced)
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>max_uid_ccaches (integer)</term>
+                <listitem>
+                    <para>
+                        How many credential caches does the KCM database allow
+                        per UID. This is equivalent to <quote>with how many
+                        principals you can kinit</quote>.
+                    </para>
+                    <para>
+                        Default: 64
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>max_ccache_size (integer)</term>
+                <listitem>
+                    <para>
+                        How big can a credential cache be per ccache. Each
+                        service ticket accounts into this quota.
+                    </para>
+                    <para>
+                        Default: 65536
+                    </para>
+                </listitem>
+            </varlistentry>
         </variablelist>
     </refsect1>
 
