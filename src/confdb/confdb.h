@@ -266,6 +266,9 @@
 #define CONFDB_KCM_CONF_ENTRY "config/kcm"
 #define CONFDB_KCM_SOCKET "socket_path"
 #define CONFDB_KCM_DB "ccache_storage" /* Undocumented on purpose */
+#define CONFDB_KCM_MAX_CCACHES "max_ccaches"
+#define CONFDB_KCM_MAX_UID_CCACHES "max_uid_ccaches"
+#define CONFDB_KCM_MAX_CCACHE_SIZE "max_ccache_size"
 
 /* Certificate mapping rules */
 #define CONFDB_CERTMAP_BASEDN "cn=certmap,cn=config"
