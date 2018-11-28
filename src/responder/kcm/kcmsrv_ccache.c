@@ -229,6 +229,8 @@ struct sss_iobuf *kcm_cred_get_creds(struct kcm_cred *crd)
 
 struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
                                struct tevent_context *ev,
+                               struct confdb_ctx *cdb,
+                               const char *confdb_service_path,
                                enum kcm_ccdb_be cc_be)
 {
     errno_t ret;
@@ -270,7 +272,7 @@ struct kcm_ccdb *kcm_ccdb_init(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = ccdb->ops->init(ccdb);
+    ret = ccdb->ops->init(ccdb, cdb, confdb_service_path);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot initialize ccache database\n");
         talloc_free(ccdb);

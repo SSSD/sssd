@@ -30,7 +30,9 @@
 #include "responder/kcm/kcmsrv_ccache.h"
 
 typedef errno_t
-(*ccdb_init_fn)(struct kcm_ccdb *db);
+(*ccdb_init_fn)(struct kcm_ccdb *db,
+                struct confdb_ctx *cdb,
+                const char *confdb_service_path);
 
 typedef struct tevent_req *
 (*ccdb_nextid_send_fn)(TALLOC_CTX *mem_ctx,
