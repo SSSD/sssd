@@ -285,6 +285,7 @@ int main(int argc, const char **argv)
 #endif
         SSS_TOOL_DELIMITER("Certificate related tools:"),
         SSS_TOOL_COMMAND("cert-show", "Print information about the certificate", 0, sssctl_cert_show),
+        SSS_TOOL_COMMAND("cert-map", "Show users mapped to the certificate", 0, sssctl_cert_map),
         SSS_TOOL_LAST
     };
 
