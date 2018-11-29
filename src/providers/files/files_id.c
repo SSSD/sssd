@@ -103,7 +103,7 @@ files_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
         ret = files_map_cert_to_user(id_ctx, data);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "files_map_cert_to_user failed");
+            DEBUG(SSSDBG_OP_FAILURE, "files_map_cert_to_user failed\n");
         }
         goto immediate;
         break;
