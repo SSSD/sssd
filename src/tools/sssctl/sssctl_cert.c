@@ -29,9 +29,13 @@
 #include "tools/sssctl/sssctl.h"
 #include "lib/certmap/sss_certmap.h"
 #include "util/crypto/sss_crypto.h"
+#include "responder/ifp/ifp_iface/ifp_iface_sync.h"
 #ifdef HAVE_NSS
 #include "util/crypto/nss/nss_util.h"
 #endif
+
+#define PEM_HEAD "-----BEGIN CERTIFICATE-----\n"
+#define PEM_FOOT "-----END CERTIFICATE-----"
 
 errno_t sssctl_cert_show(struct sss_cmdline *cmdline,
                          struct sss_tool_ctx *tool_ctx,
@@ -89,6 +93,93 @@ done:
     /* Cleanup NSS and NSPR to make Valgrind happy. */
     nspr_nss_cleanup();
 #endif
+
+    return ret;
+}
+
+errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
+                        struct sss_tool_ctx *tool_ctx,
+                        void *pvt)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
+    int verbose = 0;
+    const char *cert_b64 = NULL;
+    char *cert_pem = NULL;
+    struct sbus_sync_connection *conn;
+    const char **paths;
+    size_t c;
+    const char *name;
+
+    /* Parse command line. */
+    struct poptOption options[] = {
+        {"verbose", 'v', POPT_ARG_NONE, &verbose, 0, _("Show debug information"), NULL },
+        POPT_TABLEEND
+    };
+
+    ret = sss_tool_popt_ex(cmdline, options, SSS_TOOL_OPT_OPTIONAL,
+                           NULL, NULL, "CERTIFICATE-BASE64-ENCODED",
+                           _("Specify base64 encoded certificate."),
+                           &cert_b64, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
+        return ret;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    cert_pem = talloc_asprintf(tmp_ctx, "%s%s\n%s",
+                                        PEM_HEAD, cert_b64, PEM_FOOT);
+    if (cert_pem == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    conn = sbus_sync_connect_system(tmp_ctx, NULL);
+    if (conn == NULL) {
+        fprintf(stderr, _("Unable to connect to system bus!\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = sbus_call_ifp_users_ListByCertificate(tmp_ctx, conn, IFP_BUS,
+                                                IFP_PATH_USERS, cert_pem, -1,
+                                                &paths);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to map certificate [%d]: %s\n",
+              ret, sss_strerror(ret));
+        PRINT_IFP_WARNING(ret);
+        goto done;
+    }
+
+    if (paths != NULL) {
+        for (c = 0; paths[c] != NULL; c++) {
+            ret = sbus_get_ifp_user_name(tmp_ctx, conn, IFP_BUS, paths[c],
+                                         &name);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            puts(name);
+        }
+    } else {
+        puts(" - no mapped users found -");
+    }
+
+    ret = EOK;
+done:
+
+#ifdef HAVE_NSS
+    /* Cleanup NSS and NSPR to make Valgrind happy. */
+    nspr_nss_cleanup();
+#endif
+
+    talloc_free(tmp_ctx);
 
     return ret;
 }
