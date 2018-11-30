@@ -1039,11 +1039,11 @@ done
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
 %attr(700,sssd,sssd) %dir %{dbpath}
-%attr(755,sssd,sssd) %dir %{mcpath}
+%attr(775,sssd,sssd) %dir %{mcpath}
 %attr(751,sssd,sssd) %dir %{deskprofilepath}
-%ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/passwd
-%ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
-%ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/initgroups
+%ghost %attr(0664,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/passwd
+%ghost %attr(0664,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
+%ghost %attr(0664,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/initgroups
 %attr(755,sssd,sssd) %dir %{pipepath}
 %attr(750,sssd,root) %dir %{pipepath}/private
 %attr(755,sssd,sssd) %dir %{pubconfpath}
