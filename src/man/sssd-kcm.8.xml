@@ -162,12 +162,17 @@ systemctl restart sssd-kcm.service
         <title>CONFIGURATION OPTIONS</title>
         <para>
             The KCM service is configured in the <quote>kcm</quote>
-            section of the sssd.conf file. Please note that currently,
-            is it not sufficient to restart the sssd-kcm service, because
-            the sssd configuration is only parsed and read to an internal
-            configuration database by the sssd service. Therefore you
-            must restart the sssd service if you change anything in the
-            <quote>kcm</quote> section of sssd.conf.
+            section of the sssd.conf file. Please note that because
+            the KCM service is typically socket-activated, it is
+            enough to just restart the <quote>sssd-kcm</quote> service
+            after changing options in the <quote>kcm</quote> section
+            of sssd.conf:
+            <programlisting>
+systemctl restart sssd-kcm.service
+            </programlisting>
+        </para>
+        <para>
+            The KCM service is configured in the <quote>kcm</quote>
             For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
