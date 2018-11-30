@@ -39,7 +39,7 @@
  * but the secret size must be large because one secret in the /kcm
  * hive holds the whole ccache which consists of several credentials
  */
-#define DEFAULT_SEC_KCM_MAX_SECRETS      256
+#define DEFAULT_SEC_KCM_MAX_SECRETS      0          /* unlimited */
 #define DEFAULT_SEC_KCM_MAX_UID_SECRETS  64
 #define DEFAULT_SEC_KCM_MAX_PAYLOAD_SIZE 65536
 
