@@ -76,4 +76,23 @@
             </listitem>
         </itemizedlist>
     </refsect2>
+    <refsect2 id='nss_modifications'>
+        <title>NSS configuration</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    fallback_homedir = /home/%d/%u
+                </para>
+                <para>
+                    The AD provider automatically sets
+                    "fallback_homedir = /home/%d/%u" to provide personal
+                    home directories for users without the homeDirectory
+                    attribute. If your AD Domain is properly
+                    populated with Posix attributes, and you want to avoid
+                    this fallback behavior, you can explicitly
+                    set "fallback_homedir = %o".
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
 </refsect1>
