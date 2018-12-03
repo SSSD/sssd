@@ -656,7 +656,7 @@ def test_user_no_dir(setup_pw_with_canary, files_domain_only):
     Test that resolving a user without a homedir defined works and returns
     a fallback value
     """
-    check_user(incomplete_user_setup(setup_pw_with_canary, 'dir', '/'))
+    check_user(incomplete_user_setup(setup_pw_with_canary, 'dir', ''))
 
 
 def test_user_no_gecos(setup_pw_with_canary, files_domain_only):

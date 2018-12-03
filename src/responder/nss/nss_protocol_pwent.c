@@ -118,7 +118,7 @@ nss_get_homedir(TALLOC_CTX *mem_ctx,
 
     homedir = nss_get_homedir_override(mem_ctx, msg, nss_ctx, domain, &hd_ctx);
     if (homedir == NULL) {
-        return "/";
+        return "";
     }
 
     return homedir;
