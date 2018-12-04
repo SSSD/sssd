@@ -266,7 +266,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_TRACE_ALL, "No extra attrs set.\n");
     }
 
-    gc_service_name = talloc_asprintf(ad_options, "sd_gc_%s", subdom->forest);
+    gc_service_name = talloc_asprintf(ad_options, "sd_gc_%s", subdom->name);
     if (gc_service_name == NULL) {
         talloc_free(ad_options);
         return ENOMEM;
