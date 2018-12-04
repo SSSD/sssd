@@ -713,6 +713,52 @@ int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out)
     return EOK;
 }
 
+static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
+                                           struct sss_domain_info *dom);
+
+static struct sdap_id_conn_ctx **
+ipa_ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ipa_id_ctx *ipa_ctx,
+                    struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
+{
+    struct ad_id_ctx *forest_root_ad_id_ctx;
+    struct sdap_id_conn_ctx **clist;
+    int cindex = 0;
+
+    /* While creating the domains and sub-domains each domain gets a global
+     * catalog services assigned but only one should be used because the
+     * global catalog is by definition responsible for the whole forest so it
+     * does not make sense to use a global catalog service for each domain and
+     * in the worst case connect to the same GC multiple times.
+     *
+     * In the AD provider this is simple because the GC service of the
+     * configured domain AD_GC_SERVICE_NAME ("AD_GC") can be used. In the IPA
+     * case all domains from the trusted forest are on the level of
+     * sub-domains so we have to pick one. Since the forest root is linked
+     * from all domain of the same forest it will be the most straight forward
+     * choice. */
+    forest_root_ad_id_ctx = ipa_get_ad_id_ctx(ipa_ctx, dom->forest_root);
+    if (forest_root_ad_id_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing ad_id_ctx for forest root.\n");
+        return NULL;
+    }
+
+    clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 3);
+    if (clist == NULL) return NULL;
+
+    /* Always try GC first */
+    if (dp_opt_get_bool(forest_root_ad_id_ctx->ad_options->basic,
+                        AD_ENABLE_GC)) {
+        clist[cindex] = forest_root_ad_id_ctx->gc_ctx;
+        clist[cindex]->ignore_mark_offline = true;
+        clist[cindex]->no_mpg_user_fallback = true;
+        cindex++;
+    }
+
+    clist[cindex] = ad_get_dom_ldap_conn(ad_ctx, dom);
+
+    return clist;
+}
+
 /* IPA lookup for server mode. Directly to AD. */
 struct ipa_get_ad_acct_state {
     int dp_error;
@@ -731,8 +777,6 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req);
 static errno_t ipa_get_ad_ipa_membership_step(struct tevent_req *req);
 static void ipa_id_get_groups_overrides_done(struct tevent_req *subreq);
 static void ipa_get_ad_acct_done(struct tevent_req *subreq);
-static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
-                                           struct sss_domain_info *dom);
 
 static struct tevent_req *
 ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
@@ -785,7 +829,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_INITGROUPS:
     case BE_REQ_BY_SECID:
     case BE_REQ_GROUP:
-        clist = ad_gc_conn_list(req, ad_id_ctx, state->obj_dom);
+        clist = ipa_ad_gc_conn_list(req, ipa_ctx, ad_id_ctx, state->obj_dom);
         break;
     default:
         clist = ad_ldap_conn_list(req, ad_id_ctx, state->obj_dom);
