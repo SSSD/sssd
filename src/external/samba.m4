@@ -59,7 +59,7 @@ them. In this case, you will need to execute configure script with argument
         sambalibdir="`$PKG_CONFIG --variable=libdir smbclient`"/samba
         SAVE_CFLAGS=$CFLAGS
         SAVE_LIBS=$LIBS
-        CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS -I/usr/include/samba-4.0"
+        CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS"
         LIBS="$LIBS -L${sambalibdir} -lidmap-samba4 -Wl,-rpath ${sambalibdir}"
         AC_RUN_IFELSE(
             [AC_LANG_SOURCE([
@@ -124,7 +124,7 @@ int main(void)
 fi
 
 SAVE_CFLAGS=$CFLAGS
-CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS -I/usr/include/samba-4.0"
+CFLAGS="$CFLAGS $SMBCLIENT_CFLAGS $NDR_NBT_CFLAGS $NDR_KRB5PAC_CFLAGS"
 AC_CHECK_MEMBERS([struct PAC_LOGON_INFO.resource_groups], , ,
                  [[ #include <ndr.h>
                     #include <gen_ndr/krb5pac.h>
