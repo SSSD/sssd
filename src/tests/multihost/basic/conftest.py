@@ -39,7 +39,7 @@ def package_install(session_multihost):
     pkg_list = 'authselect nss-tools 389-ds-base krb5-server '\
                'openldap-clients krb5-workstation '\
                '389-ds-base-legacy-tools sssd sssd-dbus sssd-kcm ' \
-               'expect'
+               'expect ldb-tools sssd-tools'
     if 'Fedora' in distro:
         cmd = 'dnf install -y %s' % (pkg_list)
     elif '8.' in distro.split()[5]:
