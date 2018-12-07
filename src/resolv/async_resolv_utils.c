@@ -57,7 +57,7 @@ resolv_get_domain_send(TALLOC_CTX *mem_ctx,
 
     if (hostname == NULL) {
         /* use system hostname */
-        ret = gethostname(system_hostname, HOST_NAME_MAX);
+        ret = gethostname(system_hostname, sizeof(system_hostname));
         if (ret) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE, "gethostname() failed: [%d]: %s\n",

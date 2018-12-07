@@ -239,7 +239,7 @@ errno_t be_fo_set_dns_srv_lookup_plugin(struct be_ctx *be_ctx,
     errno_t ret;
 
     if (hostname == NULL) {
-        ret = gethostname(resolved_hostname, HOST_NAME_MAX);
+        ret = gethostname(resolved_hostname, sizeof(resolved_hostname));
         if (ret != EOK) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,

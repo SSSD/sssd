@@ -1255,7 +1255,7 @@ static errno_t sdap_access_host(struct ldb_message *user_entry)
         return ERR_ACCESS_DENIED;
     }
 
-    if (gethostname(hostname, HOST_NAME_MAX) == -1) {
+    if (gethostname(hostname, sizeof(hostname)) == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to get system hostname. Access denied\n");
         return ERR_ACCESS_DENIED;

@@ -458,7 +458,7 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
      */
     ad_hostname = dp_opt_get_string(opts->basic, AD_HOSTNAME);
     if (ad_hostname == NULL) {
-        gret = gethostname(hostname, HOST_NAME_MAX);
+        gret = gethostname(hostname, sizeof(hostname));
         if (gret != 0) {
             ret = errno;
             DEBUG(SSSDBG_FATAL_FAILURE,

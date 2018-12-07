@@ -380,7 +380,7 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
     /* get hostname */
 
     errno = 0;
-    ret = gethostname(hostname, HOST_NAME_MAX);
+    ret = gethostname(hostname, sizeof(hostname));
     if (ret != EOK) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve machine hostname "

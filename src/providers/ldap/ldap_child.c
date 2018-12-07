@@ -326,7 +326,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     } else {
         char hostname[HOST_NAME_MAX + 1];
 
-        ret = gethostname(hostname, HOST_NAME_MAX);
+        ret = gethostname(hostname, sizeof(hostname));
         if (ret == -1) {
             krberr = KRB5KRB_ERR_GENERIC;
             goto done;
