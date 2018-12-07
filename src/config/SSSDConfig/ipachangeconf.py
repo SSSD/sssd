@@ -475,7 +475,7 @@ class IPAChangeConf(object):
 # An SSSD-specific subclass of IPAChangeConf
 class SSSDChangeConf(IPAChangeConf):
     OPTCRE = re.compile(
-            r'(?P<option>[^:=\s][^:=]*)'          # very permissive!
+            r'\s*(?P<option>[^:=\s][^:=]*)'       # very permissive!
             r'\s*=\s*'                            # any number of space/tab,
                                                   # followed by separator
                                                   # followed by any # space/tab
