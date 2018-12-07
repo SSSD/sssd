@@ -79,7 +79,7 @@ int ipa_get_options(TALLOC_CTX *memctx,
 
     ipa_hostname = dp_opt_get_string(opts->basic, IPA_HOSTNAME);
     if (ipa_hostname == NULL) {
-        ret = gethostname(hostname, HOST_NAME_MAX);
+        ret = gethostname(hostname, sizeof(hostname));
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "gethostname failed [%d][%s].\n", errno,
                       strerror(errno));
