@@ -108,6 +108,7 @@ struct krb5_req {
 
     uid_t fast_uid;
     gid_t fast_gid;
+    struct sss_creds *pcsc_saved_creds;
 
     struct cli_opts *cli_opts;
 };
@@ -1746,6 +1747,22 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         goto done;
     }
 
+    kerr = restore_creds(kr->pcsc_saved_creds);
+    if (kerr != 0)  {
+        DEBUG(SSSDBG_OP_FAILURE, "restore_creds failed.\n");
+    }
+    /* Make sure ccache is created and written as the user */
+    if (geteuid() != kr->uid || getegid() != kr->gid) {
+        kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
+            goto done;
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+
     /* If kr->ccname is cache collection (DIR:/...), we want to work
      * directly with file ccache (DIR::/...), but cache collection
      * should be returned back to back end.
@@ -2998,20 +3015,6 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     krb5_error_code kerr;
     int parse_flags;
 
-    if (offline || (kr->fast_val == K5C_FAST_NEVER && kr->validate == false)) {
-        /* If krb5_child was started as setuid, but we don't need to
-         * perform either validation or FAST, just drop privileges to
-         * the user who is logging in. The same applies to the offline case.
-         */
-        kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-            return kerr;
-        }
-    }
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
-
     /* Set the global error context */
     krb5_error_ctx = kr->ctx;
 
@@ -3205,8 +3208,8 @@ int main(int argc, const char *argv[])
     const char *opt_logger = NULL;
     errno_t ret;
     krb5_error_code kerr;
-    uid_t fast_uid;
-    gid_t fast_gid;
+    uid_t fast_uid = 0;
+    gid_t fast_gid = 0;
     struct cli_opts cli_opts = { 0 };
     int sss_creds_password = 0;
 
@@ -3320,20 +3323,31 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    /* pkinit needs access to pcscd */
-    if ((sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_SC_PIN
-            && sss_authtok_get_type(kr->pd->authtok)
-                                        != SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
+    /* For PKINIT we might need access to the pcscd socket which by default
+     * is only allowed for authenticated users. Since PKINIT is part of
+     * the authentication and the user is not authenticated yet, we have
+     * to use different privileges and can only drop it only after the TGT is
+     * received. The fast_uid and fast_gid are the IDs the backend is running
+     * with. This can be either root or the 'sssd' user. Root is allowed by
+     * default and the 'sssd' user is allowed with the help of the
+     * sssd-pcsc.rules policy-kit rule. So those IDs are a suitable choice. We
+     * can only call switch_creds() because after the TGT is returned we have
+     * to switch to the IDs of the user to store the TGT. */
+    if (IS_SC_AUTHTOK(kr->pd->authtok)) {
+        kerr = switch_creds(kr, kr->fast_uid, kr->fast_gid, 0, NULL,
+                            &kr->pcsc_saved_creds);
+    } else {
         kerr = k5c_become_user(kr->uid, kr->gid, kr->posix_domain);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-            ret = EFAULT;
-            goto done;
-        }
+    }
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
+        ret = EFAULT;
+        goto done;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+
     try_open_krb5_conf();
 
     ret = k5c_setup(kr, offline);
