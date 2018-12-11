@@ -78,6 +78,10 @@ static errno_t get_ifp_user(const char *username)
     struct sbus_sync_connection *conn;
     struct sbus_all_ifp_user *user;
     const char *path;
+    struct hash_iter_context_t *extra_iter;
+    char **extra_values;
+    hash_entry_t *extra_entry;
+    int extra_idx;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -117,6 +121,24 @@ static errno_t get_ifp_user(const char *username)
     PRINT_IFP_PROPERTY(user, gecos, "s");
     PRINT_IFP_PROPERTY(user, homeDirectory, "s");
     PRINT_IFP_PROPERTY(user, loginShell, "s");
+
+    /* print extra attributes */
+    if (user->extraAttributes.is_set) {
+        extra_iter = new_hash_iter_context(user->extraAttributes.value);
+        if (extra_iter == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "new_hash_iter_context failed.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        while ((extra_entry = extra_iter->next(extra_iter)) != NULL) {
+            extra_values = extra_entry->value.ptr;
+            for(extra_idx = 0; extra_values[extra_idx] != NULL; ++extra_idx) {
+                fprintf(stdout, " - %s: %s\n", extra_entry->key.str, extra_values[extra_idx]);
+            }
+        }
+    }
+
     fprintf(stdout, "\n");
 
     ret = EOK;
