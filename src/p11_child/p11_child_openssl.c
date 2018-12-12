@@ -881,7 +881,6 @@ static void get_ec_curve_type(CK_FUNCTION_LIST *module,
 
     rv = module->C_GetAttributeValue(session, key_handle, &attribute, 1);
     if (rv != CKR_OK) {
-        free(attribute.pValue);
         DEBUG(SSSDBG_OP_FAILURE,
               "C_GetAttributeValue failed [%lu][%s].\n",
               rv, p11_kit_strerror(rv));
