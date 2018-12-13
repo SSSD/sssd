@@ -27,8 +27,10 @@
 #include "util/util.h"
 #include "sbus/sbus_errors.h"
 
-/* Use reasonable default timeout which is computed in libdbus */
-#define SBUS_MESSAGE_TIMEOUT -1
+/* Use longer default timeout than libdbus default due to expensive
+ * selinux operation: see https://bugzilla.redhat.com/show_bug.cgi?id=1654537
+ */
+#define SBUS_MESSAGE_TIMEOUT 120000
 
 /**
  * Bound message with a talloc context.
