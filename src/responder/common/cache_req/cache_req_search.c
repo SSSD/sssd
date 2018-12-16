@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "responder/common/cache_req/cache_req_private.h"
 #include "responder/common/cache_req/cache_req_plugin.h"
+#include "db/sysdb.h"
 
 static errno_t cache_req_search_ncache(struct cache_req *cr)
 {
@@ -169,6 +170,30 @@ done:
     return ret;
 }
 
+static int
+cache_req_should_be_in_cache(struct cache_req *cr,
+                             struct ldb_result *result)
+{
+    id_t id = 0;
+
+    if (result == NULL || result->count != 1) {
+        /* can't decide so keep it */
+        return EOK;
+    }
+
+    id = ldb_msg_find_attr_as_uint(result->msgs[0], SYSDB_UIDNUM, 0);
+    if (id && OUT_OF_ID_RANGE(id, cr->domain->id_min, cr->domain->id_max)) {
+        return ERR_ID_OUTSIDE_RANGE;
+    }
+
+    id = ldb_msg_find_attr_as_uint(result->msgs[0], SYSDB_GIDNUM, 0);
+    if (id && OUT_OF_ID_RANGE(id, cr->domain->id_min, cr->domain->id_max)) {
+        return ERR_ID_OUTSIDE_RANGE;
+    }
+
+    return EOK;
+}
+
 static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
                                       struct cache_req *cr,
                                       struct ldb_result **_result)
@@ -189,6 +214,10 @@ static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
     ret = cr->plugin->lookup_fn(mem_ctx, cr, cr->data, cr->domain, &result);
     if (ret == EOK && (result == NULL || result->count == 0)) {
         ret = ENOENT;
+    }
+
+    if (ret == EOK) {
+        ret = cache_req_should_be_in_cache(cr, result);
     }
 
     switch (ret) {
