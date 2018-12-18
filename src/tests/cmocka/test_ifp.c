@@ -172,7 +172,8 @@ void test_attr_acl(void **state)
     const char *exp_defaults[] = { SYSDB_NAME, SYSDB_UIDNUM,
                                    SYSDB_GIDNUM, SYSDB_GECOS,
                                    SYSDB_HOMEDIR, SYSDB_SHELL,
-                                   "groups", "domain", "domainname", NULL };
+                                   "groups", "domain", "domainname",
+                                   "extraAttributes", NULL };
     attr_parse_test(exp_defaults, NULL);
 
     /* Test adding some attributes to the defaults */
@@ -180,7 +181,8 @@ void test_attr_acl(void **state)
                               SYSDB_NAME, SYSDB_UIDNUM,
                               SYSDB_GIDNUM, SYSDB_GECOS,
                               SYSDB_HOMEDIR, SYSDB_SHELL,
-                              "groups", "domain", "domainname", NULL };
+                              "groups", "domain", "domainname",
+                              "extraAttributes", NULL };
     attr_parse_test(exp_add, "+telephoneNumber, +streetAddress");
 
     /* Test removing some attributes to the defaults */
@@ -188,7 +190,7 @@ void test_attr_acl(void **state)
                              SYSDB_GIDNUM, SYSDB_GECOS,
                              SYSDB_HOMEDIR, "groups",
                              "domain", "domainname",
-                             NULL };
+                             "extraAttributes", NULL };
     attr_parse_test(exp_rm, "-"SYSDB_SHELL ",-"SYSDB_UIDNUM);
 
     /* Test both add and remove */
@@ -197,7 +199,7 @@ void test_attr_acl(void **state)
                                  SYSDB_GIDNUM, SYSDB_GECOS,
                                  SYSDB_HOMEDIR, "groups",
                                  "domain", "domainname",
-                                 NULL };
+                                 "extraAttributes", NULL };
     attr_parse_test(exp_add_rm, "+telephoneNumber, -"SYSDB_SHELL);
 
     /* Test rm trumps add */
@@ -205,7 +207,8 @@ void test_attr_acl(void **state)
                                           SYSDB_GIDNUM, SYSDB_GECOS,
                                           SYSDB_HOMEDIR, SYSDB_SHELL,
                                           "groups", "domain",
-                                          "domainname", NULL };
+                                          "domainname",
+                                          "extraAttributes", NULL };
     attr_parse_test(exp_add_rm_override,
                     "+telephoneNumber, -telephoneNumber, +telephoneNumber");
 
@@ -214,7 +217,7 @@ void test_attr_acl(void **state)
     attr_parse_test(rm_all,  "-"SYSDB_NAME ", -"SYSDB_UIDNUM
                              ", -"SYSDB_GIDNUM ", -"SYSDB_GECOS
                              ", -"SYSDB_HOMEDIR ", -"SYSDB_SHELL", -groups, "
-                             "-domain, -domainname");
+                             "-domain, -domainname, -extraAttributes");
 
     /* Malformed list */
     attr_parse_test(NULL,  "missing_plus_or_minus");

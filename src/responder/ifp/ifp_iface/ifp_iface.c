@@ -173,8 +173,8 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
             SBUS_SYNC(GETTER, org_freedesktop_sssd_infopipe_Users_User, uniqueID, ifp_users_user_get_unique_id, ctx),
             SBUS_SYNC(GETTER, org_freedesktop_sssd_infopipe_Users_User, groups, ifp_users_user_get_groups, ctx),
             SBUS_SYNC(GETTER, org_freedesktop_sssd_infopipe_Users_User, domain, ifp_users_user_get_domain, ctx),
-            SBUS_SYNC(GETTER, org_freedesktop_sssd_infopipe_Users_User, domainname, ifp_users_user_get_domainname, ctx)
-//            SBUS_SYNC(GETTER, org_freedesktop_sssd_infopipe_Users_User, extraAttributes, ifp_users_user_get_extra_attributes, ctx)
+            SBUS_SYNC(GETTER, org_freedesktop_sssd_infopipe_Users_User, domainname, ifp_users_user_get_domainname, ctx),
+            SBUS_SYNC(GETTER, org_freedesktop_sssd_infopipe_Users_User, extraAttributes, ifp_users_user_get_extra_attributes, ctx)
         )
     );
 
