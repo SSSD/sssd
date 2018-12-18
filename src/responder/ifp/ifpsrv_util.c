@@ -30,7 +30,7 @@
                                 SYSDB_GIDNUM, SYSDB_GECOS,  \
                                 SYSDB_HOMEDIR, SYSDB_SHELL, \
                                 "groups", "domain", "domainname", \
-                                NULL}
+                                "extraAttributes", NULL}
 
 errno_t ifp_add_value_to_dict(DBusMessageIter *iter_dict,
                               const char *key,
