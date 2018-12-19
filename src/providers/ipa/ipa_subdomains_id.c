@@ -1757,6 +1757,7 @@ fail:
 static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
 {
     errno_t ret;
+    struct ad_id_ctx *ad_id_ctx;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                 struct tevent_req);
     struct ipa_srv_ad_acct_state *state = tevent_req_data(req,
@@ -1772,7 +1773,15 @@ static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Subdomain re-set, will retry lookup\n");
-    be_fo_reset_svc(state->be_ctx, state->obj_dom->name);
+    ad_id_ctx = ipa_get_ad_id_ctx(state->ipa_ctx, state->obj_dom);
+    if (ad_id_ctx == NULL || ad_id_ctx->ad_options == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No AD ID ctx or no ID CTX options?\n");
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    ad_failover_reset(state->be_ctx, ad_id_ctx->ad_options->service);
 
     ret = ipa_srv_ad_acct_lookup_step(req);
     if (ret != EOK) {

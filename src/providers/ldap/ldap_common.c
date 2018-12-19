@@ -520,6 +520,17 @@ static int ldap_user_data_cmp(void *ud1, void *ud2)
     return strcasecmp((char*) ud1, (char*) ud2);
 }
 
+void sdap_service_reset_fo(struct be_ctx *ctx,
+                           struct sdap_service *service)
+{
+    if (service == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "NULL service\n");
+        return;
+    }
+
+    be_fo_reset_svc(ctx, service->name);
+}
+
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *dns_service_name,
                       const char *urls, const char *backup_urls,

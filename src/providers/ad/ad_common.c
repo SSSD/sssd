@@ -839,6 +839,19 @@ done:
     return ret;
 }
 
+void
+ad_failover_reset(struct be_ctx *bectx,
+                  struct ad_service *adsvc)
+{
+    if (adsvc == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "NULL service\n");
+        return;
+    }
+
+    sdap_service_reset_fo(bectx, adsvc->sdap);
+    sdap_service_reset_fo(bectx, adsvc->gc);
+}
+
 static void
 ad_resolve_callback(void *private_data, struct fo_server *server)
 {

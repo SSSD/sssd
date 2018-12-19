@@ -171,6 +171,9 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *urls, const char *backup_urls,
                       struct sdap_service **_service);
 
+void sdap_service_reset_fo(struct be_ctx *ctx,
+                           struct sdap_service *service);
+
 const char *sdap_gssapi_realm(struct dp_option *opts);
 
 int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
