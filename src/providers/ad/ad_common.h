@@ -148,6 +148,10 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                  bool use_kdcinfo,
                  struct ad_service **_service);
 
+void
+ad_failover_reset(struct be_ctx *bectx,
+                  struct ad_service *adsvc);
+
 errno_t
 ad_get_id_options(struct ad_options *ad_opts,
                    struct confdb_ctx *cdb,
