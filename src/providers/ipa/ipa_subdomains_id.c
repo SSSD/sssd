@@ -1770,6 +1770,7 @@ static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
               "Failed to re-set subdomain [%d]: %s\n", ret, sss_strerror(ret));
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
+        return;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Subdomain re-set, will retry lookup\n");
@@ -1789,6 +1790,7 @@ static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
               "Failed to look up AD acct [%d]: %s\n", ret, sss_strerror(ret));
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
+        return;
     }
 }
 
