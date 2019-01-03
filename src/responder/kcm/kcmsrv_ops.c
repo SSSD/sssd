@@ -698,9 +698,10 @@ static void kcm_op_destroy_getbyname_done(struct tevent_req *subreq)
     ret = kcm_ccdb_uuid_by_name_recv(subreq, state, uuid);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot get matching ccache [%d]: %s\n",
               ret, sss_strerror(ret));
+        ret = ERR_NO_MATCHING_CREDS;
         tevent_req_error(req, ret);
         return;
     }
