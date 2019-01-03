@@ -414,6 +414,7 @@ static void check_fd_activity(struct tevent_context *ev,
 {
     struct tcurl_ctx *tctx = talloc_get_type(private_data, struct tcurl_ctx);
     check_curl_timeouts(tctx);
+    tctx->process_timer = NULL;
 }
 
 static int schedule_fd_processing(CURLM *multi,
