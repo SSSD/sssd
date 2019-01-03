@@ -122,3 +122,20 @@ class TestSanityKCM(object):
 
         log_lines_debug = self._kcm_log_length(multihost)
         assert log_lines_debug > log_lines_pre + 100
+
+    def test_kdestroy_retval(self, multihost, enable_kcm):
+        """
+        Test that destroying an empty cache does not return a non-zero
+        return code.
+        """
+        ssh = SSHClient(multihost.master[0].sys_hostname,
+                        username='foo3', password='Secret123')
+
+        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
+        assert exit_status == 0
+        # Run the command again in case there was something in the ccache
+        # previously
+        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
+        assert exit_status == 0
+
+        ssh.close()
