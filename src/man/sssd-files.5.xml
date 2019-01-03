@@ -84,7 +84,13 @@
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
             </citerefentry> manual page for details on the configuration
-            of an SSSD domain.
+            of an SSSD domain. But the purpose of the files provider is
+            to expose the same data as the UNIX files, just through the
+            SSSD interfaces. Therefore not all generic domain options are
+            supported. Likewise, some global options, such as overriding
+            the shell in the <quote>nss</quote> section for all domains
+            has no effect on the files domain unless explicitly specified
+            per-domain.
             <variablelist>
                 <varlistentry>
                     <term>passwd_files (string)</term>
