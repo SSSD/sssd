@@ -207,12 +207,14 @@ def format_basic_conf(ldap_conn, schema):
         # problem with "ifp" + client regristration in monitor
         # There is not such problem in 1st test. Just in following tests.
         command = {ifp_command} --uid 0 --gid 0 --debug-to-files
+        user_attributes = +extraName
 
         [domain/LDAP]
         {schema_conf}
         id_provider         = ldap
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+        ldap_user_extra_attrs = extraName:uid
 
         [application/app]
         inherit_from = LDAP
@@ -532,6 +534,35 @@ def test_get_user_groups(dbus_system_bus, ldap_conn, sanity_rfc2307):
 
     assert len(res) == 2
     assert sorted(res) == ['single_user_group', 'two_user_group']
+
+
+def get_user_property(dbus_system_bus, username, prop_name):
+    users_obj = dbus_system_bus.get_object(
+                                        'org.freedesktop.sssd.infopipe',
+                                        '/org/freedesktop/sssd/infopipe/Users')
+
+    users_iface = dbus.Interface(users_obj,
+                                 "org.freedesktop.sssd.infopipe.Users")
+
+    user_path = users_iface.FindByName(username)
+    user_object = dbus_system_bus.get_object('org.freedesktop.sssd.infopipe',
+                                             user_path)
+
+    prop_iface = dbus.Interface(user_object, 'org.freedesktop.DBus.Properties')
+    return prop_iface.Get('org.freedesktop.sssd.infopipe.Users.User',
+                          prop_name)
+
+
+def test_get_extra_attributes_empty(dbus_system_bus,
+                                    ldap_conn,
+                                    sanity_rfc2307):
+    """
+    Make sure the extraAttributes property can be retrieved
+    """
+    extra_attrs = get_user_property(dbus_system_bus,
+                                    'user1',
+                                    'extraAttributes')
+    assert extra_attrs['extraName'][0] == 'user1'
 
 
 def test_sssctl_domain_list_app_domain(dbus_system_bus,
