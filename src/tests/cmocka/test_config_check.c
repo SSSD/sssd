@@ -224,6 +224,18 @@ void config_check_test_bad_subdom_option_name(void **state)
     config_check_test_common(cfg_str, 1, expected_errors);
 }
 
+void config_check_test_bad_certmap_option_name(void **state)
+{
+    char cfg_str[] = "[certmap/files/testuser]\n"
+                     "debug_level = 10\n";
+    const char *expected_errors[] = {
+        "[rule/allowed_certmap_options]: Attribute 'debug_level' is not "
+        "allowed in section 'certmap/files/testuser'. Check for typos.",
+    };
+
+    config_check_test_common(cfg_str, 1, expected_errors);
+}
+
 void config_check_test_good_sections(void **state)
 {
     char cfg_str[] = "[sssd]\n"
@@ -236,7 +248,8 @@ void config_check_test_good_sections(void **state)
                      "[secrets/users/1000]\n"
                      "[ssh]\n"
                      "[ifp]\n"
-                     "[pac]\n";
+                     "[pac]\n"
+                     "[certmap/files/testuser]\n";
     const char *expected_errors[] = { NULL };
 
     config_check_test_common(cfg_str, 0, expected_errors);
@@ -284,6 +297,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(config_check_test_bad_ifp_option_name),
         cmocka_unit_test(config_check_test_bad_appdomain_option_name),
         cmocka_unit_test(config_check_test_bad_subdom_option_name),
+        cmocka_unit_test(config_check_test_bad_certmap_option_name),
         cmocka_unit_test(config_check_test_good_sections),
         cmocka_unit_test(config_check_test_inherit_from_in_normal_dom),
         cmocka_unit_test(config_check_test_inherit_from_in_app_dom),
