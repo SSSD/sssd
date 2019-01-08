@@ -66,6 +66,32 @@ pipeline {
             }
           }
         }
+        stage('Test on Fedora 29') {
+          agent {label "sssd-ci"}
+          environment {
+            TEST_SYSTEM = "fedora29"
+            GH_CONTEXT  = "$GH_CONTEXT/fedora29"
+            GH_URL      = "$AWS_BASE/$BRANCH_NAME/$BUILD_ID/$TEST_SYSTEM/index.html"
+            CONFIG      = "$BASE_DIR/configs/${TEST_SYSTEM}.json"
+          }
+          steps {
+            githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
+            sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
+          }
+          post {
+            always {
+              archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
+              sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
+              sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
+            }
+            failure {
+              githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
+            }
+            success {
+              githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
+            }
+          }
+        }
       }
     }
   }
