@@ -42,6 +42,9 @@
 #define RETRIEVE_DOMAIN_ERROR_MSG "Error (%d [%s]) retrieving domain [%s], "\
                                   "skipping!\n"
 
+/* SSSD domain name that is used for the auto-configured files domain */
+#define IMPLICIT_FILES_DOMAIN_NAME "implicit_files"
+
 static char *prepend_cn(char *str, int *slen, const char *comp, int clen)
 {
     char *ret;
@@ -1934,8 +1937,8 @@ done:
     return ret;
 }
 
-int confdb_ensure_files_domain(struct confdb_ctx *cdb,
-                               const char *implicit_files_dom_name)
+static int confdb_ensure_files_domain(struct confdb_ctx *cdb,
+                                      const char *implicit_files_dom_name)
 {
 #ifdef ADD_FILES_DOMAIN
     const bool default_enable_files = true;
@@ -2166,6 +2169,14 @@ int confdb_expand_app_domains(struct confdb_ctx *cdb)
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
+    }
+
+    ret = confdb_ensure_files_domain(cdb, IMPLICIT_FILES_DOMAIN_NAME);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot add the implicit files domain [%d]: %s\n",
+              ret, strerror(ret));
+        /* Not fatal */
     }
 
     ret = confdb_get_string_as_list(cdb, tmp_ctx,
