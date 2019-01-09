@@ -123,7 +123,18 @@ int sss_ini_config_file_open(struct sss_ini_initdata *init_data,
 #endif
 }
 
-
+int sss_ini_config_file_from_mem(void *data_buf,
+                                 uint32_t data_len,
+                                 struct sss_ini_initdata *init_data)
+{
+#ifdef HAVE_LIBINI_CONFIG_V1
+    return ini_config_file_from_mem(data_buf, strlen(data_buf),
+                                   &init_data->file);
+#else
+    /* FIXME: Remove support for older libini versions */
+    return EINVAL;
+#endif
+}
 
 /* Check configuration file permissions */
 
