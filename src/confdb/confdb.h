@@ -452,9 +452,6 @@ int confdb_get_domain(struct confdb_ctx *cdb,
 int confdb_get_domains(struct confdb_ctx *cdb,
                        struct sss_domain_info **domains);
 
-int confdb_ensure_files_domain(struct confdb_ctx *cdb,
-                               const char *implicit_files_dom_name);
-
 int confdb_expand_app_domains(struct confdb_ctx *cdb);
 
 /**

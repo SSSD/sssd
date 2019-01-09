@@ -87,9 +87,6 @@
                                  "that the file is accessible only by the "\
                                  "owner and owned by root.root.\n"
 
-/* SSSD domain name that is used for the auto-configured files domain */
-#define IMPLICIT_FILES_DOMAIN_NAME "implicit_files"
-
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
 int cmdline_debug_microseconds;
@@ -964,14 +961,6 @@ static int get_monitor_config(struct mt_ctx *ctx)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get the unprivileged user\n");
         return ret;
-    }
-
-    ret = confdb_ensure_files_domain(ctx->cdb, IMPLICIT_FILES_DOMAIN_NAME);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Cannot add the implicit files domain [%d]: %s\n",
-              ret, strerror(ret));
-        /* Not fatal */
     }
 
     ret = confdb_expand_app_domains(ctx->cdb);
