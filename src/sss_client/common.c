@@ -546,7 +546,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
 
     memset(&nssaddr, 0, sizeof(struct sockaddr_un));
     nssaddr.sun_family = AF_UNIX;
-    strncpy(nssaddr.sun_path, socket_name, sizeof(nssaddr.sun_path));
+    strcpy(nssaddr.sun_path, socket_name); /* safe due to above check */
 
     sd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sd == -1) {
