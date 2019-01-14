@@ -539,7 +539,7 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
     int ret;
     int sd;
 
-    if (sizeof(nssaddr.sun_path) <= strlen(socket_name) + 1) {
+    if (sizeof(nssaddr.sun_path) < strlen(socket_name) + 1) {
         *errnop = EINVAL;
         return -1;
     }
