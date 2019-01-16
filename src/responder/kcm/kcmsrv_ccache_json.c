@@ -229,6 +229,20 @@ static json_t *princ_to_json(TALLOC_CTX *mem_ctx,
     json_error_t error;
     char *str_realm_data;
 
+    if (princ == NULL) {
+        jprinc = json_pack_ex(&error,
+                              JSON_STRICT,
+                              "{}");
+        if (jprinc == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to pack JSON princ structure on line %d: %s\n",
+                  error.line, error.text);
+            return NULL;
+        }
+
+        return jprinc;
+    }
+
     components = princ_data_to_json(mem_ctx, princ);
     if (components == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -587,26 +601,18 @@ static errno_t json_array_to_krb5_data(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t json_to_princ(TALLOC_CTX *mem_ctx,
-                             json_t *js_princ,
-                             krb5_principal *_princ)
+static errno_t json_to_nonempty_princ(TALLOC_CTX *mem_ctx,
+                                      json_t *js_princ,
+                                      krb5_principal *_princ)
 {
     errno_t ret;
     json_t *components = NULL;
-    int ok;
     krb5_principal princ = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
     char *realm_str;
     size_t realm_size;
     size_t comp_count;
     json_error_t error;
-
-    ok = json_is_object(js_princ);
-    if (!ok) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Json principal is not an object.\n");
-        ret = ERR_JSON_DECODING;
-        goto done;
-    }
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) {
@@ -682,6 +688,57 @@ static errno_t json_to_princ(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+static bool is_nonempty_principal(json_t *js_princ)
+{
+    errno_t ret;
+    json_error_t error;
+
+    ret = json_unpack_ex(js_princ,
+                         &error,
+                         JSON_VALIDATE_ONLY,
+                         "{s:i, s:s, s:o}",
+                         "type",
+                         "realm",
+                         "components");
+
+    return ret == 0 ? true : false;
+}
+
+static bool is_empty_principal(json_t *js_princ)
+{
+    errno_t ret;
+    json_error_t error;
+
+    ret = json_unpack_ex(js_princ,
+                         &error,
+                         JSON_VALIDATE_ONLY,
+                         "{}");
+
+    return ret == 0 ? true : false;
+}
+
+static errno_t json_to_princ(TALLOC_CTX *mem_ctx,
+                             json_t *js_princ,
+                             krb5_principal *_princ)
+{
+    int ok;
+
+    ok = json_is_object(js_princ);
+    if (!ok) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Json principal is not an object.\n");
+        return ERR_JSON_DECODING;
+    }
+
+    if (is_nonempty_principal(js_princ)) {
+        return json_to_nonempty_princ(mem_ctx, js_princ, _princ);
+    } else if (is_empty_principal(js_princ)) {
+        *_princ = NULL;
+        return EOK;
+    }
+
+    return ERR_JSON_DECODING;
 }
 
 static errno_t json_elem_to_cred(TALLOC_CTX *mem_ctx,

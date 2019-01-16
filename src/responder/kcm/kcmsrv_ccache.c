@@ -68,14 +68,16 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
 
     uuid_generate(cc->uuid);
 
-    kret = krb5_copy_principal(k5c, princ, &cc->client);
-    if (kret != 0) {
-        const char *err_msg = sss_krb5_get_error_message(k5c, kret);
-        DEBUG(SSSDBG_OP_FAILURE,
-              "krb5_copy_principal failed: [%d][%s]\n", kret, err_msg);
-        sss_krb5_free_error_message(k5c, err_msg);
-        ret = ERR_INTERNAL;
-        goto done;
+    if (princ) {
+        kret = krb5_copy_principal(k5c, princ, &cc->client);
+        if (kret != 0) {
+            const char *err_msg = sss_krb5_get_error_message(k5c, kret);
+            DEBUG(SSSDBG_OP_FAILURE,
+                "krb5_copy_principal failed: [%d][%s]\n", kret, err_msg);
+            sss_krb5_free_error_message(k5c, err_msg);
+            ret = ERR_INTERNAL;
+            goto done;
+        }
     }
 
     cc->owner.uid = cli_creds_get_uid(owner);
