@@ -1601,7 +1601,20 @@ static errno_t kcm_op_get_default_ccache_recv(struct tevent_req *req,
 
 /* (name) -> () */
 static void kcm_op_set_default_ccache_getbyname_done(struct tevent_req *subreq);
+static void kcm_op_set_default_create_step(struct tevent_req *req);
+static void kcm_op_set_default_create_step_done(struct tevent_req *subreq);
+static void kcm_op_set_default_step(struct tevent_req *req);
 static void kcm_op_set_default_done(struct tevent_req *subreq);
+
+struct kcm_op_set_default_ccache_state {
+    uint32_t op_ret;
+    struct kcm_op_ctx *op_ctx;
+    struct tevent_context *ev;
+
+    const char *name;
+    uuid_t dfl_uuid;
+    struct kcm_ccache *new_cc;
+};
 
 static struct tevent_req *
 kcm_op_set_default_ccache_send(TALLOC_CTX *mem_ctx,
@@ -1610,30 +1623,31 @@ kcm_op_set_default_ccache_send(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
-    struct kcm_op_common_state *state = NULL;
+    struct kcm_op_set_default_ccache_state *state = NULL;
     errno_t ret;
-    const char *name;
 
-    req = tevent_req_create(mem_ctx, &state, struct kcm_op_common_state);
+    req = tevent_req_create(mem_ctx,
+                            &state,
+                            struct kcm_op_set_default_ccache_state);
     if (req == NULL) {
         return NULL;
     }
     state->op_ctx = op_ctx;
     state->ev = ev;
 
-    ret = sss_iobuf_read_stringz(op_ctx->input, &name);
+    ret = sss_iobuf_read_stringz(op_ctx->input, &state->name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot read input name [%d]: %s\n",
               ret, sss_strerror(ret));
         goto immediate;
     }
-    DEBUG(SSSDBG_TRACE_LIBS, "Setting default ccache %s\n", name);
+    DEBUG(SSSDBG_TRACE_LIBS, "Setting default ccache %s\n", state->name);
 
     subreq = kcm_ccdb_uuid_by_name_send(state, ev,
                                         op_ctx->kcm_data->db,
                                         op_ctx->client,
-                                        name);
+                                        state->name);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediate;
@@ -1652,13 +1666,16 @@ static void kcm_op_set_default_ccache_getbyname_done(struct tevent_req *subreq)
     errno_t ret;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct kcm_op_common_state *state = tevent_req_data(req,
-                                                struct kcm_op_common_state);
-    uuid_t dfl_uuid;
+    struct kcm_op_set_default_ccache_state *state = tevent_req_data(req,
+                                    struct kcm_op_set_default_ccache_state);
 
-    ret = kcm_ccdb_uuid_by_name_recv(subreq, state, dfl_uuid);
+    ret = kcm_ccdb_uuid_by_name_recv(subreq, state, state->dfl_uuid);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret == ERR_NO_CREDS) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "The ccache does not exist, creating a new one\n");
+        kcm_op_set_default_create_step(req);
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot get ccache by name [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1666,11 +1683,91 @@ static void kcm_op_set_default_ccache_getbyname_done(struct tevent_req *subreq)
         return;
     }
 
+    kcm_op_set_default_step(req);
+}
+
+static void kcm_op_set_default_create_step(struct tevent_req *req)
+{
+    errno_t ret;
+    struct tevent_req *subreq;
+    struct kcm_op_set_default_ccache_state *state = tevent_req_data(req,
+                                    struct kcm_op_set_default_ccache_state);
+
+    /* Only allow to create ccaches for 'self' */
+    ret = kcm_check_name(state->name, state->op_ctx->client);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+            "Name %s is malformed [%d]: %s\n",
+            state->name, ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = kcm_cc_new(state->op_ctx,
+                     state->op_ctx->kcm_data->k5c,
+                     state->op_ctx->client,
+                     state->name,
+                     NULL,
+                     &state->new_cc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+            "Cannot create new ccache %d: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = kcm_ccdb_create_cc_send(state,
+                                     state->ev,
+                                     state->op_ctx->kcm_data->db,
+                                     state->op_ctx->client,
+                                     state->new_cc);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, kcm_op_set_default_create_step_done, req);
+}
+
+static void kcm_op_set_default_create_step_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct kcm_op_set_default_ccache_state *state = tevent_req_data(req,
+                                    struct kcm_op_set_default_ccache_state);
+
+    ret = kcm_ccdb_create_cc_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot add ccache to db %d: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = kcm_cc_get_uuid(state->new_cc, state->dfl_uuid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get new ccache UUID [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    kcm_op_set_default_step(req);
+}
+
+static void kcm_op_set_default_step(struct tevent_req *req)
+{
+    struct kcm_op_set_default_ccache_state *state = tevent_req_data(req,
+                                    struct kcm_op_set_default_ccache_state);
+    struct tevent_req *subreq;
+
     subreq = kcm_ccdb_set_default_send(state,
                                        state->ev,
                                        state->op_ctx->kcm_data->db,
                                        state->op_ctx->client,
-                                       dfl_uuid);
+                                       state->dfl_uuid);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -1684,8 +1781,8 @@ static void kcm_op_set_default_done(struct tevent_req *subreq)
     errno_t ret;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct kcm_op_common_state *state = tevent_req_data(req,
-                                                struct kcm_op_common_state);
+    struct kcm_op_set_default_ccache_state *state = tevent_req_data(req,
+                                    struct kcm_op_set_default_ccache_state);
 
     ret = kcm_ccdb_set_default_recv(subreq);
     talloc_zfree(subreq);
@@ -1698,6 +1795,12 @@ static void kcm_op_set_default_done(struct tevent_req *subreq)
 
     state->op_ret = EOK;
     tevent_req_done(req);
+}
+
+static errno_t kcm_op_set_default_ccache_recv(struct tevent_req *req,
+                                              uint32_t *_op_ret)
+{
+    KCM_OP_RET_FROM_TYPE(req, struct kcm_op_set_default_ccache_state, _op_ret);
 }
 
 /* (name) -> (offset) */
@@ -1948,7 +2051,7 @@ static struct kcm_op kcm_optable[] = {
     { "GET_CACHE_UUID_LIST", kcm_op_get_cache_uuid_list_send, NULL },
     { "GET_CACHE_BY_UUID",   kcm_op_get_cache_by_uuid_send, NULL },
     { "GET_DEFAULT_CACHE",   kcm_op_get_default_ccache_send, kcm_op_get_default_ccache_recv },
-    { "SET_DEFAULT_CACHE",   kcm_op_set_default_ccache_send, NULL },
+    { "SET_DEFAULT_CACHE",   kcm_op_set_default_ccache_send, kcm_op_set_default_ccache_recv },
     { "GET_KDC_OFFSET",      kcm_op_get_kdc_offset_send, NULL },
     { "SET_KDC_OFFSET",      kcm_op_set_kdc_offset_send, kcm_op_set_kdc_offset_recv },
     { "ADD_NTLM_CRED",       NULL, NULL },
