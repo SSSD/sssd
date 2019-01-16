@@ -527,7 +527,7 @@ static void kcm_op_initialize_create_step(struct tevent_req *req)
                                      state->op_ctx->client,
                                      state->new_cc);
     if (subreq == NULL) {
-        tevent_req_error(req, ret);
+        tevent_req_error(req, ENOMEM);
         return;
     }
     tevent_req_set_callback(subreq, kcm_op_initialize_cc_create_done, req);
