@@ -116,14 +116,22 @@ static void assert_cc_princ_equal(struct kcm_ccache *cc1,
     p1 = kcm_cc_get_client_principal(cc1);
     p2 = kcm_cc_get_client_principal(cc2);
 
-    kerr = krb5_unparse_name(NULL, p1, &name1);
-    assert_int_equal(kerr, 0);
-    kerr = krb5_unparse_name(NULL, p2, &name2);
-    assert_int_equal(kerr, 0);
+    if (p1 != NULL && p2 != NULL) {
+        kerr = krb5_unparse_name(NULL, p1, &name1);
+        assert_int_equal(kerr, 0);
+        kerr = krb5_unparse_name(NULL, p2, &name2);
+        assert_int_equal(kerr, 0);
 
-    assert_string_equal(name1, name2);
-    krb5_free_unparsed_name(NULL, name1);
-    krb5_free_unparsed_name(NULL, name2);
+        assert_string_equal(name1, name2);
+        krb5_free_unparsed_name(NULL, name1);
+        krb5_free_unparsed_name(NULL, name2);
+    } else {
+        /* Either both principals must be NULL or both
+         * non-NULL and represent the same principals
+         */
+        assert_null(p1);
+        assert_null(p2);
+    }
 }
 
 static void assert_cc_offset_equal(struct kcm_ccache *cc1,
@@ -206,6 +214,62 @@ static void test_kcm_ccache_marshall_unmarshall(void **state)
     assert_int_equal(ret, EINVAL);
 }
 
+static void test_kcm_ccache_no_princ(void **state)
+{
+    struct kcm_marshalling_test_ctx *test_ctx = talloc_get_type(*state,
+                                        struct kcm_marshalling_test_ctx);
+    errno_t ret;
+    struct cli_creds owner;
+    const char *name;
+    struct kcm_ccache *cc;
+    krb5_principal princ;
+    struct kcm_ccache *cc2;
+    struct sss_iobuf *payload;
+    const char *key;
+    uint8_t *data;
+    uuid_t uuid;
+
+    owner.ucred.uid = getuid();
+    owner.ucred.gid = getuid();
+
+    name = talloc_asprintf(test_ctx, "%"SPRIuid, getuid());
+    assert_non_null(name);
+
+    ret = kcm_cc_new(test_ctx,
+                     test_ctx->kctx,
+                     &owner,
+                     name,
+                     NULL,
+                     &cc);
+    assert_int_equal(ret, EOK);
+
+    princ = kcm_cc_get_client_principal(cc);
+    assert_null(princ);
+
+    ret = kcm_ccache_to_sec_input(test_ctx,
+                                  cc,
+                                  &owner,
+                                  &payload);
+    assert_int_equal(ret, EOK);
+
+    data = sss_iobuf_get_data(payload);
+    assert_non_null(data);
+
+    ret = kcm_cc_get_uuid(cc, uuid);
+    assert_int_equal(ret, EOK);
+    key = sec_key_create(test_ctx, name, uuid);
+    assert_non_null(key);
+
+    ret = sec_kv_to_ccache(test_ctx,
+                           key,
+                           (const char *) data,
+                           &owner,
+                           &cc2);
+    assert_int_equal(ret, EOK);
+
+    assert_cc_equal(cc, cc2);
+}
+
 void test_sec_key_get_uuid(void **state)
 {
     errno_t ret;
@@ -277,6 +341,9 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_kcm_ccache_marshall_unmarshall,
+                                        setup_kcm_marshalling,
+                                        teardown_kcm_marshalling),
+        cmocka_unit_test_setup_teardown(test_kcm_ccache_no_princ,
                                         setup_kcm_marshalling,
                                         teardown_kcm_marshalling),
         cmocka_unit_test(test_sec_key_get_uuid),
