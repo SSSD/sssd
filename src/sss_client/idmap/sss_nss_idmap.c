@@ -51,7 +51,7 @@ struct output {
     } d;
 };
 
-int nss_status_to_errno(enum nss_status nret) {
+static int nss_status_to_errno(enum nss_status nret) {
     switch (nret) {
     case NSS_STATUS_TRYAGAIN:
         return EAGAIN;
