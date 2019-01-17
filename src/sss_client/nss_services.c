@@ -178,8 +178,8 @@ _nss_sss_getservbyname_r(const char *name,
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) {
-	*errnop = ERANGE;
-	return NSS_STATUS_TRYAGAIN;
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
     }
 
     ret = sss_strnlen(name, SSS_NAME_MAX, &name_len);
@@ -418,8 +418,8 @@ static enum nss_status internal_getservent_r(struct servent *result,
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) {
-	*errnop = ERANGE;
-	return NSS_STATUS_TRYAGAIN;
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
     }
 
     /* if there are leftovers return the next one */
