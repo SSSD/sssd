@@ -473,7 +473,8 @@ static int make_nonstd_fd_internals(int fd, int limit)
 }
 
 /****************************************************************************
- Set a fd into blocking/nonblocking mode. Uses POSIX O_NONBLOCK if available,
+ Ensures fd isn't std[in/out/err] (duplicates it if needed) and
+ set it into nonblocking mode. Uses POSIX O_NONBLOCK if available,
  else
  if SYSV use O_NDELAY
  if BSD use FNDELAY
