@@ -500,16 +500,14 @@ class SSSDConfigSchema(SSSDChangeConf):
             schemaplugindir = '@datadir@/sssd/sssd.api.d'
 
         try:
-            #Read the primary config file
-            fd = open(schemafile, 'r')
-            self.readfp(fd)
-            fd.close()
+            # Read the primary config file
+            with open(schemafile, 'r') as fd:
+                self.readfp(fd)
             # Read in the provider files
             for file in filter(lambda f: re.search(r'^sssd-.*\.conf$', f),
                                          os.listdir(schemaplugindir)):
-                fd = open(schemaplugindir+ "/" + file)
-                self.readfp(fd)
-                fd.close()
+                with open(schemaplugindir+ "/" + file) as fd:
+                    self.readfp(fd)
         except IOError:
             raise
         except SyntaxError: # can be raised with readfp
@@ -1452,14 +1450,12 @@ class SSSDConfig(SSSDChangeConf):
             #TODO: get this from a global setting
             configfile = '@sysconfdir@/sssd/sssd.conf'
         # open will raise an IOError if it fails
-        fd = open(configfile, 'r')
+        with open(configfile, 'r') as fd:
+            try:
+                self.readfp(fd)
+            except:
+                raise ParsingError
 
-        try:
-            self.readfp(fd)
-        except:
-            raise ParsingError
-
-        fd.close()
         self.configfile = configfile
         self.initialized = True
 
@@ -1523,10 +1519,9 @@ class SSSDConfig(SSSDChangeConf):
 
         # open() will raise IOError if it fails
         old_umask = os.umask(0o177)
-        of = open(outputfile, "wb")
-        output = self.dump(self.opts).encode('utf-8')
-        of.write(output)
-        of.close()
+        with open(outputfile, "wb") as of:
+            output = self.dump(self.opts).encode('utf-8')
+            of.write(output)
         os.umask(old_umask)
 
     def list_active_services(self):
