@@ -85,36 +85,36 @@ class SSSDConfigTestValid(unittest.TestCase):
         new_options = new_sssd_service.list_options();
 
         self.assertTrue('debug_level' in new_options)
-        self.assertEquals(new_options['debug_level'][0], int)
+        self.assertEqual(new_options['debug_level'][0], int)
 
         self.assertTrue('command' in new_options)
-        self.assertEquals(new_options['command'][0], str)
+        self.assertEqual(new_options['command'][0], str)
 
         self.assertTrue('reconnection_retries' in new_options)
-        self.assertEquals(new_options['reconnection_retries'][0], int)
+        self.assertEqual(new_options['reconnection_retries'][0], int)
 
         self.assertTrue('services' in new_options)
-        self.assertEquals(new_options['debug_level'][0], int)
+        self.assertEqual(new_options['debug_level'][0], int)
 
         self.assertTrue('domains' in new_options)
-        self.assertEquals(new_options['domains'][0], list)
-        self.assertEquals(new_options['domains'][1], str)
+        self.assertEqual(new_options['domains'][0], list)
+        self.assertEqual(new_options['domains'][1], str)
 
         self.assertTrue('sbus_timeout' in new_options)
-        self.assertEquals(new_options['sbus_timeout'][0], int)
+        self.assertEqual(new_options['sbus_timeout'][0], int)
 
         self.assertTrue('re_expression' in new_options)
-        self.assertEquals(new_options['re_expression'][0], str)
+        self.assertEqual(new_options['re_expression'][0], str)
 
         self.assertTrue('full_name_format' in new_options)
-        self.assertEquals(new_options['full_name_format'][0], str)
+        self.assertEqual(new_options['full_name_format'][0], str)
 
         self.assertTrue('default_domain_suffix' in new_options)
-        self.assertEquals(new_options['default_domain_suffix'][0], str)
+        self.assertEqual(new_options['default_domain_suffix'][0], str)
 
         self.assertTrue('domain_resolution_order' in new_options)
-        self.assertEquals(new_options['domain_resolution_order'][0], list)
-        self.assertEquals(new_options['domain_resolution_order'][1], str)
+        self.assertEqual(new_options['domain_resolution_order'][0], list)
+        self.assertEqual(new_options['domain_resolution_order'][1], str)
 
         del sssdconfig
 
@@ -1127,15 +1127,15 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain.set_option('krb5_realm', 'EXAMPLE.COM')
         domain.set_option('ldap_uri', 'ldap://ldap.example.com')
 
-        self.assertEquals(domain.get_option('krb5_realm'),
-                          'EXAMPLE.COM')
-        self.assertEquals(domain.get_option('ldap_uri'),
-                          'ldap://ldap.example.com')
+        self.assertEqual(domain.get_option('krb5_realm'),
+                         'EXAMPLE.COM')
+        self.assertEqual(domain.get_option('ldap_uri'),
+                         'ldap://ldap.example.com')
 
         # Remove the LDAP provider and verify that krb5_realm remains
         domain.remove_provider('id')
-        self.assertEquals(domain.get_option('krb5_realm'),
-                  'EXAMPLE.COM')
+        self.assertEqual(domain.get_option('krb5_realm'),
+                         'EXAMPLE.COM')
         self.assertFalse('ldap_uri' in domain.options)
 
         # Put the LOCAL provider back
@@ -1914,7 +1914,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com' in sssdconfig.list_active_domains())
         self.assertFalse('example.com' in sssdconfig.list_inactive_domains())
         self.assertFalse(sssdconfig.has_section('domain/example.com'))
-        self.assertEquals(domain.oldname, None)
+        self.assertEqual(domain.oldname, None)
 
         # Positive test - Set the domain inactive and save it
         activelist = sssdconfig.list_active_domains()
@@ -1926,10 +1926,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com2' in sssdconfig.list_active_domains())
         self.assertTrue('example.com2' in sssdconfig.list_inactive_domains())
 
-        self.assertEquals(len(sssdconfig.list_active_domains()),
-                          len(activelist)-1)
-        self.assertEquals(len(sssdconfig.list_inactive_domains()),
-                          len(inactivelist)+1)
+        self.assertEqual(len(sssdconfig.list_active_domains()),
+                         len(activelist)-1)
+        self.assertEqual(len(sssdconfig.list_inactive_domains()),
+                         len(inactivelist)+1)
 
         # Positive test - Set the domain active and save it
         activelist = sssdconfig.list_active_domains()
@@ -1940,10 +1940,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('example.com2' in sssdconfig.list_active_domains())
         self.assertFalse('example.com2' in sssdconfig.list_inactive_domains())
 
-        self.assertEquals(len(sssdconfig.list_active_domains()),
-                          len(activelist)+1)
-        self.assertEquals(len(sssdconfig.list_inactive_domains()),
-                          len(inactivelist)-1)
+        self.assertEqual(len(sssdconfig.list_active_domains()),
+                         len(activelist)+1)
+        self.assertEqual(len(sssdconfig.list_inactive_domains()),
+                         len(inactivelist)-1)
 
         # Positive test - Set the domain inactive and save it
         activelist = sssdconfig.list_active_domains()
@@ -1954,10 +1954,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com2' in sssdconfig.list_active_domains())
         self.assertTrue('example.com2' in sssdconfig.list_inactive_domains())
 
-        self.assertEquals(len(sssdconfig.list_active_domains()),
-                          len(activelist)-1)
-        self.assertEquals(len(sssdconfig.list_inactive_domains()),
-                          len(inactivelist)+1)
+        self.assertEqual(len(sssdconfig.list_active_domains()),
+                         len(activelist)-1)
+        self.assertEqual(len(sssdconfig.list_inactive_domains()),
+                         len(inactivelist)+1)
 
         # Positive test - Set the domain active and save it
         activelist = sssdconfig.list_active_domains()
@@ -1968,10 +1968,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue('example.com2' in sssdconfig.list_active_domains())
         self.assertFalse('example.com2' in sssdconfig.list_inactive_domains())
 
-        self.assertEquals(len(sssdconfig.list_active_domains()),
-                          len(activelist)+1)
-        self.assertEquals(len(sssdconfig.list_inactive_domains()),
-                          len(inactivelist)-1)
+        self.assertEqual(len(sssdconfig.list_active_domains()),
+                         len(activelist)+1)
+        self.assertEqual(len(sssdconfig.list_inactive_domains()),
+                         len(inactivelist)-1)
 
         # Positive test - Ensure that saved domains retain values
         domain.set_option('ldap_krb5_init_creds', True)
