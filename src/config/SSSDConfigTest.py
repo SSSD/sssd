@@ -1582,7 +1582,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # First need to remove the existing service
         sssdconfig.delete_service('sssd')
         service = sssdconfig.new_service('sssd')
-        self.failUnless(service.get_name() in sssdconfig.list_services())
+        self.assertTrue(service.get_name() in sssdconfig.list_services())
 
         # TODO: check that the values of this new service
         # are set to the defaults from the schema
@@ -1852,8 +1852,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Positive Test
         domain = sssdconfig.new_domain('example.com')
         self.assertTrue(isinstance(domain, SSSDConfig.SSSDDomain))
-        self.failUnless(domain.get_name() in sssdconfig.list_domains())
-        self.failUnless(domain.get_name() in sssdconfig.list_inactive_domains())
+        self.assertTrue(domain.get_name() in sssdconfig.list_domains())
+        self.assertTrue(domain.get_name() in sssdconfig.list_inactive_domains())
 
         # TODO: check that the values of this new domain
         # are set to the defaults from the schema
