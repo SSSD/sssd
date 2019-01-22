@@ -754,7 +754,7 @@ static bool check_encryption_used(LDAP *ldap)
     int ret;
 
     ret = ldap_get_option(ldap, LDAP_OPT_X_SASL_SSF, &sasl_ssf);
-    if (ret != LDAP_SUCCESS) {
+    if (ret != LDAP_OPT_SUCCESS) {
         DEBUG(SSSDBG_TRACE_LIBS, "ldap_get_option failed to get sasl ssf, "
                                  "assuming SASL is not used.\n");
     }
