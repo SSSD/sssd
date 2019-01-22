@@ -747,7 +747,7 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
     return subreq;
 }
 
-static void check_encryption(LDAP *ldap)
+static bool check_encryption_used(LDAP *ldap)
 {
     ber_len_t sasl_ssf = 0;
     int tls_inplace = 0;
@@ -769,7 +769,10 @@ static void check_encryption(LDAP *ldap)
         DEBUG(SSSDBG_CRIT_FAILURE,
                 "No encryption detected on LDAP connection.\n");
         sss_log(SSS_LOG_CRIT, "No encryption detected on LDAP connection.\n");
+        return false;
     }
+
+    return true;
 }
 
 static void auth_connect_done(struct tevent_req *subreq)
@@ -801,7 +804,13 @@ static void auth_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    check_encryption(state->sh->ldap);
+    if (!check_encryption_used(state->sh->ldap) &&
+            !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Aborting the authentication request.\n");
+        sss_log(SSS_LOG_CRIT, "Aborting the authentication request.\n");
+        tevent_req_error(req, ERR_AUTH_FAILED);
+        return;
+    }
 
     if (state->dn == NULL) {
         /* The cached user entry was missing the bind DN. Need to look
