@@ -488,6 +488,13 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
         if (ret == ENOENT) {
             DEBUG(SSSDBG_TRACE_FUNC, "'%s' %s: Not found in domain '%s'\n",
                   type_string, name ? name : "", dinfo->name);
+            if (name == NULL) {
+                /* nothing to invalidate in that domain, no reason to fail */
+                return true;
+            } else {
+                /* we failed to invalidate explicit name; inform about it */
+                return false;
+            }
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Searching for %s in domain %s with filter %s failed\n",
