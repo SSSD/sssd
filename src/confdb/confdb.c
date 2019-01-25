@@ -1504,7 +1504,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
                                     CONFDB_MONITOR_ACTIVE_DOMAINS,
                                     &domlist);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured, fatal error!\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "No domains configured, fatal error!\n");
         goto done;
     }
     if (ret != EOK ) {
