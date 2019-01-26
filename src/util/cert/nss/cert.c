@@ -23,7 +23,7 @@
 #include <nss.h>
 #include <cert.h>
 #include <base64.h>
-#include <key.h>
+#include <keyhi.h>
 #include <prerror.h>
 #include <ocsp.h>
 #include <talloc.h>
