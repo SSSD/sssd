@@ -27,7 +27,7 @@ endif
 if BUILD_SECRETS
 SEC_CONDS = ;with_secrets
 endif
-if BUILD_SECRETS
+if BUILD_KCM
 KCM_CONDS = ;with_kcm
 endif
 if BUILD_SYSTEMTAP
