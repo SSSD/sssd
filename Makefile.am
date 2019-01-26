@@ -5004,43 +5004,18 @@ EXTRA_DIST += \
     src/sysv/systemd/sssd-pam.service.in \
     src/sysv/systemd/sssd-secrets.socket.in \
     src/sysv/systemd/sssd-secrets.service.in \
-    $(NULL)
-
-if BUILD_AUTOFS
-EXTRA_DIST += \
     src/sysv/systemd/sssd-autofs.socket.in \
     src/sysv/systemd/sssd-autofs.service.in \
-    $(NULL)
-endif
-if BUILD_IFP
-EXTRA_DIST += \
     src/sysv/systemd/sssd-ifp.service.in \
-    $(NULL)
-endif
-if BUILD_PAC_RESPONDER
-EXTRA_DIST += \
     src/sysv/systemd/sssd-pac.socket.in \
     src/sysv/systemd/sssd-pac.service.in \
-    $(NULL)
-endif
-if BUILD_SSH
-EXTRA_DIST += \
     src/sysv/systemd/sssd-ssh.socket.in \
     src/sysv/systemd/sssd-ssh.service.in \
-    $(NULL)
-endif
-if BUILD_SUDO
-EXTRA_DIST += \
     src/sysv/systemd/sssd-sudo.socket.in \
     src/sysv/systemd/sssd-sudo.service.in \
-    $(NULL)
-endif
-if BUILD_KCM
-EXTRA_DIST += \
     src/sysv/systemd/sssd-kcm.socket.in \
     src/sysv/systemd/sssd-kcm.service.in \
     $(NULL)
-endif
 
 src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
