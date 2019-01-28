@@ -649,7 +649,7 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    grp = talloc(mem_ctx, struct group);
+    grp = talloc(tmp_ctx, struct group);
     if (grp == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
         ret = ENOMEM;
