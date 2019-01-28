@@ -629,7 +629,7 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
 
         value.type = HASH_VALUE_PTR;
         value.ptr = talloc_strdup(member_tbl, orig_grp->gr_mem[i]);
-        if (key.str == NULL) {
+        if (value.ptr == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
