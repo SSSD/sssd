@@ -602,9 +602,9 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    for (i=0; orig_grp->gr_mem[i] != NULL; i++) {
-        orig_member_count++;
-    }
+    for (i=0; orig_grp->gr_mem[i] != NULL; ++i) /* no-op: just counting */;
+
+    orig_member_count = i;
 
     if (orig_member_count == 0) {
         ret = ENOENT;
@@ -618,7 +618,7 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    for (i=0; orig_grp->gr_mem[i] != NULL; i++) {
+    for (i=0; i < orig_member_count; ++i) {
         key.type = HASH_KEY_STRING;
         key.str = talloc_strdup(member_tbl, orig_grp->gr_mem[i]);
         if (key.str == NULL) {
