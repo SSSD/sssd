@@ -620,24 +620,15 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
 
     for (i=0; i < orig_member_count; ++i) {
         key.type = HASH_KEY_STRING;
-        key.str = talloc_strdup(member_tbl, orig_grp->gr_mem[i]);
-        if (key.str == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
+        key.str = orig_grp->gr_mem[i]; /* hash_enter() makes copy itself */
 
         value.type = HASH_VALUE_PTR;
-        value.ptr = talloc_strdup(member_tbl, orig_grp->gr_mem[i]);
-        if (value.ptr == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
+        /* no need to put copy in hash_table since
+           copy will be created during construction of new grp */
+        value.ptr = orig_grp->gr_mem[i];
 
         ret = hash_enter(member_tbl, &key, &value);
         if (ret != HASH_SUCCESS) {
-            talloc_free(key.str);
             ret = ENOMEM;
             goto done;
         }
