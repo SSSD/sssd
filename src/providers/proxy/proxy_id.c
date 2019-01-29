@@ -576,7 +576,7 @@ done:
 
 
 static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
-                                             struct group *orig_grp,
+                                             const struct group *orig_grp,
                                              struct group **_grp)
 {
     TALLOC_CTX *tmp_ctx;
@@ -713,7 +713,7 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
                                            const char *const*fq_gr_mem,
                                            time_t now);
 static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
-                      struct group *grp,
+                      const struct group *grp,
                       const char *real_name, /* already qualified */
                       const char *alias) /* already qualified */
 {
