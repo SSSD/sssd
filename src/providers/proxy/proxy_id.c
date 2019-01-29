@@ -597,8 +597,32 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    grp = talloc(tmp_ctx, struct group);
+    if (grp == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    grp->gr_gid = orig_grp->gr_gid;
+
+    grp->gr_name = talloc_strdup(grp, orig_grp->gr_name);
+    if (grp->gr_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    grp->gr_passwd = talloc_strdup(grp, orig_grp->gr_passwd);
+    if (grp->gr_passwd == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     if (orig_grp->gr_mem == NULL) {
-        ret = ENOENT;
+        grp->gr_mem = NULL;
+        ret = EOK;
         goto done;
     }
 
@@ -607,7 +631,14 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
     orig_member_count = i;
 
     if (orig_member_count == 0) {
-        ret = ENOENT;
+        grp->gr_mem = talloc_zero_array(grp, char *, 1);
+        if (grp->gr_mem == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        grp->gr_mem[0] = NULL;
+        ret = EOK;
         goto done;
     }
 
@@ -636,14 +667,8 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
 
     member_count = hash_count(member_tbl);
     if (member_count == 0) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    grp = talloc(tmp_ctx, struct group);
-    if (grp == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
-        ret = ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Empty resulting hash table - must be internal bug.\n");
+        ret = EINVAL;
         goto done;
     }
 
@@ -673,32 +698,11 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
     }
     grp->gr_mem[i] = NULL;
 
-    grp->gr_gid = orig_grp->gr_gid;
-
-    grp->gr_name = talloc_strdup(grp, orig_grp->gr_name);
-    if (grp->gr_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    grp->gr_passwd = talloc_strdup(grp, orig_grp->gr_passwd);
-    if (grp->gr_passwd == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
     *_grp = talloc_steal(mem_ctx, grp);
     ret = EOK;
 
 done:
     talloc_zfree(tmp_ctx);
-
-    if (ret == ENOENT) {
-        *_grp = talloc_steal(mem_ctx, orig_grp);
-        ret = EOK;
-    }
 
     return ret;
 }
