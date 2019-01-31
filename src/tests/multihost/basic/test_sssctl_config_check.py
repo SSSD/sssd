@@ -3,6 +3,8 @@
 import pytest
 import re
 
+from utils_config import set_param
+
 
 class TestSssctlConfigCheck(object):
     def test_verify_typo_option_name(self, multihost):
@@ -84,3 +86,21 @@ class TestSssctlConfigCheck(object):
             assert False
         multihost.master[0].run_command(['/bin/cp', '-a', cfgput, cfgget],
                                         raiseonerr=False)
+
+
+class TestSssctlUserChecks(object):
+    def test_user_checks_custom_attrs(self, multihost):
+        """
+        Test that IFP extra attributes are visible from the tool
+        see e.g. https://pagure.io/SSSD/sssd/issue/3866
+        """
+        set_param(multihost, 'domain/EXAMPLE.TEST',
+                  'ldap_user_extra_attrs', 'extra_name:uid')
+        set_param(multihost, 'ifp', 'user_attributes', '+extra_name')
+
+        multihost.master[0].service_sssd('restart')
+
+        sssctl_cmd = 'sssctl user-checks foo1'
+        cmd = multihost.master[0].run_command(sssctl_cmd,
+                                              raiseonerr=False)
+        assert 'extra_name: foo1' in cmd.stdout_text
