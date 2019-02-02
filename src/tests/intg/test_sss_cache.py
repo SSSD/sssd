@@ -57,5 +57,11 @@ def test_invalidate_missing_specific_entry():
     ret = subprocess.call(["sss_cache", "-u", "non-existing"])
     assert ret == 2
 
+    ret = subprocess.call(["sss_cache", "-d", "non-existing", "-u", "dummy"])
+    assert ret == 2
+
     ret = subprocess.call(["sss_cache", "-g", "non-existing"])
+    assert ret == 2
+
+    ret = subprocess.call(["sss_cache", "-d", "non-existing", "-g", "dummy"])
     assert ret == 2
