@@ -2243,7 +2243,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             type = SYSDB_MEMBER_USER;
             if (dom->subdomain_homedir
                     && attrs->a.user.pw_dir == NULL) {
-                ZERO_STRUCT(homedir_ctx);
+                memset(&homedir_ctx, 0, sizeof(homedir_ctx));
                 homedir_ctx.username = attrs->a.user.pw_name;
                 homedir_ctx.uid = attrs->a.user.pw_uid;
                 homedir_ctx.domain = dom->name;

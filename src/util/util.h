@@ -66,8 +66,6 @@
 #define NULL 0
 #endif
 
-#define ZERO_STRUCT(x) memset((char *)&(x), 0, sizeof(x))
-
 #define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
 
 #define SSSD_SERVER_OPTS(uid, gid) \
