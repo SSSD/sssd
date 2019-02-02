@@ -174,7 +174,7 @@ int setup_watchdog(struct tevent_context *ev, int interval)
     int signum = SIGRTMIN;
     int ret;
 
-    ZERO_STRUCT(sev);
+    memset(&sev, 0, sizeof(sev));
     CatchSignal(signum, watchdog_handler);
 
     sev.sigev_notify = SIGEV_SIGNAL;

@@ -3840,7 +3840,7 @@ int sysdb_search_ts_users(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    ZERO_STRUCT(*res);
+    memset(res, 0, sizeof(*res));
 
     if (domain->sysdb->ldb_ts == NULL) {
         return ERR_NO_TS;
@@ -4121,7 +4121,7 @@ int sysdb_search_ts_groups(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    ZERO_STRUCT(*res);
+    memset(res, 0, sizeof(*res));
 
     if (domain->sysdb->ldb_ts == NULL) {
         return ERR_NO_TS;

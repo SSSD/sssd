@@ -901,7 +901,7 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
-    ZERO_STRUCT(homedir_ctx);
+    memset(&homedir_ctx, 0, sizeof(homedir_ctx));
 
     homedir_ctx.uid = uid;
     homedir_ctx.username = fqname;
