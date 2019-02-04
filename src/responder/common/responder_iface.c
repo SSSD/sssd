@@ -99,7 +99,7 @@ sss_resp_register_sbus_iface(struct sbus_connection *conn,
 {
     errno_t ret;
 
-    struct sbus_interface iface_resp_domain = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_resp_domain,
         sssd_Responder_Domain,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_Responder_Domain, SetActive, sss_resp_domain_active, rctx),
@@ -109,7 +109,7 @@ sss_resp_register_sbus_iface(struct sbus_connection *conn,
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_resp_negcache = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_resp_negcache,
         sssd_Responder_NegativeCache,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_Responder_NegativeCache, ResetUsers, sss_resp_reset_ncache_users, rctx),
@@ -139,7 +139,7 @@ sss_resp_register_service_iface(struct resp_ctx *rctx)
 {
     errno_t ret;
 
-    struct sbus_interface iface_svc = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_svc,
         sssd_service,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),

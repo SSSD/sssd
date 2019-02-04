@@ -658,7 +658,7 @@ errno_t
 sbus_register_introspection(struct sbus_router *router)
 {
 
-    struct sbus_interface iface = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface,
         org_freedesktop_DBus_Introspectable,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, org_freedesktop_DBus_Introspectable, Introspect,

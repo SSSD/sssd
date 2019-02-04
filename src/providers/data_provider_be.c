@@ -382,7 +382,7 @@ static void signal_be_reset_offline(struct tevent_context *ev,
 static errno_t
 be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
 {
-    struct sbus_interface iface_service = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_service,
         sssd_service,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_service, resInit, data_provider_res_init, be_ctx),
