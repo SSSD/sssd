@@ -219,7 +219,7 @@ nss_register_backend_iface(struct sbus_connection *conn,
 {
     errno_t ret;
 
-    struct sbus_interface iface = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface,
         sssd_nss_MemoryCache,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_nss_MemoryCache, UpdateInitgroups, nss_memorycache_update_initgroups, nss_ctx),

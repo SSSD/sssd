@@ -387,7 +387,7 @@ sbus_server_setup_interface(struct sbus_server *server)
 {
     errno_t ret;
 
-    struct sbus_interface bus = SBUS_INTERFACE(
+    SBUS_INTERFACE(bus,
         org_freedesktop_DBus,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, org_freedesktop_DBus, Hello, sbus_server_bus_hello, server),

@@ -100,7 +100,7 @@ proxy_client_init(struct sbus_connection *conn,
 {
     errno_t ret;
 
-    struct sbus_interface iface = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface,
         sssd_ProxyChild_Client,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_ProxyChild_Client, Register, proxy_client_register, auth_ctx)

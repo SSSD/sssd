@@ -33,7 +33,7 @@ dp_init_interface(struct data_provider *provider)
 {
     errno_t ret;
 
-    struct sbus_interface iface_dp_client = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_dp_client,
         sssd_DataProvider_Client,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_DataProvider_Client, Register, dp_client_register, provider)
@@ -42,7 +42,7 @@ dp_init_interface(struct data_provider *provider)
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_dp_backend = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_dp_backend,
         sssd_DataProvider_Backend,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_DataProvider_Backend, IsOnline, dp_backend_is_online, provider->be_ctx)
@@ -51,7 +51,7 @@ dp_init_interface(struct data_provider *provider)
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_dp_failover = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_dp_failover,
         sssd_DataProvider_Failover,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_DataProvider_Failover, ListServices, dp_failover_list_services, provider->be_ctx),
@@ -62,7 +62,7 @@ dp_init_interface(struct data_provider *provider)
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_dp_access = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_dp_access,
         sssd_DataProvider_AccessControl,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, sssd_DataProvider_AccessControl, RefreshRules, dp_access_control_refresh_rules_send, dp_access_control_refresh_rules_recv, provider)
@@ -71,7 +71,7 @@ dp_init_interface(struct data_provider *provider)
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_dp = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_dp,
         sssd_dataprovider,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, sssd_dataprovider, pamHandler, dp_pam_handler_send, dp_pam_handler_recv, provider),

@@ -867,7 +867,7 @@ errno_t
 sbus_register_properties(struct sbus_router *router)
 {
 
-    struct sbus_interface iface = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface,
         org_freedesktop_DBus_Properties,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, org_freedesktop_DBus_Properties, Get,

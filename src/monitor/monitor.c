@@ -2018,7 +2018,7 @@ static void monitor_sbus_connected(struct tevent_req *req)
         goto done;
     }
 
-    struct sbus_interface iface = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface,
         sssd_monitor,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_monitor, RegisterService, monitor_sbus_RegisterService, ctx)

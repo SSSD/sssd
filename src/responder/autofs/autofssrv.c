@@ -62,7 +62,7 @@ autofs_register_service_iface(struct autofs_ctx *autofs_ctx,
 {
     errno_t ret;
 
-    struct sbus_interface iface_svc = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_svc,
         sssd_service,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_service, resInit, monitor_common_res_init, NULL),
