@@ -109,7 +109,7 @@ sbus_method_copy(TALLOC_CTX *mem_ctx,
 
     /* All data is either pointer to a static data or it is not a pointer.
      * We can just copy it. */
-    memcpy(copy, input, sizeof(struct sbus_method) * count + 1);
+    memcpy(copy, input, sizeof(struct sbus_method) * (count + 1));
 
     return copy;
 }
@@ -144,7 +144,7 @@ sbus_signal_copy(TALLOC_CTX *mem_ctx,
 
     /* All data is either pointer to a static data or it is not a pointer.
      * We can just copy it. */
-    memcpy(copy, input, sizeof(struct sbus_signal) * count + 1);
+    memcpy(copy, input, sizeof(struct sbus_signal) * (count + 1));
 
     return copy;
 }
@@ -208,7 +208,7 @@ sbus_property_copy(TALLOC_CTX *mem_ctx,
 
     /* All data is either pointer to a static data or it is not a pointer.
      * We can just copy it. */
-    memcpy(copy, input, sizeof(struct sbus_property) * count + 1);
+    memcpy(copy, input, sizeof(struct sbus_property) * (count + 1));
 
     return copy;
 }
