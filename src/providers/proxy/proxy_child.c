@@ -348,7 +348,7 @@ proxy_cli_init(struct pc_ctx *ctx)
         return ENOMEM;
     }
 
-    struct sbus_interface iface = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface,
         sssd_ProxyChild_Auth,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, sssd_ProxyChild_Auth, PAM, pc_pam_handler, ctx)

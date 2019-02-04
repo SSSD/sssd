@@ -80,7 +80,7 @@ struct sbus_node;
  *     };
  */
 #define SBUS_METHODS(...)                                                     \
-    (const struct sbus_method[]) {                                            \
+    {                                                                         \
         __VA_ARGS__,                                                          \
         SBUS_INTERFACE_SENTINEL                                               \
     }
@@ -117,7 +117,7 @@ struct sbus_node;
  *     };
  */
 #define SBUS_SIGNALS(...)                                                     \
-    (const struct sbus_signal[]) {                                            \
+    {                                                                         \
         __VA_ARGS__,                                                          \
         SBUS_INTERFACE_SENTINEL                                               \
     }
@@ -159,7 +159,7 @@ struct sbus_node;
  *     };
  */
 #define SBUS_PROPERTIES(...)                                                  \
-    (const struct sbus_property[]) {                                          \
+    {                                                                         \
         __VA_ARGS__,                                                          \
         SBUS_INTERFACE_SENTINEL                                               \
     }
@@ -228,6 +228,11 @@ struct sbus_node;
 /**
  * Create and sbus interface.
  *
+ * @param varname      Name of the variable that will hold the interface
+ *                     description. It is created as:
+ *                       struct sbus_interface varname;
+ *                     You can refer to it later when creating 'sbus_path'
+ *                     structure as &varname.
  * @param iface        Name of the interface with dots replaced
  *                     with underscore. (token, not a string)
  * @param methods      Methods on the interface.
@@ -239,8 +244,15 @@ struct sbus_node;
  *
  * @see SBUS_METHODS, SBUS_SIGNALS, SBUS_PROPERTIES to create those arguments.
  */
-#define SBUS_INTERFACE(iface, methods, signals, properties)                   \
-    SBUS_IFACE_ ## iface((methods), (signals), (properties))
+#define SBUS_INTERFACE(varname, iface, methods, signals, properties)          \
+    const struct sbus_method __ ## varname ## _m[] = methods;                 \
+    const struct sbus_signal __ ## varname ## _s[] = signals;                 \
+    const struct sbus_property __ ## varname ## _p[] = properties;            \
+    struct sbus_interface varname = SBUS_IFACE_ ## iface(                     \
+        (__ ## varname ## _m),                                                \
+        (__ ## varname ## _s),                                                \
+        (__ ## varname ## _p)                                                 \
+    )
 
 /**
  * Create a new sbus synchronous handler.

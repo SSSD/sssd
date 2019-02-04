@@ -77,7 +77,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
 {
     errno_t ret;
 
-    struct sbus_interface iface_ifp = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp,
         org_freedesktop_sssd_infopipe,
         SBUS_METHODS(
             SBUS_SYNC(METHOD,  org_freedesktop_sssd_infopipe, Ping, ifp_ping, ctx),
@@ -96,7 +96,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_ifp_components = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_components,
         org_freedesktop_sssd_infopipe_Components,
         SBUS_METHODS(SBUS_NO_METHODS),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
@@ -109,7 +109,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         )
     );
 
-    struct sbus_interface iface_ifp_domains = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_domains,
         org_freedesktop_sssd_infopipe_Domains,
         SBUS_METHODS(SBUS_NO_METHODS),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
@@ -131,7 +131,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         )
     );
 
-    struct sbus_interface iface_ifp_domains_domain = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_domains_domain,
         org_freedesktop_sssd_infopipe_Domains_Domain,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Domains_Domain, IsOnline, ifp_domains_domain_is_online_send, ifp_domains_domain_is_online_recv, ctx),
@@ -144,7 +144,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_ifp_users = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_users,
         org_freedesktop_sssd_infopipe_Users,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Users, FindByName, ifp_users_find_by_name_send, ifp_users_find_by_name_recv, ctx),
@@ -159,7 +159,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_ifp_users_user = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_users_user,
         org_freedesktop_sssd_infopipe_Users_User,
         SBUS_METHODS(SBUS_NO_METHODS),
         SBUS_SIGNALS(SBUS_NO_SIGNALS),
@@ -178,7 +178,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         )
     );
 
-    struct sbus_interface iface_ifp_cache_user = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_cache_user,
         org_freedesktop_sssd_infopipe_Cache,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, org_freedesktop_sssd_infopipe_Cache, List, ifp_cache_list_user, ctx),
@@ -188,7 +188,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_ifp_cache_object_user = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_cache_object_user,
         org_freedesktop_sssd_infopipe_Cache_Object,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, org_freedesktop_sssd_infopipe_Cache_Object, Store, ifp_cache_object_store_user, ctx),
@@ -198,7 +198,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_ifp_groups = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_groups,
         org_freedesktop_sssd_infopipe_Groups,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Groups, FindByName, ifp_groups_find_by_name_send, ifp_groups_find_by_name_recv, ctx),
@@ -210,7 +210,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_ifp_groups_group = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_groups_group,
         org_freedesktop_sssd_infopipe_Groups_Group,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, org_freedesktop_sssd_infopipe_Groups_Group, UpdateMemberList, ifp_groups_group_update_member_list_send, ifp_groups_group_update_member_list_recv, ctx)
@@ -225,7 +225,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         )
     );
 
-    struct sbus_interface iface_ifp_cache_group = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_cache_group,
         org_freedesktop_sssd_infopipe_Cache,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, org_freedesktop_sssd_infopipe_Cache, List, ifp_cache_list_group, ctx),
@@ -235,7 +235,7 @@ ifp_register_sbus_interface(struct sbus_connection *conn,
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    struct sbus_interface iface_ifp_cache_object_group = SBUS_INTERFACE(
+    SBUS_INTERFACE(iface_ifp_cache_object_group,
         org_freedesktop_sssd_infopipe_Cache_Object,
         SBUS_METHODS(
             SBUS_SYNC(METHOD, org_freedesktop_sssd_infopipe_Cache_Object, Store, ifp_cache_object_store_group, ctx),
