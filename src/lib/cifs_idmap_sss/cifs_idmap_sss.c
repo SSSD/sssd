@@ -217,12 +217,14 @@ static int sss_sid_to_id(struct sssd_ctx *ctx, const char *sid,
 {
     int err;
     enum sss_id_type id_type;
+    uint32_t uid;
 
-    err = sss_nss_getidbysid(sid, (uint32_t *)&cuxid->id.uid, &id_type);
+    err = sss_nss_getidbysid(sid, &uid, &id_type);
     if (err != 0)  {
         ctx_set_error(ctx, strerror(err));
         return -1;
     }
+    cuxid->id.uid = (uid_t)uid;
 
     switch (id_type) {
     case SSS_ID_TYPE_UID:
