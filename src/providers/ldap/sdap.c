@@ -89,15 +89,13 @@ int sdap_copy_map(TALLOC_CTX *memctx,
 }
 
 static errno_t split_extra_attr(TALLOC_CTX *mem_ctx,
-                                char *conf_attr,
+                                const char *conf_attr,
                                 char **_sysdb_attr,
                                 char **_ldap_attr)
 {
     char *ldap_attr;
     char *sysdb_attr;
     char *sep;
-
-    ldap_attr = conf_attr;
 
     sep = strchr(conf_attr, ':');
     if (sep == NULL) {
@@ -108,8 +106,8 @@ static errno_t split_extra_attr(TALLOC_CTX *mem_ctx,
             return ERR_INVALID_EXTRA_ATTR;
         }
 
-        sysdb_attr = talloc_strndup(mem_ctx, ldap_attr,
-                                    sep - ldap_attr);
+        sysdb_attr = talloc_strndup(mem_ctx, conf_attr,
+                                    sep - conf_attr);
         ldap_attr = talloc_strdup(mem_ctx, sep+1);
     }
 
@@ -227,7 +225,7 @@ int sdap_extend_map(TALLOC_CTX *memctx,
 }
 
 int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
-                              struct sdap_options *opts,
+                              const struct sdap_options *opts,
                               int extra_attr_index,
                               struct sdap_attr_map *src_map,
                               size_t num_entries,
