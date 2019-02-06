@@ -571,7 +571,7 @@ int sdap_extend_map(TALLOC_CTX *memctx,
                     size_t *_new_size);
 
 int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
-                              struct sdap_options *opts,
+                              const struct sdap_options *opts,
                               int extra_attr_index,
                               struct sdap_attr_map *src_map,
                               size_t num_entries,
