@@ -139,3 +139,32 @@ class TestSanityKCM(object):
         assert exit_status == 0
 
         ssh.close()
+
+    def test_ssh_forward_creds(self, multihost, enable_kcm):
+        """
+        Test that SSH can forward credentials with KCM
+
+        A regression test for https://pagure.io/SSSD/sssd/issue/3873
+        """
+        ssh = SSHClient(multihost.master[0].sys_hostname,
+                        username='foo3', password='Secret123')
+
+        (_, _, exit_status) = ssh.execute_cmd('kdestroy')
+        assert exit_status == 0
+
+        (_, _, exit_status) = ssh.execute_cmd('kinit foo9',
+                                              stdin='Secret123')
+        assert exit_status == 0
+
+        ssh_k_cmd = 'ssh -oStrictHostKeyChecking=no -K -l foo9 ' + \
+                    multihost.master[0].sys_hostname + \
+                    ' klist'
+
+        (stdout, _, exit_status) = ssh.execute_cmd(ssh_k_cmd)
+        assert exit_status == 0
+
+        has_cache = False
+        for line in stdout.readlines():
+            if 'KCM:14583109' in line:
+                has_cache = True
+        assert has_cache is True
