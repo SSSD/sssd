@@ -238,9 +238,9 @@ int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
     char **extra_attrs_list;
     errno_t ret;
 
+    *_map = src_map;
     extra_attrs = dp_opt_get_string(opts->basic, extra_attr_index);
     if (extra_attrs == NULL) {
-        *_map = src_map;
         *_new_size = num_entries;
         return EOK;
     }
