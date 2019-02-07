@@ -1578,6 +1578,20 @@ done:
     return ret;
 }
 
+/* Return true if hint is set for at least one domain */
+static bool get_user_name_hint(struct sss_domain_info *domains)
+{
+    struct sss_domain_info *d;
+
+    DLIST_FOR_EACH(d, domains) {
+        if (d->user_name_hint == true) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
 {
     int ret;
@@ -1646,9 +1660,9 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                      preq->current_cert = sss_cai_get_next(preq->current_cert)) {
 
                     ret = add_pam_cert_response(preq->pd,
-                                       preq->cctx->rctx->domains, "",
-                                       preq->current_cert,
-                                       preq->cctx->rctx->domains->user_name_hint
+                                   preq->cctx->rctx->domains, "",
+                                   preq->current_cert,
+                                   get_user_name_hint(preq->cctx->rctx->domains)
                                             ? SSS_PAM_CERT_INFO_WITH_HINT
                                             : SSS_PAM_CERT_INFO);
                     if (ret != EOK) {
@@ -1698,7 +1712,7 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
                 }
             }
 
-            if (preq->cctx->rctx->domains->user_name_hint
+            if (get_user_name_hint(preq->cctx->rctx->domains)
                     && preq->pd->cmd == SSS_PAM_PREAUTH) {
                 ret = add_pam_cert_response(preq->pd,
                                             preq->cctx->rctx->domains, cert_user,
