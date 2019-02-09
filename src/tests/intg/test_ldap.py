@@ -1596,13 +1596,14 @@ def test_rename_incomplete_group_rdn_changed(ldap_conn, rename_setup_cleanup):
 
 
 @pytest.fixture
-def user_and_group_rfc2307_lcl(request, ldap_conn):
-    pwd_ops = passwd_ops_setup(request)
+def user_and_group_rfc2307_lcl(passwd_ops_setup, group_ops_setup,
+                               user_and_group_rfc2307):
+    pwd_ops = passwd_ops_setup
     pwd_ops.useradd(**PASSWD_USER)
-    grp_ops = group_ops_setup(request)
+    grp_ops = group_ops_setup
     grp_ops.groupadd(**PASSWD_GROUP)
 
-    return user_and_group_rfc2307(request, ldap_conn)
+    return user_and_group_rfc2307
 
 
 def test_local_negative_timeout_enabled_by_default(ldap_conn,
@@ -1660,15 +1661,16 @@ def test_local_negative_timeout_enabled_by_default(ldap_conn,
 
 
 @pytest.fixture
-def usr_and_grp_rfc2307_no_local_ncache(request, ldap_conn):
+def usr_and_grp_rfc2307_no_local_ncache(request, passwd_ops_setup,
+                                        group_ops_setup, ldap_conn):
     """
     Create an RFC2307 directory fixture with interactive SSSD conf,
     one user and one group but with the local negative timeout
     disabled
     """
-    pwd_ops = passwd_ops_setup(request)
+    pwd_ops = passwd_ops_setup
     pwd_ops.useradd(**PASSWD_USER)
-    grp_ops = group_ops_setup(request)
+    grp_ops = group_ops_setup
     grp_ops.groupadd(**PASSWD_GROUP)
 
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
