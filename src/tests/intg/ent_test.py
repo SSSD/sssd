@@ -97,7 +97,8 @@ def test_assert_passwd_by_name(users_and_groups):
         ent.assert_passwd_by_name("user3", {})
         assert False
     except AssertionError as e:
-        assert str(e) == "'getpwnam(): name not found: user3'"
+        assert str(e) in ("'getpwnam(): name not found: user3'",
+                          "\"getpwnam(): name not found: 'user3'\"")
 
     try:
         ent.assert_passwd_by_name("user2", dict(name="user1"))
@@ -150,7 +151,8 @@ def test_assert_each_passwd_by_name(users_and_groups):
         ent.assert_each_passwd_by_name(dict(user3={}))
         assert False
     except AssertionError as e:
-        assert str(e) == "'getpwnam(): name not found: user3'"
+        assert str(e) in ("'getpwnam(): name not found: user3'",
+                          "\"getpwnam(): name not found: 'user3'\"")
     try:
         ent.assert_each_passwd_by_name(dict(user1=dict(name="user2")))
         assert False
@@ -184,7 +186,8 @@ def test_assert_each_passwd_with_name(users_and_groups):
         ent.assert_each_passwd_with_name([dict(name="user3")])
         assert False
     except AssertionError as e:
-        assert str(e) == "'getpwnam(): name not found: user3'"
+        assert str(e) in ("'getpwnam(): name not found: user3'",
+                          "\"getpwnam(): name not found: 'user3'\"")
     try:
         ent.assert_each_passwd_with_name([dict(name="user1", uid=1002)])
         assert False
@@ -292,7 +295,8 @@ def test_assert_group_by_name(users_and_groups):
         ent.assert_group_by_name("group3", {})
         assert False
     except AssertionError as e:
-        assert str(e) == "'getgrnam(): name not found: group3'"
+        assert str(e) in ("'getgrnam(): name not found: group3'",
+                          "\"getgrnam(): name not found: 'group3'\"")
 
     try:
         ent.assert_group_by_name("group2", dict(name="group1"))
@@ -345,7 +349,8 @@ def test_assert_each_group_by_name(users_and_groups):
         ent.assert_each_group_by_name(dict(group3={}))
         assert False
     except AssertionError as e:
-        assert str(e) == "'getgrnam(): name not found: group3'"
+        assert str(e) in ("'getgrnam(): name not found: group3'",
+                          "\"getgrnam(): name not found: 'group3'\"")
     try:
         ent.assert_each_group_by_name(dict(group1=dict(name="group2")))
         assert False
@@ -379,7 +384,8 @@ def test_assert_each_group_with_name(users_and_groups):
         ent.assert_each_group_with_name([dict(name="group3")])
         assert False
     except AssertionError as e:
-        assert str(e) == "'getgrnam(): name not found: group3'"
+        assert str(e) in ("'getgrnam(): name not found: group3'",
+                          "\"getgrnam(): name not found: 'group3'\"")
     try:
         ent.assert_each_group_with_name([dict(name="group1", gid=2002)])
         assert False
