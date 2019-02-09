@@ -331,8 +331,7 @@ def override_homedir_and_shell(request):
     return None
 
 
-def setup_pw_with_list(request, user_list):
-    pwd_ops = passwd_ops_setup(request)
+def setup_pw_with_list(pwd_ops, user_list):
     for user in user_list:
         pwd_ops.useradd(**user)
     ent.assert_passwd_by_name(CANARY['name'], CANARY)
@@ -340,17 +339,16 @@ def setup_pw_with_list(request, user_list):
 
 
 @pytest.fixture
-def add_user_with_canary(request):
-    return setup_pw_with_list(request, [CANARY, USER1])
+def add_user_with_canary(passwd_ops_setup):
+    return setup_pw_with_list(passwd_ops_setup, [CANARY, USER1])
 
 
 @pytest.fixture
-def setup_pw_with_canary(request):
-    return setup_pw_with_list(request, [CANARY])
+def setup_pw_with_canary(passwd_ops_setup):
+    return setup_pw_with_list(passwd_ops_setup, [CANARY])
 
 
-def setup_gr_with_list(request, group_list):
-    grp_ops = group_ops_setup(request)
+def setup_gr_with_list(grp_ops, group_list):
     for group in group_list:
         grp_ops.groupadd(**group)
     ent.assert_group_by_name(CANARY_GR['name'], CANARY_GR)
@@ -358,13 +356,13 @@ def setup_gr_with_list(request, group_list):
 
 
 @pytest.fixture
-def add_group_with_canary(request):
-    return setup_gr_with_list(request, [GROUP1, CANARY_GR])
+def add_group_with_canary(group_ops_setup):
+    return setup_gr_with_list(group_ops_setup, [GROUP1, CANARY_GR])
 
 
 @pytest.fixture
-def setup_gr_with_canary(request):
-    return setup_gr_with_list(request, [CANARY_GR])
+def setup_gr_with_canary(group_ops_setup):
+    return setup_gr_with_list(group_ops_setup, [CANARY_GR])
 
 
 def poll_canary(fn, name, threshold=20):
@@ -802,8 +800,8 @@ def test_mod_group_gid(add_group_with_canary, files_domain_only):
 
 
 @pytest.fixture
-def add_group_nomem_with_canary(request):
-    return setup_gr_with_list(request, [GROUP_NOMEM, CANARY_GR])
+def add_group_nomem_with_canary(group_ops_setup):
+    return setup_gr_with_list(group_ops_setup, [GROUP_NOMEM, CANARY_GR])
 
 
 def test_getgrnam_no_members(add_group_nomem_with_canary, files_domain_only):
