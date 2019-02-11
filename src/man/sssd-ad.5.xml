@@ -668,6 +668,7 @@ ad_gpo_map_network = +my_pam_service, -ftp
 ad_gpo_map_batch = +my_pam_service, -crond
                             </programlisting>
                         </para>
+                        <para>Note: Cron service name may differ depending on Linux distribution used.</para>
                         <para>
                             Default: the default set of PAM service names includes:
                             <itemizedlist>
