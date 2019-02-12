@@ -594,7 +594,11 @@ class LdapOperations(object):
             'objectClass': [b'top', b'organizationalUnit'],
             'ou': org_unit.encode('utf-8')}
         org_dn = 'ou=%s,%s' % (org_unit, basedn)
-        (ret, _) = self.add_entry(attr, org_dn)
+        try:
+            (ret, _) = self.add_entry(attr, org_dn)
+        except ldap.ALREADY_EXISTS:
+            ret = 'Success'
+
         if ret != 'Success':
             raise LdapException('Unable to add organizational unit to ldap')
 
