@@ -77,9 +77,6 @@
  */
 #define MONITOR_MAX_RESTART_DELAY   4
 
-/* name of the monitor server instance */
-#define MONITOR_NAME        "sssd"
-
 /* Special value to leave the Kerberos Replay Cache set to use
  * the libkrb5 defaults
  */
@@ -513,11 +510,11 @@ static int mark_service_as_started(struct mt_svc *svc)
 
         DEBUG(SSSDBG_TRACE_FUNC,
               "All services have successfully started, creating pid file\n");
-        ret = pidfile(PID_PATH, MONITOR_NAME);
+        ret = pidfile(SSSD_PIDFILE);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Error creating pidfile: %s/%s.pid! (%d [%s])\n",
-                  PID_PATH, MONITOR_NAME, ret, strerror(ret));
+                  "Error creating pidfile: %s! (%d [%s])\n",
+                  SSSD_PIDFILE, ret, strerror(ret));
             kill(getpid(), SIGTERM);
         }
 
@@ -2571,7 +2568,7 @@ int main(int argc, const char *argv[])
     ret = close(STDIN_FILENO);
     if (ret != EOK) return 6;
 
-    ret = server_setup(MONITOR_NAME, flags, 0, 0,
+    ret = server_setup(SSSD_MONITOR_NAME, flags, 0, 0,
                        monitor->conf_path, &main_ctx);
     if (ret != EOK) return 2;
 
