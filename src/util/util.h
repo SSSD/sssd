@@ -47,7 +47,8 @@
 #include "util/debug.h"
 
 /* name of the monitor server instance */
-#define SSSD_PIDFILE PID_PATH"/sssd.pid"
+#define SSSD_MONITOR_NAME        "sssd"
+#define SSSD_PIDFILE PID_PATH"/"SSSD_MONITOR_NAME".pid"
 #define MAX_PID_LENGTH 10
 
 #define _(STRING) gettext (STRING)
@@ -174,7 +175,7 @@ struct main_context {
 errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
                                   const char *conf_entry);
 int die_if_parent_died(void);
-int pidfile(const char *path, const char *name);
+int pidfile(const char *file);
 int server_setup(const char *name, int flags,
                  uid_t uid, gid_t gid,
                  const char *conf_entry,
