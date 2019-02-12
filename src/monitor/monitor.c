@@ -255,7 +255,6 @@ errno_t socket_activated_service_not_found(struct mt_ctx *mt_ctx,
         return EINVAL;
     }
 
-    mt_ctx->services_started = true;
     mt_ctx->num_services++;
 
     ret = get_service_config(mt_ctx, svc_name, &svc);
