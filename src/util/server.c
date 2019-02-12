@@ -139,22 +139,16 @@ void become_daemon(bool Fork)
     close_low_fds();
 }
 
-int pidfile(const char *path, const char *name)
+int pidfile(const char *file)
 {
     char pid_str[32];
     pid_t pid;
-    char *file;
     int fd;
     int ret, err;
     ssize_t len;
     size_t size;
     ssize_t written;
     ssize_t pidlen = sizeof(pid_str) - 1;
-
-    file = talloc_asprintf(NULL, "%s/%s.pid", path, name);
-    if (!file) {
-        return ENOMEM;
-    }
 
     fd = open(file, O_RDONLY, 0644);
     err = errno;
@@ -166,7 +160,6 @@ int pidfile(const char *path, const char *name)
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "read failed [%d][%s].\n", ret, strerror(ret));
             close(fd);
-            talloc_free(file);
             return EINVAL;
         }
 
@@ -181,13 +174,11 @@ int pidfile(const char *path, const char *name)
             /* succeeded in signaling the process -> another sssd process */
             if (ret == 0) {
                 close(fd);
-                talloc_free(file);
                 return EEXIST;
             }
             if (ret != 0 && errno != ESRCH) {
                 err = errno;
                 close(fd);
-                talloc_free(file);
                 return err;
             }
         }
@@ -204,7 +195,6 @@ int pidfile(const char *path, const char *name)
         }
     } else {
         if (err != ENOENT) {
-            talloc_free(file);
             return err;
         }
     }
@@ -212,10 +202,8 @@ int pidfile(const char *path, const char *name)
     fd = open(file, O_CREAT | O_WRONLY | O_EXCL, 0644);
     err = errno;
     if (fd == -1) {
-        talloc_free(file);
         return err;
     }
-    talloc_free(file);
 
     memset(pid_str, 0, sizeof(pid_str));
     snprintf(pid_str, sizeof(pid_str) -1, "%u\n", (unsigned int) getpid());
@@ -465,6 +453,7 @@ int server_setup(const char *name, int flags,
     char *locale;
     int watchdog_interval;
     pid_t my_pid;
+    char *pidfile_name;
 
     my_pid = getpid();
     ret = setpgid(my_pid, my_pid);
@@ -518,12 +507,18 @@ int server_setup(const char *name, int flags,
     }
 
     if (flags & FLAGS_PID_FILE) {
-        ret = pidfile(get_pid_path(), name);
+        pidfile_name = talloc_asprintf(NULL, "%s/%s.pid", get_pid_path(), name);
+        if (!pidfile_name) {
+            return ENOMEM;
+        }
+        ret = pidfile(pidfile_name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Error creating pidfile: %s/%s.pid! "
-                  "(%d [%s])\n", get_pid_path(), name, ret, strerror(ret));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error creating pidfile: %s! "
+                  "(%d [%s])\n", pidfile_name, ret, strerror(ret));
+            talloc_free(pidfile_name);
             return ret;
         }
+        talloc_free(pidfile_name);
     }
 
     /* Set up locale */
