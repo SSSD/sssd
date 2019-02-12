@@ -298,8 +298,15 @@ def files_domain_users_class(request, session_multihost):
         useradd_cmd = "useradd %s" % (user)
         session_multihost.master[0].run_command(useradd_cmd)
 
+    no_home_users = ('no_home_user', )
+    for user in no_home_users:
+        useradd_cmd = "useradd --no-create-home %s" % (user)
+        session_multihost.master[0].run_command(useradd_cmd)
+        usermod_cmd = "usermod -d '' %s" % (user)
+        session_multihost.master[0].run_command(usermod_cmd)
+
     def teardown_files_domain_users():
-        for user in users:
+        for user in users + no_home_users:
             userdel_cmd = "userdel %s" % (user)
             session_multihost.master[0].run_command(userdel_cmd)
     request.addfinalizer(teardown_files_domain_users)
