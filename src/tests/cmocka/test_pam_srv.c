@@ -38,6 +38,12 @@
 #include "util/crypto/nss/nss_util.h"
 #endif
 
+#ifdef HAVE_TEST_CA
+#include "tests/test_CA/SSSD_test_cert_x509_0001.h"
+#else
+#define SSSD_TEST_CERT_0001 ""
+#endif
+
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_pam_conf.ldb"
 #define TEST_DOM_NAME "pam_test"
@@ -48,30 +54,6 @@
 #define NSS_DB "sql:"NSS_DB_PATH
 
 #define TEST_TOKEN_NAME "SSSD Test Token"
-#define TEST_TOKEN_CERT \
-"MIIECTCCAvGgAwIBAgIBCTANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
-"REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNjA1MjMx" \
-"NDE0MTVaFw0xODA1MjQxNDE0MTVaMDIxEjAQBgNVBAoMCUlQQS5ERVZFTDEcMBoG" \
-"A1UEAwwTaXBhLWRldmVsLmlwYS5kZXZlbDCCASIwDQYJKoZIhvcNAQEBBQADggEP" \
-"ADCCAQoCggEBALHvOzZy/3llvoAYxrtOpux0gDVvSuSRpTGOW/bjpgdTowvXoOb5" \
-"G9Cy/9S6be7ZJ9D95lc/J9W8tX+ShKN8Q4b74l4WjmILQJ4dUsJ/BXfvoMPR8tw/" \
-"G47dGbLZanMXdWGBSTuXhoiogZWib2DhSwrX2DbEH5L3OWooeAVU5ZWOw55/HD7O" \
-"Q/7Of7H3tf4bvxNTFkxh39KQMG28wjPZSv+SZWNHMB+rj2yZgyeHBMkoPOPesAEi" \
-"7KKHxw1MHSv2xBI1AiV+aMdKfYUMy0Rq3PrRU4274i3eaBX4Q9GnDi36K/7bHjbt" \
-"LW0YTIW/L5/cH/BO88BREjxS3bEXAQqlKOcCAwEAAaOCASYwggEiMB8GA1UdIwQY" \
-"MBaAFPci/0Km5D/L5z7YqwEc7E1/GwgcMDsGCCsGAQUFBwEBBC8wLTArBggrBgEF" \
-"BQcwAYYfaHR0cDovL2lwYS1jYS5pcGEuZGV2ZWwvY2Evb2NzcDAOBgNVHQ8BAf8E" \
-"BAMCBPAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMHQGA1UdHwRtMGsw" \
-"aaAxoC+GLWh0dHA6Ly9pcGEtY2EuaXBhLmRldmVsL2lwYS9jcmwvTWFzdGVyQ1JM" \
-"LmJpbqI0pDIwMDEOMAwGA1UECgwFaXBhY2ExHjAcBgNVBAMMFUNlcnRpZmljYXRl" \
-"IEF1dGhvcml0eTAdBgNVHQ4EFgQUIJuWIts3m3uEYqJ9pUL0y7utTiEwDQYJKoZI" \
-"hvcNAQELBQADggEBAB0GyqGxtZ99fsXA1+fHfAwKOwznT7Hh8hN9efEMBJICVud+" \
-"ivUBOH6JpSTWgNLuBhrpebV/b/DSjhn+ayuvoPWng3hjwMbSEIe0euzCEdwVcokt" \
-"bwNMMSeTxSg6wbJnEyZqQEIr2h/TR9dRNxE+RbQXyamW0fUxSVT16iueL0hMwszT" \
-"jCfI/UZv3tDMHbh6D4811A0HO8daW7ufMGb/M+kDxYigJiL2gllMZ+6xba1RRgzF" \
-"8Z+9gqZhCa7FEKJOPNR9RVtJs0qUUutMZrp1zpyx0GTmXQBA7LbgPxy8L68uymEQ" \
-"XyQBwOYRORlnfGyu+Yc9c3E0Wx8Tlznz0lqPR9g="
-
 
 static char CACHED_AUTH_TIMEOUT_STR[] = "4";
 static const int CACHED_AUTH_TIMEOUT = 4;
@@ -135,7 +117,7 @@ static errno_t setup_nss_db(void)
         DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
         return ret;
     }
-    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/cmocka/p11_nssdb' dbSlotDescription='SSSD Test Slot' dbTokenDescription='SSSD Test Token' secmod='secmod.db' flags=readOnly \n\n", ABS_SRC_DIR);
+    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/test_CA/p11_nssdb' dbSlotDescription='SSSD Test Slot' dbTokenDescription='SSSD Test Token' secmod='secmod.db' flags=readOnly \n\n", ABS_BUILD_DIR);
     if (ret < 0) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
         return ret;
@@ -343,6 +325,7 @@ static int pam_test_setup(void **state)
     return 0;
 }
 
+#ifdef HAVE_TEST_CA
 #ifdef HAVE_NSS
 static int pam_test_setup_no_verification(void **state)
 {
@@ -368,6 +351,7 @@ static int pam_test_setup_no_verification(void **state)
     return 0;
 }
 #endif /* HAVE_NSS */
+#endif /* HAVE_TEST_CA */
 
 static int pam_cached_test_setup(void **state)
 {
@@ -1612,7 +1596,7 @@ void test_pam_preauth_cert_match(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
-                      discard_const(TEST_TOKEN_CERT));
+                      discard_const(SSSD_TEST_CERT_0001));
 
     set_cmd_cb(test_pam_cert_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1636,7 +1620,7 @@ void test_pam_preauth_cert_match_gdm_smartcard(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
-                      discard_const(TEST_TOKEN_CERT));
+                      discard_const(SSSD_TEST_CERT_0001));
 
     set_cmd_cb(test_pam_cert_check_gdm_smartcard);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1659,7 +1643,7 @@ void test_pam_preauth_cert_match_wrong_user(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     mock_account_recv(0, 0, NULL, test_lookup_by_cert_wrong_user_cb,
-                      discard_const(TEST_TOKEN_CERT));
+                      discard_const(SSSD_TEST_CERT_0001));
 
     set_cmd_cb(test_pam_simple_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1683,7 +1667,7 @@ void test_pam_preauth_cert_no_logon_name(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
-                      discard_const(TEST_TOKEN_CERT));
+                      discard_const(SSSD_TEST_CERT_0001));
 
     set_cmd_cb(test_pam_cert_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
@@ -1749,7 +1733,7 @@ void test_pam_cert_auth(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
-                      discard_const(TEST_TOKEN_CERT));
+                      discard_const(SSSD_TEST_CERT_0001));
 
     set_cmd_cb(test_pam_simple_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
@@ -2030,6 +2014,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_cached_auth_failed_combined_pw_with_cached_2fa,
                                         pam_cached_test_setup,
                                         pam_test_teardown),
+#ifdef HAVE_TEST_CA
 /* p11_child is not built without NSS */
 #ifdef HAVE_NSS
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_nocert,
@@ -2055,6 +2040,7 @@ int main(int argc, const char *argv[])
                                         pam_test_setup_no_verification,
                                         pam_test_teardown),
 #endif /* HAVE_NSS */
+#endif /* HAVE_TEST_CA */
 
         cmocka_unit_test_setup_teardown(test_filter_response,
                                         pam_test_setup, pam_test_teardown),
