@@ -193,6 +193,14 @@ BuildRequires: selinux-policy-targeted
 BuildRequires: libcmocka-devel >= 1.0.0
 BuildRequires: uid_wrapper
 BuildRequires: nss_wrapper
+
+# Test CA requires openssl independent if SSSD is build with NSS or openssl,
+# openssh is needed for ssh-keygen and NSS builds need nss-tools for certutil.
+# Currently only cmocka based tests use the test CA. If it is used elsewhere
+# you might want to move the following requires out of the if-block.
+BuildRequires: openssl
+BuildRequires: openssh
+BuildRequires: nss-tools
 %endif
 BuildRequires: libnl3-devel
 %if (0%{?use_systemd} == 1)
