@@ -996,11 +996,13 @@ static void p11_child_timeout(struct tevent_context *ev,
     struct pam_check_cert_state *state =
                               tevent_req_data(req, struct pam_check_cert_state);
 
-    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for p11_child.\n");
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "Timeout reached for p11_child, "
+          "consider increasing p11_child_timeout.\n");
     child_handler_destroy(state->child_ctx);
     state->child_ctx = NULL;
     state->child_status = ETIMEDOUT;
-    tevent_req_error(req, ERR_P11_CHILD);
+    tevent_req_error(req, ERR_P11_CHILD_TIMEOUT);
 }
 
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,

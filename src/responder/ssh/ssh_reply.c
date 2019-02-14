@@ -281,9 +281,15 @@ void ssh_get_output_keys_done(struct tevent_req *subreq)
     ret = cert_to_ssh_key_recv(subreq, state, &keys, &valid_keys);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "cert_to_ssh_key request failed, ssh keys derived "
-              "from certificates will be skipped.\n");
+        if (ret == ERR_P11_CHILD_TIMEOUT) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "cert_to_ssh_key request timeout, "
+                  "consider increasing p11_child_timeout.\n");
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "cert_to_ssh_key request failed, ssh keys derived "
+                  "from certificates will be skipped.\n");
+        }
         /* Ignore ssh keys from certificates and return what we already have */
         tevent_req_done(req);
         return;

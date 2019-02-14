@@ -88,6 +88,7 @@ struct err_string error_to_str[] = {
     { "Retrieving keytab failed" }, /* ERR_IPA_GETKEYTAB_FAILED */
     { "Trusted forest root unknown" }, /* ERR_TRUST_FOREST_UNKNOWN */
     { "p11_child failed" }, /* ERR_P11_CHILD */
+    { "p11_child timeout" }, /* ERR_P11_CHILD_TIMEOUT */
     { "Address family not supported" }, /* ERR_ADDR_FAMILY_NOT_SUPPORTED */
     { "Message sender is the bus" }, /* ERR_SBUS_SENDER_BUS */
     { "Subdomain is inactive" }, /* ERR_SUBDOM_INACTIVE */
