@@ -65,10 +65,10 @@ start-guest() {
     # This may fail if guest's box was not yet downloaded. We will ignore it.
     run-vagrant destroy $1 &> /dev/null
 
-    run-vagrant box update client
+    run-vagrant box update $1
     success-or-die $? "Unable to update guest: $1"
 
-    run-vagrant up client
+    run-vagrant up $1
     success-or-die $? "Unable to start guest: $1"
 }
 
