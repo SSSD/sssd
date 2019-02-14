@@ -184,6 +184,7 @@ m4_include([src/external/libnfsidmap.m4])
 m4_include([src/external/cwrap.m4])
 m4_include([src/external/libresolv.m4])
 m4_include([src/external/intgcheck.m4])
+m4_include([src/external/test_ca.m4])
 
 if test x$build_config_lib = xyes; then
     m4_include([src/external/libaugeas.m4])
@@ -448,6 +449,7 @@ AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
 AM_CHECK_CMOCKA
 AM_CHECK_UID_WRAPPER
 AM_CHECK_NSS_WRAPPER
+AM_CHECK_TEST_CA
 
 SSS_ENABLE_INTGCHECK_REQS
 
@@ -468,7 +470,7 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  contrib/sssd-pcsc.rules
                  src/sysv/sssd src/sysv/gentoo/sssd src/sysv/SUSE/sssd
                  po/Makefile.in src/man/Makefile src/tests/cwrap/Makefile
-                 src/tests/intg/Makefile
+                 src/tests/intg/Makefile src/tests/test_CA/Makefile
                  src/providers/ipa/ipa_hbac.pc src/providers/ipa/ipa_hbac.doxy
                  src/lib/idmap/sss_idmap.pc src/lib/idmap/sss_idmap.doxy
                  src/sss_client/sudo/sss_sudo.doxy
