@@ -35,6 +35,10 @@ sbus_dispatch_schedule(struct sbus_connection *conn, uint32_t usecs);
 static void
 sbus_dispatch_reconnect(struct sbus_connection *conn)
 {
+    /* Terminate all outgoing requests associated with this connection. */
+    DEBUG(SSSDBG_TRACE_FUNC, "Connection lost. Terminating active requests.\n");
+    sbus_requests_terminate_all(conn->requests->outgoing, ERR_TERMINATED);
+
     switch (conn->type) {
     case SBUS_CONNECTION_CLIENT:
         /* Remote client closed the connection. We can't reestablish
