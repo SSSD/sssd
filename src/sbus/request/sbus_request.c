@@ -34,11 +34,6 @@ typedef errno_t
                             DBusMessage **_client_message,
                             DBusMessage ***_reply);
 
-struct sbus_active_requests {
-    hash_table_t *incoming;
-    hash_table_t *outgoing;
-};
-
 struct sbus_active_requests *
 sbus_active_requests_init(TALLOC_CTX *mem_ctx)
 {

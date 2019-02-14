@@ -448,6 +448,11 @@ struct sbus_request_list {
     struct sbus_request_list *next;
 };
 
+struct sbus_active_requests {
+    hash_table_t *incoming;
+    hash_table_t *outgoing;
+};
+
 /* Initialize active requests structure. */
 struct sbus_active_requests *
 sbus_active_requests_init(TALLOC_CTX *mem_ctx);
@@ -478,6 +483,11 @@ sbus_requests_delete(struct sbus_request_list *list);
 void
 sbus_requests_finish(struct sbus_request_list *item,
                      errno_t error);
+
+/* Terminate all requests. */
+void
+sbus_requests_terminate_all(hash_table_t *table,
+                            errno_t error);
 
 /* Create new sbus request. */
 struct sbus_request *

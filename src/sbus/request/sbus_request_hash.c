@@ -292,3 +292,34 @@ sbus_requests_finish(struct sbus_request_list *item,
 
     item->req = NULL;
 }
+
+void
+sbus_requests_terminate_all(hash_table_t *table,
+                            errno_t error)
+{
+    struct sbus_request_list *list;
+    struct sbus_request_list *item;
+    hash_value_t *values;
+    unsigned long int num;
+    unsigned long int i;
+    int hret;
+
+    hret = hash_values(table, &num, &values);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get list of active requests "
+              "[%d]: %s\n", hret, hash_error_string(hret));
+        return;
+    }
+
+    for (i = 0; i < num; i++) {
+        list = sss_ptr_get_value(&values[i], struct sbus_request_list);
+
+        DLIST_FOR_EACH(item, list) {
+            sbus_requests_finish(item, error);
+        }
+
+        sbus_requests_delete(list);
+    }
+
+    talloc_free(values);
+}
