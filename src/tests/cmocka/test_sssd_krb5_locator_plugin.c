@@ -44,6 +44,9 @@
 #define TEST_IP_1_WITH_SERVICE TEST_IP_1":"TEST_SERVICE_1
 #define TEST_IPV6_1_WITH_SERVICE TEST_IPV6_1":"TEST_SERVICE_2
 
+#define TEST_IP_1_WITH_SERVICE_2 TEST_IP_1":"TEST_SERVICE_2
+#define TEST_IPV6_1_WITH_SERVICE_1 TEST_IPV6_1":"TEST_SERVICE_1
+
 struct test_state {
     void *dummy;
 };
@@ -61,6 +64,7 @@ static int setup(void **state)
     *state = (void *)ts;
 
     unlink(TEST_PUBCONF_PATH"/kdcinfo."TEST_REALM);
+    unlink(TEST_PUBCONF_PATH"/kpasswdinfo."TEST_REALM);
     rmdir(TEST_PUBCONF_PATH);
 
     return 0;
@@ -574,7 +578,157 @@ void test_service(void **state)
 
     k5_free_serverlist(&list);
 
+    /* locate_service_master_kdc should get the default port 88 if kpasswdinfo
+     * does not exists. */
+    kerr = sssd_krb5_locator_lookup(priv, locate_service_master_kdc, TEST_REALM,
+                                    SOCK_DGRAM, AF_INET, module_callback,
+                                    &cbdata);
+    assert_int_equal(kerr, 0);
+    assert_int_equal(list.nservers, 1);
+    assert_non_null(list.servers);
+    ret = getnameinfo((struct sockaddr *) &list.servers[0].addr,
+                      list.servers[0].addrlen,
+                      host, sizeof(host), service, sizeof(service),
+                      NI_NUMERICHOST|NI_NUMERICSERV);
+    assert_int_equal(ret, 0);
+    assert_string_equal(TEST_IP_1, host);
+    assert_string_equal("88", service);
 
+    k5_free_serverlist(&list);
+
+    kerr = sssd_krb5_locator_lookup(priv, locate_service_master_kdc, TEST_REALM,
+                                    SOCK_DGRAM, AF_INET6, module_callback,
+                                    &cbdata);
+    assert_int_equal(kerr, 0);
+    assert_int_equal(list.nservers, 1);
+    assert_non_null(list.servers);
+    ret = getnameinfo((struct sockaddr *) &list.servers[0].addr,
+                      list.servers[0].addrlen,
+                      host, sizeof(host), service, sizeof(service),
+                      NI_NUMERICHOST|NI_NUMERICSERV);
+    assert_int_equal(ret, 0);
+    assert_string_equal(TEST_IPV6_1_PURE, host);
+    assert_string_equal("88", service);
+
+    k5_free_serverlist(&list);
+
+    unlink(TEST_PUBCONF_PATH"/kdcinfo."TEST_REALM);
+    rmdir(TEST_PUBCONF_PATH);
+    sssd_krb5_locator_close(priv);
+
+    krb5_free_context(ctx);
+}
+
+void test_kpasswd_and_master_kdc(void **state)
+{
+    krb5_context ctx;
+    krb5_error_code kerr;
+    void *priv;
+    int fd;
+    struct serverlist list = SERVERLIST_INIT;
+    struct module_callback_data cbdata = { 0 };
+    ssize_t s;
+    int ret;
+    char host[NI_MAXHOST];
+    char service[NI_MAXSERV];
+
+    cbdata.list = &list;
+
+    kerr = krb5_init_context (&ctx);
+    assert_int_equal(kerr, 0);
+
+    kerr = sssd_krb5_locator_init(ctx, &priv);
+    assert_int_equal(kerr, 0);
+
+    mkdir(TEST_PUBCONF_PATH, 0777);
+    fd = open(TEST_PUBCONF_PATH"/kdcinfo."TEST_REALM, O_CREAT|O_RDWR, 0777);
+    assert_int_not_equal(fd, -1);
+    s = write(fd, TEST_IP_1_WITH_SERVICE, sizeof(TEST_IP_1_WITH_SERVICE));
+    assert_int_equal(s, sizeof(TEST_IP_1_WITH_SERVICE));
+    s = write(fd, "\n", 1);
+    assert_int_equal(s, 1);
+    s = write(fd, TEST_IPV6_1_WITH_SERVICE, sizeof(TEST_IPV6_1_WITH_SERVICE));
+    assert_int_equal(s, sizeof(TEST_IPV6_1_WITH_SERVICE));
+    close(fd);
+    fd = open(TEST_PUBCONF_PATH"/kpasswdinfo."TEST_REALM, O_CREAT|O_RDWR, 0777);
+    assert_int_not_equal(fd, -1);
+    s = write(fd, TEST_IP_1_WITH_SERVICE_2, sizeof(TEST_IP_1_WITH_SERVICE_2));
+    assert_int_equal(s, sizeof(TEST_IP_1_WITH_SERVICE_2));
+    s = write(fd, "\n", 1);
+    assert_int_equal(s, 1);
+    s = write(fd, TEST_IPV6_1_WITH_SERVICE_1,
+              sizeof(TEST_IPV6_1_WITH_SERVICE_1));
+    assert_int_equal(s, sizeof(TEST_IPV6_1_WITH_SERVICE_1));
+    close(fd);
+
+    kerr = sssd_krb5_locator_lookup(priv, locate_service_kpasswd, TEST_REALM,
+                                    SOCK_DGRAM, AF_INET, module_callback,
+                                    &cbdata);
+    assert_int_equal(kerr, 0);
+    assert_int_equal(list.nservers, 1);
+    assert_non_null(list.servers);
+    ret = getnameinfo((struct sockaddr *) &list.servers[0].addr,
+                      list.servers[0].addrlen,
+                      host, sizeof(host), service, sizeof(service),
+                      NI_NUMERICHOST|NI_NUMERICSERV);
+    assert_int_equal(ret, 0);
+    assert_string_equal(TEST_IP_1, host);
+    assert_string_equal(TEST_SERVICE_2, service);
+
+    k5_free_serverlist(&list);
+
+    kerr = sssd_krb5_locator_lookup(priv, locate_service_kpasswd , TEST_REALM,
+                                    SOCK_DGRAM, AF_INET6, module_callback,
+                                    &cbdata);
+    assert_int_equal(kerr, 0);
+
+    assert_int_equal(list.nservers, 1);
+    assert_non_null(list.servers);
+    ret = getnameinfo((struct sockaddr *) &list.servers[0].addr,
+                      list.servers[0].addrlen,
+                      host, sizeof(host), service, sizeof(service),
+                      NI_NUMERICHOST|NI_NUMERICSERV);
+    assert_int_equal(ret, 0);
+    assert_string_equal(TEST_IPV6_1_PURE, host);
+    assert_string_equal(TEST_SERVICE_1, service);
+
+    k5_free_serverlist(&list);
+
+    /* locate_service_master_kdc should use the default KDC port 88 and not
+     * the one set in the kpasswdinfo file. */
+    kerr = sssd_krb5_locator_lookup(priv, locate_service_master_kdc, TEST_REALM,
+                                    SOCK_DGRAM, AF_INET, module_callback,
+                                    &cbdata);
+    assert_int_equal(kerr, 0);
+    assert_int_equal(list.nservers, 1);
+    assert_non_null(list.servers);
+    ret = getnameinfo((struct sockaddr *) &list.servers[0].addr,
+                      list.servers[0].addrlen,
+                      host, sizeof(host), service, sizeof(service),
+                      NI_NUMERICHOST|NI_NUMERICSERV);
+    assert_int_equal(ret, 0);
+    assert_string_equal(TEST_IP_1, host);
+    assert_string_equal("88", service);
+
+    k5_free_serverlist(&list);
+
+    kerr = sssd_krb5_locator_lookup(priv, locate_service_master_kdc, TEST_REALM,
+                                    SOCK_DGRAM, AF_INET6, module_callback,
+                                    &cbdata);
+    assert_int_equal(kerr, 0);
+    assert_int_equal(list.nservers, 1);
+    assert_non_null(list.servers);
+    ret = getnameinfo((struct sockaddr *) &list.servers[0].addr,
+                      list.servers[0].addrlen,
+                      host, sizeof(host), service, sizeof(service),
+                      NI_NUMERICHOST|NI_NUMERICSERV);
+    assert_int_equal(ret, 0);
+    assert_string_equal(TEST_IPV6_1_PURE, host);
+    assert_string_equal("88", service);
+
+    k5_free_serverlist(&list);
+
+    unlink(TEST_PUBCONF_PATH"/kpasswdinfo."TEST_REALM);
     unlink(TEST_PUBCONF_PATH"/kdcinfo."TEST_REALM);
     rmdir(TEST_PUBCONF_PATH);
     sssd_krb5_locator_close(priv);
@@ -605,6 +759,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_multi,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_service,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_kpasswd_and_master_kdc,
                                         setup, teardown),
     };
 
