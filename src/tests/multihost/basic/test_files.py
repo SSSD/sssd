@@ -23,19 +23,26 @@ class TestImplicitFilesProvider(object):
     together with another domain to stick close to what users use in Fedora
     """
     def test_files_does_not_handle_root(self, multihost):
-        """ The files provider does not handle root """
+        """
+        @Title: files: files provider does not handle root
+        """
         exit_status, _ = get_sss_user(multihost, 'root')
         assert exit_status == 2
 
     def test_files_sanity(self, multihost):
-        """ Test that the files provider can resolve a user """
+        """
+        @Title: files: Test that the files provider can resolve a user
+        """
         exit_status, _ = get_sss_user(multihost, 'lcl1')
         assert exit_status == 0
 
     def test_files_enumeration(self, multihost):
         """
-        Since nss_files enumerates and libc would concatenate the results,
-        the files provider of SSSD should not enumerate
+        @Title: files: Verify files provider do not enumerate
+
+        @Description: Since nss_files enumerates and libc would
+        concatenate the results, the files provider of SSSD should
+        not enumerate
         """
         cmd = multihost.master[0].run_command('getent passwd -s sss')
         assert len(cmd.stdout_text) == 0
