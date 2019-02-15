@@ -10,7 +10,9 @@ class TestSanitySudo(object):
     def test_case_senitivity(self, multihost, case_sensitive_sudorule,
                              enable_sss_sudo_nsswitch,
                              set_case_sensitive_false):
-        """ Verify case sensitivity in sudo responder """
+        """
+        @Title: sudo: Verify case sensitivity in sudo responder
+        """
         # pylint: disable=unused-argument
         _pytest_fixtures = [case_sensitive_sudorule, enable_sss_sudo_nsswitch,
                             set_case_sensitive_false]
@@ -35,7 +37,10 @@ class TestSanitySudo(object):
                                   enable_sss_sudo_nsswitch,
                                   generic_sudorule,
                                   set_entry_cache_sudo_timeout):
-        """ Verify refreshing expired sudo rules doesn't crash sssd_sudo """
+        """
+        @Title: sudo: Verify refreshing expired sudo rules
+        do not crash sssd_sudo
+        """
         # pylint: disable=unused-argument
         _pytest_fixtures = [enable_sss_sudo_nsswitch, generic_sudorule,
                             set_entry_cache_sudo_timeout]
