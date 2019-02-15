@@ -6,7 +6,10 @@ import re
 
 class TestSssctlConfigCheck(object):
     def test_verify_typo_option_name(self, multihost):
-        """ Verify typos in option name (not value) of configuration file """
+        """
+        @Title: sssctl: Verify typos in option name (not value)
+        of configuration file
+        """
         cfgget = '/etc/sssd/sssd.conf'
         cfgput = '/tmp/sssd.conf.backup'
         multihost.master[0].run_command(['/bin/cp',
@@ -32,7 +35,9 @@ class TestSssctlConfigCheck(object):
                                         raiseonerr=False)
 
     def test_verify_typo_domain_name(self, multihost):
-        """ Verify typos in domain name of configuration file """
+        """
+        @Title: sssctl: Verify typos in domain name of configuration file
+        """
         cfgget = '/etc/sssd/sssd.conf'
         cfgput = '/tmp/sssd.conf.backup'
         multihost.master[0].run_command(['/bin/cp',
@@ -58,7 +63,9 @@ class TestSssctlConfigCheck(object):
                                         raiseonerr=False)
 
     def test_misplaced_option(self, multihost):
-        """ Verify misplace options in default configuration file """
+        """
+        @Title: sssctl: Verify misplace options in default configuration file
+        """
         cfgget = '/etc/sssd/sssd.conf'
         cfgput = '/tmp/sssd.conf.backup'
         sssdcfg = multihost.master[0].get_file_contents(cfgget)
