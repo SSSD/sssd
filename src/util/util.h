@@ -723,4 +723,8 @@ errno_t create_preauth_indicator(void);
 #define P11_CHILD_TIMEOUT_DEFAULT 10
 #endif  /* SSSD_LIBEXEC_PATH */
 
+#ifndef N_ELEMENTS
+#define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
+#endif
+
 #endif /* __SSSD_UTIL_H__ */
