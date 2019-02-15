@@ -9,7 +9,9 @@ import pytest
 class TestSanitySSSD(object):
     """ Basic Sanity Test cases """
     def test_ssh_user_login(self, multihost):
-        """Check ssh login as LDAP user with Kerberos credentials """
+        """
+        @Title: Login: Check ssh login as LDAP user with Kerberos credentials
+        """
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
                             username='foo1', password='Secret123')
@@ -20,7 +22,9 @@ class TestSanitySSSD(object):
             ssh.close()
 
     def test_kinit(self, multihost):
-        """ Run kinit after user login """
+        """
+        @Title: Login: Verify kinit is successfull after user login
+        """
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
                             username='foo2', password='Secret123')
@@ -37,7 +41,7 @@ class TestSanitySSSD(object):
                 ssh.close()
 
     def test_offline_ssh_login(self, multihost):
-        """ Test Offline ssh login """
+        """@Title: Login: Verify offline ssh login"""
         multihost.master[0].transport.get_file('/etc/sssd/sssd.conf',
                                                '/tmp/sssd.conf')
         sssdconfig = ConfigParser.RawConfigParser()
