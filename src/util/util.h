@@ -726,4 +726,8 @@ errno_t create_preauth_indicator(void);
 #define P11_WAIT_FOR_CARD_TIMEOUT_DEFAULT 60
 #endif  /* SSSD_LIBEXEC_PATH */
 
+#ifndef N_ELEMENTS
+#define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
+#endif
+
 #endif /* __SSSD_UTIL_H__ */
