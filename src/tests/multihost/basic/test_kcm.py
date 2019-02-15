@@ -39,7 +39,9 @@ class TestSanityKCM(object):
         return nlines
 
     def test_kinit_kcm(self, multihost, enable_kcm):
-        """ Run kinit with KRB5CCNAME=KCM: """
+        """
+        @Title: kcm: Run kinit with KRB5CCNAME=KCM
+        """
         self._start_kcm(multihost)
         try:
             ssh = SSHClient(multihost.master[0].sys_hostname,
@@ -61,7 +63,9 @@ class TestSanityKCM(object):
             ssh.close()
 
     def test_ssh_login_kcm(self, multihost, enable_kcm):
-        """ Verify ssh logins are successuful with kcm as default """
+        """
+        @Title: kcm: Verify ssh logins are successuful with kcm as default
+        """
         # pylint: disable=unused-argument
         _pytest_fixture = [enable_kcm]
         try:
@@ -77,8 +81,11 @@ class TestSanityKCM(object):
 
     def test_kcm_debug_level_set(self, multihost, enable_kcm):
         """
-        Test that just adding a [kcm] section and restarting the kcm
-        service enables debugging without having to restart the
+        @Title: kcm: After kcm section with debug
+        level set restaring sssd-kcm service enables kcm debugging
+
+        @Description: Test that just adding a [kcm] section and restarting
+        the kcm service enables debugging without having to restart the
         whole sssd
         """
         # Start from a known-good state where the configuration is refreshed
@@ -125,8 +132,8 @@ class TestSanityKCM(object):
 
     def test_kdestroy_retval(self, multihost, enable_kcm):
         """
-        Test that destroying an empty cache does not return a non-zero
-        return code.
+        @Title: kcm: Test that destroying an empty cache does
+        not return a non-zero return code
         """
         ssh = SSHClient(multihost.master[0].sys_hostname,
                         username='foo3', password='Secret123')
@@ -142,7 +149,7 @@ class TestSanityKCM(object):
 
     def test_ssh_forward_creds(self, multihost, enable_kcm):
         """
-        Test that SSH can forward credentials with KCM
+        @Title: kcm: Test that SSH can forward credentials with KCM
 
         A regression test for https://pagure.io/SSSD/sssd/issue/3873
         """
