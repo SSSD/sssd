@@ -21,8 +21,8 @@ class TestSSSDConfig(object):
 
     def test_sssd_genconf_sssd_running(self, multihost):
         """
-        Test that sssd --genconf is able to re-generate the configuration
-        even while SSSD is running.
+        @Title: config: sssd --genconf is able to re-generate
+        the configuration even while SSSD is running.
         """
         multihost.master[0].service_sssd('restart')
 
@@ -36,8 +36,8 @@ class TestSSSDConfig(object):
 
     def test_sssd_genconf_section_only(self, multihost):
         """
-        Test that --genconf-section only refreshes those sections given
-        on the command line
+        @Title: config: sssd --genconf-section only
+        refreshes those sections given on the command line
         """
         multihost.master[0].service_sssd('restart')
 
@@ -59,8 +59,8 @@ class TestSSSDConfig(object):
 
     def test_sssd_genconf_add_remove_section(self, multihost):
         """
-        Test that --genconf-section can not only modify existing
-        configuration sections, but also add a new section
+        @Title: config: sssd --genconf-section can not only modify
+        existing configuration sections, but also add a new section
         """
         # Establish a baseline
         multihost.master[0].service_sssd('restart')
@@ -89,8 +89,10 @@ class TestSSSDConfig(object):
 
     def test_sssd_genconf_no_such_section(self, multihost):
         """
-        Referencing a non-existant section must not fail, because
-        we want to call this command from the systemd unit files
+        @Title: config: Referencing a non-existant section must not fail
+
+        @Description: Referencing a non-existant section must not fail,
+        because we want to call this command from the systemd unit files
         and by default the sections don't have to be present
         """
         multihost.master[0].service_sssd('restart')
