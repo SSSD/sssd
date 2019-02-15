@@ -80,6 +80,7 @@ struct sssd_ctx {
     struct addr_port *kpasswd_addr;
     bool debug;
     bool disabled;
+    bool kpasswdinfo_used;
 };
 
 #ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
@@ -414,6 +415,7 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
         ctx->disabled = true;
         PLUGIN_DEBUG("SSSD KRB5 locator plugin is disabled.\n");
     }
+    ctx->kpasswdinfo_used = false;
 
     *private_data = ctx;
 
@@ -454,6 +456,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     struct addr_port *addr = NULL;
     char port_str[PORT_STR_SIZE];
     size_t c;
+    bool force_port = false;
 
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
@@ -481,20 +484,24 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
             return KRB5_PLUGIN_NO_HANDLE;
         }
 
-        if (svc == locate_service_kadmin || svc == locate_service_kpasswd ||
-            svc == locate_service_master_kdc) {
-            ret = get_krb5info(realm, ctx, locate_service_kpasswd);
+    }
+
+    if (ctx->kpasswd_addr == NULL
+            && (svc == locate_service_kadmin || svc == locate_service_kpasswd ||
+                svc == locate_service_master_kdc)) {
+        ret = get_krb5info(realm, ctx, locate_service_kpasswd);
+        if (ret != EOK) {
+            PLUGIN_DEBUG("reading kpasswd address failed, "
+                         "using kdc address.\n");
+            free_addr_port_list(&(ctx->kpasswd_addr));
+            ret = copy_addr_port_list(ctx->kdc_addr, true,
+                                      &(ctx->kpasswd_addr));
             if (ret != EOK) {
-                PLUGIN_DEBUG("reading kpasswd address failed, "
-                             "using kdc address.\n");
-                free_addr_port_list(&(ctx->kpasswd_addr));
-                ret = copy_addr_port_list(ctx->kdc_addr, true,
-                                          &(ctx->kpasswd_addr));
-                if (ret != EOK) {
-                    PLUGIN_DEBUG("copying address list failed.\n");
-                    return KRB5_PLUGIN_NO_HANDLE;
-                }
+                PLUGIN_DEBUG("copying address list failed.\n");
+                return KRB5_PLUGIN_NO_HANDLE;
             }
+        } else {
+            ctx->kpasswdinfo_used = true;
         }
     }
 
@@ -510,6 +517,12 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         case locate_service_master_kdc:
             addr = ctx->kpasswd_addr;
             default_port = DEFAULT_KERBEROS_PORT;
+            if (ctx->kpasswdinfo_used) {
+                /* Use default port if the addresses from the kpasswdinfo
+                 * files are used because the port numbers from the file will
+                 * most probably not be suitable. */
+                force_port = true;
+            }
             break;
         case locate_service_kadmin:
             addr = ctx->kpasswd_addr;
@@ -542,11 +555,13 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
             return KRB5_PLUGIN_NO_HANDLE;
     }
 
-    if (strcmp(realm, ctx->sssd_realm) != 0)
+    if (strcmp(realm, ctx->sssd_realm) != 0 || addr == NULL) {
         return KRB5_PLUGIN_NO_HANDLE;
+    }
 
     for (c = 0; addr[c].addr != NULL; c++) {
-        port = (addr[c].port == 0 ? default_port : addr[c].port);
+        port = ((addr[c].port == 0 || force_port) ? default_port
+                                                  : addr[c].port);
         memset(port_str, 0, PORT_STR_SIZE);
         ret = snprintf(port_str, PORT_STR_SIZE-1, "%u", port);
         if (ret < 0 || ret >= (PORT_STR_SIZE-1)) {
