@@ -258,7 +258,7 @@ ndr_pull_dom_sid(struct ndr_pull *ndr,
         NDR_CHECK(ndr_pull_align(ndr, 4));
         NDR_CHECK(ndr_pull_uint8(ndr, NDR_SCALARS, &r->sid_rev_num));
         NDR_CHECK(ndr_pull_int8(ndr, NDR_SCALARS, &r->num_auths));
-        if (r->num_auths < 0 || r->num_auths > ARRAY_SIZE(r->sub_auths)) {
+        if (r->num_auths < 0 || r->num_auths > N_ELEMENTS(r->sub_auths)) {
             return ndr_pull_error(ndr, NDR_ERR_RANGE, "value out of range");
         }
         NDR_CHECK(ndr_pull_array_uint8(ndr, NDR_SCALARS, r->id_auth, 6));
