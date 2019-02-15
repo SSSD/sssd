@@ -39,8 +39,6 @@
 #define SSS_ATTRIBUTE_WARN_UNUSED_RESULT
 #endif
 
-#define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
-
 extern TALLOC_CTX *global_talloc_context;
 
 void check_leaks_push(TALLOC_CTX *ctx);
