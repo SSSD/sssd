@@ -692,7 +692,11 @@ errno_t sssm_ldap_sudo_init(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing LDAP sudo handler\n");
     init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
 
-    return sdap_sudo_init(mem_ctx, be_ctx, init_ctx->id_ctx, dp_methods);
+    return sdap_sudo_init(mem_ctx,
+                          be_ctx,
+                          init_ctx->id_ctx,
+                          "objectClass",
+                          dp_methods);
 #else
     DEBUG(SSSDBG_MINOR_FAILURE, "Sudo init handler called but SSSD is "
                                  "built without sudo support, ignoring\n");

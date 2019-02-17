@@ -36,7 +36,11 @@ errno_t ad_sudo_init(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing sudo AD back end\n");
 
-    ret = sdap_sudo_init(mem_ctx, be_ctx, id_ctx->sdap_id_ctx, dp_methods);
+    ret = sdap_sudo_init(mem_ctx,
+                         be_ctx,
+                         id_ctx->sdap_id_ctx,
+                         "objectCategory",
+                         dp_methods);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize LDAP SUDO [%d]: %s\n",
                                  ret, sss_strerror(ret));
