@@ -29,6 +29,7 @@ struct sdap_sudo_ctx {
 
     char **hostnames;
     char **ip_addr;
+    const char *objectclass_attr;
     bool include_netgroups;
     bool include_regexp;
     bool use_host_filter;
@@ -43,6 +44,7 @@ struct sdap_sudo_ctx {
 errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
                        struct be_ctx *be_ctx,
                        struct sdap_id_ctx *id_ctx,
+                       const char *objectclass_attr,
                        struct dp_method *dp_methods);
 
 /* sdap async interface */
@@ -91,7 +93,7 @@ int sdap_sudo_get_hostinfo_recv(TALLOC_CTX *mem_ctx,
 
 /* (&(objectClass=sudoRole)(|(cn=defaults)(sudoUser=ALL)%s)) */
 #define SDAP_SUDO_FILTER_USER "(&(objectClass=%s)(|(%s=%s)(%s=ALL)%s))"
-#define SDAP_SUDO_FILTER_CLASS "(objectClass=%s)"
+#define SDAP_SUDO_FILTER_CLASS "(%s=%s)"
 #define SDAP_SUDO_FILTER_DEFAULTS  "(&(objectClass=%s)(%s=%s))"
 #define SDAP_SUDO_DEFAULTS    "defaults"
 
