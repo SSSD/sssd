@@ -308,7 +308,11 @@ int ipa_sudo_init(TALLOC_CTX *mem_ctx,
         break;
     case SUDO_SCHEMA_LDAP:
         DEBUG(SSSDBG_TRACE_FUNC, "Using LDAP schema for sudo\n");
-        ret = sdap_sudo_init(mem_ctx, be_ctx, id_ctx->sdap_id_ctx, dp_methods);
+        ret = sdap_sudo_init(mem_ctx,
+                             be_ctx,
+                             id_ctx->sdap_id_ctx,
+                             "objectClass",
+                             dp_methods);
         break;
     }
 
