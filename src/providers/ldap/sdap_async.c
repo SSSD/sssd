@@ -703,110 +703,101 @@ errno_t sdap_exop_modify_passwd_recv(struct tevent_req *req,
     return EOK;
 }
 
-/* ==Update-passwordLastChanged-attribute====================== */
-struct update_last_changed_state {
+struct sdap_modify_state {
     struct tevent_context *ev;
     struct sdap_handle *sh;
     struct sdap_op *op;
-
-    const char *dn;
-    LDAPMod **mods;
 };
 
-static void sdap_modify_shadow_lastchange_done(struct sdap_op *op,
-                                               struct sdap_msg *reply,
-                                               int error, void *pvt);
+static void sdap_modify_done(struct sdap_op *op,
+                             struct sdap_msg *reply,
+                             int error, void *pvt);
 
-struct tevent_req *
-sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,
-                                   struct tevent_context *ev,
-                                   struct sdap_handle *sh,
-                                   const char *dn,
-                                   char *lastchanged_name)
+static struct tevent_req *
+sdap_modify_send(TALLOC_CTX *mem_ctx,
+                 struct tevent_context *ev,
+                 struct sdap_handle *sh,
+                 int timeout,
+                 const char *dn,
+                 char *attr,
+                 char **values)
 {
     struct tevent_req *req;
-    struct update_last_changed_state *state;
-    char **values;
+    struct sdap_modify_state *state;
+    LDAPMod **mods;
     errno_t ret;
     int msgid;
 
-    req = tevent_req_create(mem_ctx, &state, struct update_last_changed_state);
+    req = tevent_req_create(mem_ctx, &state, struct sdap_modify_state);
     if (req == NULL) {
         return NULL;
     }
 
     state->ev = ev;
     state->sh = sh;
-    state->dn = dn;
-    state->mods = talloc_zero_array(state, LDAPMod *, 2);
-    if (state->mods == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    state->mods[0] = talloc_zero(state->mods, LDAPMod);
-    state->mods[1] = talloc_zero(state->mods, LDAPMod);
-    if (!state->mods[0] || !state->mods[1]) {
-        ret = ENOMEM;
-        goto done;
-    }
-    values = talloc_zero_array(state->mods[0], char *, 2);
-    if (values == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    /* The attribute contains number of days since the epoch */
-    values[0] = talloc_asprintf(values, "%ld", (long)time(NULL)/86400);
-    if (values[0] == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    state->mods[0]->mod_op = LDAP_MOD_REPLACE;
-    state->mods[0]->mod_type = lastchanged_name;
-    state->mods[0]->mod_vals.modv_strvals = values;
-    state->mods[1] = NULL;
 
-    ret = ldap_modify_ext(state->sh->ldap, state->dn, state->mods,
-            NULL, NULL, &msgid);
-    if (ret) {
+    mods = talloc_zero_array(state, LDAPMod *, 2);
+    if (mods == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    mods[0] = talloc_zero(mods, LDAPMod);
+    if (mods[0] == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    mods[0]->mod_op = LDAP_MOD_REPLACE;
+    mods[0]->mod_type = attr;
+    mods[0]->mod_vals.modv_strvals = values;
+    mods[1] = NULL;
+
+    ret = ldap_modify_ext(state->sh->ldap, dn, mods, NULL, NULL, &msgid);
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to send operation!\n");
         goto done;
     }
 
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
-            sdap_modify_shadow_lastchange_done, req, 5, &state->op);
+                      sdap_modify_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         goto done;
     }
+
+    ret = EOK;
 
 done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);
     }
+
     return req;
 }
 
-static void sdap_modify_shadow_lastchange_done(struct sdap_op *op,
-                                               struct sdap_msg *reply,
-                                               int error, void *pvt)
+static void sdap_modify_done(struct sdap_op *op,
+                             struct sdap_msg *reply,
+                             int error, void *pvt)
 {
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct update_last_changed_state *state;
-    state = tevent_req_data(req, struct update_last_changed_state);
+    struct tevent_req *req;
+    struct sdap_modify_state *state;
     char *errmsg;
+    errno_t ret;
     int result;
-    errno_t ret = EOK;
     int lret;
+
+    req = talloc_get_type(pvt, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_modify_state);
 
     if (error) {
         tevent_req_error(req, error);
         return;
     }
 
-    lret = ldap_parse_result(state->sh->ldap, reply->msg,
-                            &result, NULL, &errmsg, NULL,
-                            NULL, 0);
+    lret = ldap_parse_result(state->sh->ldap, reply->msg, &result,
+                             NULL, &errmsg, NULL, NULL, 0);
     if (lret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
                                   state->op->msgid);
@@ -814,9 +805,11 @@ static void sdap_modify_shadow_lastchange_done(struct sdap_op *op,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, "Updating lastPwdChange result: %s(%d), %s\n",
+    DEBUG(SSSDBG_TRACE_LIBS, "ldap_modify result: %s(%d), %s\n",
                               sss_ldap_err2string(result),
                               result, errmsg);
+
+    ret = EOK;
 
 done:
     ldap_memfree(errmsg);
@@ -826,6 +819,185 @@ done:
     } else {
         tevent_req_error(req, ret);
     }
+}
+
+static errno_t sdap_modify_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct sdap_modify_passwd_state {
+    const char *dn;
+};
+
+static void sdap_modify_passwd_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_modify_passwd_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct sdap_handle *sh,
+                        int timeout,
+                        char *attr,
+                        const char *user_dn,
+                        const char *new_password)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct sdap_modify_passwd_state *state;
+    char **values;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sdap_modify_passwd_state);
+    if (req == NULL) {
+        return NULL;
+    }
+
+    state->dn = user_dn;
+
+    values = talloc_zero_array(state, char *, 2);
+    if (values == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    values[0] = talloc_strdup(values, new_password);
+    if (values[0] == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    subreq = sdap_modify_send(state, ev, sh, timeout, user_dn, attr, values);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sdap_modify_passwd_done, req);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void sdap_modify_passwd_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_modify_passwd_state *state;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_modify_passwd_state);
+
+    ret = sdap_modify_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Password change for [%s] failed [%d]: %s\n",
+              state->dn, ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Password change for [%s] was successful\n",
+          state->dn);
+
+    tevent_req_done(req);
+}
+
+errno_t sdap_modify_passwd_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+/* ==Update-passwordLastChanged-attribute====================== */
+struct sdap_modify_shadow_lastchange_state {
+    const char *dn;
+};
+
+static void sdap_modify_shadow_lastchange_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   struct sdap_handle *sh,
+                                   const char *dn,
+                                   char *attr)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct sdap_modify_shadow_lastchange_state *state;
+    char **values;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_modify_shadow_lastchange_state);
+    if (req == NULL) {
+        return NULL;
+    }
+
+    state->dn = dn;
+    values = talloc_zero_array(state, char *, 2);
+    if (values == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* The attribute contains number of days since the epoch */
+    values[0] = talloc_asprintf(values, "%ld", (long)time(NULL)/86400);
+    if (values[0] == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    subreq = sdap_modify_send(state, ev, sh, 5, dn, attr, values);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sdap_modify_shadow_lastchange_done, req);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+    return req;
+}
+
+static void sdap_modify_shadow_lastchange_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_modify_shadow_lastchange_state *state;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_modify_shadow_lastchange_state);
+
+    ret = sdap_modify_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "shadowLastChange change for [%s] failed [%d]: %s\n",
+              state->dn, ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "shadowLastChange change for [%s] was successful\n",
+          state->dn);
+
+    tevent_req_done(req);
 }
 
 errno_t sdap_modify_shadow_lastchange_recv(struct tevent_req *req)
