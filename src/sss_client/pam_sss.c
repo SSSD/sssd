@@ -1482,6 +1482,8 @@ static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
     }
 
     if (resp[1].resp == NULL || *(resp[1].resp) == '\0'
+            || ((pi->flags & PAM_CLI_FLAGS_USE_2FA_COMBINED)
+                    && strcmp(resp[0].resp, resp[1].resp) == 0)
             || (pi->pam_service != NULL && strcmp(pi->pam_service, "sshd") == 0
                     && strcmp(resp[0].resp, resp[1].resp) == 0)) {
         /* Missing second factor, assume first factor contains combined 2FA
@@ -2005,6 +2007,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             *flags |= PAM_CLI_FLAGS_TRY_CERT_AUTH;
         } else if (strcmp(*argv, "require_cert_auth") == 0) {
             *flags |= PAM_CLI_FLAGS_REQUIRE_CERT_AUTH;
+        } else if (strcmp(*argv, "use_2fa_combined") == 0) {
+            *flats |= PAM_CLI_FLAGS_USE_2FA_COMBINED;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }

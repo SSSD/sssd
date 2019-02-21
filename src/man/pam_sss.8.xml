@@ -56,6 +56,9 @@
             <arg choice='opt'>
                 <replaceable>require_cert_auth</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>use_2fa_combined</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -245,6 +248,26 @@ auth sufficient pam_sss.so allow_missing_name
                         If no Smartcard is available after the timeout or
                         certificate based authentication is not allowed for the
                         current service PAM_AUTHINFO_UNAVAIL is returned.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>use_2fa_combined</option>
+                </term>
+                <listitem>
+                    <para>
+                        If a client does not provide an answer to the second
+                        prompt (2fa prompt), the password answer is treated
+                        as a "password+otp" entry. However, some clients that
+                        are not 2fa aware respond to all prompts with the same
+                        value. With this option specified, the second answer
+                        will be ignored if it is the same as the first, and the
+                        answer will be treated as a "password+otp" entry.
+                    </para>
+                    <para>
+                        This option is automatically enforced for the sshd
+                        service.
                     </para>
                 </listitem>
             </varlistentry>
