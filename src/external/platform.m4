@@ -36,6 +36,14 @@ AM_CONDITIONAL([HAVE_SUSE], [test x"$osname" = xsuse])
 AM_CONDITIONAL([HAVE_DEBIAN], [test x"$osname" = xdebian])
 AM_CONDITIONAL([HAVE_GENTOO], [test x"$osname" = xgentoo])
 
+AS_CASE([$osname],
+        [redhat], [AC_DEFINE_UNQUOTED([HAVE_REDHAT], 1, [Build with redhat config])],
+        [fedora], [AC_DEFINE_UNQUOTED([HAVE_FEDORA], 1, [Build with fedora config])],
+        [suse], [AC_DEFINE_UNQUOTED([HAVE_SUSE], 1, [Build with suse config])],
+        [gentoo], [AC_DEFINE_UNQUOTED([HAVE_GENTOO], 1, [Build with gentoo config])],
+        [debian], [AC_DEFINE_UNQUOTED([HAVE_DEBIAN], 1, [Build with debian config])],
+        [AC_MSG_NOTICE([Build with $osname config])])
+
 AC_CHECK_MEMBERS([struct ucred.pid, struct ucred.uid, struct ucred.gid], , ,
                  [[#include <sys/socket.h>]])
 
