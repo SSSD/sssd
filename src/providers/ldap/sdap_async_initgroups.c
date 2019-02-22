@@ -2686,6 +2686,7 @@ struct sdap_get_initgr_state {
     struct sdap_handle *sh;
     struct sdap_id_ctx *id_ctx;
     struct sdap_id_conn_ctx *conn;
+    struct sdap_id_op *user_op;
     const char *filter_value;
     const char **grp_attrs;
     const char **user_attrs;
@@ -2704,6 +2705,8 @@ struct sdap_get_initgr_state {
 };
 
 static errno_t sdap_get_initgr_next_base(struct tevent_req *req);
+static errno_t sdap_get_initgr_user_connect(struct tevent_req *req);
+static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq);
 static void sdap_get_initgr_user(struct tevent_req *subreq);
 static void sdap_get_initgr_done(struct tevent_req *subreq);
 
@@ -2883,7 +2886,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                                          state->dom->name,
                                                          state->dom->domain_id);
 
-    ret = sdap_get_initgr_next_base(req);
+    ret = sdap_get_initgr_user_connect(req);
 
 done:
     if (ret != EOK) {
@@ -2892,6 +2895,57 @@ done:
     }
 
     return req;
+}
+
+static errno_t sdap_get_initgr_user_connect(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_get_initgr_state *state;
+    int ret = EOK;
+    struct sdap_id_conn_ctx *user_conn = NULL;
+
+    state = tevent_req_data(req, struct sdap_get_initgr_state);
+
+    /* Prefer LDAP over GC for users */
+    user_conn = get_ldap_conn_from_sdom_pvt(state->id_ctx->opts, state->sdom);
+    state->user_op = sdap_id_op_create(state, user_conn == NULL
+                                                       ? state->conn->conn_cache
+                                                       : user_conn->conn_cache);
+    if (state->user_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
+        return ENOMEM;
+    }
+
+    subreq = sdap_id_op_connect_send(state->user_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed\n");
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, sdap_get_initgr_user_connect_done, req);
+    return EOK;
+}
+
+static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sdap_get_initgr_next_base(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+    return;
 }
 
 static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
@@ -2913,7 +2967,7 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
            state->user_search_bases[state->user_base_iter]->basedn);
 
     subreq = sdap_get_generic_send(
-            state, state->ev, state->opts, state->sh,
+            state, state->ev, state->opts, sdap_id_op_handle(state->user_op),
             state->user_search_bases[state->user_base_iter]->basedn,
             state->user_search_bases[state->user_base_iter]->scope,
             state->filter, state->user_attrs,
