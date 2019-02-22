@@ -35,7 +35,6 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_users.h"
-#include "providers/ad/ad_common.h"
 
 /* =Users-Related-Functions-(by-name,by-uid)============================== */
 
@@ -1708,7 +1707,6 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
     struct get_user_and_group_state *state = tevent_req_data(req,
                                                struct get_user_and_group_state);
     int ret;
-    struct ad_id_ctx *ad_id_ctx;
     struct sdap_id_conn_ctx *user_conn;
 
     ret = groups_get_recv(subreq, &state->dp_error, &state->sdap_ret);
@@ -1730,17 +1728,10 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
     /* Now the search finished fine but did not find an entry.
      * Retry with users. */
 
-    user_conn = state->conn;
     /* Prefer LDAP over GC for users */
-    if (state->id_ctx->opts->schema_type == SDAP_SCHEMA_AD
-            && state->sdom->pvt != NULL) {
-        ad_id_ctx = talloc_get_type(state->sdom->pvt, struct ad_id_ctx);
-        if (ad_id_ctx != NULL &&  ad_id_ctx->ldap_ctx != NULL
-                && state->conn == ad_id_ctx->gc_ctx) {
-            DEBUG(SSSDBG_TRACE_ALL,
-                  "Switching to LDAP connection for user lookup.\n");
-            user_conn = ad_id_ctx->ldap_ctx;
-        }
+    user_conn = get_ldap_conn_from_sdom_pvt(state->id_ctx->opts, state->sdom);
+    if (user_conn == NULL) {
+        user_conn = state->conn;
     }
 
     subreq = users_get_send(req, state->ev, state->id_ctx,

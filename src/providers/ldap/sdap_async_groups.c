@@ -27,7 +27,6 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_idmap.h"
-#include "providers/ad/ad_common.h"
 
 /* ==Group-Parsing Routines=============================================== */
 
@@ -1782,7 +1781,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct sdap_get_groups_state *state;
-    struct ad_id_ctx *subdom_id_ctx;
+    struct sdap_id_conn_ctx *ldap_conn = NULL;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_groups_state);
     if (!req) return NULL;
@@ -1814,9 +1813,9 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     /* With AD by default the Global Catalog is used for lookup. But the GC
      * group object might not have full group membership data. To make sure we
      * connect to an LDAP server of the group's domain. */
-    if (state->opts->schema_type == SDAP_SCHEMA_AD && sdom->pvt != NULL) {
-        subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
-        state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
+    ldap_conn = get_ldap_conn_from_sdom_pvt(state->opts, sdom);
+    if (ldap_conn != NULL) {
+        state->op = sdap_id_op_create(state, ldap_conn->conn_cache);
         if (!state->op) {
             DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
             ret = ENOMEM;
