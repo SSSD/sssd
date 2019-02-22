@@ -1721,3 +1721,21 @@ static errno_t handle_missing_pvt(TALLOC_CTX *mem_ctx,
 done:
     return ret;
 }
+
+struct sdap_id_conn_ctx *get_ldap_conn_from_sdom_pvt(struct sdap_options *opts,
+                                                     struct sdap_domain *sdom)
+{
+    struct ad_id_ctx *ad_id_ctx;
+    struct sdap_id_conn_ctx *user_conn = NULL;
+
+    if (opts->schema_type == SDAP_SCHEMA_AD && sdom->pvt != NULL) {
+        ad_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+        if (ad_id_ctx != NULL &&  ad_id_ctx->ldap_ctx != NULL) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Returning LDAP connection for user lookup.\n");
+            user_conn = ad_id_ctx->ldap_ctx;
+        }
+    }
+
+    return user_conn;
+}
