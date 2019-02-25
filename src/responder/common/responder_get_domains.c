@@ -163,6 +163,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct sss_dp_get_domains_state *state;
+    bool refresh_timeout = false;
 
     req = tevent_req_create(mem_ctx, &state, struct sss_dp_get_domains_state);
     if (req == NULL) {
@@ -187,6 +188,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
             goto immediately;
         }
     }
+    refresh_timeout = true;
 
     state->rctx = rctx;
     if (hint != NULL) {
@@ -228,7 +230,9 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
 
 immediately:
     if (ret == EOK) {
-        set_time_of_last_request(rctx);
+        if (refresh_timeout) {
+            set_time_of_last_request(rctx);
+        }
         tevent_req_done(req);
     } else {
         tevent_req_error(req, ret);
