@@ -282,6 +282,7 @@ option_strings = {
     'ldap_backup_uri' : _('ldap_backup_uri, The URI of the LDAP server'),
     'ldap_search_base' : _('The default base DN'),
     'ldap_schema' : _('The Schema Type in use on the LDAP server, rfc2307'),
+    'ldap_pwmodify_mode' : _('Mode used to change user password'),
     'ldap_default_bind_dn' : _('The default bind DN'),
     'ldap_default_authtok_type' : _('The type of the authentication token of the default bind DN'),
     'ldap_default_authtok' : _('The authentication token of the default bind DN'),

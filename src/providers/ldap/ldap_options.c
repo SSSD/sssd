@@ -38,6 +38,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_service_map;
     struct sdap_options *opts;
     char *schema;
+    char *pwmodify;
     const char *search_base;
     const char *pwd_policy;
     int ret;
@@ -255,6 +256,18 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_service_map = service_map;
     } else {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized schema type: %s\n", schema);
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* pwmodify mode */
+    pwmodify = dp_opt_get_string(opts->basic, SDAP_PWMODIFY_MODE);
+    if (strcasecmp(pwmodify, "exop") == 0) {
+        opts->pwmodify_mode = SDAP_PWMODIFY_EXOP;
+    } else if (strcasecmp(pwmodify, "ldap_modify") == 0) {
+        opts->pwmodify_mode = SDAP_PWMODIFY_LDAP;
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized pwmodify mode: %s\n", pwmodify);
         ret = EINVAL;
         goto done;
     }

@@ -176,6 +176,7 @@ enum sdap_basic_opt {
     SDAP_AUTOFS_SEARCH_BASE,
     SDAP_AUTOFS_MAP_MASTER_NAME,
     SDAP_SCHEMA,
+    SDAP_PWMODIFY_MODE,
     SDAP_OFFLINE_TIMEOUT,
     SDAP_FORCE_UPPER_CASE_REALM,
     SDAP_ENUM_REFRESH_TIMEOUT,
@@ -491,6 +492,12 @@ struct sdap_options {
         SDAP_SCHEMA_IPA_V1 = 3,     /* member/memberof */
         SDAP_SCHEMA_AD = 4          /* AD's member/memberof */
     } schema_type;
+
+    /* password modify mode */
+    enum pwmodify_mode {
+        SDAP_PWMODIFY_EXOP = 1,     /* pwmodify extended operation */
+        SDAP_PWMODIFY_LDAP = 2      /* ldap_modify of userPassword */
+    } pwmodify_mode;
 
     /* The search bases for the domain or its subdomain */
     struct sdap_domain *sdom;
