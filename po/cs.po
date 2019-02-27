@@ -1,23 +1,24 @@
 # Zdenek <chmelarz@gmail.com>, 2017. #zanata
+# Pavel Borecki <pavel.borecki@gmail.com>, 2018. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2018-03-09 12:31+0100\n"
+"POT-Creation-Date: 2018-06-08 21:01+0200\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2017-09-11 08:51+0000\n"
-"Last-Translator: Zdenek <chmelarz@gmail.com>\n"
+"PO-Revision-Date: 2018-11-26 03:30+0000\n"
+"Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech\n"
 "Language: cs\n"
-"X-Generator: Zanata 4.4.5\n"
+"X-Generator: Zanata 4.6.2\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2\n"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 #: src/config/SSSDConfig/__init__.py.in:44
 msgid "Set the verbosity of the debug logging"
-msgstr ""
+msgstr "Nastavit úroveň podrobnosti zaznamenávání ladících informací"
 
 #: src/config/SSSDConfig/__init__.py.in:45
 msgid "Include timestamps in debug logs"
@@ -37,7 +38,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:49
 msgid "Command to start service"
-msgstr ""
+msgstr "Příkaz pro spouštění služy"
 
 #: src/config/SSSDConfig/__init__.py.in:50
 msgid "Number of times to attempt connection to Data Providers"
@@ -134,11 +135,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:76
 msgid "Users that SSSD should explicitly ignore"
-msgstr ""
+msgstr "Uživatelé, které by SSSD mělo výslovně ignorovat"
 
 #: src/config/SSSDConfig/__init__.py.in:77
 msgid "Groups that SSSD should explicitly ignore"
-msgstr ""
+msgstr "Skupiny, které by SSSD mělo výslovně ignorovat"
 
 #: src/config/SSSDConfig/__init__.py.in:78
 msgid "Should filtered users appear in groups"
@@ -164,6 +165,8 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:83
 msgid "The list of shells users are allowed to log in with"
 msgstr ""
+"Seznam uživatelů s přístupem do shellu, kterým je umožněno se přihlásit "
+"pomocí"
 
 #: src/config/SSSDConfig/__init__.py.in:84
 msgid ""
@@ -224,7 +227,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:99
 msgid "List of domains accessible even for untrusted users."
-msgstr ""
+msgstr "Seznam domén přístupných i nedůvěryhodným uživatelům."
 
 #: src/config/SSSDConfig/__init__.py.in:100
 msgid "Message printed when user account is expired."
@@ -232,7 +235,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:101
 msgid "Message printed when user account is locked."
-msgstr ""
+msgstr "Zpráva vypisovaná když je účet uživatele uzamčen."
 
 #: src/config/SSSDConfig/__init__.py.in:102
 msgid "Allow certificate based/Smartcard authentication."
@@ -364,6 +367,7 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:144
 msgid "Path to directory where certificate authority certificates are stored"
 msgstr ""
+"Popis umístění složky ve které jsou uchovávány certifikáty cert. autority"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 msgid "Path to file containing server's CA certificate"
@@ -379,39 +383,39 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:150
 msgid "Identity provider"
-msgstr ""
+msgstr "Poskytovatel identity"
 
 #: src/config/SSSDConfig/__init__.py.in:151
 msgid "Authentication provider"
-msgstr ""
+msgstr "Poskytovatel ověřování"
 
 #: src/config/SSSDConfig/__init__.py.in:152
 msgid "Access control provider"
-msgstr ""
+msgstr "Poskytovatel řízení přístupu"
 
 #: src/config/SSSDConfig/__init__.py.in:153
 msgid "Password change provider"
-msgstr ""
+msgstr "Poskytovatel změny hesel"
 
 #: src/config/SSSDConfig/__init__.py.in:154
 msgid "SUDO provider"
-msgstr ""
+msgstr "Poskytovatel SUDO"
 
 #: src/config/SSSDConfig/__init__.py.in:155
 msgid "Autofs provider"
-msgstr ""
+msgstr "Poskytovatel autofs"
 
 #: src/config/SSSDConfig/__init__.py.in:156
 msgid "Host identity provider"
-msgstr ""
+msgstr "Poskytovatel identity strojů"
 
 #: src/config/SSSDConfig/__init__.py.in:157
 msgid "SELinux provider"
-msgstr ""
+msgstr "Poskytovatel SELinux"
 
 #: src/config/SSSDConfig/__init__.py.in:158
 msgid "Session management provider"
-msgstr ""
+msgstr "Poskytovatel správy sezení"
 
 #: src/config/SSSDConfig/__init__.py.in:161
 msgid "Whether the domain is usable by the OS or by applications"
@@ -435,7 +439,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:166
 msgid "Store password hashes"
-msgstr ""
+msgstr "Ukládat otisky hesel"
 
 #: src/config/SSSDConfig/__init__.py.in:167
 msgid "Display users/groups in fully-qualified form"
@@ -478,7 +482,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:175
 msgid "Treat usernames as case sensitive"
-msgstr ""
+msgstr "U uživatelských jmen rozlišovat velká a malá písmena"
 
 #: src/config/SSSDConfig/__init__.py.in:182
 msgid "How often should expired entries be refreshed in background"
@@ -524,7 +528,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:192
 msgid "How often should subdomains list be refreshed"
-msgstr ""
+msgstr "Jak často má být znovu načítán seznam dílčích domén"
 
 #: src/config/SSSDConfig/__init__.py.in:193
 msgid "List of options that should be inherited into a subdomain"
@@ -548,11 +552,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:202
 msgid "IPA server address"
-msgstr ""
+msgstr "Adresa IPA serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:203
 msgid "Address of backup IPA server"
-msgstr ""
+msgstr "Adresa záložního IPA serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:204
 msgid "IPA client hostname"
@@ -644,7 +648,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:228
 msgid "Active Directory domain"
-msgstr ""
+msgstr "Doména Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:229
 msgid "Enabled Active Directory domains"
@@ -652,11 +656,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:230
 msgid "Active Directory server address"
-msgstr ""
+msgstr "Adresa serveru s Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:231
 msgid "Active Directory backup server address"
-msgstr ""
+msgstr "Adresa záložního serveru s Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:232
 msgid "Active Directory client hostname"
@@ -739,11 +743,11 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:251
 #: src/config/SSSDConfig/__init__.py.in:252
 msgid "Kerberos server address"
-msgstr ""
+msgstr "Adresa kerberos serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:253
 msgid "Kerberos backup server address"
-msgstr ""
+msgstr "Adresa záložního kerberos serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:254
 msgid "Kerberos realm"
@@ -763,7 +767,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:260
 msgid "Directory to store credential caches"
-msgstr ""
+msgstr "Složka ve které ukládat mezipaměť přihlašovacích údajů"
 
 #: src/config/SSSDConfig/__init__.py.in:261
 msgid "Location of the user's credential cache"
@@ -864,19 +868,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:290
 msgid "File that contains CA certificates"
-msgstr ""
+msgstr "Soubor obsahující certifikáty cert. autorit"
 
 #: src/config/SSSDConfig/__init__.py.in:291
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "Popis umístění složky s certifikáty cert. autority"
 
 #: src/config/SSSDConfig/__init__.py.in:292
 msgid "File that contains the client certificate"
-msgstr ""
+msgstr "Soubor obsahující klientský certifikát"
 
 #: src/config/SSSDConfig/__init__.py.in:293
 msgid "File that contains the client key"
-msgstr ""
+msgstr "Soubor který obsahuje klientský klíč"
 
 #: src/config/SSSDConfig/__init__.py.in:294
 msgid "List of possible ciphers suites"
@@ -884,7 +888,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:295
 msgid "Require TLS certificate verification"
-msgstr ""
+msgstr "Vyžadovat ověření TSL certifikátem"
 
 #: src/config/SSSDConfig/__init__.py.in:296
 msgid "Specify the sasl mechanism to use"
@@ -1003,7 +1007,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:329
 msgid "Username attribute"
-msgstr ""
+msgstr "Atribut uživatelské jméno"
 
 #: src/config/SSSDConfig/__init__.py.in:331
 msgid "UID attribute"
@@ -1019,11 +1023,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:334
 msgid "Home directory attribute"
-msgstr ""
+msgstr "Atribut domovská složka"
 
 #: src/config/SSSDConfig/__init__.py.in:335
 msgid "Shell attribute"
-msgstr ""
+msgstr "Atribut shell"
 
 #: src/config/SSSDConfig/__init__.py.in:336
 msgid "UUID attribute"
@@ -1133,7 +1137,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:363
 msgid "SSH public key attribute"
-msgstr ""
+msgstr "Atribut veřejná část ssh klíče"
 
 #: src/config/SSSDConfig/__init__.py.in:364
 msgid "attribute listing allowed authentication types for a user"
@@ -1161,11 +1165,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:374
 msgid "Group name"
-msgstr ""
+msgstr "Název skupiny"
 
 #: src/config/SSSDConfig/__init__.py.in:375
 msgid "Group password"
-msgstr ""
+msgstr "Heslo skupiny"
 
 #: src/config/SSSDConfig/__init__.py.in:376
 msgid "GID attribute"
@@ -1229,15 +1233,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:395
 msgid "Service name attribute"
-msgstr ""
+msgstr "Atribut název služby"
 
 #: src/config/SSSDConfig/__init__.py.in:396
 msgid "Service port attribute"
-msgstr ""
+msgstr "Atribut port služby"
 
 #: src/config/SSSDConfig/__init__.py.in:397
 msgid "Service protocol attribute"
-msgstr ""
+msgstr "Atribut protokol služby"
 
 #: src/config/SSSDConfig/__init__.py.in:400
 msgid "Lower bound for ID-mapping"
@@ -1297,7 +1301,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:417
 msgid "Policy to evaluate the password expiration"
-msgstr ""
+msgstr "Pravidlo pro vyhodnocení skončení platnosti hesla"
 
 #: src/config/SSSDConfig/__init__.py.in:421
 msgid "Which attributes shall be used to evaluate if an account is expired"
@@ -1434,15 +1438,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:461
 msgid "Comma separated list of allowed users"
-msgstr ""
+msgstr "Čárkou oddělovaný seznam uživatelů, kterým je umožněn přístup"
 
 #: src/config/SSSDConfig/__init__.py.in:462
 msgid "Comma separated list of prohibited users"
-msgstr ""
+msgstr "Čárkou oddělovaný seznam uživatelů, kterým je odepřen přístup"
 
 #: src/config/SSSDConfig/__init__.py.in:465
 msgid "Default shell, /bin/bash"
-msgstr ""
+msgstr "Výchozí shell, /bin/bash"
 
 #: src/config/SSSDConfig/__init__.py.in:466
 msgid "Base for home directories"
@@ -1464,13 +1468,21 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr ""
 
+#: src/config/SSSDConfig/__init__.py.in:479
+msgid "Path of passwd file sources."
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:480
+msgid "Path of group file sources."
+msgstr ""
+
 #: src/monitor/monitor.c:2449
 msgid "Become a daemon (default)"
-msgstr ""
+msgstr "Přejít v proces služby (výchozí)"
 
 #: src/monitor/monitor.c:2451
 msgid "Run interactive (not a daemon)"
-msgstr ""
+msgstr "Spustit interaktivně (ne jako proces služby)"
 
 #: src/monitor/monitor.c:2454
 msgid "Disable netlink interface"
@@ -1486,29 +1498,29 @@ msgstr ""
 
 #: src/monitor/monitor.c:2461
 msgid "Print version number and exit"
-msgstr ""
+msgstr "Vypsat "
 
 #: src/monitor/monitor.c:2627
 msgid "SSSD is already running\n"
-msgstr ""
+msgstr "SSSD už je spuštěné"
 
-#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:617
+#: src/providers/krb5/krb5_child.c:3216 src/providers/ldap/ldap_child.c:605
 msgid "Debug level"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:619
+#: src/providers/krb5/krb5_child.c:3218 src/providers/ldap/ldap_child.c:607
 msgid "Add debug timestamps"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:621
+#: src/providers/krb5/krb5_child.c:3220 src/providers/ldap/ldap_child.c:609
 msgid "Show timestamps with microseconds"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:623
+#: src/providers/krb5/krb5_child.c:3222 src/providers/ldap/ldap_child.c:611
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:625
+#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:613
 msgid "Send the debug output to stderr directly."
 msgstr ""
 
@@ -1526,7 +1538,7 @@ msgstr ""
 
 #: src/providers/krb5/krb5_child.c:3234
 msgid "Requested lifetime of the ticket"
-msgstr ""
+msgstr "Požadovaná životnost lístku"
 
 #: src/providers/krb5/krb5_child.c:3236
 msgid "Requested renewable lifetime of the ticket"
@@ -1566,41 +1578,41 @@ msgstr ""
 
 #: src/sss_client/common.c:1075
 msgid "SSSD is not run by root."
-msgstr ""
+msgstr "SSSD není spouštěno správcem."
 
 #: src/sss_client/common.c:1080
 msgid "An error occurred, but no description can be found."
-msgstr ""
+msgstr "Došlo k chybě, ale nedaří se najít popis."
 
 #: src/sss_client/common.c:1086
 msgid "Unexpected error while looking for an error description"
-msgstr ""
+msgstr "Neočekávaná chyba při hledání popisu chyby"
 
 #: src/sss_client/pam_sss.c:76
 msgid "Permission denied. "
-msgstr ""
+msgstr "Přístup odepřen."
 
 #: src/sss_client/pam_sss.c:77 src/sss_client/pam_sss.c:782
 #: src/sss_client/pam_sss.c:793
 msgid "Server message: "
-msgstr ""
+msgstr "Zpráva ze serveru:"
 
 # auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId: po/ipa
 #: src/sss_client/pam_sss.c:300
 msgid "Passwords do not match"
-msgstr "Hesla nejsou stejná."
+msgstr "Zadání hesla se neshodují"
 
 #: src/sss_client/pam_sss.c:488
 msgid "Password reset by root is not supported."
-msgstr ""
+msgstr "Reset hesla správcem není podporován."
 
 #: src/sss_client/pam_sss.c:529
 msgid "Authenticated with cached credentials"
-msgstr ""
+msgstr "Přihlášeni přihlašovacími údaji z mezipaměti"
 
 #: src/sss_client/pam_sss.c:530
 msgid ", your cached password will expire at: "
-msgstr ""
+msgstr ", platnost mezipaměti skončí v:"
 
 #: src/sss_client/pam_sss.c:560
 #, c-format
@@ -1610,15 +1622,15 @@ msgstr ""
 #: src/sss_client/pam_sss.c:606
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
-msgstr ""
+msgstr "Platnost vašeho hesla skončí v %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:655
 msgid "Authentication is denied until: "
-msgstr ""
+msgstr "Ověření odepřeno do:"
 
 #: src/sss_client/pam_sss.c:676
 msgid "System is offline, password change not possible"
-msgstr ""
+msgstr "Systém není dostupný, změna hesla není možná"
 
 #: src/sss_client/pam_sss.c:691
 msgid ""
@@ -1628,15 +1640,15 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:779 src/sss_client/pam_sss.c:792
 msgid "Password change failed. "
-msgstr ""
+msgstr "Změna hesla se nezdařila."
 
 #: src/sss_client/pam_sss.c:1926
 msgid "New Password: "
-msgstr ""
+msgstr "Nové heslo:"
 
 #: src/sss_client/pam_sss.c:1927
 msgid "Reenter new Password: "
-msgstr ""
+msgstr "Zopakování nového hesla:"
 
 #: src/sss_client/pam_sss.c:2039 src/sss_client/pam_sss.c:2042
 msgid "First Factor: "
@@ -1661,11 +1673,11 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2208
 msgid "Current Password: "
-msgstr ""
+msgstr "Stávající heslo:"
 
 #: src/sss_client/pam_sss.c:2536
 msgid "Password expired. Change your password now."
-msgstr ""
+msgstr "Platnost hesla skončila. Změňte si ho."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:203 src/tools/sss_useradd.c:48
@@ -1687,11 +1699,11 @@ msgstr ""
 #: src/tools/sss_userdel.c:152 src/tools/sss_usermod.c:79
 #: src/tools/sss_cache.c:716
 msgid "Error setting the locale\n"
-msgstr ""
+msgstr "Chyba při nastavování místního a jazykového nastavení\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:64
 msgid "Not enough memory\n"
-msgstr ""
+msgstr "Nedostatek paměti\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:83
 msgid "User not specified\n"
