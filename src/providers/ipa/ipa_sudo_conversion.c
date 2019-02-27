@@ -909,6 +909,27 @@ convert_group(TALLOC_CTX *mem_ctx,
 }
 
 static const char *
+convert_group_fqdn(TALLOC_CTX *mem_ctx,
+                   struct ipa_sudo_conv *conv,
+                   const char *value,
+                   bool *skip_entry)
+{
+    const char *shortname = NULL;
+    char *fqdn = NULL;
+
+    *skip_entry = false;
+
+    shortname = convert_group(mem_ctx, conv, value, skip_entry);
+    if (shortname == NULL) {
+        return NULL;
+    }
+
+    fqdn = sss_create_internal_fqname(mem_ctx, shortname, conv->dom->name);
+    talloc_free(discard_const(shortname));
+    return fqdn;
+}
+
+static const char *
 convert_runasextusergroup(TALLOC_CTX *mem_ctx,
                           struct ipa_sudo_conv *conv,
                           const char *value,
@@ -954,8 +975,8 @@ convert_attributes(struct ipa_sudo_conv *conv,
     } table[] = {{SYSDB_NAME,                            SYSDB_SUDO_CACHE_AT_CN         , NULL},
                  {SYSDB_IPA_SUDORULE_HOST,               SYSDB_SUDO_CACHE_AT_HOST       , convert_host},
                  {SYSDB_IPA_SUDORULE_USER,               SYSDB_SUDO_CACHE_AT_USER       , convert_user_fqdn},
-                 {SYSDB_IPA_SUDORULE_RUNASUSER,          SYSDB_SUDO_CACHE_AT_RUNASUSER  , convert_user},
-                 {SYSDB_IPA_SUDORULE_RUNASGROUP,         SYSDB_SUDO_CACHE_AT_RUNASGROUP , convert_group},
+                 {SYSDB_IPA_SUDORULE_RUNASUSER,          SYSDB_SUDO_CACHE_AT_RUNASUSER  , convert_user_fqdn},
+                 {SYSDB_IPA_SUDORULE_RUNASGROUP,         SYSDB_SUDO_CACHE_AT_RUNASGROUP , convert_group_fqdn},
                  {SYSDB_IPA_SUDORULE_OPTION,             SYSDB_SUDO_CACHE_AT_OPTION     , NULL},
                  {SYSDB_IPA_SUDORULE_NOTAFTER,           SYSDB_SUDO_CACHE_AT_NOTAFTER   , NULL},
                  {SYSDB_IPA_SUDORULE_NOTBEFORE,          SYSDB_SUDO_CACHE_AT_NOTBEFORE  , NULL},
