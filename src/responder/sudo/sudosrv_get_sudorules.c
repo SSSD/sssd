@@ -113,6 +113,95 @@ sort_sudo_rules(struct sysdb_attrs **rules, size_t count, bool lower_wins)
     return EOK;
 }
 
+static errno_t sudosrv_format_runas(struct resp_ctx *rctx,
+                                    struct sysdb_attrs *rule,
+                                    const char *attr)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message_element *el;
+    struct sss_domain_info *dom;
+    const char *value;
+    char *fqname;
+    unsigned int i;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_get_el_ext(rule, attr, false, &el);
+    if (ret == ENOENT) {
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get %s attribute "
+              "[%d]: %s\n", attr, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    for (i = 0; i < el->num_values; i++) {
+        value = (const char *)el->values[i].data;
+        if (value == NULL) {
+            continue;
+        }
+
+        dom = find_domain_by_object_name_ex(rctx->domains, value, true);
+        if (dom == NULL) {
+            continue;
+        }
+
+        ret = sss_output_fqname(tmp_ctx, dom, value,
+                                rctx->override_space, &fqname);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to convert %s to output fqname "
+                  "[%d]: %s\n", value, ret, sss_strerror(ret));
+            goto done;
+        }
+
+        talloc_free(el->values[i].data);
+        el->values[i].data = (uint8_t*)talloc_steal(el->values, fqname);
+        el->values[i].length = strlen(fqname);
+    }
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t sudosrv_format_rules(struct resp_ctx *rctx,
+                                    struct sysdb_attrs **rules,
+                                    uint32_t num_rules)
+{
+    uint32_t i;
+    errno_t ret;
+
+
+    for (i = 0; i < num_rules; i++) {
+        ret = sudosrv_format_runas(rctx, rules[i],
+                                   SYSDB_SUDO_CACHE_AT_RUNAS);
+        if (ret != EOK) {
+            return ret;
+        }
+
+        ret = sudosrv_format_runas(rctx, rules[i],
+                                   SYSDB_SUDO_CACHE_AT_RUNASUSER);
+        if (ret != EOK) {
+            return ret;
+        }
+
+        ret = sudosrv_format_runas(rctx, rules[i],
+                                   SYSDB_SUDO_CACHE_AT_RUNASGROUP);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
 static errno_t sudosrv_query_cache(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domain,
                                    const char **attrs,
@@ -301,6 +390,7 @@ static errno_t sudosrv_cached_rules_by_ng(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t sudosrv_cached_rules(TALLOC_CTX *mem_ctx,
+                                    struct resp_ctx *rctx,
                                     struct sss_domain_info *domain,
                                     uid_t cli_uid,
                                     uid_t orig_uid,
@@ -368,6 +458,12 @@ static errno_t sudosrv_cached_rules(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sudosrv_format_rules(rctx, rules, num_rules);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not format sudo rules\n");
+        goto done;
+    }
+
     *_rules = talloc_steal(mem_ctx, rules);
     *_num_rules = num_rules;
 
@@ -412,6 +508,7 @@ static errno_t sudosrv_cached_defaults(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t sudosrv_fetch_rules(TALLOC_CTX *mem_ctx,
+                                   struct resp_ctx *rctx,
                                    enum sss_sudo_type type,
                                    struct sss_domain_info *domain,
                                    uid_t cli_uid,
@@ -433,7 +530,7 @@ static errno_t sudosrv_fetch_rules(TALLOC_CTX *mem_ctx,
               username, domain->name);
         debug_name = "rules";
 
-        ret = sudosrv_cached_rules(mem_ctx, domain,
+        ret = sudosrv_cached_rules(mem_ctx, rctx, domain,
                                    cli_uid, orig_uid, username, groups,
                                    inverse_order, &rules, &num_rules);
 
@@ -765,7 +862,7 @@ static void sudosrv_get_rules_done(struct tevent_req *subreq)
               "in cache.\n");
     }
 
-    ret = sudosrv_fetch_rules(state, state->type, state->domain,
+    ret = sudosrv_fetch_rules(state, state->rctx, state->type, state->domain,
                               state->cli_uid,
                               state->orig_uid,
                               state->orig_username,
