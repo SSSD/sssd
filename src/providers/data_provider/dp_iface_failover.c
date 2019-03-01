@@ -274,7 +274,6 @@ dp_failover_active_server(TALLOC_CTX *mem_ctx,
                           const char **_server)
 {
     struct be_svc_data *svc;
-    const char *server;
     bool found = false;
 
     DLIST_FOR_EACH(svc, be_ctx->be_fo->svcs) {
@@ -289,17 +288,7 @@ dp_failover_active_server(TALLOC_CTX *mem_ctx,
         return ENOENT;
     }
 
-    if (svc->last_good_srv == NULL) {
-        server = "";
-    } else {
-        server = fo_get_server_name(svc->last_good_srv);
-        if (server == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get server name\n");
-            return ERR_INTERNAL;
-        }
-    }
-
-    *_server = server;
+    *_server = svc->last_good_srv == NULL ? "" : svc->last_good_srv;
 
     return EOK;
 }
