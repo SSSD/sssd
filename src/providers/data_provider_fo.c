@@ -588,6 +588,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
     errno_t ret;
     time_t srv_status_change;
     struct be_svc_callback *callback;
+    char *srvname;
 
     ret = fo_resolve_service_recv(subreq, state, &state->srv);
     switch (ret) {
@@ -667,12 +668,21 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
 
     /* now call all svc callbacks if server changed or if it is explicitly
      * requested or if the server is the same but changed status since last time*/
-    if (state->srv != state->svc->last_good_srv ||
+    if (state->svc->last_good_srv == NULL ||
+        strcmp(fo_get_server_name(state->srv), state->svc->last_good_srv) != 0 ||
         state->svc->run_callbacks ||
         srv_status_change > state->svc->last_status_change) {
-        state->svc->last_good_srv = state->srv;
         state->svc->last_status_change = srv_status_change;
         state->svc->run_callbacks = false;
+
+        srvname = talloc_strdup(state->svc, fo_get_server_name(state->srv));
+        if (srvname == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to copy server name\n");
+            return ENOMEM;
+        }
+
+        talloc_free(state->svc->last_good_srv);
+        state->svc->last_good_srv = srvname;
 
         DLIST_FOR_EACH(callback, state->svc->callbacks) {
             callback->fn(callback->private_data, state->srv);
