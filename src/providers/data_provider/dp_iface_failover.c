@@ -293,18 +293,7 @@ errno_t dp_failover_active_server(struct sbus_request *sbus_req,
         return EOK;
     }
 
-    if (svc->last_good_srv == NULL) {
-        server = "";
-    } else {
-        server = fo_get_server_name(svc->last_good_srv);
-        if (server == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get server name\n");
-            sbus_request_reply_error(sbus_req, SBUS_ERROR_INTERNAL,
-                                     "Unable to get server name");
-            return EOK;
-        }
-    }
-
+    server = svc->last_good_srv == NULL ? "" : svc->last_good_srv;
     iface_dp_failover_ActiveServer_finish(sbus_req, server);
     return EOK;
 }
