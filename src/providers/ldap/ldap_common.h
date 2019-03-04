@@ -373,4 +373,9 @@ errno_t sdap_init_certmap(TALLOC_CTX *mem_ctx, struct sdap_id_ctx *id_ctx);
 errno_t sdap_setup_certmap(struct sdap_certmap_ctx *sdap_certmap_ctx,
                            struct certmap_info **certmap_list);
 struct sss_certmap_ctx *sdap_get_sss_certmap(struct sdap_certmap_ctx *ctx);
+
+errno_t users_get_handle_no_user(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *domain,
+                                 int filter_type, const char *filter_value,
+                                 bool name_is_upn);
 #endif /* _LDAP_COMMON_H_ */
