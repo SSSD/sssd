@@ -62,6 +62,7 @@
 #define PORT_STR_SIZE 7
 #define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
 #define SSSD_KRB5_LOCATOR_DISABLE "SSSD_KRB5_LOCATOR_DISABLE"
+#define SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES "SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES"
 #define DEBUG_KEY "[sssd_krb5_locator] "
 #define PLUGIN_DEBUG(format, ...) do { \
     if (ctx->debug) { \
@@ -81,6 +82,7 @@ struct sssd_ctx {
     bool debug;
     bool disabled;
     bool kpasswdinfo_used;
+    bool ignore_dns_failure;
 };
 
 #ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
@@ -415,7 +417,16 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
         ctx->disabled = true;
         PLUGIN_DEBUG("SSSD KRB5 locator plugin is disabled.\n");
     }
+
     ctx->kpasswdinfo_used = false;
+
+    dummy = getenv(SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES);
+    if (dummy == NULL) {
+        ctx->ignore_dns_failure = false;
+    } else {
+        ctx->ignore_dns_failure = true;
+        PLUGIN_DEBUG("SSSD KRB5 locator plugin ignores DNS resolving errors.\n");
+    }
 
     *private_data = ctx;
 
@@ -448,7 +459,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
                     void *cbdata)
 {
     int ret;
-    struct addrinfo *ai;
+    struct addrinfo *ai, *ai_item;
     struct sssd_ctx *ctx;
     struct addrinfo ai_hints;
     uint16_t port = 0;
@@ -457,6 +468,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     char port_str[PORT_STR_SIZE];
     size_t c;
     bool force_port = false;
+    char address[NI_MAXHOST];
 
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
@@ -570,7 +582,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         }
 
         memset(&ai_hints, 0, sizeof(struct addrinfo));
-        ai_hints.ai_flags = AI_NUMERICHOST|AI_NUMERICSERV;
+        ai_hints.ai_flags = AI_NUMERICSERV;
         ai_hints.ai_socktype = socktype;
 
         ret = getaddrinfo(addr[c].addr, port_str, &ai_hints, &ai);
@@ -581,25 +593,44 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
                 PLUGIN_DEBUG("getaddrinfo failed [%d][%s].\n",
                              errno, strerror(errno));
             }
+
+            if (ctx->ignore_dns_failure) {
+                continue;
+            }
+
             return KRB5_PLUGIN_NO_HANDLE;
         }
 
-        PLUGIN_DEBUG("addr[%s:%s] family[%d] socktype[%d]\n",
-                     addr[c].addr, port_str, ai->ai_family, ai->ai_socktype);
+        for (ai_item = ai; ai_item != NULL; ai_item = ai_item->ai_next) {
+            if (ctx->debug) {
+                ret = getnameinfo(ai_item->ai_addr, ai_item->ai_addrlen,
+                                  address, NI_MAXHOST,
+                                  NULL, 0,
+                                  NI_NUMERICHOST);
+                if (ret != 0) {
+                    address[0] = 0;
+                }
 
-        if ((family == AF_UNSPEC || ai->ai_family == family) &&
-            ai->ai_socktype == socktype) {
-
-            ret = cbfunc(cbdata, socktype, ai->ai_addr);
-            if (ret != 0) {
-                PLUGIN_DEBUG("cbfunc failed\n");
-                freeaddrinfo(ai);
-                return ret;
-            } else {
-                PLUGIN_DEBUG("[%s] used\n", addr[c].addr);
+                PLUGIN_DEBUG("addr[%s (%s)] port[%s] family[%d] socktype[%d]\n",
+                             addr[c].addr, address,
+                             port_str, ai_item->ai_family,
+                             ai_item->ai_socktype);
             }
-        } else {
-            PLUGIN_DEBUG("[%s] NOT used\n", addr[c].addr);
+
+            if ((family == AF_UNSPEC || ai_item->ai_family == family) &&
+                ai_item->ai_socktype == socktype) {
+
+                ret = cbfunc(cbdata, socktype, ai_item->ai_addr);
+                if (ret != 0) {
+                    PLUGIN_DEBUG("cbfunc failed\n");
+                    freeaddrinfo(ai);
+                    return ret;
+                } else {
+                    PLUGIN_DEBUG("[%s (%s)] used\n", addr[c].addr, address);
+                }
+            } else {
+                PLUGIN_DEBUG("[%s (%s)] NOT used\n", addr[c].addr, address);
+            }
         }
         freeaddrinfo(ai);
     }
