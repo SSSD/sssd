@@ -378,4 +378,8 @@ errno_t users_get_handle_no_user(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *domain,
                                  int filter_type, const char *filter_value,
                                  bool name_is_upn);
+
+errno_t groups_get_handle_no_group(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *domain,
+                                   int filter_type, const char *filter_value);
 #endif /* _LDAP_COMMON_H_ */

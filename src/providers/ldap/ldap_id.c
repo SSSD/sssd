@@ -654,7 +654,6 @@ struct groups_get_state {
 static int groups_get_retry(struct tevent_req *req);
 static void groups_get_connect_done(struct tevent_req *subreq);
 static void groups_get_mpg_done(struct tevent_req *subreq);
-static errno_t groups_get_handle_no_group(struct tevent_req *req);
 static void groups_get_search(struct tevent_req *req);
 static void groups_get_done(struct tevent_req *subreq);
 
@@ -1000,7 +999,9 @@ static void groups_get_done(struct tevent_req *subreq)
         tevent_req_set_callback(subreq, groups_get_mpg_done, req);
         return;
     } else if (ret == ENOENT && state->noexist_delete == true) {
-        ret = groups_get_handle_no_group(req);
+        ret = groups_get_handle_no_group(state, state->domain,
+                                         state->filter_type,
+                                         state->filter_value);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Could not delete group [%d]: %s\n", ret, sss_strerror(ret));
@@ -1030,7 +1031,9 @@ static void groups_get_mpg_done(struct tevent_req *subreq)
     }
 
     if (state->sdap_ret == ENOENT && state->noexist_delete == true) {
-        ret = groups_get_handle_no_group(req);
+        ret = groups_get_handle_no_group(state, state->domain,
+                                         state->filter_type,
+                                         state->filter_value);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Could not delete group [%d]: %s\n", ret, sss_strerror(ret));
@@ -1044,36 +1047,36 @@ static void groups_get_mpg_done(struct tevent_req *subreq)
     return;
 }
 
-static errno_t groups_get_handle_no_group(struct tevent_req *req)
+errno_t groups_get_handle_no_group(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *domain,
+                                   int filter_type, const char *filter_value)
 {
-    struct groups_get_state *state = tevent_req_data(req,
-                                                     struct groups_get_state);
     errno_t ret;
     char *endptr;
     gid_t gid;
 
-    switch (state->filter_type) {
+    switch (filter_type) {
     case BE_FILTER_ENUM:
         ret = ENOENT;
         break;
     case BE_FILTER_NAME:
-        ret = sysdb_delete_group(state->domain, state->filter_value, 0);
+        ret = sysdb_delete_group(domain, filter_value, 0);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Cannot delete group %s [%d]: %s\n",
-                  state->filter_value, ret, sss_strerror(ret));
+                  filter_value, ret, sss_strerror(ret));
             return ret;
         }
         ret = EOK;
         break;
     case BE_FILTER_IDNUM:
-        gid = (gid_t) strtouint32(state->filter_value, &endptr, 10);
-        if (errno || *endptr || (state->filter_value == endptr)) {
+        gid = (gid_t) strtouint32(filter_value, &endptr, 10);
+        if (errno || *endptr || (filter_value == endptr)) {
             ret = errno ? errno : EINVAL;
             break;
         }
 
-        ret = sysdb_delete_group(state->domain, NULL, gid);
+        ret = sysdb_delete_group(domain, NULL, gid);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Cannot delete group %"SPRIgid" [%d]: %s\n",
