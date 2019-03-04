@@ -49,12 +49,14 @@
         <para>
             The plugin reads the information about the KDCs of a given realm
             from a file called <filename>kdcinfo.REALM</filename>. The file
-            should contain one or more IP addresses either in dotted-decimal
-            IPv4 notation or the hexadecimal IPv6 notation. An optional port
-            number can be added to the end separated with a colon, the IPv6
-            address has to be enclosed in squared brackets in this case as
-            usual. Valid entries are:
+            should contain one or more DNS names or IP addresses either in
+            dotted-decimal IPv4 notation or the hexadecimal IPv6 notation.
+            An optional port number can be added to the end separated with
+            a colon, the IPv6 address has to be enclosed in squared brackets
+            in this case as usual. Valid entries are:
             <itemizedlist>
+                <listitem><para>kdc.example.com</para></listitem>
+                <listitem><para>kdc.example.com:321</para></listitem>
                 <listitem><para>1.2.3.4</para></listitem>
                 <listitem><para>5.6.7.8:99</para></listitem>
                 <listitem><para>2001:db8:85a3::8a2e:370:7334</para></listitem>
@@ -93,6 +95,12 @@
             If the environment variable SSSD_KRB5_LOCATOR_DISABLE is set to any
             value the plugin is disabled and will just return
             KRB5_PLUGIN_NO_HANDLE to the caller.
+        </para>
+        <para>
+            If the environment variable SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES
+            is set to any value plugin will try to resolve all DNS names
+            in kdcinfo file. By default plugin returns KRB5_PLUGIN_NO_HANDLE
+            to the caller immediately on first DNS resolving failure.
         </para>
     </refsect1>
 
