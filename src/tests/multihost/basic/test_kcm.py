@@ -3,6 +3,7 @@ from sssd.testlib.common.utils import SSHClient
 import paramiko
 import pytest
 import os
+import re
 from utils_config import set_param, remove_section
 
 
@@ -175,3 +176,22 @@ class TestSanityKCM(object):
             if 'KCM:14583109' in line:
                 has_cache = True
         assert has_cache is True
+
+    def test_kvno_display(self, multihost, enable_kcm):
+        """
+        Test kvno correctly displays vesion numbers of principals
+        #https://pagure.io/SSSD/sssd/issue/3757
+        """
+        ssh = SSHClient(multihost.master[0].sys_hostname,
+                        username='foo4', password='Secret123')
+        host_princ = 'host/%s@%s' % (multihost.master[0].sys_hostname,
+                                     'EXAMPLE.TEST')
+        kvno_cmd = 'kvno %s' % (host_princ)
+        (stdout, _, exit_status) = ssh.execute_cmd(kvno_cmd)
+        for line in stdout.readlines():
+            kvno_check = re.search(r'%s: kvno = (\d+)' % host_princ, line)
+            if kvno_check:
+                print(kvno_check.group())
+            else:
+                pytest.fail("kvno display was improper")
+        ssh.close()
