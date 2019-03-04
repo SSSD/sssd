@@ -333,7 +333,7 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
                                                   req_input->inp.id);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
-                                          req_input->type == REQ_INP_ID);
+                                          req_input->type);
                 ret = EINVAL;
                 goto done;
             }
@@ -349,7 +349,7 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
                                                   req_input->inp.id);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
-                                          req_input->type == REQ_INP_ID);
+                                          req_input->type);
                 ret = EINVAL;
                 goto done;
             }
@@ -360,7 +360,7 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
                                                req_input->inp.secid);
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
-                                         req_input->type == REQ_INP_ID);
+                                         req_input->type);
                 ret = EINVAL;
                 goto done;
             }
