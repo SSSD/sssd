@@ -1750,6 +1750,107 @@ done:
     return ret;
 }
 
+static errno_t s2n_remove_missing_object(TALLOC_CTX *mem_ctx,
+                                         struct sss_domain_info *domain,
+                                         int entry_type,
+                                         struct req_input *req_input)
+{
+    int ret;
+    bool name_is_upn = false;
+    char *id_str = NULL;
+    char *fq_name = NULL;
+
+    if (req_input->type == REQ_INP_ID) {
+        id_str = talloc_asprintf(mem_ctx, "%"SPRIuid, req_input->inp.id);
+        if (id_str == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    switch (entry_type) {
+    case BE_REQ_USER_AND_GROUP:
+    case BE_REQ_USER:
+        if (req_input->type == REQ_INP_NAME) {
+            name_is_upn = strchr(req_input->inp.name, '@') == NULL ? false
+                                                                   : true;
+            /* Expand to fully-qualified internal name */
+            if (!name_is_upn) {
+                fq_name = sss_create_internal_fqname(mem_ctx,
+                                                     req_input->inp.name,
+                                                     domain->name);
+                if (fq_name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_create_internal_fqname failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            }
+            ret = users_get_handle_no_user(mem_ctx, domain, BE_FILTER_NAME,
+                                           fq_name != NULL ? fq_name
+                                                          : req_input->inp.name,
+                                           name_is_upn);
+        } else if (req_input->type == REQ_INP_ID) {
+            ret = users_get_handle_no_user(mem_ctx, domain, BE_FILTER_IDNUM,
+                                           id_str, false);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
+                                      req_input->type);
+            ret = EINVAL;
+            goto done;
+        }
+        if (ret != EOK || entry_type == BE_REQ_USER) {
+            break;
+        }
+        /* Fallthough if BE_REQ_USER_AND_GROUP */
+        SSS_ATTRIBUTE_FALLTHROUGH;
+    case BE_REQ_GROUP:
+        if (req_input->type == REQ_INP_NAME) {
+            /* Expand to fully-qualified internal name */
+            fq_name = sss_create_internal_fqname(mem_ctx,
+                                                 req_input->inp.name,
+                                                 domain->name);
+            if (fq_name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_create_internal_fqname failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = groups_get_handle_no_group(mem_ctx, domain, BE_FILTER_NAME,
+                                             fq_name);
+        } else if (req_input->type == REQ_INP_ID) {
+            ret = groups_get_handle_no_group(mem_ctx, domain,BE_FILTER_IDNUM,
+                                             id_str);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
+                                      req_input->type);
+            ret = EINVAL;
+            goto done;
+        }
+        break;
+    case BE_REQ_BY_SECID:
+        ret = EOK;
+        break;
+    case BE_REQ_BY_CERT:
+        ret = EOK;
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected entry type [%d].\n", entry_type);
+        ret = EINVAL;
+    }
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Error while trying to remove user or group from cache.\n");
+    }
+
+    talloc_free(id_str);
+    talloc_free(fq_name);
+    return ret;
+}
+
 static void ipa_s2n_get_list_done(struct tevent_req  *subreq);
 static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq);
 static void ipa_s2n_get_user_done(struct tevent_req *subreq)
@@ -1771,11 +1872,21 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "s2n exop request failed.\n");
-        if (state->req_input->type == REQ_INP_CERT) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Maybe the server does not support lookups by "
-                  "certificates.\n");
+        if (ret == ENOENT) {
+            ret = s2n_remove_missing_object(state, state->dom,
+                                            state->entry_type,
+                                            state->req_input);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "s2n_remove_missing_object failed [%d].\n", ret);
+            }
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "s2n exop request failed.\n");
+            if (state->req_input->type == REQ_INP_CERT) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Maybe the server does not support lookups by "
+                      "certificates.\n");
+            }
         }
         goto done;
     }
