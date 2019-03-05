@@ -500,9 +500,9 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         }
 
         DEBUG(SSSDBG_TRACE_FUNC, "Option %s set to %s\n",
-                  ipa_opts->id->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
+                  ipa_opts->id->basic[SDAP_SERVICE_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
-                                    SDAP_GROUP_SEARCH_BASE));
+                                    SDAP_SERVICE_SEARCH_BASE));
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
