@@ -1110,7 +1110,7 @@ wbcErr wbcAllocateGid(gid_t *pgid);
  *
  * @return #wbcErr
  *
- * @deprecated      This method is not impemented any more and should
+ * @deprecated      This method is not implemented any more and should
  *                  be removed in the next major version change.
  **/
 wbcErr wbcSetUidMapping(uid_t uid, const struct wbcDomainSid *sid);
@@ -1627,7 +1627,7 @@ wbcErr wbcLookupDomainControllerEx(const char *domain,
                                    struct wbcDomainControllerInfoEx **dc_info);
 
 /**********************************************************
- * Athenticate functions
+ * Authenticate functions
  **********************************************************/
 
 /**

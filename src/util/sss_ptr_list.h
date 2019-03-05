@@ -43,7 +43,7 @@ struct sss_ptr_list_item {
  *
  * @param mem_ctx              Memory context.
  * @param free_data_on_removal If true than the stored pointer is freed when
- *                             it is beeing remove from the list or when
+ *                             it is being removed from the list or when
  *                             the list is freed.
  * @return New list or NULL on failure.
  */

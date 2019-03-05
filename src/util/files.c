@@ -668,7 +668,7 @@ copy_dir(struct copy_ctx *cctx,
         goto done;
     }
 
-    /* Create the directory.  It starts owned by us (presumbaly root), with
+    /* Create the directory.  It starts owned by us (presumably root), with
      * fairly restrictive permissions that still allow us to use the
      * directory.
      * */

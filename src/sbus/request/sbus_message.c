@@ -66,7 +66,7 @@ static void sbus_msg_data_destructor(void *ctx)
     if (!talloc_msg->in_talloc_destructor) {
         /* References to this message dropped to zero but through
          * dbus_message_unref(), not by calling talloc_free(). We need to free
-         * the talloc context and avoid running talloc desctuctor. */
+         * the talloc context and avoid running talloc destructor. */
         talloc_set_destructor(talloc_msg, NULL);
         talloc_free(talloc_msg);
     }

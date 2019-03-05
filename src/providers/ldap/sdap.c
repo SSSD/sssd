@@ -1510,7 +1510,7 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
         goto done;
     }
 
-    /* first attribute is "objectclass" not the specifc one */
+    /* first attribute is "objectclass" not the specific one */
     attrs[0] = talloc_strdup(memctx, "objectClass");
     if (!attrs[0]) return ENOMEM;
 

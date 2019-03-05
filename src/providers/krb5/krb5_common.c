@@ -285,8 +285,8 @@ errno_t sss_krb5_check_options(struct dp_option *opts,
 
     if ((ccname[0] == '/') || (strncmp(ccname, "FILE:", 5) == 0)) {
         DEBUG(SSSDBG_CONF_SETTINGS, "ccache is of type FILE\n");
-        /* warn if the file type (which is usally created in a sticky bit
-         * laden directory) does not have randomizing chracters */
+        /* warn if the file type (which is usually created in a sticky bit
+         * laden directory) does not have randomizing characters */
         sss_check_cc_template(ccname);
 
         if (ccname[0] == '/') {

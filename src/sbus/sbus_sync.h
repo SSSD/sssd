@@ -66,7 +66,7 @@ sbus_sync_connect_private(TALLOC_CTX *mem_ctx,
  *
  * @param mem_ctx       Memory context with which the reply will be bound.
  *                      If NULL, the reply is not bound with talloc context.
- * @param conn          Synchornous sbus connection.
+ * @param conn          Synchronous sbus connection.
  * @param msg           Message to be sent.
  * @param timeout_ms    Timeout is miliseconds.
  * @param _reply        Output reply. If NULL no reply is expected.
@@ -85,7 +85,7 @@ sbus_sync_message_send(TALLOC_CTX *mem_ctx,
 /**
  * Emit signal on synchronous sbus connection.
  *
- * @param conn          Synchornous sbus connection.
+ * @param conn          Synchronous sbus connection.
  * @param msg           Message to be sent.
  */
 void sbus_sync_emit_signal(struct sbus_sync_connection *conn,

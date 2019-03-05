@@ -287,7 +287,7 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
         }
     } else {
         if (state->mapped_attrs != NULL) {
-            /* remove certifcate (if any) if no matching override was found */
+            /* remove certificate (if any) if no matching override was found */
             ret = sysdb_remove_mapped_data(state->domain, state->mapped_attrs);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_remove_mapped_data failed, "

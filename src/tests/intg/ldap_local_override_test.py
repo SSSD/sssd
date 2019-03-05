@@ -529,8 +529,8 @@ def test_imp_exp_user_override(ldap_conn, env_imp_exp_user_override):
 # Regression test for bug 3179
 
 
-def test_imp_exp_user_overrride_noname(ldap_conn,
-                                       env_two_users_and_group):
+def test_imp_exp_user_override_noname(ldap_conn,
+                                      env_two_users_and_group):
 
     # Override
     subprocess.check_call(["sss_override", "user-add", "user1",

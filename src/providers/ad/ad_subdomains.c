@@ -848,7 +848,7 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *subdoms_ctx)
         return ret;
     }
 
-    /* Make sure disabled domains are not re-enabled accidentially */
+    /* Make sure disabled domains are not re-enabled accidentally */
     if (subdoms_ctx->ad_enabled_domains != NULL) {
         for (dom = subdoms_ctx->be_ctx->domain->subdomains; dom;
                                             dom = get_next_domain(dom, false)) {

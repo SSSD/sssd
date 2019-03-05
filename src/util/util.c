@@ -454,7 +454,7 @@ errno_t sss_filter_sanitize_ex(TALLOC_CTX *mem_ctx,
 
     while (input[i]) {
         /* Even though this character might have a special meaning, if it's
-         * expliticly allowed, just copy it and move on
+         * explicitly allowed, just copy it and move on
          */
         if (ignore == NULL) {
             allowed = NULL;

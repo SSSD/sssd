@@ -72,7 +72,7 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     hmackey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, key, keylen);
     if (!hmackey) return ENOMEM;
 
-    /* We have no function to return the size of the output for arbitray HMAC
+    /* We have no function to return the size of the output for arbitrary HMAC
      * algorithms so we just truncate to the key size should the hmac be bigger
      * (or pad with zeros should the HMAC be smaller) */
     hmaclen = keylen;

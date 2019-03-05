@@ -1,6 +1,6 @@
 /*
    SSSD - certificate handling utils - NSS version
-   The calls defined here should be useable outside of SSSD as well, e.g. in
+   The calls defined here should be usable outside of SSSD as well, e.g. in
    libsss_certmap.
 
    Copyright (C) Sumit Bose <sbose@redhat.com> 2017

@@ -785,7 +785,7 @@ ifp_users_find_by_name_and_cert_recv(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* If there was no certficate given just return the object path of the
+    /* If there was no certificate given just return the object path of the
      * user found by name. If a certificate was given an no mapped user was
      * found return an error. */
     if (state->pem_cert == NULL) {

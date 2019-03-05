@@ -965,7 +965,7 @@ done:
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unable to set effective group id (%"PRIu32") of the "
-                  "domain's process. Let's have the process restartd!\n",
+                  "domain's process. Let's have the process restarted!\n",
                   orig_gid);
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Sending SIGUSR2 to the process: %d\n", getpid());

@@ -2226,7 +2226,7 @@ static errno_t certmap_local_check(struct ldb_message *msg)
 
     rule_name = ldb_msg_find_attr_as_string(msg, CONFDB_CERTMAP_NAME, NULL);
     if (rule_name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Certficate mapping rule [%s] has no name.",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Certificate mapping rule [%s] has no name.",
                                    ldb_dn_get_linearized(msg->dn));
         return EINVAL;
     }
@@ -2276,7 +2276,7 @@ static errno_t confdb_get_all_certmaps(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_dn *dn = NULL;
     struct ldb_result *res = NULL;
-    /* The attributte order is important, because it is used in
+    /* The attribute order is important, because it is used in
      * sysdb_ldb_msg_attr_to_certmap_info and must match
      * enum certmap_info_member. */
     static const char *attrs[] = { CONFDB_CERTMAP_NAME,

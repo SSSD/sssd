@@ -746,7 +746,7 @@ UIDs/GIDs to names and vice versa. It can be also used for mapping principal
 (user) name to IDs(UID or GID) or to obtain groups which user are member of.
 
 %package -n libsss_certmap
-Summary: SSSD Certficate Mapping Library
+Summary: SSSD Certificate Mapping Library
 Group: Development/Libraries
 License: LGPLv3+
 Requires(post): /sbin/ldconfig
@@ -756,7 +756,7 @@ Requires(postun): /sbin/ldconfig
 Library to map certificates to users based on rules
 
 %package -n libsss_certmap-devel
-Summary: SSSD Certficate Mapping Library
+Summary: SSSD Certificate Mapping Library
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libsss_certmap = %{version}-%{release}

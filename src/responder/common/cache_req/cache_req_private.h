@@ -38,7 +38,7 @@ struct cache_req {
     struct sss_nc_ctx *ncache;
     int midpoint;
 
-    /* Domain related informations. */
+    /* Domain related information. */
     struct sss_domain_info *domain;
     bool cache_first;
     bool bypass_cache;

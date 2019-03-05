@@ -101,7 +101,7 @@ struct be_ctx {
     /* In contrast to online_cb_list which are only run if the backend is
      * offline the unconditional_online_cb_list should be run whenever the
      * backend receives a request to go online. The typical use case is to
-     * reset timers independenly of the state of the backend. */
+     * reset timers independently of the state of the backend. */
     struct be_cb *unconditional_online_cb_list;
 
     struct be_offline_status offstat;

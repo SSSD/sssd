@@ -215,7 +215,7 @@ auth sufficient pam_sss.so allow_missing_name
                         Try to use certificate based authentication, i.e.
                         authentication with a Smartcard or similar devices. If a
                         Smartcard is available and the service is allowed for
-                        Smartcard authentication the use will be prompted for a
+                        Smartcard authentication the user will be prompted for a
                         PIN and the certificate based authentication will
                         continue
                     </para>

@@ -131,7 +131,7 @@ static int kcm_op_queue_entry_destructor(struct kcm_ops_queue_entry *entry)
     if (next_entry == NULL) {
         /* If there was no other entry, schedule removal of the queue. Do it
          * in another tevent tick to avoid issues with callbacks invoking
-         * the descructor while another request is touching the queue
+         * the destructor while another request is touching the queue
          */
         imm = tevent_create_immediate(entry->queue);
         if (imm == NULL) {

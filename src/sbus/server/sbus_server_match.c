@@ -433,7 +433,7 @@ sbus_server_matchmaker(struct sbus_server *server,
             continue;
         }
 
-        /* Sometimes (e.g. when a name is being deleted), we do do not want to
+        /* Sometimes (e.g. when a name is being deleted), we do not want to
          * send the signal to a specific name. */
         if (avoid_name != NULL) {
             has_name = sbus_server_connection_has_name(server, match_conn,

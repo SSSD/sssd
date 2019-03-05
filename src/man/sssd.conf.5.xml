@@ -1526,7 +1526,7 @@ pam_p11_allowed_services = +my_pam_service, -login
                             where the 'removable' flags is set and read the
                             certificates from the inserted token from the first
                             slot found. If multiple readers are connected
-                            p11_uri can be use to tell p11_child to use a
+                            p11_uri can be used to tell p11_child to use a
                             specific reader.
                         </para>
                         <para>

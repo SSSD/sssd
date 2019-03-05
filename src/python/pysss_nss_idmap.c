@@ -445,7 +445,7 @@ PyDoc_STRVAR(getsidbyuid_doc,
 Returns a dictionary with a dictionary of results for each given POSIX UID.\n\
 The result dictionary contain the SID and the type of the object which can be\n\
 accessed with the key constants SID_KEY and TYPE_KEY, respectively. Since \n\
-given ID is assumed to be a user ID is is not expected that group objects are\n\
+given ID is assumed to be a user ID is not expected that group objects are\n\
 returned."
 );
 
