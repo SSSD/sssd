@@ -81,7 +81,7 @@ struct sbus_connection {
     const char *unique_name;
 
     /**
-     * True if the connection is beeing disconnected or freed. No further
+     * True if the connection is being disconnected or freed. No further
      * manipulation with the connection is allowed.
      */
     bool disconnecting;

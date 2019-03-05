@@ -628,7 +628,7 @@ static void ipa_netgr_members_process(struct tevent_req *subreq)
         goto fail;
     }
 
-    /* Process all member entites and store them in the designated hash table */
+    /* Process all member entities and store them in the designated hash table */
     key.type = HASH_KEY_STRING;
     value.type = HASH_VALUE_PTR;
     for (i = 0; i < count; i++) {

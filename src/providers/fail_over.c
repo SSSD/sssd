@@ -344,7 +344,7 @@ get_server_status(struct fo_server *server)
     gettimeofday(&tv, NULL);
     if (timeout != 0 && server->common->server_status == SERVER_NOT_WORKING) {
         if (STATUS_DIFF(server->common, tv) > timeout) {
-            DEBUG(SSSDBG_CONF_SETTINGS, "Reseting the server status of '%s'\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Resetting the server status of '%s'\n",
                       SERVER_NAME(server));
             server->common->server_status = SERVER_NAME_NOT_RESOLVED;
             server->common->last_status_change.tv_sec = tv.tv_sec;

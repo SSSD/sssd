@@ -66,7 +66,7 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     hmac = &mechs[AES256CBC_HMAC_SHA256].hmac;
     ivlen = enc->bsize;
 
-    /* We have no function to return the size of the output for arbitray HMAC
+    /* We have no function to return the size of the output for arbitrary HMAC
      * algorithms so we just truncate to the key size should the hmac be bigger
      * (or pad with zeros should the HMAC be smaller) */
     hmaclen = keylen;

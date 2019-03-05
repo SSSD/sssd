@@ -455,10 +455,10 @@ sbus_warn_deprecated(const struct sbus_annotation *annotations,
 
         by = sbus_annotation_find(annotations, SBUS_ANNOTATION_DEPRECATED_BY);
         if (by != NULL) {
-            DEBUG(SSSDBG_IMPORTANT_INFO, "%s%s%s is depracated by %s\n",
+            DEBUG(SSSDBG_IMPORTANT_INFO, "%s%s%s is deprecated by %s\n",
                   iface_name, dot, member, by);
         } else {
-            DEBUG(SSSDBG_IMPORTANT_INFO, "%s%s%s is depracated\n",
+            DEBUG(SSSDBG_IMPORTANT_INFO, "%s%s%s is deprecated\n",
                   iface_name, dot, member);
         }
     }

@@ -1377,7 +1377,7 @@ errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
  * @oaram[in] obj The original object
  * @param[in] override_obj The object with the override data, may be NULL
  * @param[in] req_attrs List of attributes to be requested, if not set a
- *                      default list dependig on the object type will be used
+ *                      default list depending on the object type will be used
  *
  * @return EOK - Override data was added successfully
  * @return ENOMEM - There was insufficient memory to complete the operation

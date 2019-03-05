@@ -144,8 +144,8 @@ int sss_packet_grow(struct sss_packet *packet, size_t size)
     return 0;
 }
 
-/* reclaim backet previously resrved space in the packet
- * usually done in functione recovering from not fatal erros */
+/* reclaim back previously reserved space in the packet
+ * usually done in function recovering from not fatal errors */
 int sss_packet_shrink(struct sss_packet *packet, size_t size)
 {
     size_t newlen;

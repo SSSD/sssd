@@ -82,7 +82,7 @@ tcurl_request_send(TALLOC_CTX *mem_ctx,
  * @param[in]  mem_ctx         The talloc context that owns the response
  * @param[in]  req             The request previously obtained with tcurl_request_send
  * @param[out] _response       Response to the request
- * @param[out] _response_code  Protocol response code (may indicate a protocl error)
+ * @param[out] _response_code  Protocol response code (may indicate a protocol error)
  *
  * @returns The error code of the curl request (not the HTTP code!)
  */

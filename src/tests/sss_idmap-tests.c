@@ -68,7 +68,7 @@ void idmap_ctx_setup(void)
     fail_unless(idmap_ctx != NULL, "sss_idmap_init returned NULL.");
 }
 
-void idmap_ctx_setup_additional_seconary_slices(void)
+void idmap_ctx_setup_additional_secondary_slices(void)
 {
     enum idmap_error_code err;
 
@@ -939,7 +939,7 @@ Suite *idmap_test_suite (void)
                               ck_leak_check_setup,
                               ck_leak_check_teardown);
     tcase_add_checked_fixture(tc_map_additional_secondary_slices,
-                              idmap_ctx_setup_additional_seconary_slices,
+                              idmap_ctx_setup_additional_secondary_slices,
                               idmap_ctx_teardown);
     tcase_add_checked_fixture(tc_map_additional_secondary_slices,
                               idmap_add_domain_with_sec_slices_setup,

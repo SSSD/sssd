@@ -38,7 +38,7 @@
  * This pair of functions provides client-side GPO processing.
  *
  * While a GPO can target both user and computer objects, this
- * implementation only supports targetting of computer objects.
+ * implementation only supports targeting of computer objects.
  *
  * A GPO overview is at https://fedorahosted.org/sssd/wiki/GpoOverview
  *

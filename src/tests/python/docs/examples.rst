@@ -122,7 +122,7 @@ Namespace hook
                       ip: 10.65.223.18
                       role: master
 
-      * since we have 2 hosts with with role client and 1 host with role master we can create a namespace hook in conftest.py to access the hosts as a list
+      * since we have 2 hosts with role client and 1 host with role master we can create a namespace hook in conftest.py to access the hosts as a list
 
       * create a conftest.py as below::
 

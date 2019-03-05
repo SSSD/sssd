@@ -404,11 +404,11 @@ bool local_provider_is_built(void);
 /**
  * @brief Add two list of strings
  *
- * Create a new NULL-termintated list of strings by adding two lists together.
+ * Create a new NULL-terminated list of strings by adding two lists together.
  *
  * @param[in] mem_ctx      Talloc memory context for the new list.
- * @param[in] l1           First NULL-termintated list of strings.
- * @param[in] l2           Second NULL-termintated list of strings.
+ * @param[in] l1           First NULL-terminated list of strings.
+ * @param[in] l2           Second NULL-terminated list of strings.
  * @param[in] copy_strings If set to 'true' the list items will be copied
  *                         otherwise only the pointers to the items are
  *                         copied.

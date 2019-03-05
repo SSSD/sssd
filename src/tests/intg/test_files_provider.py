@@ -1034,7 +1034,7 @@ def test_getgrnam_add_remove_ghosts(setup_pw_with_canary,
 
 
 def realloc_users(pwd_ops, num):
-    # Intentionally not including the the last one because
+    # Intentionally not including the last one because
     # canary is added first
     for i in range(1, num):
         user = user_generator(i)

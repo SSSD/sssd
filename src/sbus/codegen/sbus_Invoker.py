@@ -185,7 +185,7 @@ class InvokerKeygen:
 
         SBus code generator tries to reduce amount of generated code by
         reusing keygens whenever possible. Therefore we must ensure
-        that only one keygen is generated for each signature signature.
+        that only one keygen is generated for each signature.
     """
     @staticmethod
     def BuildKey(sbus_member, sbus_signature, Args=None):

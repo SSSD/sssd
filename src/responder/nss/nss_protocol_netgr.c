@@ -122,7 +122,7 @@ nss_protocol_fill_netgrent(struct nss_ctx *nss_ctx,
 
     if (idx->result > cmd_ctx->enum_ctx->netgroup_count) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unconsistent state while processing netgroups.\n");
+              "Inconsistent state while processing netgroups.\n");
         ret = EINVAL;
         goto done;
     }
