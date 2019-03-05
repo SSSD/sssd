@@ -492,9 +492,15 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
 
     if (NULL == dp_opt_get_string(ipa_opts->id->basic,
                                   SDAP_SERVICE_SEARCH_BASE)) {
-        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_SERVICE_SEARCH_BASE,
+        value = talloc_asprintf(tmpctx, "cn=ipservices,%s",
                                 dp_opt_get_string(ipa_opts->id->basic,
                                                   SDAP_SEARCH_BASE));
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = dp_opt_set_string(ipa_opts->id->basic,
+                                SDAP_SERVICE_SEARCH_BASE, value);
         if (ret != EOK) {
             goto done;
         }
