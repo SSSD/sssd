@@ -154,6 +154,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->cache_credentials = parent->cache_credentials;
     dom->cache_credentials_min_ff_length =
                                         parent->cache_credentials_min_ff_length;
+    dom->cached_auth_timeout = parent->cached_auth_timeout;
     dom->case_sensitive = false;
     dom->user_timeout = parent->user_timeout;
     dom->group_timeout = parent->group_timeout;

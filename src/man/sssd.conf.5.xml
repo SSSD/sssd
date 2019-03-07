@@ -3049,6 +3049,11 @@ subdomain_inherit = ldap_purge_cache_timeout
                             SSSD is in the online mode.
                         </para>
                         <para>
+                            This option's value is inherited by all trusted
+                            domains. At the moment it is not possible to set
+                            a different value per trusted domain.
+                        </para>
+                        <para>
                             Special value 0 implies that this feature is
                             disabled.
                         </para>
