@@ -88,8 +88,9 @@ ipa_sudo_host_filter(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(!(%s=*))",
-                             map[IPA_AT_SUDORULE_HOST].name);
+    filter = talloc_asprintf(tmp_ctx, "(&(!(%s=*))(%s=defaults))",
+                             map[IPA_AT_SUDORULE_HOST].name,
+                             map[IPA_AT_SUDORULE_NAME].name);
     if (filter == NULL) {
         goto fail;
     }
