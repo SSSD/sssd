@@ -941,16 +941,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         tmp = "false";
     }
 
-    if (strcasecmp(tmp, "FALSE") == 0) {
-        domain->mpg_mode = MPG_DISABLED;
-    } else if (strcasecmp(tmp, "TRUE") == 0) {
-        domain->mpg_mode = MPG_ENABLED;
-    } else {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for %s\n", CONFDB_DOMAIN_AUTO_UPG);
-        ret = EINVAL;
-        goto done;
-    }
+    domain->mpg_mode = str_to_domain_mpg_mode(tmp);
 
     if (strcasecmp(domain->provider, "local") == 0) {
         /* If this is the local provider, we need to ensure that

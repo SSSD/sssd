@@ -382,17 +382,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         if (str_mpg_mode == NULL || *str_mpg_mode == '\0') {
             str_mpg_mode = "false";
         }
-
-        if (strcasecmp(str_mpg_mode, "FALSE") == 0) {
-            mpg_mode = MPG_DISABLED;
-        } else if (strcasecmp(str_mpg_mode, "TRUE") == 0) {
-            mpg_mode = MPG_ENABLED;
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Invalid value for %s\n, assuming disabled",
-                  SYSDB_SUBDOMAIN_MPG);
-            mpg_mode = MPG_DISABLED;
-        }
+        mpg_mode = str_to_domain_mpg_mode(str_mpg_mode);
 
         enumerate = ldb_msg_find_attr_as_bool(res->msgs[i],
                                               SYSDB_SUBDOMAIN_ENUM, false);
@@ -1012,6 +1002,11 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
             break;
         case MPG_DISABLED:
             if (strcasecmp(tmp_str, "false") != 0) {
+                mpg_flags = LDB_FLAG_MOD_REPLACE;
+            }
+            break;
+        case MPG_HYBRID:
+            if (strcasecmp(tmp_str, "hybrid") != 0) {
                 mpg_flags = LDB_FLAG_MOD_REPLACE;
             }
             break;
