@@ -148,9 +148,103 @@ memcache_delete_entry(struct nss_ctx *nss_ctx,
     return EOK;
 }
 
+static struct cache_req_data *
+hybrid_domain_retry_data(TALLOC_CTX *mem_ctx,
+                         struct cache_req_data *orig,
+                         const char *input_name,
+                         uint32_t input_id)
+{
+    enum cache_req_type cr_type = cache_req_data_get_type(orig);
+    struct cache_req_data *hybrid_data = NULL;
+
+    if (cr_type == CACHE_REQ_GROUP_BY_ID) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Retrying group-by-ID lookup in user space\n");
+        hybrid_data = cache_req_data_id(mem_ctx,
+                                        CACHE_REQ_USER_BY_ID,
+                                        input_id);
+    } else if (cr_type == CACHE_REQ_GROUP_BY_NAME) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Retrying group-by-name lookup in user space\n");
+        hybrid_data = cache_req_data_name(mem_ctx,
+                                          CACHE_REQ_USER_BY_NAME,
+                                          input_name);
+    }
+
+    return hybrid_data;
+}
+
+static struct cache_req_data *
+hybrid_domain_verify_gid_data(TALLOC_CTX *mem_ctx,
+                              struct cache_req_result *user_group)
+{
+    gid_t gid;
+
+    /* read the GID of this 'group' and use it to construct
+     * a cache_req_data struct
+     */
+    gid = sss_view_ldb_msg_find_attr_as_uint64(user_group->domain,
+                                               user_group->msgs[0],
+                                               SYSDB_GIDNUM,
+                                               0);
+    if (gid == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "A user with no GID?\n");
+        return NULL;
+    }
+
+    return cache_req_data_id(mem_ctx,
+                             CACHE_REQ_GROUP_BY_ID,
+                             gid);
+}
+
+static int
+hybrid_domain_user_to_group(struct cache_req_result *result)
+{
+    errno_t ret;
+    uid_t uid;
+    gid_t gid;
+
+    /* There must be exactly one entry.. */
+    if (result == NULL || result->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "No result or wrong number of entries, expected 1 entry\n");
+        return ENOENT;
+    }
+
+    /* ...which has uidNumber equal to gidNumber */
+    uid = sss_view_ldb_msg_find_attr_as_uint64(result->domain,
+                                               result->msgs[0],
+                                               SYSDB_UIDNUM,
+                                               0);
+
+    gid = sss_view_ldb_msg_find_attr_as_uint64(result->domain,
+                                               result->msgs[0],
+                                               SYSDB_GIDNUM,
+                                               0);
+
+    if (uid == 0 || uid != gid) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "UID and GID differ\n");
+        return ENOENT;
+    }
+
+    /* OK, we have a user with uid == gid; let's pretend this is a group */
+    ret = ldb_msg_add_string(result->msgs[0],
+                             SYSDB_OBJECTCATEGORY,
+                             SYSDB_GROUP_CLASS);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot add group class\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
 struct nss_get_object_state {
     struct nss_ctx *nss_ctx;
     struct resp_ctx *rctx;
+    struct tevent_context *ev;
+    struct cli_ctx *cli_ctx;
+    struct cache_req_data *data;
 
     /* We delete object from memory cache if it is not found */
     enum sss_mc_type memcache;
@@ -161,6 +255,11 @@ struct nss_get_object_state {
 };
 
 static void nss_get_object_done(struct tevent_req *subreq);
+static errno_t nss_get_hybrid_object_step(struct tevent_req *req);
+static void nss_get_hybrid_object_done(struct tevent_req *subreq);
+static void nss_get_hybrid_gid_verify_done(struct tevent_req *subreq);
+static void nss_get_object_finish_req(struct tevent_req *req,
+                                      errno_t ret);
 
 /* Cache request data memory context is stolen to internal state. */
 struct tevent_req *
@@ -182,8 +281,9 @@ nss_get_object_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
     }
-
-    talloc_steal(state, data);
+    state->ev = ev;
+    state->cli_ctx = cli_ctx;
+    state->data = talloc_steal(state, data);
 
     state->rctx = cli_ctx->rctx;
     state->nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
@@ -225,12 +325,36 @@ static void nss_get_object_done(struct tevent_req *subreq)
     struct nss_get_object_state *state;
     struct tevent_req *req;
     errno_t ret;
+    errno_t retry_ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct nss_get_object_state);
 
     ret = cache_req_single_domain_recv(state, subreq, &state->result);
     talloc_zfree(subreq);
+
+    if (ret == ENOENT
+            && state->nss_ctx->rctx->domains->mpg_mode == MPG_HYBRID) {
+        retry_ret = nss_get_hybrid_object_step(req);
+        if (retry_ret == EAGAIN) {
+            /* Retrying hybrid search */
+            return;
+        }
+        /* Otherwise return the value of ret as returned from
+         * cache_req_single_domain_recv
+         */
+    }
+
+    nss_get_object_finish_req(req, ret);
+    return;
+}
+
+static void nss_get_object_finish_req(struct tevent_req *req,
+                                      errno_t ret)
+{
+    struct nss_get_object_state *state;
+
+    state = tevent_req_data(req, struct nss_get_object_state);
 
     switch (ret) {
     case EOK:
@@ -259,7 +383,129 @@ static void nss_get_object_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         break;
     }
+}
 
+static errno_t nss_get_hybrid_object_step(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct nss_get_object_state *state;
+
+    state = tevent_req_data(req, struct nss_get_object_state);
+
+    state->data = hybrid_domain_retry_data(state,
+                                            state->data,
+                                            state->input_name,
+                                            state->input_id);
+    if (state->data == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "This request cannot be retried\n");
+        return EOK;
+    }
+
+    subreq = cache_req_send(req,
+                            state->ev,
+                            state->cli_ctx->rctx,
+                            state->cli_ctx->rctx->ncache,
+                            state->nss_ctx->cache_refresh_percent,
+                            CACHE_REQ_POSIX_DOM,
+                            NULL,
+                            state->data);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send cache request!\n");
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, nss_get_hybrid_object_done, req);
+
+    return EAGAIN;
+}
+
+static void nss_get_hybrid_object_done(struct tevent_req *subreq)
+{
+    struct nss_get_object_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct nss_get_object_state);
+
+    ret = cache_req_single_domain_recv(state, subreq, &state->result);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Converting user object to a group\n");
+    ret = hybrid_domain_user_to_group(state->result);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* If the "group" was requested by name, we also must verify that
+     * no other group with this ID exists in any domain, otherwise
+     * we would have returned a private group that should be shadowed,
+     * this record would have been inserted into the memcache and then
+     * even getgrgid() would return this unexpected group
+     */
+    if (cache_req_data_get_type(state->data) == CACHE_REQ_USER_BY_NAME) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Will verify if MPG group is shadowed\n");
+        talloc_zfree(state->data);
+        state->data = hybrid_domain_verify_gid_data(state, state->result);
+        if (state->data == NULL) {
+            nss_get_object_finish_req(req, EINVAL);
+            return;
+        }
+
+        subreq = cache_req_send(req,
+                                state->ev,
+                                state->cli_ctx->rctx,
+                                state->cli_ctx->rctx->ncache,
+                                state->nss_ctx->cache_refresh_percent,
+                                CACHE_REQ_POSIX_DOM,
+                                NULL,
+                                state->data);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send cache request!\n");
+            tevent_req_error(req, ENOENT);
+            return;
+        }
+        tevent_req_set_callback(subreq, nss_get_hybrid_gid_verify_done, req);
+        return;
+    }
+
+done:
+    nss_get_object_finish_req(req, ret);
+    return;
+}
+
+static void nss_get_hybrid_gid_verify_done(struct tevent_req *subreq)
+{
+    struct nss_get_object_state *state;
+    struct cache_req_result *real_gr_result;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct nss_get_object_state);
+
+    ret = cache_req_single_domain_recv(state, subreq, &real_gr_result);
+    talloc_zfree(subreq);
+    if (ret == ENOENT) {
+        /* There is no real group with the same GID as the autogenerated
+         * one we were checking, so let's return the autogenerated one
+         */
+        ret = EOK;
+        goto done;
+    } else if (ret == EOK) {
+        /* The autogenerated group is shadowed by a real one. Don't return
+         * anything.
+         */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "A real entry would be shadowed by MPG entry\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+done:
+    nss_get_object_finish_req(req, ret);
     return;
 }
 
