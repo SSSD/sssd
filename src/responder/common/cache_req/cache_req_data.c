@@ -378,3 +378,14 @@ cache_req_data_set_bypass_dp(struct cache_req_data *data,
 
     data->bypass_dp = bypass_dp;
 }
+
+enum cache_req_type
+cache_req_data_get_type(struct cache_req_data *data)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return CACHE_REQ_SENTINEL;
+    }
+
+    return data->type;
+}
