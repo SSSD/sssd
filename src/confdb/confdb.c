@@ -953,16 +953,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
-    if (strcasecmp(tmp, "FALSE") == 0) {
-        domain->mpg_mode = MPG_DISABLED;
-    } else if (strcasecmp(tmp, "TRUE") == 0) {
-        domain->mpg_mode = MPG_ENABLED;
-    } else {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for %s\n", CONFDB_DOMAIN_AUTO_UPG);
-        ret = EINVAL;
-        goto done;
-    }
+    domain->mpg_mode = str_to_domain_mpg_mode(tmp);
 
     if (local_provider_is_built()
             && strcasecmp(domain->provider, "local") == 0) {
