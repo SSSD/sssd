@@ -130,6 +130,11 @@ cache_req_data_set_bypass_cache(struct cache_req_data *data,
 void
 cache_req_data_set_bypass_dp(struct cache_req_data *data,
                              bool bypass_dp);
+
+
+enum cache_req_type
+cache_req_data_get_type(struct cache_req_data *data);
+
 /* Output data. */
 
 struct cache_req_result {
