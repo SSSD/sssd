@@ -172,6 +172,22 @@ static void test_sysdb_subdomain_create(void **state)
 
     assert_true(test_ctx->tctx->dom->subdomains->mpg_mode == MPG_ENABLED);
     assert_true(test_ctx->tctx->dom->subdomains->next->mpg_mode == MPG_ENABLED);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                MPG_HYBRID, false, NULL, 1, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                MPG_HYBRID, false, NULL, 0, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom, test_ctx->tctx->confdb);
+    assert_int_equal(ret, EOK);
+
+    assert_true(test_ctx->tctx->dom->subdomains->mpg_mode == MPG_HYBRID);
+    assert_true(test_ctx->tctx->dom->subdomains->next->mpg_mode == MPG_HYBRID);
 }
 
 static void test_sysdb_master_domain_ops(void **state)
