@@ -157,7 +157,7 @@ ipa_host_info_done(struct tevent_req *subreq)
                 return;
             }
 
-            if (!sdap_has_deref_support(state->sh, state->opts)) {
+            if (!sdap_has_deref_support_ex(state->sh, state->opts, true)) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Server does not support deref\n");
                 tevent_req_error(req, EIO);
                 return;
