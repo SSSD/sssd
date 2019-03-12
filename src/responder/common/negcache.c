@@ -974,10 +974,16 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             }
 
             if (domainname && strcmp(domainname, dom->name)) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
+                DEBUG(SSSDBG_TRACE_FUNC,
                       "Mismatch between domain name (%s) and name "
-                          "set in FQN  (%s), skipping user %s\n",
-                          dom->name, domainname, name);
+                          "set in FQN  (%s), assuming %s is UPN\n",
+                          dom->name, domainname, filter_list[i]);
+                ret = sss_ncache_set_upn(ncache, true, dom, filter_list[i]);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_ncache_set_upn failed (%d [%s]), ignored\n",
+                          ret, sss_strerror(ret));
+                }
                 continue;
             }
 
@@ -986,13 +992,19 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 continue;
             }
 
+            ret = sss_ncache_set_upn(ncache, true, dom, fqname);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_ncache_set_upn failed (%d [%s]), ignored\n",
+                      ret, sss_strerror(ret));
+            }
             ret = sss_ncache_set_user(ncache, true, dom, fqname);
             talloc_zfree(fqname);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to store permanent user filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret));
+                          ret, sss_strerror(ret));
                 continue;
             }
         }
@@ -1023,7 +1035,18 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             dom = responder_get_domain(rctx, domainname);
             if (!dom) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Invalid domain name [%s]\n", domainname);
+                      "Unknown domain name [%s], assuming [%s] is UPN\n",
+                      domainname, filter_list[i]);
+                for (dom = domain_list;
+                     dom != NULL;
+                     dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
+                    ret = sss_ncache_set_upn(ncache, true, dom, filter_list[i]);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "sss_ncache_set_upn failed (%d [%s]), ignored\n",
+                              ret, sss_strerror(ret));
+                    }
+                }
                 continue;
             }
 
@@ -1048,6 +1071,15 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
                 if (fqname == NULL) {
                     continue;
+                }
+
+                ret = sss_ncache_set_upn(ncache, true, dom, fqname);
+                if (ret != EOK) {
+                   DEBUG(SSSDBG_CRIT_FAILURE,
+                         "Failed to store permanent upn filter for"
+                             " [%s:%s] (%d [%s])\n",
+                             dom->name, filter_list[i],
+                             ret, strerror(ret));
                 }
 
                 ret = sss_ncache_set_user(ncache, true, dom, fqname);
