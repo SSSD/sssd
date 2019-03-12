@@ -1542,8 +1542,15 @@
                             they are looked up individually.
                         </para>
                         <para>
-                            You can turn off dereference lookups completely by
-                            setting the value to 0.
+                            You can turn off dereference lookups completely
+                            by setting the value to 0. Please note that
+                            there are some codepaths in SSSD, like the IPA
+                            HBAC provider, that are only implemented using
+                            the dereference call, so even with dereference
+                            explicitly disabled, those parts will still
+                            use dereference if the server supports it
+                            and advertises the dereference control in the
+                            rootDSE object.
                         </para>
                         <para>
                             A dereference lookup is a means of fetching all
