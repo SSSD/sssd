@@ -442,7 +442,8 @@ static void get_domains_at_startup_done(struct tevent_req *req)
         ret = sss_ncache_reset_repopulate_permanent(state->rctx,
                                                     state->optional_ncache);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "sss_dp_get_domains request failed.\n");
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sss_ncache_reset_repopulate_permanent failed.\n");
         }
     }
 
