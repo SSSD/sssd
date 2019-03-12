@@ -2887,7 +2887,9 @@ int sdap_deref_search_recv(struct tevent_req *req,
     return EOK;
 }
 
-bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts)
+bool sdap_has_deref_support_ex(struct sdap_handle *sh,
+                               struct sdap_options *opts,
+                               bool ignore_client)
 {
     const char *deref_oids[][2] = { { LDAP_SERVER_ASQ_OID, "ASQ" },
                                     { LDAP_CONTROL_X_DEREF, "OpenLDAP" },
@@ -2900,18 +2902,25 @@ bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts)
         return false;
     }
 
-    deref_threshold = dp_opt_get_int(opts->basic, SDAP_DEREF_THRESHOLD);
-    if (deref_threshold == 0) {
-        return false;
+    if (ignore_client == false) {
+        deref_threshold = dp_opt_get_int(opts->basic, SDAP_DEREF_THRESHOLD);
+        if (deref_threshold == 0) {
+            return false;
+        }
     }
 
     for (i=0; deref_oids[i][0]; i++) {
         if (sdap_is_control_supported(sh, deref_oids[i][0])) {
             DEBUG(SSSDBG_TRACE_FUNC, "The server supports deref method %s\n",
-                      deref_oids[i][1]);
+                  deref_oids[i][1]);
             return true;
         }
     }
 
     return false;
+}
+
+bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts)
+{
+    return sdap_has_deref_support_ex(sh, opts, false);
 }
