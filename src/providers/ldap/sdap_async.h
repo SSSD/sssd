@@ -252,7 +252,11 @@ int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);
 
-bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts);
+bool sdap_has_deref_support_ex(struct sdap_handle *sh,
+                               struct sdap_options *opts,
+                               bool ignore_client);
+bool sdap_has_deref_support(struct sdap_handle *sh,
+                            struct sdap_options *opts);
 
 enum sdap_deref_flags {
     SDAP_DEREF_FLG_SILENT = 1 << 0,     /* Do not warn if dereference fails */
