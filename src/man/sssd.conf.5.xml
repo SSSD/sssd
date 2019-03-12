@@ -849,7 +849,8 @@
                             from the sss NSS database. This is particularly
                             useful for system accounts. This option can also
                             be set per-domain or include fully-qualified names
-                            to filter only users from the particular domain.
+                            to filter only users from the particular domain or
+                            by a user principal name (UPN).
                         </para>
                         <para>
                             NOTE: The filter_groups option doesn't affect
