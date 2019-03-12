@@ -76,7 +76,15 @@ struct sdap_handle *mock_sdap_handle(TALLOC_CTX *mem_ctx)
  * their mock equivalent shall be used.
  */
 
-bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts)
+bool sdap_has_deref_support_ex(struct sdap_handle *sh,
+                               struct sdap_options *opts,
+                               bool ignore_client)
+{
+    return sss_mock_type(bool);
+}
+
+bool sdap_has_deref_support(struct sdap_handle *sh,
+                            struct sdap_options *opts)
 {
     return sss_mock_type(bool);
 }
