@@ -296,7 +296,7 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
     }
 
     if (state->dom == NULL) {
-        /* All domains were local */
+        /* No more domains to check, refreshing the active configuration */
         set_time_of_last_request(state->rctx);
         ret = sss_resp_populate_cr_domains(state->rctx);
         if (ret != EOK) {
@@ -307,6 +307,13 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
         }
 
         sss_resp_update_certmaps(state->rctx);
+
+        ret = sss_ncache_reset_repopulate_permanent(state->rctx,
+                                                    state->rctx->ncache);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sss_ncache_reset_repopulate_permanent failed, ignored.\n");
+        }
 
         tevent_req_done(req);
         return;
