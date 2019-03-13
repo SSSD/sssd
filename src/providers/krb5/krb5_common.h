@@ -161,8 +161,13 @@ errno_t sss_krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                              const char *conf_path, struct dp_option **_opts);
 
 errno_t write_krb5info_file(struct krb5_service *krb5_service,
-                            char **server_list,
+                            const char **server_list,
                             const char *service);
+
+errno_t write_krb5info_file_from_fo_server(struct krb5_service *krb5_service,
+                                           struct fo_server *server,
+                                           const char *service,
+                                           bool (*filter)(struct fo_server *));
 
 struct krb5_service *krb5_service_new(TALLOC_CTX *mem_ctx,
                                       struct be_ctx *be_ctx,

@@ -217,6 +217,15 @@ const char **fo_svc_server_list(TALLOC_CTX *mem_ctx,
                                 size_t *_count);
 
 /*
+ * Folowing functions allow to iterate trough list of servers.
+ */
+struct fo_server *fo_server_first(struct fo_server *server);
+
+struct fo_server *fo_server_next(struct fo_server *server);
+
+size_t fo_server_count(struct fo_server *server);
+
+/*
  * pvt will be talloc_stealed to ctx
  */
 bool fo_set_srv_lookup_plugin(struct fo_ctx *ctx,
