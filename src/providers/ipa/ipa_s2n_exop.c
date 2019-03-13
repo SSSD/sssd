@@ -2038,7 +2038,9 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     int c;
     struct sss_domain_info *root_domain;
     char **dn_list;
+    size_t dn_list_c;
     struct ldb_message *msg;
+    struct ldb_dn *user_base_dn = NULL;
 
     if (name_list == NULL) {
         *_dn_list = NULL;
@@ -2074,6 +2076,7 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
+    dn_list_c = 0;
     for (c = 0; name_list[c] != NULL; c++) {
         dom = find_domain_by_object_name(root_domain, name_list[c]);
         if (dom == NULL) {
@@ -2091,22 +2094,38 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         ret = sysdb_search_group_by_name(tmp_ctx, dom, name_list[c], NULL,
                                          &msg);
         if (ret == EOK) {
-            dn_list[c] = ldb_dn_alloc_linearized(dn_list, msg->dn);
+            talloc_free(user_base_dn);
+            user_base_dn = sysdb_user_base_dn(tmp_ctx, dom);
+            if (user_base_dn == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_user_base_dn failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            if (ldb_dn_compare_base(user_base_dn, msg->dn) == 0) {
+                DEBUG(SSSDBG_TRACE_FUNC, "Skipping user private group [%s].\n",
+                                         ldb_dn_get_linearized(msg->dn));
+                continue;
+            }
+
+            dn_list[dn_list_c] = ldb_dn_alloc_linearized(dn_list, msg->dn);
         } else {
             /* best effort, try to construct the DN */
             DEBUG(SSSDBG_TRACE_FUNC,
                   "sysdb_search_group_by_name failed with [%d], "
                   "generating DN for [%s] in domain [%s].\n",
                   ret, name_list[c], dom->name);
-            dn_list[c] = sysdb_group_strdn(dn_list, dom->name, name_list[c]);
+            dn_list[dn_list_c] = sysdb_group_strdn(dn_list, dom->name,
+                                                   name_list[c]);
         }
-        if (dn_list[c] == NULL) {
+        if (dn_list[dn_list_c] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_alloc_linearized failed.\n");
             ret = ENOMEM;
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_ALL, "Added [%s][%s].\n", name_list[c], dn_list[c]);
+        DEBUG(SSSDBG_TRACE_ALL, "Added [%s][%s].\n", name_list[c],
+                                                     dn_list[dn_list_c]);
+        dn_list_c++;
     }
 
     *_dn_list = talloc_steal(mem_ctx, dn_list);
