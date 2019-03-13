@@ -39,6 +39,7 @@
 #include "lib/idmap/sss_idmap.h"
 #include "util/util.h"
 #include "util/util_sss_idmap.h"
+#include "db/sysdb_private.h"
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
 
@@ -52,6 +53,7 @@
 #define TEST_CONF_DB "test_nss_conf.ldb"
 #define TEST_DOM_NAME "nss_test"
 #define TEST_ID_PROVIDER "ldap"
+#define TEST_SUBDOM_NAME "test.subdomain"
 
 /* register_cli_protocol_version is required in test since it links with
  * responder_common.c module
@@ -582,6 +584,29 @@ static int check_gid_in_ncache(struct sss_nc_ctx *ctx,
     return ret;
 }
 
+static int add_confdb_params(struct sss_test_conf_param params[],
+                             struct confdb_ctx *cdb, const char *section)
+{
+    const char *val[2];
+    int ret;
+
+    val[1] = NULL;
+
+    for (int i = 0; params[i].key; i++) {
+        val[0] = params[i].value;
+        ret = confdb_add_param(cdb, true, section, params[i].key, val);
+        assert_int_equal(ret, EOK);
+    }
+
+    return EOK;
+}
+
+static int add_nss_params(struct sss_test_conf_param nss_params[],
+                          struct confdb_ctx *cdb)
+{
+    return add_confdb_params(nss_params, cdb, CONFDB_NSS_CONF_ENTRY);
+}
+
 static void test_sss_ncache_prepopulate(void **state)
 {
     int ret;
@@ -589,9 +614,14 @@ static void test_sss_ncache_prepopulate(void **state)
     struct tevent_context *ev;
     struct sss_nc_ctx *ncache;
     struct sss_test_ctx *tc;
-    struct sss_domain_info *dom;
+    const char *const testdom[4] = { TEST_SUBDOM_NAME, "TEST.SUB", "test", "S-3" };
+    struct sss_domain_info *subdomain;
 
-    struct sss_test_conf_param params[] = {
+    struct sss_test_conf_param nss_params[] = {
+        { "filter_users", "testuser_nss@UPN.REALM, testuser_nss_short" },
+        { NULL, NULL },
+    };
+    struct sss_test_conf_param dom_params[] = {
         { "filter_users", "testuser1, testuser2@"TEST_DOM_NAME", testuser3@somedomain" },
         { "filter_groups", "testgroup1, testgroup2@"TEST_DOM_NAME", testgroup3@somedomain" },
         { NULL, NULL },
@@ -602,22 +632,35 @@ static void test_sss_ncache_prepopulate(void **state)
     ev = tevent_context_init(ts);
     assert_non_null(ev);
 
-    dom = talloc_zero(ts, struct sss_domain_info);
-    assert_non_null(dom);
-    dom->name = discard_const_p(char, TEST_DOM_NAME);
-
     ts->nctx = mock_nctx(ts);
     assert_non_null(ts->nctx);
 
     tc = create_dom_test_ctx(ts, TESTS_PATH, TEST_CONF_DB,
-                             TEST_DOM_NAME, TEST_ID_PROVIDER, params);
+                             TEST_DOM_NAME, TEST_ID_PROVIDER, dom_params);
     assert_non_null(tc);
 
+    ret = add_nss_params(nss_params, tc->confdb);
+    assert_int_equal(ret, EOK);
+
+    subdomain = new_subdomain(tc, tc->dom,
+                              testdom[0], testdom[1], testdom[2], testdom[3],
+                              false, false, NULL, NULL, 0,
+                              tc->confdb);
+    assert_non_null(subdomain);
+
+    ret = sysdb_subdomain_store(tc->sysdb,
+                                testdom[0], testdom[1], testdom[2], testdom[3],
+                                false, false, NULL, 0, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(tc->dom, tc->confdb);
+    assert_int_equal(ret, EOK);
+
     ncache = ts->ctx;
-    ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
+    ts->rctx = mock_rctx(ts, ev, tc->dom, ts->nctx);
     assert_non_null(ts->rctx);
 
-    ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
+    ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &tc->dom->names);
     assert_int_equal(ret, EOK);
 
     ret = sss_ncache_prepopulate(ncache, tc->confdb, ts->rctx);
@@ -625,40 +668,70 @@ static void test_sss_ncache_prepopulate(void **state)
 
     sleep(SHORTSPAN);
 
-    ret = check_user_in_ncache(ncache, dom, "testuser1");
+    ret = check_user_in_ncache(ncache, tc->dom, "testuser1");
     assert_int_equal(ret, EEXIST);
 
-    ret = check_group_in_ncache(ncache, dom, "testgroup1");
+    ret = check_group_in_ncache(ncache, tc->dom, "testgroup1");
     assert_int_equal(ret, EEXIST);
 
-    ret = check_user_in_ncache(ncache, dom, "testuser2");
+    ret = check_user_in_ncache(ncache, tc->dom, "testuser2");
     assert_int_equal(ret, EEXIST);
 
-    ret = check_group_in_ncache(ncache, dom, "testgroup2");
+    ret = check_group_in_ncache(ncache, tc->dom, "testgroup2");
     assert_int_equal(ret, EEXIST);
 
-    ret = check_user_in_ncache(ncache, dom, "testuser3");
+    ret = check_user_in_ncache(ncache, tc->dom, "testuser3");
     assert_int_equal(ret, ENOENT);
 
-    ret = check_group_in_ncache(ncache, dom, "testgroup3");
+    ret = check_group_in_ncache(ncache, tc->dom, "testgroup3");
     assert_int_equal(ret, ENOENT);
 
-    ret = check_user_in_ncache(ncache, dom, "testuser3@somedomain");
+    ret = check_user_in_ncache(ncache, tc->dom, "testuser3@somedomain");
     assert_int_equal(ret, ENOENT);
 
-    ret = check_group_in_ncache(ncache, dom, "testgroup3@somedomain");
-    assert_int_equal(ret, ENOENT);
-
-    ret = check_user_in_ncache(ncache, dom, "root");
+    ret = sss_ncache_check_upn(ncache, tc->dom, "testuser3@somedomain");
     assert_int_equal(ret, EEXIST);
 
-    ret = check_group_in_ncache(ncache, dom, "root");
+    ret = check_group_in_ncache(ncache, tc->dom, "testgroup3@somedomain");
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_user_in_ncache(ncache, tc->dom, "root");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_group_in_ncache(ncache, tc->dom, "root");
     assert_int_equal(ret, EEXIST);
 
     ret = check_uid_in_ncache(ncache, 0);
     assert_int_equal(ret, EEXIST);
 
     ret = check_gid_in_ncache(ncache, 0);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_upn(ncache, tc->dom, "testuser_nss@UPN.REALM");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_upn(ncache, tc->dom->subdomains, "testuser_nss@UPN.REALM");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_upn(ncache, tc->dom, "testuser_nss_short@" TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_upn(ncache, tc->dom->subdomains, "testuser_nss_short@" TEST_SUBDOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, tc->dom, "testuser_nss_short");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, tc->dom->subdomains, "testuser_nss_short");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_upn(ncache, tc->dom, "testuser1@" TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_upn(ncache, tc->dom, "testuser2@" TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_upn(ncache, tc->dom, "testuser3@somedomain");
     assert_int_equal(ret, EEXIST);
 }
 
