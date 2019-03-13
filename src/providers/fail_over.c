@@ -1637,6 +1637,33 @@ fo_get_server_hostname_last_change(struct fo_server *server)
     return server->common->last_status_change.tv_sec;
 }
 
+struct fo_server *fo_server_first(struct fo_server *server)
+{
+    if (!server) return NULL;
+
+    while (server->prev) { server = server->prev; }
+    return server;
+}
+
+struct fo_server *fo_server_next(struct fo_server *server)
+{
+    if (!server) return NULL;
+
+    return server->next;
+}
+
+size_t fo_server_count(struct fo_server *server)
+{
+    struct fo_server *item = fo_server_first(server);
+    size_t size = 0;
+
+    while (item) {
+        ++size;
+        item = item->next;
+    }
+    return size;
+}
+
 time_t fo_get_service_retry_timeout(struct fo_service *svc)
 {
     if (svc == NULL || svc->ctx == NULL || svc->ctx->opts == NULL) {
