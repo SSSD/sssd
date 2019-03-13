@@ -2545,7 +2545,7 @@ static errno_t ipa_subdomains_write_kdcinfo_write_step(struct sss_domain_info *d
     errno_t ret;
     char *address = NULL;
     char *safe_address = NULL;
-    char **safe_addr_list;
+    const char **safe_addr_list;
     int addr_index = 0;
     TALLOC_CTX *tmp_ctx = NULL;
 
@@ -2554,7 +2554,7 @@ static errno_t ipa_subdomains_write_kdcinfo_write_step(struct sss_domain_info *d
         return ENOMEM;
     }
 
-    safe_addr_list = talloc_zero_array(tmp_ctx, char *, rhp_len+1);
+    safe_addr_list = talloc_zero_array(tmp_ctx, const char *, rhp_len+1);
     if (safe_addr_list == NULL) {
         ret = ENOMEM;
         goto done;
