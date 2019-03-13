@@ -24,6 +24,7 @@
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_opts.h"
 #include "providers/be_dyndns.h"
+#include "providers/fail_over.h"
 
 struct ad_server_data {
     bool gc;
@@ -852,6 +853,20 @@ ad_failover_reset(struct be_ctx *bectx,
     sdap_service_reset_fo(bectx, adsvc->gc);
 }
 
+static bool
+ad_krb5info_file_filter(struct fo_server *server)
+{
+    struct ad_server_data *sdata = NULL;
+    if (server == NULL) return true;
+
+    sdata = fo_get_server_user_data(server);
+    if (sdata && sdata->gc) {
+        /* Only write kdcinfo files for local servers */
+        return true;
+    }
+    return false;
+}
+
 static void
 ad_resolve_callback(void *private_data, struct fo_server *server)
 {
@@ -861,7 +876,6 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     struct resolv_hostent *srvaddr;
     struct sockaddr_storage *sockaddr;
     char *address;
-    char *safe_addr_list[2] = { NULL, NULL };
     char *new_uri;
     int new_port;
     const char *srv_name;
@@ -966,25 +980,14 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         goto done;
     }
 
-    /* Only write kdcinfo files for local servers */
-    if ((sdata == NULL || sdata->gc == false) &&
-        service->krb5_service->write_kdcinfo) {
-        /* Write krb5 info files */
-        safe_addr_list[0] = sss_escape_ip_address(tmp_ctx,
-                                                  srvaddr->family,
-                                                  address);
-        if (safe_addr_list[0] == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_escape_ip_address failed.\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = write_krb5info_file(service->krb5_service,
-                                  safe_addr_list,
-                                  SSS_KRB5KDC_FO_SRV);
+    if (service->krb5_service->write_kdcinfo) {
+        ret = write_krb5info_file_from_fo_server(service->krb5_service,
+                                                 server,
+                                                 SSS_KRB5KDC_FO_SRV,
+                                                 ad_krb5info_file_filter);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                "write_krb5info_file failed, authentication might fail.\n");
+                  "write_krb5info_file failed, authentication might fail.\n");
         }
     }
 
