@@ -487,7 +487,7 @@ static int sss_ncache_set_user_int(struct sss_nc_ctx *ctx, bool permanent,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_USER_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    if (ctx->local_timeout > 0) {
+    if ((!permanent) && (ctx->local_timeout > 0)) {
         use_local_negative = is_user_local_by_name(name);
     }
     ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
@@ -508,7 +508,7 @@ static int sss_ncache_set_group_int(struct sss_nc_ctx *ctx, bool permanent,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_GROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    if (ctx->local_timeout > 0) {
+    if ((!permanent) && (ctx->local_timeout > 0)) {
         use_local_negative = is_group_local_by_name(name);
     }
     ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
@@ -605,7 +605,7 @@ int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent,
     }
     if (!str) return ENOMEM;
 
-    if (ctx->local_timeout > 0) {
+    if ((!permanent) && (ctx->local_timeout > 0)) {
         use_local_negative = is_user_local_by_uid(uid);
     }
     ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
@@ -629,7 +629,7 @@ int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent,
     }
     if (!str) return ENOMEM;
 
-    if (ctx->local_timeout > 0) {
+    if ((!permanent) && (ctx->local_timeout > 0)) {
         use_local_negative = is_group_local_by_gid(gid);
     }
     ret = sss_ncache_set_str(ctx, str, permanent, use_local_negative);
