@@ -40,6 +40,8 @@ static errno_t krb5_init_kpasswd(struct krb5_ctx *ctx,
     const char *backup_servers;
     const char *kdc_servers;
     bool use_kdcinfo;
+    size_t n_lookahead_primary;
+    size_t n_lookahead_backup;
     errno_t ret;
 
     realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
@@ -52,6 +54,9 @@ static errno_t krb5_init_kpasswd(struct krb5_ctx *ctx,
     primary_servers = dp_opt_get_string(ctx->opts, KRB5_KPASSWD);
     backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KPASSWD);
     use_kdcinfo = dp_opt_get_bool(ctx->opts, KRB5_USE_KDCINFO);
+    sss_krb5_parse_lookahead(dp_opt_get_string(ctx->opts, KRB5_KDCINFO_LOOKAHEAD),
+                             &n_lookahead_primary, &n_lookahead_backup);
+
 
     if (primary_servers == NULL && backup_servers != NULL) {
         DEBUG(SSSDBG_CONF_SETTINGS, "kpasswd server wasn't specified but "
@@ -67,7 +72,10 @@ static errno_t krb5_init_kpasswd(struct krb5_ctx *ctx,
     } else {
         ret = krb5_service_init(ctx, be_ctx, SSS_KRB5KPASSWD_FO_SRV,
                                 primary_servers, backup_servers, realm,
-                                use_kdcinfo, &ctx->kpasswd_service);
+                                use_kdcinfo,
+                                n_lookahead_primary,
+                                n_lookahead_backup,
+                                &ctx->kpasswd_service);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Failed to init KRB5KPASSWD failover service!\n");
@@ -84,6 +92,8 @@ static errno_t krb5_init_kdc(struct krb5_ctx *ctx, struct be_ctx *be_ctx)
     const char *backup_servers;
     const char *realm;
     bool use_kdcinfo;
+    size_t n_lookahead_primary;
+    size_t n_lookahead_backup;
     errno_t ret;
 
     realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
@@ -96,10 +106,15 @@ static errno_t krb5_init_kdc(struct krb5_ctx *ctx, struct be_ctx *be_ctx)
     backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KDC);
 
     use_kdcinfo = dp_opt_get_bool(ctx->opts, KRB5_USE_KDCINFO);
+    sss_krb5_parse_lookahead(dp_opt_get_string(ctx->opts, KRB5_KDCINFO_LOOKAHEAD),
+                             &n_lookahead_primary, &n_lookahead_backup);
 
     ret = krb5_service_init(ctx, be_ctx, SSS_KRB5KDC_FO_SRV,
                             primary_servers, backup_servers, realm,
-                            use_kdcinfo, &ctx->service);
+                            use_kdcinfo,
+                            n_lookahead_primary,
+                            n_lookahead_backup,
+                            &ctx->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init KRB5 failover service!\n");
         return ret;

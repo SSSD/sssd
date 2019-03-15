@@ -692,7 +692,9 @@ ipa_subdom_get_k5_svc(struct ipa_subdomains_ctx *ctx,
                                         ctx->be_ctx,
                                         "IPA",
                                         dom->realm,
-                                        use_kdcinfo);
+                                        use_kdcinfo,
+                                        (size_t) -1,
+                                        (size_t) -1);
     if (k5svc_ent->k5svc == NULL) {
         talloc_free(k5svc_ent);
         return NULL;
