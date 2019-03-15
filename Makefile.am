@@ -3316,6 +3316,7 @@ test_ad_subdom_LDADD = \
     libsss_idmap.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    libsss_krb5_common.la \
     $(NULL)
 
 test_ipa_subdom_util_SOURCES = \
