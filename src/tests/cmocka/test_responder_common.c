@@ -213,6 +213,7 @@ void parse_inp_call_dp(void **state)
     will_return(__wrap_sss_parse_name_for_domains, EAGAIN);
     /* The second one will succeed as the domains are up-to-date */
     will_return(__wrap_sss_parse_name_for_domains, WRAP_CALL_REAL);
+    will_return(__wrap_sss_ncache_reset_repopulate_permanent, WRAP_CALL_REAL);
 
     req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx,
                              parse_inp_ctx->rctx->default_domain, NAME);
@@ -236,6 +237,7 @@ void parse_inp_call_attach(void **state)
     /* The first parse wouldn't be called, the second one will succeed
      * as the domains are up-to-date */
     will_return(__wrap_sss_parse_name_for_domains, WRAP_CALL_REAL);
+    will_return(__wrap_sss_ncache_reset_repopulate_permanent, WRAP_CALL_REAL);
 
     req = sss_parse_inp_send(parse_inp_ctx, parse_inp_ctx->rctx,
                              parse_inp_ctx->rctx->default_domain, NAME);
@@ -290,6 +292,12 @@ struct sss_nc_ctx {
 errno_t __wrap_sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
                                                      struct sss_nc_ctx *dummy_ncache_ptr)
 {
+    enum sss_test_wrapper_call wtype = sss_mock_type(enum sss_test_wrapper_call);
+
+    if (wtype == WRAP_CALL_REAL) {
+        return EOK;
+    }
+
     test_ev_done(dummy_ncache_ptr->pctx->tctx, EOK);
     return EOK;
 }
@@ -300,6 +308,11 @@ void test_schedule_get_domains_task(void **state)
                                                    struct parse_inp_test_ctx);
     errno_t ret;
     struct sss_nc_ctx *dummy_ncache_ptr;
+
+    will_return(__wrap_sss_ncache_reset_repopulate_permanent,
+                WRAP_CALL_REAL);
+    will_return(__wrap_sss_ncache_reset_repopulate_permanent,
+                WRAP_CALL_WRAPPER);
 
     dummy_ncache_ptr = talloc(parse_inp_ctx, struct sss_nc_ctx);
     assert_non_null(dummy_ncache_ptr);
