@@ -339,6 +339,8 @@ int main(int argc, const char **argv)
             }
         }
     } else {
+        ERROR("sss_ssh_knownhostsproxy: Could not resolve hostname %s\n",
+              pc_host);
         ret = EFAULT;
     }
     ret = (ret == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
