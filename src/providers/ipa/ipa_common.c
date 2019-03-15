@@ -801,6 +801,12 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           ipa_opts->auth[KRB5_USE_KDCINFO].opt_name,
           ipa_opts->service->krb5_service->write_kdcinfo ? "true" : "false");
+    if (ipa_opts->service->krb5_service->write_kdcinfo) {
+        sss_krb5_parse_lookahead(
+            dp_opt_get_string(ipa_opts->auth, KRB5_KDCINFO_LOOKAHEAD),
+            &ipa_opts->service->krb5_service->lookahead_primary,
+            &ipa_opts->service->krb5_service->lookahead_backup);
+    }
 
     *_opts = ipa_opts->auth;
     ret = EOK;
@@ -1022,10 +1028,10 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     service->krb5_service = krb5_service_new(service, ctx,
                                              "IPA", realm,
-                                             true); /* The configured value
-                                                     * will be set later when
-                                                     * the auth provider is set up
-                                                     */
+                                             true,   /* The configured value */
+                                             0,      /* will be set later when */
+                                             0);     /* the auth provider is set up */
+
     if (!service->krb5_service) {
         ret = ENOMEM;
         goto done;

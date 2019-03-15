@@ -38,6 +38,8 @@
 
 #define SSS_KRB5KDC_FO_SRV "KERBEROS"
 #define SSS_KRB5KPASSWD_FO_SRV "KPASSWD"
+#define SSS_KRB5_LOOKAHEAD_PRIMARY_DEFAULT 3
+#define SSS_KRB5_LOOKAHEAD_BACKUP_DEFAULT 1
 
 enum krb5_opts {
     KRB5_KDC = 0,
@@ -59,6 +61,7 @@ enum krb5_opts {
     KRB5_CANONICALIZE,
     KRB5_USE_ENTERPRISE_PRINCIPAL,
     KRB5_USE_KDCINFO,
+    KRB5_KDCINFO_LOOKAHEAD,
     KRB5_MAP_USER,
 
     KRB5_OPTS
@@ -71,6 +74,8 @@ struct krb5_service {
     char *name;
     char *realm;
     bool write_kdcinfo;
+    size_t lookahead_primary;
+    size_t lookahead_backup;
     bool removal_callback_available;
 };
 
@@ -160,6 +165,8 @@ errno_t krb5_try_kdcip(struct confdb_ctx *cdb, const char *conf_path,
 errno_t sss_krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                              const char *conf_path, struct dp_option **_opts);
 
+void sss_krb5_parse_lookahead(const char *param, size_t *primary, size_t *backup);
+
 errno_t write_krb5info_file(struct krb5_service *krb5_service,
                             const char **server_list,
                             const char *service);
@@ -173,7 +180,9 @@ struct krb5_service *krb5_service_new(TALLOC_CTX *mem_ctx,
                                       struct be_ctx *be_ctx,
                                       const char *service_name,
                                       const char *realm,
-                                      bool use_kdcinfo);
+                                      bool use_kdcinfo,
+                                      size_t n_lookahead_primary,
+                                      size_t n_lookahead_backup);
 
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name,
@@ -181,6 +190,8 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *backup_servers,
                       const char *realm,
                       bool use_kdcinfo,
+                      size_t n_lookahead_primary,
+                      size_t n_lookahead_backup,
                       struct krb5_service **_service);
 
 void remove_krb5_info_files_callback(void *pvt);

@@ -335,6 +335,8 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     const char *krb5_opt_realm;
     struct krb5_service *service = NULL;
     TALLOC_CTX *tmp_ctx;
+    size_t n_lookahead_primary;
+    size_t n_lookahead_backup;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -361,11 +363,18 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    sss_krb5_parse_lookahead(
+        dp_opt_get_string(opts, SDAP_KRB5_KDCINFO_LOOKAHEAD),
+        &n_lookahead_primary,
+        &n_lookahead_backup);
+
     ret = krb5_service_init(mem_ctx, bectx,
                             SSS_KRB5KDC_FO_SRV, krb5_servers,
                             krb5_backup_servers, krb5_realm,
                             dp_opt_get_bool(opts,
                                             SDAP_KRB5_USE_KDCINFO),
+                            n_lookahead_primary,
+                            n_lookahead_backup,
                             &service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init KRB5 failover service!\n");

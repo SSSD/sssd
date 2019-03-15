@@ -82,6 +82,7 @@ struct dp_option default_basic_opts[] = {
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "krb5_use_kdcinfo", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "krb5_kdcinfo_lookahead", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" }, NULL_STRING },
     { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },

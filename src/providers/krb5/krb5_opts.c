@@ -42,6 +42,7 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_canonicalize", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_use_enterprise_principal", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "krb5_use_kdcinfo", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "krb5_kdcinfo_lookahead", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_map_user", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
