@@ -729,6 +729,8 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                  const char *ad_gc_service,
                  const char *ad_domain,
                  bool use_kdcinfo,
+                 size_t n_lookahead_primary,
+                 size_t n_lookahead_backup,
                  struct ad_service **_service)
 {
     errno_t ret;
@@ -760,7 +762,9 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
 
     service->krb5_service = krb5_service_new(service, bectx,
                                              ad_service, krb5_realm,
-                                             use_kdcinfo);
+                                             use_kdcinfo,
+                                             n_lookahead_primary,
+                                             n_lookahead_backup);
     if (!service->krb5_service) {
         ret = ENOMEM;
         goto done;
@@ -1305,6 +1309,10 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           krb5_options[KRB5_USE_KDCINFO].opt_name,
           ad_opts->service->krb5_service->write_kdcinfo ? "true" : "false");
+    sss_krb5_parse_lookahead(
+        dp_opt_get_string(krb5_options, KRB5_KDCINFO_LOOKAHEAD),
+        &ad_opts->service->krb5_service->lookahead_primary,
+        &ad_opts->service->krb5_service->lookahead_backup);
 
     *_opts = talloc_steal(mem_ctx, krb5_options);
 

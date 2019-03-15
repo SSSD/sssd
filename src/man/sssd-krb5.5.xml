@@ -502,6 +502,40 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>krb5_kdcinfo_lookahead (string)</term>
+                    <listitem>
+                        <para>
+                            When krb5_use_kdcinfo is set to true, you can limit the amount
+                            of servers handed to
+                            <citerefentry>
+                                <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>.
+                            This might be helpful when there are too many servers
+                            discovered using SRV record.
+                        </para>
+                        <para>
+                            The krb5_kdcinfo_lookahead option contains two
+                            numbers seperated by a colon. The first number represents
+                            number of primary servers used and the second number
+                            specifies the number of backup servers.
+                        </para>
+                        <para>
+                            For example <emphasis>10:0</emphasis> means that up to
+                            10 primary servers will be handed to
+                            <citerefentry>
+                                <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>.
+                            but no backup servers.
+                        </para>
+                        <para>
+                            Default: 3:1
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_use_enterprise_principal (boolean)</term>
                     <listitem>
                         <para>

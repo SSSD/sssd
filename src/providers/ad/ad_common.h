@@ -147,6 +147,8 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                  const char *ad_gc_service,
                  const char *ad_domain,
                  bool use_kdcinfo,
+                 size_t n_lookahead_primary,
+                 size_t n_lookahead_backup,
                  struct ad_service **_service);
 
 void

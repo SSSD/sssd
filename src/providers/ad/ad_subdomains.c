@@ -280,6 +280,8 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     const char *keytab;
     char *subdom_conf_path;
     bool use_kdcinfo = false;
+    size_t n_lookahead_primary = SSS_KRB5_LOOKAHEAD_PRIMARY_DEFAULT;
+    size_t n_lookahead_backup = SSS_KRB5_LOOKAHEAD_BACKUP_DEFAULT;
 
     realm = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_KRB5_REALM);
     hostname = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_HOSTNAME);
@@ -331,6 +333,11 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
             && id_ctx->ad_options->auth_ctx->opts != NULL) {
         use_kdcinfo = dp_opt_get_bool(id_ctx->ad_options->auth_ctx->opts,
                                       KRB5_USE_KDCINFO);
+        sss_krb5_parse_lookahead(
+            dp_opt_get_string(id_ctx->ad_options->auth_ctx->opts,
+                              KRB5_KDCINFO_LOOKAHEAD),
+            &n_lookahead_primary,
+            &n_lookahead_backup);
     }
 
     DEBUG(SSSDBG_TRACE_ALL,
@@ -339,7 +346,10 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
 
     ret = ad_failover_init(ad_options, be_ctx, servers, backup_servers,
                            subdom->realm, service_name, gc_service_name,
-                           subdom->name, use_kdcinfo, &ad_options->service);
+                           subdom->name, use_kdcinfo,
+                           n_lookahead_primary,
+                           n_lookahead_backup,
+                           &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD failover\n");
         talloc_free(ad_options);
