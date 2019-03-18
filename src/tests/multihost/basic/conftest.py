@@ -376,7 +376,8 @@ def create_posix_usersgroups(session_multihost):
         user_info = {'cn': 'foo%d' % i,
                      'uid': 'foo%d' % i,
                      'uidNumber': '1458310%d' % i,
-                     'gidNumber': '14564100'}
+                     'gidNumber': '14564100',
+                     'userPassword': 'Secret123'}
         if ldap_inst.posix_user("ou=People", "dc=example,dc=test", user_info):
             krb.add_principal('foo%d' % i, 'user', 'Secret123')
         else:
