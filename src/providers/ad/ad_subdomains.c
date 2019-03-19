@@ -436,8 +436,87 @@ static errno_t ad_subdom_enumerates(struct sss_domain_info *parent,
     return EOK;
 }
 
+static enum sss_domain_mpg_mode
+get_default_subdom_mpg_mode(struct sdap_idmap_ctx *idmap_ctx,
+                            struct sss_domain_info *parent,
+                            const char *subdom_name,
+                            char *subdom_sid_str)
+{
+    bool use_id_mapping;
+    bool inherit_option;
+    enum sss_domain_mpg_mode default_mpg_mode;
+
+    inherit_option = string_in_list(CONFDB_DOMAIN_AUTO_UPG,
+                                    parent->sd_inherit, false);
+    if (inherit_option) {
+        return get_domain_mpg_mode(parent);
+    }
+
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx,
+                                                               subdom_name,
+                                                               subdom_sid_str);
+    if (use_id_mapping == true) {
+        default_mpg_mode = MPG_ENABLED;
+    } else {
+        /* Domains that use the POSIX attributes set by the admin must
+         * inherit the MPG setting from the parent domain so that the
+         * auto_private_groups options works for trusted domains as well
+         */
+        default_mpg_mode = get_domain_mpg_mode(parent);
+    }
+
+    return default_mpg_mode;
+}
+
+static enum sss_domain_mpg_mode
+ad_subdom_mpg_mode(TALLOC_CTX *mem_ctx,
+                   struct confdb_ctx *cdb,
+                   struct sss_domain_info *parent,
+                   enum sss_domain_mpg_mode default_mpg_mode,
+                   const char *subdom_name)
+{
+    char *subdom_conf_path;
+    char *mpg_str_opt;
+    errno_t ret;
+    enum sss_domain_mpg_mode ret_mode;
+
+    subdom_conf_path = subdomain_create_conf_path_from_str(mem_ctx,
+                                                           parent->name,
+                                                           subdom_name);
+    if (subdom_conf_path == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "subdom_conf_path failed, will use %s mode as fallback\n",
+              str_domain_mpg_mode(default_mpg_mode));
+        return default_mpg_mode;
+    }
+
+    ret = confdb_get_string(cdb, mem_ctx, subdom_conf_path,
+                            CONFDB_DOMAIN_AUTO_UPG,
+                            NULL,
+                            &mpg_str_opt);
+    talloc_free(subdom_conf_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "condb_get_string failed, will use %s mode as fallback\n",
+              str_domain_mpg_mode(default_mpg_mode));
+        return default_mpg_mode;
+    }
+
+    if (mpg_str_opt == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Subdomain MPG mode not set, using %s\n",
+              str_domain_mpg_mode(default_mpg_mode));
+        return default_mpg_mode;
+    }
+
+    ret_mode = str_to_domain_mpg_mode(mpg_str_opt);
+    talloc_free(mpg_str_opt);
+    return ret_mode;
+}
+
 static errno_t
-ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
+ad_subdom_store(struct confdb_ctx *cdb,
+                struct sdap_idmap_ctx *idmap_ctx,
                 struct sss_domain_info *domain,
                 struct sysdb_attrs *subdom_attrs,
                 bool enumerate)
@@ -451,8 +530,8 @@ ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
     struct ldb_message_element *el;
     char *sid_str = NULL;
     uint32_t trust_type;
-    bool use_id_mapping;
     enum sss_domain_mpg_mode mpg_mode;
+    enum sss_domain_mpg_mode default_mpg_mode;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -501,17 +580,13 @@ ad_subdom_store(struct sdap_idmap_ctx *idmap_ctx,
         goto done;
     }
 
-    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx,
-                                                               name, sid_str);
-    if (use_id_mapping == true) {
-        mpg_mode = MPG_ENABLED;
-    } else {
-        /* Domains that use the POSIX attributes set by the admin must
-         * inherit the MPG setting from the parent domain so that the
-         * auto_private_groups options works for trusted domains as well
-         */
-        mpg_mode = get_domain_mpg_mode(domain);
-    }
+    default_mpg_mode = get_default_subdom_mpg_mode(idmap_ctx, domain,
+                                                   name, sid_str);
+
+    mpg_mode = ad_subdom_mpg_mode(tmp_ctx, cdb, domain,
+                                  default_mpg_mode, name);
+    DEBUG(SSSDBG_CONF_SETTINGS, "MPG mode of %s is %s\n",
+                                name, str_domain_mpg_mode(mpg_mode));
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
                                 mpg_mode, enumerate, domain->forest, 0, NULL);
@@ -625,7 +700,8 @@ static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
                 goto done;
             }
 
-            ret = ad_subdom_store(idmap_ctx, domain, subdomains[c], enumerate);
+            ret = ad_subdom_store(be_ctx->cdb, idmap_ctx, domain,
+                                  subdomains[c], enumerate);
             if (ret) {
                 /* Nothing we can do about the error. Let's at least try
                  * to reuse the existing domains
@@ -660,7 +736,8 @@ static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
             goto done;
         }
 
-        ret = ad_subdom_store(idmap_ctx, domain, subdomains[c], enumerate);
+        ret = ad_subdom_store(be_ctx->cdb, idmap_ctx, domain,
+                              subdomains[c], enumerate);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
                   "will try to use cached subdomain\n");
