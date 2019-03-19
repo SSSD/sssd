@@ -3081,6 +3081,13 @@ subdomain_inherit = ldap_purge_cache_timeout
                                             Create user's private group unconditionally from user's UID number.
                                             The GID number is ignored in this case.
                                         </para>
+                                        <para>
+                                            NOTE: Because the GID number and the user private group
+                                            are inferred from the UID number, it is not supported
+                                            to have multiple entries with the same UID or GID number
+                                            with this option. In other words, enabling this option
+                                            enforces uniqueness across the ID space.
+                                        </para>
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
@@ -3127,24 +3134,25 @@ subdomain_inherit = ldap_purge_cache_timeout
                                 </varlistentry>
                             </variablelist>
                         </para>
-			<para>
-			    For POSIX subdomains, setting the option in the main
-			    domain is inherited in the subdomain.
-			</para>
-			<para>
-			    For ID-mapping subdomains, auto_private_groups is
-			    already enabled for the subdomains and setting it to
-			    false will not have any effect for the subdomain.
-			</para>
                         <para>
-                            NOTE: Because the GID number and the user private group
-                            are inferred from the UID number, it is not supported
-                            to have multiple entries with the same UID or GID number
-                            with this option. In other words, enabling this option
-                            enforces uniqueness across the ID space.
+                            For subdomains, the default value is False for
+                            subdomains that use assigned POSIX IDs and True
+                            for subdomains that use automatic ID-mapping.
                         </para>
                         <para>
-                            Default: False
+                            The value of auto_private_groups can either be set per subdomains
+                            in a subsection, for example:
+<programlisting>
+[domain/forest.domain/sub.domain]
+auto_private_groups = false
+</programlisting>
+                            or globally for all subdomains in the main domain section
+                            using the subdomain_inherit option:
+<programlisting>
+[domain/forest.domain]
+subdomain_inherit = auto_private_groups
+auto_private_groups = false
+</programlisting>
                         </para>
                     </listitem>
                 </varlistentry>
