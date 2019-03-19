@@ -389,7 +389,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
             goto done;
         }
 
-        if (IS_SUBDOMAIN(dom) || sss_domain_is_mpg(dom) == true) {
+        if (sss_domain_is_mpg(dom) == true) {
             /* For subdomain users, only create the private group as
              * the subdomain is an MPG domain.
              * But we have to save the GID of the original primary group
