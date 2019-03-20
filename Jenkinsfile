@@ -1,3 +1,19 @@
+/**
+ * Workaround for https://issues.jenkins-ci.org/browse/JENKINS-39203
+ *
+ * At this moment if one stage in parallel block fails, failure branch in
+ * post block is run in all stages even though they might have been successful.
+ *
+ * We remember result of test stages in this variable so we can correctly
+ * report a success or error even if one of the stages that are run in
+ * parallel failed.
+ */
+def ci_result = [:]
+
+/**
+ * Remember that the build failed because one of the untrusted files were
+ * modified.
+ */
 def untrusted = false
 
 pipeline {
@@ -13,6 +29,7 @@ pipeline {
     GH_SUCCESS = "Success."
     GH_PENDING = "Build is pending."
     GH_FAILURE = "Build failed."
+    GH_ABORTED = "Aborted."
     GH_URL     = "https://pagure.io/SSSD/sssd"
     AWS_BASE   = "https://s3.eu-central-1.amazonaws.com/sssd-ci"
     SUITE_DIR  = "$BASE_DIR/sssd-test-suite"
@@ -51,18 +68,26 @@ pipeline {
           steps {
             githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
             sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
+            script {
+              ci_result[env.TEST_SYSTEM] = "success"
+            }
           }
           post {
             always {
               archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
               sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
               sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
+
+              script {
+                if (ci_result[env.TEST_SYSTEM] == "success") {
+                  githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
+                } else {
+                  githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
+                }
+              }
             }
-            failure {
-              githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
-            }
-            success {
-              githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
+            aborted {
+              githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: "$GH_ABORTED", targetUrl: "$GH_URL"
             }
           }
         }
@@ -77,18 +102,26 @@ pipeline {
           steps {
             githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
             sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
+            script {
+              ci_result[env.TEST_SYSTEM] = "success"
+            }
           }
           post {
             always {
               archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
               sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
               sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
+
+              script {
+                if (ci_result[env.TEST_SYSTEM] == "success") {
+                  githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
+                } else {
+                  githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
+                }
+              }
             }
-            failure {
-              githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
-            }
-            success {
-              githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
+            aborted {
+              githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: "$GH_ABORTED", targetUrl: "$GH_URL"
             }
           }
         }
@@ -103,18 +136,26 @@ pipeline {
           steps {
             githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
             sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
+            script {
+              ci_result[env.TEST_SYSTEM] = "success"
+            }
           }
           post {
             always {
               archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
               sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
               sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
+
+              script {
+                if (ci_result[env.TEST_SYSTEM] == "success") {
+                  githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
+                } else {
+                  githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
+                }
+              }
             }
-            failure {
-              githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
-            }
-            success {
-              githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
+            aborted {
+              githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: "$GH_ABORTED", targetUrl: "$GH_URL"
             }
           }
         }
@@ -132,10 +173,10 @@ pipeline {
       }
     }
     aborted {
-      githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: 'Aborted.', targetUrl: "$GH_URL"
+      githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: 'Builds were aborted.', targetUrl: "$GH_URL"
     }
     success {
-      githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: 'All tests succeeded', targetUrl: "$GH_URL"
+      githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: 'All tests succeeded.', targetUrl: "$GH_URL"
     }
   }
 }
