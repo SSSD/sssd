@@ -48,6 +48,9 @@
 #include "resolv/async_resolv.h"
 #include "sss_iface/sss_iface_async.h"
 
+#define ONLINE_CB_RETRY 3
+#define ONLINE_CB_RETRY_MAX_DELAY 4
+
 /* sssd.service */
 static errno_t
 data_provider_res_init(TALLOC_CTX *mem_ctx,
@@ -74,7 +77,7 @@ bool be_is_offline(struct be_ctx *ctx)
     return ctx->offstat.offline;
 }
 
-static void check_if_online(struct be_ctx *be_ctx);
+static void check_if_online(struct be_ctx *be_ctx, int delay);
 
 static errno_t
 try_to_go_online(TALLOC_CTX *mem_ctx,
@@ -85,7 +88,7 @@ try_to_go_online(TALLOC_CTX *mem_ctx,
 {
     struct be_ctx *ctx = (struct be_ctx*) be_ctx_void;
 
-    check_if_online(ctx);
+    check_if_online(ctx, 0);
     return EOK;
 }
 
@@ -250,10 +253,39 @@ static errno_t be_check_online_request(struct be_ctx *be_ctx)
     return EOK;
 }
 
+static void check_if_online_delayed(struct tevent_context *ev,
+                                    struct tevent_timer *tim,
+                                    struct timeval current_time,
+                                    void *private_data)
+{
+    errno_t ret;
+    struct be_ctx *be_ctx = talloc_get_type(private_data, struct be_ctx);
+
+    be_run_unconditional_online_cb(be_ctx);
+
+    if (!be_is_offline(be_ctx)) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Backend is already online, nothing to do.\n");
+        be_ctx->check_online_ref_count = 0;
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Trying to go back online!\n");
+
+    ret = be_check_online_request(be_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create check online req.\n");
+    } else {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Check online req created.\n");
+    }
+}
+
 static void be_check_online_done(struct tevent_req *req)
 {
     struct be_ctx *be_ctx;
     struct dp_reply_std *reply;
+    struct tevent_timer *time_event;
+    struct timeval schedule;
     errno_t ret;
 
     be_ctx = tevent_req_callback_data(req, struct be_ctx);
@@ -288,11 +320,24 @@ static void be_check_online_done(struct tevent_req *req)
     be_ctx->check_online_ref_count--;
 
     if (reply->dp_error != DP_ERR_OK && be_ctx->check_online_ref_count > 0) {
-        ret = be_check_online_request(be_ctx);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create check online req.\n");
+        be_ctx->check_online_retry_delay *= 2;
+        if (be_ctx->check_online_retry_delay > ONLINE_CB_RETRY_MAX_DELAY) {
+            be_ctx->check_online_retry_delay = ONLINE_CB_RETRY_MAX_DELAY;
+        }
+
+        schedule = tevent_timeval_current_ofs(be_ctx->check_online_retry_delay,
+                                              0);
+        time_event = tevent_add_timer(be_ctx->ev, be_ctx, schedule,
+                                      check_if_online_delayed, be_ctx);
+
+        if (time_event == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to schedule online check\n");
             goto done;
         }
+
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Schedule check_if_online_delayed in %ds.\n",
+              be_ctx->check_online_retry_delay);
         return;
     }
 
@@ -306,28 +351,23 @@ done:
     }
 }
 
-static void check_if_online(struct be_ctx *be_ctx)
+static void check_if_online(struct be_ctx *be_ctx, int delay)
 {
-    errno_t ret;
-
-    be_run_unconditional_online_cb(be_ctx);
-
-    if (!be_is_offline(be_ctx)) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Backend is already online, nothing to do.\n");
-        return;
-    }
+    struct tevent_timer *time_event;
+    struct timeval schedule;
 
     /* Make sure nobody tries to go online while we are checking */
     be_ctx->offstat.went_offline = time(NULL);
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Trying to go back online!\n");
 
     be_ctx->check_online_ref_count++;
 
     if (be_ctx->check_online_ref_count != 1) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "There is an online check already running.\n");
+        /* Do not have more than ONLINE_CB_RETRY retries in the queue */
+        if (be_ctx->check_online_ref_count > ONLINE_CB_RETRY) {
+            be_ctx->check_online_ref_count--;
+        }
         return;
     }
 
@@ -337,12 +377,20 @@ static void check_if_online(struct be_ctx *be_ctx)
         goto failed;
     }
 
-    ret = be_check_online_request(be_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create check online req.\n");
+    schedule = tevent_timeval_current_ofs(delay, 0);
+    time_event = tevent_add_timer(be_ctx->ev, be_ctx, schedule,
+                                  check_if_online_delayed, be_ctx);
+
+    if (time_event == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Scheduling check_if_online_delayed failed.\n");
         goto failed;
     }
 
+    be_ctx->check_online_ref_count = ONLINE_CB_RETRY;
+    be_ctx->check_online_retry_delay = 1;
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Schedule check_if_online_delayed in %ds.\n", delay);
     return;
 
 failed:
@@ -376,7 +424,7 @@ static void signal_be_reset_offline(struct tevent_context *ev,
                                     void *private_data)
 {
     struct be_ctx *ctx = talloc_get_type(private_data, struct be_ctx);
-    check_if_online(ctx);
+    check_if_online(ctx, 0);
 }
 
 static errno_t
@@ -708,7 +756,7 @@ data_provider_res_init(TALLOC_CTX *mem_ctx,
                        struct be_ctx *be_ctx)
 {
     resolv_reread_configuration(be_ctx->be_res->resolv);
-    check_if_online(be_ctx);
+    check_if_online(be_ctx, 1);
 
     return monitor_common_res_init(mem_ctx, sbus_req, NULL);
 }
@@ -728,7 +776,7 @@ data_provider_reset_offline(TALLOC_CTX *mem_ctx,
                             struct sbus_request *sbus_req,
                             struct be_ctx *be_ctx)
 {
-    check_if_online(be_ctx);
+    check_if_online(be_ctx, 1);
 
     return EOK;
 }
