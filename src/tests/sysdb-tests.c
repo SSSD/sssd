@@ -27,11 +27,13 @@
 #include <popt.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 #include "db/sysdb_private.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
+#include "db/sysdb_iphosts.h"
 #include "tests/common.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
@@ -7462,6 +7464,175 @@ START_TEST(test_sysdb_mark_entry_as_expired_ldb_dn)
 }
 END_TEST
 
+void hosts_check_match(struct sysdb_test_ctx *test_ctx,
+                       bool by_name,
+                       const char *search,
+                       const char *primary_name,
+                       const char **aliases,
+                       const char **addresses)
+{
+    errno_t ret;
+    unsigned int i, j;
+    bool matched;
+    const char *ret_name;
+    struct ldb_result *res;
+    struct ldb_message *msg;
+    struct ldb_message_element *el;
+    size_t len;
+
+    if (by_name) {
+        /* Look up the host by name */
+        ret = sysdb_gethostbyname(test_ctx, test_ctx->domain, search, &res);
+        fail_if(ret != EOK, "sysdb_gethostbyname error [%s]\n",
+                             strerror(ret));
+    } else {
+        /* Look up the host by address */
+        ret = sysdb_gethostbyaddr(test_ctx, test_ctx->domain, search, &res);
+        fail_if(ret != EOK, "sysdb_gethostbyaddr error [%s]\n",
+                             strerror(ret));
+    }
+    fail_if(res == NULL, "ENOMEM");
+    fail_if(res->count != 1);
+
+    /* Make sure the returned entry matches */
+    msg = res->msgs[0];
+    ret_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_if(ret_name == NULL);
+    fail_unless(strcmp(ret_name, primary_name) == 0);
+
+    el = ldb_msg_find_element(msg, SYSDB_IP_HOST_ATTR_ADDRESS);
+    fail_if(el == NULL);
+
+    len = talloc_array_length(addresses);
+    for (i = 0; i < el->num_values; i++) {
+        matched = false;
+        for (j = 0; j < len && addresses[j] != NULL; j++) {
+            char *canonical_address;
+            ret = sss_canonicalize_ip_address(test_ctx, addresses[j],
+                                              &canonical_address);
+            fail_if(ret != EOK);
+
+            if (strcmp(canonical_address,
+                      (const char *)el->values[i].data) == 0) {
+                matched = true;
+            }
+        }
+
+        fail_if(!matched, "Unexpected value in LDB entry: [%s]",
+                (const char *)el->values[i].data);
+    }
+
+    el = ldb_msg_find_element(msg, SYSDB_NAME_ALIAS);
+    fail_if(el == NULL);
+
+    len = talloc_array_length(aliases);
+    for (i = 0; i < el->num_values; i++) {
+        matched = false;
+        for (j = 0; j < len && aliases[j] != NULL; j++) {
+            if (strcmp(aliases[j], (const char *)el->values[i].data) == 0) {
+                matched = true;
+            }
+        }
+        fail_if(!matched, "Unexpected value in LDB entry: [%s]",
+                (const char *)el->values[i].data);
+    }
+}
+
+#define hosts_check_match_name(test_ctx, search_name, primary_name, aliases, addresses) \
+    do { \
+        hosts_check_match(test_ctx, true, search_name, primary_name, aliases, addresses); \
+    } while(0);
+
+#define hosts_check_match_address(test_ctx, search_name, primary_name, aliases, addresses) \
+    do { \
+        hosts_check_match(test_ctx, false, search_name, primary_name, aliases, addresses); \
+    } while(0);
+
+START_TEST(test_sysdb_add_hosts)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    char *primary_name;
+    const char **aliases;
+    const char **addresses;
+    int i;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    primary_name = talloc_asprintf(test_ctx, "test.example.org");
+    fail_if(primary_name == NULL);
+
+    aliases = talloc_array(test_ctx, const char *, 3);
+    fail_if(aliases == NULL);
+
+    aliases[0] = talloc_asprintf(aliases, "alias1.example.org");
+    fail_if(aliases[0] == NULL);
+
+    aliases[1] = talloc_asprintf(aliases, "alias2.example.org");
+    fail_if(aliases[1] == NULL);
+
+    aliases[2] = NULL;
+
+    addresses = talloc_array(test_ctx, const char *, 6);
+    fail_if(addresses == NULL);
+
+    addresses[0] = talloc_asprintf(addresses, "1.1.2.3");
+    fail_if(addresses[0] == NULL);
+
+    addresses[1] = talloc_asprintf(addresses, "10.11.22.33");
+    fail_if(addresses[1] == NULL);
+
+    addresses[2] = talloc_asprintf(addresses, "100.123.123.123");
+    fail_if(addresses[2] == NULL);
+
+    addresses[3] = talloc_asprintf(addresses, "2001:0db8:85a3:0000:0000:8a2e:0370:7334");
+    fail_if(addresses[3] == NULL);
+
+    addresses[4] = talloc_asprintf(addresses, "2001:db8:85a3:0:1:8a2e:370:7334");
+    fail_if(addresses[4] == NULL);
+
+    addresses[5] = NULL;
+
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
+
+    ret = sysdb_host_add(NULL, test_ctx->domain,
+                         primary_name, aliases,
+                         addresses, NULL);
+    fail_unless(ret == EOK, "sysdb_host_add error [%s]\n", strerror(ret));
+
+    /* Search by name and make sure the results match */
+    hosts_check_match_name(test_ctx, primary_name, primary_name,
+                           aliases, addresses);
+    for (i = 0; aliases[i] != NULL; i++) {
+        hosts_check_match_name(test_ctx, aliases[i], primary_name,
+                               aliases, addresses);
+    }
+
+    /* Search by address and make sure the results match */
+    for (i = 0; addresses[i] != NULL; i++) {
+        hosts_check_match_address(test_ctx, addresses[i], primary_name,
+                                  aliases, addresses);
+    }
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
+
+    /* Clean up after ourselves (and test deleting by name)
+     *
+     * We have to do this after the transaction, because LDB
+     * doesn't like adding and deleting the same entry in a
+     * single transaction.
+     */
+    ret = sysdb_host_delete(test_ctx->domain, primary_name, NULL);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -7717,6 +7888,9 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_set_get_bool);
     tcase_add_test(tc_sysdb, test_sysdb_set_get_uint);
     tcase_add_test(tc_sysdb, test_sysdb_mark_entry_as_expired_ldb_dn);
+
+/* ===== Hosts tests ===== */
+    tcase_add_test(tc_sysdb, test_sysdb_add_hosts);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
