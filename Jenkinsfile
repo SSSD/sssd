@@ -125,6 +125,40 @@ pipeline {
             }
           }
         }
+        stage('Test on Fedora 30') {
+          agent {label "sssd-ci"}
+          environment {
+            TEST_SYSTEM = "fedora30"
+            GH_CONTEXT  = "$GH_CONTEXT/fedora30"
+            GH_URL      = "$AWS_BASE/$BRANCH_NAME/$BUILD_ID/$TEST_SYSTEM/index.html"
+            CONFIG      = "$BASE_DIR/configs/${TEST_SYSTEM}.json"
+          }
+          steps {
+            githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
+            sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
+            script {
+              ci_result[env.TEST_SYSTEM] = "success"
+            }
+          }
+          post {
+            always {
+              archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
+              sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
+              sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
+
+              script {
+                if (ci_result[env.TEST_SYSTEM] == "success") {
+                  githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
+                } else {
+                  githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
+                }
+              }
+            }
+            aborted {
+              githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: "$GH_ABORTED", targetUrl: "$GH_URL"
+            }
+          }
+        }
         stage('Test on Fedora Rawhide') {
           agent {label "sssd-ci"}
           environment {
