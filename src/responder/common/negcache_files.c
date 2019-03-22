@@ -24,12 +24,12 @@
 #include "responder/common/negcache_files.h"
 
 #define BUFFER_SIZE 16384
+static char s_nss_buffer[BUFFER_SIZE];
 
 bool is_user_local_by_name(const struct sss_nss_ops *ops, const char *name)
 {
     struct passwd pwd = { 0 };
     int errnop;
-    char buffer[BUFFER_SIZE];
     enum nss_status ret;
     char *shortname = NULL;
     int parse_ret;
@@ -39,7 +39,7 @@ bool is_user_local_by_name(const struct sss_nss_ops *ops, const char *name)
         return false;
     }
 
-    ret = ops->getpwnam_r(shortname, &pwd, buffer, BUFFER_SIZE, &errnop);
+    ret = ops->getpwnam_r(shortname, &pwd, s_nss_buffer, BUFFER_SIZE, &errnop);
     talloc_free(shortname);
     if (ret == NSS_STATUS_SUCCESS) {
         DEBUG(SSSDBG_TRACE_FUNC, "User %s is a local user\n", name);
@@ -53,10 +53,9 @@ bool is_user_local_by_uid(const struct sss_nss_ops *ops, uid_t uid)
 {
     struct passwd pwd = { 0 };
     int errnop;
-    char buffer[BUFFER_SIZE];
     enum nss_status ret;
 
-    ret = ops->getpwuid_r(uid, &pwd, buffer, BUFFER_SIZE, &errnop);
+    ret = ops->getpwuid_r(uid, &pwd, s_nss_buffer, BUFFER_SIZE, &errnop);
     if (ret == NSS_STATUS_SUCCESS) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "User with UID %"SPRIuid" is a local user\n", uid);
@@ -70,7 +69,6 @@ bool is_group_local_by_name(const struct sss_nss_ops *ops, const char *name)
 {
     struct group grp = { 0 };
     int errnop;
-    char buffer[BUFFER_SIZE];
     enum nss_status ret;
     char *shortname = NULL;
     int parse_ret;
@@ -80,7 +78,7 @@ bool is_group_local_by_name(const struct sss_nss_ops *ops, const char *name)
         return false;
     }
 
-    ret = ops->getgrnam_r(shortname, &grp, buffer, BUFFER_SIZE, &errnop);
+    ret = ops->getgrnam_r(shortname, &grp, s_nss_buffer, BUFFER_SIZE, &errnop);
     talloc_free(shortname);
     if (ret == NSS_STATUS_SUCCESS) {
         DEBUG(SSSDBG_TRACE_FUNC, "Group %s is a local group\n", name);
@@ -94,10 +92,9 @@ bool is_group_local_by_gid(const struct sss_nss_ops *ops, uid_t gid)
 {
     struct group grp = { 0 };
     int errnop;
-    char buffer[BUFFER_SIZE];
     enum nss_status ret;
 
-    ret = ops->getgrgid_r(gid, &grp, buffer, BUFFER_SIZE, &errnop);
+    ret = ops->getgrgid_r(gid, &grp, s_nss_buffer, BUFFER_SIZE, &errnop);
     if (ret == NSS_STATUS_SUCCESS) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Group with GID %"SPRIgid" is a local group\n", gid);
