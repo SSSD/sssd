@@ -25,11 +25,7 @@
 #ifndef __PROXY_H__
 #define __PROXY_H__
 
-#include <nss.h>
 #include <errno.h>
-#include <pwd.h>
-#include <grp.h>
-#include <dlfcn.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -37,58 +33,13 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/nss_dl_load.h"
 #include "providers/backend.h"
 #include "db/sysdb.h"
-#include "sss_client/nss_compat.h"
 #include <dhash.h>
 #include "sss_iface/sss_iface_async.h"
 
 #define PROXY_CHILD_PATH "/org/freedesktop/sssd/proxychild"
-
-struct proxy_nss_ops {
-    enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*getpwuid_r)(uid_t uid, struct passwd *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*setpwent)(void);
-    enum nss_status (*getpwent_r)(struct passwd *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*endpwent)(void);
-
-    enum nss_status (*getgrnam_r)(const char *name, struct group *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*getgrgid_r)(gid_t gid, struct group *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*setgrent)(void);
-    enum nss_status (*getgrent_r)(struct group *result,
-                                  char *buffer, size_t buflen, int *errnop);
-    enum nss_status (*endgrent)(void);
-    enum nss_status (*initgroups_dyn)(const char *user, gid_t group,
-                                      long int *start, long int *size,
-                                      gid_t **groups, long int limit,
-                                      int *errnop);
-    enum nss_status (*setnetgrent)(const char *netgroup,
-                                   struct __netgrent *result);
-    enum nss_status (*getnetgrent_r)(struct __netgrent *result, char *buffer,
-                                     size_t buflen, int *errnop);
-    enum nss_status (*endnetgrent)(struct __netgrent *result);
-
-    /* Services */
-    enum nss_status (*getservbyname_r)(const char *name,
-                                        const char *protocol,
-                                        struct servent *result,
-                                        char *buffer, size_t buflen,
-                                        int *errnop);
-    enum nss_status (*getservbyport_r)(int port, const char *protocol,
-                                        struct servent *result,
-                                        char *buffer, size_t buflen,
-                                        int *errnop);
-    enum nss_status (*setservent)(void);
-    enum nss_status (*getservent_r)(struct servent *result,
-                                    char *buffer, size_t buflen,
-                                    int *errnop);
-    enum nss_status (*endservent)(void);
-};
 
 struct authtok_conv {
     struct sss_auth_token *authtok;
@@ -100,8 +51,7 @@ struct authtok_conv {
 struct proxy_id_ctx {
     struct be_ctx *be;
     bool fast_alias;
-    struct proxy_nss_ops ops;
-    void *handle;
+    struct sss_nss_ops ops;
 };
 
 struct proxy_auth_ctx {
