@@ -677,6 +677,7 @@ dist_noinst_HEADERS = \
     src/util/inotify.h \
     src/util/sss_iobuf.h \
     src/util/tev_curl.h \
+    src/util/nss_dl_load.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/monitor/monitor_iface_generated.h \
@@ -3996,6 +3997,7 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_services.c \
     src/providers/proxy/proxy_auth.c \
     src/providers/proxy/proxy_iface_generated.c \
+    src//util/nss_dl_load.c \
     $(NULL)
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
