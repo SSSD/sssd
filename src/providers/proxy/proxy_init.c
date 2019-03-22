@@ -27,44 +27,15 @@
 #include "util/sss_format.h"
 #include "providers/proxy/proxy.h"
 
-#define NSS_FN_NAME "_nss_%s_%s"
-
 #define OPT_MAX_CHILDREN_DEFAULT 10
-
-#define ERROR_INITGR "The '%s' library does not provides the " \
-                         "_nss_XXX_initgroups_dyn function!\n" \
-                         "initgroups will be slow as it will require " \
-                         "full groups enumeration!\n"
-#define ERROR_NETGR "The '%s' library does not support netgroups.\n"
-#define ERROR_SERV "The '%s' library does not support services.\n"
-
-static void *proxy_dlsym(void *handle,
-                         const char *name,
-                         const char *libname)
-{
-    char *funcname;
-    void *funcptr;
-
-    funcname = talloc_asprintf(NULL, NSS_FN_NAME, libname, name);
-    if (funcname == NULL) {
-        return NULL;
-    }
-
-    funcptr = dlsym(handle, funcname);
-    talloc_free(funcname);
-
-    return funcptr;
-}
 
 static errno_t proxy_id_conf(TALLOC_CTX *mem_ctx,
                              struct be_ctx *be_ctx,
                              char **_libname,
-                             char **_libpath,
                              bool *_fast_alias)
 {
     TALLOC_CTX *tmp_ctx;
     char *libname;
-    char *libpath;
     bool fast_alias;
     errno_t ret;
 
@@ -94,15 +65,7 @@ static errno_t proxy_id_conf(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    libpath = talloc_asprintf(tmp_ctx, "libnss_%s.so.2", libname);
-    if (libpath == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
     *_libname = talloc_steal(mem_ctx, libname);
-    *_libpath = talloc_steal(mem_ctx, libpath);
     *_fast_alias = fast_alias;
 
     ret = EOK;
@@ -111,57 +74,6 @@ done:
     talloc_free(tmp_ctx);
 
     return ret;
-}
-
-static errno_t proxy_id_load_symbols(struct proxy_nss_ops *ops,
-                                     const char *libname,
-                                     void *handle)
-{
-    int i;
-    struct {void **dest;
-            const char *name;
-            const char *custom_error;
-            bool is_fatal;
-    } symbols[] = {
-        {(void**)&ops->getpwnam_r, "getpwnam_r", NULL, true},
-        {(void**)&ops->getpwuid_r, "getpwuid_r", NULL, true},
-        {(void**)&ops->setpwent, "setpwent", NULL, true},
-        {(void**)&ops->getpwent_r, "getpwent_r", NULL, true},
-        {(void**)&ops->endpwent, "endpwent", NULL, true},
-        {(void**)&ops->getgrnam_r, "getgrnam_r", NULL, true},
-        {(void**)&ops->getgrgid_r, "getgrgid_r", NULL, true},
-        {(void**)&ops->setgrent, "setgrent", NULL, true},
-        {(void**)&ops->getgrent_r, "getgrent_r", NULL, true},
-        {(void**)&ops->endgrent, "endgrent", NULL, true},
-        {(void**)&ops->initgroups_dyn, "initgroups_dyn", ERROR_INITGR, false},
-        {(void**)&ops->setnetgrent, "setnetgrent", ERROR_NETGR, false},
-        {(void**)&ops->getnetgrent_r, "getnetgrent_r", ERROR_NETGR, false},
-        {(void**)&ops->endnetgrent, "endnetgrent", ERROR_NETGR, false},
-        {(void**)&ops->getservbyname_r, "getservbyname_r", ERROR_SERV, false},
-        {(void**)&ops->getservbyport_r, "getservbyport_r", ERROR_SERV, false},
-        {(void**)&ops->setservent, "setservent", ERROR_SERV, false},
-        {(void**)&ops->getservent_r, "getservent_r", ERROR_SERV, false},
-        {(void**)&ops->endservent, "endservent", ERROR_SERV, false},
-        {NULL, NULL, NULL, false}
-    };
-
-    for (i = 0; symbols[i].dest != NULL; i++) {
-        *symbols[i].dest = proxy_dlsym(handle, symbols[i].name, libname);
-        if (*symbols[i].dest == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to load _nss_%s_%s, "
-                  "error: %s.\n", libname, symbols[i].name, dlerror());
-
-            if (symbols[i].custom_error != NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, symbols[i].custom_error, libname);
-            }
-
-            if (symbols[i].is_fatal) {
-                return ELIBBAD;
-            }
-        }
-    }
-
-    return EOK;
 }
 
 static errno_t proxy_auth_conf(TALLOC_CTX *mem_ctx,
@@ -286,6 +198,68 @@ errno_t sssm_proxy_init(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+
+#define ERROR_INITGR "The '%s' library does not provides the " \
+                         "_nss_XXX_initgroups_dyn function!\n" \
+                         "initgroups will be slow as it will require " \
+                         "full groups enumeration!\n"
+#define ERROR_NETGR "The '%s' library does not support netgroups.\n"
+#define ERROR_SERV "The '%s' library does not support services.\n"
+
+static errno_t proxy_load_nss_symbols(struct sss_nss_ops *ops,
+                                      const char *libname)
+{
+    errno_t ret;
+    size_t i;
+
+    ret = sss_load_nss_symbols(ops, libname);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    struct {
+        void *fptr;
+        const char* custom_error;
+    } optional_syms[] = {
+        {(void*)ops->initgroups_dyn,  ERROR_INITGR},
+        {(void*)ops->setnetgrent,     ERROR_NETGR},
+        {(void*)ops->getnetgrent_r,   ERROR_NETGR},
+        {(void*)ops->endnetgrent,     ERROR_NETGR},
+        {(void*)ops->getservbyname_r, ERROR_SERV},
+        {(void*)ops->getservbyport_r, ERROR_SERV},
+        {(void*)ops->setservent,      ERROR_SERV},
+        {(void*)ops->getservent_r,    ERROR_SERV},
+        {(void*)ops->endservent,      ERROR_SERV},
+    };
+    for (i = 0; i < sizeof(optional_syms) / sizeof(optional_syms[0]); ++i) {
+        if (!optional_syms[i].fptr) {
+            DEBUG(SSSDBG_CRIT_FAILURE, optional_syms[i].custom_error, libname);
+        }
+    }
+
+    void *mandatory_syms[] = {
+        (void*)ops->getpwnam_r,
+        (void*)ops->getpwuid_r,
+        (void*)ops->setpwent,
+        (void*)ops->getpwent_r,
+        (void*)ops->endpwent,
+        (void*)ops->getgrnam_r,
+        (void*)ops->getgrgid_r,
+        (void*)ops->setgrent,
+        (void*)ops->getgrent_r,
+        (void*)ops->endgrent,
+    };
+    for (i = 0; i < sizeof(mandatory_syms)/sizeof(mandatory_syms[0]); ++i) {
+        if (!mandatory_syms[i]) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "The '%s' library does not provide mandatory function", libname);
+            return ELIBBAD;
+        }
+    }
+
+    return EOK;
+}
+
+
 errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
                            struct be_ctx *be_ctx,
                            void *module_data,
@@ -293,7 +267,6 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
 {
     struct proxy_id_ctx *ctx;
     char *libname;
-    char *libpath;
     errno_t ret;
 
     ctx = talloc_zero(mem_ctx, struct proxy_id_ctx);
@@ -303,20 +276,12 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
 
     ctx->be = be_ctx;
 
-    ret = proxy_id_conf(ctx, be_ctx, &libname, &libpath, &ctx->fast_alias);
+    ret = proxy_id_conf(ctx, be_ctx, &libname, &ctx->fast_alias);
     if (ret != EOK) {
         goto done;
     }
 
-    ctx->handle = dlopen(libpath, RTLD_NOW);
-    if (ctx->handle == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load %s module, "
-              "error: %s\n", libpath, dlerror());
-        ret = ELIBACC;
-        goto done;
-    }
-
-    ret = proxy_id_load_symbols(&ctx->ops, libname, ctx->handle);
+    ret = proxy_load_nss_symbols(&ctx->ops, libname);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
               ret, sss_strerror(ret));

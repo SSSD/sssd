@@ -686,6 +686,7 @@ dist_noinst_HEADERS = \
     src/util/tev_curl.h \
     src/util/secrets/secrets.h \
     src/util/secrets/sec_pvt.h \
+    src/util/nss_dl_load.h \
     src/monitor/monitor.h \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
@@ -4262,6 +4263,7 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_netgroup.c \
     src/providers/proxy/proxy_services.c \
     src/providers/proxy/proxy_auth.c \
+    src//util/nss_dl_load.c \
     $(NULL)
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
