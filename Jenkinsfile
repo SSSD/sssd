@@ -1,20 +1,153 @@
 /**
- * Workaround for https://issues.jenkins-ci.org/browse/JENKINS-39203
- *
- * At this moment if one stage in parallel block fails, failure branch in
- * post block is run in all stages even though they might have been successful.
- *
- * We remember result of test stages in this variable so we can correctly
- * report a success or error even if one of the stages that are run in
- * parallel failed.
- */
-def ci_result = [:]
-
-/**
  * Remember that the build failed because one of the untrusted files were
  * modified.
  */
-def untrusted = false
+untrusted = false
+
+/**
+ * SSSD CI.
+ *
+ * This class hold SSSD CI settings and defines several helper methods
+ * that helps reducing code duplication. Unfortunately, it does not
+ * seem to be possible to run those methods directly from the pipeline
+ * as CI.MethodName() as it produces 'Expected a symbol' error therefore
+ * functions outside this class scope must be defined as well. These functions
+ * can be then called directly from the pipeline.
+ */
+class CI {
+  /**
+   * Absolute path to directory that holds the workspace on Jenkins slave.
+   */
+  public static String BaseDir = '/home/fedora'
+
+  /**
+   * Github status context name that is visible in pull request statuses.
+   */
+  public static String GHContext = 'sssd-ci'
+
+  /**
+   * URL that will be opened when user clicks on 'details' on 'sssd-ci' status.
+   */
+  public static String GHUrl = 'https://pagure.io/SSSD/sssd'
+
+  /**
+   * URL that will be opened when user clicks on 'details' on specific
+   * build status (e.g. sssd-ci/fedora28).
+   */
+  public static String AWS = 'https://s3.eu-central-1.amazonaws.com/sssd-ci'
+
+  /**
+   * Path to SSSD Test Suite on Jenkins slave.
+   */
+  public static String SuiteDir = this.BaseDir + '/sssd-test-suite'
+
+  /**
+   * Workaround for https://issues.jenkins-ci.org/browse/JENKINS-39203
+   *
+   * At this moment if one stage in parallel block fails, failure branch in
+   * post block is run in all stages even though they might have been successful.
+   *
+   * We remember result of test stages in this variable so we can correctly
+   * report a success or error even if one of the stages that are run in
+   * parallel failed.
+   */
+  public static def Results = [:]
+
+  /**
+   * Mark build as successfull.
+   */
+  public static def BuildSuccessful(build) {
+    this.Results[build] = "success"
+  }
+
+  /**
+   * Return true if the build was successful.
+   */
+  public static def IsBuildSuccessful(build) {
+    return this.Results[build] == "success"
+  }
+
+  /**
+   * Send commit status to Github for sssd-ci context.
+   */
+  public static def Notify(ctx, status, message) {
+    ctx.githubNotify status: status,
+      context: this.GHContext,
+      description: message,
+      targetUrl: this.GHUrl
+  }
+
+  /**
+   * Send commit status to Github for specific build (e.g. sssd-ci/fedora28).
+   */
+  public static def NotifyBuild(ctx, status, message) {
+    ctx.githubNotify status: status,
+      context: String.format('%s/%s', this.GHContext, ctx.env.TEST_SYSTEM),
+      description: message,
+      targetUrl: String.format(
+        '%s/%s/%s/%s/index.html',
+        this.AWS,
+        ctx.env.BRANCH_NAME,
+        ctx.env.BUILD_ID,
+        ctx.env.TEST_SYSTEM
+      )
+  }
+
+  /**
+   * Run tests. TEST_SYSTEM environment variable must be defined.
+   */
+  public static def RunTests(ctx) {
+    this.NotifyBuild(ctx, 'PENDING', 'Build is in progress.')
+
+    ctx.sh String.format(
+      './sssd/contrib/test-suite/run.sh %s %s %s %s',
+      "${ctx.env.WORKSPACE}/sssd",
+      "${this.SuiteDir}",
+      "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}",
+      "${this.BaseDir}/configs/${ctx.env.TEST_SYSTEM}.json"
+    )
+
+    this.BuildSuccessful(ctx.env.TEST_SYSTEM)
+  }
+
+  /**
+   * Archive artifacts and notify Github about build result.
+   */
+  public static def WhenCompleted(ctx) {
+    ctx.archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
+    ctx.sh String.format(
+      "${this.BaseDir}/scripts/archive.sh %s %s %s",
+      ctx.env.TEST_SYSTEM,
+      "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}",
+      "${ctx.env.BRANCH_NAME}/${ctx.env.BUILD_ID}"
+    )
+    ctx.sh "rm -fr ${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
+
+    if (this.IsBuildSuccessful(ctx.env.TEST_SYSTEM)) {
+      this.NotifyBuild(ctx, 'SUCCESS', 'Success.')
+      return
+    }
+
+    this.NotifyBuild(ctx, 'FAILURE', 'Build failed.')
+  }
+
+  /**
+   * Notify Github that the build was aborted.
+   */
+  public static def WhenAborted(ctx) {
+    this.NotifyBuild(ctx, 'ERROR', 'Aborted.')
+  }
+}
+
+/**
+ * CI class methods cannot be called directly from the pipeline as it
+ * yield 'Expected a symbol' error for some reason. This is a workaround
+ * for this issue.
+ */
+def CI_RunTests() { CI.RunTests(this) }
+def CI_Post() { CI.WhenCompleted(this) }
+def CI_Aborted() { CI.WhenAborted(this) }
+def CI_Notify(status, message) { CI.Notify(this, status, message) }
 
 pipeline {
   agent none
@@ -22,24 +155,10 @@ pipeline {
     timeout(time: 10, unit: 'HOURS')
     checkoutToSubdirectory('sssd')
   }
-  environment {
-    NAME       = "$BRANCH_NAME/$BUILD_ID"
-    BASE_DIR   = "/home/fedora"
-    GH_CONTEXT = "sssd-ci"
-    GH_SUCCESS = "Success."
-    GH_PENDING = "Build is pending."
-    GH_FAILURE = "Build failed."
-    GH_ABORTED = "Aborted."
-    GH_URL     = "https://pagure.io/SSSD/sssd"
-    AWS_BASE   = "https://s3.eu-central-1.amazonaws.com/sssd-ci"
-    SUITE_DIR  = "$BASE_DIR/sssd-test-suite"
-    ARCHIVE    = "$BASE_DIR/scripts/archive.sh"
-    RUN        = "./sssd/contrib/test-suite/run.sh"
-  }
   stages {
     stage('Prepare') {
       steps {
-        githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: 'Running tests.', targetUrl: "$GH_URL"
+        CI_Notify('PENDING', 'Running tests.')
       }
     }
     stage('Read trusted files') {
@@ -59,138 +178,38 @@ pipeline {
       parallel {
         stage('Test on Fedora 28') {
           agent {label "sssd-ci"}
-          environment {
-            TEST_SYSTEM = "fedora28"
-            GH_CONTEXT  = "$GH_CONTEXT/fedora28"
-            GH_URL      = "$AWS_BASE/$BRANCH_NAME/$BUILD_ID/$TEST_SYSTEM/index.html"
-            CONFIG      = "$BASE_DIR/configs/${TEST_SYSTEM}.json"
-          }
-          steps {
-            githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
-            sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
-            script {
-              ci_result[env.TEST_SYSTEM] = "success"
-            }
-          }
+          environment { TEST_SYSTEM = "fedora28" }
+          steps { CI_RunTests() }
           post {
-            always {
-              archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
-              sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
-              sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
-
-              script {
-                if (ci_result[env.TEST_SYSTEM] == "success") {
-                  githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
-                } else {
-                  githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
-                }
-              }
-            }
-            aborted {
-              githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: "$GH_ABORTED", targetUrl: "$GH_URL"
-            }
+            always { CI_Post() }
+            aborted { CI_Aborted() }
           }
         }
         stage('Test on Fedora 29') {
           agent {label "sssd-ci"}
-          environment {
-            TEST_SYSTEM = "fedora29"
-            GH_CONTEXT  = "$GH_CONTEXT/fedora29"
-            GH_URL      = "$AWS_BASE/$BRANCH_NAME/$BUILD_ID/$TEST_SYSTEM/index.html"
-            CONFIG      = "$BASE_DIR/configs/${TEST_SYSTEM}.json"
-          }
-          steps {
-            githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
-            sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
-            script {
-              ci_result[env.TEST_SYSTEM] = "success"
-            }
-          }
+          environment { TEST_SYSTEM = "fedora29" }
+          steps { CI_RunTests() }
           post {
-            always {
-              archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
-              sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
-              sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
-
-              script {
-                if (ci_result[env.TEST_SYSTEM] == "success") {
-                  githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
-                } else {
-                  githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
-                }
-              }
-            }
-            aborted {
-              githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: "$GH_ABORTED", targetUrl: "$GH_URL"
-            }
+            always { CI_Post() }
+            aborted { CI_Aborted() }
           }
         }
         stage('Test on Fedora 30') {
           agent {label "sssd-ci"}
-          environment {
-            TEST_SYSTEM = "fedora30"
-            GH_CONTEXT  = "$GH_CONTEXT/fedora30"
-            GH_URL      = "$AWS_BASE/$BRANCH_NAME/$BUILD_ID/$TEST_SYSTEM/index.html"
-            CONFIG      = "$BASE_DIR/configs/${TEST_SYSTEM}.json"
-          }
-          steps {
-            githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
-            sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
-            script {
-              ci_result[env.TEST_SYSTEM] = "success"
-            }
-          }
+          environment { TEST_SYSTEM = "fedora30" }
+          steps { CI_RunTests() }
           post {
-            always {
-              archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
-              sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
-              sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
-
-              script {
-                if (ci_result[env.TEST_SYSTEM] == "success") {
-                  githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
-                } else {
-                  githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
-                }
-              }
-            }
-            aborted {
-              githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: "$GH_ABORTED", targetUrl: "$GH_URL"
-            }
+            always { CI_Post() }
+            aborted { CI_Aborted() }
           }
         }
         stage('Test on Fedora Rawhide') {
           agent {label "sssd-ci"}
-          environment {
-            TEST_SYSTEM = "fedora-rawhide"
-            GH_CONTEXT  = "$GH_CONTEXT/fedora-rawhide"
-            GH_URL      = "$AWS_BASE/$BRANCH_NAME/$BUILD_ID/$TEST_SYSTEM/index.html"
-            CONFIG      = "$BASE_DIR/configs/${TEST_SYSTEM}.json"
-          }
-          steps {
-            githubNotify status: 'PENDING', context: "$GH_CONTEXT", description: "$GH_PENDING", targetUrl: "$GH_URL"
-            sh '$RUN "$WORKSPACE/sssd" "$SUITE_DIR" "$WORKSPACE/artifacts/$TEST_SYSTEM" "$CONFIG"'
-            script {
-              ci_result[env.TEST_SYSTEM] = "success"
-            }
-          }
+          environment { TEST_SYSTEM = "fedora-rawhide" }
+          steps { CI_RunTests() }
           post {
-            always {
-              archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
-              sh '$ARCHIVE $TEST_SYSTEM $WORKSPACE/artifacts/$TEST_SYSTEM $NAME'
-              sh 'rm -fr "$WORKSPACE/artifacts/$TEST_SYSTEM"'
-
-              script {
-                if (ci_result[env.TEST_SYSTEM] == "success") {
-                  githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: "$GH_SUCCESS", targetUrl: "$GH_URL"
-                } else {
-                  githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: "$GH_FAILURE", targetUrl: "$GH_URL"
-                }
-              }
-            }
-            aborted {
-              githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: "$GH_ABORTED", targetUrl: "$GH_URL"
-            }
+            always { CI_Post() }
+            aborted { CI_Aborted() }
           }
         }
       }
@@ -200,17 +219,17 @@ pipeline {
     failure {
       script {
         if (untrusted) {
-          githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: 'Untrusted files were modified.', targetUrl: "$GH_URL"
+          CI_Notify('ERROR', 'Untrusted files were modified.')
         } else {
-          githubNotify status: 'FAILURE', context: "$GH_CONTEXT", description: 'Some tests failed.', targetUrl: "$GH_URL"
+          CI_Notify('FAILURE', 'Some tests failed.')
         }
       }
     }
     aborted {
-      githubNotify status: 'ERROR', context: "$GH_CONTEXT", description: 'Builds were aborted.', targetUrl: "$GH_URL"
+      CI_Notify('ERROR', 'Builds were aborted.')
     }
     success {
-      githubNotify status: 'SUCCESS', context: "$GH_CONTEXT", description: 'All tests succeeded.', targetUrl: "$GH_URL"
+      CI_Notify('SUCCESS', 'All tests succeeded.')
     }
   }
 }
