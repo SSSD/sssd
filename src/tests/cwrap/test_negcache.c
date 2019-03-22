@@ -18,6 +18,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <pwd.h>
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
@@ -35,38 +39,40 @@
 #define TEST_CONF_DB "test_negcache_confdb.ldb"
 #define TEST_DOM_NAME "test_domain.test"
 
-#define TEST_LOCAL_USER_NAME_1 "foobar"
-#define TEST_LOCAL_USER_NAME_2 "sssd"
-
-#define TEST_LOCAL_USER_UID_1 10001
-#define TEST_LOCAL_USER_UID_2 123
-
-#define TEST_LOCAL_GROUP_NAME_1 "foogroup"
-#define TEST_LOCAL_GROUP_NAME_2 "sssd"
-
-#define TEST_LOCAL_GID_1 10001
-#define TEST_LOCAL_GID_2 123
-
-struct test_user {
+struct user_descriptor_t {
     const char *name;
     uid_t uid;
-    gid_t gid;
-} users[] = { { "test_user1", 1001, 50001 },
-              { "test_user2", 1002, 50002 } };
+};
 
-static void create_users(TALLOC_CTX *mem_ctx,
-                         struct sss_domain_info *domain)
+struct group_descriptor_t {
+    const char *name;
+    gid_t gid;
+};
+
+struct ncache_test_ctx {
+    struct sss_test_ctx *tctx;
+    struct sss_nc_ctx *ncache;
+    struct user_descriptor_t local_users[2];
+    struct user_descriptor_t non_local_users[2];
+    struct group_descriptor_t local_groups[2];
+    struct group_descriptor_t non_local_groups[2];
+};
+
+static void create_users(struct ncache_test_ctx *test_ctx)
 {
     errno_t ret;
     char *fqname;
+    struct sss_domain_info *domain = test_ctx->tctx->dom;
+    const struct user_descriptor_t *users = test_ctx->non_local_users;
+    const struct group_descriptor_t *groups = test_ctx->non_local_groups;
 
     for (int i = 0; i < 2; i++) {
-        fqname = sss_create_internal_fqname(mem_ctx,
+        fqname = sss_create_internal_fqname(test_ctx,
                                             users[i].name,
                                             domain->name);
         assert_non_null(fqname);
 
-        ret = sysdb_add_user(domain, users[i].name, users[i].uid, users[i].gid,
+        ret = sysdb_add_user(domain, users[i].name, users[i].uid, groups[i].gid,
                              fqname, NULL, "/bin/bash", domain->name,
                              NULL, 30, time(NULL));
         talloc_free(fqname);
@@ -74,25 +80,15 @@ static void create_users(TALLOC_CTX *mem_ctx,
     }
 }
 
-struct test_group {
-    const char *name;
-    gid_t gid;
-} groups[] = { { "test_group1", 50001 },
-               { "test_group2", 50002 } };
-
-struct ncache_test_ctx {
-    struct sss_test_ctx *tctx;
-    struct sss_nc_ctx *ncache;
-};
-
-static void create_groups(TALLOC_CTX *mem_ctx,
-                          struct sss_domain_info *domain)
+static void create_groups(struct ncache_test_ctx *test_ctx)
 {
     errno_t ret;
     char *fqname;
+    struct sss_domain_info *domain = test_ctx->tctx->dom;
+    const struct group_descriptor_t *groups = test_ctx->non_local_groups;
 
     for (int i = 0; i < 2; i++) {
-        fqname = sss_create_internal_fqname(mem_ctx,
+        fqname = sss_create_internal_fqname(test_ctx,
                                             groups[i].name,
                                             domain->name);
         assert_non_null(fqname);
@@ -116,6 +112,114 @@ struct cli_protocol_version *register_cli_protocol_version(void)
     return responder_test_cli_protocol_version;
 }
 
+static void find_local_users(struct ncache_test_ctx *test_ctx)
+{
+    int i;
+    FILE *passwd_file;
+    const struct passwd *pwd;
+
+    passwd_file = fopen("/etc/passwd", "r");
+    assert_non_null(passwd_file);
+
+    for (i = 0; i < 2; /*no-op*/) {
+        pwd = fgetpwent(passwd_file);
+        assert_non_null(pwd);
+        if (pwd->pw_uid == 0) {
+            /* skip root */
+            continue;
+        }
+        test_ctx->local_users[i].uid = pwd->pw_uid;
+        test_ctx->local_users[i].name = talloc_strdup(test_ctx, pwd->pw_name);
+        assert_non_null(test_ctx->local_users[i].name);
+        ++i;
+    }
+
+    fclose(passwd_file);
+}
+
+static void find_local_groups(struct ncache_test_ctx *test_ctx)
+{
+    int i;
+    FILE *group_file;
+    const struct group *grp;
+
+    group_file = fopen("/etc/group", "r");
+    assert_non_null(group_file);
+
+    for (i = 0; i < 2; /* no-op */) {
+        grp = fgetgrent(group_file);
+        assert_non_null(grp);
+        if (grp->gr_gid == 0) {
+            /* skip root */
+            continue;
+        }
+        test_ctx->local_groups[i].gid = grp->gr_gid;
+        test_ctx->local_groups[i].name = talloc_strdup(test_ctx, grp->gr_name);
+        assert_non_null(test_ctx->local_groups[i].name);
+        ++i;
+    }
+
+    fclose(group_file);
+}
+
+static void find_non_local_users(struct ncache_test_ctx *test_ctx)
+{
+    int i;
+    int k;
+    uid_t uid;
+    char *name;
+
+    for (i = 0, k = 1; (k < 100) && (i < 2); ++k) {
+        uid = 65534-k;
+        if (getpwuid(uid)) {
+            continue;
+        }
+        test_ctx->non_local_users[i].uid = uid;
+        ++i;
+    }
+    assert_int_equal(i, 2);
+
+    for (i = 0, k = 0; (k < 100) && (i < 2); ++k) {
+        name = talloc_asprintf(test_ctx, "nctestuser%d", k);
+        if (getpwnam(name)) {
+            talloc_free(name);
+            continue;
+        }
+        test_ctx->non_local_users[i].name = name;
+        ++i;
+    }
+    assert_int_equal(i, 2);
+}
+
+static void find_non_local_groups(struct ncache_test_ctx *test_ctx)
+{
+    int i = 0;
+    int k;
+    gid_t gid;
+    char *name;
+
+    for (i = 0, k = 1; (k < 100) && (i < 2); ++k) {
+        gid = 65534-k;
+        if (getgrgid(gid)) {
+            continue;
+        }
+        test_ctx->non_local_groups[i].gid = gid;
+        ++i;
+    }
+    assert_int_equal(i, 2);
+
+    for (i = 0, k = 0; (k < 100) && (i < 2); ++k) {
+        name = talloc_asprintf(test_ctx, "nctestgroup%d", k);
+        if (getgrnam(name)) {
+            talloc_free(name);
+            continue;
+        }
+        test_ctx->non_local_groups[i].name = name;
+        ++i;
+    }
+    assert_int_equal(i, 2);
+}
+
 static int test_ncache_setup(void **state)
 {
     struct ncache_test_ctx *test_ctx;
@@ -125,14 +229,19 @@ static int test_ncache_setup(void **state)
     test_ctx = talloc_zero(global_talloc_context, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
+    find_local_users(test_ctx);
+    find_local_groups(test_ctx);
+    find_non_local_users(test_ctx);
+    find_non_local_groups(test_ctx);
+
     test_dom_suite_setup(TESTS_PATH);
 
     test_ctx->tctx = create_dom_test_ctx(test_ctx, TESTS_PATH, TEST_CONF_DB,
                                          TEST_DOM_NAME, "ipa", NULL);
     assert_non_null(test_ctx->tctx);
 
-    create_groups(test_ctx, test_ctx->tctx->dom);
-    create_users(test_ctx, test_ctx->tctx->dom);
+    create_groups(test_ctx);
+    create_users(test_ctx);
 
     check_leaks_push(test_ctx);
 
@@ -213,11 +322,11 @@ static void set_users(struct ncache_test_ctx *test_ctx)
     int ret;
 
     ret = set_user_in_ncache(test_ctx->ncache, false, test_ctx->tctx->dom,
-                              users[0].name);
+                             test_ctx->non_local_users[0].name);
     assert_int_equal(ret, EOK);
 
     ret = set_user_in_ncache(test_ctx->ncache, false, test_ctx->tctx->dom,
-                             TEST_LOCAL_USER_NAME_1);
+                             test_ctx->local_users[0].name);
     assert_int_equal(ret, EOK);
 }
 
@@ -227,19 +336,19 @@ static void check_users(struct ncache_test_ctx *test_ctx,
     int ret;
 
     ret = check_user_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                users[0].name);
+                                test_ctx->non_local_users[0].name);
     assert_int_equal(ret, case_a);
 
     ret = check_user_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                users[1].name);
+                                test_ctx->non_local_users[1].name);
     assert_int_equal(ret, case_b);
 
     ret = check_user_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                TEST_LOCAL_USER_NAME_1);
+                                test_ctx->local_users[0].name);
     assert_int_equal(ret, case_c);
 
     ret = check_user_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                TEST_LOCAL_USER_NAME_2);
+                                test_ctx->local_users[1].name);
     assert_int_equal(ret, case_d);
 }
 
@@ -324,11 +433,11 @@ static void set_uids(struct ncache_test_ctx *test_ctx)
     int ret;
 
     ret = sss_ncache_set_uid(test_ctx->ncache, false, test_ctx->tctx->dom,
-                             users[0].uid);
+                             test_ctx->non_local_users[0].uid);
     assert_int_equal(ret, EOK);
 
     ret = sss_ncache_set_uid(test_ctx->ncache, false, test_ctx->tctx->dom,
-                             TEST_LOCAL_USER_UID_1);
+                             test_ctx->local_users[0].uid);
     assert_int_equal(ret, EOK);
 }
 
@@ -338,19 +447,19 @@ static void check_uids(struct ncache_test_ctx *test_ctx,
     int ret;
 
     ret = sss_ncache_check_uid(test_ctx->ncache, test_ctx->tctx->dom,
-                               users[0].uid);
+                               test_ctx->non_local_users[0].uid);
     assert_int_equal(ret, case_a);
 
     ret = sss_ncache_check_uid(test_ctx->ncache, test_ctx->tctx->dom,
-                               users[1].uid);
+                               test_ctx->non_local_users[1].uid);
     assert_int_equal(ret, case_b);
 
     ret = sss_ncache_check_uid(test_ctx->ncache, test_ctx->tctx->dom,
-                               TEST_LOCAL_USER_UID_1);
+                               test_ctx->local_users[0].uid);
     assert_int_equal(ret, case_c);
 
     ret = sss_ncache_check_uid(test_ctx->ncache, test_ctx->tctx->dom,
-                               TEST_LOCAL_USER_UID_2);
+                               test_ctx->local_users[1].uid);
     assert_int_equal(ret, case_d);
 }
 
@@ -435,11 +544,11 @@ static void set_groups(struct ncache_test_ctx *test_ctx)
     int ret;
 
     ret = set_group_in_ncache(test_ctx->ncache, false, test_ctx->tctx->dom,
-                              groups[0].name);
+                              test_ctx->non_local_groups[0].name);
     assert_int_equal(ret, EOK);
 
     ret = set_group_in_ncache(test_ctx->ncache, false, test_ctx->tctx->dom,
-                              TEST_LOCAL_GROUP_NAME_1);
+                              test_ctx->local_groups[0].name);
     assert_int_equal(ret, EOK);
 }
 
@@ -449,19 +558,19 @@ static void check_groups(struct ncache_test_ctx *test_ctx,
     int ret;
 
     ret = check_group_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                groups[0].name);
+                                test_ctx->non_local_groups[0].name);
     assert_int_equal(ret, case_a);
 
     ret = check_group_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                groups[1].name);
+                                test_ctx->non_local_groups[1].name);
     assert_int_equal(ret, case_b);
 
     ret = check_group_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                TEST_LOCAL_GROUP_NAME_1);
+                                test_ctx->local_groups[0].name);
     assert_int_equal(ret, case_c);
 
     ret = check_group_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                TEST_LOCAL_GROUP_NAME_2);
+                                test_ctx->local_groups[1].name);
     assert_int_equal(ret, case_d);
 }
 
@@ -546,11 +655,11 @@ static void set_gids(struct ncache_test_ctx *test_ctx)
     int ret;
 
     ret = sss_ncache_set_gid(test_ctx->ncache, false, test_ctx->tctx->dom,
-                             users[0].gid);
+                             test_ctx->non_local_groups[0].gid);
     assert_int_equal(ret, EOK);
 
     ret = sss_ncache_set_gid(test_ctx->ncache, false, test_ctx->tctx->dom,
-                             TEST_LOCAL_GID_1);
+                             test_ctx->local_groups[0].gid);
     assert_int_equal(ret, EOK);
 }
 
@@ -560,19 +669,19 @@ static void check_gids(struct ncache_test_ctx *test_ctx,
     int ret;
 
     ret = sss_ncache_check_gid(test_ctx->ncache, test_ctx->tctx->dom,
-                               users[0].gid);
+                               test_ctx->non_local_groups[0].gid);
     assert_int_equal(ret, case_a);
 
     ret = sss_ncache_check_gid(test_ctx->ncache, test_ctx->tctx->dom,
-                               users[1].gid);
+                               test_ctx->non_local_groups[1].gid);
     assert_int_equal(ret, case_b);
 
     ret = sss_ncache_check_gid(test_ctx->ncache, test_ctx->tctx->dom,
-                               TEST_LOCAL_GID_1);
+                               test_ctx->local_groups[0].gid);
     assert_int_equal(ret, case_c);
 
     ret = sss_ncache_check_gid(test_ctx->ncache, test_ctx->tctx->dom,
-                               TEST_LOCAL_GID_2);
+                               test_ctx->local_groups[1].gid);
     assert_int_equal(ret, case_d);
 }
 
