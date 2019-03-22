@@ -18,6 +18,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <pwd.h>
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
@@ -34,18 +38,6 @@
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_negcache_confdb.ldb"
 #define TEST_DOM_NAME "test_domain.test"
-
-#define TEST_LOCAL_USER_NAME_1 "foobar"
-#define TEST_LOCAL_USER_NAME_2 "sssd"
-
-#define TEST_LOCAL_USER_UID_1 10001
-#define TEST_LOCAL_USER_UID_2 123
-
-#define TEST_LOCAL_GROUP_NAME_1 "foogroup"
-#define TEST_LOCAL_GROUP_NAME_2 "sssd"
-
-#define TEST_LOCAL_GID_1 10001
-#define TEST_LOCAL_GID_2 123
 
 struct test_user {
     const char *name;
@@ -83,6 +75,10 @@ struct test_group {
 struct ncache_test_ctx {
     struct sss_test_ctx *tctx;
     struct sss_nc_ctx *ncache;
+    char *local_user_name[2];
+    uid_t local_uid[2];
+    char *local_group_name[2];
+    gid_t local_gid[2];
 };
 
 static void create_groups(TALLOC_CTX *mem_ctx,
@@ -119,11 +115,50 @@ struct cli_protocol_version *register_cli_protocol_version(void)
 static int test_ncache_setup(void **state)
 {
     struct ncache_test_ctx *test_ctx;
+    FILE *passwd_file;
+    FILE *group_file;
+    const struct passwd *pwd;
+    const struct group *grp;
+    int i;
+
+    passwd_file = fopen("/etc/passwd", "r");
+    assert_non_null(passwd_file);
+
+    group_file = fopen("/etc/group", "r");
+    assert_non_null(group_file);
 
     assert_true(leak_check_setup());
 
     test_ctx = talloc_zero(global_talloc_context, struct ncache_test_ctx);
     assert_non_null(test_ctx);
+
+    for (i = 0; i < 2; /*no-op*/) {
+        pwd = fgetpwent(passwd_file);
+        assert_non_null(pwd);
+        if (pwd->pw_uid == 0) {
+            /* skip root */
+            continue;
+        }
+        test_ctx->local_uid[i] = pwd->pw_uid;
+        test_ctx->local_user_name[i] = talloc_strdup(test_ctx, pwd->pw_name);
+        assert_non_null(test_ctx->local_user_name[i]);
+        ++i;
+    }
+    fclose(passwd_file);
+
+    for (i = 0; i < 2; /* no-op */) {
+        grp = fgetgrent(group_file);
+        assert_non_null(grp);
+        if (grp->gr_gid == 0) {
+            /* skip root */
+            continue;
+        }
+        test_ctx->local_gid[i] = grp->gr_gid;
+        test_ctx->local_group_name[i] = talloc_strdup(test_ctx, grp->gr_name);
+        assert_non_null(test_ctx->local_group_name[i]);
+        ++i;
+    }
+    fclose(group_file);
 
     test_dom_suite_setup(TESTS_PATH);
 
@@ -217,7 +252,7 @@ static void set_users(struct ncache_test_ctx *test_ctx)
     assert_int_equal(ret, EOK);
 
     ret = set_user_in_ncache(test_ctx->ncache, false, test_ctx->tctx->dom,
-                             TEST_LOCAL_USER_NAME_1);
+                             test_ctx->local_user_name[0]);
     assert_int_equal(ret, EOK);
 }
 
@@ -235,11 +270,11 @@ static void check_users(struct ncache_test_ctx *test_ctx,
     assert_int_equal(ret, case_b);
 
     ret = check_user_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                TEST_LOCAL_USER_NAME_1);
+                                test_ctx->local_user_name[0]);
     assert_int_equal(ret, case_c);
 
     ret = check_user_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                TEST_LOCAL_USER_NAME_2);
+                                test_ctx->local_user_name[1]);
     assert_int_equal(ret, case_d);
 }
 
@@ -328,7 +363,7 @@ static void set_uids(struct ncache_test_ctx *test_ctx)
     assert_int_equal(ret, EOK);
 
     ret = sss_ncache_set_uid(test_ctx->ncache, false, test_ctx->tctx->dom,
-                             TEST_LOCAL_USER_UID_1);
+                             test_ctx->local_uid[0]);
     assert_int_equal(ret, EOK);
 }
 
@@ -346,11 +381,11 @@ static void check_uids(struct ncache_test_ctx *test_ctx,
     assert_int_equal(ret, case_b);
 
     ret = sss_ncache_check_uid(test_ctx->ncache, test_ctx->tctx->dom,
-                               TEST_LOCAL_USER_UID_1);
+                               test_ctx->local_uid[0]);
     assert_int_equal(ret, case_c);
 
     ret = sss_ncache_check_uid(test_ctx->ncache, test_ctx->tctx->dom,
-                               TEST_LOCAL_USER_UID_2);
+                               test_ctx->local_uid[1]);
     assert_int_equal(ret, case_d);
 }
 
@@ -439,7 +474,7 @@ static void set_groups(struct ncache_test_ctx *test_ctx)
     assert_int_equal(ret, EOK);
 
     ret = set_group_in_ncache(test_ctx->ncache, false, test_ctx->tctx->dom,
-                              TEST_LOCAL_GROUP_NAME_1);
+                              test_ctx->local_group_name[0]);
     assert_int_equal(ret, EOK);
 }
 
@@ -457,11 +492,11 @@ static void check_groups(struct ncache_test_ctx *test_ctx,
     assert_int_equal(ret, case_b);
 
     ret = check_group_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                TEST_LOCAL_GROUP_NAME_1);
+                                test_ctx->local_group_name[0]);
     assert_int_equal(ret, case_c);
 
     ret = check_group_in_ncache(test_ctx->ncache, test_ctx->tctx->dom,
-                                TEST_LOCAL_GROUP_NAME_2);
+                                test_ctx->local_group_name[1]);
     assert_int_equal(ret, case_d);
 }
 
@@ -550,7 +585,7 @@ static void set_gids(struct ncache_test_ctx *test_ctx)
     assert_int_equal(ret, EOK);
 
     ret = sss_ncache_set_gid(test_ctx->ncache, false, test_ctx->tctx->dom,
-                             TEST_LOCAL_GID_1);
+                             test_ctx->local_gid[0]);
     assert_int_equal(ret, EOK);
 }
 
@@ -568,11 +603,11 @@ static void check_gids(struct ncache_test_ctx *test_ctx,
     assert_int_equal(ret, case_b);
 
     ret = sss_ncache_check_gid(test_ctx->ncache, test_ctx->tctx->dom,
-                               TEST_LOCAL_GID_1);
+                               test_ctx->local_gid[0]);
     assert_int_equal(ret, case_c);
 
     ret = sss_ncache_check_gid(test_ctx->ncache, test_ctx->tctx->dom,
-                               TEST_LOCAL_GID_2);
+                               test_ctx->local_gid[1]);
     assert_int_equal(ret, case_d);
 }
 

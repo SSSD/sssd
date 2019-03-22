@@ -565,6 +565,7 @@ SSSD_RESPONDER_IFACE_OBJ = \
 SSSD_RESPONDER_OBJ = \
     src/responder/common/negcache_files.c \
     src/responder/common/negcache.c \
+    src/util/nss_dl_load.c \
     src/responder/common/responder_cmd.c \
     src/responder/common/responder_common.c \
     src/responder/common/responder_dp.c \
@@ -1569,6 +1570,7 @@ sssd_nss_SOURCES = \
     src/responder/nss/nsssrv_mmap_cache.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
+    $(LIBADD_DL) \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     libsss_idmap.la \
@@ -1588,6 +1590,7 @@ sssd_pam_SOURCES = \
     src/responder/pam/pam_helpers.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_LDADD = \
+    $(LIBADD_DL) \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
@@ -1608,6 +1611,7 @@ sssd_sudo_SOURCES = \
     src/responder/sudo/sudosrv_dp.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_sudo_LDADD = \
+    $(LIBADD_DL) \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -1622,6 +1626,7 @@ sssd_autofs_SOURCES = \
     src/responder/autofs/autofssrv_cmd.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_autofs_LDADD = \
+    $(LIBADD_DL) \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -1640,6 +1645,7 @@ sssd_ssh_SOURCES = \
     $(SSSD_RESPONDER_OBJ) \
     $(NULL)
 sssd_ssh_LDADD = \
+    $(LIBADD_DL) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
@@ -1658,6 +1664,7 @@ sssd_pac_CFLAGS = \
     $(AM_CFLAGS) \
     $(NDR_KRB5PAC_CFLAGS)
 sssd_pac_LDADD = \
+    $(LIBADD_DL) \
     $(NDR_KRB5PAC_LIBS) \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
@@ -1737,6 +1744,7 @@ sssd_ifp_SOURCES = \
 sssd_ifp_CFLAGS = \
     $(AM_CFLAGS)
 sssd_ifp_LDADD = \
+    $(LIBADD_DL) \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -1785,6 +1793,7 @@ sssd_secrets_SOURCES = \
     $(SSSD_RESPONDER_OBJ) \
     $(NULL)
 sssd_secrets_LDADD = \
+    $(LIBADD_DL) \
     $(HTTP_PARSER_LIBS) \
     $(JANSSON_LIBS) \
     $(TDB_LIBS) \
@@ -1821,6 +1830,7 @@ sssd_kcm_CFLAGS = \
     $(JANSSON_CFLAGS) \
     $(NULL)
 sssd_kcm_LDADD = \
+    $(LIBADD_DL) \
     $(KRB5_LIBS) \
     $(JANSSON_LIBS) \
     $(SSSD_LIBS) \
@@ -2529,6 +2539,7 @@ responder_socket_access_tests_SOURCES = \
     src/tests/responder_socket_access-tests.c \
     src/responder/common/negcache_files.c \
     src/responder/common/negcache.c \
+    src/util/nss_dl_load.c \
     src/responder/common/responder_common.c \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_cmd.c \
@@ -2540,6 +2551,7 @@ responder_socket_access_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 responder_socket_access_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CHECK_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -2632,6 +2644,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/responder_cmd.c \
      src/responder/common/negcache_files.c \
      src/responder/common/negcache.c \
+     src/util/nss_dl_load.c \
      src/responder/common/responder_common.c \
      src/responder/common/responder_utils.c \
      src/util/session_recording.c \
@@ -2681,6 +2694,7 @@ nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_cmd_send_empty \
     -Wl,-wrap,sss_cmd_done
 nss_srv_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -2719,6 +2733,7 @@ pam_srv_tests_LDFLAGS = \
     -Wl,-wrap,pam_dp_send_req \
     $(NULL)
 pam_srv_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
@@ -2757,6 +2772,7 @@ ssh_srv_tests_LDFLAGS = \
     -Wl,-wrap,ssh_dp_send_req \
     $(NULL)
 ssh_srv_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -2778,6 +2794,7 @@ responder_get_domains_tests_LDFLAGS = \
     -Wl,-wrap,sss_parse_name_for_domains \
     -Wl,-wrap,sss_ncache_reset_repopulate_permanent
 responder_get_domains_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -2839,6 +2856,7 @@ test_negcache_CFLAGS = \
     $(TALLOC_CFLAGS) \
     $(DHASH_CFLAGS)
 test_negcache_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
@@ -3199,6 +3217,7 @@ ifp_tests_SOURCES = \
 ifp_tests_CFLAGS = \
     $(AM_CFLAGS)
 ifp_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -3458,6 +3477,7 @@ responder_cache_req_tests_LDFLAGS = \
     -Wl,-wrap,sss_dp_get_account_send \
     $(NULL)
 responder_cache_req_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \

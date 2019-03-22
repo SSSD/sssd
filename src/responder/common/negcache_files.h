@@ -22,10 +22,14 @@
 #ifndef _NEGCACHE_FILES_H_
 #define _NEGCACHE_FILES_H_
 
-bool is_user_local_by_name(const char *name);
-bool is_user_local_by_uid(uid_t uid);
+#include <stdbool.h>
 
-bool is_group_local_by_name(const char *name);
-bool is_group_local_by_gid(uid_t gid);
+struct sss_nss_ops;
+
+bool is_user_local_by_name(const struct sss_nss_ops *ops, const char *name);
+bool is_user_local_by_uid(const struct sss_nss_ops *ops, uid_t uid);
+
+bool is_group_local_by_name(const struct sss_nss_ops *ops, const char *name);
+bool is_group_local_by_gid(const struct sss_nss_ops *ops, uid_t gid);
 
 #endif /* _NEGCACHE_FILES_H_ */
