@@ -75,6 +75,7 @@ SSSD_RESPONDER_IFACE_OBJ = \
 
 SSSD_RESPONDER_OBJ = \
     ../../../src/responder/common/negcache_files.c \
+    ../../../src/util/nss_dl_load.c \
     ../../../src/responder/common/negcache.c \
     ../../../src/responder/common/responder_cmd.c \
     ../../../src/responder/common/responder_common.c \
@@ -175,6 +176,7 @@ responder_common_tests_SOURCES =\
     ../../../src/responder/common/iface/responder_ncache.c \
     ../../../src/responder/common/iface/responder_iface_generated.c \
     ../../../src/responder/common/negcache_files.c \
+    ../../../src/util/nss_dl_load.c \
     ../../../src/responder/common/negcache.c \
     ../../../src/responder/common/data_provider/rdp_message.c \
     ../../../src/responder/common/data_provider/rdp_client.c \
@@ -189,6 +191,7 @@ responder_common_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 responder_common_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
@@ -207,6 +210,7 @@ negcache_tests_CFLAGS = \
     -DBASE_FILE_STEM=\"$(*F)\" \
     $(NULL)
 negcache_tests_LDADD = \
+    $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
