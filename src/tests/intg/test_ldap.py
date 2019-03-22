@@ -43,15 +43,6 @@ from files_ops import passwd_ops_setup, group_ops_setup
 LDAP_BASE_DN = "dc=example,dc=com"
 INTERACTIVE_TIMEOUT = 4
 
-PASSWD_USER = dict(name='passwduser', passwd='x', uid=100000, gid=2000,
-                   gecos='User for tests',
-                   dir='/home/passwduser',
-                   shell='/bin/bash')
-
-PASSWD_GROUP = dict(name='passwdgroup',
-                    gid=200000,
-                    mem=['passwduser'])
-
 
 @pytest.fixture(scope="module")
 def ds_inst(request):
@@ -1860,14 +1851,32 @@ def test_rename_incomplete_group_rdn_changed(ldap_conn, rename_setup_cleanup):
 
 
 @pytest.fixture
-def user_and_group_rfc2307_lcl(passwd_ops_setup, group_ops_setup,
-                               user_and_group_rfc2307):
-    pwd_ops = passwd_ops_setup
-    pwd_ops.useradd(**PASSWD_USER)
-    grp_ops = group_ops_setup
-    grp_ops.groupadd(**PASSWD_GROUP)
+def find_local_user_and_group():
+    f = open("/etc/passwd")
+    for line in f:
+        passwd_user = line.split(':')
+        passwd_user[2] = int(passwd_user[2])
+        if passwd_user[2] != 0:
+            break
+    f.close()
+    assert passwd_user[2] != 0
 
-    return user_and_group_rfc2307
+    f = open("/etc/group")
+    for line in f:
+        passwd_group = line.split(':')
+        passwd_group[2] = int(passwd_group[2])
+        if passwd_group[2] != 0:
+            break
+    f.close()
+    assert passwd_group[2] != 0
+
+    return (passwd_user, passwd_group)
+
+
+@pytest.fixture
+def user_and_group_rfc2307_lcl(find_local_user_and_group,
+                               user_and_group_rfc2307):
+    return find_local_user_and_group
 
 
 def test_local_negative_timeout_enabled_by_default(ldap_conn,
@@ -1879,64 +1888,53 @@ def test_local_negative_timeout_enabled_by_default(ldap_conn,
     # sanity check - try resolving an LDAP user
     ent.assert_passwd_by_name("user", dict(name="user", uid=1001, gid=2000))
 
+    passwd_user, passwd_group = user_and_group_rfc2307_lcl
+
     # resolve a user who is not in LDAP, but exists locally
-    res, _ = call_sssd_getpwnam("passwduser")
+    res, _ = call_sssd_getpwnam(passwd_user[0])
     assert res == NssReturnCode.NOTFOUND
-    res = pwd.getpwnam("passwduser")
-    assert res is not None
     # Do the same by UID
-    res, _ = call_sssd_getpwuid(100000)
+    res, _ = call_sssd_getpwuid(passwd_user[2])
     assert res == NssReturnCode.NOTFOUND
-    res = pwd.getpwuid(100000)
-    assert res is not None
 
     # Do the same for a group both by name and by ID
-    res, _ = call_sssd_getgrnam("passwdgroup")
+    res, _ = call_sssd_getgrnam(passwd_group[0])
     assert res == NssReturnCode.NOTFOUND
-    res = grp.getgrnam("passwdgroup")
-    assert res is not None
-    res, _ = call_sssd_getgrgid(200000)
+    res, _ = call_sssd_getgrgid(passwd_group[2])
     assert res == NssReturnCode.NOTFOUND
-    res = grp.getgrgid(200000)
-    assert res is not None
 
     # add the user and the group to LDAP
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
-    ent_list.add_user("passwduser", 100000, 2000)
-    ent_list.add_group("passwdgroup", 200000)
+    ent_list.add_user(passwd_user[0], passwd_user[2], 2000)
+    ent_list.add_group(passwd_group[0], passwd_group[2])
     create_ldap_entries(ldap_conn, ent_list)
 
-    # Make sure the negative cache expired
+    # Make sure the negative cache would expire if global timeout was used
     time.sleep(2)
 
     # The user is now negatively cached and can't be resolved by either
     # name or UID
-    res, _ = call_sssd_getpwnam("passwduser")
+    res, _ = call_sssd_getpwnam(passwd_group[0])
     assert res == NssReturnCode.NOTFOUND
-    res, _ = call_sssd_getpwuid(100000)
+    res, _ = call_sssd_getpwuid(passwd_group[2])
     assert res == NssReturnCode.NOTFOUND
 
-    res, _ = call_sssd_getgrnam("passwdgroup")
+    res, _ = call_sssd_getgrnam(passwd_group[0])
     assert res == NssReturnCode.NOTFOUND
-    res, _ = call_sssd_getgrgid(200000)
+    res, _ = call_sssd_getgrgid(passwd_group[2])
     assert res == NssReturnCode.NOTFOUND
 
     cleanup_ldap_entries(ldap_conn, ent_list)
 
 
 @pytest.fixture
-def usr_and_grp_rfc2307_no_local_ncache(request, passwd_ops_setup,
-                                        group_ops_setup, ldap_conn):
+def usr_and_grp_rfc2307_no_local_ncache(request, find_local_user_and_group,
+                                        ldap_conn):
     """
     Create an RFC2307 directory fixture with interactive SSSD conf,
     one user and one group but with the local negative timeout
     disabled
     """
-    pwd_ops = passwd_ops_setup
-    pwd_ops.useradd(**PASSWD_USER)
-    grp_ops = group_ops_setup
-    grp_ops.groupadd(**PASSWD_GROUP)
-
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user", 1001, 2000)
     ent_list.add_group("group", 2001)
@@ -1948,7 +1946,7 @@ def usr_and_grp_rfc2307_no_local_ncache(request, passwd_ops_setup,
         """)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
-    return None
+    return find_local_user_and_group
 
 
 def test_local_negative_timeout_disabled(ldap_conn,
@@ -1960,46 +1958,40 @@ def test_local_negative_timeout_disabled(ldap_conn,
     # sanity check - try resolving an LDAP user
     ent.assert_passwd_by_name("user", dict(name="user", uid=1001, gid=2000))
 
+    passwd_user, passwd_group = usr_and_grp_rfc2307_no_local_ncache
+
     # resolve a user who is not in LDAP, but exists locally
-    res, _ = call_sssd_getpwnam("passwduser")
+    res, _ = call_sssd_getpwnam(passwd_user[0])
     assert res == NssReturnCode.NOTFOUND
-    res = pwd.getpwnam("passwduser")
-    assert res is not None
     # Do the same by UID
-    res, _ = call_sssd_getpwuid(100000)
+    res, _ = call_sssd_getpwuid(passwd_user[2])
     assert res == NssReturnCode.NOTFOUND
-    res = pwd.getpwuid(100000)
-    assert res is not None
 
     # Do the same for a group both by name and by ID
-    res, _ = call_sssd_getgrnam("passwdgroup")
+    res, _ = call_sssd_getgrnam(passwd_group[0])
     assert res == NssReturnCode.NOTFOUND
-    res = grp.getgrnam("passwdgroup")
-    assert res is not None
-    res, _ = call_sssd_getgrgid(200000)
+    res, _ = call_sssd_getgrgid(passwd_group[2])
     assert res == NssReturnCode.NOTFOUND
-    res = grp.getgrgid(200000)
-    assert res is not None
 
     # add the user and the group to LDAP
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
-    ent_list.add_user("passwduser", 100000, 2000)
-    ent_list.add_group("passwdgroup", 200000)
+    ent_list.add_user(passwd_user[0], passwd_user[2], 2000)
+    ent_list.add_group(passwd_group[0], passwd_group[2])
     create_ldap_entries(ldap_conn, ent_list)
 
     # Make sure the negative cache expired
     time.sleep(2)
 
     # The user can now be resolved
-    res, _ = call_sssd_getpwnam("passwduser")
+    res, _ = call_sssd_getpwnam(passwd_user[0])
     assert res == NssReturnCode.SUCCESS
     # Do the same by UID
-    res, _ = call_sssd_getpwuid(100000)
+    res, _ = call_sssd_getpwuid(passwd_user[2])
     assert res == NssReturnCode.SUCCESS
 
-    res, _ = call_sssd_getgrnam("passwdgroup")
+    res, _ = call_sssd_getgrnam(passwd_group[0])
     assert res == NssReturnCode.SUCCESS
-    res, _ = call_sssd_getgrgid(200000)
+    res, _ = call_sssd_getgrgid(passwd_group[2])
     assert res == NssReturnCode.SUCCESS
 
     cleanup_ldap_entries(ldap_conn, ent_list)
