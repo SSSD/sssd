@@ -73,26 +73,6 @@ SSSD_RESPONDER_IFACE_OBJ = \
     ../../../src/responder/common/iface/responder_iface_generated.c \
     $(NULL)
 
-SSSD_RESPONDER_OBJ = \
-    ../../../src/responder/common/negcache_files.c \
-    ../../../src/util/nss_dl_load.c \
-    ../../../src/responder/common/negcache.c \
-    ../../../src/responder/common/responder_cmd.c \
-    ../../../src/responder/common/responder_common.c \
-    ../../../src/responder/common/responder_dp.c \
-    ../../../src/responder/common/responder_dp_ssh.c \
-    ../../../src/responder/common/responder_packet.c \
-    ../../../src/responder/common/responder_get_domains.c \
-    ../../../src/responder/common/responder_utils.c \
-    ../../../src/responder/common/data_provider/rdp_message.c \
-    ../../../src/responder/common/data_provider/rdp_client.c \
-    ../../../src/monitor/monitor_iface_generated.c \
-    ../../../src/providers/data_provider_req.c \
-    ../../../src/util/session_recording.c \
-    $(SSSD_RESPONDER_IFACE_OBJ) \
-    $(SSSD_CACHE_REQ_OBJ) \
-    $(NULL)
-
 dist_noinst_DATA = \
     group \
     passwd \
@@ -107,7 +87,6 @@ check_PROGRAMS += \
     server-tests \
     usertools-tests \
     responder_common-tests \
-    negcache-tests \
     $(NULL)
 endif # HAVE_UID_WRAPPER
 endif # HAVE_NSS_WRAPPER
@@ -191,25 +170,6 @@ responder_common_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 responder_common_tests_LDADD = \
-    $(LIBADD_DL) \
-    $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    $(SELINUX_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
-    $(abs_top_builddir)/libsss_util.la \
-    $(abs_top_builddir)/libsss_debug.la \
-    $(abs_top_builddir)/libsss_test_common.la \
-    $(NULL)
-
-negcache_tests_SOURCES =\
-    $(SSSD_RESPONDER_OBJ) \
-    test_negcache.c \
-    $(NULL)
-negcache_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DBASE_FILE_STEM=\"$(*F)\" \
-    $(NULL)
-negcache_tests_LDADD = \
     $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
