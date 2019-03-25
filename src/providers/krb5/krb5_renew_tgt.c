@@ -413,7 +413,9 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
     ret = sysdb_search_entry(tmp_ctx, renew_tgt_ctx->be_ctx->domain->sysdb, base_dn,
                              LDB_SCOPE_SUBTREE, ccache_filter, ccache_attrs,
                              &msgs_count, &msgs);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        msgs_count = 0; /* Fall through */
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry failed.\n");
         goto done;
     }
