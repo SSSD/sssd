@@ -30,7 +30,7 @@ success-or-die() {
 cd $sssd_source
 
 echo "[1/1] Running Continuous Integration Tests"
-./contrib/ci/run
+./contrib/ci/run --moderate
 success-or-die $? "CI Failed!"
 
 archive-artifacts
