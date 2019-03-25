@@ -913,8 +913,14 @@ int sss_pam_make_request(enum sss_cli_command cmd,
     /* only root shall use the privileged pipe */
     if (getuid() == 0 && getgid() == 0) {
         socket_name = SSS_PAM_PRIV_SOCKET_NAME;
+        errno = 0;
         statret = stat(socket_name, &stat_buf);
         if (statret != 0) {
+            if (errno == ENOENT) {
+                *errnop = ESSS_NO_SOCKET;
+            } else {
+                *errnop = ESSS_SOCKET_STAT_ERROR;
+            }
             ret = PAM_SERVICE_ERR;
             goto out;
         }
@@ -928,8 +934,14 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         }
     } else {
         socket_name = SSS_PAM_SOCKET_NAME;
+        errno = 0;
         statret = stat(socket_name, &stat_buf);
         if (statret != 0) {
+            if (errno == ENOENT) {
+                *errnop = ESSS_NO_SOCKET;
+            } else {
+                *errnop = ESSS_SOCKET_STAT_ERROR;
+            }
             ret = PAM_SERVICE_ERR;
             goto out;
         }
@@ -1074,6 +1086,12 @@ const char *ssscli_err2string(int err)
             break;
         case ESSS_SERVER_NOT_TRUSTED:
             return _("SSSD is not run by root.");
+            break;
+        case ESSS_NO_SOCKET:
+            return _("SSSD socket does not exist.");
+            break;
+        case ESSS_SOCKET_STAT_ERROR:
+            return _("Cannot get stat of SSSD socket.");
             break;
         default:
             m = strerror(err);

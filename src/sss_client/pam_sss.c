@@ -1304,10 +1304,20 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
     }
 
     if (ret != PAM_SUCCESS) {
-        if (errnop != 0) {
-            logger(pamh, LOG_ERR, "Request to sssd failed. %s", ssscli_err2string(errnop));
+        /* If there is no PAM responder socket during the access control step
+         * we assume this is on purpose, i.e. PAM responder is not configured.
+         * PAM_USER_UNKNOWN is returned to the PAM stack to avoid unexpected
+         * denials. */
+        if (errnop == ESSS_NO_SOCKET && task == SSS_PAM_ACCT_MGMT) {
+            pam_status = PAM_USER_UNKNOWN;
+        } else {
+            if (errnop != 0 && errnop != ESSS_NO_SOCKET) {
+                logger(pamh, LOG_ERR, "Request to sssd failed. %s",
+                                      ssscli_err2string(errnop));
+            }
+
+            pam_status = PAM_AUTHINFO_UNAVAIL;
         }
-        pam_status = PAM_AUTHINFO_UNAVAIL;
         goto done;
     }
 

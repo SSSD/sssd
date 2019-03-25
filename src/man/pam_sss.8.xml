@@ -256,6 +256,10 @@ auth sufficient pam_sss.so allow_missing_name
         <para>All module types (<option>account</option>, <option>auth</option>,
         <option>password</option> and <option>session</option>) are provided.
         </para>
+        <para>If SSSD's PAM responder is not running, e.g. if the PAM responder
+        socket is not available, pam_sss will return PAM_USER_UNKNOWN when
+        called as <option>account</option> module to avoid issues with users
+        from other sources during access control.</para>
     </refsect1>
 
     <refsect1 id='files'>
