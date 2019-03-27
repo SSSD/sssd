@@ -348,4 +348,39 @@ errno_t sss_authtok_get_sc(struct sss_auth_token *tok,
                            const char **_token_name, size_t *_token_name_len,
                            const char **_module_name, size_t *_module_name_len,
                            const char **_key_id, size_t *_key_id_len);
+
+
+/**
+ * @brief Returns a const string if the auth token is of type
+          SSS_AUTHTOK_TYPE_2FA_SINGLE, otherwise it returns an error
+ *
+ * @param tok    A pointer to an sss_auth_token
+ * @param pwd    A pointer to a const char *, that will point to a null
+ *               terminated string
+ * @param len    The length of the credential string
+ *
+ * @return       EOK on success
+ *               ENOENT if the token is empty
+ *               EACCESS if the token is not a password token
+ */
+errno_t sss_authtok_get_2fa_single(struct sss_auth_token *tok,
+                                   const char **str, size_t *len);
+
+/**
+ * @brief Set a 2FA credentials in a single strings  into an auth token,
+ *        replacing any previous data
+ *
+ * @param tok        A pointer to an sss_auth_token structure to change, also
+ *                   used as a memory context to allocate the internal data.
+ * @param password   A string where the two authentication factors are
+ *                   concatenated together
+ * @param len        The length of the string or, if 0 is passed,
+ *                   then strlen(password) will be used internally.
+ *
+ * @return       EOK on success
+ *               ENOMEM on error
+ */
+errno_t sss_authtok_set_2fa_single(struct sss_auth_token *tok,
+                                   const char *str, size_t len);
+
 #endif /*  __AUTHTOK_H__ */
