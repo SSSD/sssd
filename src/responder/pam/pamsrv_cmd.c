@@ -1003,6 +1003,14 @@ static void pam_reply(struct pam_auth_req *preq)
         }
     }
 
+    if (pd->cmd == SSS_PAM_PREAUTH) {
+        ret = pam_eval_prompting_config(pctx, pd);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add prompting information, "
+                                     "using defaults.\n");
+        }
+    }
+
     /*
      * Export non-overridden shell to tlog-rec-session when opening the session
      */
