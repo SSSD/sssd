@@ -241,6 +241,7 @@ if HAVE_CMOCKA
         test-negcache \
         negcache_2-tests \
         test-authtok \
+        test_prompt_config \
         sss_nss_idmap-tests \
         deskprofile_utils-tests \
         dyndns-tests \
@@ -2910,6 +2911,21 @@ test_authtok_LDADD = \
     libsss_debug.la \
     $(NULL)
 
+test_prompt_config_SOURCES = \
+    src/tests/cmocka/test_prompt_config.c \
+    src/sss_client/pam_sss_prompt_config.c \
+    $(NULL)
+test_prompt_config_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(NULL)
+test_prompt_config_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    libsss_debug.la \
+    $(TALLOC_LIBS) \
+    $(NULL)
+
 sss_nss_idmap_tests_SOURCES = \
     src/tests/cmocka/sss_nss_idmap-tests.c
 sss_nss_idmap_tests_CFLAGS = \
@@ -4089,6 +4105,7 @@ endif
 pamlib_LTLIBRARIES = pam_sss.la
 pam_sss_la_SOURCES = \
     src/sss_client/pam_sss.c \
+    src/sss_client/pam_sss_prompt_config.c \
     src/sss_client/pam_message.c \
     src/sss_client/common.c \
     src/sss_client/sss_cli.h \
