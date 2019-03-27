@@ -197,6 +197,9 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
     free_cert_list(pi->cert_list);
     pi->cert_list = NULL;
     pi->selected_cert = NULL;
+
+    pc_list_free(pi->pc);
+    pi->pc = NULL;
 }
 
 static int null_strcmp(const char *s1, const char *s2) {
@@ -1155,6 +1158,16 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 D(("Password prompting available."));
                 pi->password_prompting = true;
                 break;
+            case SSS_PAM_PROMPT_CONFIG:
+                if (pi->pc == NULL) {
+                    ret = pc_list_from_response(len, &buf[p], &pi->pc);
+                    if (ret != EOK) {
+                        D(("Failed to parse prompting data, using defaults"));
+                        pc_list_free(pi->pc);
+                        pi->pc = NULL;
+                    }
+                }
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -1247,6 +1260,8 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
 
     pi->cert_list = NULL;
     pi->selected_cert = NULL;
+
+    pi->pc = NULL;
 
     pi->flags = flags;
 
@@ -1561,6 +1576,37 @@ done:
     }
 
     return ret;
+}
+
+static int prompt_2fa_single(pam_handle_t *pamh, struct pam_items *pi,
+                             const char *prompt)
+{
+    int ret;
+    char *answer = NULL;
+
+    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt, NULL, &answer);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return ret;
+    }
+
+    if (answer == NULL) {
+        pi->pam_authtok = NULL;
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+        pi->pam_authtok_size=0;
+    } else {
+        pi->pam_authtok = strdup(answer);
+        _pam_overwrite((void *)answer);
+        free(answer);
+        answer=NULL;
+        if (pi->pam_authtok == NULL) {
+            return PAM_BUF_ERR;
+        }
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_2FA_SINGLE;
+        pi->pam_authtok_size=strlen(pi->pam_authtok);
+    }
+
+    return PAM_SUCCESS;
 }
 
 #define SC_PROMPT_FMT "PIN for %s"
@@ -2023,6 +2069,48 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
     return;
 }
 
+static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
+{
+    size_t c;
+    int ret;
+
+    if (pi->pc == NULL || *pi->pc == NULL) {
+        return EINVAL;
+    }
+
+    for (c = 0; pi->pc[c] != NULL; c++) {
+        switch (pc_get_type(pi->pc[c])) {
+        case PC_TYPE_PASSWORD:
+            ret = prompt_password(pamh, pi, pc_get_password_prompt(pi->pc[c]));
+            break;
+        case PC_TYPE_2FA:
+            ret = prompt_2fa(pamh, pi, pc_get_2fa_1st_prompt(pi->pc[c]),
+                             pc_get_2fa_2nd_prompt(pi->pc[c]));
+            break;
+        case PC_TYPE_2FA_SINGLE:
+            ret = prompt_2fa_single(pamh, pi,
+                                    pc_get_2fa_single_prompt(pi->pc[c]));
+            break;
+        case PC_TYPE_SC_PIN:
+            ret = prompt_sc_pin(pamh, pi);
+            /* Todo: add extra string option */
+            break;
+        default:
+            ret = EINVAL;
+        }
+
+        /* If not credential where given try the next type otherwise we are
+         * done. */
+        if (ret == PAM_SUCCESS && pi->pam_authtok_size == 0) {
+            continue;
+        }
+
+        break;
+    }
+
+    return ret;
+}
+
 static int get_authtok_for_authentication(pam_handle_t *pamh,
                                           struct pam_items *pi,
                                           uint32_t flags)
@@ -2041,30 +2129,34 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
         }
         pi->pam_authtok_size = strlen(pi->pam_authtok);
     } else {
-        if (flags & PAM_CLI_FLAGS_USE_2FA
-                || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
-                        && pi->otp_challenge != NULL)) {
-            if (pi->password_prompting) {
-                ret = prompt_2fa(pamh, pi, _("First Factor: "),
-                                 _("Second Factor (optional): "));
-            } else {
-                ret = prompt_2fa(pamh, pi, _("First Factor: "),
-                                 _("Second Factor: "));
-            }
-        } else if (pi->cert_list != NULL) {
-            if (pi->cert_list->next == NULL) {
-                /* Only one certificate */
-                pi->selected_cert = pi->cert_list;
-            } else {
-                ret = prompt_multi_cert(pamh, pi);
-                if (ret != 0) {
-                    D(("Failed to select certificate"));
-                    return PAM_AUTHTOK_ERR;
-                }
-            }
-            ret = prompt_sc_pin(pamh, pi);
+        if (pi->pc != NULL) {
+            ret = prompt_by_config(pamh, pi);
         } else {
-            ret = prompt_password(pamh, pi, _("Password: "));
+            if (flags & PAM_CLI_FLAGS_USE_2FA
+                    || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
+                            && pi->otp_challenge != NULL)) {
+                if (pi->password_prompting) {
+                    ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                                     _("Second Factor (optional): "));
+                } else {
+                    ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                                     _("Second Factor: "));
+                }
+            } else if (pi->cert_list != NULL) {
+                if (pi->cert_list->next == NULL) {
+                    /* Only one certificate */
+                    pi->selected_cert = pi->cert_list;
+                } else {
+                    ret = prompt_multi_cert(pamh, pi);
+                    if (ret != 0) {
+                        D(("Failed to select certificate"));
+                        return PAM_AUTHTOK_ERR;
+                    }
+                }
+                ret = prompt_sc_pin(pamh, pi);
+            } else {
+                ret = prompt_password(pamh, pi, _("Password: "));
+            }
         }
         if (ret != PAM_SUCCESS) {
             D(("failed to get password from user"));

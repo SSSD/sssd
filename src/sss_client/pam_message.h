@@ -65,6 +65,8 @@ struct pam_items {
     bool user_name_hint;
     struct cert_auth_info *cert_list;
     struct cert_auth_info *selected_cert;
+
+    struct prompt_config **pc;
 };
 
 int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer);
