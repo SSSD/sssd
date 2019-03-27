@@ -41,6 +41,7 @@ size_t sss_authtok_get_size(struct sss_auth_token *tok)
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         return tok->length;
     case SSS_AUTHTOK_TYPE_EMPTY:
         return 0;
@@ -76,6 +77,7 @@ errno_t sss_authtok_get_password(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         return EACCES;
     }
 
@@ -101,6 +103,33 @@ errno_t sss_authtok_get_ccfile(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
+        return EACCES;
+    }
+
+    return EINVAL;
+}
+
+errno_t sss_authtok_get_2fa_single(struct sss_auth_token *tok,
+                                   const char **str, size_t *len)
+{
+    if (!tok) {
+        return EINVAL;
+    }
+    switch (tok->type) {
+    case SSS_AUTHTOK_TYPE_EMPTY:
+        return ENOENT;
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
+        *str = (const char *)tok->data;
+        if (len) {
+            *len = tok->length - 1;
+        }
+        return EOK;
+    case SSS_AUTHTOK_TYPE_PASSWORD:
+    case SSS_AUTHTOK_TYPE_2FA:
+    case SSS_AUTHTOK_TYPE_SC_PIN:
+    case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_CCFILE:
         return EACCES;
     }
 
@@ -151,6 +180,7 @@ void sss_authtok_set_empty(struct sss_auth_token *tok)
     case SSS_AUTHTOK_TYPE_PASSWORD:
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         safezero(tok->data, tok->length);
         break;
     case SSS_AUTHTOK_TYPE_CCFILE:
@@ -181,6 +211,15 @@ errno_t sss_authtok_set_ccfile(struct sss_auth_token *tok,
                                   "ccfile", ccfile, len);
 }
 
+errno_t sss_authtok_set_2fa_single(struct sss_auth_token *tok,
+                                   const char *str, size_t len)
+{
+    sss_authtok_set_empty(tok);
+
+    return sss_authtok_set_string(tok, SSS_AUTHTOK_TYPE_2FA_SINGLE,
+                                  "2fa_single", str, len);
+}
+
 static errno_t sss_authtok_set_2fa_from_blob(struct sss_auth_token *tok,
                                              const uint8_t *data, size_t len);
 
@@ -199,6 +238,8 @@ errno_t sss_authtok_set(struct sss_auth_token *tok,
         return sss_authtok_set_sc_from_blob(tok, data, len);
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
         return sss_authtok_set_sc_from_blob(tok, data, len);
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
+        return sss_authtok_set_2fa_single(tok, (const char *) data, len);
     case SSS_AUTHTOK_TYPE_EMPTY:
         sss_authtok_set_empty(tok);
         return EOK;
@@ -566,6 +607,7 @@ errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **_pin,
     case SSS_AUTHTOK_TYPE_CCFILE:
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
         return EACCES;
     }
 

@@ -652,6 +652,49 @@ void test_sss_authtok_sc_pin(void **state)
     assert_int_equal(ret, EFAULT);
 }
 
+/* Test when type has value SSS_AUTHTOK_TYPE_2FA_SINGLE */
+static void test_sss_authtok_2fa_single(void **state)
+{
+    size_t len;
+    errno_t ret;
+    char *data;
+    size_t ret_len;
+    const char *pwd;
+    struct test_state *ts;
+    enum sss_authtok_type type;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+    data = talloc_strdup(ts, "1stfacto2ndfactor");
+    assert_non_null(data);
+
+    len = strlen(data) + 1;
+    type = SSS_AUTHTOK_TYPE_2FA_SINGLE;
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
+
+    assert_int_equal(ret, EOK);
+    assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
+    assert_int_equal(len, sss_authtok_get_size(ts->authtoken));
+    assert_string_equal(data, sss_authtok_get_data(ts->authtoken));
+
+    ret = sss_authtok_get_2fa_single(ts->authtoken, &pwd, &ret_len);
+
+    assert_int_equal(ret, EOK);
+    assert_string_equal(data, pwd);
+    assert_int_equal(len - 1, ret_len);
+
+    ret = sss_authtok_set_2fa_single(ts->authtoken, data, len);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_authtok_get_2fa_single(ts->authtoken, &pwd, &ret_len);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(data, pwd);
+    assert_int_equal(len - 1, ret_len);
+
+    talloc_free(data);
+    sss_authtok_set_empty(ts->authtoken);
+}
+
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -686,6 +729,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_authtok_sc_pin,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_authtok_sc_blobs,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_2fa_single,
                                         setup, teardown),
     };
 
