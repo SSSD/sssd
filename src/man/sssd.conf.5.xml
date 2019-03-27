@@ -3579,6 +3579,72 @@ ldap_user_extra_attrs = phone:telephoneNumber
         </para>
     </refsect1>
 
+    <refsect1 id='prompting_configuration'>
+        <title>PROMPTING CONFIGURATION SECTION</title>
+        <para>
+            If a special file
+            (<filename>/var/lib/sss/pubconf/pam_preauth_available</filename>)
+            exists SSSD's PAM module pam_sss will ask SSSD to figure out which
+            authentication methods are available for the user trying to log in.
+            Based on the results pam_sss will prompt the user for appropriate
+            credentials.
+        </para>
+        <para>
+            With the growing number of authentication methods and the
+            possibility that there are multiple ones for a single user the
+            heuristic used by pam_sss to select the prompting might not be
+            suitable for all use cases. To following options should provide a
+            better flexibility here.
+        </para>
+        <para>
+            Each supported authentication method has it's own configuration
+            sub-section under <quote>[prompting/...]</quote>. Currently there
+            are:
+        <variablelist>
+            <varlistentry>
+                <term>[prompting/password]</term>
+                <listitem>
+                    <para>to configure password prompting, allowed options are:
+                    <variablelist><varlistentry><term>password_prompt</term>
+                        <listitem><para>to change the string of the password
+                        prompt</para></listitem></varlistentry></variablelist>
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+        <variablelist>
+            <varlistentry>
+                <term>[prompting/2fa]</term>
+                <listitem>
+                    <para>to configure two-factor authentication prompting,
+                    allowed options are:
+                    <variablelist><varlistentry><term>first_prompt</term>
+                        <listitem><para>to change the string of the prompt for
+                        the first factor </para></listitem>
+                        </varlistentry>
+                        <varlistentry><term>second_prompt</term>
+                        <listitem><para>to change the string of the prompt for
+                        the second factor </para></listitem>
+                        </varlistentry>
+                        <varlistentry><term>single_prompt</term>
+                        <listitem><para>boolean value, if True there will be
+                        only a single prompt using the value of first_prompt
+                        where it is expected that both factor are entered as a
+                        single string</para></listitem>
+                        </varlistentry>
+                    </variablelist>
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+        </para>
+        <para>
+            It is possible to add a sub-section for specific PAM services like
+            e.g. <quote>[prompting/password/sshd]</quote> to individual change
+            the prompting for this service.
+        </para>
+    </refsect1>
+
     <refsect1 id='example'>
         <title>EXAMPLES</title>
         <para>

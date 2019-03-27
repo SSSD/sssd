@@ -1589,8 +1589,13 @@ sssd_pam_SOURCES = \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_dp.c \
+    src/responder/pam/pam_prompting_config.c \
+    src/sss_client/pam_sss_prompt_config.c \
     src/responder/pam/pam_helpers.c \
     $(SSSD_RESPONDER_OBJ)
+sssd_pam_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
 sssd_pam_LDADD = \
     $(LIBADD_DL) \
     $(TDB_LIBS) \
@@ -2721,6 +2726,8 @@ pam_srv_tests_SOURCES = \
     src/responder/pam/pam_helpers.c \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pam_LOCAL_domain.c \
+    src/responder/pam/pam_prompting_config.c \
+    src/sss_client/pam_sss_prompt_config.c \
     $(NULL)
 pam_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \

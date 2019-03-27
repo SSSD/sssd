@@ -51,6 +51,9 @@ struct pam_ctx {
     char *nss_db;
     struct sss_certmap_ctx *sss_certmap_ctx;
     char **smartcard_services;
+
+    char **prompting_config_sections;
+    int num_prompting_config_sections;
 };
 
 struct pam_auth_req {
@@ -126,4 +129,7 @@ pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,
 errno_t filter_responses(struct confdb_ctx *cdb,
                          struct response_data *resp_list,
                          struct pam_data *pd);
+
+errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd);
+
 #endif /* __PAMSRV_H__ */
