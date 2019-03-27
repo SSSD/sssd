@@ -481,6 +481,9 @@ enum response_type {
     SSS_PAM_CERT_INFO_WITH_HINT, /**< Same as SSS_PAM_CERT_INFO but user name
                                   * might be missing and should be prompted
                                   * for. */
+    SSS_PAM_PROMPT_CONFIG, /**< Contains data which controls which credentials
+                            * are expected and how the user is prompted for
+                            * them. */
 };
 
 /**
