@@ -340,6 +340,9 @@ enum sss_authtok_type {
                                           * Smart Card authentication is used
                                           * and that the PIN will be entered
                                           * at the card reader. */
+    SSS_AUTHTOK_TYPE_2FA_SINGLE = 0x0006, /**< Authentication token has two
+                                           * factors in a single string, it may
+                                           * or may no contain a trailing \\0 */
 };
 
 /**

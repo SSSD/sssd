@@ -506,6 +506,15 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
 
         return tokeninfo_matches_pwd(mem_ctx, ti, pwd, len, out_token, out_pin);
         break;
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
+        ret = sss_authtok_get_2fa_single(auth_tok, &pwd, &len);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_password failed.\n");
+            return ret;
+        }
+
+        return tokeninfo_matches_pwd(mem_ctx, ti, pwd, len, out_token, out_pin);
+        break;
     case SSS_AUTHTOK_TYPE_2FA:
         ret = sss_authtok_get_2fa(auth_tok, &pwd, &len, &fa2, &fa2_len);
         if (ret != EOK) {
@@ -2108,6 +2117,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
     /* No password is needed for pre-auth or if we have 2FA or SC */
     if (kr->pd->cmd != SSS_PAM_PREAUTH
             && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_2FA
+            && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_2FA_SINGLE
             && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_SC_PIN
             && sss_authtok_get_type(kr->pd->authtok)
                                                 != SSS_AUTHTOK_TYPE_SC_KEYPAD) {
@@ -2365,6 +2375,9 @@ static errno_t unpack_authtok(struct sss_auth_token *tok,
         break;
     case SSS_AUTHTOK_TYPE_CCFILE:
         ret = sss_authtok_set_ccfile(tok, (char *)(buf + *p), 0);
+        break;
+    case SSS_AUTHTOK_TYPE_2FA_SINGLE:
+        ret = sss_authtok_set_2fa_single(tok, (char *)(buf + *p), 0);
         break;
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
