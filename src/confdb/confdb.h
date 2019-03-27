@@ -266,6 +266,16 @@
 #define CONFDB_KCM_SOCKET "socket_path"
 #define CONFDB_KCM_DB "ccache_storage" /* Undocumented on purpose */
 
+/* Prompting */
+#define CONFDB_PC_CONF_ENTRY "config/prompting"
+#define CONFDB_PC_TYPE_PASSWORD "password"
+#define CONFDB_PC_PASSWORD_PROMPT "password_prompt"
+#define CONFDB_PC_TYPE_2FA "2fa"
+#define CONFDB_PC_2FA_SINGLE_PROMPT "single_prompt"
+#define CONFDB_PC_2FA_1ST_PROMPT "first_prompt"
+#define CONFDB_PC_2FA_2ND_PROMPT "second_prompt"
+#define CONFDB_PC_TYPE_CERT_AUTH "cert_auth"
+
 struct confdb_ctx;
 struct config_file_ctx;
 
