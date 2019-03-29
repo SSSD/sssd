@@ -30,11 +30,81 @@ import time
 import shutil
 
 import config
+import intg.ds_openldap
 
 import pytest
 
 from intg.util import unindent
 from intg.files_ops import passwd_ops_setup
+
+LDAP_BASE_DN = "dc=example,dc=com"
+
+
+@pytest.fixture(scope="module")
+def ad_inst(request):
+    """Fake AD server instance fixture"""
+    instance = intg.ds_openldap.FakeAD(
+        config.PREFIX, 10389, LDAP_BASE_DN,
+        "cn=admin", "Secret123"
+    )
+
+    try:
+        instance.setup()
+    except:
+        instance.teardown()
+        raise
+    request.addfinalizer(instance.teardown)
+    return instance
+
+
+@pytest.fixture(scope="module")
+def ldap_conn(request, ad_inst):
+    """LDAP server connection fixture"""
+    ldap_conn = ad_inst.bind()
+    ldap_conn.ad_inst = ad_inst
+    request.addfinalizer(ldap_conn.unbind_s)
+    return ldap_conn
+
+
+def format_basic_conf(ldap_conn):
+    """Format a basic SSSD configuration"""
+    return unindent("""\
+        [sssd]
+        domains = FakeAD
+        services = pam, nss
+
+        [nss]
+
+        [pam]
+        debug_level = 10
+
+        [domain/FakeAD]
+        debug_level = 10
+        ldap_search_base = {ldap_conn.ad_inst.base_dn}
+        ldap_referrals = false
+
+        id_provider = ldap
+        auth_provider = ldap
+        chpass_provider = ldap
+        access_provider = ldap
+
+        ldap_uri = {ldap_conn.ad_inst.ldap_url}
+        ldap_default_bind_dn = {ldap_conn.ad_inst.admin_dn}
+        ldap_default_authtok_type = password
+        ldap_default_authtok = {ldap_conn.ad_inst.admin_pw}
+
+        ldap_schema = ad
+        ldap_id_mapping = true
+        ldap_idmap_default_domain_sid = S-1-5-21-1305200397-2901131868-73388776
+        case_sensitive = False
+
+        [prompting/password]
+        password_prompt = My global prompt
+
+        [prompting/password/pam_sss_alt_service]
+        password_prompt = My alt service prompt
+    """).format(**locals())
+
 
 USER1 = dict(name='user1', passwd='x', uid=10001, gid=20001,
              gecos='User for tests',
@@ -218,6 +288,66 @@ def test_preauth_indicator(simple_pam_cert_auth):
     """Check if preauth indicator file is created"""
     statinfo = os.stat(config.PUBCONF_PATH + "/pam_preauth_available")
     assert stat.S_ISREG(statinfo.st_mode)
+
+
+@pytest.fixture
+def pam_prompting_config(request, ldap_conn):
+    """Setup SSSD with PAM prompting config"""
+    conf = format_basic_conf(ldap_conn)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_password_prompting_config_global(ldap_conn, pam_prompting_config,
+                                          env_for_sssctl):
+    """Check global change of the password prompt"""
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1_dom1-19661",
+                               "--action=auth", "--service=pam_sss_service"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="111")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("My global prompt") != -1
+
+
+def test_password_prompting_config_srv(ldap_conn, pam_prompting_config,
+                                       env_for_sssctl):
+    """Check change of the password prompt for dedicated service"""
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "user1_dom1-19661",
+                               "--action=auth",
+                               "--service=pam_sss_alt_service"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="111")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("My alt service prompt") != -1
 
 
 @pytest.fixture
