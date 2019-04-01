@@ -221,3 +221,16 @@
    fun:set_default_locale
    fun:main
 }
+
+# glibc nsswitch (getpwuid) leak
+# Seems to be affecting Fedora < F28
+{
+   glibc-nss-getpwuid
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:getpwuid_r@@GLIBC_2.2.5
+   fun:getpwuid
+   ...
+   fun:main
+}
