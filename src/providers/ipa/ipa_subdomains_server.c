@@ -481,7 +481,7 @@ static void ipa_getkeytab_exec(const char *ccache,
 {
     errno_t ret;
     int debug_fd;
-    const char *gkt_env[2] = { NULL, NULL };
+    const char *gkt_env[3] = { NULL, "_SSS_LOOPS=NO", NULL };
 
     if (debug_level >= SSSDBG_TRACE_LIBS) {
         debug_fd = get_fd_from_debug_file();
