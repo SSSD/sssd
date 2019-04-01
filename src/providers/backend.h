@@ -39,11 +39,6 @@ struct be_ctx;
 
 typedef void (*be_callback_t)(void *);
 
-struct be_offline_status {
-    time_t went_offline;
-    bool offline;
-};
-
 struct be_resolv_ctx {
     struct resolv_ctx *resolv;
     struct dp_option *opts;
@@ -104,7 +99,7 @@ struct be_ctx {
      * reset timers independently of the state of the backend. */
     struct be_cb *unconditional_online_cb_list;
 
-    struct be_offline_status offstat;
+    bool offline;
     /* Periodicly check if we can go online. */
     struct be_ptask *check_if_online_ptask;
 

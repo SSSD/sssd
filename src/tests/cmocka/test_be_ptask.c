@@ -50,13 +50,11 @@ struct test_ctx {
 };
 
 #define mark_online(test_ctx) do { \
-    test_ctx->be_ctx->offstat.went_offline = 0; \
-    test_ctx->be_ctx->offstat.offline = false; \
+    test_ctx->be_ctx->offline = false; \
 } while (0)
 
 #define mark_offline(test_ctx) do { \
-    test_ctx->be_ctx->offstat.went_offline = get_current_time(); \
-    test_ctx->be_ctx->offstat.offline = true; \
+    test_ctx->be_ctx->offline = true; \
 } while (0)
 
 /* Since both test_ctx->done and ptask->req is marked as finished already
@@ -82,7 +80,7 @@ static time_t get_current_time(void)
 
 bool be_is_offline(struct be_ctx *ctx)
 {
-    return ctx->offstat.offline;
+    return ctx->offline;
 }
 
 int be_add_online_cb(TALLOC_CTX *mem_ctx,

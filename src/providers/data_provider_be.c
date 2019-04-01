@@ -74,7 +74,7 @@ data_provider_logrotate(TALLOC_CTX *mem_ctx,
 
 bool be_is_offline(struct be_ctx *ctx)
 {
-    return ctx->offstat.offline;
+    return ctx->offline;
 }
 
 static void check_if_online(struct be_ctx *be_ctx, int delay);
@@ -117,8 +117,7 @@ void be_mark_offline(struct be_ctx *ctx)
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Going offline!\n");
 
-    ctx->offstat.went_offline = time(NULL);
-    ctx->offstat.offline = true;
+    ctx->offline = true;
     ctx->run_online_cb = true;
 
     if (ctx->check_if_online_ptask == NULL) {
@@ -223,8 +222,7 @@ static void reactivate_subdoms(struct sss_domain_info *head)
 
 static void be_reset_offline(struct be_ctx *ctx)
 {
-    ctx->offstat.went_offline = 0;
-    ctx->offstat.offline = false;
+    ctx->offline = false;
     ctx->run_offline_cb = true;
 
     reactivate_subdoms(ctx->domain);
@@ -239,7 +237,6 @@ static errno_t be_check_online_request(struct be_ctx *be_ctx)
 {
     struct tevent_req *req;
 
-    be_ctx->offstat.went_offline = time(NULL);
     reset_fo(be_ctx);
 
     req = dp_req_send(be_ctx, be_ctx->provider, NULL, "Online Check",
@@ -356,9 +353,6 @@ static void check_if_online(struct be_ctx *be_ctx, int delay)
 {
     struct tevent_timer *time_event;
     struct timeval schedule;
-
-    /* Make sure nobody tries to go online while we are checking */
-    be_ctx->offstat.went_offline = time(NULL);
 
     be_ctx->check_online_ref_count++;
 
