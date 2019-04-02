@@ -100,18 +100,6 @@ static void create_groups(struct ncache_test_ctx *test_ctx)
     }
 }
 
-/* register_cli_protocol_version is required in test since it links with
- * responder_common.c module
- */
-struct cli_protocol_version *register_cli_protocol_version(void)
-{
-    static struct cli_protocol_version responder_test_cli_protocol_version[] = {
-        { 0, NULL, NULL }
-    };
-
-    return responder_test_cli_protocol_version;
-}
-
 static void find_local_users(struct ncache_test_ctx *test_ctx)
 {
     int i;
@@ -220,7 +208,7 @@ static void find_non_local_groups(struct ncache_test_ctx *test_ctx)
     assert_int_equal(i, 2);
 }
 
-static int test_ncache_setup(void **state)
+int test_ncache_setup(void **state)
 {
     struct ncache_test_ctx *test_ctx;
 
@@ -250,7 +238,7 @@ static int test_ncache_setup(void **state)
     return 0;
 }
 
-static int test_ncache_teardown(void **state)
+int test_ncache_teardown(void **state)
 {
     struct ncache_test_ctx *test_ctx;
 
@@ -757,94 +745,4 @@ void test_ncache_both_gid(void **state)
     check_gids(test_ctx, EEXIST, ENOENT, EEXIST, ENOENT);
 
     talloc_zfree(test_ctx->ncache);
-}
-
-int main(int argc, const char *argv[])
-{
-    int rv;
-    poptContext pc;
-    int opt;
-    struct poptOption long_options[] = {
-        POPT_AUTOHELP
-        SSSD_DEBUG_OPTS
-        POPT_TABLEEND
-    };
-
-    const struct CMUnitTest tests[] = {
-        /* user */
-        cmocka_unit_test_setup_teardown(test_ncache_nocache_user,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_local_user,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_domain_user,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_both_user,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        /* uid */
-        cmocka_unit_test_setup_teardown(test_ncache_nocache_uid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_local_uid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_domain_uid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_both_uid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        /* group */
-        cmocka_unit_test_setup_teardown(test_ncache_nocache_group,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_local_group,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_domain_group,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_both_group,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        /* gid */
-        cmocka_unit_test_setup_teardown(test_ncache_nocache_gid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_local_gid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_domain_gid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-        cmocka_unit_test_setup_teardown(test_ncache_both_gid,
-                                        test_ncache_setup,
-                                        test_ncache_teardown),
-    };
-
-    /* Set debug level to invalid value so we can decide if -d 0 was used. */
-    debug_level = SSSDBG_INVALID;
-
-    pc = poptGetContext(argv[0], argc, argv, long_options, 0);
-    while ((opt = poptGetNextOpt(pc)) != -1) {
-        switch (opt) {
-        default:
-            fprintf(stderr, "\nInvalid option %s: %s\n\n",
-                    poptBadOption(pc, 0), poptStrerror(opt));
-            poptPrintUsage(pc, stderr, 0);
-            return 1;
-        }
-    }
-    poptFreeContext(pc);
-
-    DEBUG_CLI_INIT(debug_level);
-
-    tests_set_cwd();
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
-    rv = cmocka_run_group_tests(tests, NULL, NULL);
-
-    return rv;
 }
