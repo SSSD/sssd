@@ -293,6 +293,7 @@ static void be_check_online_done(struct tevent_req *req)
     ret = dp_req_recv_ptr(be_ctx, req, struct dp_reply_std, &reply);
     talloc_zfree(req);
     if (ret != EOK) {
+        reply = NULL;
         goto done;
     }
 
@@ -343,7 +344,7 @@ static void be_check_online_done(struct tevent_req *req)
 
 done:
     be_ctx->check_online_ref_count = 0;
-    if (reply->dp_error != DP_ERR_OFFLINE) {
+    if (reply && reply->dp_error != DP_ERR_OFFLINE) {
         if (reply->dp_error != DP_ERR_OK) {
             reset_fo(be_ctx);
         }
