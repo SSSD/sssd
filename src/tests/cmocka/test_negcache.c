@@ -43,6 +43,25 @@
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
 
+int test_ncache_setup(void **state);
+int test_ncache_teardown(void **state);
+void test_ncache_nocache_user(void **state);
+void test_ncache_local_user(void **state);
+void test_ncache_domain_user(void **state);
+void test_ncache_both_user(void **state);
+void test_ncache_nocache_uid(void **state);
+void test_ncache_local_uid(void **state);
+void test_ncache_domain_uid(void **state);
+void test_ncache_both_uid(void **state);
+void test_ncache_nocache_group(void **state);
+void test_ncache_local_group(void **state);
+void test_ncache_domain_group(void **state);
+void test_ncache_both_group(void **state);
+void test_ncache_nocache_gid(void **state);
+void test_ncache_local_gid(void **state);
+void test_ncache_domain_gid(void **state);
+void test_ncache_both_gid(void **state);
+
 #define PORT 21
 #define SID "S-1-2-3-4-5"
 #define CERT "MIIECTCCAvGgAwIBAgIBCTANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEuREVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNTA0MjgxMDIxMTFaFw0xNzA0MjgxMDIxMTFaMDIxEjAQBgNVBAoMCUlQQS5ERVZFTDEcMBoGA1UEAwwTaXBhLWRldmVsLmlwYS5kZXZlbDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALIykqtHuAwTVEofHikG/9BQy/dfeZFlsTkBg2qtnnc78w3XufbcnkpJp9Bmcsy/d9beqf5nlsxJ8TcjLsRQ9Ou6YtQjTfM3OILuOz8s0ICbF6qb66bd9hX/BrLO/9+KnpWFSR+E/YEmzgYyDTbKfBWBaGuPPrOi/K6vwkRYFZVA/FYZkYDtQhFmBO884HYzS4P6frRH3PvtRqWNCmaHpe97dGKsvnM2ybT+IMSB8/54GajQr3+BciRh2XaT4wvSTxkXM1fUgrDxqAP2AZmpuIyDyboZh+rWOwbrTPfx5SipELZG3uHhP8HMcr4qQ8b20LWgxCRuT73sIooHET350xUCAwEAAaOCASYwggEiMB8GA1UdIwQYMBaAFPKdQk4PxEglWC8czg+hPyLIVciRMDsGCCsGAQUFBwEBBC8wLTArBggrBgEFBQcwAYYfaHR0cDovL2lwYS1jYS5pcGEuZGV2ZWwvY2Evb2NzcDAOBgNVHQ8BAf8EBAMCBPAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMHQGA1UdHwRtMGswaaAxoC+GLWh0dHA6Ly9pcGEtY2EuaXBhLmRldmVsL2lwYS9jcmwvTWFzdGVyQ1JMLmJpbqI0pDIwMDEOMAwGA1UECgwFaXBhY2ExHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAdBgNVHQ4EFgQULSs/y/Wy/zIsqMIc3b2MgB7dMYIwDQYJKoZIhvcNAQELBQADggEBAJpHLlCnTR1TD8lxQgzl2n1JZOeryN/fAsGH0Vve2m8r5PC+ugnfAoULiuabBn1pOGxy/0x7Kg0/Iy8WRv8Fk7DqJCjXEqFXuFkZJfNDCtP9DzeNuMoV50iKoMfHS38BPFjXN+X/fSsBrA2fUWrlQCTmXlUN97gvQqxt5Slrxgukvxm9OSfu/sWz22LUvtJHupYwWv1iALgnXS86lAuVNYVALLxn34r58XsZlj5CSBMjBJWpaxEzgUdag3L2IPqOQXuPd0d8x11G9E/9gQquOSe2aiZjsdO/VYOCmzZsM2QPUMBVlBPDhfTVcWXQwN385uycW/ARtSzzSME2jKKWSIQ="
@@ -1057,6 +1076,59 @@ int main(void)
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_domain_locate_type,
                                         setup, teardown),
+
+        /* user */
+        cmocka_unit_test_setup_teardown(test_ncache_nocache_user,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_local_user,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_domain_user,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_both_user,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        /* uid */
+        cmocka_unit_test_setup_teardown(test_ncache_nocache_uid,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_local_uid,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_domain_uid,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_both_uid,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        /* group */
+        cmocka_unit_test_setup_teardown(test_ncache_nocache_group,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_local_group,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_domain_group,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_both_group,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        /* gid */
+        cmocka_unit_test_setup_teardown(test_ncache_nocache_gid,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_local_gid,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_domain_gid,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
+        cmocka_unit_test_setup_teardown(test_ncache_both_gid,
+                                        test_ncache_setup,
+                                        test_ncache_teardown),
     };
 
     tests_set_cwd();
