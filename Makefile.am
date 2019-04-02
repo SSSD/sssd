@@ -239,7 +239,6 @@ if HAVE_CMOCKA
         test-find-uid \
         test-io \
         test-negcache \
-        negcache_2-tests \
         test-authtok \
         test_prompt_config \
         sss_nss_idmap-tests \
@@ -2859,7 +2858,8 @@ EXTRA_test_negcache_DEPENDENCIES = \
 test_negcache_SOURCES = \
     $(SSSD_RESPONDER_OBJ) \
     src/tests/cmocka/common_mock_resp.c \
-    src/tests/cmocka/test_negcache.c
+    src/tests/cmocka/test_negcache.c \
+    src/tests/cmocka/test_negcache_2.c
 test_negcache_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
@@ -2873,26 +2873,6 @@ test_negcache_LDADD = \
     libsss_test_common.la \
     libsss_idmap.la \
     libsss_iface.la \
-    libsss_sbus.la \
-    $(NULL)
-
-negcache_2_tests_SOURCES =\
-    $(SSSD_RESPONDER_OBJ) \
-    src/tests/cmocka/test_negcache_2.c \
-    $(NULL)
-negcache_2_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DBASE_FILE_STEM=\"$(*F)\" \
-    $(NULL)
-negcache_2_tests_LDADD = \
-    $(LIBADD_DL) \
-    $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    $(SYSTEMD_DAEMON_LIBS) \
-    libsss_util.la \
-    libsss_iface.la \
-    libsss_test_common.la \
-    libsss_debug.la \
     libsss_sbus.la \
     $(NULL)
 
