@@ -11,7 +11,7 @@ class TestInfoPipe(object):
     """
     def test_ifp_extra_attributes_property(self, multihost):
         """
-        Test requesting the extraAttributes property works at all,
+        @Title: ifp: requesting the extraAttributes property works
         see e.g.  https://pagure.io/SSSD/sssd/issue/3906
         """
         dbus_send_cmd = \
