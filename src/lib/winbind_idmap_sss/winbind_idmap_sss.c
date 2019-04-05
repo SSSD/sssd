@@ -55,6 +55,10 @@ static NTSTATUS idmap_sss_initialize(struct idmap_domain *dom)
         return NT_STATUS_NO_MEMORY;
     }
 
+#if SMB_IDMAP_INTERFACE_VERSION == 6
+    dom->query_user = NULL;
+#endif
+
     dom->private_data = ctx;
 
     return NT_STATUS_OK;

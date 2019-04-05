@@ -70,9 +70,24 @@ struct id_map {
 #error Missing Samba idmap interface version
 #endif
 
+#if SMB_IDMAP_INTERFACE_VERSION == 6
+struct wbint_userinfo;
+#endif
+
 struct idmap_domain {
     const char *name;
+#if SMB_IDMAP_INTERFACE_VERSION == 6 && defined(SMB_IDMAP_DOMAIN_HAS_DOM_SID)
+    /*
+     * dom_sid is currently only initialized in the unixids_to_sids request,
+     * so don't rely on this being filled out everywhere!
+     */
+    struct dom_sid dom_sid;
+#endif
     struct idmap_methods *methods;
+#if SMB_IDMAP_INTERFACE_VERSION == 6
+    NTSTATUS (*query_user)(struct idmap_domain *domain,
+                           struct wbint_userinfo *info);
+#endif
     uint32_t low_id;
     uint32_t high_id;
     bool read_only;

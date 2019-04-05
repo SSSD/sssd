@@ -121,6 +121,19 @@ int main(void)
     AC_MSG_NOTICE([Samba's idmap interface version: $idmap_version])
     AC_DEFINE_UNQUOTED(SMB_IDMAP_INTERFACE_VERSION, $idmap_version,
                        [Detected version of Samba's idmap plugin interface])
+
+    samba_major_version=`echo -e '#include <samba/version.h>\nSAMBA_VERSION_MAJOR' | $CPP $SMBCLIENT_CFLAGS -P -`
+    samba_minor_version=`echo -e '#include <samba/version.h>\nSAMBA_VERSION_MINOR' | $CPP $SMBCLIENT_CFLAGS -P -`
+    samba_release_version=`echo -e '#include <samba/version.h>\nSAMBA_VERSION_RELEASE' | $CPP $SMBCLIENT_CFLAGS -P -`
+    AC_MSG_NOTICE([Samba version: $samba_major_version $samba_minor_version $samba_release_version])
+    if test $samba_major_version -ge 4 -a $samba_minor_version -ge 8 ; then
+        AC_DEFINE_UNQUOTED(SMB_IDMAP_DOMAIN_HAS_DOM_SID, 1,
+                           [Samba's struct idmap_domain has dom_sid member])
+        AC_MSG_NOTICE([Samba's struct idmap_domain has dom_sid member])
+    else
+        AC_MSG_NOTICE([Samba's struct idmap_domain does not have dom_sid member])
+    fi
+
 fi
 
 SAVE_CFLAGS=$CFLAGS
