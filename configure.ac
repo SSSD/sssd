@@ -209,6 +209,7 @@ m4_include([src/external/intgcheck.m4])
 m4_include([src/external/systemtap.m4])
 m4_include([src/external/service.m4])
 m4_include([src/external/test_ca.m4])
+m4_include([src/external/ax_valgrind_check.m4])
 
 if test x$with_secrets = xyes; then
     m4_include([src/external/libhttp_parser.m4])
@@ -497,6 +498,7 @@ AM_CHECK_UID_WRAPPER
 AM_CHECK_NSS_WRAPPER
 AM_CHECK_PAM_WRAPPER
 AM_CHECK_TEST_CA
+AX_VALGRIND_CHECK
 
 # Check if the user wants SSSD to be compiled with systemtap probes
 AM_CHECK_SYSTEMTAP

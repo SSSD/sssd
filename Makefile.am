@@ -2158,6 +2158,11 @@ TESTS_ENVIRONMENT = LDB_MODULES_PATH=$(abs_top_builddir)/ldb_mod_test_dir \
                     ABS_TOP_SRCDIR=$(abs_top_srcdir) \
                     $(AUX_TESTS_ENVIRONMENT)
 
+if VALGRIND_ENABLED
+@VALGRIND_CHECK_RULES@
+VALGRIND_SUPPRESSIONS_FILES = $(abs_top_srcdir)/contrib/ci/sssd.supp
+endif
+
 ldb_mod_test_dir: memberof.la
 	$(MKDIR_P) $(builddir)/ldb_mod_test_dir
 	cp $(builddir)/.libs/memberof.so $(builddir)/ldb_mod_test_dir
