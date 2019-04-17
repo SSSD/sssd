@@ -3046,7 +3046,9 @@ subdomain_inherit = ldap_purge_cache_timeout
                             Specifies time in seconds since last successful
                             online authentication for which user will be
                             authenticated using cached credentials while
-                            SSSD is in the online mode.
+                            SSSD is in the online mode. If the credentials
+                            are incorrect, SSSD falls back to online
+                            authentication.
                         </para>
                         <para>
                             This option's value is inherited by all trusted

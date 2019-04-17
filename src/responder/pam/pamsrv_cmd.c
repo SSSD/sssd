@@ -808,8 +808,9 @@ static void pam_reply(struct pam_auth_req *preq)
         pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA,
-          "pam_reply called with result [%d]: %s.\n",
+    DEBUG(SSSDBG_TRACE_ALL,
+          "pam_reply initially called with result [%d]: %s. "
+          "this result might be changed during processing\n",
           pd->pam_status, pam_strerror(NULL, pd->pam_status));
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE
@@ -891,6 +892,7 @@ static void pam_reply(struct pam_auth_req *preq)
             break;
 /* TODO: we need the pam session cookie here to make sure that cached
  * authentication was successful */
+        case SSS_PAM_PREAUTH:
         case SSS_PAM_SETCRED:
         case SSS_PAM_ACCT_MGMT:
         case SSS_PAM_OPEN_SESSION:
@@ -1072,6 +1074,8 @@ static void pam_reply(struct pam_auth_req *preq)
     }
 
 done:
+    DEBUG(SSSDBG_FUNC_DATA, "Returning [%d]: %s to the client\n",
+          pd->pam_status, pam_strerror(NULL, pd->pam_status));
     sss_cmd_done(cctx, preq);
 }
 
@@ -1993,21 +1997,6 @@ done:
     return ret;
 }
 
-static bool pam_is_cmd_cachable(int cmd)
-{
-    bool is_cachable;
-
-    switch(cmd) {
-    case SSS_PAM_AUTHENTICATE:
-        is_cachable = true;
-        break;
-    default:
-        is_cachable = false;
-    }
-
-    return is_cachable;
-}
-
 static bool pam_is_authtok_cachable(struct sss_auth_token *authtok)
 {
     enum sss_authtok_type type;
@@ -2032,11 +2021,18 @@ static bool pam_can_user_cache_auth(struct sss_domain_info *domain,
     errno_t ret;
     bool result = false;
 
-    if (!cached_auth_failed /* don't try cached auth again */
-            && domain->cache_credentials
-            && domain->cached_auth_timeout > 0
-            && pam_is_authtok_cachable(authtok)
-            && pam_is_cmd_cachable(pam_cmd)) {
+    if (cached_auth_failed) {
+        /* Do not retry indefinitely */
+        return false;
+    }
+
+    if (!domain->cache_credentials || domain->cached_auth_timeout <= 0) {
+        return false;
+    }
+
+    if (pam_cmd == SSS_PAM_PREAUTH
+        || (pam_cmd == SSS_PAM_AUTHENTICATE
+            && pam_is_authtok_cachable(authtok))) {
 
         ret = pam_is_last_online_login_fresh(domain, user,
                                              domain->cached_auth_timeout,
