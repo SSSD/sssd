@@ -10,7 +10,7 @@ EnvironmentFile=-@environment_file@
 ExecStart=@sbindir@/sssd -i ${DEBUG_LOGGER}
 Type=notify
 NotifyAccess=main
-PIDFile=@localstatedir@/run/sssd.pid
+PIDFile=@pidpath@/sssd.pid
 
 [Install]
 WantedBy=multi-user.target
