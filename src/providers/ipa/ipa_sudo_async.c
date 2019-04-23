@@ -847,6 +847,7 @@ struct ipa_sudo_refresh_state {
     const char *cmdgroups_filter;
     const char *search_filter;
     const char *delete_filter;
+    bool update_usn;
 
     struct sdap_id_op *sdap_op;
     struct sdap_handle *sh;
@@ -867,7 +868,8 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                       struct ipa_sudo_ctx *sudo_ctx,
                       const char *cmdgroups_filter,
                       const char *search_filter,
-                      const char *delete_filter)
+                      const char *delete_filter,
+                      bool update_usn)
 {
     struct ipa_sudo_refresh_state *state;
     struct tevent_req *req;
@@ -886,6 +888,7 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->ipa_opts = sudo_ctx->ipa_opts;
     state->sdap_opts = sudo_ctx->sdap_opts;
     state->dp_error = DP_ERR_FATAL;
+    state->update_usn = update_usn;
 
     state->sdap_op = sdap_id_op_create(state,
                                        sudo_ctx->id_ctx->conn->conn_cache);
@@ -1096,7 +1099,7 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
     }
     in_transaction = false;
 
-    if (usn != NULL) {
+    if (usn != NULL && state->update_usn) {
         sdap_sudo_set_usn(state->sudo_ctx->id_ctx->srv_opts, usn);
     }
 

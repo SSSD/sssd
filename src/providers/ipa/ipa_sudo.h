@@ -59,7 +59,8 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                       struct ipa_sudo_ctx *sudo_ctx,
                       const char *cmdgroups_filter,
                       const char *search_filter,
-                      const char *delete_filter);
+                      const char *delete_filter,
+                      bool update_usn);
 
 struct tevent_req *
 ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
