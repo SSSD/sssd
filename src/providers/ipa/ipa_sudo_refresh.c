@@ -68,7 +68,7 @@ ipa_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
 
     subreq = ipa_sudo_refresh_send(state, ev, sudo_ctx,
-                                   NULL, NULL, delete_filter);
+                                   NULL, NULL, delete_filter, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -191,7 +191,7 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
                              "(USN >= %s)\n", usn);
 
     subreq = ipa_sudo_refresh_send(state, ev, sudo_ctx, cmdgroups_filter,
-                                   search_filter, NULL);
+                                   search_filter, NULL, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -341,7 +341,7 @@ ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = ipa_sudo_refresh_send(req, ev, sudo_ctx, NULL, search_filter,
-                                   delete_filter);
+                                   delete_filter, false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
