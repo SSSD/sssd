@@ -287,6 +287,7 @@ struct sdap_sudo_refresh_state {
 
     const char *search_filter;
     const char *delete_filter;
+    bool update_usn;
 
     int dp_error;
     size_t num_rules;
@@ -301,7 +302,8 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq);
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           struct sdap_sudo_ctx *sudo_ctx,
                                           const char *search_filter,
-                                          const char *delete_filter)
+                                          const char *delete_filter,
+                                          bool update_usn)
 {
     struct tevent_req *req;
     struct sdap_sudo_refresh_state *state;
@@ -325,6 +327,7 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->domain = id_ctx->be->domain;
     state->sysdb = id_ctx->be->domain->sysdb;
     state->dp_error = DP_ERR_FATAL;
+    state->update_usn = update_usn;
 
     state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
     if (!state->sdap_op) {
@@ -644,13 +647,15 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_FUNC, "Sudoers is successfully stored in cache\n");
 
-    /* remember new usn */
-    ret = sysdb_get_highest_usn(state, rules, rules_count, &usn);
-    if (ret == EOK) {
-        sdap_sudo_set_usn(state->sudo_ctx->id_ctx->srv_opts, usn);
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get highest USN [%d]: %s\n",
-              ret, sss_strerror(ret));
+    if (state->update_usn) {
+        /* remember new usn */
+        ret = sysdb_get_highest_usn(state, rules, rules_count, &usn);
+        if (ret == EOK) {
+            sdap_sudo_set_usn(state->sudo_ctx->id_ctx->srv_opts, usn);
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get highest USN [%d]: %s\n",
+                  ret, sss_strerror(ret));
+        }
     }
 
     ret = EOK;
