@@ -79,7 +79,7 @@ struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
 
     subreq = sdap_sudo_refresh_send(state, sudo_ctx, search_filter,
-                                    delete_filter);
+                                    delete_filter, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -202,7 +202,7 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a smart refresh of sudo rules "
                              "(USN >= %s)\n", usn);
 
-    subreq = sdap_sudo_refresh_send(state, sudo_ctx, search_filter, NULL);
+    subreq = sdap_sudo_refresh_send(state, sudo_ctx, search_filter, NULL, true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -352,7 +352,7 @@ struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = sdap_sudo_refresh_send(req, sudo_ctx, search_filter,
-                                    delete_filter);
+                                    delete_filter, false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
