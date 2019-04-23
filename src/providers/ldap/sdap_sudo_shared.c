@@ -174,28 +174,17 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
         return;
     }
 
-    if (usn_number == 0) {
-        /* Zero means that there were no rules on the server, so we have
-         * nothing to store. */
-        DEBUG(SSSDBG_TRACE_FUNC, "SUDO USN value is empty.\n");
-        return;
+    if (usn_number > srv_opts->last_usn) {
+        srv_opts->last_usn = usn_number;
     }
 
-    newusn = sdap_sudo_new_usn(srv_opts, usn_number, endptr);
+    newusn = sdap_sudo_new_usn(srv_opts, srv_opts->last_usn, endptr);
     if (newusn == NULL) {
         return;
     }
 
-    if (sysdb_compare_usn(newusn, srv_opts->max_sudo_value) > 0) {
-        talloc_zfree(srv_opts->max_sudo_value);
-        srv_opts->max_sudo_value = newusn;
-    } else {
-        talloc_zfree(newusn);
-    }
-
-    if (usn_number > srv_opts->last_usn) {
-        srv_opts->last_usn = usn_number;
-    }
+    talloc_zfree(srv_opts->max_sudo_value);
+    srv_opts->max_sudo_value = newusn;
 
     DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%s]\n",
                              srv_opts->max_sudo_value);
