@@ -360,6 +360,120 @@ get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
     return clist;
 }
 
+struct ad_account_info_state {
+    const char *err_msg;
+    int dp_error;
+};
+
+static void ad_account_info_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ad_account_info_send(TALLOC_CTX *mem_ctx,
+                     struct be_ctx *be_ctx,
+                     struct ad_id_ctx *id_ctx,
+                     struct dp_id_data *data)
+{
+    struct sss_domain_info *domain = NULL;
+    struct ad_account_info_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_id_conn_ctx **clist = NULL;
+    struct sdap_id_ctx *sdap_id_ctx = NULL;
+    struct sdap_domain *sdom;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_account_info_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    sdap_id_ctx = id_ctx->sdap_id_ctx;
+
+    domain = be_ctx->domain;
+    if (strcasecmp(data->domain, be_ctx->domain->name) != 0) {
+        /* Subdomain request, verify subdomain. */
+        domain = find_domain_by_name(be_ctx->domain, data->domain, true);
+    }
+
+    if (domain == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain\n");
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    /* Determine whether to connect to GC, LDAP or try both. */
+    clist = get_conn_list(state, id_ctx, domain, data);
+    if (clist == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create conn list\n");
+        ret = EIO;
+        goto immediately;
+    }
+
+    sdom = sdap_domain_get(sdap_id_ctx->opts, domain);
+    if (sdom == NULL) {
+        ret = EIO;
+        goto immediately;
+    }
+
+    subreq = ad_handle_acct_info_send(state, data, sdap_id_ctx,
+                                      id_ctx->ad_options, sdom, clist);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+    tevent_req_set_callback(subreq, ad_account_info_done, req);
+    return req;
+
+immediately:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, be_ctx->ev);
+    return req;
+}
+
+static void ad_account_info_done(struct tevent_req *subreq)
+{
+    struct ad_account_info_state *state = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_account_info_state);
+
+    ret = ad_handle_acct_info_recv(subreq, &state->dp_error, &state->err_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ad_handle_acct_info_recv failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        /* The caller wouldn't fail either, just report the error up */
+    }
+    talloc_zfree(subreq);
+    tevent_req_done(req);
+}
+
+errno_t ad_account_info_recv(struct tevent_req *req,
+                             int *_dp_error,
+                             const char **_err_msg)
+{
+    struct ad_account_info_state *state = NULL;
+
+    state = tevent_req_data(req, struct ad_account_info_state);
+
+    if (_err_msg != NULL) {
+        *_err_msg = state->err_msg;
+    }
+
+    if (_dp_error) {
+        *_dp_error = state->dp_error;
+    }
+
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 struct ad_account_info_handler_state {
     struct sss_domain_info *domain;
     struct dp_reply_std reply;
@@ -374,17 +488,10 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
                               struct dp_req_params *params)
 {
     struct ad_account_info_handler_state *state;
-    struct sdap_id_conn_ctx **clist;
-    struct sdap_id_ctx *sdap_id_ctx;
-    struct sss_domain_info *domain;
-    struct sdap_domain *sdom;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    struct be_ctx *be_ctx;
     errno_t ret;
 
-    sdap_id_ctx = id_ctx->sdap_id_ctx;
-    be_ctx = params->be_ctx;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_account_info_handler_state);
@@ -399,34 +506,7 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    domain = be_ctx->domain;
-    if (strcasecmp(data->domain, be_ctx->domain->name) != 0) {
-        /* Subdomain request, verify subdomain. */
-        domain = find_domain_by_name(be_ctx->domain, data->domain, true);
-    }
-
-    if (domain == NULL) {
-        ret = EINVAL;
-        goto immediately;
-    }
-
-    /* Determine whether to connect to GC, LDAP or try both. */
-    clist = get_conn_list(state, id_ctx, domain, data);
-    if (clist == NULL) {
-        ret = EIO;
-        goto immediately;
-    }
-
-    sdom = sdap_domain_get(sdap_id_ctx->opts, domain);
-    if (sdom == NULL) {
-        ret = EIO;
-        goto immediately;
-    }
-
-    state->domain = sdom->dom;
-
-    subreq = ad_handle_acct_info_send(state, data, sdap_id_ctx,
-                                      id_ctx->ad_options, sdom, clist);
+    subreq = ad_account_info_send(state, params->be_ctx, id_ctx, data);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -451,13 +531,13 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
     struct ad_account_info_handler_state *state;
     struct tevent_req *req;
     const char *err_msg;
-    int dp_error;
+    int dp_error = DP_ERR_FATAL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_account_info_handler_state);
 
-    ret = ad_handle_acct_info_recv(subreq, &dp_error, &err_msg);
+    ret = ad_account_info_recv(subreq, &dp_error, &err_msg);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
@@ -466,8 +546,8 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
 }
 
 errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
-                                      struct tevent_req *req,
-                                      struct dp_reply_std *data)
+                                     struct tevent_req *req,
+                                     struct dp_reply_std *data)
 {
     struct ad_account_info_handler_state *state = NULL;
 
