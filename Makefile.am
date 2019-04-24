@@ -4504,7 +4504,10 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_gpo_ndr.c \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_subdomains.c \
-    src/providers/ad/ad_domain_info.c
+    src/providers/ad/ad_domain_info.c \
+    src/providers/ad/ad_refresh.c \
+    $(NULL)
+
 
 if BUILD_SUDO
 libsss_ad_la_SOURCES += \
