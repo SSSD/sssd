@@ -408,7 +408,7 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
-    ret = sdap_refresh_init(be_ctx, sdap_id_ctx);
+    ret = ad_refresh_init(be_ctx, ad_id_ctx);
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
               "will not work [%d]: %s\n", ret, sss_strerror(ret));

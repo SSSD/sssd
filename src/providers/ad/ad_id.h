@@ -34,6 +34,16 @@ errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                       struct dp_reply_std *data);
 
 struct tevent_req *
+ad_account_info_send(TALLOC_CTX *mem_ctx,
+                     struct be_ctx *be_ctx,
+                     struct ad_id_ctx *id_ctx,
+                     struct dp_id_data *data);
+
+errno_t ad_account_info_recv(struct tevent_req *req,
+                             int *_dp_error,
+                             const char **_err_msg);
+
+struct tevent_req *
 ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
                          struct dp_id_data *ar,
                          struct sdap_id_ctx *ctx,
