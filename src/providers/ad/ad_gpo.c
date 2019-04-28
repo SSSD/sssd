@@ -3903,8 +3903,8 @@ ad_gpo_missing_or_unreadable_attr(struct ad_gpo_process_gpo_state *state,
               "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
               "Alternatively if you do not have access to the server or can "
               "not change permissions on this object, you can use option "
-              "ad_gpo_ignore_unreadable = True which will skip this GPO."
-              "See 'man ad_gpo_ignore_unreadable for details.'\n",
+              "ad_gpo_ignore_unreadable = True which will skip this GPO. "
+              "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
               state->candidate_gpos[state->gpo_index]->gpo_dn);
         sss_log(SSSDBG_CRIT_FAILURE,
                 "Group Policy Container with DN [%s] is unreadable or has "
@@ -3914,8 +3914,8 @@ ad_gpo_missing_or_unreadable_attr(struct ad_gpo_process_gpo_state *state,
                 "gPCMachineExtensionNames, gPCFunctionalityVersion, flags. "
                 "Alternatively if you do not have access to the server or can "
                 "not change permissions on this object, you can use option "
-                "ad_gpo_ignore_unreadable = True which will skip this GPO."
-                "See 'man ad_gpo_ignore_unreadable for details.'\n",
+                "ad_gpo_ignore_unreadable = True which will skip this GPO. "
+                "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
                 state->candidate_gpos[state->gpo_index]->gpo_dn);
         return EFAULT;
     }
