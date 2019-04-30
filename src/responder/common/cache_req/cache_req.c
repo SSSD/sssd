@@ -58,7 +58,7 @@ cache_req_get_plugin(enum cache_req_type type)
 
         &cache_req_netgroup_by_name,
 
-        &cache_req_host_by_name,
+        &cache_req_ssh_host_id_by_name,
 
         &cache_req_autofs_map_entries,
         &cache_req_autofs_map_by_name,

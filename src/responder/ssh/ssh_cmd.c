@@ -314,12 +314,12 @@ static errno_t ssh_cmd_get_host_pubkeys(struct cli_ctx *cli_ctx)
           "Requesting SSH host public keys for [%s] from [%s]\n",
           cmd_ctx->name, cmd_ctx->domain ? cmd_ctx->domain : "<ALL>");
 
-    subreq = cache_req_host_by_name_send(cmd_ctx, cli_ctx->ev,
-                                         cli_ctx->rctx,
-                                         cli_ctx->rctx->ncache, 0,
-                                         cmd_ctx->domain,
-                                         cmd_ctx->name,
-                                         cmd_ctx->alias, attrs);
+    subreq = cache_req_ssh_host_id_by_name_send(cmd_ctx, cli_ctx->ev,
+                                               cli_ctx->rctx,
+					       cli_ctx->rctx->ncache, 0,
+					       cmd_ctx->domain,
+					       cmd_ctx->name,
+					       cmd_ctx->alias, attrs);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         ret = ENOMEM;
@@ -350,7 +350,7 @@ static void ssh_cmd_get_host_pubkeys_done(struct tevent_req *subreq)
     cmd_ctx = tevent_req_callback_data(subreq, struct ssh_cmd_ctx);
     ssh_ctx = talloc_get_type(cmd_ctx->cli_ctx->rctx->pvt_ctx, struct ssh_ctx);
 
-    ret = cache_req_host_by_name_recv(cmd_ctx, subreq, &result);
+    ret = cache_req_ssh_host_id_by_name_recv(cmd_ctx, subreq, &result);
     talloc_zfree(subreq);
 
     if (ret == EOK || ret == ENOENT) {

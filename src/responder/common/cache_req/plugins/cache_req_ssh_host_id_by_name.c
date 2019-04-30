@@ -107,8 +107,8 @@ cache_req_host_by_name_dp_recv(struct tevent_req *subreq,
     return bret;
 }
 
-const struct cache_req_plugin cache_req_host_by_name = {
-    .name = "Host by name",
+const struct cache_req_plugin cache_req_ssh_host_id_by_name = {
+    .name = "SSH Host ID by name",
     .attr_expiration = SYSDB_CACHE_EXPIRE,
     .parse_name = true,
     .ignore_default_domain = true,
@@ -137,20 +137,20 @@ const struct cache_req_plugin cache_req_host_by_name = {
 };
 
 struct tevent_req *
-cache_req_host_by_name_send(TALLOC_CTX *mem_ctx,
-                            struct tevent_context *ev,
-                            struct resp_ctx *rctx,
-                            struct sss_nc_ctx *ncache,
-                            int cache_refresh_percent,
-                            const char *domain,
-                            const char *name,
-                            const char *alias,
-                            const char **attrs)
+cache_req_ssh_host_id_by_name_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   struct resp_ctx *rctx,
+                                   struct sss_nc_ctx *ncache,
+                                   int cache_refresh_percent,
+                                   const char *domain,
+                                   const char *name,
+                                   const char *alias,
+                                   const char **attrs)
 {
     struct cache_req_data *data;
 
-    data = cache_req_data_host(mem_ctx, CACHE_REQ_HOST_BY_NAME, name,
-                               alias, attrs);
+    data = cache_req_data_ssh_host_id(mem_ctx, CACHE_REQ_SSH_HOST_ID_BY_NAME,
+                                      name, alias, attrs);
     if (data == NULL) {
         return NULL;
     }

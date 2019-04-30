@@ -52,7 +52,7 @@ enum cache_req_type {
 
     CACHE_REQ_NETGROUP_BY_NAME,
 
-    CACHE_REQ_HOST_BY_NAME,
+    CACHE_REQ_SSH_HOST_ID_BY_NAME,
 
     CACHE_REQ_AUTOFS_MAP_ENTRIES,
     CACHE_REQ_AUTOFS_MAP_BY_NAME,
@@ -122,11 +122,11 @@ cache_req_data_svc(TALLOC_CTX *mem_ctx,
                    uint16_t port);
 
 struct cache_req_data *
-cache_req_data_host(TALLOC_CTX *mem_ctx,
-                    enum cache_req_type type,
-                    const char *name,
-                    const char *alias,
-                    const char **attrs);
+cache_req_data_ssh_host_id(TALLOC_CTX *mem_ctx,
+                           enum cache_req_type type,
+                           const char *name,
+                           const char *alias,
+                           const char **attrs);
 
 struct cache_req_data *
 cache_req_data_autofs_entry(TALLOC_CTX *mem_ctx,
@@ -430,17 +430,17 @@ cache_req_netgroup_by_name_send(TALLOC_CTX *mem_ctx,
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
-cache_req_host_by_name_send(TALLOC_CTX *mem_ctx,
-                            struct tevent_context *ev,
-                            struct resp_ctx *rctx,
-                            struct sss_nc_ctx *ncache,
-                            int cache_refresh_percent,
-                            const char *domain,
-                            const char *name,
-                            const char *alias,
-                            const char **attrs);
+cache_req_ssh_host_id_by_name_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   struct resp_ctx *rctx,
+                                   struct sss_nc_ctx *ncache,
+                                   int cache_refresh_percent,
+                                   const char *domain,
+                                   const char *name,
+                                   const char *alias,
+                                   const char **attrs);
 
-#define cache_req_host_by_name_recv(mem_ctx, req, _result) \
+#define cache_req_ssh_host_id_by_name_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
