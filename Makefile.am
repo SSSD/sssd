@@ -1586,6 +1586,7 @@ sssd_nss_SOURCES = \
     src/responder/nss/nss_protocol_grent.c \
     src/responder/nss/nss_protocol_netgr.c \
     src/responder/nss/nss_protocol_svcent.c \
+    src/responder/nss/nss_protocol_hostent.c \
     src/responder/nss/nss_protocol_sid.c \
     src/responder/nss/nss_utils.c \
     src/responder/nss/nss_iface.c \
@@ -2716,6 +2717,7 @@ nss_srv_tests_SOURCES = \
      src/responder/nss/nss_protocol_grent.c \
      src/responder/nss/nss_protocol_netgr.c \
      src/responder/nss/nss_protocol_svcent.c \
+     src/responder/nss/nss_protocol_hostent.c \
      src/responder/nss/nss_protocol_sid.c \
      src/responder/nss/nss_utils.c \
      src/responder/nss/nsssrv_mmap_cache.c

@@ -22,6 +22,7 @@
 #include "util/cert.h"
 #include "lib/idmap/sss_idmap.h"
 #include "responder/nss/nss_protocol.h"
+#include <arpa/inet.h>
 
 errno_t
 nss_protocol_done(struct cli_ctx *cli_ctx, errno_t error)
@@ -437,6 +438,51 @@ nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
     DEBUG(SSSDBG_TRACE_ALL, "Input SID [%s]\n", sid);
 
     *_sid = sid;
+
+    return EOK;
+}
+
+errno_t
+nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
+                        uint32_t *_af,
+                        uint32_t *_addrlen,
+                        uint8_t **_addr)
+{
+    struct cli_protocol *pctx;
+    uint8_t *body;
+    size_t blen;
+    uint32_t af;
+    uint8_t *addr;
+    socklen_t addrlen;
+    char buf[INET6_ADDRSTRLEN];
+    const char *addrstr = NULL;
+
+    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
+
+    if (blen < sizeof(uint32_t) * 2) {
+        return EINVAL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&af, body, NULL);
+    SAFEALIGN_COPY_UINT32(&addrlen, body + sizeof(uint32_t), NULL);
+
+    addr = body + sizeof(uint32_t) * 2;
+
+    /* If the body isn't a addr, fail */
+    addrstr = inet_ntop(af, addr, buf, INET6_ADDRSTRLEN);
+    if (addrstr == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse address: %s\n", strerror(errno));
+        return EINVAL;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Input address [%s]\n", addrstr);
+
+    *_af = af;
+    *_addr = addr;
+    *_addrlen = addrlen;
 
     return EOK;
 }
