@@ -83,6 +83,7 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
     case SSS_NSS_ENDETHERENT:
         return "SSS_NSS_ENDETHERENT";
 
+#endif
     /* hosts */
     case SSS_NSS_GETHOSTBYNAME:
         return "SSS_NSS_GETHOSTBYNAME";
@@ -96,7 +97,6 @@ const char *sss_cmd2str(enum sss_cli_command cmd)
         return "SSS_NSS_GETHOSTENT";
     case SSS_NSS_ENDHOSTENT:
         return "SSS_NSS_ENDHOSTENT";
-#endif
 
     /* netgroup */
     case SSS_NSS_SETNETGRENT:
