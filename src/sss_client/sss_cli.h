@@ -111,6 +111,7 @@ enum sss_cli_command {
     SSS_NSS_SETETHERENT    = 0x0043,
     SSS_NSS_GETETHERENT    = 0x0044,
     SSS_NSS_ENDETHERENT    = 0x0045,
+#endif
 
 /* hosts */
 
@@ -120,7 +121,7 @@ enum sss_cli_command {
     SSS_NSS_SETHOSTENT     = 0x0054,
     SSS_NSS_GETHOSTENT     = 0x0055,
     SSS_NSS_ENDHOSTENT     = 0x0056,
-#endif
+
 /* netgroup */
 
     SSS_NSS_SETNETGRENT    = 0x0061,
