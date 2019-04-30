@@ -1115,7 +1115,7 @@ static errno_t nss_cmd_endservent(struct cli_ctx *cli_ctx)
 
     state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
 
-    return nss_endent(cli_ctx, &state_ctx->grent);
+    return nss_endent(cli_ctx, &state_ctx->svcent);
 }
 
 static errno_t nss_cmd_getsidbyname(struct cli_ctx *cli_ctx)
