@@ -96,6 +96,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_OBJECT_BY_NAME:
     case CACHE_REQ_AUTOFS_MAP_ENTRIES:
     case CACHE_REQ_AUTOFS_MAP_BY_NAME:
+    case CACHE_REQ_IP_HOST_BY_NAME:
         if (input->name.input == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
@@ -104,6 +105,16 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
 
         data->name.input = talloc_strdup(data, input->name.input);
         if (data->name.input == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
+    case CACHE_REQ_IP_HOST_BY_ADDR:
+        data->addr.af = input->addr.af;
+        data->addr.len = input->addr.len;
+        data->addr.data = talloc_memdup(data, input->addr.data,
+                                        input->addr.len);
+        if (data->addr.data == NULL) {
             ret = ENOMEM;
             goto done;
         }
