@@ -33,6 +33,7 @@
 #define BE_REQ_SERVICES       0x0005
 #define BE_REQ_SUDO_FULL      0x0006
 #define BE_REQ_SUDO_RULES     0x0007
+#define BE_REQ_HOST           0x0008
 #define BE_REQ_BY_SECID       0x0011
 #define BE_REQ_USER_AND_GROUP 0x0012
 #define BE_REQ_BY_UUID        0x0013

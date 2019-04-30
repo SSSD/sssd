@@ -56,6 +56,7 @@ mock_prctx(TALLOC_CTX *mem_ctx);
  * that just finishes the account request with a success.
  */
 typedef int (*acct_cb_t)(void *);
+typedef int (*resolver_cb_t)(void *);
 
 void mock_account_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
                        acct_cb_t acct_cb, void *pvt);
