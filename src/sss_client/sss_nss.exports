@@ -27,12 +27,12 @@ EXPORTED {
 		#_nss_sss_getetherent_r;
 		#_nss_sss_endetherent;
 
-		#_nss_sss_gethostbyname_r;
-		#_nss_sss_gethostbyname2_r;
-		#_nss_sss_gethostbyaddr_r;
-		#_nss_sss_sethostent;
-		#_nss_sss_gethostent_r;
-		#_nss_sss_endhostent;
+		_nss_sss_gethostbyname_r;
+		_nss_sss_gethostbyname2_r;
+		_nss_sss_gethostbyaddr_r;
+		_nss_sss_sethostent;
+		_nss_sss_gethostent_r;
+		_nss_sss_endhostent;
 
 		_nss_sss_setnetgrent;
 		_nss_sss_getnetgrent_r;
