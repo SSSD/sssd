@@ -187,7 +187,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         }
 
         break;
-    case CACHE_REQ_HOST_BY_NAME:
+    case CACHE_REQ_SSH_HOST_ID_BY_NAME:
         if (input->name.input == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
@@ -361,11 +361,11 @@ cache_req_data_svc(TALLOC_CTX *mem_ctx,
 }
 
 struct cache_req_data *
-cache_req_data_host(TALLOC_CTX *mem_ctx,
-                    enum cache_req_type type,
-                    const char *name,
-                    const char *alias,
-                    const char **attrs)
+cache_req_data_ssh_host_id(TALLOC_CTX *mem_ctx,
+                           enum cache_req_type type,
+                           const char *name,
+                           const char *alias,
+                           const char **attrs)
 {
     struct cache_req_data input = {0};
 

@@ -63,7 +63,7 @@ SSSD_CACHE_REQ_OBJ = \
     ../../../src/responder/common/cache_req/plugins/cache_req_svc_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_svc_by_port.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_netgroup_by_name.c \
-    ../../../src/responder/common/cache_req/plugins/cache_req_host_by_name.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_ssh_host_id_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_autofs_map_entries.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_autofs_map_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_autofs_entry_by_name.c \
