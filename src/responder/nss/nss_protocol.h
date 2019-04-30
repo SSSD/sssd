@@ -121,6 +121,12 @@ errno_t
 nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
                        const char **_sid);
 
+errno_t
+nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
+                        uint32_t *_af,
+			uint32_t *_addrlen,
+			uint8_t **_addr);
+
 /* Create response packet. */
 
 errno_t
@@ -200,5 +206,11 @@ nss_protocol_fill_id(struct nss_ctx *nss_ctx,
                      struct nss_cmd_ctx *cmd_ctx,
                      struct sss_packet *packet,
                      struct cache_req_result *result);
+
+errno_t
+nss_protocol_fill_hostent(struct nss_ctx *nss_ctx,
+                          struct nss_cmd_ctx *cmd_ctx,
+                          struct sss_packet *packet,
+                          struct cache_req_result *result);
 
 #endif /* _NSS_PROTOCOL_H_ */
