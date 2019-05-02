@@ -147,7 +147,8 @@ int main(int argc, const char *argv[])
     bool skipped = true;
     struct sss_domain_info *dinfo;
 
-    /* In offline mode, there's not going to be a sssd instance
+    /* If systemd is in offline mode,
+     * there's not going to be a sssd instance
      * running.  This occurs for both e.g. yum --installroot
      * as well as rpm-ostree offline updates.
      *
@@ -159,8 +160,9 @@ int main(int argc, const char *argv[])
      * https://github.com/systemd/systemd/pull/7631
      */
     const char *systemd_offline = getenv ("SYSTEMD_OFFLINE");
-    if (systemd_offline && strcmp (systemd_offline, "1") == 0)
-      return 0;
+    if (systemd_offline && strcmp (systemd_offline, "1") == 0 && access(DB_PATH, W_OK) != 0) {
+        return 0;
+    }
 
     ret = init_context(argc, argv, &tctx);
     if (ret == ENOENT) {
