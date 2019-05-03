@@ -1,18 +1,31 @@
-#!/sbin/runscript
+#!/sbin/openrc-run
+# Copyright 1999-2019 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v3
+
+
+command="@sbindir@/sssd"
+command_args="-Df ${SSSD_OPTIONS}"
+description="System Security Services Daemon"
+pidfile="@pidpath@/sssd.pid"
+#sssd may take time time to TERMinate so allow som extra time
+retry="TERM/60"
+extra_started_commands="rotate online offline"
 
 depend(){
-    need localmount netmount clock
-    use syslog xdm
+    need localmount clock
+    use syslog
+    before xdm
 }
 
-start(){
-    ebegin "Starting sssd"
-    start-stop-daemon --start --exec @sbindir@/sssd -- -Df ${SSSD_OPTIONS}
-    eend ${?}
+do_sig() {
+	local sig=$1 ; shift
+	ebegin "$*"
+	start-stop-daemon --signal ${sig} --pidfile ${pidfile}
+	eend $?
 }
 
-stop(){
-    ebegin "Stopping sssd"
-    start-stop-daemon --stop --pidfile @localstatedir@/run/sssd.pid
-    eend ${?}
-}
+rotate() { do_sig HUP  "Sends sssd a signal to re-open its log files." ; }
+
+offline() { do_sig USR1  "Simulate offline" ; }
+
+online() { do_sig USR2  "Simulate online" ; }
