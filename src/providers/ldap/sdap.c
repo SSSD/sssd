@@ -1460,8 +1460,9 @@ void sdap_steal_server_opts(struct sdap_id_ctx *id_ctx,
     }
 
     /* discard if same as previous so we do not reset max usn values
-     * unnecessarily */
+     * unnecessarily, only update last_usn. */
     if (strcmp(id_ctx->srv_opts->server_id, (*srv_opts)->server_id) == 0) {
+        id_ctx->srv_opts->last_usn = (*srv_opts)->last_usn;
         talloc_zfree(*srv_opts);
         return;
     }
