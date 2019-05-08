@@ -67,6 +67,14 @@
 #define NULL 0
 #endif
 
+#ifndef MIN
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef MAX
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#endif
+
 #define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
 
 #define SSSD_SERVER_OPTS(uid, gid) \
