@@ -30,7 +30,6 @@ struct sdap_refresh_state {
     struct dp_id_data *account_req;
     struct sdap_id_ctx *id_ctx;
     struct sdap_domain *sdom;
-    const char *type;
     char **names;
     size_t index;
 };
@@ -74,31 +73,11 @@ static struct tevent_req *sdap_refresh_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    switch (entry_type) {
-    case BE_REQ_USER:
-        state->type = "user";
-        break;
-    case BE_REQ_GROUP:
-        state->type = "group";
-        break;
-    case BE_REQ_NETGROUP:
-        state->type = "netgroup";
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid entry type [%d]!\n", entry_type);
-    }
-
-    state->account_req = talloc_zero(state, struct dp_id_data);
+    state->account_req = be_refresh_acct_req(state, entry_type, domain);
     if (state->account_req == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
-
-    state->account_req->entry_type = entry_type;
-    state->account_req->filter_type = BE_FILTER_NAME;
-    state->account_req->extra_value = NULL;
-    state->account_req->domain = domain->name;
-    /* filter will be filled later */
 
     ret = sdap_refresh_step(req);
     if (ret == EOK) {
@@ -143,7 +122,8 @@ static errno_t sdap_refresh_step(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing refresh of %s %s\n",
-          state->type, state->account_req->filter_value);
+          be_req2str(state->account_req->entry_type),
+          state->account_req->filter_value);
 
     subreq = sdap_handle_acct_req_send(state, state->be_ctx,
                                        state->account_req, state->id_ctx,
@@ -178,7 +158,8 @@ static void sdap_refresh_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s [dp_error: %d, "
-              "sdap_ret: %d, errno: %d]: %s\n", state->type,
+              "sdap_ret: %d, errno: %d]: %s\n",
+               be_req2str(state->account_req->entry_type),
               dp_error, sdap_ret, ret, err_msg);
         goto done;
     }
