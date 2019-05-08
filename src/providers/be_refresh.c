@@ -204,8 +204,21 @@ struct be_refresh_state {
     struct sss_domain_info *domain;
     enum be_refresh_type index;
     time_t period;
+
+    char **refresh_values;
+    size_t refresh_val_size;
+    size_t refresh_index;
+
+    size_t batch_size;
+    char **refresh_batch;
 };
 
+static errno_t be_refresh_batch_step(struct tevent_req *req,
+                                     uint32_t msec_delay);
+static void be_refresh_batch_step_wakeup(struct tevent_context *ev,
+                                         struct tevent_timer *tt,
+                                         struct timeval tv,
+                                         void *pvt);
 static errno_t be_refresh_step(struct tevent_req *req);
 static void be_refresh_done(struct tevent_req *subreq);
 
@@ -236,6 +249,13 @@ struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
+    state->batch_size = 200;
+    state->refresh_batch = talloc_zero_array(state, char *, state->batch_size+1);
+    if (state->refresh_batch == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
     ret = be_refresh_step(req);
     if (ret == EOK) {
         goto immediately;
@@ -261,8 +281,6 @@ immediately:
 static errno_t be_refresh_step(struct tevent_req *req)
 {
     struct be_refresh_state *state = NULL;
-    struct tevent_req *subreq = NULL;
-    char **values = NULL;
     errno_t ret;
 
     state = tevent_req_data(req, struct be_refresh_state);
@@ -289,42 +307,103 @@ static errno_t be_refresh_step(struct tevent_req *req)
             goto done;
         }
 
+        talloc_zfree(state->refresh_values);
         ret = be_refresh_get_values(state, state->index, state->ctx->attr_name,
-                                    state->domain, state->period, &values);
+                                    state->domain, state->period,
+                                    &state->refresh_values);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain DN list [%d]: %s\n",
                                         ret, sss_strerror(ret));
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, "Refreshing %s in domain %s\n",
-              state->cb->name, state->domain->name);
+        for (state->refresh_val_size = 0;
+             state->refresh_values[state->refresh_val_size] != NULL;
+             state->refresh_val_size++);
 
-        subreq = state->cb->send_fn(state, state->ev, state->be_ctx,
-                                    state->domain, values, state->cb->pvt);
-        if (subreq == NULL) {
-            ret = ENOMEM;
+        DEBUG(SSSDBG_TRACE_FUNC, "Refreshing %zu %s in domain %s\n",
+              state->refresh_val_size, state->cb->name, state->domain->name);
+
+        ret = be_refresh_batch_step(req, 0);
+        if (ret == EOK) {
+            state->index++;
+            continue;
+        } else if (ret != EAGAIN) {
             goto done;
         }
-
-        /* make the list disappear with subreq */
-        talloc_steal(subreq, values);
-
-        tevent_req_set_callback(subreq, be_refresh_done, req);
+        /* EAGAIN only, refreshing something.. */
 
         state->index++;
-        ret = EAGAIN;
         goto done;
     }
 
     ret = EOK;
 
 done:
-    if (ret != EOK && ret != EAGAIN) {
-        talloc_free(values);
+    return ret;
+}
+
+static errno_t be_refresh_batch_step(struct tevent_req *req,
+                                     uint32_t msec_delay)
+{
+    struct be_refresh_state *state = tevent_req_data(req, struct be_refresh_state);
+    struct timeval tv;
+    struct tevent_timer *timeout = NULL;
+
+    size_t remaining;
+    size_t batch_size;
+
+    memset(state->refresh_batch, 0, sizeof(char *) * state->batch_size);
+
+    if (state->refresh_index >= state->refresh_val_size) {
+        DEBUG(SSSDBG_FUNC_DATA, "The batch is done\n");
+        state->refresh_index = 0;
+        return EOK;
     }
 
-    return ret;
+    remaining = state->refresh_val_size - state->refresh_index;
+    batch_size = MIN(remaining, state->batch_size);
+    DEBUG(SSSDBG_FUNC_DATA,
+          "This batch will refresh %zu entries (so far %zu/%zu)\n",
+          batch_size, state->refresh_index, state->refresh_val_size);
+
+    for (size_t i = 0; i < batch_size; i++) {
+        state->refresh_batch[i] = state->refresh_values[state->refresh_index];
+        state->refresh_index++;
+    }
+
+    tv = tevent_timeval_current_ofs(0, msec_delay * 1000);
+    timeout = tevent_add_timer(state->be_ctx->ev, req, tv,
+                               be_refresh_batch_step_wakeup, req);
+    if (timeout == NULL) {
+        return ENOMEM;
+    }
+
+    return EAGAIN;
+}
+
+static void be_refresh_batch_step_wakeup(struct tevent_context *ev,
+                                         struct tevent_timer *tt,
+                                         struct timeval tv,
+                                         void *pvt)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq = NULL;
+    struct be_refresh_state *state = NULL;
+
+    req = talloc_get_type(pvt, struct tevent_req);
+    state = tevent_req_data(req, struct be_refresh_state);
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Issuing refresh\n");
+    subreq = state->cb->send_fn(state, state->ev, state->be_ctx,
+                                state->domain,
+                                state->refresh_batch,
+                                state->cb->pvt);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, be_refresh_done, req);
 }
 
 static void be_refresh_done(struct tevent_req *subreq)
@@ -342,8 +421,24 @@ static void be_refresh_done(struct tevent_req *subreq)
         goto done;
     }
 
+    ret = be_refresh_batch_step(req, 500);
+    if (ret == EAGAIN) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Another batch in this step in progress\n");
+        return;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "be_refresh_batch_step failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "All batches in this step refreshed\n");
+
+    /* Proceed to the next step */
     ret = be_refresh_step(req);
     if (ret == EAGAIN) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Another step in progress\n");
         return;
     }
 
