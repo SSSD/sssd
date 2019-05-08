@@ -140,8 +140,8 @@ void idmap_add_domain_with_sec_slices_setup_cb_fail(void)
 }
 
 
-#define MAX 1000
-char data[MAX];
+#define DATA_MAX 1000
+char data[DATA_MAX];
 
 enum idmap_error_code cb2(const char *dom_name,
                           const char *dom_sid,
@@ -154,10 +154,10 @@ enum idmap_error_code cb2(const char *dom_name,
     char *p = (char*)pvt;
     size_t len;
 
-    len = snprintf(p, MAX, "%s, %s %s, %"PRIu32", %"PRIu32", %" PRIu32,
+    len = snprintf(p, DATA_MAX, "%s, %s %s, %"PRIu32", %"PRIu32", %" PRIu32,
                    dom_name, dom_sid, range_id, min_id, max_id, first_rid);
 
-    if (len >= MAX) {
+    if (len >= DATA_MAX) {
         return IDMAP_OUT_OF_MEMORY;
     }
     return IDMAP_SUCCESS;
