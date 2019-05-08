@@ -69,4 +69,8 @@ struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
 
 errno_t be_refresh_recv(struct tevent_req *req);
 
+struct dp_id_data *be_refresh_acct_req(TALLOC_CTX *mem_ctx,
+                                       uint32_t entry_type,
+                                       struct sss_domain_info *domain);
+
 #endif /* _DP_REFRESH_H_ */
