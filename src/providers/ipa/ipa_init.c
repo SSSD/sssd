@@ -594,7 +594,7 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
         }
     }
 
-    ret = sdap_refresh_init(be_ctx, sdap_id_ctx);
+    ret = ipa_refresh_init(be_ctx, ipa_id_ctx);
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
               "will not work [%d]: %s\n", ret, sss_strerror(ret));
