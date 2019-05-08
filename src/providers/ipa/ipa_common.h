@@ -301,4 +301,7 @@ errno_t ipa_get_host_attrs(struct dp_option *ipa_options,
                            struct sysdb_attrs **hosts,
                            struct sysdb_attrs **_ipa_host);
 
+errno_t ipa_refresh_init(struct be_ctx *be_ctx,
+                         struct ipa_id_ctx *id_ctx);
+
 #endif /* _IPA_COMMON_H_ */
