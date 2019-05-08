@@ -4432,6 +4432,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_srv.c \
     src/providers/ipa/ipa_idmap.c \
     src/providers/ipa/ipa_dn.c \
+    src/providers/ipa/ipa_refresh.c \
     src/providers/ad/ad_opts.c \
     src/providers/ad/ad_common.c \
     src/providers/ad/ad_dyndns.c \
