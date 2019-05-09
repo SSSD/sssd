@@ -65,6 +65,11 @@ struct proxy_auth_ctx {
     int timeout_ms;
 };
 
+struct proxy_module_ctx {
+    struct proxy_id_ctx *id_ctx;
+    struct proxy_auth_ctx *auth_ctx;
+};
+
 struct proxy_child_ctx {
     struct proxy_auth_ctx *auth_ctx;
     struct be_req *be_req;
