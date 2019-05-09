@@ -176,7 +176,7 @@ errno_t sssm_proxy_init(TALLOC_CTX *mem_ctx,
                        const char *module_name,
                        void **_module_data)
 {
-    struct proxy_auth_ctx *auth_ctx;
+    struct proxy_module_ctx *module_ctx;
     errno_t ret;
 
     if (!dp_target_enabled(provider, module_name,
@@ -184,16 +184,23 @@ errno_t sssm_proxy_init(TALLOC_CTX *mem_ctx,
         return EOK;
     }
 
+    module_ctx = talloc_zero(mem_ctx, struct proxy_module_ctx);
+    if (module_ctx == NULL) {
+        return ENOMEM;
+    }
+
     /* Initialize auth_ctx since one of the access, auth or chpass is set. */
 
-    ret = proxy_init_auth_ctx(mem_ctx, be_ctx, provider, &auth_ctx);
+    ret = proxy_init_auth_ctx(module_ctx, be_ctx, provider,
+                              &module_ctx->auth_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context [%d]: %s\n",
               ret, sss_strerror(ret));
+        talloc_free(module_ctx);
         return ret;
     }
 
-    *_module_data = auth_ctx;
+    *_module_data = module_ctx;
 
     return EOK;
 }
@@ -239,23 +246,25 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
                            void *module_data,
                            struct dp_method *dp_methods)
 {
-    struct proxy_id_ctx *ctx;
+    struct proxy_module_ctx *module_ctx;
     char *libname;
     errno_t ret;
 
-    ctx = talloc_zero(mem_ctx, struct proxy_id_ctx);
-    if (ctx == NULL) {
+    module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
+    module_ctx->id_ctx = talloc_zero(module_ctx, struct proxy_id_ctx);
+    if (module_ctx->id_ctx == NULL) {
         return ENOMEM;
     }
 
-    ctx->be = be_ctx;
+    module_ctx->id_ctx->be = be_ctx;
 
-    ret = proxy_id_conf(ctx, be_ctx, &libname, &ctx->fast_alias);
+    ret = proxy_id_conf(module_ctx->id_ctx, be_ctx, &libname,
+                        &module_ctx->id_ctx->fast_alias);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = proxy_load_nss_symbols(&ctx->ops, libname);
+    ret = proxy_load_nss_symbols(&module_ctx->id_ctx->ops, libname);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -263,8 +272,9 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
     }
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
-                  proxy_account_info_handler_send, proxy_account_info_handler_recv, ctx,
-                  struct proxy_id_ctx, struct dp_id_data, struct dp_reply_std);
+                  proxy_account_info_handler_send, proxy_account_info_handler_recv,
+                  module_ctx->id_ctx, struct proxy_id_ctx, struct dp_id_data,
+                  struct dp_reply_std);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
@@ -274,7 +284,7 @@ errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret != EOK) {
-        talloc_free(ctx);
+        talloc_zfree(module_ctx->id_ctx);
     }
 
     return ret;
@@ -285,13 +295,14 @@ errno_t sssm_proxy_auth_init(TALLOC_CTX *mem_ctx,
                              void *module_data,
                              struct dp_method *dp_methods)
 {
-    struct proxy_auth_ctx *auth_ctx;
+    struct proxy_module_ctx *module_ctx;
 
-    auth_ctx = talloc_get_type(module_data, struct proxy_auth_ctx);
+    module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
 
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
-                  proxy_pam_handler_send, proxy_pam_handler_recv, auth_ctx,
-                  struct proxy_auth_ctx, struct pam_data, struct pam_data *);
+                  proxy_pam_handler_send, proxy_pam_handler_recv,
+                  module_ctx->auth_ctx, struct proxy_auth_ctx,
+                  struct pam_data, struct pam_data *);
 
     return EOK;
 }
@@ -309,13 +320,14 @@ errno_t sssm_proxy_access_init(TALLOC_CTX *mem_ctx,
                                void *module_data,
                                struct dp_method *dp_methods)
 {
-    struct proxy_auth_ctx *auth_ctx;
+    struct proxy_module_ctx *module_ctx;
 
-    auth_ctx = talloc_get_type(module_data, struct proxy_auth_ctx);
+    module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
 
     dp_set_method(dp_methods, DPM_ACCESS_HANDLER,
-                  proxy_pam_handler_send, proxy_pam_handler_recv, auth_ctx,
-                  struct proxy_auth_ctx, struct pam_data, struct pam_data *);
+                  proxy_pam_handler_send, proxy_pam_handler_recv,
+                  module_ctx->auth_ctx, struct proxy_auth_ctx,
+                  struct pam_data, struct pam_data *);
 
     return EOK;
 }
