@@ -126,6 +126,7 @@
 #define BE_FILTER_UUID 5
 #define BE_FILTER_CERT 6
 #define BE_FILTER_WILDCARD 7
+#define BE_FILTER_ADDR 8
 
 #define DP_SEC_ID "secid"
 #define DP_CERT "cert"
