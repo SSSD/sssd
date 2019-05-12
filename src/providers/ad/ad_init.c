@@ -56,7 +56,7 @@ static int ad_sasl_getopt(void *context, const char *plugin_name,
     if (!plugin_name || !result) {
         return SASL_FAIL;
     }
-    if (strcmp(plugin_name, "GSSAPI") != 0) {
+    if (!sdap_sasl_mech_needs_kinit(plugin_name)) {
         return SASL_FAIL;
     }
     if (strcmp(option, "ad_compat") != 0) {

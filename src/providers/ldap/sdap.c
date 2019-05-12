@@ -902,6 +902,15 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     return EOK;
 }
 
+bool sdap_sasl_mech_needs_kinit(const char *sasl_mech)
+{
+    if (strcasecmp(sasl_mech, "GSSAPI") == 0
+            || strcasecmp(sasl_mech, "GSS-SPNEGO") == 0) {
+        return true;
+    }
+
+    return false;
+}
 
 bool sdap_check_sup_list(struct sup_list *l, const char *val)
 {

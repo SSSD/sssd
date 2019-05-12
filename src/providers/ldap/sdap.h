@@ -617,6 +617,8 @@ bool sdap_check_sup_list(struct sup_list *l, const char *val);
 #define sdap_is_extension_supported(sh, ext_oid) \
     sdap_check_sup_list(&((sh)->supported_extensions), ext_oid)
 
+bool sdap_sasl_mech_needs_kinit(const char *mech);
+
 int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
                          size_t size,

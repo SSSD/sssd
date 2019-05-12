@@ -1605,14 +1605,14 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
     if (state->do_auth && sasl_mech && state->use_rootdse) {
-        /* check if server claims to support GSSAPI */
+        /* check if server claims to support the configured SASL MECH */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
             return;
         }
     }
 
-    if (state->do_auth && sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+    if (state->do_auth && sasl_mech && sdap_sasl_mech_needs_kinit(sasl_mech)) {
         if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
             sdap_cli_kinit_step(req);
             return;
@@ -1690,14 +1690,14 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
     if (state->do_auth && sasl_mech && state->rootdse) {
-        /* check if server claims to support GSSAPI */
+        /* check if server claims to support the configured SASL MECH */
         if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
             return;
         }
     }
 
-    if (state->do_auth && sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+    if (state->do_auth && sasl_mech && sdap_sasl_mech_needs_kinit(sasl_mech)) {
         if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
             sdap_cli_kinit_step(req);
             return;

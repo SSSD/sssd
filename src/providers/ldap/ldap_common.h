@@ -65,7 +65,7 @@ struct sdap_id_ctx {
     struct be_ctx *be;
     struct sdap_options *opts;
 
-    /* If using GSSAPI */
+    /* If using GSSAPI or GSS-SPNEGO */
     struct krb5_service *krb5_service;
     /* connection to a server */
     struct sdap_id_conn_ctx *conn;
