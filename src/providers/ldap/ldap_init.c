@@ -365,7 +365,7 @@ static bool should_call_gssapi_init(struct sdap_options *opts)
         return false;
     }
 
-    if (strcasecmp(sasl_mech, "GSSAPI") != 0) {
+    if (!sdap_sasl_mech_needs_kinit(sasl_mech)) {
         return false;
     }
 
