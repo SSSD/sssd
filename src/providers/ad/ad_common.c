@@ -577,7 +577,7 @@ _ad_servers_init(struct ad_service *service,
         if (resolv_is_address(list[j])) {
             DEBUG(SSSDBG_IMPORTANT_INFO,
                   "ad_server [%s] is detected as IP address, "
-                  "this can cause GSSAPI problems\n", list[j]);
+                  "this can cause GSSAPI/GSS-SPNEGO problems\n", list[j]);
         }
     }
 
@@ -1025,7 +1025,7 @@ ad_set_sdap_options(struct ad_options *ad_opts,
         goto done;
     }
 
-    /* Set the Kerberos Realm for GSSAPI */
+    /* Set the Kerberos Realm for GSSAPI or GSS-SPNEGO */
     krb5_realm = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
     if (!krb5_realm) {
         /* Should be impossible, this is set in ad_get_common_options() */
@@ -1282,7 +1282,7 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
            ad_servers);
 
     /* Set krb5 realm */
-    /* Set the Kerberos Realm for GSSAPI */
+    /* Set the Kerberos Realm for GSSAPI/GSS-SPNEGO */
     krb5_realm = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
     if (!krb5_realm) {
         /* Should be impossible, this is set in ad_get_common_options() */

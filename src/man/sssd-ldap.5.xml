@@ -1746,8 +1746,8 @@
                     <term>ldap_sasl_mech (string)</term>
                     <listitem>
                         <para>
-                            Specify the SASL mechanism to use.
-                            Currently only GSSAPI is tested and supported.
+                            Specify the SASL mechanism to use.  Currently only
+                            GSSAPI and GSS-SPNEGO are tested and supported.
                         </para>
                         <para>
                             Default: not set
@@ -1759,13 +1759,14 @@
                     <term>ldap_sasl_authid (string)</term>
                     <listitem>
                         <para>
-                            Specify the SASL authorization id to use.
-                            When GSSAPI is used, this represents the Kerberos
-                            principal used for authentication to the directory.
-                            This option can either contain the full principal (for
-                            example host/myhost@EXAMPLE.COM) or just the principal name
-                            (for example host/myhost). By default, the value is not set
-                            and the following principals are used:
+                            Specify the SASL authorization id to use.  When
+                            GSSAPI/GSS-SPNEGO are used, this represents the
+                            Kerberos principal used for authentication to the
+                            directory.  This option can either contain the full
+                            principal (for example host/myhost@EXAMPLE.COM) or
+                            just the principal name (for example host/myhost).
+                            By default, the value is not set and the following
+                            principals are used:
                             <programlisting>
 hostname@REALM
 netbiosname$@REALM
@@ -1816,7 +1817,8 @@ host/*
                     <term>ldap_krb5_keytab (string)</term>
                     <listitem>
                         <para>
-                            Specify the keytab to use when using SASL/GSSAPI.
+                            Specify the keytab to use when using
+                            SASL/GSSAPI/GSS-SPNEGO.
                         </para>
                         <para>
                             Default: System keytab, normally <filename>/etc/krb5.keytab</filename>
@@ -1831,7 +1833,7 @@ host/*
                             Specifies that the id_provider should init
                             Kerberos credentials (TGT).
                             This action is performed only if SASL is used and
-                            the mechanism selected is GSSAPI.
+                            the mechanism selected is GSSAPI or GSS-SPNEGO.
                         </para>
                         <para>
                             Default: true
@@ -1844,7 +1846,7 @@ host/*
                     <listitem>
                         <para>
                             Specifies the lifetime in seconds of the TGT if
-                            GSSAPI is used.
+                            GSSAPI or GSS-SPNEGO is used.
                         </para>
                         <para>
                             Default: 86400 (24 hours)
@@ -1885,7 +1887,8 @@ host/*
                     <term>krb5_realm (string)</term>
                     <listitem>
                         <para>
-                            Specify the Kerberos REALM (for SASL/GSSAPI auth).
+                            Specify the Kerberos REALM (for
+                            SASL/GSSAPI/GSS-SPNEGO auth).
                         </para>
                         <para>
                             Default: System defaults, see <filename>/etc/krb5.conf</filename>
