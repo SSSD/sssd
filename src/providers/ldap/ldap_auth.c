@@ -715,9 +715,9 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
          * we don't need to authenticate the connection, because we're not
          * looking up any information using the connection. This might be
          * needed e.g. in case both ID and AUTH providers are set to LDAP
-         * and the server is AD, because otherwise the connection would
-         * both do a startTLS and later bind using GSSAPI which doesn't work
-         * well with AD.
+         * and the server is AD, because otherwise the connection would both
+         * do a startTLS and later bind using GSSAPI or GSS-SPNEGO which
+         * doesn't work well with AD.
          */
         skip_conn_auth = true;
     }
@@ -725,8 +725,8 @@ static struct tevent_req *auth_connect_send(struct tevent_req *req)
     if (skip_conn_auth == false) {
         sasl_mech = dp_opt_get_string(state->ctx->opts->basic,
                                       SDAP_SASL_MECH);
-        if (sasl_mech && strcasecmp(sasl_mech, "GSSAPI") == 0) {
-            /* Don't force TLS on if we're told to use GSSAPI */
+        if (sasl_mech && sdap_sasl_mech_needs_kinit(sasl_mech)) {
+            /* Don't force TLS on if we're told to use GSSAPI or GSS-SPNEGO */
             use_tls = false;
         }
     }
