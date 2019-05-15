@@ -696,6 +696,7 @@ errno_t sdap_exop_modify_passwd_recv(struct tevent_req *req,
     struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
                                          struct sdap_exop_modify_passwd_state);
 
+    /* We want to return the error message even on failure */
     *user_error_message = talloc_steal(mem_ctx, state->user_error_message);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
