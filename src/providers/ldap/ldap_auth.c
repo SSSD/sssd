@@ -1222,9 +1222,10 @@ sdap_pam_change_password_recv(TALLOC_CTX *mem_ctx,
     struct sdap_pam_change_password_state *state;
     state = tevent_req_data(req, struct sdap_pam_change_password_state);
 
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
+    /* We want to return the error message even on failure */
     *_user_error_message = talloc_steal(mem_ctx, state->user_error_message);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
