@@ -66,4 +66,10 @@ _sbus_sss_key_uusss_0_1_2_3_4
     struct sbus_request *sbus_req,
     struct _sbus_sss_invoker_args_uusss *args);
 
+const char *
+_sbus_sss_key_uuus_0_1_2_3
+   (TALLOC_CTX *mem_ctx,
+    struct sbus_request *sbus_req,
+    struct _sbus_sss_invoker_args_uuus *args);
+
 #endif /* _SBUS_SSS_KEYGENS_H_ */

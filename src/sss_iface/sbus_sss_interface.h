@@ -625,6 +625,28 @@
         (handler_send), (handler_recv), (data)); \
 })
 
+/* Method: sssd.dataprovider.resolverHandler */
+#define SBUS_METHOD_SYNC_sssd_dataprovider_resolverHandler(handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), uint32_t, uint32_t, uint32_t, const char *, uint16_t*, uint32_t*, const char **); \
+    sbus_method_sync("resolverHandler", \
+        &_sbus_sss_args_sssd_dataprovider_resolverHandler, \
+        NULL, \
+        _sbus_sss_invoke_in_uuus_out_qus_send, \
+        _sbus_sss_key_uuus_0_1_2_3, \
+        (handler), (data)); \
+})
+
+#define SBUS_METHOD_ASYNC_sssd_dataprovider_resolverHandler(handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data), uint32_t, uint32_t, uint32_t, const char *); \
+    SBUS_CHECK_RECV((handler_recv), uint16_t*, uint32_t*, const char **); \
+    sbus_method_async("resolverHandler", \
+        &_sbus_sss_args_sssd_dataprovider_resolverHandler, \
+        NULL, \
+        _sbus_sss_invoke_in_uuus_out_qus_send, \
+        _sbus_sss_key_uuus_0_1_2_3, \
+        (handler_send), (handler_recv), (data)); \
+})
+
 /* Method: sssd.dataprovider.sudoHandler */
 #define SBUS_METHOD_SYNC_sssd_dataprovider_sudoHandler(handler, data) ({ \
     SBUS_CHECK_SYNC((handler), (data), DBusMessageIter *, uint16_t*, uint32_t*, const char **); \
