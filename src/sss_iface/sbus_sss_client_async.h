@@ -318,6 +318,25 @@ sbus_call_dp_dp_pamHandler_recv
      struct pam_data ** _pam_response);
 
 struct tevent_req *
+sbus_call_dp_dp_resolverHandler_send
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_connection *conn,
+     const char *busname,
+     const char *object_path,
+     uint32_t arg_dp_flags,
+     uint32_t arg_entry_type,
+     uint32_t arg_filter_type,
+     const char * arg_filter_value);
+
+errno_t
+sbus_call_dp_dp_resolverHandler_recv
+    (TALLOC_CTX *mem_ctx,
+     struct tevent_req *req,
+     uint16_t* _dp_error,
+     uint32_t* _error,
+     const char ** _error_message);
+
+struct tevent_req *
 sbus_call_dp_dp_sudoHandler_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,

@@ -57,5 +57,6 @@ _sbus_sss_declare_invoker(usq, );
 _sbus_sss_declare_invoker(uss, );
 _sbus_sss_declare_invoker(uss, qus);
 _sbus_sss_declare_invoker(uusss, qus);
+_sbus_sss_declare_invoker(uuus, qus);
 
 #endif /* _SBUS_SSS_INVOKERS_H_ */
