@@ -49,34 +49,12 @@ static void *proxy_dlsym(void *handle,
 }
 
 
-errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname)
+errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
+                             struct sss_nss_symbols *syms, size_t nsyms)
 {
+    errno_t ret;
     char *libpath;
     size_t i;
-    struct {
-        void **dest;
-        const char *name;
-    } symbols[] = {
-        {(void**)&ops->getpwnam_r,      "getpwnam_r"},
-        {(void**)&ops->getpwuid_r,      "getpwuid_r"},
-        {(void**)&ops->setpwent,        "setpwent"},
-        {(void**)&ops->getpwent_r,      "getpwent_r"},
-        {(void**)&ops->endpwent,        "endpwent"},
-        {(void**)&ops->getgrnam_r,      "getgrnam_r"},
-        {(void**)&ops->getgrgid_r,      "getgrgid_r"},
-        {(void**)&ops->setgrent,        "setgrent"},
-        {(void**)&ops->getgrent_r,      "getgrent_r"},
-        {(void**)&ops->endgrent,        "endgrent"},
-        {(void**)&ops->initgroups_dyn,  "initgroups_dyn"},
-        {(void**)&ops->setnetgrent,     "setnetgrent"},
-        {(void**)&ops->getnetgrent_r,   "getnetgrent_r"},
-        {(void**)&ops->endnetgrent,     "endnetgrent"},
-        {(void**)&ops->getservbyname_r, "getservbyname_r"},
-        {(void**)&ops->getservbyport_r, "getservbyport_r"},
-        {(void**)&ops->setservent,      "setservent"},
-        {(void**)&ops->getservent_r,    "getservent_r"},
-        {(void**)&ops->endservent,      "endservent"}
-    };
 
     libpath = talloc_asprintf(NULL, "libnss_%s.so.2", libname);
     if (libpath == NULL) {
@@ -88,19 +66,33 @@ errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname)
     if (ops->dl_handle == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load %s module, "
               "error: %s\n", libpath, dlerror());
-        talloc_free(libpath);
-        return ELIBACC;
+        ret = ELIBACC;
+        goto out;
     }
-    talloc_free(libpath);
 
-    for (i = 0; i < sizeof(symbols)/sizeof(symbols[0]); ++i) {
-        *symbols[i].dest = proxy_dlsym(ops->dl_handle, symbols[i].name,
-                                       libname);
-        if (*symbols[i].dest == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to load "NSS_FN_NAME", "
-                  "error: %s.\n", libname, symbols[i].name, dlerror());
+    for (i = 0; i < nsyms; i++) {
+        *(syms[i].fptr) = proxy_dlsym(ops->dl_handle, syms[i].fname,
+                                     libname);
+
+        if (*(syms[i].fptr) == NULL) {
+            if (syms[i].mandatory) {
+                DEBUG(SSSDBG_FATAL_FAILURE, "Library '%s' did not provide "
+                      "mandatory symbol '%s', error: %s.\n", libpath,
+                      syms[i].fname, dlerror());
+                ret = ELIBBAD;
+                goto out;
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, "Library '%s' did not provide "
+                      "optional symbol '%s', error: %s.\n", libpath,
+                      syms[i].fname, dlerror());
+            }
         }
     }
 
-    return EOK;
+    ret = EOK;
+
+out:
+    talloc_free(libpath);
+
+    return ret;
 }
