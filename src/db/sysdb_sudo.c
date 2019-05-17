@@ -893,7 +893,8 @@ sysdb_sudo_add_sss_attrs(struct sysdb_attrs *rule,
 }
 
 static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
-                                            struct sysdb_attrs *rule)
+                                            struct sysdb_attrs *rule,
+                                            const char *name)
 {
     TALLOC_CTX *tmp_ctx;
     const char **users = NULL;
@@ -911,10 +912,13 @@ static errno_t sysdb_sudo_add_lowered_users(struct sss_domain_info *domain,
     ret = sysdb_attrs_get_string_array(rule, SYSDB_SUDO_CACHE_AT_USER, tmp_ctx,
                                        &users);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unable to get %s attribute [%d]: %s\n",
-              SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
-        ret = ERR_MALFORMED_ENTRY;
-        goto done;
+        /* Allow "defaults" sudoRole without sudoUser attribute */
+        if (name != NULL && !sss_string_equal(false, "defaults", name)) {
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to get %s attribute [%d]: %s\n",
+                  SYSDB_SUDO_CACHE_AT_USER, ret, strerror(ret));
+            ret = ERR_MALFORMED_ENTRY;
+            goto done;
+        }
     }
 
     if (users == NULL) {
@@ -957,7 +961,7 @@ sysdb_sudo_store_rule(struct sss_domain_info *domain,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Adding sudo rule %s\n", name);
 
-    ret = sysdb_sudo_add_lowered_users(domain, rule);
+    ret = sysdb_sudo_add_lowered_users(domain, rule, name);
     if (ret != EOK) {
         return ret;
     }
