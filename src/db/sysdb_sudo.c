@@ -957,9 +957,12 @@ sysdb_sudo_store_rule(struct sss_domain_info *domain,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Adding sudo rule %s\n", name);
 
-    ret = sysdb_sudo_add_lowered_users(domain, rule);
-    if (ret != EOK) {
-        return ret;
+    /* skip default rules, because they do not have a sudoUser */
+    if (strcasecmp(name,"defaults")) {
+	ret = sysdb_sudo_add_lowered_users(domain, rule);
+    	if (ret != EOK) {
+        	return ret;
+    	}
     }
 
     ret = sysdb_sudo_add_sss_attrs(rule, name, cache_timeout, now);
