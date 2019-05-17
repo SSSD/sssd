@@ -319,6 +319,23 @@ _sbus_sss_args_sssd_dataprovider_pamHandler = {
 };
 
 const struct sbus_method_arguments
+_sbus_sss_args_sssd_dataprovider_resolverHandler = {
+    .input = (const struct sbus_argument[]){
+        {.type = "u", .name = "dp_flags"},
+        {.type = "u", .name = "entry_type"},
+        {.type = "u", .name = "filter_type"},
+        {.type = "s", .name = "filter_value"},
+        {NULL}
+    },
+    .output = (const struct sbus_argument[]){
+        {.type = "q", .name = "dp_error"},
+        {.type = "u", .name = "error"},
+        {.type = "s", .name = "error_message"},
+        {NULL}
+    }
+};
+
+const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_sudoHandler = {
     .input = (const struct sbus_argument[]){
         {NULL}

@@ -95,6 +95,9 @@ extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_pamHandler;
 
 extern const struct sbus_method_arguments
+_sbus_sss_args_sssd_dataprovider_resolverHandler;
+
+extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_sudoHandler;
 
 extern const struct sbus_method_arguments
