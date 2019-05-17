@@ -198,62 +198,36 @@ errno_t sssm_proxy_init(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-
-#define ERROR_INITGR "The '%s' library does not provides the " \
-                         "_nss_XXX_initgroups_dyn function!\n" \
-                         "initgroups will be slow as it will require " \
-                         "full groups enumeration!\n"
-#define ERROR_NETGR "The '%s' library does not support netgroups.\n"
-#define ERROR_SERV "The '%s' library does not support services.\n"
-
 static errno_t proxy_load_nss_symbols(struct sss_nss_ops *ops,
                                       const char *libname)
 {
     errno_t ret;
-    size_t i;
+    struct sss_nss_symbols syms[] = {
+        {(void*)&ops->getpwnam_r,      true,  "getpwnam_r" },
+        {(void*)&ops->getpwuid_r,      true,  "getpwuid_r" },
+        {(void*)&ops->setpwent,        true,  "setpwent" },
+        {(void*)&ops->getpwent_r,      true,  "getpwent_r" },
+        {(void*)&ops->endpwent,        true,  "endpwent" },
+        {(void*)&ops->getgrnam_r,      true,  "getgrnam_r" },
+        {(void*)&ops->getgrgid_r,      true,  "getgrgid_r" },
+        {(void*)&ops->setgrent,        true,  "setgrent" },
+        {(void*)&ops->getgrent_r,      true,  "getgrent_r" },
+        {(void*)&ops->endgrent,        true,  "endgrent" },
+        {(void*)&ops->initgroups_dyn,  false, "initgroups_dyn" },
+        {(void*)&ops->setnetgrent,     false, "setnetgrent" },
+        {(void*)&ops->getnetgrent_r,   false, "getnetgrent_r" },
+        {(void*)&ops->endnetgrent,     false, "endnetgrent" },
+        {(void*)&ops->getservbyname_r, false, "getservbyname_r" },
+        {(void*)&ops->getservbyport_r, false, "getservbyport_r" },
+        {(void*)&ops->setservent,      false, "setservent" },
+        {(void*)&ops->getservent_r,    false, "getservent_r" },
+        {(void*)&ops->endservent,      false, "endservent" },
+    };
+    size_t nsyms = sizeof(syms) / sizeof(struct sss_nss_symbols);
 
-    ret = sss_load_nss_symbols(ops, libname);
+    ret = sss_load_nss_symbols(ops, libname, syms, nsyms);
     if (ret != EOK) {
         return ret;
-    }
-
-    struct {
-        void *fptr;
-        const char* custom_error;
-    } optional_syms[] = {
-        {(void*)ops->initgroups_dyn,  ERROR_INITGR},
-        {(void*)ops->setnetgrent,     ERROR_NETGR},
-        {(void*)ops->getnetgrent_r,   ERROR_NETGR},
-        {(void*)ops->endnetgrent,     ERROR_NETGR},
-        {(void*)ops->getservbyname_r, ERROR_SERV},
-        {(void*)ops->getservbyport_r, ERROR_SERV},
-        {(void*)ops->setservent,      ERROR_SERV},
-        {(void*)ops->getservent_r,    ERROR_SERV},
-        {(void*)ops->endservent,      ERROR_SERV},
-    };
-    for (i = 0; i < sizeof(optional_syms) / sizeof(optional_syms[0]); ++i) {
-        if (!optional_syms[i].fptr) {
-            DEBUG(SSSDBG_CRIT_FAILURE, optional_syms[i].custom_error, libname);
-        }
-    }
-
-    void *mandatory_syms[] = {
-        (void*)ops->getpwnam_r,
-        (void*)ops->getpwuid_r,
-        (void*)ops->setpwent,
-        (void*)ops->getpwent_r,
-        (void*)ops->endpwent,
-        (void*)ops->getgrnam_r,
-        (void*)ops->getgrgid_r,
-        (void*)ops->setgrent,
-        (void*)ops->getgrent_r,
-        (void*)ops->endgrent,
-    };
-    for (i = 0; i < sizeof(mandatory_syms)/sizeof(mandatory_syms[0]); ++i) {
-        if (!mandatory_syms[i]) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "The '%s' library does not provide mandatory function", libname);
-            return ELIBBAD;
-        }
     }
 
     return EOK;

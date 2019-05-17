@@ -69,24 +69,17 @@ static int string_to_tdb_data(char *str, TDB_DATA *ret)
 static errno_t ncache_load_nss_symbols(struct sss_nss_ops *ops)
 {
     errno_t ret;
-    size_t i;
+    struct sss_nss_symbols syms[] = {
+        {(void*)&ops->getpwnam_r, true, "getpwnam_r" },
+        {(void*)&ops->getpwuid_r, true, "getpwuid_r" },
+        {(void*)&ops->getgrnam_r, true, "getgrnam_r" },
+        {(void*)&ops->getgrgid_r, true, "getgrgid_r" }
+    };
+    size_t nsyms = sizeof(syms) / sizeof(struct sss_nss_symbols);
 
-    ret = sss_load_nss_symbols(ops, "files");
+    ret = sss_load_nss_symbols(ops, "files", syms, nsyms);
     if (ret != EOK) {
         return ret;
-    }
-
-    void *mandatory_syms[] = {
-        (void*)ops->getpwnam_r,
-        (void*)ops->getpwuid_r,
-        (void*)ops->getgrnam_r,
-        (void*)ops->getgrgid_r
-    };
-    for (i = 0; i < sizeof(mandatory_syms)/sizeof(mandatory_syms[0]); ++i) {
-        if (!mandatory_syms[i]) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "The 'files' library does not provide mandatory function");
-            return ELIBBAD;
-        }
     }
 
     return EOK;

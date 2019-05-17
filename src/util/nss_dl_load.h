@@ -75,7 +75,14 @@ struct sss_nss_ops {
 };
 
 
-errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname);
+struct sss_nss_symbols {
+    void **fptr;
+    bool mandatory;
+    const char *fname;
+};
+
+errno_t sss_load_nss_symbols(struct sss_nss_ops *ops, const char *libname,
+                             struct sss_nss_symbols *syms, size_t nsyms);
 
 
 #endif /* __SSSD_NSS_DL_LOAD_H__ */
