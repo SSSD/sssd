@@ -170,6 +170,8 @@ sysdb_store_host(struct sss_domain_info *domain,
                  const char *primary_name,
                  const char **aliases,
                  const char **addresses,
+                 struct sysdb_attrs *extra_attrs,
+                 char **remove_attrs,
                  uint64_t cache_timeout,
                  time_t now)
 {
@@ -367,10 +369,14 @@ sysdb_store_host(struct sss_domain_info *domain,
         goto done;
     }
 
-    attrs = sysdb_new_attrs(tmp_ctx);
-    if (attrs == NULL) {
-        ret = ENOMEM;
-        goto done;
+    if (extra_attrs == NULL) {
+        attrs = sysdb_new_attrs(tmp_ctx);
+        if (attrs == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        attrs = extra_attrs;
     }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
@@ -388,6 +394,18 @@ sysdb_store_host(struct sss_domain_info *domain,
     ret = sysdb_set_entry_attr(sysdb, update_dn, attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
         goto done;
+    }
+
+    if (remove_attrs) {
+        ret = sysdb_remove_attrs(domain, primary_name,
+                                 SYSDB_MEMBER_HOST,
+                                 remove_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not remove missing attributes: [%s]\n",
+                   strerror(ret));
+            goto done;
+        }
     }
 
     ret = sysdb_transaction_commit(sysdb);

@@ -205,7 +205,7 @@ proxy_save_host(struct sss_domain_info *domain,
     }
 
     ret = sysdb_store_host(domain, cased_name, cased_aliases, cased_addresses,
-                           cache_timeout, now);
+                           NULL, NULL, cache_timeout, now);
 done:
     talloc_free(tmp_ctx);
 
