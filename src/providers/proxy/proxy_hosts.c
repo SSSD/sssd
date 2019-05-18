@@ -137,6 +137,82 @@ done:
 }
 
 static errno_t
+proxy_save_host(struct sss_domain_info *domain,
+                bool lowercase,
+                uint64_t cache_timeout,
+                char *name,
+                char **aliases,
+                char **addresses)
+{
+    errno_t ret;
+    char *cased_name = NULL;
+    const char **cased_aliases = NULL;
+    const char **cased_addresses = NULL;
+    TALLOC_CTX *tmp_ctx;
+    char *lc_alias = NULL;
+    time_t now = time(NULL);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Saving host [%s] into cache, domain [%s]\n",
+          name, domain->name);
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    cased_name = sss_get_cased_name(tmp_ctx, name,
+                                    domain->case_preserve);
+    if (cased_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get cased name.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Count the aliases */
+    ret = sss_get_cased_name_list(tmp_ctx,
+                                  (const char * const *) aliases,
+                                  !lowercase, &cased_aliases);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get cased aliases.\n");
+        goto done;
+    }
+
+    /* Count the addresses */
+    ret = sss_get_cased_name_list(tmp_ctx,
+                                  (const char * const *) addresses,
+                                  !lowercase, &cased_addresses);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get cased addresses.\n");
+        goto done;
+    }
+
+    if (domain->case_preserve) {
+        /* Add lowercased alias to allow case-insensitive lookup */
+        lc_alias = sss_tc_utf8_str_tolower(tmp_ctx, name);
+        if (lc_alias == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = add_string_to_list(tmp_ctx, lc_alias,
+                                 discard_const_p(char **, &cased_aliases));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add lowercased name alias.\n");
+            goto done;
+        }
+    }
+
+    ret = sysdb_store_host(domain, cased_name, cased_aliases, cased_addresses,
+                           cache_timeout, now);
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t
 get_host_by_name_internal(struct proxy_resolver_ctx *ctx,
                           struct sss_domain_info *domain,
                           TALLOC_CTX *mem_ctx,
@@ -260,10 +336,18 @@ get_host_byname(struct proxy_resolver_ctx *ctx,
         /* Results found. Save them into the cache */
         DEBUG(SSSDBG_TRACE_INTERNAL, "Host [%s] found, saving into "
               "cache\n", name);
-        /* TODO */
+        ret = proxy_save_host(domain, !domain->case_sensitive,
+                              domain->resolver_timeout,
+                              name, aliases, addresses);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store host [%s] [%d]: %s\n",
+                  name, ret, sss_strerror(ret));
+            goto done;
+        }
     }
 
-    ret = ENOENT;
+    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);
