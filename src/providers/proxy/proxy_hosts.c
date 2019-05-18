@@ -21,14 +21,310 @@
 */
 
 #include "providers/proxy/proxy.h"
+#include "db/sysdb_iphosts.h"
+#include <arpa/inet.h>
+
+static errno_t
+nss_status_to_errno(enum nss_status status)
+{
+    switch (status) {
+    case NSS_STATUS_SUCCESS:
+        return EOK;
+    case NSS_STATUS_TRYAGAIN:
+        return EAGAIN;
+    case NSS_STATUS_NOTFOUND:
+        return ENOENT;
+    case NSS_STATUS_UNAVAIL:
+    default:
+        break;
+    }
+
+    return EIO;
+}
+
+static errno_t
+parse_hostent(TALLOC_CTX *mem_ctx,
+              struct hostent *result,
+              bool case_sensitive,
+              char **out_name,
+              char ***out_aliases,
+              char ***out_addresses)
+{
+    char **addresses = *out_addresses;
+    char **aliases = *out_aliases;
+    int i;
+    errno_t ret;
+
+    /* Parse addresses */
+    for (i = 0; result->h_addr_list[i] != NULL; i++) {
+        size_t len = talloc_array_length(addresses);
+        char buf[INET6_ADDRSTRLEN];
+        const char *addr = NULL;
+        bool found = false;
+        int j;
+
+        if (result->h_length == INADDRSZ) {
+            addr = inet_ntop(AF_INET, result->h_addr_list[i],
+                             buf, INET6_ADDRSTRLEN);
+        } else if (result->h_length == IN6ADDRSZ) {
+            addr = inet_ntop(AF_INET6, result->h_addr_list[i],
+                             buf, INET6_ADDRSTRLEN);
+        }
+
+        if (addr == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                    "Failed to convert host network address of host "
+                    "'%s' to a character string: %s\n", result->h_name,
+                    strerror(errno));
+            continue;
+        }
+
+        /* Skip duplicates */
+        for (j = 0;
+             j < len && addresses != NULL && addresses[j] != NULL;
+             j++) {
+            if (strcasecmp(addresses[j], addr) == 0) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            ret = add_string_to_list(mem_ctx, addr, &addresses);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Host [%s] has address [%s]\n",
+                    result->h_name, addr);
+        }
+    }
+
+    for (i = 0; result->h_aliases[i] != NULL; i++) {
+        size_t len = talloc_array_length(aliases);
+        const char *alias = result->h_aliases[i];
+        bool found = false;
+        int j;
+
+        for (j = 0; j < len && aliases != NULL && aliases[j] != NULL; j++) {
+            if (case_sensitive && strcmp(aliases[j], alias) == 0) {
+                found = true;
+                break;
+            } else if (strcasecmp(aliases[j], alias) == 0) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            ret = add_string_to_list(mem_ctx, alias, &aliases);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Host [%s] has alias [%s]\n",
+                    result->h_name, alias);
+        }
+    }
+
+    *out_name = talloc_strdup(mem_ctx, result->h_name);
+    *out_addresses = addresses;
+    *out_aliases = aliases;
+
+    ret = EOK;
+done:
+    return ret;
+}
+
+static errno_t
+get_host_by_name_internal(struct proxy_resolver_ctx *ctx,
+                          struct sss_domain_info *domain,
+                          TALLOC_CTX *mem_ctx,
+                          const char *search_name, int af,
+                          char **out_name,
+                          char ***out_addresses,
+                          char ***out_aliases)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *buffer = NULL;
+    size_t buflen = DEFAULT_BUFSIZE;
+    struct hostent *result = NULL;
+    enum nss_status status;
+    int err;
+    int h_err;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Resolving host [%s] [%s]\n", search_name,
+          af == AF_INET ? "AF_INET" : "AF_INET6");
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    result = talloc_zero(tmp_ctx, struct hostent);
+    if (result == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Ask for IPv4 addresses */
+    err = 0;
+    h_err = 0;
+    for (status = NSS_STATUS_TRYAGAIN,
+         err = ERANGE, h_err = 0;
+         status == NSS_STATUS_TRYAGAIN && err == ERANGE;
+         buflen *= 2)
+    {
+        buffer = talloc_realloc_size(tmp_ctx, buffer, buflen);
+        if (buffer == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        status = ctx->ops.gethostbyname2_r(search_name, af, result,
+                                           buffer, buflen,
+                                           &err, &h_err);
+    }
+
+    ret = nss_status_to_errno(status);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+            "gethostbyname2_r (%s) failed for host [%s]: %d, %s, %s.\n",
+            af == AF_INET ? "AF_INET" : "AF_INET6",
+            search_name, status, strerror(err), hstrerror(h_err));
+        goto done;
+    }
+
+    if (ret == EOK) {
+        ret = parse_hostent(mem_ctx, result, domain->case_sensitive,
+                            out_name, out_aliases, out_addresses);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to parse hostent [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t
+get_host_byname(struct proxy_resolver_ctx *ctx,
+                struct sss_domain_info *domain,
+                const char *search_name)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret_v4;
+    errno_t ret_v6;
+    errno_t ret;
+    char *name = NULL;
+    char **addresses = NULL;
+    char **aliases = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Processing request for host name [%s]\n",
+          search_name);
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret_v4 = get_host_by_name_internal(ctx, domain, tmp_ctx, search_name,
+                                       AF_INET, &name, &addresses, &aliases);
+    if (ret_v4 != EOK && ret_v4 != ENOENT) {
+        ret = ret_v4;
+        goto done;
+    }
+
+    ret_v6 = get_host_by_name_internal(ctx, domain, tmp_ctx, search_name,
+                                       AF_INET6, &name, &addresses, &aliases);
+    if (ret_v6 != EOK && ret_v6 != ENOENT) {
+        ret = ret_v6;
+        goto done;
+    }
+
+    if (ret_v4 == ENOENT && ret_v6 == ENOENT) {
+        /* Make sure we remove it from the cache */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Host [%s] not found, removing from "
+              "cache\n", name);
+        sysdb_host_delete(domain, search_name, NULL);
+        ret = ENOENT;
+        goto done;
+    } else {
+        /* Results found. Save them into the cache */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Host [%s] found, saving into "
+              "cache\n", name);
+        /* TODO */
+    }
+
+    ret = ENOENT;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static struct dp_reply_std
+proxy_hosts_info(TALLOC_CTX *mem_ctx,
+                 struct proxy_resolver_ctx *ctx,
+                 struct dp_resolver_data *data,
+                 struct be_ctx *be_ctx,
+                 struct sss_domain_info *domain)
+{
+    struct dp_reply_std reply;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Processing host request, filter type [%d]\n",
+          data->filter_type);
+
+    switch (data->filter_type) {
+    case BE_FILTER_NAME:
+        ret = get_host_byname(ctx, domain, data->filter_value);
+        break;
+
+    case BE_FILTER_ADDR:
+        /* TODO */
+        /* FALLTHROUGH */
+
+    case BE_FILTER_ENUM:
+        /* TODO */
+        /* FALLTHROUGH */
+
+    default:
+        dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
+                         "Invalid filter type");
+        return reply;
+    }
+
+    if (ret) {
+        if (ret == ENXIO) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "proxy returned UNAVAIL error, going offline!\n");
+            be_mark_offline(be_ctx);
+        }
+
+        dp_reply_std_set(&reply, DP_ERR_FATAL, ret, NULL);
+        return reply;
+    }
+
+    dp_reply_std_set(&reply, DP_ERR_OK, EOK, NULL);
+    return reply;
+}
 
 struct proxy_hosts_handler_state {
     int dummy;
+    struct dp_reply_std reply;
 };
 
 struct tevent_req *
 proxy_hosts_handler_send(TALLOC_CTX *mem_ctx,
-                      struct proxy_resolver_ctx *proxy_resolver_ctx,
+                      struct proxy_resolver_ctx *resolver_ctx,
                       struct dp_resolver_data *resolver_data,
                       struct dp_req_params *params)
 {
@@ -41,7 +337,9 @@ proxy_hosts_handler_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    /* TODO */
+    state->reply = proxy_hosts_info(state, resolver_ctx, resolver_data,
+                                    params->be_ctx, params->be_ctx->domain);
+
     tevent_req_done(req);
     return tevent_req_post(req, params->ev);
 }
@@ -57,7 +355,7 @@ proxy_hosts_handler_recv(TALLOC_CTX *mem_ctx,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    /* TODO */
+    *data = state->reply;
 
     return EOK;
 }
