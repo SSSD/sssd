@@ -49,6 +49,14 @@ errno_t sysdb_gethostbyaddr(TALLOC_CTX *mem_ctx,
                             const char *address,
                             struct ldb_result **_res);
 
+errno_t
+sysdb_store_host(struct sss_domain_info *domain,
+                 const char *primary_name,
+                 const char **aliases,
+                 const char **addresses,
+                 uint64_t cache_timeout,
+                 time_t now);
+
 struct ldb_dn *sysdb_host_dn(TALLOC_CTX *mem_ctx,
                              struct sss_domain_info *domain,
                              const char *name);
