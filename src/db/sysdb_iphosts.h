@@ -54,6 +54,8 @@ sysdb_store_host(struct sss_domain_info *domain,
                  const char *primary_name,
                  const char **aliases,
                  const char **addresses,
+                 struct sysdb_attrs *extra_attrs,
+                 char **remove_attrs,
                  uint64_t cache_timeout,
                  time_t now);
 
