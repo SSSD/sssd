@@ -195,6 +195,7 @@ class SSSDOptions(object):
         'entry_cache_service_timeout': _('Entry cache timeout length (seconds)'),
         'entry_cache_autofs_timeout': _('Entry cache timeout length (seconds)'),
         'entry_cache_sudo_timeout': _('Entry cache timeout length (seconds)'),
+        'entry_cache_resolver_timeout' : _('Entry cache timeout length (seconds)'),
         'refresh_expired_interval': _('How often should expired entries be refreshed in background'),
         'dyndns_update': _("Whether to automatically update the client's DNS entry"),
         'dyndns_ttl': _("The TTL to apply to the client's DNS entry after updating it"),
