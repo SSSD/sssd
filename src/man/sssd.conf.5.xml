@@ -2870,6 +2870,42 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                 </varlistentry>
 
                 <varlistentry>
+                    <term>resolver_provider (string)</term>
+                    <listitem>
+                        <para>
+                            The provider which should handle hosts and networks
+                            lookups. Supported resolver providers are:
+                        </para>
+                        <para>
+                            <quote>proxy</quote> to forward lookups to another
+                            NSS library. See <quote>proxy_resolver_lib_name</quote>
+                        </para>
+                        <para>
+                            <quote>ldap</quote> to fetch hosts and networks stored in LDAP. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring LDAP.
+                        </para>
+                        <para>
+                            <quote>ad</quote> to fetch hosts and networks stored in AD. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring
+                            the AD provider.
+                        </para>
+                        <para>
+                            <quote>none</quote> disallows fetching hosts and networks explicitly.
+                        </para>
+                        <para>
+                            Default: The value of <quote>id_provider</quote> is used if it
+                            is set.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>re_expression (string)</term>
                     <listitem>
                         <para>
@@ -3306,6 +3342,20 @@ auto_private_groups = false
                             library are in the form of
                             _nss_$(libName)_$(function), for example
                             _nss_files_getpwent.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>proxy_resolver_lib_name (string)</term>
+                    <listitem>
+                        <para>
+                            The name of the NSS library to use for hosts and
+                            networks lookups in proxy domains. The NSS
+                            functions searched for in the
+                            library are in the form of
+                            _nss_$(libName)_$(function), for example
+                            _nss_dns_gethostbyname2_r.
                         </para>
                     </listitem>
                 </varlistentry>

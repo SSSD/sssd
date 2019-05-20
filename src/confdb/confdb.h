@@ -199,6 +199,7 @@
 #define CONFDB_DOMAIN_HOSTID_PROVIDER "hostid_provider"
 #define CONFDB_DOMAIN_SUBDOMAINS_PROVIDER "subdomains_provider"
 #define CONFDB_DOMAIN_SESSION_PROVIDER "session_provider"
+#define CONFDB_DOMAIN_RESOLVER_PROVIDER "resolver_provider"
 #define CONFDB_DOMAIN_COMMAND "command"
 #define CONFDB_DOMAIN_TIMEOUT "timeout"
 #define CONFDB_DOMAIN_ATTR "cn"
@@ -253,6 +254,7 @@
 
 /* Proxy Provider */
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"
+#define CONFDB_PROXY_RESOLVER_LIBNAME "proxy_resolver_lib_name"
 #define CONFDB_PROXY_PAM_TARGET "proxy_pam_target"
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
 #define CONFDB_PROXY_MAX_CHILDREN "proxy_max_children"

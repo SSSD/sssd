@@ -169,6 +169,7 @@ class SSSDOptions(object):
         'hostid_provider': _('Host identity provider'),
         'selinux_provider': _('SELinux provider'),
         'session_provider': _('Session management provider'),
+        'resolver_provider' : _('Resolver provider'),
 
         # [domain]
         'domain_type': _('Whether the domain is usable by the OS or by applications'),
@@ -547,6 +548,7 @@ class SSSDOptions(object):
 
         # [provider/proxy/id]
         'proxy_lib_name': _('The name of the NSS library to use'),
+        'proxy_resolver_lib_name' : _('The name of the NSS library to use for hosts and networks lookups'),
         'proxy_fast_alias': _('Whether to look up canonical group name from cache if possible'),
 
         # [provider/proxy/auth]
