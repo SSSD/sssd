@@ -1473,6 +1473,7 @@ class SSSDConfig(SSSDChangeConf):
             'subdomains_provider': 'id_provider',
             'session_provider': 'id_provider',
             'hostid_provider': 'id_provider',
+            'resolver_provider': 'id_provider',
         }
 
         configured_providers = domain.list_providers()
