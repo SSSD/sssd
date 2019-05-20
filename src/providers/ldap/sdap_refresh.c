@@ -255,12 +255,19 @@ static errno_t sdap_refresh_netgroups_recv(struct tevent_req *req)
     return sdap_refresh_recv(req);
 }
 
-errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
+errno_t sdap_refresh_init(struct be_ctx *be_ctx,
                           struct sdap_id_ctx *id_ctx)
 {
     errno_t ret;
 
-    ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_USERS,
+    be_ctx->refresh_ctx = be_refresh_ctx_init(be_ctx);
+    if (be_ctx->refresh_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
+        return ENOMEM;
+    }
+
+    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
+                            BE_REFRESH_TYPE_USERS,
                             sdap_refresh_users_send,
                             sdap_refresh_users_recv,
                             id_ctx);
@@ -269,7 +276,8 @@ errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
               "will not work [%d]: %s\n", ret, strerror(ret));
     }
 
-    ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_GROUPS,
+    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
+                            BE_REFRESH_TYPE_USERS,
                             sdap_refresh_groups_send,
                             sdap_refresh_groups_recv,
                             id_ctx);
@@ -278,7 +286,8 @@ errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
               "will not work [%d]: %s\n", ret, strerror(ret));
     }
 
-    ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_NETGROUPS,
+    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
+                            BE_REFRESH_TYPE_USERS,
                             sdap_refresh_netgroups_send,
                             sdap_refresh_netgroups_recv,
                             id_ctx);
