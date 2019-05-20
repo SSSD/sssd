@@ -432,7 +432,7 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
     }
 
     /* Setup periodical refresh of expired records */
-    ret = sdap_refresh_init(be_ctx->refresh_ctx, id_ctx);
+    ret = sdap_refresh_init(be_ctx, id_ctx);
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh will not work "
               "[%d]: %s\n", ret, sss_strerror(ret));
