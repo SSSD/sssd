@@ -365,7 +365,7 @@ struct sdap_id_ctx *
 sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                 struct sdap_service *sdap_service);
 
-errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
+errno_t sdap_refresh_init(struct be_ctx *be_ctx,
                           struct sdap_id_ctx *id_ctx);
 
 errno_t sdap_init_certmap(TALLOC_CTX *mem_ctx, struct sdap_id_ctx *id_ctx);
