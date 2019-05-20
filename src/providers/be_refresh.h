@@ -52,7 +52,7 @@ enum be_refresh_type {
 
 struct be_refresh_ctx;
 
-struct be_refresh_ctx *be_refresh_ctx_init(TALLOC_CTX *mem_ctx);
+struct be_refresh_ctx *be_refresh_ctx_init(struct be_ctx *be_ctx);
 
 errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
                           enum be_refresh_type type,
