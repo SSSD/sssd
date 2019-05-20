@@ -536,14 +536,6 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Initialize be_refresh periodic task. */
-    be_ctx->refresh_ctx = be_refresh_ctx_init(be_ctx);
-    if (be_ctx->refresh_ctx == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
     req = dp_init_send(be_ctx, be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid);
     if (req == NULL) {
         ret = ENOMEM;
