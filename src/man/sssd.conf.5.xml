@@ -2210,6 +2210,20 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>entry_cache_resolver_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds should nss_sss consider
+                            hosts and networks entries valid before asking
+                            the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry condition="with_sudo">
                     <term>entry_cache_sudo_timeout (integer)</term>
                     <listitem>
