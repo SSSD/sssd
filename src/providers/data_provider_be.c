@@ -431,7 +431,6 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct confdb_ctx *cdb)
 {
-    uint32_t refresh_interval;
     struct tevent_signal *tes;
     struct be_ctx *be_ctx;
     char *str = NULL;
@@ -529,19 +528,6 @@ errno_t be_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
         ret = ENOMEM;
         goto done;
-    }
-
-    refresh_interval = be_ctx->domain->refresh_expired_interval;
-    if (refresh_interval > 0) {
-        ret = be_ptask_create(be_ctx, be_ctx, refresh_interval, 30, 5, 0,
-                              refresh_interval, BE_PTASK_OFFLINE_SKIP, 0,
-                              be_refresh_send, be_refresh_recv,
-                              be_ctx->refresh_ctx, "Refresh Records", NULL);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Unable to initialize refresh periodic task\n");
-            goto done;
-        }
     }
 
     ret = dp_init(be_ctx->ev, be_ctx, be_ctx->uid, be_ctx->gid);
