@@ -2537,12 +2537,23 @@ ldap_access_filter = (employeeType=admin)
                         <para>
                             How many seconds SSSD has to wait before executing
                             a smart refresh of sudo rules (which downloads all
-                            rules that have USN higher than the highest USN of
-                            cached rules).
+                            rules that have USN higher than the highest server
+                            USN value that is currently known by SSSD).
                         </para>
                         <para>
                             If USN attributes are not supported by the server,
                             the modifyTimestamp attribute is used instead.
+                        </para>
+                        <para>
+                            <emphasis>Note:</emphasis> the highest USN value
+                            can be updated by three tasks:
+                            1) By sudo full and smart refresh (if updated rules
+                            are found),
+                            2) by enumeration of users and groups (if enabled
+                            and updated users or groups are found) and
+                            3) by reconnecting to the server
+                            (by default every 15 minutes, see
+                            <emphasis>ldap_connection_expire_timeout</emphasis>).
                         </para>
                         <para>
                             Default: 900 (15 minutes)
