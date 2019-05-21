@@ -89,6 +89,7 @@ done:
 
 static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
                                      enum be_refresh_type type,
+                                     const char *attr_name,
                                      struct sss_domain_info *domain,
                                      time_t period,
                                      char ***_values)
@@ -116,7 +117,7 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
     }
 
     ret = be_refresh_get_values_ex(mem_ctx, domain, period,
-                                   base_dn, SYSDB_NAME, _values);
+                                   base_dn, attr_name, _values);
 
     talloc_free(base_dn);
     return ret;
@@ -131,10 +132,12 @@ struct be_refresh_cb {
 };
 
 struct be_refresh_ctx {
+    const char *attr_name;
     struct be_refresh_cb callbacks[BE_REFRESH_TYPE_SENTINEL];
 };
 
-struct be_refresh_ctx *be_refresh_ctx_init(struct be_ctx *be_ctx)
+struct be_refresh_ctx *be_refresh_ctx_init(struct be_ctx *be_ctx,
+                                           const char *attr_name)
 {
     struct be_refresh_ctx *ctx = NULL;
     uint32_t refresh_interval;
@@ -145,6 +148,7 @@ struct be_refresh_ctx *be_refresh_ctx_init(struct be_ctx *be_ctx)
         return NULL;
     }
 
+    ctx->attr_name = attr_name;
     ctx->callbacks[BE_REFRESH_TYPE_USERS].name = "users";
     ctx->callbacks[BE_REFRESH_TYPE_GROUPS].name = "groups";
     ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].name = "netgroups";
@@ -284,8 +288,8 @@ static errno_t be_refresh_step(struct tevent_req *req)
             goto done;
         }
 
-        ret = be_refresh_get_values(state, state->index, state->domain,
-                                    state->period, &values);
+        ret = be_refresh_get_values(state, state->index, state->ctx->attr_name,
+                                    state->domain, state->period, &values);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain DN list [%d]: %s\n",
                                         ret, sss_strerror(ret));
