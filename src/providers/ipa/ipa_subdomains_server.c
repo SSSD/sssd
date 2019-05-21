@@ -172,6 +172,7 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
     const char *forest;
     const char *forest_realm;
     char *subdom_conf_path;
+    int ret;
 
     /* Trusts are only established with forest roots */
     direction = subdom->forest_root->trust_direction;
@@ -196,12 +197,28 @@ static struct ad_options *ipa_ad_options_new(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported trust direction!\n");
         ad_options = NULL;
     }
-    talloc_free(subdom_conf_path);
 
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
+        talloc_free(subdom_conf_path);
         return NULL;
     }
+
+    ret = ad_inherit_opts_if_needed(id_ctx->ipa_options->id->basic,
+                                    ad_options->id->basic, be_ctx->cdb,
+                                    subdom_conf_path, SDAP_SASL_MECH);
+    talloc_free(subdom_conf_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to inherit option [%s] to sub-domain [%s]. "
+              "This error is ignored but might cause issues or unexpected "
+              "behavior later on.\n",
+              id_ctx->ipa_options->id->basic[SDAP_SASL_MECH].opt_name,
+              subdom->name);
+
+        return NULL;
+    }
+
     return ad_options;
 }
 
