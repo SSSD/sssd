@@ -1468,3 +1468,41 @@ ad_user_conn_list(TALLOC_CTX *mem_ctx,
 
     return clist;
 }
+
+errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
+                                  struct dp_option *suddom_opts,
+                                  struct confdb_ctx *cdb,
+                                  const char *subdom_conf_path,
+                                  int opt_id)
+{
+    int ret;
+    const char *parent_val = NULL;
+    char *dummy = NULL;
+    char *option_list[2] = { NULL, NULL };
+
+    parent_val = dp_opt_get_cstring(parent_opts, opt_id);
+    if (parent_val != NULL) {
+        ret = confdb_get_string(cdb, NULL, subdom_conf_path,
+                                parent_opts[opt_id].opt_name, NULL, &dummy);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "confdb_get_string failed.\n");
+            goto done;
+        }
+
+        if (dummy == NULL) {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Option [%s] is set in parent domain but not set for "
+                  "sub-domain trying to set it to [%s].\n",
+                  parent_opts[opt_id].opt_name, parent_val);
+            option_list[0] = discard_const(parent_opts[opt_id].opt_name);
+            dp_option_inherit(option_list, opt_id, parent_opts, suddom_opts);
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(dummy);
+
+    return ret;
+}
