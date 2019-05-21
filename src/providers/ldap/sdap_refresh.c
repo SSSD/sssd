@@ -260,7 +260,7 @@ errno_t sdap_refresh_init(struct be_ctx *be_ctx,
 {
     errno_t ret;
 
-    be_ctx->refresh_ctx = be_refresh_ctx_init(be_ctx);
+    be_ctx->refresh_ctx = be_refresh_ctx_init(be_ctx, SYSDB_NAME);
     if (be_ctx->refresh_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
         return ENOMEM;
