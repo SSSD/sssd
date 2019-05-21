@@ -305,11 +305,27 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
                                               realm,
                                               subdom,
                                               hostname, keytab);
-    talloc_free(subdom_conf_path);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
+        talloc_free(subdom_conf_path);
         return ENOMEM;
+    }
+
+    ret = ad_inherit_opts_if_needed(id_ctx->sdap_id_ctx->opts->basic,
+                                    ad_options->id->basic,
+                                    be_ctx->cdb, subdom_conf_path,
+                                    SDAP_SASL_MECH);
+    talloc_free(subdom_conf_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to inherit option [%s] to sub-domain [%s]. "
+              "This error is ignored but might cause issues or unexpected "
+              "behavior later on.\n",
+              id_ctx->ad_options->id->basic[SDAP_SASL_MECH].opt_name,
+              subdom->name);
+
+        return ret;
     }
 
     ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
