@@ -3442,6 +3442,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
             <para>ldap_group_search_base,</para>
             <para>ldap_netgroup_search_base,</para>
             <para>ldap_service_search_base,</para>
+            <para>ldap_sasl_mech,</para>
             <para>ad_server,</para>
             <para>ad_backup_server,</para>
             <para>ad_site,</para>

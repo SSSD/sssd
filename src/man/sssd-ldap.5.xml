@@ -1750,6 +1750,16 @@
                             GSSAPI and GSS-SPNEGO are tested and supported.
                         </para>
                         <para>
+                            If the backend supports sub-domains the value of
+                            ldap_sasl_mech is automatically inherited to the
+                            sub-domains. If a different value is needed for a
+                            sub-domain it can be overwritten by setting
+                            ldap_sasl_mech for this sub-domain explicitly.
+                            Please see TRUSTED DOMAIN SECTION in
+                            <citerefentry><refentrytitle>sssd.conf</refentrytitle>
+                            <manvolnum>5</manvolnum></citerefentry> for details.
+                        </para>
+                        <para>
                             Default: not set
                         </para>
                     </listitem>
