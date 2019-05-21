@@ -73,7 +73,8 @@ static struct tevent_req *sdap_refresh_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    state->account_req = be_refresh_acct_req(state, entry_type, domain);
+    state->account_req = be_refresh_acct_req(state, entry_type,
+                                             BE_FILTER_NAME, domain);
     if (state->account_req == NULL) {
         ret = ENOMEM;
         goto immediately;

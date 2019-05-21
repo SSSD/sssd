@@ -71,6 +71,7 @@ errno_t be_refresh_recv(struct tevent_req *req);
 
 struct dp_id_data *be_refresh_acct_req(TALLOC_CTX *mem_ctx,
                                        uint32_t entry_type,
+                                       uint32_t filter_type,
                                        struct sss_domain_info *domain);
 
 #endif /* _DP_REFRESH_H_ */
