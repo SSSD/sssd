@@ -365,6 +365,7 @@ errno_t be_refresh_recv(struct tevent_req *req)
 
 struct dp_id_data *be_refresh_acct_req(TALLOC_CTX *mem_ctx,
                                        uint32_t entry_type,
+                                       uint32_t filter_type,
                                        struct sss_domain_info *domain)
 {
     struct dp_id_data *account_req;
@@ -375,7 +376,7 @@ struct dp_id_data *be_refresh_acct_req(TALLOC_CTX *mem_ctx,
     }
 
     account_req->entry_type = entry_type;
-    account_req->filter_type = BE_FILTER_NAME;
+    account_req->filter_type = filter_type;
     account_req->extra_value = NULL;
     account_req->domain = domain->name;
     return account_req;
