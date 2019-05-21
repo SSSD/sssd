@@ -136,8 +136,8 @@ struct be_refresh_ctx {
     struct be_refresh_cb callbacks[BE_REFRESH_TYPE_SENTINEL];
 };
 
-struct be_refresh_ctx *be_refresh_ctx_init(struct be_ctx *be_ctx,
-                                           const char *attr_name)
+errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
+                            const char *attr_name)
 {
     struct be_refresh_ctx *ctx = NULL;
     uint32_t refresh_interval;
@@ -145,7 +145,7 @@ struct be_refresh_ctx *be_refresh_ctx_init(struct be_ctx *be_ctx,
 
     ctx = talloc_zero(be_ctx, struct be_refresh_ctx);
     if (ctx == NULL) {
-        return NULL;
+        return ENOMEM;
     }
 
     ctx->attr_name = attr_name;
@@ -158,17 +158,18 @@ struct be_refresh_ctx *be_refresh_ctx_init(struct be_ctx *be_ctx,
         ret = be_ptask_create(be_ctx, be_ctx, refresh_interval, 30, 5, 0,
                               refresh_interval, BE_PTASK_OFFLINE_SKIP, 0,
                               be_refresh_send, be_refresh_recv,
-                              be_ctx->refresh_ctx, "Refresh Records", NULL);
+                              ctx, "Refresh Records", NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Unable to initialize refresh periodic task [%d]: %s\n",
                   ret, sss_strerror(ret));
             talloc_free(ctx);
-            return NULL;
+            return ret;
         }
     }
 
-    return ctx;
+    be_ctx->refresh_ctx = ctx;
+    return EOK;
 }
 
 errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
