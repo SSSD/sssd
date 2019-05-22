@@ -111,6 +111,13 @@ cache_req_data_sid(TALLOC_CTX *mem_ctx,
                    const char **attrs);
 
 struct cache_req_data *
+cache_req_data_addr(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    uint32_t af,
+                    uint32_t addrlen,
+                    uint8_t *addr);
+
+struct cache_req_data *
 cache_req_data_enum(TALLOC_CTX *mem_ctx,
                     enum cache_req_type type);
 
