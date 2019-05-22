@@ -377,6 +377,22 @@ cache_req_data_ssh_host_id(TALLOC_CTX *mem_ctx,
 }
 
 struct cache_req_data *
+cache_req_data_addr(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    uint32_t af,
+                    uint32_t addrlen,
+                    uint8_t *addr)
+{
+    struct cache_req_data input = {0};
+
+    input.addr.af = af;
+    input.addr.len = addrlen;
+    input.addr.data = addr;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
 cache_req_data_autofs_entry(TALLOC_CTX *mem_ctx,
                             enum cache_req_type type,
                             const char *mapname,

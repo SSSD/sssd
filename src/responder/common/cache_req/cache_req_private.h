@@ -91,6 +91,12 @@ struct cache_req_data {
         uint16_t port;
     } svc;
 
+    struct {
+        uint32_t af;
+        uint32_t len;
+        uint8_t *data;
+    } addr;
+
     bool bypass_cache;
     bool bypass_dp;
 };
