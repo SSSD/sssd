@@ -18,6 +18,32 @@ path. If you want to build sssd without $1 bindings then specify
     PYTHON_CFLAGS="` $PYTHON_CONFIG --cflags`"
     PYTHON_LIBS="` $PYTHON_CONFIG --libs`"
     PYTHON_INCLUDES="` $PYTHON_CONFIG --includes`"
+    # With python3.8 it is expected that C extension do not link against
+    # libpythonX.Y anymore but only the application loading the extension links
+    # the library. pyhton3.8-config adds a new option --embed for this use
+    # case. See
+    # https://docs.python.org/dev/whatsnew/3.8.html#debug-build-uses-the-same-abi-as-release-build
+    # for details. Since the dlopen-test checks the python modules as well we
+    # have to make sure that it links libpythonX.Y.
+    #
+    # To build the Python modules PYTHON_LIBS must be used, python-config will
+    # take care that this does not include libpythonX.Y for Python3.8.
+    #
+    # For our dlopen-test PYTHON_DLOPEN_LIB must be used. It is either empty or
+    # contains libpythonX.Y if needed.
+
+    $PYTHON_CONFIG --libs --embed 1> /dev/null 2> /dev/null
+    if test $? -eq 0; then
+        PYTHON_DLOPEN_LIB="` $PYTHON_CONFIG --libs --embed | grep -o -- '-lpython@<:@^ @:>@*' |sed -e 's/^-l/lib/'`"
+        if test x"$PYTHON_DLOPEN_LIB" != x; then
+            python_lib_path="` $PYTHON_CONFIG --ldflags | grep -o -- '-L/@<:@^ @:>@*' | sed -e 's/^-L//'`"
+            if test x"$python_lib_path" != x; then
+                PYTHON_DLOPEN_LIB=$python_lib_path"/"$PYTHON_DLOPEN_LIB
+            fi
+            PYTHON_DLOPEN_LIB=$PYTHON_DLOPEN_LIB".so"
+            AC_DEFINE_UNQUOTED([PYTHON_DLOPEN_LIB], ["$PYTHON_DLOPEN_LIB"], [The path of libpython for dlopen-tests])
+        fi
+    fi
 ])
 
 dnl Taken from GNOME sources
