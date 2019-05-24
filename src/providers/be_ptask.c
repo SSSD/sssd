@@ -352,26 +352,31 @@ done:
 
 void be_ptask_enable(struct be_ptask *task)
 {
-    if (task->enabled) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Task [%s]: already enabled\n",
-                                     task->name);
-        return;
+    if (task != NULL) {
+        if (task->enabled) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Task [%s]: already enabled\n",
+                                         task->name);
+            return;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: enabling task\n", task->name);
+
+        task->enabled = true;
+        be_ptask_schedule(task, BE_PTASK_ENABLED_DELAY,
+                          BE_PTASK_SCHEDULE_FROM_NOW);
     }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: enabling task\n", task->name);
-
-    task->enabled = true;
-    be_ptask_schedule(task, BE_PTASK_ENABLED_DELAY, BE_PTASK_SCHEDULE_FROM_NOW);
 }
 
 /* Disable the task, but if a request already in progress, let it finish. */
 void be_ptask_disable(struct be_ptask *task)
 {
-    DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: disabling task\n", task->name);
+    if (task != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: disabling task\n", task->name);
 
-    talloc_zfree(task->timer);
-    task->enabled = false;
-    task->period = task->orig_period;
+        talloc_zfree(task->timer);
+        task->enabled = false;
+        task->period = task->orig_period;
+    }
 }
 
 void be_ptask_destroy(struct be_ptask **task)
