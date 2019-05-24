@@ -118,10 +118,17 @@ struct so {
     { "_py2sss_nss_idmap.so", { LIBPFX"_py2sss_nss_idmap.so", NULL } },
 #endif
 #ifdef HAVE_PYTHON3_BINDINGS
+#ifdef PYTHON_DLOPEN_LIB
+    { "_py3hbac.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3hbac.so", NULL } },
+    { "_py3sss.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3sss.so", NULL } },
+    { "_py3sss_murmur.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3sss_murmur.so", NULL } },
+    { "_py3sss_nss_idmap.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3sss_nss_idmap.so", NULL } },
+#else
     { "_py3hbac.so", { LIBPFX"_py3hbac.so", NULL } },
     { "_py3sss.so", { LIBPFX"_py3sss.so", NULL } },
     { "_py3sss_murmur.so", { LIBPFX"_py3sss_murmur.so", NULL } },
     { "_py3sss_nss_idmap.so", { LIBPFX"_py3sss_nss_idmap.so", NULL } },
+#endif
 #endif
 #ifdef BUILD_NFS_IDMAP
     { "sss.so", { LIBPFX"sss.so", NULL } },
