@@ -252,6 +252,16 @@ errno_t sysdb_merge_msg_list_ts_attrs(struct sysdb_ctx *ctx,
 struct ldb_result *sss_merge_ldb_results(struct ldb_result *res,
                                          struct ldb_result *subres);
 
+/* Search Entry in an ldb cache */
+int sysdb_cache_search_entry(TALLOC_CTX *mem_ctx,
+                             struct ldb_context *ldb,
+                             struct ldb_dn *base_dn,
+                             enum ldb_scope scope,
+                             const char *filter,
+                             const char **attrs,
+                             size_t *_msgs_count,
+                             struct ldb_message ***_msgs);
+
 /* Search Entry in the timestamp cache */
 int sysdb_search_ts_entry(TALLOC_CTX *mem_ctx,
                           struct sysdb_ctx *sysdb,
