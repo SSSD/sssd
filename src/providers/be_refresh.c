@@ -40,9 +40,8 @@ static errno_t be_refresh_get_values_ex(TALLOC_CTX *mem_ctx,
     const char *attrs[] = {attr, NULL};
     const char *filter = NULL;
     char **values = NULL;
-    struct ldb_message **msgs = NULL;
     struct sysdb_attrs **records = NULL;
-    size_t count;
+    struct ldb_result *res;
     time_t now = time(NULL);
     errno_t ret;
 
@@ -58,23 +57,23 @@ static errno_t be_refresh_get_values_ex(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, base_dn,
-                             LDB_SCOPE_SUBTREE, filter, attrs,
-                             &count, &msgs);
-    if (ret == ENOENT) {
-        count = 0;
-    } else if (ret != EOK) {
+    ret = sysdb_search_with_ts_attr(tmp_ctx, domain, base_dn,
+                                    LDB_SCOPE_SUBTREE,
+                                    SYSDB_SEARCH_WITH_TS_ONLY_TS_FILTER,
+                                    filter, attrs,
+                                    &res);
+    if (ret != EOK) {
         goto done;
     }
 
-    ret = sysdb_msg2attrs(tmp_ctx, count, msgs, &records);
+    ret = sysdb_msg2attrs(tmp_ctx, res->count, res->msgs, &records);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not convert ldb message to sysdb_attrs\n");
         goto done;
     }
 
-    ret = sysdb_attrs_to_list(tmp_ctx, records, count, attr, &values);
+    ret = sysdb_attrs_to_list(tmp_ctx, records, res->count, attr, &values);
     if (ret != EOK) {
         goto done;
     }
