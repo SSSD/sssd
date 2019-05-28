@@ -261,14 +261,14 @@ done:
 
 /* =Search-Entry========================================================== */
 
-static int sysdb_cache_search_entry(TALLOC_CTX *mem_ctx,
-                                    struct ldb_context *ldb,
-                                    struct ldb_dn *base_dn,
-                                    enum ldb_scope scope,
-                                    const char *filter,
-                                    const char **attrs,
-                                    size_t *_msgs_count,
-                                    struct ldb_message ***_msgs)
+int sysdb_cache_search_entry(TALLOC_CTX *mem_ctx,
+                             struct ldb_context *ldb,
+                             struct ldb_dn *base_dn,
+                             enum ldb_scope scope,
+                             const char *filter,
+                             const char **attrs,
+                             size_t *_msgs_count,
+                             struct ldb_message ***_msgs)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;

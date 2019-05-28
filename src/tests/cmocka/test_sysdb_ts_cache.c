@@ -1411,6 +1411,201 @@ static void test_sysdb_zero_now(void **state)
     assert_true(cache_expire_ts > TEST_CACHE_TIMEOUT);
 }
 
+static void test_sysdb_search_with_ts(void **state)
+{
+    int ret;
+    struct sysdb_ts_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                     struct sysdb_ts_test_ctx);
+    struct ldb_result *res = NULL;
+    struct ldb_dn *base_dn;
+    const char *attrs[] = { SYSDB_NAME,
+                            SYSDB_OBJECTCATEGORY,
+                            SYSDB_GIDNUM,
+                            SYSDB_CACHE_EXPIRE,
+                            NULL };
+    struct sysdb_attrs *group_attrs = NULL;
+    char *filter;
+    uint64_t cache_expire_sysdb;
+    uint64_t cache_expire_ts;
+    size_t count;
+    struct ldb_message **msgs;
+
+    base_dn = sysdb_base_dn(test_ctx->tctx->dom->sysdb, test_ctx);
+    assert_non_null(base_dn);
+
+    /* Nothing must be stored in either cache at the beginning of the test */
+    ret = sysdb_search_with_ts_attr(test_ctx,
+                                    test_ctx->tctx->dom,
+                                    base_dn,
+                                    LDB_SCOPE_SUBTREE,
+                                    0,
+                                    SYSDB_NAME"=*",
+                                    attrs,
+                                    &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+    talloc_free(res);
+
+    group_attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(group_attrs);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom,
+                            TEST_GROUP_NAME,
+                            TEST_GROUP_GID,
+                            group_attrs,
+                            TEST_CACHE_TIMEOUT,
+                            TEST_NOW_1);
+    assert_int_equal(ret, EOK);
+    talloc_zfree(group_attrs);
+
+    group_attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(group_attrs);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom,
+                            TEST_GROUP_NAME_2,
+                            TEST_GROUP_GID_2,
+                            group_attrs,
+                            TEST_CACHE_TIMEOUT,
+                            TEST_NOW_2);
+    assert_int_equal(ret, EOK);
+    talloc_zfree(group_attrs);
+
+    /* Bump the timestamps in the cache so that the ts cache
+     * and sysdb differ
+     */
+
+    group_attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(group_attrs);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom,
+                            TEST_GROUP_NAME,
+                            TEST_GROUP_GID,
+                            group_attrs,
+                            TEST_CACHE_TIMEOUT,
+                            TEST_NOW_3);
+    assert_int_equal(ret, EOK);
+
+    talloc_zfree(group_attrs);
+
+
+    group_attrs = create_modstamp_attrs(test_ctx, TEST_MODSTAMP_1);
+    assert_non_null(group_attrs);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom,
+                            TEST_GROUP_NAME_2,
+                            TEST_GROUP_GID_2,
+                            group_attrs,
+                            TEST_CACHE_TIMEOUT,
+                            TEST_NOW_4);
+    assert_int_equal(ret, EOK);
+
+    talloc_zfree(group_attrs);
+
+    get_gr_timestamp_attrs(test_ctx, TEST_GROUP_NAME,
+                           &cache_expire_sysdb, &cache_expire_ts);
+    assert_int_equal(cache_expire_sysdb, TEST_CACHE_TIMEOUT + TEST_NOW_1);
+    assert_int_equal(cache_expire_ts, TEST_CACHE_TIMEOUT + TEST_NOW_3);
+
+    get_gr_timestamp_attrs(test_ctx, TEST_GROUP_NAME_2,
+                           &cache_expire_sysdb, &cache_expire_ts);
+    assert_int_equal(cache_expire_sysdb, TEST_CACHE_TIMEOUT + TEST_NOW_2);
+    assert_int_equal(cache_expire_ts, TEST_CACHE_TIMEOUT + TEST_NOW_4);
+
+    /* Search for groups that don't expire until TEST_NOW_4 */
+    filter = talloc_asprintf(test_ctx, SYSDB_CACHE_EXPIRE">=%d", TEST_NOW_4);
+    assert_non_null(filter);
+
+    /* This search should yield only one group (so, it needs to search the ts
+     * cache to hit the TEST_NOW_4), but should return attributes merged from
+     * both caches
+     */
+    ret = sysdb_search_with_ts_attr(test_ctx,
+                                    test_ctx->tctx->dom,
+                                    base_dn,
+                                    LDB_SCOPE_SUBTREE,
+                                    0,
+                                    filter,
+                                    attrs,
+                                    &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_int_equal(TEST_GROUP_GID_2, ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                                   SYSDB_GIDNUM, 0));
+    talloc_free(res);
+
+    /*
+     * In contrast, sysdb_search_entry merges the timestamp attributes, but does
+     * not search the timestamp cache
+     */
+    ret = sysdb_search_entry(test_ctx,
+                             test_ctx->tctx->dom->sysdb,
+                             base_dn,
+                             LDB_SCOPE_SUBTREE,
+                             filter,
+                             attrs,
+                             &count,
+                             &msgs);
+    assert_int_equal(ret, ENOENT);
+
+    /* Should get the same result when searching by ts attrs only */
+    ret = sysdb_search_with_ts_attr(test_ctx,
+                                    test_ctx->tctx->dom,
+                                    base_dn,
+                                    LDB_SCOPE_SUBTREE,
+                                    SYSDB_SEARCH_WITH_TS_ONLY_TS_FILTER,
+                                    filter,
+                                    attrs,
+                                    &res);
+    talloc_zfree(filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_int_equal(TEST_GROUP_GID_2, ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                                   SYSDB_GIDNUM, 0));
+    talloc_free(res);
+
+    /* We can also search in sysdb only as well, we should get back ts attrs */
+    filter = talloc_asprintf(test_ctx, SYSDB_GIDNUM"=%d", TEST_GROUP_GID);
+    assert_non_null(filter);
+
+    ret = sysdb_search_with_ts_attr(test_ctx,
+                                    test_ctx->tctx->dom,
+                                    base_dn,
+                                    LDB_SCOPE_SUBTREE,
+                                    SYSDB_SEARCH_WITH_TS_ONLY_SYSDB_FILTER,
+                                    filter,
+                                    attrs,
+                                    &res);
+    talloc_zfree(filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_int_equal(TEST_GROUP_GID, ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                                 SYSDB_GIDNUM, 0));
+    assert_int_equal(TEST_CACHE_TIMEOUT + TEST_NOW_3,
+                     ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_CACHE_EXPIRE, 0));
+    talloc_free(res);
+
+    /* We can also search in both using an OR-filter. Note that an AND-filter is not possible
+     * unless we deconstruct the filter..
+     */
+    filter = talloc_asprintf(test_ctx, "(|("SYSDB_GIDNUM"=%d)"
+                                         "("SYSDB_CACHE_EXPIRE">=%d))",
+                                         TEST_GROUP_GID, TEST_NOW_4);
+    assert_non_null(filter);
+
+    ret = sysdb_search_with_ts_attr(test_ctx,
+                                    test_ctx->tctx->dom,
+                                    base_dn,
+                                    LDB_SCOPE_SUBTREE,
+                                    0,
+                                    filter,
+                                    attrs,
+                                    &res);
+    talloc_zfree(filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 2);
+    talloc_free(res);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -1460,6 +1655,9 @@ int main(int argc, const char *argv[])
                                         test_sysdb_ts_setup,
                                         test_sysdb_ts_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_zero_now,
+                                        test_sysdb_ts_setup,
+                                        test_sysdb_ts_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_search_with_ts,
                                         test_sysdb_ts_setup,
                                         test_sysdb_ts_teardown),
     };
