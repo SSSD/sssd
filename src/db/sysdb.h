@@ -1181,6 +1181,18 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
                        size_t *msgs_count,
                        struct ldb_message ***msgs);
 
+#define SYSDB_SEARCH_WITH_TS_ONLY_TS_FILTER     0x0001
+#define SYSDB_SEARCH_WITH_TS_ONLY_SYSDB_FILTER  0x0002
+
+errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  struct ldb_dn *base_dn,
+                                  enum ldb_scope scope,
+                                  int optflags,
+                                  const char *filter,
+                                  const char *attrs[],
+                                  struct ldb_result **_result);
+
 int sysdb_search_users_by_timestamp(TALLOC_CTX *mem_ctx,
                                     struct sss_domain_info *domain,
                                     const char *sub_filter,
