@@ -1110,7 +1110,7 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
     errno_t ret;
     int lret;
 
-    if (dn == NULL || cn_value == NULL || attr_name == NULL) {
+    if (dn == NULL || attr_name == NULL) {
         return EINVAL;
     }
 
@@ -1134,6 +1134,11 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
     msg->dn = dn;
 
     if (res->count == 0) {
+        if (cn_value == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+
         lret = ldb_msg_add_string(msg, "cn", cn_value);
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
