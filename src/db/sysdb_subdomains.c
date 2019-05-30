@@ -1200,6 +1200,18 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         }
     }
 
+    ret = ldb_msg_add_empty(msg, SYSDB_ENABLED, LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, SYSDB_ENABLED, "TRUE");
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
     ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add subdomain attributes to "
@@ -1418,5 +1430,24 @@ sysdb_set_site(struct sss_domain_info *dom,
 
 done:
     talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_domain_set_enabled(struct sysdb_ctx *sysdb,
+                         const char *name,
+                         bool enabled)
+{
+    struct ldb_dn *dn;
+    errno_t ret;
+
+    dn = ldb_dn_new_fmt(NULL, sysdb->ldb, SYSDB_DOM_BASE, name);
+    if (dn == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_set_bool(sysdb, dn, NULL, SYSDB_ENABLED, enabled);
+    talloc_free(dn);
+
     return ret;
 }
