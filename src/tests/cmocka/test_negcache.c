@@ -664,7 +664,7 @@ static void test_sss_ncache_prepopulate(void **state)
     subdomain = new_subdomain(tc, tc->dom,
                               testdom[0], testdom[1], testdom[2], testdom[3],
                               false, false, NULL, NULL, 0,
-                              tc->confdb);
+                              tc->confdb, true);
     assert_non_null(subdomain);
 
     ret = sysdb_subdomain_store(tc->sysdb,
