@@ -696,6 +696,13 @@ static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
             if (sss_domain_is_forest_root(dom)) {
                 DEBUG(SSSDBG_TRACE_ALL,
                       "Skipping removal of forest root sdap data.\n");
+
+                ret = sysdb_domain_set_enabled(dom->sysdb, dom->name, false);
+                if (ret != EOK && ret != ENOENT) {
+                    DEBUG(SSSDBG_OP_FAILURE, "Unable to disable domain %s "
+                          "[%d]: %s\n", dom->name, ret, sss_strerror(ret));
+                    goto done;
+                }
                 continue;
             }
 
@@ -864,6 +871,12 @@ static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "Disabling forest root domain %s\n",
                                      root_name);
+            ret = sysdb_domain_set_enabled(domain->sysdb, root_name, false);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE, "Unable to disable domain %s "
+                      "[%d]: %s\n", root_name, ret, sss_strerror(ret));
+                goto fail;
+            }
         }
     }
 
