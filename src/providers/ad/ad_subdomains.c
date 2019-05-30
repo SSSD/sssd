@@ -825,6 +825,15 @@ static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
 
         if (is_domain_enabled(sd_name, enabled_domains_list) == false) {
             DEBUG(SSSDBG_TRACE_FUNC, "Disabling subdomain %s\n", sd_name);
+
+            /* The subdomain is now disabled in configuraiton file, we
+             * need to delete its cached content so it is not returned
+             * by responders. The subdomain shares sysdb with its parent
+             * domain so it is OK to use domain->sysdb. */
+            ret = sysdb_subdomain_delete(domain->sysdb, sd_name);
+            if (ret != EOK) {
+                goto fail;
+            }
             continue;
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "Enabling subdomain %s\n", sd_name);
