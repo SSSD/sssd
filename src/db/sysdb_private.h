@@ -206,7 +206,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *forest,
                                       const char **upn_suffixes,
                                       uint32_t trust_direction,
-                                      struct confdb_ctx *confdb);
+                                      struct confdb_ctx *confdb,
+                                      bool enabled);
 
 /* Helper functions to deal with the timestamp cache should not be used
  * outside the sysdb itself. The timestamp cache should be completely

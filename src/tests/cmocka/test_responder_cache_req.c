@@ -687,7 +687,7 @@ int test_subdomain_setup(void **state)
     test_ctx->subdomain = new_subdomain(test_ctx, test_ctx->tctx->dom,
                               testdom[0], testdom[1], testdom[2], testdom[3],
                               MPG_DISABLED, false, NULL, NULL, 0,
-                              test_ctx->tctx->confdb);
+                              test_ctx->tctx->confdb, true);
     assert_non_null(test_ctx->subdomain);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,

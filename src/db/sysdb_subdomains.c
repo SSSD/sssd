@@ -39,7 +39,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *forest,
                                       const char **upn_suffixes,
                                       uint32_t trust_direction,
-                                      struct confdb_ctx *confdb)
+                                      struct confdb_ctx *confdb,
+                                      bool enabled)
 {
     struct sss_domain_info *dom;
     bool inherit_option;
@@ -127,7 +128,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->enumerate = enumerate;
     dom->fqnames = true;
     dom->mpg_mode = mpg_mode;
-    dom->state = DOM_ACTIVE;
+    dom->state = enabled ? DOM_ACTIVE : DOM_DISABLED;
 
     /* use fully qualified names as output in order to avoid causing
      * conflicts with users who have the same name and either the
@@ -313,6 +314,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                            SYSDB_SUBDOMAIN_FOREST,
                            SYSDB_SUBDOMAIN_TRUST_DIRECTION,
                            SYSDB_UPN_SUFFIXES,
+                           SYSDB_ENABLED,
                            NULL};
     struct sss_domain_info *dom;
     struct ldb_dn *basedn;
@@ -322,6 +324,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
     const char *id;
     const char *forest;
     const char *str_mpg_mode;
+    bool enabled;
     enum sss_domain_mpg_mode mpg_mode;
     bool enumerate;
     uint32_t trust_direction;
@@ -406,10 +409,14 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
                                              SYSDB_SUBDOMAIN_TRUST_DIRECTION,
                                              0);
 
+        enabled = ldb_msg_find_attr_as_bool(res->msgs[i], SYSDB_ENABLED, true);
+
         for (dom = domain->subdomains; dom;
                 dom = get_next_domain(dom, SSS_GND_INCLUDE_DISABLED)) {
             if (strcasecmp(dom->name, name) == 0) {
-                sss_domain_set_state(dom, DOM_ACTIVE);
+                if (enabled) {
+                    sss_domain_set_state(dom, DOM_ACTIVE);
+                }
 
                 /* in theory these may change, but it should never happen */
                 if (strcasecmp(dom->realm, realm) != 0) {
@@ -522,7 +529,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain,
         if (dom == NULL) {
             dom = new_subdomain(domain, domain, name, realm,
                                 flat, id, mpg_mode, enumerate, forest,
-                                upn_suffixes, trust_direction, confdb);
+                                upn_suffixes, trust_direction, confdb,
+                                enabled);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -548,12 +556,15 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
     struct ldb_message_element *tmp_el;
     struct ldb_dn *basedn;
     struct ldb_result *res;
+    enum sss_domain_state state;
+    bool enabled;
     const char *attrs[] = {"cn",
                            SYSDB_SUBDOMAIN_REALM,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_FOREST,
                            SYSDB_UPN_SUFFIXES,
+                           SYSDB_ENABLED,
                            NULL};
     char *view_name = NULL;
 
@@ -648,6 +659,16 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
         }
     } else {
         talloc_zfree(domain->upn_suffixes);
+    }
+
+    state = sss_domain_get_state(domain);
+    enabled = ldb_msg_find_attr_as_bool(res->msgs[0], SYSDB_ENABLED, true);
+    if (!enabled) {
+        sss_domain_set_state(domain, DOM_DISABLED);
+    } else if (state == DOM_DISABLED) {
+        /* We do not want to enable INACTIVE or INCONSISTENT domain. This
+         * is managed by data provider. */
+        sss_domain_set_state(domain, DOM_ACTIVE);
     }
 
     ret = sysdb_get_view_name(tmp_ctx, domain->sysdb, &view_name);
