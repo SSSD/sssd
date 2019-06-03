@@ -138,7 +138,6 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
     int version;
     char fallback_cfg[] =
         "[sssd]\n"
-        "enable_files_domain = true\n"
         "services = nss\n";
 
     /* Open config file */
