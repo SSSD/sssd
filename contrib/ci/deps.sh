@@ -52,8 +52,17 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         krb5-server
         krb5-workstation
         dbus-python
-        python-pep8
     )
+
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[1-9]* ]]; then
+        DEPS_LIST+=(
+            python3-pep8
+        )
+    else
+        DEPS_LIST+=(
+            python-pep8
+        )
+    fi
 
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-* ]]; then
         DEPS_LIST+=(
