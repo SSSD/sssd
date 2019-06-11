@@ -73,7 +73,7 @@ setup_test(void)
         fail("Could not init tevent context");
     }
 
-    ret = resolv_init(ctx, ctx->ev, 5, &ctx->resolv);
+    ret = resolv_init(ctx, ctx->ev, 5, 2000, &ctx->resolv);
     if (ret != EOK) {
         talloc_free(ctx);
         fail("Could not init resolv context");
