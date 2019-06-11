@@ -22,6 +22,7 @@
 
 #include "providers/proxy/proxy.h"
 #include "db/sysdb_iphosts.h"
+#include <resolv.h>
 #include <arpa/inet.h>
 
 static errno_t
@@ -354,6 +355,161 @@ done:
     return ret;
 }
 
+static errno_t
+get_host_by_addr_internal(struct proxy_resolver_ctx *ctx,
+                          struct sss_domain_info *domain,
+                          TALLOC_CTX *mem_ctx,
+                          const char *addrstr,
+                          char **out_name,
+                          char ***out_addresses,
+                          char ***out_aliases)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *buffer = NULL;
+    size_t buflen = DEFAULT_BUFSIZE;
+    struct hostent *result = NULL;
+    enum nss_status status;
+    int err;
+    int h_err;
+    char addrbuf[IN6ADDRSZ];
+    socklen_t addrlen = 0;
+    int af = 0;
+    errno_t ret;
+    char *name = NULL;
+    char **addresses = NULL;
+    char **aliases = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Resolving host [%s]\n", addrstr);
+
+    if (inet_pton(AF_INET, addrstr, addrbuf)) {
+        af = AF_INET;
+        addrlen = INADDRSZ;
+    } else if (inet_pton(AF_INET6, addrstr, addrbuf)) {
+        af = AF_INET6;
+        addrlen = IN6ADDRSZ;
+    } else {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    result = talloc_zero(tmp_ctx, struct hostent);
+    if (result == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Ask for IPv4 addresses */
+    err = 0;
+    h_err = 0;
+    for (status = NSS_STATUS_TRYAGAIN,
+         err = ERANGE, h_err = 0;
+         status == NSS_STATUS_TRYAGAIN && err == ERANGE;
+         buflen *= 2)
+    {
+        buffer = talloc_realloc_size(tmp_ctx, buffer, buflen);
+        if (buffer == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        status = ctx->ops.gethostbyaddr_r(addrbuf, addrlen, af, result,
+                                          buffer, buflen,
+                                          &err, &h_err);
+    }
+
+    ret = nss_status_to_errno(status);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+            "gethostbyaddr_r (%s) failed for host [%s]: %d, %s, %s.\n",
+            af == AF_INET ? "AF_INET" : "AF_INET6",
+            addrstr, status, strerror(err), hstrerror(h_err));
+        goto done;
+    }
+
+    if (ret == EOK) {
+        ret = parse_hostent(tmp_ctx, result, domain->case_sensitive,
+                            &name, &aliases, &addresses);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to parse hostent [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    if (name != NULL) {
+        *out_name = talloc_steal(mem_ctx, name);
+    }
+    if (addresses != NULL) {
+        *out_addresses = talloc_steal(mem_ctx, addresses);
+    }
+    if (aliases != NULL) {
+        *out_aliases = talloc_steal(mem_ctx, aliases);
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t
+get_host_byaddr(struct proxy_resolver_ctx *ctx,
+                struct sss_domain_info *domain,
+                const char *address)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    char *name = NULL;
+    char **addresses = NULL;
+    char **aliases = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Processing request for host address [%s]\n",
+          address);
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = get_host_by_addr_internal(ctx, domain, tmp_ctx, address,
+                                    &name, &addresses, &aliases);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    if (ret == ENOENT) {
+        /* Make sure we remove it from the cache */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Host [%s] not found, removing from "
+              "cache\n", address);
+        sysdb_host_delete(domain, NULL, address);
+    } else {
+        /* Results found. Save them into the cache */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Host [%s] found, saving into "
+              "cache\n", address);
+        ret = proxy_save_host(domain, !domain->case_sensitive,
+                              domain->resolver_timeout,
+                              name, aliases, addresses);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store host [%s] [%d]: %s\n",
+                  name, ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static struct dp_reply_std
 proxy_hosts_info(TALLOC_CTX *mem_ctx,
                  struct proxy_resolver_ctx *ctx,
@@ -373,8 +529,8 @@ proxy_hosts_info(TALLOC_CTX *mem_ctx,
         break;
 
     case BE_FILTER_ADDR:
-        /* TODO */
-        /* FALLTHROUGH */
+        ret = get_host_byaddr(ctx, domain, data->filter_value);
+        break;
 
     case BE_FILTER_ENUM:
         /* TODO */
