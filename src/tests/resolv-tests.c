@@ -76,7 +76,7 @@ static int setup_resolv_test(int timeout, struct resolv_test_ctx **ctx)
         return EFAULT;
     }
 
-    ret = resolv_init(test_ctx, test_ctx->ev, timeout, &test_ctx->resolv);
+    ret = resolv_init(test_ctx, test_ctx->ev, timeout, 2000, &test_ctx->resolv);
     if (ret != EOK) {
         fail("Could not init resolv context");
         talloc_free(test_ctx);
