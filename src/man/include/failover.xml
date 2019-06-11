@@ -98,6 +98,9 @@
                             include several steps, such as resolving DNS SRV
                             queries or locating the site.
                         </para>
+                        <para>
+                            Default: 6
+                        </para>
                     </listitem>
                 </varlistentry>
             </variablelist>
