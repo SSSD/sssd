@@ -19,76 +19,56 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "sss_openssl.h"
+
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
 
-#include <openssl/evp.h>
 
-#include "sss_openssl.h"
-
-#define HMAC_SHA1_BLOCKSIZE 64
-
-int sss_hmac_sha1(const unsigned char *key,
-                  size_t key_len,
-                  const unsigned char *in,
-                  size_t in_len,
+int sss_hmac_sha1(const unsigned char *key, size_t key_len,
+                  const unsigned char *in, size_t in_len,
                   unsigned char *out)
 {
-    int ret;
-    EVP_MD_CTX *ctx;
-    unsigned char ikey[HMAC_SHA1_BLOCKSIZE], okey[HMAC_SHA1_BLOCKSIZE];
-    size_t i;
-    unsigned char hash[SSS_SHA1_LENGTH];
-    unsigned int res_len;
+    int ret = EOK;
+    EVP_MD_CTX *ctx = NULL;
+    EVP_PKEY *pkey = NULL;
+    size_t res_len = SSS_SHA1_LENGTH;
+    const EVP_MD* md = EVP_sha1();
+
+
+    if ((key == NULL) || (key_len == 0) || (in == NULL) || (in_len == 0)) {
+        return EDOM;
+    }
 
     ctx = EVP_MD_CTX_new();
     if (ctx == NULL) {
         return ENOMEM;
     }
 
-    if (key_len > HMAC_SHA1_BLOCKSIZE) {
-        /* keys longer than blocksize are shortened */
-        if (!EVP_DigestInit_ex(ctx, EVP_sha1(), NULL)) {
-            ret = EIO;
-            goto done;
-        }
-
-        EVP_DigestUpdate(ctx, (const unsigned char *)key, key_len);
-        EVP_DigestFinal_ex(ctx, ikey, &res_len);
-        memset(ikey + SSS_SHA1_LENGTH, 0, HMAC_SHA1_BLOCKSIZE - SSS_SHA1_LENGTH);
-    } else {
-        /* keys shorter than blocksize are zero-padded */
-        memcpy(ikey, key, key_len);
-        if (key_len < HMAC_SHA1_BLOCKSIZE) {
-            memset(ikey + key_len, 0, HMAC_SHA1_BLOCKSIZE - key_len);
-        }
-    }
-
-    /* HMAC(key, msg) = HASH(key XOR opad, HASH(key XOR ipad, msg)) */
-    for (i = 0; i < HMAC_SHA1_BLOCKSIZE; i++) {
-        okey[i] = ikey[i] ^ 0x5c;
-        ikey[i] ^= 0x36;
-    }
-
-    if (!EVP_DigestInit_ex(ctx, EVP_sha1(), NULL)) {
-        ret = EIO;
+    pkey = EVP_PKEY_new_raw_private_key(EVP_PKEY_HMAC, NULL, key, key_len);
+    if (pkey == NULL) {
+        ret = ENOMEM;
         goto done;
     }
 
-    EVP_DigestUpdate(ctx, (const unsigned char *)ikey, HMAC_SHA1_BLOCKSIZE);
-    EVP_DigestUpdate(ctx, (const unsigned char *)in, in_len);
-    EVP_DigestFinal_ex(ctx, hash, &res_len);
-
-    if (!EVP_DigestInit_ex(ctx, EVP_sha1(), NULL)) {
-        ret = EIO;
+    if (EVP_DigestSignInit(ctx, NULL, md, NULL, pkey) != 1) {
+        ret = EDOM;
         goto done;
     }
 
-    EVP_DigestUpdate(ctx, (const unsigned char *)okey, HMAC_SHA1_BLOCKSIZE);
-    EVP_DigestUpdate(ctx, (const unsigned char *)hash, SSS_SHA1_LENGTH);
-    EVP_DigestFinal_ex(ctx, out, &res_len);
-    ret = EOK;
+    if (EVP_DigestSignUpdate(ctx, in, in_len) != 1) {
+        ret = EDOM;
+        goto done;
+    }
+
+    if ((EVP_DigestSignFinal(ctx, out, &res_len) != 1)
+        || (res_len != SSS_SHA1_LENGTH)) {
+        ret = EDOM;
+        goto done;
+    }
+
 done:
+    EVP_PKEY_free(pkey);
     EVP_MD_CTX_free(ctx);
     return ret;
 }
