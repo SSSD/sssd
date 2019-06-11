@@ -526,6 +526,11 @@ sysdb_domain_set_enabled(struct sysdb_ctx *sysdb,
                          const char *name,
                          bool enabled);
 
+errno_t
+sysdb_list_subdomains(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *sysdb,
+                      const char ***_names);
+
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id,

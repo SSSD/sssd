@@ -1472,3 +1472,63 @@ sysdb_domain_set_enabled(struct sysdb_ctx *sysdb,
 
     return ret;
 }
+
+errno_t
+sysdb_list_subdomains(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *sysdb,
+                      const char ***_names)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *base_dn;
+    const char *attrs[] = {"cn", NULL};
+    struct ldb_message **msgs;
+    const char *name;
+    size_t count;
+    const char **names;
+    errno_t ret;
+    size_t i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    base_dn = sysdb_base_dn(sysdb, tmp_ctx);
+    if (base_dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+
+    ret = sysdb_search_entry(tmp_ctx, sysdb, base_dn, LDB_SCOPE_ONELEVEL,
+                             "("SYSDB_OBJECTCLASS"="SYSDB_SUBDOMAIN_CLASS")",
+                             attrs, &count, &msgs);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    names = talloc_zero_array(tmp_ctx, const char *, count + 1);
+    if (names == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < count; i++) {
+        name = ldb_msg_find_attr_as_string(msgs[i], "cn", NULL);
+        if (name == NULL) {
+            ret = EINVAL;
+            goto done;
+        }
+
+        names[i] = talloc_steal(names, name);
+    }
+
+    *_names = talloc_steal(mem_ctx, names);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
