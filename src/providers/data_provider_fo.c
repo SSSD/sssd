@@ -832,8 +832,8 @@ void _be_fo_set_port_status(struct be_ctx *ctx,
 static struct dp_option dp_res_default_opts[] = {
     { "lookup_family_order", DP_OPT_STRING, { "ipv4_first" }, NULL_STRING },
     { "dns_resolver_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "dns_resolver_server_timeout", DP_OPT_NUMBER, { .number = 2000 }, NULL_NUMBER },
+    { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 3 }, NULL_NUMBER },
+    { "dns_resolver_server_timeout", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER },
     { "dns_discovery_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };

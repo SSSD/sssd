@@ -1432,7 +1432,7 @@
                             StartTLS operation.
                         </para>
                         <para>
-                            Default: 6
+                            Default: 8
                         </para>
                     </listitem>
                 </varlistentry>
