@@ -833,6 +833,7 @@ static struct dp_option dp_res_default_opts[] = {
     { "lookup_family_order", DP_OPT_STRING, { "ipv4_first" }, NULL_STRING },
     { "dns_resolver_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "dns_resolver_op_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
+    { "dns_resolver_server_timeout", DP_OPT_NUMBER, { .number = 2000 }, NULL_NUMBER },
     { "dns_discovery_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
@@ -894,6 +895,8 @@ errno_t be_res_init(struct be_ctx *ctx)
     ret = resolv_init(ctx, ctx->ev,
                       dp_opt_get_int(ctx->be_res->opts,
                                      DP_RES_OPT_RESOLVER_OP_TIMEOUT),
+                      dp_opt_get_int(ctx->be_res->opts,
+                                     DP_RES_OPT_RESOLVER_SERVER_TIMEOUT),
                       &ctx->be_res->resolv);
     if (ret != EOK) {
         talloc_zfree(ctx->be_res);

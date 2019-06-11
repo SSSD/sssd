@@ -73,6 +73,20 @@
             <variablelist>
                 <varlistentry>
                     <term>
+                        dns_resolver_server_timeout
+                    </term>
+                    <listitem>
+                        <para>
+                            Time in milliseconds that sets how long would SSSD
+                            talk to a single DNS server before trying next one.
+                        </para>
+                        <para>
+                            Default: 2000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>
                         dns_resolver_op_timeout
                     </term>
                     <listitem>
@@ -111,7 +125,8 @@
             <quote>ldap_opt_timeout></quote> timeout should be set to
             a larger value than <quote>dns_resolver_timeout</quote>
             which in turn should be set to a larger value than
-            <quote>dns_resolver_op_timeout</quote>.
+            <quote>dns_resolver_op_timeout</quote> which should be larger
+            than <quote>dns_resolver_server_timeout</quote>.
         </para>
     </refsect2>
 </refsect1>
