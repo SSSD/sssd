@@ -77,7 +77,13 @@
                     </term>
                     <listitem>
                         <para>
-                            How long would SSSD talk to a single DNS server.
+                            Time in seconds to tell how long would SSSD try
+                            to resolve single DNS query (e.g. resolution of a
+                            hostname or an SRV record) before trying the next
+                            hostname or discovery domain.
+                        </para>
+                        <para>
+                            Default: 6
                         </para>
                     </listitem>
                 </varlistentry>
