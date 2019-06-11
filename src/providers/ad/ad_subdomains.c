@@ -1804,9 +1804,11 @@ static void ad_subdomains_refresh_gc_check_done(struct tevent_req *subreq)
 {
     struct ad_subdomains_refresh_state *state;
     struct tevent_req *req;
+    const char **subdoms;
     const char *ad_domain;
     bool is_gc_usable;
     errno_t ret;
+    int i;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_subdomains_refresh_state);
@@ -1832,6 +1834,27 @@ static void ad_subdomains_refresh_gc_check_done(struct tevent_req *subreq)
                            state->be_ctx->domain->name) == 0) {
                 DEBUG(SSSDBG_TRACE_FUNC,
                       "No other enabled domain than master.\n");
+
+                ret = sysdb_list_subdomains(state, state->be_ctx->domain->sysdb,
+                                            &subdoms);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "Unable to list subdomains "
+                          "[%d]: %s\n", ret, sss_strerror(ret));
+                    tevent_req_error(req, ret);
+                    return;
+                }
+
+                for (i = 0; subdoms[i] != NULL; i++) {
+                    ret = sysdb_subdomain_delete(state->be_ctx->domain->sysdb,
+                                                 subdoms[i]);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE, "Unable to remove subdomain "
+                              "[%d]: %s\n", ret, sss_strerror(ret));
+                        tevent_req_error(req, ret);
+                        return;
+                    }
+                }
+
                 tevent_req_done(req);
                 return;
             }
