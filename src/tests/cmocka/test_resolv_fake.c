@@ -240,7 +240,7 @@ static int test_resolv_fake_setup(void **state)
     assert_non_null(test_ctx->ctx);
 
     ret = resolv_init(test_ctx, test_ctx->ctx->ev,
-                      TEST_DEFAULT_TIMEOUT, &test_ctx->resolv);
+                      TEST_DEFAULT_TIMEOUT, 2000, &test_ctx->resolv);
     assert_int_equal(ret, EOK);
 
     *state = test_ctx;

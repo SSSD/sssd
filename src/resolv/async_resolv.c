@@ -60,8 +60,6 @@
 #define DNS_RR_LEN(r)                   DNS__16BIT((r) + 8)
 #define DNS_RR_TTL(r)                   DNS__32BIT((r) + 4)
 
-#define RESOLV_TIMEOUTMS  2000
-
 enum host_database default_host_dbs[] = { DB_FILES, DB_DNS, DB_SENTINEL };
 
 struct fd_watch {
@@ -82,6 +80,9 @@ struct resolv_ctx {
 
     /* Time in milliseconds before canceling a DNS request */
     int timeout;
+
+    /* Time in milliseconds for communication with single DNS server. */
+    int ares_timeout;
 
     /* The timeout watcher periodically calls ares_process_fd() to check
      * if our pending requests didn't timeout. */
@@ -423,7 +424,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
      */
     options.sock_state_cb = fd_event;
     options.sock_state_cb_data = ctx;
-    options.timeout = RESOLV_TIMEOUTMS;
+    options.timeout = ctx->ares_timeout;
     /* Only affects ares_gethostbyname */
     options.lookups = discard_const("f");
     options.tries = 1;
@@ -450,7 +451,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
 
 int
 resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
-            int timeout, struct resolv_ctx **ctxp)
+            int timeout, int ares_timeout, struct resolv_ctx **ctxp)
 {
     int ret;
     struct resolv_ctx *ctx;
@@ -467,6 +468,7 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
 
     ctx->ev_ctx = ev_ctx;
     ctx->timeout = timeout;
+    ctx->ares_timeout = ares_timeout;
 
     ret = recreate_ares_channel(ctx);
     if (ret != EOK) {
