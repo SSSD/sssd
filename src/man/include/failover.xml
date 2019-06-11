@@ -81,7 +81,7 @@
                             talk to a single DNS server before trying next one.
                         </para>
                         <para>
-                            Default: 2000
+                            Default: 1000
                         </para>
                     </listitem>
                 </varlistentry>
@@ -97,7 +97,7 @@
                             hostname or discovery domain.
                         </para>
                         <para>
-                            Default: 6
+                            Default: 2
                         </para>
                     </listitem>
                 </varlistentry>
@@ -113,7 +113,7 @@
                             queries or locating the site.
                         </para>
                         <para>
-                            Default: 6
+                            Default: 4
                         </para>
                     </listitem>
                 </varlistentry>
