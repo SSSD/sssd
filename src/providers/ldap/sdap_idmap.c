@@ -20,7 +20,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "shared/murmurhash3.h"
 #include "util/util.h"
 #include "util/dlinklist.h"
 #include "providers/ldap/sdap_idmap.h"
