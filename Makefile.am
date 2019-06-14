@@ -940,9 +940,9 @@ if HAVE_NSS
                         src/util/crypto/nss/nss_obfuscate.c \
                         src/util/crypto/nss/nss_nite.c \
                         src/util/crypto/nss/nss_util.c \
-			src/util/crypto/sss_crypto.c \
-			src/util/atomic_io.c \
-			$(NULL)
+                        src/util/crypto/nss/nss_prng.c \
+                        src/util/atomic_io.c \
+                        $(NULL)
     SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
     SSS_CRYPT_LIBS = $(NSS_LIBS)
 
@@ -963,9 +963,9 @@ else
                         src/util/crypto/libcrypto/crypto_sha512crypt.c \
                         src/util/crypto/libcrypto/crypto_obfuscate.c \
                         src/util/crypto/libcrypto/crypto_nite.c \
-			src/util/crypto/sss_crypto.c \
-			src/util/atomic_io.c \
-			$(NULL)
+                        src/util/crypto/libcrypto/crypto_prng.c \
+                        src/util/atomic_io.c \
+                        $(NULL)
     SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
     SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
 

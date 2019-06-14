@@ -541,7 +541,7 @@ static int generate_master_key(const char *filename, size_t size)
     int ret;
     int fd;
 
-    ret = generate_csprng_buffer(buf, size);
+    ret = sss_generate_csprng_buffer(buf, size);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "generate_csprng_buffer failed [%d]: %s\n",

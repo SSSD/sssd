@@ -1,8 +1,5 @@
 /*
-    Authors:
-        Simo Sorce <ssorce@redhat.com>
-
-    Copyright (C) 2016 Red Hat
+    Copyright (C) Red Hat 2019
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,34 +17,21 @@
 
 
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <limits.h>
+#include <openssl/rand.h>
 
-#include "util/util.h"
+#include "util/util_errors.h"
 #include "util/crypto/sss_crypto.h"
 
-
-int generate_csprng_buffer(uint8_t *buf, size_t size)
+int sss_generate_csprng_buffer(uint8_t *buf, size_t size)
 {
-    ssize_t rsize;
-    int ret;
-    int fd;
-
-    fd = open("/dev/urandom", O_RDONLY);
-    if (fd == -1) return errno;
-
-    rsize = sss_atomic_read_s(fd, buf, size);
-    if (rsize == -1) {
-        ret = errno;
-        goto done;
-    } else if (rsize != size) {
-        ret = EFAULT;
-        goto done;
+    if ((buf == NULL) || (size > INT_MAX)) {
+        return EINVAL;
     }
 
-    ret = EOK;
-done:
-    close(fd);
-    return ret;
+    if (RAND_bytes((unsigned char *)buf, (int)size) == 1) {
+        return EOK;
+    }
+
+    return EAGAIN;
 }

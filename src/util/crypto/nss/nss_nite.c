@@ -89,7 +89,7 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     /* First Encrypt */
 
     if (ivlen != 0) {
-        ret = generate_csprng_buffer(out, ivlen);
+        ret = sss_generate_csprng_buffer(out, ivlen);
         if (ret) return ret;
     }
 
