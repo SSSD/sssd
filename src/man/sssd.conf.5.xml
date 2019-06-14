@@ -3110,7 +3110,7 @@ subdomain_inherit = ldap_purge_cache_timeout
                                             and GID numbers have the same
                                             value and at the same time the
                                             GID number does not correspond
-                                            to a real group object in LDAP
+                                            to a real group object in LDAP.
                                             If the values are the same, but
                                             the primary GID in the user entry
                                             is also used by a group object,
@@ -3596,12 +3596,12 @@ ldap_user_extra_attrs = phone:telephoneNumber
             With the growing number of authentication methods and the
             possibility that there are multiple ones for a single user the
             heuristic used by pam_sss to select the prompting might not be
-            suitable for all use cases. To following options should provide a
+            suitable for all use cases. The following options should provide a
             better flexibility here.
         </para>
         <para>
-            Each supported authentication method has it's own configuration
-            sub-section under <quote>[prompting/...]</quote>. Currently there
+            Each supported authentication method has its own configuration
+            subsection under <quote>[prompting/...]</quote>. Currently there
             are:
         <variablelist>
             <varlistentry>
@@ -3632,7 +3632,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
                         <varlistentry><term>single_prompt</term>
                         <listitem><para>boolean value, if True there will be
                         only a single prompt using the value of first_prompt
-                        where it is expected that both factor are entered as a
+                        where it is expected that both factors are entered as a
                         single string</para></listitem>
                         </varlistentry>
                     </variablelist>
@@ -3642,7 +3642,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
         </variablelist>
         </para>
         <para>
-            It is possible to add a sub-section for specific PAM services like
+            It is possible to add a subsection for specific PAM services,
             e.g. <quote>[prompting/password/sshd]</quote> to individual change
             the prompting for this service.
         </para>

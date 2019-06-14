@@ -516,7 +516,7 @@
                         </para>
                         <para>
                             The krb5_kdcinfo_lookahead option contains two
-                            numbers seperated by a colon. The first number represents
+                            numbers separated by a colon. The first number represents
                             number of primary servers used and the second number
                             specifies the number of backup servers.
                         </para>
@@ -526,7 +526,7 @@
                             <citerefentry>
                                 <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
                                 <manvolnum>8</manvolnum>
-                            </citerefentry>.
+                            </citerefentry>
                             but no backup servers.
                         </para>
                         <para>
