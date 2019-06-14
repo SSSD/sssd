@@ -33,8 +33,6 @@ enum obfmethod {
     NUM_OBFMETHODS
 };
 
-int test2(void);
-
 char *sss_base64_encode(TALLOC_CTX *mem_ctx,
                         const unsigned char *in,
                         size_t insize);
