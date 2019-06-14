@@ -18,13 +18,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "config.h"
 
+#include <errno.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
+
 
 int generate_csprng_buffer(uint8_t *buf, size_t size)
 {
