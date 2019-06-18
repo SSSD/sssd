@@ -2480,40 +2480,8 @@ int main(int argc, const char *argv[])
     }
 #endif
 
-    /* Warn if nscd seems to be running */
-    ret = check_file(NSCD_SOCKET_PATH,
-                     -1, -1, S_IFSOCK, S_IFMT, NULL, false);
-    if (ret == EOK) {
-        ret = sss_nscd_parse_conf(NSCD_CONF_PATH);
-
-        switch (ret) {
-            case ENOENT:
-                sss_log(SSS_LOG_NOTICE,
-                        "NSCD socket was detected. NSCD caching capabilities "
-                        "may conflict with SSSD for users and groups. It is "
-                        "recommended not to run NSCD in parallel with SSSD, "
-                        "unless NSCD is configured not to cache the passwd, "
-                        "group, netgroup and services nsswitch maps.");
-                break;
-
-            case EEXIST:
-                sss_log(SSS_LOG_NOTICE,
-                        "NSCD socket was detected and seems to be configured "
-                        "to cache some of the databases controlled by "
-                        "SSSD [passwd,group,netgroup,services]. It is "
-                        "recommended not to run NSCD in parallel with SSSD, "
-                        "unless NSCD is configured not to cache these.");
-                break;
-
-            case EOK:
-                DEBUG(SSSDBG_TRACE_FUNC, "NSCD socket was detected and it "
-                            "seems to be configured not to interfere with "
-                            "SSSD's caching capabilities\n");
-        }
-    }
-
-    /* Check if the SSSD is already running unless we're only interested
-     * in re-reading the configuration
+    /* Check if the SSSD is already running and for nscd conflicts unless we're
+     * only interested in re-reading the configuration
      */
     if (opt_genconf == 0) {
         ret = check_file(SSSD_PIDFILE, 0, 0, S_IFREG|0600, 0, NULL, false);
@@ -2523,6 +2491,39 @@ int main(int argc, const char *argv[])
             ERROR("SSSD is already running\n");
             return 2;
         }
+
+        /* Warn if nscd seems to be running */
+        ret = check_file(NSCD_SOCKET_PATH,
+                         -1, -1, S_IFSOCK, S_IFMT, NULL, false);
+        if (ret == EOK) {
+            ret = sss_nscd_parse_conf(NSCD_CONF_PATH);
+
+            switch (ret) {
+                case ENOENT:
+                    sss_log(SSS_LOG_NOTICE,
+                            "NSCD socket was detected. NSCD caching capabilities "
+                            "may conflict with SSSD for users and groups. It is "
+                            "recommended not to run NSCD in parallel with SSSD, "
+                            "unless NSCD is configured not to cache the passwd, "
+                            "group, netgroup and services nsswitch maps.");
+                    break;
+
+                case EEXIST:
+                    sss_log(SSS_LOG_NOTICE,
+                            "NSCD socket was detected and seems to be configured "
+                            "to cache some of the databases controlled by "
+                            "SSSD [passwd,group,netgroup,services]. It is "
+                            "recommended not to run NSCD in parallel with SSSD, "
+                            "unless NSCD is configured not to cache these.");
+                    break;
+
+                case EOK:
+                    DEBUG(SSSDBG_TRACE_FUNC, "NSCD socket was detected and it "
+                                "seems to be configured not to interfere with "
+                                "SSSD's caching capabilities\n");
+            }
+        }
+
     }
 
     /* Parse config file, fail if cannot be done */
