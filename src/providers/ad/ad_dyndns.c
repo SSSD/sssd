@@ -97,8 +97,9 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
               "dyndns_refresh_interval is 0\n");
         return EINVAL;
     }
+
     ret = be_ptask_create(ad_opts, be_ctx, period, ptask_first_delay, 0, 0, period,
-                          BE_PTASK_OFFLINE_DISABLE, 0,
+                          BE_PTASK_OFFLINE_DISABLE, BE_PTASK_SCHEDULE_FROM_LAST, 0,
                           ad_dyndns_update_send, ad_dyndns_update_recv, ad_opts,
                           "Dyndns update", NULL);
 
