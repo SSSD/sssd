@@ -46,6 +46,19 @@ enum be_ptask_offline {
     BE_PTASK_OFFLINE_EXECUTE
 };
 
+/**
+ * Defines the starting point for scheduling a task
+ */
+enum be_ptask_schedule {
+    /* Schedule starting from now, typically this is used when scheduling
+     * relative to the finish time
+     */
+    BE_PTASK_SCHEDULE_FROM_NOW,
+    /* Schedule relative to the start time of the task
+     */
+    BE_PTASK_SCHEDULE_FROM_LAST
+};
+
 typedef struct tevent_req *
 (*be_ptask_send_t)(TALLOC_CTX *mem_ctx,
                    struct tevent_context *ev,
@@ -75,6 +88,14 @@ typedef errno_t
  * The first execution is scheduled first_delay seconds after the task is
  * created.
  *
+ * Subsequent runs will be scheduled depending on the value of the
+ * success_schedule_type parameter:
+ *  - BE_PTASK_SCHEDULE_FROM_NOW: period seconds from the finish time
+ *  - BE_PTASK_SCHEDULE_FROM_LAST: period seconds from the last start time
+ *
+ * If the test fails, another run is always scheduled period seconds
+ * from the finish time.
+ *
  * If request does not complete in timeout seconds, it will be
  * cancelled and rescheduled to 'now + period'.
  *
@@ -83,7 +104,7 @@ typedef errno_t
  *
  * The random_offset is maximum number of seconds added to the
  * expected delay. Set to 0 if no randomization is needed.
-
+ *
  * If max_backoff is not 0 then the period is doubled
  * every time the task is scheduled. The maximum value of
  * period is max_backoff. The value of period will be reset to
@@ -100,6 +121,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t random_offset,
                         time_t timeout,
                         enum be_ptask_offline offline,
+                        enum be_ptask_schedule success_schedule_type,
                         time_t max_backoff,
                         be_ptask_send_t send_fn,
                         be_ptask_recv_t recv_fn,

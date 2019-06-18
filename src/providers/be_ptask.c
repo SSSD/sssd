@@ -30,11 +30,6 @@
 
 #define backoff_allowed(ptask) (ptask->max_backoff != 0)
 
-enum be_ptask_schedule {
-    BE_PTASK_SCHEDULE_FROM_NOW,
-    BE_PTASK_SCHEDULE_FROM_LAST
-};
-
 enum be_ptask_delay {
     BE_PTASK_FIRST_DELAY,
     BE_PTASK_ENABLED_DELAY,
@@ -182,7 +177,7 @@ static void be_ptask_done(struct tevent_req *req)
         DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: finished successfully\n",
                                   task->name);
 
-        be_ptask_schedule(task, BE_PTASK_PERIOD, BE_PTASK_SCHEDULE_FROM_LAST);
+        be_ptask_schedule(task, BE_PTASK_PERIOD, task->success_schedule_type);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: failed with [%d]: %s\n",
@@ -268,6 +263,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t random_offset,
                         time_t timeout,
                         enum be_ptask_offline offline,
+                        enum be_ptask_schedule success_schedule_type,
                         time_t max_backoff,
                         be_ptask_send_t send_fn,
                         be_ptask_recv_t recv_fn,
@@ -300,6 +296,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
     task->max_backoff = max_backoff;
     task->timeout = timeout;
     task->offline = offline;
+    task->success_schedule_type = success_schedule_type;
     task->send_fn = send_fn;
     task->recv_fn = recv_fn;
     task->pvt = pvt;
@@ -470,6 +467,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
 
     ret = be_ptask_create(mem_ctx, be_ctx, period, first_delay,
                           enabled_delay, random_offset, timeout, offline,
+                          BE_PTASK_SCHEDULE_FROM_LAST,
                           max_backoff, be_ptask_sync_send, be_ptask_sync_recv,
                           ctx, name, _task);
     if (ret != EOK) {

@@ -382,7 +382,9 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
     }
 
     ret = be_ptask_create(be_ctx, be_ctx, period, initial_delay, 0, 0, 60,
-                          BE_PTASK_OFFLINE_DISABLE, 0,
+                          BE_PTASK_OFFLINE_DISABLE,
+                          BE_PTASK_SCHEDULE_FROM_LAST,
+                          0,
                           ad_machine_account_password_renewal_send,
                           ad_machine_account_password_renewal_recv,
                           renewal_data,
