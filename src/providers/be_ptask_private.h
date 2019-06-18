@@ -32,6 +32,7 @@ struct be_ptask {
     time_t timeout;
     time_t max_backoff;
     enum be_ptask_offline offline;
+    enum be_ptask_schedule success_schedule_type;
     be_ptask_send_t send_fn;
     be_ptask_recv_t recv_fn;
     void *pvt;

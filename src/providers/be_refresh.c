@@ -156,7 +156,9 @@ errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
     refresh_interval = be_ctx->domain->refresh_expired_interval;
     if (refresh_interval > 0) {
         ret = be_ptask_create(be_ctx, be_ctx, refresh_interval, 30, 5, 0,
-                              refresh_interval, BE_PTASK_OFFLINE_SKIP, 0,
+                              refresh_interval, BE_PTASK_OFFLINE_SKIP,
+                              BE_PTASK_SCHEDULE_FROM_LAST,
+                              0,
                               be_refresh_send, be_refresh_recv,
                               ctx, "Refresh Records", NULL);
         if (ret != EOK) {
