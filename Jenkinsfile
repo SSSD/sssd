@@ -152,7 +152,6 @@ def CI_Notify(status, message) { CI.Notify(this, status, message) }
 pipeline {
   agent none
   options {
-    timeout(time: 10, unit: 'HOURS')
     checkoutToSubdirectory('sssd')
   }
   stages {
