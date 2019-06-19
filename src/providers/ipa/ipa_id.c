@@ -30,13 +30,6 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
 
-static struct tevent_req *
-ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
-                             struct ipa_id_ctx *ipa_ctx,
-                             struct dp_id_data *ar);
-
-static int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error);
-
 static bool is_object_overridable(struct dp_id_data *ar)
 {
     bool ret = false;
@@ -515,7 +508,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq);
 static void ipa_id_get_account_info_done(struct tevent_req *subreq);
 static void ipa_id_get_user_list_done(struct tevent_req *subreq);
 
-static struct tevent_req *
+struct tevent_req *
 ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                              struct ipa_id_ctx *ipa_ctx,
                              struct dp_id_data *ar)
@@ -1119,7 +1112,7 @@ fail:
     return;
 }
 
-static int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error)
+int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error)
 {
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
