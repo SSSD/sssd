@@ -373,7 +373,7 @@
                             home directory.
                         </para>
                         <para>
-                            Default: homeDirectory
+                            Default: homeDirectory (LDAP and IPA), unixHomeDirectory (AD)
                         </para>
                     </listitem>
                 </varlistentry>
