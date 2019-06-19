@@ -1110,6 +1110,7 @@ struct ipa_s2n_get_list_state {
 static errno_t ipa_s2n_get_list_step(struct tevent_req *req);
 static void ipa_s2n_get_list_get_override_done(struct tevent_req *subreq);
 static void ipa_s2n_get_list_next(struct tevent_req *subreq);
+static void ipa_s2n_get_list_ipa_next(struct tevent_req *subreq);
 static errno_t ipa_s2n_get_list_save_step(struct tevent_req *req);
 
 static struct tevent_req *ipa_s2n_get_list_send(TALLOC_CTX *mem_ctx,
@@ -1184,6 +1185,7 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
     uint32_t id;
     char *endptr;
     bool need_v1 = false;
+    struct dp_id_data *ar;
 
     parent_domain = get_domains_head(state->dom);
     switch (state->req_input.type) {
@@ -1210,6 +1212,35 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
         }
 
         state->req_input.inp.name = short_name;
+
+        if (strcmp(state->obj_domain->name,
+            state->ipa_ctx->sdap_id_ctx->be->domain->name) == 0) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Looking up IPA object [%s] from LDAP.\n",
+                  state->list[state->list_idx]);
+            ret = get_dp_id_data_for_user_name(state,
+                                               state->list[state->list_idx],
+                                               state->obj_domain->name,
+                                               &ar);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to create lookup date for IPA object [%s].\n",
+                      state->list[state->list_idx]);
+                return ret;
+            }
+            ar->entry_type = state->entry_type;
+
+            subreq = ipa_id_get_account_info_send(state, state->ev,
+                                                  state->ipa_ctx, ar);
+            if (subreq == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "ipa_id_get_account_info_send failed.\n");
+                return ENOMEM;
+            }
+            tevent_req_set_callback(subreq, ipa_s2n_get_list_ipa_next, req);
+
+            return EOK;
+        }
 
         break;
     case REQ_INP_ID:
@@ -1348,6 +1379,42 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
     return;
 
 fail:
+    tevent_req_error(req,ret);
+    return;
+}
+
+static void ipa_s2n_get_list_ipa_next(struct tevent_req *subreq)
+{
+    int ret;
+    int dp_error;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_s2n_get_list_state *state = tevent_req_data(req,
+                                               struct ipa_s2n_get_list_state);
+
+    ret = ipa_id_get_account_info_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_id_get_account_info failed: %d %d\n", ret,
+                                 dp_error);
+        goto done;
+    }
+
+    state->list_idx++;
+    if (state->list[state->list_idx] == NULL) {
+        tevent_req_done(req);
+        return;
+    }
+
+    ret = ipa_s2n_get_list_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_list_step failed.\n");
+        goto done;
+    }
+
+    return;
+
+done:
     tevent_req_error(req,ret);
     return;
 }
