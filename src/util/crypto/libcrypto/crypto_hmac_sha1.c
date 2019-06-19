@@ -1,9 +1,5 @@
 /*
-    Authors:
-        Jan Cholasta <jcholast@redhat.com>
-        George McCollister <george.mccollister@gmail.com>
-
-    Copyright (C) 2012 Red Hat
+    Copyright (C) 2019 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,7 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "sss_openssl.h"
+#include <string.h>
+#include <openssl/hmac.h>
 
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
@@ -29,46 +26,24 @@ int sss_hmac_sha1(const unsigned char *key, size_t key_len,
                   const unsigned char *in, size_t in_len,
                   unsigned char *out)
 {
-    int ret = EOK;
-    EVP_MD_CTX *ctx = NULL;
-    EVP_PKEY *pkey = NULL;
-    size_t res_len = SSS_SHA1_LENGTH;
-    const EVP_MD* md = EVP_sha1();
+    unsigned int res_len = 0;
+    unsigned char md[EVP_MAX_MD_SIZE];
 
-
-    if ((key == NULL) || (key_len == 0) || (in == NULL) || (in_len == 0)) {
-        return EDOM;
+    if ((key == NULL) || (key_len == 0) || (key_len > INT_MAX)
+         || (in == NULL) || (in_len == 0) || (in_len > INT_MAX)
+         || (out == NULL)) {
+        return EINVAL;
     }
 
-    ctx = EVP_MD_CTX_new();
-    if (ctx == NULL) {
-        return ENOMEM;
+    if (!HMAC(EVP_sha1(), key, (int)key_len, in, (int)in_len, md, &res_len)) {
+        return EINVAL;
     }
 
-    pkey = EVP_PKEY_new_raw_private_key(EVP_PKEY_HMAC, NULL, key, key_len);
-    if (pkey == NULL) {
-        ret = ENOMEM;
-        goto done;
+    if (res_len != SSS_SHA1_LENGTH) {
+        return EINVAL;
     }
 
-    if (EVP_DigestSignInit(ctx, NULL, md, NULL, pkey) != 1) {
-        ret = EDOM;
-        goto done;
-    }
+    memcpy(out, md, SSS_SHA1_LENGTH);
 
-    if (EVP_DigestSignUpdate(ctx, in, in_len) != 1) {
-        ret = EDOM;
-        goto done;
-    }
-
-    if ((EVP_DigestSignFinal(ctx, out, &res_len) != 1)
-        || (res_len != SSS_SHA1_LENGTH)) {
-        ret = EDOM;
-        goto done;
-    }
-
-done:
-    EVP_PKEY_free(pkey);
-    EVP_MD_CTX_free(ctx);
-    return ret;
+    return EOK;
 }
