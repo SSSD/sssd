@@ -187,6 +187,7 @@ Requires: python2-sssdconfig = %{version}-%{release}
 
 ### Build Dependencies ###
 
+BuildRequires: make
 BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
