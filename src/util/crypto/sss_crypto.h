@@ -21,6 +21,17 @@
 #include <talloc.h>
 #include <stdint.h>
 
+/* Does its best to generate crypto strong random int but fallbacks to
+ * plain `rand()` in case of failure.
+ * Thus *not* suitable to be used in security relevant context.
+ */
+int sss_rand(void);
+
+/* Guaranteed either to fill given buffer with crypto strong random data
+ * or to fail with error code (for example in the case of the lack of
+ * proper entropy)
+ * Suitable to be used in security relevant context.
+ */
 int sss_generate_csprng_buffer(uint8_t *buf, size_t size);
 
 int s3crypt_sha512(TALLOC_CTX *mmectx,
