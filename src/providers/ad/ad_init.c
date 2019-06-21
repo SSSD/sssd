@@ -46,6 +46,7 @@ struct ad_init_ctx {
     struct ad_options *options;
     struct ad_id_ctx *id_ctx;
     struct krb5_ctx *auth_ctx;
+    struct ad_resolver_ctx *resolver_ctx;
 };
 
 #define AD_COMPAT_ON "1"
@@ -675,4 +676,32 @@ errno_t sssm_ad_sudo_init(TALLOC_CTX *mem_ctx,
                                 "built without sudo support, ignoring\n");
     return EOK;
 #endif
+}
+
+errno_t sssm_ad_resolver_init(TALLOC_CTX *mem_ctx,
+                              struct be_ctx *be_ctx,
+                              void *module_data,
+                              struct dp_method *dp_methods)
+{
+    struct ad_init_ctx *init_ctx;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD resolver handler\n");
+    init_ctx = talloc_get_type(module_data, struct ad_init_ctx);
+
+    ret = ad_resolver_ctx_init(init_ctx, init_ctx->id_ctx,
+                               &init_ctx->resolver_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to initialize AD resolver context\n");
+        return ret;
+    }
+
+    dp_set_method(dp_methods, DPM_RESOLVER_HOSTS_HANDLER,
+                  sdap_iphost_handler_send, sdap_iphost_handler_recv,
+                  init_ctx->resolver_ctx->sdap_resolver_ctx,
+                  struct sdap_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
+    return EOK;
 }
