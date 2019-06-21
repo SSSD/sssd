@@ -18,10 +18,32 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <openssl/rand.h>
 
 #include "util/util_errors.h"
 #include "util/crypto/sss_crypto.h"
+
+int sss_rand(void)
+{
+    static bool srand_done = false;
+    int result;
+
+    if (RAND_bytes((unsigned char*)&result, (int)sizeof(int)) == 1) {
+        return result;
+    }
+
+    /* Fallback to libc `rand()` */
+    if (!srand_done) {
+        srand(time(NULL) * getpid());
+        srand_done = true;
+    }
+    return rand();
+}
 
 int sss_generate_csprng_buffer(uint8_t *buf, size_t size)
 {
