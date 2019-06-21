@@ -1449,6 +1449,33 @@ ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx)
     return ad_ctx;
 }
 
+errno_t
+ad_resolver_ctx_init(TALLOC_CTX *mem_ctx,
+                     struct ad_id_ctx *ad_id_ctx,
+                     struct ad_resolver_ctx **out_ctx)
+{
+    struct sdap_resolver_ctx *sdap_ctx;
+    struct ad_resolver_ctx *ad_ctx;
+    errno_t ret;
+
+    ad_ctx = talloc_zero(mem_ctx, struct ad_resolver_ctx);
+    if (ad_ctx == NULL) {
+        return ENOMEM;
+    }
+    ad_ctx->ad_id_ctx = ad_id_ctx;
+
+    ret = sdap_resolver_ctx_new(ad_ctx, ad_id_ctx->sdap_id_ctx, &sdap_ctx);
+    if (ret != EOK) {
+        talloc_free(ad_ctx);
+        return ret;
+    }
+    ad_ctx->sdap_resolver_ctx = sdap_ctx;
+
+    *out_ctx = ad_ctx;
+
+    return EOK;
+}
+
 struct sdap_id_conn_ctx *
 ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
 {

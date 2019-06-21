@@ -81,6 +81,11 @@ struct ad_id_ctx {
     struct ad_options *ad_options;
 };
 
+struct ad_resolver_ctx {
+    struct sdap_resolver_ctx *sdap_resolver_ctx;
+    struct ad_id_ctx *ad_id_ctx;
+};
+
 struct ad_service {
     struct sdap_service *sdap;
     struct sdap_service *gc;
@@ -186,6 +191,11 @@ void ad_set_ssf_for_ldaps(struct sdap_options *id_opts);
 
 struct ad_id_ctx *
 ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx);
+
+errno_t
+ad_resolver_ctx_init(TALLOC_CTX *mem_ctx,
+                     struct ad_id_ctx *ad_id_ctx,
+                     struct ad_resolver_ctx **out_ctx);
 
 struct sdap_id_conn_ctx **
 ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
