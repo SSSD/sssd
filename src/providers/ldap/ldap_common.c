@@ -871,3 +871,21 @@ sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
 
     return sdap_ctx;
 }
+
+errno_t
+sdap_resolver_ctx_new(TALLOC_CTX *mem_ctx,
+                      struct sdap_id_ctx *id_ctx,
+                      struct sdap_resolver_ctx **out_ctx)
+{
+    struct sdap_resolver_ctx *sdap_ctx;
+
+    sdap_ctx = talloc_zero(mem_ctx, struct sdap_resolver_ctx);
+    if (sdap_ctx == NULL) {
+        return ENOMEM;
+    }
+    sdap_ctx->id_ctx = id_ctx;
+
+    *out_ctx = sdap_ctx;
+
+    return EOK;
+}

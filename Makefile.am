@@ -4226,6 +4226,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_options.c \
     src/providers/ldap/ldap_opts.c \
     src/providers/ldap/sdap_access.c \
+    src/providers/ldap/sdap_iphost.c \
     src/providers/ldap/sdap_async.c \
     src/providers/ldap/sdap_async_users.c \
     src/providers/ldap/sdap_async_groups.c \
