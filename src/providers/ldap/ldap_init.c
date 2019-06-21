@@ -38,6 +38,7 @@ struct ldap_init_ctx {
     struct sdap_options *options;
     struct sdap_id_ctx *id_ctx;
     struct sdap_auth_ctx *auth_ctx;
+    struct sdap_resolver_ctx *resolver_ctx;
 };
 
 /* Please use this only for short lists */
@@ -703,4 +704,29 @@ errno_t sssm_ldap_sudo_init(TALLOC_CTX *mem_ctx,
                                  "built without sudo support, ignoring\n");
     return EOK;
 #endif
+}
+
+errno_t sssm_ldap_resolver_init(TALLOC_CTX *mem_ctx,
+                                struct be_ctx *be_ctx,
+                                void *module_data,
+                                struct dp_method *dp_methods)
+{
+    struct ldap_init_ctx *init_ctx;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing LDAP resolver handler\n");
+    init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
+
+    ret = sdap_resolver_ctx_new(init_ctx, init_ctx->id_ctx,
+                                &init_ctx->resolver_ctx);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    dp_set_method(dp_methods, DPM_RESOLVER_HOSTS_HANDLER,
+                  sdap_iphost_handler_send, sdap_iphost_handler_recv,
+                  init_ctx->resolver_ctx, struct sdap_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
+    return EOK;
 }

@@ -90,6 +90,10 @@ struct sdap_auth_ctx {
     struct sdap_service *chpass_service;
 };
 
+struct sdap_resolver_ctx {
+    struct sdap_id_ctx *id_ctx;
+};
+
 struct tevent_req *
 sdap_online_check_handler_send(TALLOC_CTX *mem_ctx,
                                struct sdap_id_ctx *id_ctx,
@@ -306,6 +310,17 @@ services_get_send(TALLOC_CTX *mem_ctx,
 errno_t
 services_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
 
+struct tevent_req *
+sdap_iphost_handler_send(TALLOC_CTX *mem_ctx,
+                         struct sdap_resolver_ctx *resolver_ctx,
+                         struct dp_resolver_data *resolver_data,
+                         struct dp_req_params *params);
+
+errno_t
+sdap_iphost_handler_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         struct dp_reply_std *data);
+
 /* setup child logging */
 int sdap_setup_child(void);
 
@@ -393,6 +408,11 @@ sdap_id_ctx_conn_add(struct sdap_id_ctx *id_ctx,
 struct sdap_id_ctx *
 sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                 struct sdap_service *sdap_service);
+
+errno_t
+sdap_resolver_ctx_new(TALLOC_CTX *mem_ctx,
+                      struct sdap_id_ctx *id_ctx,
+                      struct sdap_resolver_ctx **out_ctx);
 
 errno_t sdap_refresh_init(struct be_ctx *be_ctx,
                           struct sdap_id_ctx *id_ctx);
