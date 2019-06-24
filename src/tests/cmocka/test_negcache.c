@@ -637,7 +637,7 @@ static void test_sss_ncache_prepopulate(void **state)
     struct sss_domain_info *subdomain;
 
     struct sss_test_conf_param nss_params[] = {
-        { "filter_users", "testuser_nss@UPN.REALM, testuser_nss_short" },
+        { "filter_users", "testuser_nss@UPN.REALM, testuser_nss_short, all_dom_upn@"TEST_DOM_NAME },
         { NULL, NULL },
     };
     struct sss_test_conf_param dom_params[] = {
@@ -752,6 +752,21 @@ static void test_sss_ncache_prepopulate(void **state)
 
     ret = sss_ncache_check_upn(ncache, tc->dom, "testuser3@somedomain");
     assert_int_equal(ret, EEXIST);
+
+    /* Fully qualified names with a known domain part should be added to all
+     * negative UPN caches and to the negative cache of the know domain. */
+    ret = sss_ncache_check_upn(ncache, tc->dom, "all_dom_upn@"TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_upn(ncache, tc->dom->subdomains,
+                               "all_dom_upn@"TEST_DOM_NAME);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, tc->dom, "all_dom_upn");
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_user_in_ncache(ncache, tc->dom->subdomains, "all_dom_upn");
+    assert_int_equal(ret, ENOENT);
 }
 
 static void test_sss_ncache_default_domain_suffix(void **state)

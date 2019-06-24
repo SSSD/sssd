@@ -1070,37 +1070,37 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             continue;
         }
         if (domainname) {
-            dom = responder_get_domain(rctx, domainname);
-            if (!dom) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Unknown domain name [%s], assuming [%s] is UPN\n",
-                      domainname, filter_list[i]);
-                for (dom = domain_list;
-                     dom != NULL;
-                     dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
-                    ret = sss_ncache_set_upn(ncache, true, dom, filter_list[i]);
-                    if (ret != EOK) {
-                        DEBUG(SSSDBG_OP_FAILURE,
-                              "sss_ncache_set_upn failed (%d [%s]), ignored\n",
-                              ret, sss_strerror(ret));
-                    }
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Adding [%s] to UPN negative cache of all domains.\n",
+                  filter_list[i]);
+            for (dom = domain_list;
+                 dom != NULL;
+                 dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
+                ret = sss_ncache_set_upn(ncache, true, dom, filter_list[i]);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sss_ncache_set_upn failed (%d [%s]), ignored\n",
+                          ret, sss_strerror(ret));
                 }
-                continue;
             }
 
-            fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
-            if (fqname == NULL) {
-                continue;
-            }
+            /* Add name to domain specific cache for known domain names */
+            dom = responder_get_domain(rctx, domainname);
+            if (dom != NULL) {
+                fqname = sss_create_internal_fqname(tmpctx, name, dom->name);
+                if (fqname == NULL) {
+                    continue;
+                }
 
-            ret = sss_ncache_set_user(ncache, true, dom, fqname);
-            talloc_zfree(fqname);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to store permanent user filter for [%s]"
-                          " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret));
-                continue;
+                ret = sss_ncache_set_user(ncache, true, dom, fqname);
+                talloc_zfree(fqname);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Failed to store permanent user filter for [%s]"
+                              " (%d [%s])\n", filter_list[i],
+                              ret, strerror(ret));
+                    continue;
+                }
             }
         } else {
             for (dom = domain_list;
