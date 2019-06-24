@@ -51,7 +51,7 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     unsigned char md[EVP_MAX_MD_SIZE];
     const EVP_CIPHER *cipher;
     const EVP_MD *digest;
-    EVP_CIPHER_CTX *ctx;
+    EVP_CIPHER_CTX *ctx = NULL;
     uint8_t *out = NULL;
     int evpkeylen;
     int evpivlen;
@@ -78,6 +78,10 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     outlen = plainlen + (2 * EVP_CIPHER_block_size(cipher))
                 + evpivlen + hmaclen;
     out = talloc_zero_size(mem_ctx, outlen);
+    if (out == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* First Encrypt */
 
@@ -125,11 +129,17 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     outlen += hmaclen;
 
     *ciphertext = out;
+    out = NULL;
     *cipherlen = outlen;
     ret = EOK;
 
 done:
-    EVP_CIPHER_CTX_free(ctx);
+    if (out != NULL) {
+        talloc_free(out);
+    }
+    if (ctx != NULL) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
     return ret;
 }
 
