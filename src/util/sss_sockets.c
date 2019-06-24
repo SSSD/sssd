@@ -74,10 +74,11 @@ static errno_t set_fcntl_flags(int fd, int fd_flags, int fl_flags)
     return EOK;
 }
 
-static errno_t set_fd_common_opts(int fd)
+static errno_t set_fd_common_opts(int fd, int timeout)
 {
     int dummy = 1;
     int ret;
+    struct timeval tv;
 
     /* SO_KEEPALIVE and TCP_NODELAY are set by OpenLDAP client libraries but
      * failures are ignored.*/
@@ -95,6 +96,27 @@ static errno_t set_fd_common_opts(int fd)
         DEBUG(SSSDBG_FUNC_DATA,
               "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
                   strerror(ret));
+    }
+
+    if (timeout > 0) {
+        /* Set socket read & write timeout */
+        tv = tevent_timeval_set(timeout, 0);
+
+        ret = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "setsockopt SO_RCVTIMEO failed.[%d][%s].\n", ret,
+                  strerror(ret));
+        }
+
+        ret = setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "setsockopt SO_SNDTIMEO failed.[%d][%s].\n", ret,
+                  strerror(ret));
+        }
     }
 
     return EOK;
@@ -264,7 +286,7 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = set_fd_common_opts(state->sd);
+    ret = set_fd_common_opts(state->sd, timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "set_fd_common_opts failed.\n");
         goto fail;
