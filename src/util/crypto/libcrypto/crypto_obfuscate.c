@@ -114,8 +114,14 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
         goto done;
     }
 
-    RAND_bytes(keybuf, mech_props->keylen);
-    RAND_bytes(ivbuf, mech_props->bsize);
+    ret = sss_generate_csprng_buffer((uint8_t *)keybuf, mech_props->keylen);
+    if (ret != EOK) {
+        goto done;
+    }
+    ret = sss_generate_csprng_buffer((uint8_t *)ivbuf, mech_props->bsize);
+    if (ret != EOK) {
+        goto done;
+    }
 
     /* cryptotext buffer must be at least len(plaintext)+blocksize */
     ct_maxsize = plen + (mech_props->bsize);

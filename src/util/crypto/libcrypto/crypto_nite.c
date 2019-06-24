@@ -86,7 +86,10 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     /* First Encrypt */
 
     if (evpivlen != 0) {
-        RAND_bytes(out, evpivlen);
+        ret = sss_generate_csprng_buffer(out, evpivlen);
+        if (ret != EOK) {
+            goto done;
+        }
     }
 
     ctx = EVP_CIPHER_CTX_new();

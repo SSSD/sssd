@@ -606,7 +606,7 @@ static struct tevent_req *ccdb_secdb_nextid_send(TALLOC_CTX *mem_ctx,
     }
 
     for (numtry = 0; numtry  < maxtries; numtry++) {
-        state->nextid = rand() % MAX_CC_NUM;
+        state->nextid = sss_rand() % MAX_CC_NUM;
         nextid_name = talloc_asprintf(state, "%"SPRIuid":%u",
                                       cli_creds_get_uid(client),
                                       state->nextid);

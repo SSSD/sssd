@@ -2176,6 +2176,10 @@ static int reply_weight_rearrange(int len,
         return ENOMEM;
     }
 
+    /* This is not security relevant functionality and
+     * it is undesirable to pull unnecessary dependency (util/crypto)
+     * so plain srand() & rand() are used here.
+     */
     srand(time(NULL) * getpid());
 
     /* promote all servers with weight==0 to the top */
