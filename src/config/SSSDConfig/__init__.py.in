@@ -1522,8 +1522,8 @@ class SSSDConfig(SSSDChangeConf):
 
         # open() will raise IOError if it fails
         old_umask = os.umask(0o177)
-        with open(outputfile, "wb") as of:
-            output = self.dump(self.opts).encode('utf-8')
+        with open(outputfile, "w") as of:
+            output = self.dump(self.opts)
             of.write(output)
         os.umask(old_umask)
 
