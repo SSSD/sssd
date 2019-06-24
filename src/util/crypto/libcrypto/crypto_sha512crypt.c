@@ -24,6 +24,7 @@
 
 #include "util/util.h"
 #include "util/sss_endian.h"
+#include "util/crypto/sss_crypto.h"
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>
@@ -374,9 +375,9 @@ int s3crypt_gen_salt(TALLOC_CTX *memctx, char **_salt)
         return ENOMEM;
     }
 
-    ret = RAND_bytes(rb, SALT_RAND_LEN);
-    if (ret == 0) {
-        return EIO;
+    ret = sss_generate_csprng_buffer(rb, SALT_RAND_LEN);
+    if (ret != EOK) {
+        return ret;
     }
 
     slen = SALT_LEN_MAX;

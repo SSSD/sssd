@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 #include "providers/backend.h"
 #include "providers/be_ptask_private.h"
 #include "providers/be_ptask.h"
@@ -219,7 +220,7 @@ static void be_ptask_schedule(struct be_ptask *task,
 
     /* add random offset */
     if (task->random_offset != 0) {
-        delay = delay + (rand_r(&task->ro_seed) % task->random_offset);
+        delay = delay + (sss_rand() % task->random_offset);
     }
 
     switch (from) {
@@ -292,7 +293,6 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
     task->first_delay = first_delay;
     task->enabled_delay = enabled_delay;
     task->random_offset = random_offset;
-    task->ro_seed = time(NULL) * getpid();
     task->max_backoff = max_backoff;
     task->timeout = timeout;
     task->offline = offline;

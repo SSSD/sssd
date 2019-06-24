@@ -28,7 +28,6 @@ struct be_ptask {
     time_t first_delay;
     time_t enabled_delay;
     time_t random_offset;
-    unsigned int ro_seed;
     time_t timeout;
     time_t max_backoff;
     enum be_ptask_offline offline;

@@ -36,6 +36,9 @@ int sss_rand(void)
         srand_done = true;
     }
 
+    /* Coverity will complain here: "DC.WEAK_CRYPTO (CWE-327)"
+     * We do not care as libnss is being deprecated as crypto backend.
+     */
     return rand();
 }
 

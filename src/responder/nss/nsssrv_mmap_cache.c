@@ -20,6 +20,7 @@
 */
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 #include "confdb/confdb.h"
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -1254,7 +1255,6 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             time_t timeout, struct sss_mc_ctx **mcc)
 {
     struct sss_mc_ctx *mc_ctx = NULL;
-    unsigned int rseed;
     int payload;
     int ret, dret;
 
@@ -1353,8 +1353,7 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
     /* generate a pseudo-random seed.
      * Needed to fend off dictionary based collision attacks */
-    rseed = time(NULL) * getpid();
-    mc_ctx->seed = rand_r(&rseed);
+    mc_ctx->seed = sss_rand();
 
     sss_mc_header_update(mc_ctx, SSS_MC_HEADER_ALIVE);
 
