@@ -1184,9 +1184,10 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         return EIO;
     }
 
-    ret = RAND_bytes(random_value, sizeof(random_value));
-    if (ret != 1) {
-        DEBUG(SSSDBG_OP_FAILURE, "RAND_bytes failed.\n");
+    ret = sss_generate_csprng_buffer((uint8_t *)random_value,
+                                     sizeof(random_value));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_generate_csprng_buffer failed.\n");
         return EINVAL;
     }
 

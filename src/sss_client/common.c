@@ -566,6 +566,11 @@ static int sss_cli_open_socket(int *errnop, const char *socket_name, int timeout
     /* this piece is adapted from winbind client code */
     wait_time = 0;
     sleep_time = 0;
+    /* This is not security relevant functionality and
+     * it is undesirable to pull unnecessary dependency (util/crypto)
+     * so plain srand() & rand() are used here.
+     */
+    srand(time(NULL) * getpid());
     while (inprogress) {
         int connect_errno = 0;
         socklen_t errnosize;

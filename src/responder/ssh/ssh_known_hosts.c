@@ -92,7 +92,7 @@ ssh_host_pubkeys_format_known_host_hashed(TALLOC_CTX *mem_ctx,
     errno_t ret;
     char *name, *pubkey, *saltstr, *hashstr, *result;
     unsigned char salt[SSS_SHA1_LENGTH], hash[SSS_SHA1_LENGTH];
-    size_t i, j, k;
+    size_t i, j;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -114,8 +114,12 @@ ssh_host_pubkeys_format_known_host_hashed(TALLOC_CTX *mem_ctx,
         for (j = 0; j <= ent->num_aliases; j++) {
             name = (j == 0 ? ent->name : ent->aliases[j-1]);
 
-            for (k = 0; k < SSS_SHA1_LENGTH; k++) {
-                salt[k] = rand();
+            ret = sss_generate_csprng_buffer((uint8_t *)salt, SSS_SHA1_LENGTH);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_generate_csprng_buffer() failed (%d)\n", ret);
+                result = NULL;
+                goto done;
             }
 
             ret = sss_hmac_sha1(salt, SSS_SHA1_LENGTH,

@@ -33,6 +33,7 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 #include "util/find_uid.h"
 #include "util/auth_utils.h"
 #include "db/sysdb.h"
@@ -314,12 +315,9 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
     case DOM_TYPE_APPLICATION:
         DEBUG(SSSDBG_TRACE_FUNC,
                "Domain type application, will use in-memory ccache\n");
-        /* We don't care about using cryptographic randomness, just
-         * a non-predictable ccname, so using rand() here is fine
-         */
         kr->ccname = talloc_asprintf(kr,
                                      NON_POSIX_CCNAME_FMT,
-                                     rand() % UINT_MAX);
+                                     sss_rand() % UINT_MAX);
         if (kr->ccname == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
             return ENOMEM;

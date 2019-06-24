@@ -37,7 +37,11 @@ int sss_rand(void)
         return result;
     }
 
-    /* Fallback to libc `rand()` */
+    /* Fallback to libc `rand()`
+     * Coverity might complain here: "DC.WEAK_CRYPTO (CWE-327)"
+     * But if `RAND_bytes()` failed then there is no entropy available
+     * so it doesn't make any sense to try reading "/dev/[u]random"
+     */
     if (!srand_done) {
         srand(time(NULL) * getpid());
         srand_done = true;
