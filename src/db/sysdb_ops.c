@@ -3937,6 +3937,41 @@ int sysdb_search_ts_users(TALLOC_CTX *mem_ctx,
 
 /* =Delete-User-by-Name-OR-uid============================================ */
 
+static errno_t sysdb_user_local_override_dn(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *domain,
+                                            struct ldb_dn *obj_dn,
+                                            struct ldb_dn **out_dn)
+{
+    struct ldb_context *ldb = sysdb_ctx_get_ldb(domain->sysdb);
+    struct ldb_dn *override_dn;
+    char *anchor;
+    char *dn;
+    errno_t ret;
+
+    ret = sysdb_dn_sanitize(mem_ctx, ldb_dn_get_linearized(obj_dn), &dn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_dn_sanitize() failed\n");
+        return ret;
+    }
+
+    anchor = talloc_asprintf(mem_ctx, ":%s:%s", SYSDB_LOCAL_VIEW_NAME, dn);
+    talloc_free(dn);
+    if (anchor == NULL) {
+        return ENOMEM;
+    }
+
+    override_dn = ldb_dn_new_fmt(mem_ctx, ldb, SYSDB_TMPL_OVERRIDE,
+                                 anchor, SYSDB_LOCAL_VIEW_NAME);
+    talloc_free(anchor);
+    if (override_dn == NULL) {
+        return ENOMEM;
+    }
+
+    *out_dn = override_dn;
+
+    return EOK;
+}
+
 int sysdb_delete_user(struct sss_domain_info *domain,
                       const char *name, uid_t uid)
 {
@@ -3949,6 +3984,9 @@ int sysdb_delete_user(struct sss_domain_info *domain,
     int ret;
     int i;
     char *sanitized_name;
+    struct ldb_dn *override_dn = NULL;
+    bool in_transaction = false;
+    errno_t sret;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -3981,10 +4019,46 @@ int sysdb_delete_user(struct sss_domain_info *domain,
             }
         }
 
+        /* If user has a linked userOverride delete it */
+        ret = sysdb_user_local_override_dn(tmp_ctx, domain, msg->dn,
+                                           &override_dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to build local override DN: %s\n",
+                  strerror(ret));
+            goto fail;
+        }
+
+        ret = sysdb_transaction_start(domain->sysdb);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto fail;
+        }
+        in_transaction = true;
+
+        ret = sysdb_delete_entry(domain->sysdb, override_dn, true);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Error deleting linked override DN: %s\n",
+                  strerror(ret));
+            goto fail;
+        }
+
         ret = sysdb_delete_entry(domain->sysdb, msg->dn, false);
         if (ret) {
             goto fail;
         }
+
+        ret = sysdb_transaction_commit(domain->sysdb);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to commit ldb transaction [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto fail;
+        }
+        in_transaction = false;
+
     } else if (ret == ENOENT && name != NULL) {
         /* Perhaps a ghost user? */
         ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
@@ -4039,6 +4113,15 @@ int sysdb_delete_user(struct sss_domain_info *domain,
     return EOK;
 
 fail:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(domain->sysdb);
+        if (sret != LDB_SUCCESS) {
+            sret = sysdb_error_to_errno(sret);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to cancel ldb transaction [%d]: %s\n",
+                  sret, sss_strerror(sret));
+        }
+    }
     DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     talloc_zfree(tmp_ctx);
     return ret;
