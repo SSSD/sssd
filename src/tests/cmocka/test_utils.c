@@ -26,6 +26,7 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "util/sss_nss.h"
+#include "p11_child/p11_child.h"
 #include "test_utils.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM

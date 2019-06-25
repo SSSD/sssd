@@ -30,6 +30,14 @@
 #define PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME 3
 struct p11_ctx;
 
+struct cert_verify_opts {
+    bool do_ocsp;
+    bool do_verification;
+    char *ocsp_default_responder;
+    char *ocsp_default_responder_signing_cert;
+    char *crl_file;
+};
+
 enum op_mode {
     OP_NONE,
     OP_AUTH,
@@ -55,4 +63,7 @@ errno_t do_card(TALLOC_CTX *mem_ctx, struct p11_ctx *p11_ctx,
                 enum op_mode mode, const char *pin,
                 const char *module_name_in, const char *token_name_in,
                 const char *key_id_in, const char *uri, char **_multi);
+
+errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
+                               struct cert_verify_opts **cert_verify_opts);
 #endif /* __P11_CHILD_H__ */

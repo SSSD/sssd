@@ -3036,12 +3036,22 @@ test_ipa_idmap_LDADD = \
 test_utils_SOURCES = \
     src/tests/cmocka/test_utils.c \
     src/tests/cmocka/test_string_utils.c \
+    src/p11_child/p11_child_common_utils.c \
     $(NULL)
 if BUILD_SSH
 test_utils_SOURCES += src/tests/cmocka/test_sss_ssh.c
 endif
 test_utils_CFLAGS = \
     $(AM_CFLAGS)
+if HAVE_NSS
+test_utils_CFLAGS += \
+    $(NSS_CFLAGS) \
+    $(NULL)
+else
+test_utils_CFLAGS += \
+    $(P11_KIT_CFLAGS) \
+    $(NULL)
+endif
 test_utils_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
@@ -4667,6 +4677,7 @@ proxy_child_LDADD = \
 
 p11_child_SOURCES = \
     src/p11_child/p11_child_common.c \
+    src/p11_child/p11_child_common_utils.c \
     src/util/atomic_io.c \
     src/util/util.c \
     src/util/util_ext.c \
