@@ -65,6 +65,7 @@ static struct tevent_req *ad_refresh_send(TALLOC_CTX *mem_ctx,
     state->index = 0;
 
     switch (entry_type) {
+    case BE_REQ_INITGROUPS:
     case BE_REQ_NETGROUP:
         filter_type = BE_FILTER_NAME;
         break;
@@ -188,6 +189,23 @@ static errno_t ad_refresh_recv(struct tevent_req *req)
 }
 
 static struct tevent_req *
+ad_refresh_initgroups_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct be_ctx *be_ctx,
+                           struct sss_domain_info *domain,
+                           char **names,
+                           void *pvt)
+{
+    return ad_refresh_send(mem_ctx, ev, be_ctx, domain,
+                           BE_REQ_INITGROUPS, names, pvt);
+}
+
+static errno_t ad_refresh_initgroups_recv(struct tevent_req *req)
+{
+    return ad_refresh_recv(req);
+}
+
+static struct tevent_req *
 ad_refresh_users_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct be_ctx *be_ctx,
@@ -247,6 +265,16 @@ errno_t ad_refresh_init(struct be_ctx *be_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
         return ret;
+    }
+
+    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
+                            BE_REFRESH_TYPE_INITGROUPS,
+                            ad_refresh_initgroups_send,
+                            ad_refresh_initgroups_recv,
+                            id_ctx);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of users "
+              "will not work [%d]: %s\n", ret, strerror(ret));
     }
 
     ret = be_refresh_add_cb(be_ctx->refresh_ctx,

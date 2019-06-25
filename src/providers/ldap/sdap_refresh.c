@@ -187,6 +187,23 @@ static errno_t sdap_refresh_recv(struct tevent_req *req)
 }
 
 static struct tevent_req *
+sdap_refresh_initgroups_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct be_ctx *be_ctx,
+                        struct sss_domain_info *domain,
+                        char **names,
+                        void *pvt)
+{
+    return sdap_refresh_send(mem_ctx, ev, be_ctx, domain,
+                             BE_REQ_INITGROUPS, names, pvt);
+}
+
+static errno_t sdap_refresh_initgroups_recv(struct tevent_req *req)
+{
+    return sdap_refresh_recv(req);
+}
+
+static struct tevent_req *
 sdap_refresh_users_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct be_ctx *be_ctx,
