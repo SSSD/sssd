@@ -168,73 +168,10 @@ static errno_t ipa_refresh_recv(struct tevent_req *req)
     return EOK;
 }
 
-static struct tevent_req *
-ipa_refresh_initgroups_send(TALLOC_CTX *mem_ctx,
-                            struct tevent_context *ev,
-                            struct be_ctx *be_ctx,
-                            struct sss_domain_info *domain,
-                            char **names,
-                            void *pvt)
-{
-    return ipa_refresh_send(mem_ctx, ev, be_ctx, domain,
-                           BE_REQ_INITGROUPS, names, pvt);
-}
-
-static errno_t ipa_refresh_initgroups_recv(struct tevent_req *req)
-{
-    return ipa_refresh_recv(req);
-}
-
-static struct tevent_req *
-ipa_refresh_users_send(TALLOC_CTX *mem_ctx,
-                        struct tevent_context *ev,
-                        struct be_ctx *be_ctx,
-                        struct sss_domain_info *domain,
-                        char **names,
-                        void *pvt)
-{
-    return ipa_refresh_send(mem_ctx, ev, be_ctx, domain,
-                           BE_REQ_USER, names, pvt);
-}
-
-static errno_t ipa_refresh_users_recv(struct tevent_req *req)
-{
-    return ipa_refresh_recv(req);
-}
-
-static struct tevent_req *
-ipa_refresh_groups_send(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *ev,
-                         struct be_ctx *be_ctx,
-                         struct sss_domain_info *domain,
-                         char **names,
-                         void *pvt)
-{
-    return ipa_refresh_send(mem_ctx, ev, be_ctx, domain,
-                           BE_REQ_GROUP, names, pvt);
-}
-
-static errno_t ipa_refresh_groups_recv(struct tevent_req *req)
-{
-    return ipa_refresh_recv(req);
-}
-
-static struct tevent_req *
-ipa_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
-                            struct tevent_context *ev,
-                            struct be_ctx *be_ctx,
-                            struct sss_domain_info *domain,
-                            char **names,
-                            void *pvt)
-{
-    return ipa_refresh_send(mem_ctx, ev, be_ctx, domain,
-                           BE_REQ_NETGROUP, names, pvt);
-}
-
-static errno_t ipa_refresh_netgroups_recv(struct tevent_req *req)
-{
-    return ipa_refresh_recv(req);
-}
+REFRESH_SEND_RECV_FNS(ipa_refresh_initgroups, ipa_refresh, BE_REQ_INITGROUPS);
+REFRESH_SEND_RECV_FNS(ipa_refresh_users, ipa_refresh, BE_REQ_USER);
+REFRESH_SEND_RECV_FNS(ipa_refresh_groups, ipa_refresh, BE_REQ_GROUP);
+REFRESH_SEND_RECV_FNS(ipa_refresh_netgroups, ipa_refresh, BE_REQ_NETGROUP);
 
 errno_t ipa_refresh_init(struct be_ctx *be_ctx,
                          struct ipa_id_ctx *id_ctx)
