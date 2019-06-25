@@ -373,17 +373,6 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
 
 char **parse_args(const char *str);
 
-struct cert_verify_opts {
-    bool do_ocsp;
-    bool do_verification;
-    char *ocsp_default_responder;
-    char *ocsp_default_responder_signing_cert;
-    char *crl_file;
-};
-
-errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
-                               struct cert_verify_opts **cert_verify_opts);
-
 errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
                         unsigned long count,
                         hash_table_t **tbl);
