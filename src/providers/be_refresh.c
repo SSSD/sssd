@@ -138,21 +138,19 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-struct be_refresh_cb {
+struct be_refresh_cb_ctx {
     const char *name;
     const char *attr_name;
     bool enabled;
-    be_refresh_send_t send_fn;
-    be_refresh_recv_t recv_fn;
-    void *pvt;
+    struct be_refresh_cb cb;
 };
 
 struct be_refresh_ctx {
-    struct be_refresh_cb callbacks[BE_REFRESH_TYPE_SENTINEL];
+    struct be_refresh_cb_ctx callbacks[BE_REFRESH_TYPE_SENTINEL];
 };
 
-errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
-                            const char *attr_name)
+static errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
+                                   const char *attr_name)
 {
     struct be_refresh_ctx *ctx = NULL;
     uint32_t refresh_interval;
@@ -193,13 +191,11 @@ errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
     return EOK;
 }
 
-errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
-                          enum be_refresh_type type,
-                          be_refresh_send_t send_fn,
-                          be_refresh_recv_t recv_fn,
-                          void *pvt)
+static errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
+                                 enum be_refresh_type type,
+                                 struct be_refresh_cb *cb)
 {
-    if (ctx == NULL || send_fn == NULL || recv_fn == NULL
+    if (ctx == NULL || cb->send_fn == NULL || cb->recv_fn == NULL
             || type >= BE_REFRESH_TYPE_SENTINEL) {
         return EINVAL;
     }
@@ -209,9 +205,78 @@ errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
     }
 
     ctx->callbacks[type].enabled = true;
-    ctx->callbacks[type].send_fn = send_fn;
-    ctx->callbacks[type].recv_fn = recv_fn;
-    ctx->callbacks[type].pvt = pvt;
+    ctx->callbacks[type].cb.send_fn = cb->send_fn;
+    ctx->callbacks[type].cb.recv_fn = cb->recv_fn;
+    ctx->callbacks[type].cb.pvt = cb->pvt;
+
+    return EOK;
+}
+
+static errno_t be_refresh_set_callbacks(struct be_refresh_ctx *refresh_ctx,
+                                        struct be_refresh_cb *callbacks)
+{
+    errno_t ret;
+
+    if (callbacks == NULL || refresh_ctx == NULL) {
+        return EINVAL;
+    }
+
+    ret = be_refresh_add_cb(refresh_ctx,
+                            BE_REFRESH_TYPE_INITGROUPS,
+                            &callbacks[BE_REFRESH_TYPE_INITGROUPS]);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of initgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret));
+    }
+
+    ret = be_refresh_add_cb(refresh_ctx,
+                            BE_REFRESH_TYPE_USERS,
+                            &callbacks[BE_REFRESH_TYPE_USERS]);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of users "
+              "will not work [%d]: %s\n", ret, strerror(ret));
+    }
+
+    ret = be_refresh_add_cb(refresh_ctx,
+                            BE_REFRESH_TYPE_GROUPS,
+                            &callbacks[BE_REFRESH_TYPE_GROUPS]);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of groups "
+              "will not work [%d]: %s\n", ret, strerror(ret));
+    }
+
+    ret = be_refresh_add_cb(refresh_ctx,
+                            BE_REFRESH_TYPE_NETGROUPS,
+                            &callbacks[BE_REFRESH_TYPE_NETGROUPS]);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret));
+    }
+
+    return EOK;
+}
+
+errno_t be_refresh_ctx_init_with_callbacks(struct be_ctx *be_ctx,
+                                           const char *attr_name,
+                                           struct be_refresh_cb *callbacks)
+{
+    errno_t ret;
+
+    if (be_ctx == NULL || attr_name == NULL || callbacks == NULL) {
+        return EINVAL;
+    }
+
+    ret = be_refresh_ctx_init(be_ctx, attr_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
+        return ret;
+    }
+
+    ret = be_refresh_set_callbacks(be_ctx->refresh_ctx, callbacks);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh callbacks\n");
+        return ENOMEM;
+    }
 
     return EOK;
 }
@@ -220,7 +285,7 @@ struct be_refresh_state {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
     struct be_refresh_ctx *ctx;
-    struct be_refresh_cb *cb;
+    struct be_refresh_cb_ctx *cb_ctx;
 
     struct sss_domain_info *domain;
     enum be_refresh_type index;
@@ -308,10 +373,11 @@ static errno_t be_refresh_step(struct tevent_req *req)
 
     while (state->domain != NULL) {
         /* find first enabled callback */
-        state->cb = &state->ctx->callbacks[state->index];
-        while (state->index != BE_REFRESH_TYPE_SENTINEL && !state->cb->enabled) {
+        state->cb_ctx = &state->ctx->callbacks[state->index];
+        while (state->index != BE_REFRESH_TYPE_SENTINEL
+                && !state->cb_ctx->enabled) {
             state->index++;
-            state->cb = &state->ctx->callbacks[state->index];
+            state->cb_ctx = &state->ctx->callbacks[state->index];
         }
 
         /* if not found than continue with next domain */
@@ -322,14 +388,16 @@ static errno_t be_refresh_step(struct tevent_req *req)
             continue;
         }
 
-        if (state->cb->send_fn == NULL || state->cb->recv_fn == NULL) {
+        if (state->cb_ctx->cb.send_fn == NULL
+                || state->cb_ctx->cb.recv_fn == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Invalid parameters!\n");
             ret = ERR_INTERNAL;
             goto done;
         }
 
         talloc_zfree(state->refresh_values);
-        ret = be_refresh_get_values(state, state->index, state->cb->attr_name,
+        ret = be_refresh_get_values(state, state->index,
+                                    state->cb_ctx->attr_name,
                                     state->domain, state->period,
                                     &state->refresh_values);
         if (ret != EOK) {
@@ -343,7 +411,9 @@ static errno_t be_refresh_step(struct tevent_req *req)
              state->refresh_val_size++);
 
         DEBUG(SSSDBG_TRACE_FUNC, "Refreshing %zu %s in domain %s\n",
-              state->refresh_val_size, state->cb->name, state->domain->name);
+              state->refresh_val_size,
+              state->cb_ctx->name,
+              state->domain->name);
 
         ret = be_refresh_batch_step(req, 0);
         if (ret == EOK) {
@@ -416,10 +486,10 @@ static void be_refresh_batch_step_wakeup(struct tevent_context *ev,
     state = tevent_req_data(req, struct be_refresh_state);
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Issuing refresh\n");
-    subreq = state->cb->send_fn(state, state->ev, state->be_ctx,
-                                state->domain,
-                                state->refresh_batch,
-                                state->cb->pvt);
+    subreq = state->cb_ctx->cb.send_fn(state, state->ev, state->be_ctx,
+                                       state->domain,
+                                       state->refresh_batch,
+                                       state->cb_ctx->cb.pvt);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -436,7 +506,7 @@ static void be_refresh_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct be_refresh_state);
 
-    ret = state->cb->recv_fn(subreq);
+    ret = state->cb_ctx->cb.recv_fn(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;

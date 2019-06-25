@@ -51,16 +51,17 @@ enum be_refresh_type {
     BE_REFRESH_TYPE_SENTINEL
 };
 
+struct be_refresh_cb {
+    be_refresh_send_t send_fn;
+    be_refresh_recv_t recv_fn;
+    void *pvt;
+};
+
 struct be_refresh_ctx;
 
-errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
-                            const char *attr_name);
-
-errno_t be_refresh_add_cb(struct be_refresh_ctx *ctx,
-                          enum be_refresh_type type,
-                          be_refresh_send_t send_fn,
-                          be_refresh_recv_t recv_fn,
-                          void *pvt);
+errno_t be_refresh_ctx_init_with_callbacks(struct be_ctx *be_ctx,
+                                           const char *attr_name,
+                                           struct be_refresh_cb *callbacks);
 
 struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
                                    struct tevent_context *ev,

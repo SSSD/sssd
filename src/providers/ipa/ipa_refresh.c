@@ -240,52 +240,32 @@ errno_t ipa_refresh_init(struct be_ctx *be_ctx,
                          struct ipa_id_ctx *id_ctx)
 {
     errno_t ret;
+    struct be_refresh_cb ipa_refresh_callbacks[] = {
+        { .send_fn = ipa_refresh_initgroups_send,
+          .recv_fn = ipa_refresh_initgroups_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = ipa_refresh_users_send,
+          .recv_fn = ipa_refresh_users_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = ipa_refresh_groups_send,
+          .recv_fn = ipa_refresh_groups_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = ipa_refresh_netgroups_send,
+          .recv_fn = ipa_refresh_netgroups_recv,
+          .pvt = id_ctx,
+        },
+    };
 
-    ret = be_refresh_ctx_init(be_ctx, SYSDB_NAME);
+    ret = be_refresh_ctx_init_with_callbacks(be_ctx,
+                                             SYSDB_NAME,
+                                             ipa_refresh_callbacks);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
-        return ENOMEM;
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize background refresh\n");
+        return ret;
     }
 
-    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
-                            BE_REFRESH_TYPE_USERS,
-                            ipa_refresh_initgroups_send,
-                            ipa_refresh_initgroups_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of initgroups "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
-                            BE_REFRESH_TYPE_USERS,
-                            ipa_refresh_users_send,
-                            ipa_refresh_users_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of users "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
-                            BE_REFRESH_TYPE_GROUPS,
-                            ipa_refresh_groups_send,
-                            ipa_refresh_groups_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of groups "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
-                            BE_REFRESH_TYPE_NETGROUPS,
-                            ipa_refresh_netgroups_send,
-                            ipa_refresh_netgroups_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    return ret;
+    return EOK;
 }
