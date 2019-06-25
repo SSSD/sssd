@@ -33,11 +33,12 @@ static errno_t be_refresh_get_values_ex(TALLOC_CTX *mem_ctx,
                                         struct sss_domain_info *domain,
                                         time_t period,
                                         struct ldb_dn *base_dn,
-                                        const char *attr,
+                                        const char *key_attr,
+                                        const char *value_attr,
                                         char ***_values)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    const char *attrs[] = {attr, NULL};
+    const char *attrs[] = {value_attr, NULL};
     const char *filter = NULL;
     char **values = NULL;
     struct sysdb_attrs **records = NULL;
@@ -45,13 +46,17 @@ static errno_t be_refresh_get_values_ex(TALLOC_CTX *mem_ctx,
     time_t now = time(NULL);
     errno_t ret;
 
+    if (key_attr == NULL || domain == NULL || base_dn == NULL) {
+        return EINVAL;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
     filter = talloc_asprintf(tmp_ctx, "(&(%s<=%lld))",
-                             SYSDB_CACHE_EXPIRE, (long long) now + period);
+                             key_attr, (long long) now + period);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -73,7 +78,7 @@ static errno_t be_refresh_get_values_ex(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_attrs_to_list(tmp_ctx, records, res->count, attr, &values);
+    ret = sysdb_attrs_to_list(tmp_ctx, records, res->count, value_attr, &values);
     if (ret != EOK) {
         goto done;
     }
@@ -96,18 +101,27 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
 {
     struct ldb_dn *base_dn = NULL;
     errno_t ret;
+    const char *key_attr;
 
     switch (type) {
+    case BE_REFRESH_TYPE_INITGROUPS:
+        key_attr = SYSDB_INITGR_EXPIRE;
+        base_dn = sysdb_user_base_dn(mem_ctx, domain);
+        break;
     case BE_REFRESH_TYPE_USERS:
+        key_attr = SYSDB_CACHE_EXPIRE;
         base_dn = sysdb_user_base_dn(mem_ctx, domain);
         break;
     case BE_REFRESH_TYPE_GROUPS:
+        key_attr = SYSDB_CACHE_EXPIRE;
         base_dn = sysdb_group_base_dn(mem_ctx, domain);
         break;
     case BE_REFRESH_TYPE_NETGROUPS:
+        key_attr = SYSDB_CACHE_EXPIRE;
         base_dn = sysdb_netgroup_base_dn(mem_ctx, domain);
         break;
-    case BE_REFRESH_TYPE_SENTINEL:
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Uknown or unsupported refresh type\n");
         return ERR_INTERNAL;
         break;
     }
@@ -117,7 +131,8 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
     }
 
     ret = be_refresh_get_values_ex(mem_ctx, domain, period,
-                                   base_dn, attr_name, _values);
+                                   base_dn, key_attr,
+                                   attr_name, _values);
 
     talloc_free(base_dn);
     return ret;
@@ -125,6 +140,7 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
 
 struct be_refresh_cb {
     const char *name;
+    const char *attr_name;
     bool enabled;
     be_refresh_send_t send_fn;
     be_refresh_recv_t recv_fn;
@@ -132,7 +148,6 @@ struct be_refresh_cb {
 };
 
 struct be_refresh_ctx {
-    const char *attr_name;
     struct be_refresh_cb callbacks[BE_REFRESH_TYPE_SENTINEL];
 };
 
@@ -148,10 +163,14 @@ errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ctx->attr_name = attr_name;
+    ctx->callbacks[BE_REFRESH_TYPE_INITGROUPS].name = "initgroups";
+    ctx->callbacks[BE_REFRESH_TYPE_INITGROUPS].attr_name = SYSDB_NAME;
     ctx->callbacks[BE_REFRESH_TYPE_USERS].name = "users";
+    ctx->callbacks[BE_REFRESH_TYPE_USERS].attr_name = attr_name;
     ctx->callbacks[BE_REFRESH_TYPE_GROUPS].name = "groups";
+    ctx->callbacks[BE_REFRESH_TYPE_GROUPS].attr_name = attr_name;
     ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].name = "netgroups";
+    ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].attr_name = SYSDB_NAME;
 
     refresh_interval = be_ctx->domain->refresh_expired_interval;
     if (refresh_interval > 0) {
@@ -310,7 +329,7 @@ static errno_t be_refresh_step(struct tevent_req *req)
         }
 
         talloc_zfree(state->refresh_values);
-        ret = be_refresh_get_values(state, state->index, state->ctx->attr_name,
+        ret = be_refresh_get_values(state, state->index, state->cb->attr_name,
                                     state->domain, state->period,
                                     &state->refresh_values);
         if (ret != EOK) {
