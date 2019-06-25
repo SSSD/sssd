@@ -44,6 +44,7 @@ typedef errno_t
 (*be_refresh_recv_t)(struct tevent_req *req);
 
 enum be_refresh_type {
+    BE_REFRESH_TYPE_INITGROUPS,
     BE_REFRESH_TYPE_USERS,
     BE_REFRESH_TYPE_GROUPS,
     BE_REFRESH_TYPE_NETGROUPS,
