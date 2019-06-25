@@ -258,41 +258,31 @@ errno_t sdap_refresh_init(struct be_ctx *be_ctx,
                           struct sdap_id_ctx *id_ctx)
 {
     errno_t ret;
+    struct be_refresh_cb sdap_refresh_callbacks[] = {
+        { .send_fn = sdap_refresh_initgroups_send,
+          .recv_fn = sdap_refresh_initgroups_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = sdap_refresh_users_send,
+          .recv_fn = sdap_refresh_users_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = sdap_refresh_groups_send,
+          .recv_fn = sdap_refresh_groups_recv,
+          .pvt = id_ctx,
+        },
+        { .send_fn = sdap_refresh_netgroups_send,
+          .recv_fn = sdap_refresh_netgroups_recv,
+          .pvt = id_ctx,
+        },
+    };
 
-    ret = be_refresh_ctx_init(be_ctx, SYSDB_NAME);
+    ret = be_refresh_ctx_init_with_callbacks(be_ctx,
+                                             SYSDB_NAME,
+                                             sdap_refresh_callbacks);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
-        return ENOMEM;
-    }
-
-    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
-                            BE_REFRESH_TYPE_USERS,
-                            sdap_refresh_users_send,
-                            sdap_refresh_users_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of users "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
-                            BE_REFRESH_TYPE_USERS,
-                            sdap_refresh_groups_send,
-                            sdap_refresh_groups_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of groups "
-              "will not work [%d]: %s\n", ret, strerror(ret));
-    }
-
-    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
-                            BE_REFRESH_TYPE_USERS,
-                            sdap_refresh_netgroups_send,
-                            sdap_refresh_netgroups_recv,
-                            id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
-              "will not work [%d]: %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize background refresh\n");
+        return ret;
     }
 
     return ret;
