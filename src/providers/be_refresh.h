@@ -29,6 +29,26 @@
 /* solve circular dependency */
 struct be_ctx;
 
+#define REFRESH_SEND_RECV_FNS(outer_base, inner_base, req_type) \
+                                                                \
+static struct tevent_req *                                      \
+outer_base ##_send(TALLOC_CTX *mem_ctx,                         \
+                   struct tevent_context *ev,                   \
+                   struct be_ctx *be_ctx,                       \
+                   struct sss_domain_info *domain,              \
+                   char **names,                                \
+                   void *pvt)                                   \
+{                                                               \
+    return inner_base ##_send(mem_ctx, ev,                      \
+                              be_ctx, domain,                   \
+                              req_type, names, pvt);            \
+}                                                               \
+                                                                \
+static errno_t outer_base ##_recv(struct tevent_req *req)       \
+{                                                               \
+    return inner_base ##_recv(req);                             \
+}                                                               \
+
 /**
  * name_list contains SYSDB_NAME of all expired records.
  */

@@ -188,73 +188,10 @@ static errno_t ad_refresh_recv(struct tevent_req *req)
     return EOK;
 }
 
-static struct tevent_req *
-ad_refresh_initgroups_send(TALLOC_CTX *mem_ctx,
-                           struct tevent_context *ev,
-                           struct be_ctx *be_ctx,
-                           struct sss_domain_info *domain,
-                           char **names,
-                           void *pvt)
-{
-    return ad_refresh_send(mem_ctx, ev, be_ctx, domain,
-                           BE_REQ_INITGROUPS, names, pvt);
-}
-
-static errno_t ad_refresh_initgroups_recv(struct tevent_req *req)
-{
-    return ad_refresh_recv(req);
-}
-
-static struct tevent_req *
-ad_refresh_users_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct be_ctx *be_ctx,
-                      struct sss_domain_info *domain,
-                      char **names,
-                      void *pvt)
-{
-    return ad_refresh_send(mem_ctx, ev, be_ctx, domain,
-                           BE_REQ_USER, names, pvt);
-}
-
-static errno_t ad_refresh_users_recv(struct tevent_req *req)
-{
-    return ad_refresh_recv(req);
-}
-
-static struct tevent_req *
-ad_refresh_groups_send(TALLOC_CTX *mem_ctx,
-                       struct tevent_context *ev,
-                       struct be_ctx *be_ctx,
-                       struct sss_domain_info *domain,
-                       char **names,
-                       void *pvt)
-{
-    return ad_refresh_send(mem_ctx, ev, be_ctx, domain,
-                           BE_REQ_GROUP, names, pvt);
-}
-
-static errno_t ad_refresh_groups_recv(struct tevent_req *req)
-{
-    return ad_refresh_recv(req);
-}
-
-static struct tevent_req *
-ad_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
-                          struct tevent_context *ev,
-                          struct be_ctx *be_ctx,
-                          struct sss_domain_info *domain,
-                          char **names,
-                          void *pvt)
-{
-    return ad_refresh_send(mem_ctx, ev, be_ctx, domain,
-                           BE_REQ_NETGROUP, names, pvt);
-}
-
-static errno_t ad_refresh_netgroups_recv(struct tevent_req *req)
-{
-    return ad_refresh_recv(req);
-}
+REFRESH_SEND_RECV_FNS(ad_refresh_initgroups, ad_refresh, BE_REQ_INITGROUPS);
+REFRESH_SEND_RECV_FNS(ad_refresh_users, ad_refresh, BE_REQ_USER);
+REFRESH_SEND_RECV_FNS(ad_refresh_groups, ad_refresh, BE_REQ_GROUP);
+REFRESH_SEND_RECV_FNS(ad_refresh_netgroups, ad_refresh, BE_REQ_NETGROUP);
 
 errno_t ad_refresh_init(struct be_ctx *be_ctx,
                         struct ad_id_ctx *id_ctx)
