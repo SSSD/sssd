@@ -169,6 +169,23 @@ static errno_t ipa_refresh_recv(struct tevent_req *req)
 }
 
 static struct tevent_req *
+ipa_refresh_initgroups_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct be_ctx *be_ctx,
+                            struct sss_domain_info *domain,
+                            char **names,
+                            void *pvt)
+{
+    return ipa_refresh_send(mem_ctx, ev, be_ctx, domain,
+                           BE_REQ_INITGROUPS, names, pvt);
+}
+
+static errno_t ipa_refresh_initgroups_recv(struct tevent_req *req)
+{
+    return ipa_refresh_recv(req);
+}
+
+static struct tevent_req *
 ipa_refresh_users_send(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct be_ctx *be_ctx,
@@ -228,6 +245,16 @@ errno_t ipa_refresh_init(struct be_ctx *be_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
         return ENOMEM;
+    }
+
+    ret = be_refresh_add_cb(be_ctx->refresh_ctx,
+                            BE_REFRESH_TYPE_USERS,
+                            ipa_refresh_initgroups_send,
+                            ipa_refresh_initgroups_recv,
+                            id_ctx);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of initgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret));
     }
 
     ret = be_refresh_add_cb(be_ctx->refresh_ctx,
