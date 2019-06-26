@@ -2081,7 +2081,15 @@ pam_p11_allowed_services = +my_pam_service, -login
                         </para>
                         <para>
                             The background refresh will process users,
-                            groups and netgroups in the cache.
+                            groups and netgroups in the cache. For users
+                            who have performed the initgroups (get group
+                            membership for user, typically ran at login)
+                            operation in the past, both the user entry
+                            and the group membership are updated.
+                        </para>
+                        <para>
+                            This option is automatically inherited for all
+                            trusted domains.
                         </para>
                         <para>
                             You can consider setting this value to
