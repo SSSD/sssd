@@ -88,6 +88,7 @@ static int local_decrypt(struct sss_sec_ctx *sctx, TALLOC_CTX *mem_ctx,
                           sctx->master_key.length,
                           (uint8_t *)_secret.data, _secret.length,
                           (uint8_t **)&output, &outlen);
+        talloc_free(_secret.data);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sss_decrypt failed [%d]: %s\n", ret, sss_strerror(ret));
@@ -98,9 +99,11 @@ static int local_decrypt(struct sss_sec_ctx *sctx, TALLOC_CTX *mem_ctx,
             output[outlen - 1] != '\0') {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Output length mismatch or output not NULL-terminated\n");
+            talloc_free(output);
             return EIO;
         }
     } else {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Unexpected enctype (not 'masterkey')\n");
         output = talloc_strdup(mem_ctx, secret);
         if (!output) return ENOMEM;
     }
@@ -140,6 +143,7 @@ static int local_encrypt(struct sss_sec_ctx *sec_ctx, TALLOC_CTX *mem_ctx,
 
     output = sss_base64_encode(mem_ctx,
                                (uint8_t *)_secret.data, _secret.length);
+    talloc_free(_secret.data);
     if (!output) return ENOMEM;
 
     *ciphertext = output;
