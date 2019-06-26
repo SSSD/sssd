@@ -338,7 +338,7 @@ errno_t check_if_uid_is_active(uid_t uid, bool *result)
 
     ret = get_active_uid_linux(NULL, uid);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "get_uid_table failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "get_active_uid_linux() failed.\n");
         return ret;
     }
 
