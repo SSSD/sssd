@@ -86,18 +86,17 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         error = errno;
         if (error == ENOENT) {
             DEBUG(SSSDBG_TRACE_LIBS,
-                  "Proc file [%s] is not available anymore, continuing.\n",
+                  "Proc file [%s] is not available anymore.\n",
                       path);
-            return EOK;
         } else if (error == EPERM) {
             /* case of hidepid=1 mount option for /proc */
             DEBUG(SSSDBG_TRACE_LIBS,
-                  "Proc file [%s] is not permissible, continuing.\n",
+                  "Proc file [%s] is not permissible.\n",
                       path);
-            return EOK;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "open failed [%s][%d][%s].\n", path, error, strerror(error));
         }
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "open failed [%s][%d][%s].\n", path, error, strerror(error));
         return error;
     }
 
@@ -106,13 +105,12 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         error = errno;
         if (error == ENOENT) {
             DEBUG(SSSDBG_TRACE_LIBS,
-                  "Proc file [%s] is not available anymore, continuing.\n",
+                  "Proc file [%s] is not available anymore.\n",
                       path);
-            error = EOK;
-            goto fail_fd;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "fstat failed [%d][%s].\n", error, strerror(error));
         }
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "fstat failed [%d][%s].\n", error, strerror(error));
         goto fail_fd;
     }
 
@@ -232,7 +230,9 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
 
     errno = 0;
     while ((dirent = readdir(proc_dir)) != NULL) {
-        if (only_numbers(dirent->d_name) != 0) continue;
+        if (only_numbers(dirent->d_name) != 0) {
+            continue;
+        }
         ret = name_to_pid(dirent->d_name, &pid);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "name_to_pid failed.\n");
@@ -241,8 +241,12 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
 
         ret = get_uid_from_pid(pid, &uid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "get_uid_from_pid failed.\n");
-            goto done;
+            /* Most probably this /proc entry disappeared.
+               Anyway, just skip it.
+            */
+            DEBUG(SSSDBG_TRACE_ALL, "get_uid_from_pid() failed.\n");
+            errno = 0;
+            continue;
         }
 
         if (table != NULL) {
@@ -265,10 +269,9 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
             }
         }
 
-
         errno = 0;
     }
-    if (errno != 0 && dirent == NULL) {
+    if (errno != 0) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, "readdir failed.\n");
         goto done;
