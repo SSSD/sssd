@@ -698,10 +698,12 @@ static errno_t remove_duplicate_group_members(TALLOC_CTX *mem_ctx,
     }
     grp->gr_mem[i] = NULL;
 
-    *_grp = talloc_steal(mem_ctx, grp);
     ret = EOK;
 
 done:
+    if (ret == EOK) {
+        *_grp = talloc_steal(mem_ctx, grp);
+    }
     talloc_zfree(tmp_ctx);
 
     return ret;
