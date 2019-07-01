@@ -1113,6 +1113,17 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
                              enum sysdb_member_type type,
                              struct sysdb_attrs *attrs, struct ldb_dn *obj_dn);
 
+/*
+ * Cache the time of last initgroups invocation. Typically this is not done when
+ * the provider-specific request itself finishes, because currently the request
+ * might hand over to other requests from a different provider (e.g. an AD user
+ * from a trusted domain might need to also call an IPA request to fetch the
+ * external groups). Instead, the caller of the initgroups request, typically
+ * the DP or the periodical refresh task sets the timestamp.
+ */
+errno_t sysdb_set_initgr_expire_timestamp(struct sss_domain_info *domain,
+                                          const char *name_or_upn_or_sid);
+
 /* Password caching function.
  * If you are in a transaction ignore sysdb and pass in the handle.
  * If you are not in a transaction pass NULL in handle and provide sysdb,
