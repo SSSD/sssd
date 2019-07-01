@@ -26,6 +26,7 @@ struct ad_refresh_state {
     struct be_ctx *be_ctx;
     struct dp_id_data *account_req;
     struct ad_id_ctx *id_ctx;
+    struct sss_domain_info *domain;
     char **names;
     size_t index;
 };
@@ -60,6 +61,7 @@ static struct tevent_req *ad_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->be_ctx = be_ctx;
+    state->domain = domain;
     state->id_ctx = talloc_get_type(pvt, struct ad_id_ctx);
     state->names = names;
     state->index = 0;
@@ -165,6 +167,16 @@ static void ad_refresh_done(struct tevent_req *subreq)
               "errno: %d]: %s\n", be_req2str(state->account_req->entry_type),
               dp_error, ret, err_msg);
         goto done;
+    }
+
+    if (state->account_req->entry_type == BE_REQ_INITGROUPS) {
+        ret = sysdb_set_initgr_expire_timestamp(state->domain,
+                                                state->account_req->filter_value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to set initgroups expiration for [%s]\n",
+                  state->account_req->filter_value);
+        }
     }
 
     ret = ad_refresh_step(req);
