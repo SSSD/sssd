@@ -3277,6 +3277,76 @@ int sysdb_cache_password(struct sss_domain_info *domain,
                                    SSS_AUTHTOK_TYPE_PASSWORD, 0);
 }
 
+static errno_t set_initgroups_expire_attribute(struct sss_domain_info *domain,
+                                               const char *name)
+{
+    errno_t ret;
+    time_t cache_timeout;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(NULL);
+    if (attrs == NULL) {
+        return ENOMEM;
+    }
+
+    cache_timeout = domain->user_timeout
+                        ? time(NULL) + domain->user_timeout
+                        : 0;
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE, cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
+        goto done;
+    }
+
+    ret = sysdb_set_user_attr(domain, name, attrs, SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set initgroups expire attribute\n");
+        goto done;
+    }
+
+done:
+    talloc_zfree(attrs);
+    return ret;
+}
+
+errno_t sysdb_set_initgr_expire_timestamp(struct sss_domain_info *domain,
+                                          const char *name_or_upn_or_sid)
+{
+    const char *cname;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_get_real_name(tmp_ctx, domain, name_or_upn_or_sid, &cname);
+    if (ret == ENOENT) {
+        /* No point trying to bump timestamp of an entry that does not exist..*/
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        cname = name_or_upn_or_sid;
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to canonicalize name, using [%s]\n", name_or_upn_or_sid);
+    }
+
+    ret = set_initgroups_expire_attribute(domain, cname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set the initgroups expire attribute [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 /* =Custom Search================== */
 
 int sysdb_search_custom(TALLOC_CTX *mem_ctx,
