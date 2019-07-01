@@ -463,6 +463,26 @@
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
+                                    <term>ocsp_dgst</term>
+                                    <listitem>
+                                        <para>Digest (hash) function used to
+                                        create the certificate ID for the OCSP
+                                        request. Allowed values are:
+                                        <itemizedlist>
+                                          <listitem><para>sha1</para></listitem>
+                                          <listitem><para>sha256</para></listitem>
+                                          <listitem><para>sha384</para></listitem>
+                                          <listitem><para>sha512</para></listitem>
+                                        </itemizedlist></para>
+                                        <para>
+                                            Default: sha256
+                                        </para>
+                                        <para>(NSS Version) This option is
+                                        ignored, because NSS uses sha1
+                                        unconditionally.</para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
                                     <term>no_verification</term>
                                     <listitem>
                                         <para>Disables verification completely.

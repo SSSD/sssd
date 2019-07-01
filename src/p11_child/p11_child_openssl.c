@@ -179,6 +179,32 @@ OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
     return resp;
 }
 
+static const EVP_MD *get_dgst(CK_MECHANISM_TYPE ocsp_dgst)
+{
+    const EVP_MD *dgst = NULL;
+
+    switch (ocsp_dgst) {
+    case CKM_SHA_1:
+        dgst = EVP_sha1();
+        break;
+    case CKM_SHA256:
+        dgst = EVP_sha256();
+        break;
+    case CKM_SHA384:
+        dgst = EVP_sha384();
+        break;
+    case CKM_SHA512:
+        dgst = EVP_sha512();
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported digest type [%lu].\n",
+                                   ocsp_dgst);
+        dgst = NULL;
+    }
+
+    return dgst;
+}
+
 static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
 {
     OCSP_REQUEST *ocsp_req = NULL;
@@ -204,6 +230,7 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
     X509_NAME *issuer_name = NULL;
     X509_OBJECT *x509_obj;
     STACK_OF(X509_OBJECT) *store_objects;
+    const EVP_MD *ocsp_dgst = NULL;
 
     ocsp_urls = X509_get1_ocsp(cert);
     if (ocsp_urls == NULL
@@ -268,7 +295,13 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
         goto done;
     }
 
-    cid = OCSP_cert_to_id(EVP_sha1(), cert, issuer);
+    ocsp_dgst = get_dgst(p11_ctx->cert_verify_opts->ocsp_dgst);
+    if (ocsp_dgst == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot determine configured digest function "
+                                 "for OCSP, using default sha256.\n");
+        ocsp_dgst = EVP_sha256();
+    }
+    cid = OCSP_cert_to_id(ocsp_dgst, cert, issuer);
     if (cid == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "OCSP_cert_to_id failed.\n");
         ret = EIO;

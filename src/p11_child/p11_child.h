@@ -25,6 +25,13 @@
 #ifndef __P11_CHILD_H__
 #define __P11_CHILD_H__
 
+/* for CK_MECHANISM_TYPE */
+#ifdef HAVE_NSS
+#include <pkcs11t.h>
+#else
+#include <p11-kit/pkcs11.h>
+#endif
+
 /* Time to wait during a C_Finalize C_Initialize cycle to discover
  * new slots. */
 #define PKCS11_FINIALIZE_INITIALIZE_WAIT_TIME 3
@@ -36,6 +43,7 @@ struct cert_verify_opts {
     char *ocsp_default_responder;
     char *ocsp_default_responder_signing_cert;
     char *crl_file;
+    CK_MECHANISM_TYPE ocsp_dgst;
 };
 
 enum op_mode {
