@@ -37,7 +37,7 @@ struct cipher_mech {
 };
 
 int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
-                uint8_t *key, size_t keylen,
+                const uint8_t *key, size_t keylen,
                 const uint8_t *plaintext, size_t plainlen,
                 uint8_t **ciphertext, size_t *cipherlen)
 {
@@ -171,7 +171,7 @@ done:
 }
 
 int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
-                uint8_t *key, size_t keylen,
+                const uint8_t *key, size_t keylen,
                 const uint8_t *ciphertext, size_t cipherlen,
                 uint8_t **plaintext, size_t *plainlen)
 {
