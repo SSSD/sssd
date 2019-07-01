@@ -43,7 +43,7 @@ struct cipher_mech {
 };
 
 int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
-                uint8_t *key, size_t keylen,
+                const uint8_t *key, size_t keylen,
                 const uint8_t *plaintext, size_t plainlen,
                 uint8_t **ciphertext, size_t *cipherlen)
 {
@@ -60,7 +60,7 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     size_t slen;
     int ret;
 
-    if (!plaintext || !plainlen) return EINVAL;
+    if (!plaintext || !plainlen || !ciphertext || !cipherlen) return EINVAL;
 
     if (enctype != AES256CBC_HMAC_SHA256) return EINVAL;
     cipher = mechs[AES256CBC_HMAC_SHA256].cipher();
@@ -165,7 +165,7 @@ done:
 }
 
 int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
-                uint8_t *key, size_t keylen,
+                const uint8_t *key, size_t keylen,
                 const uint8_t *ciphertext, size_t cipherlen,
                 uint8_t **plaintext, size_t *plainlen)
 {
@@ -183,7 +183,7 @@ int sss_decrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
     size_t slen;
     int ret;
 
-    if (!ciphertext || !cipherlen) return EINVAL;
+    if (!ciphertext || !cipherlen || !plaintext || !plainlen) return EINVAL;
 
     if (enctype != AES256CBC_HMAC_SHA256) return EINVAL;
     cipher = mechs[AES256CBC_HMAC_SHA256].cipher();
