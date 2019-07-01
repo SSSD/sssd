@@ -43,6 +43,7 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
     cert_verify_opts->ocsp_default_responder = NULL;
     cert_verify_opts->ocsp_default_responder_signing_cert = NULL;
     cert_verify_opts->crl_file = NULL;
+    cert_verify_opts->ocsp_dgst = CKM_SHA256;
 
     return cert_verify_opts;
 }
@@ -56,6 +57,9 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
                                 (sizeof(OCSP_DEFAUL_RESPONDER_SIGNING_CERT) - 1)
 #define CRL_FILE "crl_file="
 #define CRL_FILE_LEN (sizeof(CRL_FILE) -1)
+
+#define OCSP_DGST "ocsp_dgst="
+#define OCSP_DGST_LEN (sizeof(OCSP_DGST) -1)
 
 errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                                struct cert_verify_opts **_cert_verify_opts)
@@ -147,6 +151,31 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                 ret = EINVAL;
                 goto done;
             }
+        } else if (strncasecmp(opts[c], OCSP_DGST, OCSP_DGST_LEN) == 0) {
+#ifdef HAVE_NSS
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Option [%s] is not supported in NSS build, ignored.\n",
+                  OCSP_DGST);
+#else
+            if (strcmp("sha1", &opts[c][OCSP_DGST_LEN]) == 0) {
+                cert_verify_opts->ocsp_dgst = CKM_SHA_1;
+                DEBUG(SSSDBG_TRACE_ALL, "Using sha1 for OCSP.\n");
+            } else  if (strcmp("sha256", &opts[c][OCSP_DGST_LEN]) == 0) {
+                cert_verify_opts->ocsp_dgst = CKM_SHA256;
+                DEBUG(SSSDBG_TRACE_ALL, "Using sha256 for OCSP.\n");
+            } else  if (strcmp("sha384", &opts[c][OCSP_DGST_LEN]) == 0) {
+                cert_verify_opts->ocsp_dgst = CKM_SHA384;
+                DEBUG(SSSDBG_TRACE_ALL, "Using sha384 for OCSP.\n");
+            } else  if (strcmp("sha512", &opts[c][OCSP_DGST_LEN]) == 0) {
+                cert_verify_opts->ocsp_dgst = CKM_SHA512;
+                DEBUG(SSSDBG_TRACE_ALL, "Using sha512 for OCSP.\n");
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Unsupported digest for OCSP [%s], "
+                      "using default sha256.\n", &opts[c][OCSP_DGST_LEN]);
+                cert_verify_opts->ocsp_dgst = CKM_SHA256;
+            }
+#endif
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unsupported certificate verification option [%s], " \
