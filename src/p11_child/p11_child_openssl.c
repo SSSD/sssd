@@ -986,9 +986,9 @@ static int do_hash(TALLOC_CTX *mem_ctx, const EVP_MD *evp_md,
 
 done:
 
+    EVP_MD_CTX_free(md_ctx);
     if (ret != EOK) {
         free(out);
-        EVP_MD_CTX_free(md_ctx);
     }
 
     return ret;
@@ -1187,7 +1187,7 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
     CK_RV rv;
     CK_RV rv_f;
     EVP_PKEY *cert_pub_key = NULL;
-    EVP_MD_CTX *md_ctx;
+    EVP_MD_CTX *md_ctx = NULL;
     int ret;
     const EVP_MD *evp_md = NULL;
     CK_BYTE *hash_val = NULL;
@@ -1358,6 +1358,8 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
     ret = EOK;
 
 done:
+    EVP_MD_CTX_destroy(md_ctx);
+    talloc_free(hash_val);
     talloc_free(signature);
     EVP_PKEY_free(cert_pub_key);
 
