@@ -1,10 +1,4 @@
 /**
- * Remember that the build failed because one of the untrusted files were
- * modified.
- */
-untrusted = false
-
-/**
  * SSSD CI.
  *
  * This class hold SSSD CI settings and defines several helper methods
@@ -40,6 +34,11 @@ class CI {
    * Path to SSSD Test Suite on Jenkins slave.
    */
   public static String SuiteDir = this.BaseDir + '/sssd-test-suite'
+
+  /**
+   * Path to SSSD CI tools on Jenkins slave.
+   */
+  public static String CIDir = this.BaseDir + '/sssd-ci'
 
   /**
    * Workaround for https://issues.jenkins-ci.org/browse/JENKINS-39203
@@ -99,12 +98,22 @@ class CI {
   public static def RunTests(ctx) {
     this.NotifyBuild(ctx, 'PENDING', 'Build is in progress.')
 
+    ctx.echo String.format(
+      'Executing tests, started at %s',
+      (new Date()).format('dd. MM. yyyy HH:mm:ss')
+    )
+
     ctx.sh String.format(
-      './sssd/contrib/test-suite/run.sh %s %s %s %s',
-      "${ctx.env.WORKSPACE}/sssd",
+      '%s/sssd-test-suite -c "%s" run --sssd "%s" --artifacts "%s" --update --prune',
       "${this.SuiteDir}",
-      "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}",
-      "${this.BaseDir}/configs/${ctx.env.TEST_SYSTEM}.json"
+      "${this.BaseDir}/configs/${ctx.env.TEST_SYSTEM}.json",
+      "${ctx.env.WORKSPACE}/sssd",
+      "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
+    )
+
+    ctx.echo String.format(
+      'Finished at %s',
+      (new Date()).format('dd. MM. yyyy HH:mm:ss')
     )
 
     this.BuildSuccessful(ctx.env.TEST_SYSTEM)
@@ -116,10 +125,11 @@ class CI {
   public static def WhenCompleted(ctx) {
     ctx.archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
     ctx.sh String.format(
-      "${this.BaseDir}/scripts/archive.sh %s %s %s",
+      '%s/sssd-ci archive --name "%s" --system "%s" --artifacts "%s"',
+      "${this.CIDir}",
+      "${ctx.env.BRANCH_NAME}/${ctx.env.BUILD_ID}",
       ctx.env.TEST_SYSTEM,
-      "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}",
-      "${ctx.env.BRANCH_NAME}/${ctx.env.BUILD_ID}"
+      "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
     )
     ctx.sh "rm -fr ${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
 
@@ -158,19 +168,6 @@ pipeline {
     stage('Prepare') {
       steps {
         CI_Notify('PENDING', 'Running tests.')
-      }
-    }
-    stage('Read trusted files') {
-      steps {
-        readTrusted './contrib/test-suite/run.sh'
-        readTrusted './contrib/test-suite/run-client.sh'
-      }
-      post {
-        failure {
-          script {
-            untrusted = true
-          }
-        }
       }
     }
     stage('Run Tests') {
@@ -216,13 +213,7 @@ pipeline {
   }
   post {
     failure {
-      script {
-        if (untrusted) {
-          CI_Notify('ERROR', 'Untrusted files were modified.')
-        } else {
-          CI_Notify('FAILURE', 'Some tests failed.')
-        }
-      }
+      CI_Notify('FAILURE', 'Some tests failed.')
     }
     aborted {
       CI_Notify('ERROR', 'Builds were aborted.')
