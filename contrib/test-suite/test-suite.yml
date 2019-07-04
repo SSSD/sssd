@@ -1,0 +1,11 @@
+- name: Integration Tests
+  machines:
+  - client
+  tasks:
+  - name: Running ./contrib/ci/run
+    shell: ./contrib/ci/run --moderate --no-deps
+  artifacts:
+  - ci-*.log
+  - ci-build-debug/ci-*.log
+  - ci-build-debug/test-suite.log
+  timeout: 6 hours
