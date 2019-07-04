@@ -835,6 +835,14 @@
                             to work.
                         </para>
                         <para>
+                            Some distributions (such as Fedora-29+ or RHEL-8)
+                            always include the <quote>systemd-user</quote> PAM
+                            service as part of the login process. Therefore when
+                            using service-based access control, the
+                            <quote>systemd-user</quote> service might need to be
+                            added to the list of allowed services.
+                        </para>
+                        <para>
                             Default: authorizedService
                         </para>
                     </listitem>
