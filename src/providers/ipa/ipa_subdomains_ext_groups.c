@@ -541,7 +541,7 @@ static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_id_ctx->opts,
                             sdap_id_op_handle(state->sdap_op),
                             state->sdap_id_ctx->opts->sdom->group_search_bases,
-                            NULL, false,
+                            NULL, true,
                             dp_opt_get_int(state->sdap_id_ctx->opts->basic,
                                             SDAP_ENUM_SEARCH_TIMEOUT),
                             IPA_EXT_GROUPS_FILTER,
