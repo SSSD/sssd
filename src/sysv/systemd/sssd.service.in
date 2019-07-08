@@ -11,6 +11,7 @@ ExecStart=@sbindir@/sssd -i ${DEBUG_LOGGER}
 Type=notify
 NotifyAccess=main
 PIDFile=@pidpath@/sssd.pid
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
