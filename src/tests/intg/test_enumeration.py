@@ -113,6 +113,7 @@ def format_basic_conf(ldap_conn, schema):
         debug_level         = 0xffff
         domains             = LDAP
         services            = nss, pam
+        enable_files_domain = false
 
         [nss]
         debug_level         = 0xffff
