@@ -90,7 +90,9 @@ int sss_encrypt(TALLOC_CTX *mem_ctx, enum encmethod enctype,
 
     if (ivlen != 0) {
         ret = sss_generate_csprng_buffer(out, ivlen);
-        if (ret) return ret;
+        if (ret != EOK) {
+            goto done;
+        }
     }
 
     ret = nss_ctx_init(tmp_ctx, enc, key, keylen, out, ivlen, &cctx);
