@@ -23,6 +23,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <string.h>
+
 #include "config.h"
 
 #include <prinit.h>
@@ -145,10 +147,30 @@ done:
     return ret;
 }
 
+static inline int sss_fill_secitem(const uint8_t *sdata, int slen,
+                                   SECItem *sitem)
+{
+    sitem->type = siBuffer;
+
+    /* This is not public function, so no sanity checks of parameters */
+    sitem->len = slen;
+
+    if (sdata == NULL) {
+        sitem->data = NULL;
+    } else {
+        sitem->data = talloc_memdup(sitem, sdata, slen);
+        if (sitem->data == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    return EOK;
+}
+
 int nss_ctx_init(TALLOC_CTX *mem_ctx,
                  struct crypto_mech_data *mech_props,
-                 uint8_t *key, int keylen,
-                 uint8_t *iv, int ivlen,
+                 const uint8_t *key, int keylen,
+                 const uint8_t *iv, int ivlen,
                  struct sss_nss_crypto_ctx **_cctx)
 {
     struct sss_nss_crypto_ctx *cctx;
@@ -177,7 +199,10 @@ int nss_ctx_init(TALLOC_CTX *mem_ctx,
             goto done;
         }
         if (key) {
-            MAKE_SECITEM(key, keylen, cctx->key);
+            ret = sss_fill_secitem(key, keylen, cctx->key);
+            if (ret != EOK) {
+                goto done;
+            }
         } else {
             ret = generate_random_key(cctx, cctx->slot,
                                       mech_props, &cctx->key);
@@ -198,7 +223,10 @@ int nss_ctx_init(TALLOC_CTX *mem_ctx,
             goto done;
         }
         if (iv) {
-            MAKE_SECITEM(iv, ivlen, cctx->iv);
+            ret = sss_fill_secitem(iv, ivlen, cctx->iv);
+            if (ret != EOK) {
+                goto done;
+            }
         } else {
             ret = generate_random_key(cctx, cctx->slot,
                                       mech_props, &cctx->iv);
@@ -262,10 +290,10 @@ int nss_crypto_init(struct crypto_mech_data *mech_props,
         cctx->sparam = SECITEM_AllocItem(NULL, NULL, 0);
         if (cctx->sparam == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failure to allocate SECItem\n");
-            ret = EIO;
+            ret = ENOMEM;
             goto done;
         }
-        MAKE_SECITEM(NULL, 0, cctx->sparam);
+        cctx->sparam->type = siBuffer;
     }
 
     /* Create cipher context */

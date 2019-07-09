@@ -28,12 +28,6 @@
 #include <base64.h>
 #include <talloc.h>
 
-#define MAKE_SECITEM(sdata, slen, sitem) do { \
-    (sitem)->type = (siBuffer); \
-    (sitem)->data = (sdata);    \
-    (sitem)->len  = (slen);     \
-} while(0)
-
 struct sss_nss_crypto_ctx {
     PK11SlotInfo *slot;
     PK11Context  *ectx;
@@ -58,8 +52,8 @@ enum crypto_mech_op {
 
 int nss_ctx_init(TALLOC_CTX *mem_ctx,
                  struct crypto_mech_data *mech_props,
-                 uint8_t *key, int keylen,
-                 uint8_t *iv, int ivlen,
+                 const uint8_t *key, int keylen,
+                 const uint8_t *iv, int ivlen,
                  struct sss_nss_crypto_ctx **_cctx);
 int nss_crypto_init(struct crypto_mech_data *mech_props,
                     enum crypto_mech_op crypto_op,
