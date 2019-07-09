@@ -4019,6 +4019,7 @@ intgcheck-prepare:
 	    --with-secrets \
 	    --with-session-recording-shell=/bin/false \
 	    --enable-local-provider \
+	    --enable-files-domain \
 	    $(INTGCHECK_CONFIGURE_FLAGS) \
 	    CFLAGS="-O2 -g $$CFLAGS"; \
 	$(MAKE) $(AM_MAKEFLAGS) ; \
