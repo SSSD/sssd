@@ -51,6 +51,7 @@ class CI {
    * parallel failed.
    */
   public static def Results = [:]
+  public static def RebaseResults = [:]
 
   /**
    * Mark build as successfull.
@@ -64,6 +65,20 @@ class CI {
    */
   public static def IsBuildSuccessful(build) {
     return this.Results[build] == "success"
+  }
+
+  /**
+   * Mark build as successfully rebased.
+   */
+  public static def RebaseSuccessful(build) {
+    this.RebaseResults[build] = "success"
+  }
+
+  /**
+   * Return true if the rebase was successful.
+   */
+  public static def IsRebaseSuccessful(build) {
+    return this.RebaseResults[build] == "success"
   }
 
   /**
@@ -92,11 +107,36 @@ class CI {
       )
   }
 
+  public static def Rebase(ctx) {
+    if (!ctx.env.CHANGE_TARGET) {
+      this.RebaseSuccessful(ctx.env.TEST_SYSTEM)
+      return
+    }
+
+    ctx.echo String.format('Rebasing on %s', ctx.env.CHANGE_TARGET)
+
+    ctx.sh String.format(
+      'git -C %s fetch --no-tags --progress origin +refs/heads/%s:refs/remotes/origin/%s',
+      "${ctx.env.WORKSPACE}/sssd",
+      ctx.env.CHANGE_TARGET,
+      ctx.env.CHANGE_TARGET
+    )
+
+    ctx.sh String.format(
+      'git -C %s rebase origin/%s',
+      "${ctx.env.WORKSPACE}/sssd",
+      ctx.env.CHANGE_TARGET
+    )
+
+    this.RebaseSuccessful(ctx.env.TEST_SYSTEM)
+  }
+
   /**
    * Run tests. TEST_SYSTEM environment variable must be defined.
    */
   public static def RunTests(ctx) {
     this.NotifyBuild(ctx, 'PENDING', 'Build is in progress.')
+    this.Rebase(ctx)
 
     ctx.echo String.format(
       'Executing tests, started at %s',
@@ -123,6 +163,12 @@ class CI {
    * Archive artifacts and notify Github about build result.
    */
   public static def WhenCompleted(ctx) {
+    if (!this.IsRebaseSuccessful(ctx.env.TEST_SYSTEM)) {
+      ctx.echo "Unable to rebase on target branch."
+      this.NotifyBuild(ctx, 'FAILURE', 'Unable to rebase on target branch.')
+      return
+    }
+
     ctx.archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
     ctx.sh String.format(
       '%s/sssd-ci archive --name "%s" --system "%s" --artifacts "%s"',
