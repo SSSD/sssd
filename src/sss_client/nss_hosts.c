@@ -33,6 +33,23 @@
 #include <string.h>
 #include "sss_cli.h"
 
+static struct sss_nss_gethostent_data {
+    size_t len;
+    size_t ptr;
+    uint8_t *data;
+} sss_nss_gethostent_data;
+
+static void
+sss_nss_gethostent_data_clean(void)
+{
+    if (sss_nss_gethostent_data.data != NULL) {
+        free(sss_nss_gethostent_data.data);
+        sss_nss_gethostent_data.data = NULL;
+    }
+    sss_nss_gethostent_data.len = 0;
+    sss_nss_gethostent_data.ptr = 0;
+}
+
 /* GETHOSTBYNAME2 Request
  *
  * 0-X: One zero-terminated string (name)
@@ -418,10 +435,115 @@ out:
     return nret;
 }
 
+static enum nss_status
+internal_gethostent_r(struct hostent *result,
+                      char *buffer, size_t buflen,
+                      int *errnop, int *h_errnop)
+{
+    struct sss_cli_req_data rd;
+    struct sss_nss_host_rep pwrep;
+    uint8_t *repbuf;
+    size_t replen;
+    uint32_t num_results;
+    enum nss_status nret;
+    uint32_t num_entries;
+    int retval;
+
+    /* Caught once glibc passing in buffer == 0x0 */
+    if (buffer == NULL || buflen == 0) {
+        *errnop = ERANGE;
+        *h_errnop = NETDB_INTERNAL;
+        return NSS_STATUS_TRYAGAIN;
+    }
+
+    /* if there are leftovers return the next one */
+    if (sss_nss_gethostent_data.data != NULL &&
+        sss_nss_gethostent_data.ptr < sss_nss_gethostent_data.len) {
+
+        repbuf = sss_nss_gethostent_data.data + sss_nss_gethostent_data.ptr;
+        replen = sss_nss_gethostent_data.len - sss_nss_gethostent_data.ptr;
+
+        pwrep.result = result;
+        pwrep.buffer = buffer;
+        pwrep.buflen = buflen;
+
+        retval = sss_nss_gethost_readrep(&pwrep, repbuf, &replen, AF_INET);
+        if (retval) {
+            *errnop = retval;
+            *h_errnop = NETDB_INTERNAL;
+            return NSS_STATUS_TRYAGAIN;
+        }
+
+        /* advance buffer pointer */
+        sss_nss_gethostent_data.ptr = sss_nss_gethostent_data.len - replen;
+
+        /* If host name is valid but does not have an IP address of the
+         * requested address family return the correct error.  */
+        if (result->h_addr_list[0] == NULL) {
+            *h_errnop = NO_DATA;
+            return NSS_STATUS_TRYAGAIN;
+        }
+
+        *h_errnop = 0;
+
+        return NSS_STATUS_SUCCESS;
+    }
+
+    /* release memory if any */
+    sss_nss_gethostent_data_clean();
+
+    /* retrieve no more than SSS_NSS_MAX_ENTRIES at a time */
+    num_entries = SSS_NSS_MAX_ENTRIES;
+    rd.len = sizeof(uint32_t);
+    rd.data = &num_entries;
+
+    nret = sss_nss_make_request(SSS_NSS_GETHOSTENT, &rd,
+                                &repbuf, &replen, errnop);
+    if (nret != NSS_STATUS_SUCCESS) {
+        *h_errnop = NETDB_INTERNAL;
+        return nret;
+    }
+
+    /* Get number of results from repbuf */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
+    /* no results if not found */
+    if ((num_results == 0) || (replen - HOST_METADATA_COUNT == 0)) {
+        free(repbuf);
+        *h_errnop = HOST_NOT_FOUND;
+        return NSS_STATUS_NOTFOUND;
+    }
+
+    sss_nss_gethostent_data.data = repbuf;
+    sss_nss_gethostent_data.len = replen;
+
+    /* skip metadata fields */
+    sss_nss_gethostent_data.ptr = HOST_METADATA_COUNT;
+
+    /* call again ourselves, this will return the first result */
+    return internal_gethostent_r(result, buffer, buflen, errnop, h_errnop);
+}
+
 enum nss_status
 _nss_sss_sethostent(void)
 {
-    return NSS_STATUS_UNAVAIL;
+    enum nss_status nret;
+    int errnop;
+
+    sss_nss_lock();
+
+    /* make sure we do not have leftovers, and release memory */
+    sss_nss_gethostent_data_clean();
+
+    nret = sss_nss_make_request(SSS_NSS_SETHOSTENT,
+                                NULL, NULL, NULL, &errnop);
+    if (nret != NSS_STATUS_SUCCESS) {
+        errno = errnop;
+    }
+
+    sss_nss_unlock();
+
+    return nret;
 }
 
 enum nss_status
@@ -429,11 +551,33 @@ _nss_sss_gethostent_r(struct hostent *result,
                       char *buffer, size_t buflen,
                       int *errnop, int *h_errnop)
 {
-    return NSS_STATUS_UNAVAIL;
+    enum nss_status nret;
+
+    sss_nss_lock();
+    nret = internal_gethostent_r(result, buffer, buflen, errnop, h_errnop);
+    sss_nss_unlock();
+
+    return nret;
 }
 
 enum nss_status
 _nss_sss_endhostent(void)
 {
-    return NSS_STATUS_UNAVAIL;
+    enum nss_status nret;
+    int errnop;
+
+    sss_nss_lock();
+
+    /* make sure we do not have leftovers, and release memory */
+    sss_nss_gethostent_data_clean();
+
+    nret = sss_nss_make_request(SSS_NSS_ENDHOSTENT,
+                                NULL, NULL, NULL, &errnop);
+    if (nret != NSS_STATUS_SUCCESS) {
+        errno = errnop;
+    }
+
+    sss_nss_unlock();
+
+    return nret;
 }
