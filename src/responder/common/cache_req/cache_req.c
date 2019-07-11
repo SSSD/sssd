@@ -52,6 +52,7 @@ cache_req_get_plugin(enum cache_req_type type)
         &cache_req_enum_users,
         &cache_req_enum_groups,
         &cache_req_enum_svc,
+        &cache_req_enum_ip_hosts,
 
         &cache_req_svc_by_name,
         &cache_req_svc_by_port,
