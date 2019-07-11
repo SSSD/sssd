@@ -81,4 +81,8 @@ errno_t sysdb_search_hosts(TALLOC_CTX *mem_ctx,
                            size_t *msgs_count,
                            struct ldb_message ***msgs);
 
+errno_t sysdb_enumhostent(TALLOC_CTX *mem_ctx,
+                          struct sss_domain_info *domain,
+                          struct ldb_result **_res);
+
 #endif /* SYSDB_IP_HOSTS_H_ */
