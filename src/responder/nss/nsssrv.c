@@ -454,6 +454,14 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         ret = EFAULT;
         goto fail;
     }
+
+    nctx->hostent = talloc_zero(nctx, struct nss_enum_ctx);
+    if (nctx->hostent == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize hostent context!\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
     /*
      * Adding the NSS process to the SSSD supplementary group avoids
      * dac_override AVC messages from SELinux in case sssd_nss runs

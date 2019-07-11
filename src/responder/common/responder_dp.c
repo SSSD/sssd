@@ -362,6 +362,7 @@ sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
     switch (filter_type) {
     case BE_FILTER_NAME:
     case BE_FILTER_ADDR:
+    case BE_FILTER_ENUM:
         break;
     default:
         ret = EINVAL;

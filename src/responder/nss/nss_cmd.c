@@ -1288,6 +1288,37 @@ static errno_t nss_cmd_gethostbyaddr(struct cli_ctx *cli_ctx)
                           SSS_MC_NONE, nss_protocol_fill_hostent);
 }
 
+static errno_t nss_cmd_sethostent(struct cli_ctx *cli_ctx)
+{
+    struct nss_ctx *nss_ctx;
+
+    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+
+    return nss_setent(cli_ctx, CACHE_REQ_ENUM_HOST, nss_ctx->hostent);
+}
+
+static errno_t nss_cmd_gethostent(struct cli_ctx *cli_ctx)
+{
+    struct nss_ctx *nss_ctx;
+    struct nss_state_ctx *state_ctx;
+
+    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+
+    return nss_getent(cli_ctx, CACHE_REQ_ENUM_HOST,
+                      &state_ctx->hostent, nss_protocol_fill_hostent,
+                      nss_ctx->hostent);
+}
+
+static errno_t nss_cmd_endhostent(struct cli_ctx *cli_ctx)
+{
+    struct nss_state_ctx *state_ctx;
+
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+
+    return nss_endent(cli_ctx, &state_ctx->hostent);
+}
+
 struct sss_cmd_table *get_nss_cmds(void)
 {
     static struct sss_cmd_table nss_cmds[] = {
@@ -1328,6 +1359,9 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_GETHOSTBYNAME, nss_cmd_gethostbyname },
         { SSS_NSS_GETHOSTBYNAME2, nss_cmd_gethostbyname },
         { SSS_NSS_GETHOSTBYADDR, nss_cmd_gethostbyaddr },
+        { SSS_NSS_SETHOSTENT, nss_cmd_sethostent },
+        { SSS_NSS_GETHOSTENT, nss_cmd_gethostent },
+        { SSS_NSS_ENDHOSTENT, nss_cmd_endhostent },
         { SSS_CLI_NULL, NULL }
     };
 
