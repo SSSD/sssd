@@ -135,6 +135,7 @@ class CI {
    * Run tests. TEST_SYSTEM environment variable must be defined.
    */
   public static def RunTests(ctx) {
+    ctx.echo "Running on ${ctx.env.NODE_NAME}"
     this.NotifyBuild(ctx, 'PENDING', 'Build is in progress.')
     this.Rebase(ctx)
 
