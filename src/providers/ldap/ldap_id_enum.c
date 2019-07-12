@@ -42,6 +42,7 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
     time_t cleanup;
     bool has_enumerated;
     struct ldap_enum_ctx *ectx;
+    char *name = NULL;
 
     ret = sysdb_has_enumerated(sdom->dom, SYSDB_HAS_ENUMERATED_ID,
                                &has_enumerated);
@@ -93,6 +94,12 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
     ectx->sdom = sdom;
     ectx->pvt = pvt;
 
+    name = talloc_asprintf(NULL, "Enumeration [id] of %s",
+                           sdom->dom->name);
+    if (name == NULL) {
+        return ENOMEM;
+    }
+
     ret = be_ptask_create(sdom, be_ctx,
                           period,                   /* period */
                           first_delay,              /* first_delay */
@@ -101,7 +108,7 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
                           period,                   /* timeout */
                           0,                        /* max_backoff */
                           send_fn, recv_fn,
-                          ectx, "enumeration",
+                          ectx, name,
                           BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
                           &sdom->enum_task);
     if (ret != EOK) {
@@ -112,6 +119,8 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
     }
 
     talloc_steal(sdom->enum_task, ectx);
+    talloc_free(name);
+
     return EOK;
 }
 
