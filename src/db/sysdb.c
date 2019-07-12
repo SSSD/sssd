@@ -1181,13 +1181,154 @@ done:
     return ret;
 }
 
+errno_t sysdb_get_uint(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *attr_name,
+                       uint32_t *value)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    errno_t ret;
+    int lret;
+    const char *attrs[2] = {attr_name, NULL};
+    struct ldb_message_element *el;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                      attrs, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        /* This entry has not been populated in LDB
+         * This is a common case, as unlike LDAP,
+         * LDB does not need to have all of its parent
+         * objects actually exist.
+         * This object in the sysdb exists mostly just
+         * to contain this attribute.
+         */
+        *value = false;
+        ret = ENOENT;
+        goto done;
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Got more than one reply for base search!\n");
+        ret = EIO;
+        goto done;
+    }
+
+    el = ldb_msg_find_element(res->msgs[0], attr_name);
+    if (el == NULL || el->num_values == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *value = ldb_msg_find_attr_as_uint(res->msgs[0], attr_name, false);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_set_uint(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *cn_value,
+                       const char *attr_name,
+                       uint32_t value)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_message *msg = NULL;
+    struct ldb_result *res = NULL;
+    errno_t ret;
+    int lret;
+
+    if (dn == NULL || attr_name == NULL) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+                      NULL, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = dn;
+
+    if (res->count == 0) {
+        if (cn_value == NULL) {
+            ret = ENOENT;
+            goto done;
+        }
+
+        lret = ldb_msg_add_string(msg, "cn", cn_value);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    } else if (res->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Got more than one reply for base search!\n");
+        ret = EIO;
+        goto done;
+    } else {
+        lret = ldb_msg_add_empty(msg, attr_name, LDB_FLAG_MOD_REPLACE, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+    }
+
+    lret = ldb_msg_add_fmt(msg, attr_name, "%u", value);
+    if (lret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count) {
+        lret = ldb_modify(sysdb->ldb, msg);
+    } else {
+        lret = ldb_add(sysdb->ldb, msg);
+    }
+
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb operation failed: [%s](%d)[%s]\n",
+              ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb));
+    }
+    ret = sysdb_error_to_errno(lret);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 errno_t sysdb_has_enumerated(struct sss_domain_info *domain,
+                             uint32_t provider,
                              bool *has_enumerated)
 {
     errno_t ret;
     struct ldb_dn *dn;
     TALLOC_CTX *tmp_ctx;
-
+    uint32_t enumerated;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -1201,8 +1342,14 @@ errno_t sysdb_has_enumerated(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_get_bool(domain->sysdb, dn, SYSDB_HAS_ENUMERATED,
-                         has_enumerated);
+    ret = sysdb_get_uint(domain->sysdb, dn, SYSDB_HAS_ENUMERATED,
+                         &enumerated);
+
+    if (ret != EOK) {
+        return ret;
+    }
+
+    *has_enumerated = (enumerated & provider);
 
 done:
     talloc_free(tmp_ctx);
@@ -1210,11 +1357,13 @@ done:
 }
 
 errno_t sysdb_set_enumerated(struct sss_domain_info *domain,
-                             bool enumerated)
+                             uint32_t provider,
+                             bool has_enumerated)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *dn;
+    uint32_t enumerated = 0;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -1228,7 +1377,20 @@ errno_t sysdb_set_enumerated(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_set_bool(domain->sysdb, dn, domain->name,
+    ret = sysdb_get_uint(domain->sysdb, dn, SYSDB_HAS_ENUMERATED,
+                         &enumerated);
+
+    if (ret != EOK && ret != ENOENT) {
+        return ret;
+    }
+
+    if (has_enumerated) {
+        enumerated |= provider;
+    } else {
+        enumerated &= ~provider;
+    }
+
+    ret = sysdb_set_uint(domain->sysdb, dn, domain->name,
                          SYSDB_HAS_ENUMERATED, enumerated);
 
 done:
