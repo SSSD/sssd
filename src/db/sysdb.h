@@ -226,6 +226,7 @@
 #define SYSDB_USER_CERT_FILTER "(&("SYSDB_UC")%s)"
 
 #define SYSDB_HAS_ENUMERATED "has_enumerated"
+#define SYSDB_HAS_ENUMERATED_ID       0x00000001
 
 #define SYSDB_DEFAULT_ATTRS SYSDB_LAST_UPDATE, \
                             SYSDB_CACHE_EXPIRE, \
@@ -1292,11 +1293,24 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
                        const char *attr_name,
                        bool value);
 
+errno_t sysdb_get_uint(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *attr_name,
+                       uint32_t *value);
+
+errno_t sysdb_set_uint(struct sysdb_ctx *sysdb,
+                       struct ldb_dn *dn,
+                       const char *cn_value,
+                       const char *attr_name,
+                       uint32_t value);
+
 errno_t sysdb_has_enumerated(struct sss_domain_info *domain,
+                             uint32_t provider,
                              bool *has_enumerated);
 
 errno_t sysdb_set_enumerated(struct sss_domain_info *domain,
-                             bool enumerated);
+                             uint32_t provider,
+                             bool has_enumerated);
 
 errno_t sysdb_remove_attrs(struct sss_domain_info *domain,
                            const char *name,
