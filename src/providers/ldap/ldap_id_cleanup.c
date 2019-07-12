@@ -80,7 +80,7 @@ errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
     cleanup_ctx->ctx = id_ctx;
     cleanup_ctx->sdom = sdom;
 
-    name = talloc_asprintf(cleanup_ctx, "Cleanup of %s", sdom->dom->name);
+    name = talloc_asprintf(cleanup_ctx, "Cleanup [id] of %s", sdom->dom->name);
     if (name == NULL) {
         return ENOMEM;
     }
