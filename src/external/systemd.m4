@@ -1,5 +1,5 @@
 if test x"$with_syslog" = xjournald || \
-     test x"$with_initdscript" = xsystemd;  then
+     test x"$with_initscript" = xsystemd;  then
 
     dnl A macro to check presence of systemd on the system
     PKG_CHECK_EXISTS([systemd],
