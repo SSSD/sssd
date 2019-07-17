@@ -384,7 +384,7 @@ static errno_t ad_init_misc(struct be_ctx *be_ctx,
     }
 
     ret = sdap_id_setup_tasks(be_ctx, sdap_id_ctx, sdap_id_ctx->opts->sdom,
-                              ad_enumeration_send, ad_enumeration_recv,
+                              ad_id_enumeration_send, ad_id_enumeration_recv,
                               ad_id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup background tasks "
