@@ -111,14 +111,14 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
                           send_fn, recv_fn,
                           ectx, name,
                           BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
-                          &sdom->enum_task);
+                          &sdom->task);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to initialize enumeration periodic task\n");
         goto done;
     }
 
-    talloc_steal(sdom->enum_task, ectx);
+    talloc_steal(sdom->task, ectx);
 
     ret = EOK;
 

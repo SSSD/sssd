@@ -720,8 +720,7 @@ static errno_t ad_subdomains_refresh(struct be_ctx *be_ctx,
             /* Remove the subdomain from the list of LDAP domains */
             sdap_domain_remove(opts, dom);
 
-            be_ptask_destroy(&sdom->enum_task);
-            be_ptask_destroy(&sdom->cleanup_task);
+            be_ptask_destroy(&sdom->task);
 
             /* terminate all requests for this subdomain so we can free it */
             dp_terminate_domain_requests(be_ctx->provider, dom->name);
