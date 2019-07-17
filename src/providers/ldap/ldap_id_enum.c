@@ -41,7 +41,7 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
     time_t period;
     time_t cleanup;
     bool has_enumerated;
-    struct ldap_enum_ctx *ectx;
+    struct ldap_enum_ctx *ectx = NULL;
     char *name = NULL;
 
     ret = sysdb_has_enumerated(sdom->dom, SYSDB_HAS_ENUMERATED_ID,
@@ -97,7 +97,8 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
     name = talloc_asprintf(NULL, "Enumeration [id] of %s",
                            sdom->dom->name);
     if (name == NULL) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     ret = be_ptask_create(sdom, be_ctx,
@@ -114,14 +115,19 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to initialize enumeration periodic task\n");
-        talloc_free(ectx);
-        return ret;
+        goto done;
     }
 
     talloc_steal(sdom->enum_task, ectx);
-    talloc_free(name);
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(name);
+    if (ret != EOK) {
+        talloc_free(ectx);
+    }
+    return ret;
 }
 
 struct ldap_enumeration_state {
