@@ -59,7 +59,7 @@ errno_t sdap_id_setup_tasks(struct be_ctx *be_ctx,
     if (sdom->dom->enumerate) {
         DEBUG(SSSDBG_TRACE_FUNC, "Setting up enumeration for %s\n",
                                   sdom->dom->name);
-        ret = ldap_id_setup_enumeration(be_ctx, ctx->opts, sdom,
+        ret = ldap_id_setup_enumeration(be_ctx, ctx, sdom,
                                         send_fn, recv_fn, pvt);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
@@ -838,6 +838,12 @@ sdap_id_ctx_conn_add(struct sdap_id_ctx *id_ctx,
     return conn;
 }
 
+static int sdap_id_ctx_destructor(struct sdap_id_ctx *id_ctx)
+{
+    be_ptask_destroy(&id_ctx->task);
+    return 0;
+}
+
 struct sdap_id_ctx *
 sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                 struct sdap_service *sdap_service)
@@ -848,6 +854,8 @@ sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     if (sdap_ctx == NULL) {
         return NULL;
     }
+    talloc_set_destructor(sdap_ctx, sdap_id_ctx_destructor);
+
     sdap_ctx->be = bectx;
 
     /* There should be at least one connection context */

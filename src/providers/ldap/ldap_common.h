@@ -71,6 +71,16 @@ struct sdap_id_ctx {
     struct sdap_id_conn_ctx *conn;
 
     struct sdap_server_opts *srv_opts;
+
+    /* Enumeration/cleanup periodic task. Only the enumeration or the cleanup
+     * task is started depending on the value of the domain's enumeration
+     * setting, this is why there is only one task pointer for both tasks. */
+    struct be_ptask *task;
+
+    /* enumeration loop timer */
+    struct timeval last_enum;
+    /* cleanup loop timer */
+    struct timeval last_purge;
 };
 
 struct sdap_auth_ctx {
@@ -242,7 +252,7 @@ struct ldap_enum_ctx {
 };
 
 errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
-                                  struct sdap_options *opts,
+                                  struct sdap_id_ctx *id_ctx,
                                   struct sdap_domain *sdom,
                                   be_ptask_send_t send_fn,
                                   be_ptask_recv_t recv_fn,
@@ -258,7 +268,7 @@ errno_t ldap_id_enumeration_recv(struct tevent_req *req);
 errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
                               struct sdap_domain *sdom);
 
-errno_t ldap_id_cleanup(struct sdap_options *opts,
+errno_t ldap_id_cleanup(struct sdap_id_ctx *id_ctx,
                         struct sdap_domain *sdom);
 
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
