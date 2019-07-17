@@ -578,11 +578,11 @@ static errno_t ad_enum_sdom(struct tevent_req *req, struct sdap_domain *sd,
 static void ad_enumeration_done(struct tevent_req *subreq);
 
 struct tevent_req *
-ad_enumeration_send(TALLOC_CTX *mem_ctx,
-                    struct tevent_context *ev,
-                    struct be_ctx *be_ctx,
-                    struct be_ptask *be_ptask,
-                    void *pvt)
+ad_id_enumeration_send(TALLOC_CTX *mem_ctx,
+                       struct tevent_context *ev,
+                       struct be_ctx *be_ctx,
+                       struct be_ptask *be_ptask,
+                       void *pvt)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -1112,7 +1112,7 @@ done:
 }
 
 errno_t
-ad_enumeration_recv(struct tevent_req *req)
+ad_id_enumeration_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
