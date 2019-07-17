@@ -29,12 +29,12 @@
 
 #define LDAP_ENUM_PURGE_TIMEOUT 10800
 
-errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
-                               struct sdap_options *opts,
-                               struct sdap_domain *sdom,
-                               be_ptask_send_t send_fn,
-                               be_ptask_recv_t recv_fn,
-                               void *pvt)
+errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
+                                  struct sdap_options *opts,
+                                  struct sdap_domain *sdom,
+                                  be_ptask_send_t send_fn,
+                                  be_ptask_recv_t recv_fn,
+                                  void *pvt)
 {
     errno_t ret;
     time_t first_delay;
@@ -133,11 +133,11 @@ struct ldap_enumeration_state {
 static void ldap_enumeration_done(struct tevent_req *subreq);
 
 struct tevent_req *
-ldap_enumeration_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct be_ctx *be_ctx,
-                      struct be_ptask *be_ptask,
-                      void *pvt)
+ldap_id_enumeration_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_ctx *be_ctx,
+                         struct be_ptask *be_ptask,
+                         void *pvt)
 {
     struct ldap_enumeration_state *state;
     struct tevent_req *req;
@@ -200,7 +200,7 @@ ldap_enumeration_done(struct tevent_req *subreq)
 }
 
 errno_t
-ldap_enumeration_recv(struct tevent_req *req)
+ldap_id_enumeration_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

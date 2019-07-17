@@ -231,7 +231,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
                             const char *conf_path,
                             struct sdap_options *opts);
 
-/* Calling ldap_setup_enumeration will set up a periodic task
+/* Calling ldap_id_setup_enumeration will set up a periodic task
  * that would periodically call send_fn/recv_fn request. The
  * send_fn's pvt parameter will be a pointer to ldap_enum_ctx
  * structure that contains the request data
@@ -241,22 +241,22 @@ struct ldap_enum_ctx {
     void *pvt;
 };
 
-errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
-                               struct sdap_options *opts,
-                               struct sdap_domain *sdom,
-                               be_ptask_send_t send_fn,
-                               be_ptask_recv_t recv_fn,
-                               void *pvt);
+errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
+                                  struct sdap_options *opts,
+                                  struct sdap_domain *sdom,
+                                  be_ptask_send_t send_fn,
+                                  be_ptask_recv_t recv_fn,
+                                  void *pvt);
 struct tevent_req *
-ldap_enumeration_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct be_ctx *be_ctx,
-                      struct be_ptask *be_ptask,
-                      void *pvt);
-errno_t ldap_enumeration_recv(struct tevent_req *req);
+ldap_id_enumeration_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_ctx *be_ctx,
+                         struct be_ptask *be_ptask,
+                         void *pvt);
+errno_t ldap_id_enumeration_recv(struct tevent_req *req);
 
-errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
-                           struct sdap_domain *sdom);
+errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
+                              struct sdap_domain *sdom);
 
 errno_t ldap_id_cleanup(struct sdap_options *opts,
                         struct sdap_domain *sdom);
