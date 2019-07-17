@@ -90,14 +90,14 @@ errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
                                period /* timeout */, 0,
                                ldap_cleanup_task, cleanup_ctx, name,
                                BE_PTASK_OFFLINE_SKIP,
-                               &sdom->cleanup_task);
+                               &sdom->task);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize cleanup periodic "
                                      "task for %s\n", sdom->dom->name);
         goto done;
     }
 
-    talloc_steal(sdom->cleanup_task, cleanup_ctx);
+    talloc_steal(sdom->task, cleanup_ctx);
     ret = EOK;
 
 done:
