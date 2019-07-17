@@ -108,13 +108,13 @@ errno_t sdap_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct dp_reply_std *data);
 
 /* Set up enumeration and/or cleanup */
-int ldap_id_setup_tasks(struct sdap_id_ctx *ctx);
-int sdap_id_setup_tasks(struct be_ctx *be_ctx,
-                        struct sdap_id_ctx *ctx,
-                        struct sdap_domain *sdom,
-                        be_ptask_send_t send_fn,
-                        be_ptask_recv_t recv_fn,
-                        void *pvt);
+errno_t ldap_id_setup_tasks(struct sdap_id_ctx *ctx);
+errno_t sdap_id_setup_tasks(struct be_ctx *be_ctx,
+                            struct sdap_id_ctx *ctx,
+                            struct sdap_domain *sdom,
+                            be_ptask_send_t send_fn,
+                            be_ptask_recv_t recv_fn,
+                            void *pvt);
 
 /* Allow shortcutting an enumeration request */
 bool sdap_is_enum_request(struct dp_id_data *ar);

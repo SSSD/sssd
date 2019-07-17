@@ -38,7 +38,7 @@
 /* a fd the child process would log into */
 int ldap_child_debug_fd = -1;
 
-int ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
+errno_t ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
     return sdap_id_setup_tasks(ctx->be, ctx, ctx->opts->sdom,
                                ldap_enumeration_send,
@@ -46,12 +46,12 @@ int ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
                                ctx);
 }
 
-int sdap_id_setup_tasks(struct be_ctx *be_ctx,
-                        struct sdap_id_ctx *ctx,
-                        struct sdap_domain *sdom,
-                        be_ptask_send_t send_fn,
-                        be_ptask_recv_t recv_fn,
-                        void *pvt)
+errno_t sdap_id_setup_tasks(struct be_ctx *be_ctx,
+                            struct sdap_id_ctx *ctx,
+                            struct sdap_domain *sdom,
+                            be_ptask_send_t send_fn,
+                            be_ptask_recv_t recv_fn,
+                            void *pvt)
 {
     int ret;
 
