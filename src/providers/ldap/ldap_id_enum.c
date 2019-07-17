@@ -30,7 +30,7 @@
 #define LDAP_ENUM_PURGE_TIMEOUT 10800
 
 errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
-                                  struct sdap_options *opts,
+                                  struct sdap_id_ctx *id_ctx,
                                   struct sdap_domain *sdom,
                                   be_ptask_send_t send_fn,
                                   be_ptask_recv_t recv_fn,
@@ -69,13 +69,13 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
         first_delay = 0;
     }
 
-    cleanup = dp_opt_get_int(opts->basic, SDAP_PURGE_CACHE_TIMEOUT);
+    cleanup = dp_opt_get_int(id_ctx->opts->basic, SDAP_PURGE_CACHE_TIMEOUT);
     if (cleanup == 0) {
         /* We need to cleanup the cache once in a while when enumerating, otherwise
          * enumeration would only download deltas since the previous lastUSN and would
          * not detect removed entries
          */
-        ret = dp_opt_set_int(opts->basic, SDAP_PURGE_CACHE_TIMEOUT,
+        ret = dp_opt_set_int(id_ctx->opts->basic, SDAP_PURGE_CACHE_TIMEOUT,
                              LDAP_ENUM_PURGE_TIMEOUT);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -85,7 +85,7 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
         }
     }
 
-    period = dp_opt_get_int(opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    period = dp_opt_get_int(id_ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
 
     ectx = talloc(sdom, struct ldap_enum_ctx);
     if (ectx == NULL) {
@@ -101,7 +101,7 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
         goto done;
     }
 
-    ret = be_ptask_create(sdom, be_ctx,
+    ret = be_ptask_create(id_ctx, be_ctx,
                           period,                   /* period */
                           first_delay,              /* first_delay */
                           5,                        /* enabled delay */
@@ -111,14 +111,12 @@ errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
                           send_fn, recv_fn,
                           ectx, name,
                           BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
-                          &sdom->task);
+                          &id_ctx->task);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to initialize enumeration periodic task\n");
         goto done;
     }
-
-    talloc_steal(sdom->task, ectx);
 
     ret = EOK;
 

@@ -98,10 +98,10 @@ sdap_dom_enum_ex_send(TALLOC_CTX *memctx,
     state->user_conn = user_conn;
     state->group_conn = group_conn;
     state->svc_conn = svc_conn;
-    sdom->last_enum = tevent_timeval_current();
+    ctx->last_enum = tevent_timeval_current();
 
     t = dp_opt_get_int(ctx->opts->basic, SDAP_PURGE_CACHE_TIMEOUT);
-    if ((sdom->last_purge.tv_sec + t) < sdom->last_enum.tv_sec) {
+    if ((ctx->last_purge.tv_sec + t) < ctx->last_enum.tv_sec) {
         state->purge = true;
     }
 
@@ -381,7 +381,7 @@ static void sdap_dom_enum_ex_svcs_done(struct tevent_req *subreq)
     }
 
     if (state->purge) {
-        ret = ldap_id_cleanup(state->ctx->opts, state->sdom);
+        ret = ldap_id_cleanup(state->ctx, state->sdom);
         if (ret != EOK) {
             /* Not fatal, worst case we'll have stale entries that would be
              * removed on a subsequent online lookup

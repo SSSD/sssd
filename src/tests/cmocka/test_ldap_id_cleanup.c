@@ -45,6 +45,7 @@ struct sysdb_test_ctx {
     struct tevent_context *ev;
     struct sss_domain_info *domain;
     struct sdap_options *opts;
+    struct sdap_id_ctx *id_ctx;
 };
 
 static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
@@ -102,6 +103,9 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
                            TESTS_PATH, &test_ctx->domain);
     assert_int_equal(ret, EOK);
 
+    test_ctx->id_ctx = talloc_zero(test_ctx, struct sdap_id_ctx);
+    assert_non_null(test_ctx->id_ctx);
+
     test_ctx->domain->has_views = true;
     test_ctx->sysdb = test_ctx->domain->sysdb;
 
@@ -136,6 +140,8 @@ static int test_sysdb_setup(void **state)
     assert_int_equal(ret, ERR_OK);
 
     dp_opt_set_int(test_ctx->opts->basic, SDAP_ACCOUNT_CACHE_EXPIRATION, 1);
+
+    test_ctx->id_ctx->opts = test_ctx->opts;
 
     *state = (void *) test_ctx;
     return 0;
@@ -249,7 +255,7 @@ static void test_id_cleanup_exp_group(void **state)
     sdom.dom = test_ctx->domain;
 
     /* not expired */
-    ret = ldap_id_cleanup(test_ctx->opts, &sdom);
+    ret = ldap_id_cleanup(test_ctx->id_ctx, &sdom);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain,
@@ -274,7 +280,7 @@ static void test_id_cleanup_exp_group(void **state)
     invalidate_group(test_ctx, test_ctx->domain, grp);
     invalidate_group(test_ctx, test_ctx->domain, empty_grp);
 
-    ret = ldap_id_cleanup(test_ctx->opts, &sdom);
+    ret = ldap_id_cleanup(test_ctx->id_ctx, &sdom);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain,
