@@ -431,8 +431,7 @@ struct sdap_domain {
     struct sdap_domain **head;
 
     /* Enumeration and cleanup periodic task */
-    struct be_ptask *enum_task;
-    struct be_ptask *cleanup_task;
+    struct be_ptask *task;
 
     /* enumeration loop timer */
     struct timeval last_enum;
