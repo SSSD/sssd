@@ -47,7 +47,7 @@ static errno_t ldap_cleanup_task(TALLOC_CTX *mem_ctx,
     struct ldap_id_cleanup_ctx *cleanup_ctx = NULL;
 
     cleanup_ctx = talloc_get_type(pvt, struct ldap_id_cleanup_ctx);
-    return ldap_id_cleanup(cleanup_ctx->ctx->opts, cleanup_ctx->sdom);
+    return ldap_id_cleanup(cleanup_ctx->ctx, cleanup_ctx->sdom);
 }
 
 errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
@@ -85,19 +85,18 @@ errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
         return ENOMEM;
     }
 
-    ret = be_ptask_create_sync(sdom, id_ctx->be, period, first_delay,
+    ret = be_ptask_create_sync(id_ctx, id_ctx->be, period, first_delay,
                                5 /* enabled delay */, 0 /* random offset */,
                                period /* timeout */, 0,
                                ldap_cleanup_task, cleanup_ctx, name,
                                BE_PTASK_OFFLINE_SKIP,
-                               &sdom->task);
+                               &id_ctx->task);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize cleanup periodic "
                                      "task for %s\n", sdom->dom->name);
         goto done;
     }
 
-    talloc_steal(sdom->task, cleanup_ctx);
     ret = EOK;
 
 done:
@@ -115,7 +114,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
                           struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain);
 
-errno_t ldap_id_cleanup(struct sdap_options *opts,
+errno_t ldap_id_cleanup(struct sdap_id_ctx *ctx,
                         struct sdap_domain *sdom)
 {
     int ret, tret;
@@ -134,7 +133,7 @@ errno_t ldap_id_cleanup(struct sdap_options *opts,
     }
     in_transaction = true;
 
-    ret = cleanup_users(opts, sdom->dom);
+    ret = cleanup_users(ctx->opts, sdom->dom);
     if (ret && ret != ENOENT) {
         goto done;
     }
@@ -151,7 +150,7 @@ errno_t ldap_id_cleanup(struct sdap_options *opts,
     }
     in_transaction = false;
 
-    sdom->last_purge = tevent_timeval_current();
+    ctx->last_purge = tevent_timeval_current();
     ret = EOK;
 done:
     if (in_transaction) {
