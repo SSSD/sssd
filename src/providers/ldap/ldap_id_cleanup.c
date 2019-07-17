@@ -50,8 +50,8 @@ static errno_t ldap_cleanup_task(TALLOC_CTX *mem_ctx,
     return ldap_id_cleanup(cleanup_ctx->ctx->opts, cleanup_ctx->sdom);
 }
 
-errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
-                           struct sdap_domain *sdom)
+errno_t ldap_id_setup_cleanup(struct sdap_id_ctx *id_ctx,
+                              struct sdap_domain *sdom)
 {
     errno_t ret;
     time_t first_delay;

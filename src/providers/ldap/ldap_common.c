@@ -41,8 +41,8 @@ int ldap_child_debug_fd = -1;
 errno_t ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
     return sdap_id_setup_tasks(ctx->be, ctx, ctx->opts->sdom,
-                               ldap_enumeration_send,
-                               ldap_enumeration_recv,
+                               ldap_id_enumeration_send,
+                               ldap_id_enumeration_recv,
                                ctx);
 }
 
@@ -59,14 +59,14 @@ errno_t sdap_id_setup_tasks(struct be_ctx *be_ctx,
     if (sdom->dom->enumerate) {
         DEBUG(SSSDBG_TRACE_FUNC, "Setting up enumeration for %s\n",
                                   sdom->dom->name);
-        ret = ldap_setup_enumeration(be_ctx, ctx->opts, sdom,
-                                     send_fn, recv_fn, pvt);
+        ret = ldap_id_setup_enumeration(be_ctx, ctx->opts, sdom,
+                                        send_fn, recv_fn, pvt);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
          * but if enumeration is not running we need to schedule it */
         DEBUG(SSSDBG_TRACE_FUNC, "Setting up cleanup task for %s\n",
                                   sdom->dom->name);
-        ret = ldap_setup_cleanup(ctx, sdom);
+        ret = ldap_id_setup_cleanup(ctx, sdom);
     }
 
     return ret;
