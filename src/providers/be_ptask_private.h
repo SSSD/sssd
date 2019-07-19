@@ -42,6 +42,7 @@ struct be_ptask {
     time_t last_execution;  /* last time when send was called */
     struct tevent_req *req; /* active tevent request */
     struct tevent_timer *timer; /* active tevent timer */
+    uint32_t flags;
     bool enabled;
 };
 

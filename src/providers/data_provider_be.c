@@ -133,7 +133,7 @@ void be_mark_offline(struct be_ctx *ctx)
                                    BE_PTASK_OFFLINE_EXECUTE,
                                    3600 /* max_backoff */,
                                    try_to_go_online,
-                                   ctx, "Check if online (periodic)",
+                                   ctx, "Check if online (periodic)", 0,
                                    &ctx->check_if_online_ptask);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,

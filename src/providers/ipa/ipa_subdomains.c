@@ -3138,7 +3138,7 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
                           BE_PTASK_SCHEDULE_FROM_LAST,
                           0,
                           ipa_subdomains_ptask_send, ipa_subdomains_ptask_recv, sd_ctx,
-                          "Subdomains Refresh", NULL);
+                          "Subdomains Refresh", 0, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "
               "[%d]: %s\n", ret, sss_strerror(ret));

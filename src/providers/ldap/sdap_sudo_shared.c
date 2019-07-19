@@ -94,7 +94,7 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
                               BE_PTASK_SCHEDULE_FROM_LAST,
                               0,
                               full_send_fn, full_recv_fn, pvt,
-                              "SUDO Full Refresh", NULL);
+                              "SUDO Full Refresh", 0, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup full refresh ptask "
                   "[%d]: %s\n", ret, sss_strerror(ret));
@@ -113,7 +113,7 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
                               BE_PTASK_SCHEDULE_FROM_LAST,
                               0,
                               smart_send_fn, smart_recv_fn, pvt,
-                              "SUDO Smart Refresh", NULL);
+                              "SUDO Smart Refresh", 0, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup smart refresh ptask "
                   "[%d]: %s\n", ret, sss_strerror(ret));

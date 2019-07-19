@@ -209,6 +209,12 @@ static void be_ptask_schedule(struct be_ptask *task,
         delay = task->enabled_delay;
         break;
     case BE_PTASK_PERIOD:
+        if (task->flags & BE_PTASK_NO_PERIODIC) {
+            /* Periodic task is disabled, */
+            /* only online/offline change can cause some activity. */
+            return;
+        }
+
         delay = task->period;
 
         if (backoff_allowed(task) && task->period * 2 <= task->max_backoff) {
@@ -270,13 +276,18 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         be_ptask_recv_t recv_fn,
                         void *pvt,
                         const char *name,
+                        uint32_t flags,
                         struct be_ptask **_task)
 {
     struct be_ptask *task = NULL;
     errno_t ret;
 
-    if (be_ctx == NULL || period == 0 || send_fn == NULL || recv_fn == NULL
+    if (be_ctx == NULL || send_fn == NULL || recv_fn == NULL
         || name == NULL) {
+        return EINVAL;
+    }
+
+    if (period == 0 && (flags & BE_PTASK_NO_PERIODIC) == 0) {
         return EINVAL;
     }
 
@@ -306,6 +317,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    task->flags = flags;
     task->enabled = true;
 
     talloc_set_destructor((TALLOC_CTX*)task, be_ptask_destructor);
@@ -451,6 +463,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                              be_ptask_sync_t fn,
                              void *pvt,
                              const char *name,
+                             uint32_t flags,
                              struct be_ptask **_task)
 {
     errno_t ret;
@@ -469,7 +482,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                           enabled_delay, random_offset, timeout, offline,
                           BE_PTASK_SCHEDULE_FROM_LAST,
                           max_backoff, be_ptask_sync_send, be_ptask_sync_recv,
-                          ctx, name, _task);
+                          ctx, name, flags, _task);
     if (ret != EOK) {
         goto done;
     }
