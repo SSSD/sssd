@@ -381,13 +381,62 @@ static int watch_ctx_destructor(void *memptr)
     return 0;
 }
 
+static errno_t resolve_filename(struct snotify_ctx *snctx,
+                                const char *filename,
+                                char *resolved,
+                                size_t resolved_size)
+{
+    /* NOTE: The code below relies in the GNU extensions for realpath,
+     * which will store in 'resolved' the prefix of 'filename' that does
+     * not exists if realpath call fails and errno is set to ENOENT */
+    if (realpath(filename, resolved) == NULL) {
+        char fcopy[PATH_MAX + 1];
+        char *p;
+        struct stat st;
+
+        if (errno != ENOENT) {
+            return errno;
+        }
+
+        /* Check if the unique missing component is the basename. The
+         * dirname must exist to be notified watching the parent dir. */
+        strncpy(fcopy, filename, sizeof(fcopy) - 1);
+        fcopy[PATH_MAX] = '\0';
+
+        p = dirname(fcopy);
+        if (p == NULL) {
+            return EIO;
+        }
+
+        if (stat(p, &st) == -1) {
+            return errno;
+        }
+
+        /* The basedir exist, check the caller requested to watch it.
+         * Otherwise return error as never will be notified. */
+
+        if ((snctx->snotify_flags & SNOTIFY_WATCH_DIR) == 0) {
+            return ENOENT;
+        }
+    }
+
+    return EOK;
+}
+
 static errno_t copy_filenames(struct snotify_ctx *snctx,
                               const char *filename)
 {
     char *p;
+    char resolved[PATH_MAX + 1];
     char fcopy[PATH_MAX + 1];
+    errno_t ret;
 
-    strncpy(fcopy, filename, sizeof(fcopy) - 1);
+    ret = resolve_filename(snctx, filename, resolved, sizeof(resolved));
+    if (ret != EOK) {
+		return ret;
+    }
+
+    strncpy(fcopy, resolved, sizeof(fcopy) - 1);
     fcopy[PATH_MAX] = '\0';
 
     p = dirname(fcopy);
@@ -400,7 +449,7 @@ static errno_t copy_filenames(struct snotify_ctx *snctx,
         return ENOMEM;
     }
 
-    strncpy(fcopy, filename, sizeof(fcopy) - 1);
+    strncpy(fcopy, resolved, sizeof(fcopy) - 1);
     fcopy[PATH_MAX] = '\0';
 
     p = basename(fcopy);
@@ -413,7 +462,7 @@ static errno_t copy_filenames(struct snotify_ctx *snctx,
         return ENOMEM;
     }
 
-    snctx->filename = talloc_strdup(snctx, filename);
+    snctx->filename = talloc_strdup(snctx, resolved);
     if (snctx->filename == NULL) {
         return ENOMEM;
     }
