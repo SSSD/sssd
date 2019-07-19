@@ -78,7 +78,7 @@ errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
                           BE_PTASK_SCHEDULE_FROM_LAST,
                           0,
                           ipa_dyndns_update_send, ipa_dyndns_update_recv, ctx,
-                          "Dyndns update", NULL);
+                          "Dyndns update", 0, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "
               "[%d]: %s\n", ret, sss_strerror(ret));
