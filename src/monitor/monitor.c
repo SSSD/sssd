@@ -1789,18 +1789,14 @@ static errno_t monitor_config_file_fallback(TALLOC_CTX *parent_ctx,
     if (ret < 0) {
         err = errno;
         if (err == ENOENT) {
-             DEBUG(SSSDBG_MINOR_FAILURE,
-                   "file [%s] is missing. Will not update online status "
-                   "based on watching the file\n", file);
-             return EOK;
-
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "file [%s] is missing. Will try again later.\n", file);
         } else {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Could not stat file [%s]. Error [%d:%s]\n",
                   file, err, strerror(err));
-
-            return err;
         }
+        return err;
     }
 
     file_ctx->poll_check.parent_ctx = parent_ctx;
