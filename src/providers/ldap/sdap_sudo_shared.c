@@ -90,11 +90,12 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
      * when offline. */
     if (full > 0) {
         ret = be_ptask_create(be_ctx, be_ctx, full, delay, 0, 0, full,
-                              BE_PTASK_OFFLINE_DISABLE,
-                              BE_PTASK_SCHEDULE_FROM_LAST,
                               0,
                               full_send_fn, full_recv_fn, pvt,
-                              "SUDO Full Refresh", 0, NULL);
+                              "SUDO Full Refresh",
+                              BE_PTASK_OFFLINE_DISABLE |
+                              BE_PTASK_SCHEDULE_FROM_LAST,
+                              NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup full refresh ptask "
                   "[%d]: %s\n", ret, sss_strerror(ret));
@@ -109,11 +110,12 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
      * when offline. */
     if (smart > 0) {
         ret = be_ptask_create(be_ctx, be_ctx, smart, delay + smart, smart, 0,
-                              smart, BE_PTASK_OFFLINE_DISABLE,
-                              BE_PTASK_SCHEDULE_FROM_LAST,
-                              0,
+                              smart,                              0,
                               smart_send_fn, smart_recv_fn, pvt,
-                              "SUDO Smart Refresh", 0, NULL);
+                              "SUDO Smart Refresh",
+                              BE_PTASK_OFFLINE_DISABLE |
+                              BE_PTASK_SCHEDULE_FROM_LAST,
+                              NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup smart refresh ptask "
                   "[%d]: %s\n", ret, sss_strerror(ret));
