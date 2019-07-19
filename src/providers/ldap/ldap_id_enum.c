@@ -102,7 +102,7 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
                           BE_PTASK_SCHEDULE_FROM_LAST,
                           0,                        /* max_backoff */
                           send_fn, recv_fn,
-                          ectx, "enumeration", &sdom->enum_task);
+                          ectx, "enumeration", 0, &sdom->enum_task);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to initialize enumeration periodic task\n");

@@ -388,7 +388,7 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
                           ad_machine_account_password_renewal_send,
                           ad_machine_account_password_renewal_recv,
                           renewal_data,
-                          "AD machine account password renewal", NULL);
+                          "AD machine account password renewal", 0, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "be_ptask_create failed.\n");
         goto done;

@@ -177,7 +177,7 @@ static errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
                               BE_PTASK_SCHEDULE_FROM_NOW,
                               0,
                               be_refresh_send, be_refresh_recv,
-                              ctx, "Refresh Records", NULL);
+                              ctx, "Refresh Records", 0, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Unable to initialize refresh periodic task [%d]: %s\n",

@@ -30,6 +30,14 @@ struct be_ctx;
 
 struct be_ptask;
 
+/* be_ptask flags */
+
+/**
+ * Do not schedule periodic task. This flag is useful for tasks that
+ * should be performend only when there is offline/online change.
+ */
+#define BE_PTASK_NO_PERIODIC         0x0001
+
 /**
  * Defines how should task behave when back end is offline.
  */
@@ -127,6 +135,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         be_ptask_recv_t recv_fn,
                         void *pvt,
                         const char *name,
+                        uint32_t flags,
                         struct be_ptask **_task);
 
 errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
@@ -141,6 +150,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                              be_ptask_sync_t fn,
                              void *pvt,
                              const char *name,
+                             uint32_t flags,
                              struct be_ptask **_task);
 
 void be_ptask_enable(struct be_ptask *task);
