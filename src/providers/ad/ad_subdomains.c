@@ -2065,12 +2065,13 @@ errno_t ad_subdomains_init(TALLOC_CTX *mem_ctx,
                   struct ad_subdomains_ctx, struct dp_subdomains_data, struct dp_reply_std);
 
     period = be_ctx->domain->subdomain_refresh_interval;
-    ret = be_ptask_create(sd_ctx, be_ctx, period, 0, 0, 0, period,
-                          BE_PTASK_OFFLINE_DISABLE,
+    ret = be_ptask_create(sd_ctx, be_ctx, period, 0, 0, 0, period, 0,
+                          ad_subdomains_ptask_send, ad_subdomains_ptask_recv,
+                          sd_ctx,
+                          "Subdomains Refresh",
+                          BE_PTASK_OFFLINE_DISABLE |
                           BE_PTASK_SCHEDULE_FROM_LAST,
-                          0,
-                          ad_subdomains_ptask_send, ad_subdomains_ptask_recv, sd_ctx,
-                          "Subdomains Refresh", 0, NULL);
+                          NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "
               "[%d]: %s\n", ret, sss_strerror(ret));

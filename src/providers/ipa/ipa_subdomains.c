@@ -3134,11 +3134,12 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
 
     period = be_ctx->domain->subdomain_refresh_interval;
     ret = be_ptask_create(sd_ctx, be_ctx, period, ptask_first_delay, 0, 0, period,
-                          BE_PTASK_OFFLINE_DISABLE,
-                          BE_PTASK_SCHEDULE_FROM_LAST,
                           0,
                           ipa_subdomains_ptask_send, ipa_subdomains_ptask_recv, sd_ctx,
-                          "Subdomains Refresh", 0, NULL);
+                          "Subdomains Refresh",
+                          BE_PTASK_OFFLINE_DISABLE |
+                          BE_PTASK_SCHEDULE_FROM_LAST,
+                          NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "
               "[%d]: %s\n", ret, sss_strerror(ret));

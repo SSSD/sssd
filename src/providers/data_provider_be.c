@@ -130,10 +130,10 @@ void be_mark_offline(struct be_ctx *ctx)
         ret = be_ptask_create_sync(ctx, ctx,
                                    offline_timeout, offline_timeout,
                                    offline_timeout, 30, offline_timeout,
-                                   BE_PTASK_OFFLINE_EXECUTE,
                                    3600 /* max_backoff */,
                                    try_to_go_online,
-                                   ctx, "Check if online (periodic)", 0,
+                                   ctx, "Check if online (periodic)",
+                                   BE_PTASK_OFFLINE_EXECUTE,
                                    &ctx->check_if_online_ptask);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,

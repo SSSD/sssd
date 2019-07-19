@@ -98,10 +98,13 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
         return EINVAL;
     }
 
-    ret = be_ptask_create(ad_opts, be_ctx, period, ptask_first_delay, 0, 0, period,
-                          BE_PTASK_OFFLINE_DISABLE, BE_PTASK_SCHEDULE_FROM_LAST, 0,
+    ret = be_ptask_create(ad_opts, be_ctx, period, ptask_first_delay, 0, 0,
+                          period, 0,
                           ad_dyndns_update_send, ad_dyndns_update_recv, ad_opts,
-                          "Dyndns update", 0, NULL);
+                          "Dyndns update",
+                          BE_PTASK_OFFLINE_DISABLE |
+                          BE_PTASK_SCHEDULE_FROM_LAST,
+                          NULL);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup ptask "

@@ -173,11 +173,12 @@ static errno_t be_refresh_ctx_init(struct be_ctx *be_ctx,
     refresh_interval = be_ctx->domain->refresh_expired_interval;
     if (refresh_interval > 0) {
         ret = be_ptask_create(be_ctx, be_ctx, refresh_interval, 30, 5, 0,
-                              refresh_interval, BE_PTASK_OFFLINE_SKIP,
-                              BE_PTASK_SCHEDULE_FROM_NOW,
-                              0,
+                              refresh_interval, 0,
                               be_refresh_send, be_refresh_recv,
-                              ctx, "Refresh Records", 0, NULL);
+                              ctx, "Refresh Records",
+                              BE_PTASK_OFFLINE_SKIP |
+                              BE_PTASK_SCHEDULE_FROM_NOW,
+                              NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Unable to initialize refresh periodic task [%d]: %s\n",

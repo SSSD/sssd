@@ -39,33 +39,23 @@ struct be_ptask;
 #define BE_PTASK_NO_PERIODIC         0x0001
 
 /**
- * Defines how should task behave when back end is offline.
+ * Flags defining the starting point for scheduling a task
  */
-enum be_ptask_offline {
-    /* current request will be skipped and rescheduled to 'now + period' */
-    BE_PTASK_OFFLINE_SKIP,
-
-    /* An offline and online callback is registered. The task is disabled
-     * immediately when back end goes offline and then enabled again
-     * when back end goes back online */
-    BE_PTASK_OFFLINE_DISABLE,
-
-    /* current request will be executed as planned */
-    BE_PTASK_OFFLINE_EXECUTE
-};
+/* Schedule starting from now, typically this is used when scheduling
+ * relative to the finish time */
+#define BE_PTASK_SCHEDULE_FROM_NOW   0x0002
+/* Schedule relative to the start time of the task */
+#define BE_PTASK_SCHEDULE_FROM_LAST  0x0004
 
 /**
- * Defines the starting point for scheduling a task
+ * Flags defining how should task behave when back end is offline.
  */
-enum be_ptask_schedule {
-    /* Schedule starting from now, typically this is used when scheduling
-     * relative to the finish time
-     */
-    BE_PTASK_SCHEDULE_FROM_NOW,
-    /* Schedule relative to the start time of the task
-     */
-    BE_PTASK_SCHEDULE_FROM_LAST
-};
+/* current request will be skipped and rescheduled to 'now + period' */
+#define BE_PTASK_OFFLINE_SKIP        0x0008
+/* An offline and online callback is registered. The task is disabled */
+#define BE_PTASK_OFFLINE_DISABLE     0x0010
+/* current request will be executed as planned */
+#define BE_PTASK_OFFLINE_EXECUTE     0x0020
 
 typedef struct tevent_req *
 (*be_ptask_send_t)(TALLOC_CTX *mem_ctx,
@@ -128,8 +118,6 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t enabled_delay,
                         time_t random_offset,
                         time_t timeout,
-                        enum be_ptask_offline offline,
-                        enum be_ptask_schedule success_schedule_type,
                         time_t max_backoff,
                         be_ptask_send_t send_fn,
                         be_ptask_recv_t recv_fn,
@@ -145,7 +133,6 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                              time_t enabled_delay,
                              time_t random_offset,
                              time_t timeout,
-                             enum be_ptask_offline offline,
                              time_t max_backoff,
                              be_ptask_sync_t fn,
                              void *pvt,
