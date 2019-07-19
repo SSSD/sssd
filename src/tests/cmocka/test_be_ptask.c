@@ -304,9 +304,10 @@ void test_be_ptask_create_einval_be(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, NULL, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, NULL, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, NULL, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, EINVAL);
     assert_null(ptask);
 }
@@ -318,9 +319,10 @@ void test_be_ptask_create_einval_period(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, 0, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, NULL, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, NULL, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, EINVAL);
     assert_null(ptask);
 }
@@ -332,9 +334,10 @@ void test_be_ptask_create_einval_send(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, NULL,
-                          test_be_ptask_recv, NULL, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, NULL, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, EINVAL);
     assert_null(ptask);
 }
@@ -346,9 +349,10 @@ void test_be_ptask_create_einval_recv(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          NULL, NULL, "Test ptask", 0, &ptask);
+                          NULL, NULL, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, EINVAL);
     assert_null(ptask);
 }
@@ -360,9 +364,72 @@ void test_be_ptask_create_einval_name(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, NULL, NULL, 0, &ptask);
+                          test_be_ptask_recv, NULL, NULL,
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
+    assert_int_equal(ret, EINVAL);
+    assert_null(ptask);
+}
+
+void test_be_ptask_mixed_from_flags_einval(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    errno_t ret;
+
+    ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
+                          0, test_be_ptask_send,
+                          test_be_ptask_recv, NULL, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP |
+                          BE_PTASK_SCHEDULE_FROM_LAST |
+                          BE_PTASK_SCHEDULE_FROM_NOW,
+                          &ptask);
+    assert_int_equal(ret, EINVAL);
+    assert_null(ptask);
+}
+
+void test_be_ptask_no_from_flags_einval(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    errno_t ret;
+
+    ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
+                          0, test_be_ptask_send,
+                          test_be_ptask_recv, NULL, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP,
+                          &ptask);
+    assert_int_equal(ret, EINVAL);
+    assert_null(ptask);
+}
+void test_be_ptask_mixed_offline_flags_einval(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    errno_t ret;
+
+    ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
+                          0, test_be_ptask_send,
+                          test_be_ptask_recv, NULL, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP |
+                          BE_PTASK_OFFLINE_DISABLE |
+                          BE_PTASK_SCHEDULE_FROM_NOW,
+                          &ptask);
+    assert_int_equal(ret, EINVAL);
+    assert_null(ptask);
+}
+void test_be_ptask_no_offline_flags_einval(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    errno_t ret;
+
+    ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
+                          0, test_be_ptask_send,
+                          test_be_ptask_recv, NULL, "Test ptask",
+                          BE_PTASK_SCHEDULE_FROM_NOW,
+                          &ptask);
     assert_int_equal(ret, EINVAL);
     assert_null(ptask);
 }
@@ -376,9 +443,10 @@ void test_be_ptask_create_no_delay(void **state)
 
     now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -404,9 +472,10 @@ void test_be_ptask_create_first_delay(void **state)
 
     now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, DELAY, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -430,9 +499,10 @@ void test_be_ptask_disable(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -455,9 +525,10 @@ void test_be_ptask_enable(void **state)
 
     now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -488,9 +559,10 @@ void test_be_ptask_enable_delay(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, DELAY, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -528,9 +600,10 @@ void test_be_ptask_offline_skip(void **state)
 
     now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -562,10 +635,11 @@ void test_be_ptask_offline_disable(void **state)
     will_return(be_add_offline_cb, test_ctx);
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_DISABLE,
-                          BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_DISABLE |
+                          BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -594,10 +668,11 @@ void test_be_ptask_offline_execute(void **state)
     mark_offline(test_ctx);
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_EXECUTE,
-                          BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_EXECUTE |
+                          BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -623,9 +698,10 @@ void test_be_ptask_reschedule_ok(void **state)
 
     now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -655,9 +731,9 @@ void test_be_ptask_reschedule_null(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_null_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0,
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
                           &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
@@ -683,9 +759,9 @@ void test_be_ptask_reschedule_error(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_error_recv, test_ctx, "Test ptask", 0,
+                          test_be_ptask_error_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
                           &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
@@ -711,9 +787,9 @@ void test_be_ptask_reschedule_timeout(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 1,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_timeout_send,
-                          test_be_ptask_error_recv, test_ctx, "Test ptask", 0,
+                          test_be_ptask_error_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
                           &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
@@ -749,9 +825,10 @@ void test_be_ptask_reschedule_backoff(void **state)
 
     now_first = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           PERIOD*2, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -804,9 +881,10 @@ void test_be_ptask_get_period(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
 
@@ -825,9 +903,10 @@ void test_be_ptask_get_timeout(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, TIMEOUT,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
-                          test_be_ptask_recv, test_ctx, "Test ptask", 0, &ptask);
+                          test_be_ptask_recv, test_ctx, "Test ptask",
+                          BE_PTASK_OFFLINE_SKIP | BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
 
@@ -845,10 +924,12 @@ void test_be_ptask_no_periodic(void **state)
     errno_t ret;
 
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, 0, 0, DELAY, 0, 0,
-                          BE_PTASK_OFFLINE_SKIP, BE_PTASK_SCHEDULE_FROM_LAST,
                           0, test_be_ptask_send,
                           test_be_ptask_recv, test_ctx, "Test ptask",
-                          BE_PTASK_NO_PERIODIC, &ptask);
+                          BE_PTASK_NO_PERIODIC |
+                          BE_PTASK_OFFLINE_SKIP |
+                          BE_PTASK_SCHEDULE_FROM_LAST,
+                          &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
 
@@ -865,8 +946,8 @@ void test_be_ptask_create_sync(void **state)
 
     now = get_current_time();
     ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                               BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_sync,
-                               test_ctx, "Test ptask", 0, &ptask);
+                               0, test_be_ptask_sync, test_ctx, "Test ptask",
+                               BE_PTASK_OFFLINE_SKIP, &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -893,8 +974,8 @@ void test_be_ptask_sync_reschedule_ok(void **state)
 
     now = get_current_time();
     ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                               BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_sync,
-                               test_ctx, "Test ptask", 0, &ptask);
+                               0, test_be_ptask_sync, test_ctx, "Test ptask",
+                               BE_PTASK_OFFLINE_SKIP, &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -924,9 +1005,9 @@ void test_be_ptask_sync_reschedule_error(void **state)
     errno_t ret;
 
     ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                               BE_PTASK_OFFLINE_SKIP, 0,
-                               test_be_ptask_sync_error,
-                               test_ctx, "Test ptask", 0, &ptask);
+                               0, test_be_ptask_sync_error,
+                               test_ctx, "Test ptask",
+                               BE_PTASK_OFFLINE_SKIP, &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -953,10 +1034,11 @@ void test_be_ptask_sync_reschedule_backoff(void **state)
     errno_t ret;
 
     now_first = get_current_time();
-    ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
-                               BE_PTASK_OFFLINE_SKIP, PERIOD*2,
+    ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD,
+                               0, 0, 0, 0, PERIOD*2,
                                test_be_ptask_sync_error,
-                               test_ctx, "Test ptask", 0, &ptask);
+                               test_ctx, "Test ptask",
+                               BE_PTASK_OFFLINE_SKIP, &ptask);
     assert_int_equal(ret, ERR_OK);
     assert_non_null(ptask);
     assert_non_null(ptask->timer);
@@ -1017,6 +1099,10 @@ int main(int argc, const char *argv[])
         new_test(be_ptask_create_einval_send),
         new_test(be_ptask_create_einval_recv),
         new_test(be_ptask_create_einval_name),
+        new_test(be_ptask_mixed_from_flags_einval),
+        new_test(be_ptask_no_from_flags_einval),
+        new_test(be_ptask_mixed_offline_flags_einval),
+        new_test(be_ptask_no_offline_flags_einval),
         new_test(be_ptask_create_no_delay),
         new_test(be_ptask_create_first_delay),
         new_test(be_ptask_disable),
