@@ -1451,7 +1451,7 @@ static void sdap_cli_rootdse_auth_done(struct tevent_req *subreq);
 
 static errno_t
 decide_tls_usage(enum connect_tls force_tls, struct dp_option *basic,
-                 const char *uri, bool *_use_tls)
+                 struct sdap_service *service, bool *_use_tls)
 {
     bool use_tls = true;
 
@@ -1470,9 +1470,17 @@ decide_tls_usage(enum connect_tls force_tls, struct dp_option *basic,
         break;
     }
 
-    if (use_tls && sdap_is_secure_uri(uri)) {
+    if (use_tls && sdap_is_secure_uri(service->uri)) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              "[%s] is a secure channel. No need to run START_TLS\n", uri);
+              "[%s] is a secure channel. No need to run START_TLS\n",
+              service->uri);
+        use_tls = false;
+    }
+
+    if (use_tls && sdap_is_loopback_address(service->sockaddr)) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "[%s] is a loopback address. No need to run START_TLS\n",
+              service->uri);
         use_tls = false;
     }
 
@@ -1555,7 +1563,7 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     }
 
     ret = decide_tls_usage(state->force_tls, state->opts->basic,
-                           state->service->uri, &state->use_tls);
+                           state->service, &state->use_tls);
 
     if (ret != EOK) {
         tevent_req_error(req, EINVAL);

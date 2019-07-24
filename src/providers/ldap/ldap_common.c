@@ -23,6 +23,7 @@
 */
 
 #include <signal.h>
+#include <arpa/inet.h>
 
 #include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
@@ -789,6 +790,28 @@ bool sdap_is_secure_uri(const char *uri)
     if (strncasecmp(uri, LDAP_SSL_URI, strlen(LDAP_SSL_URI)) == 0) {
         return true;
     }
+    return false;
+}
+
+bool sdap_is_loopback_address(struct sockaddr_storage *ss)
+{
+    if (ss != NULL) {
+        switch (ss->ss_family) {
+        case AF_INET:
+        {
+            struct sockaddr_in *addr = (struct sockaddr_in *)ss;
+            return (inet_netof(addr->sin_addr) == IN_LOOPBACKNET);
+        }
+        case AF_INET6:
+        {
+            struct sockaddr_in6 *addr = (struct sockaddr_in6 *)ss;
+            return IN6_IS_ADDR_LOOPBACK(&(addr->sin6_addr));
+        }
+        default:
+                break;
+        }
+    }
+
     return false;
 }
 

@@ -296,6 +296,7 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
                            char ***missing_attrs);
 
 bool sdap_is_secure_uri(const char *uri);
+bool sdap_is_loopback_address(struct sockaddr_storage *ss);
 
 char *sdap_or_filters(TALLOC_CTX *mem_ctx,
                       const char *base_filter,
