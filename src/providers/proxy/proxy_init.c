@@ -417,6 +417,11 @@ errno_t sssm_proxy_resolver_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    dp_set_method(dp_methods, DPM_RESOLVER_HOSTS_HANDLER,
+                  proxy_hosts_handler_send, proxy_hosts_handler_recv,
+                  module_ctx->resolver_ctx, struct proxy_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
     ret = EOK;
 
 done:
