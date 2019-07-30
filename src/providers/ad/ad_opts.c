@@ -24,6 +24,7 @@
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_sudo.h"
+#include "db/sysdb_iphosts.h"
 #include "providers/ldap/ldap_common.h"
 #include "config.h"
 
@@ -89,6 +90,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_sudo_include_regexp", DP_OPT_BOOL, BOOL_TRUE, BOOL_FALSE },
     { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_autofs_map_master_name", DP_OPT_STRING, { "auto.master" }, NULL_STRING },
+    { "ldap_iphost_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ad" }, NULL_STRING },
     { "ldap_pwmodify_mode", DP_OPT_STRING, { "exop" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
@@ -277,6 +279,14 @@ struct sdap_attr_map ad_autofs_entry_map[] = {
     { "ldap_autofs_entry_object_class", "nisObject", SYSDB_AUTOFS_ENTRY_OC, NULL },
     { "ldap_autofs_entry_key", "cn", SYSDB_AUTOFS_ENTRY_KEY, NULL },
     { "ldap_autofs_entry_value", "nisMapEntry", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map ad_iphost_map[] = {
+    { "ldap_iphost_object_class", "device", SYSDB_IP_HOST_CLASS, NULL },
+    { "ldap_iphost_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_iphost_number", "ipHostNumber", SYSDB_IP_HOST_ATTR_ADDRESS, NULL },
+    { "ldap_iphost_entry_usn", NULL, SYSDB_USN, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
