@@ -586,6 +586,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
                 current_srv_opts->max_group_value = 0;
                 current_srv_opts->max_service_value = 0;
                 current_srv_opts->max_sudo_value = 0;
+                current_srv_opts->max_iphost_value = 0;
                 current_srv_opts->last_usn = srv_opts->last_usn;
 
                 reinit = true;
