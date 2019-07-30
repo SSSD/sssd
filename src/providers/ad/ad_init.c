@@ -37,6 +37,7 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_init_shared.h"
 #include "providers/ad/ad_id.h"
+#include "providers/ad/ad_resolver.h"
 #include "providers/ad/ad_srv.h"
 #include "providers/be_dyndns.h"
 #include "providers/ad/ad_subdomains.h"
@@ -694,6 +695,16 @@ errno_t sssm_ad_resolver_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to initialize AD resolver context\n");
+        return ret;
+    }
+
+    ret = ad_resolver_setup_tasks(be_ctx, init_ctx->resolver_ctx,
+                                  ad_resolver_enumeration_send,
+                                  ad_resolver_enumeration_recv);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to setup resolver background tasks [%d]: %s\n",
+              ret, sss_strerror(ret));
         return ret;
     }
 

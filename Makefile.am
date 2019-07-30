@@ -858,6 +858,7 @@ dist_noinst_HEADERS = \
     src/providers/ad/ad_opts.h \
     src/providers/ad/ad_domain_info.h \
     src/providers/ad/ad_subdomains.h \
+    src/providers/ad/ad_resolver.h \
     src/providers/proxy/proxy.h \
     src/providers/files/files_private.h \
     src/tools/tools_util.h \
@@ -4554,6 +4555,7 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_subdomains.c \
     src/providers/ad/ad_domain_info.c \
     src/providers/ad/ad_refresh.c \
+    src/providers/ad/ad_resolver.c \
     $(NULL)
 
 
