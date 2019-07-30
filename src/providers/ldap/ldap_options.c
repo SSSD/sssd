@@ -36,6 +36,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_netgroup_map;
     struct sdap_attr_map *default_host_map;
     struct sdap_attr_map *default_service_map;
+    struct sdap_attr_map *default_iphost_map;
     struct sdap_options *opts;
     char *schema;
     char *pwmodify;
@@ -55,6 +56,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
                                         SDAP_NETGROUP_SEARCH_BASE,
                                         SDAP_HOST_SEARCH_BASE,
                                         SDAP_SERVICE_SEARCH_BASE,
+                                        SDAP_IPHOST_SEARCH_BASE,
                                         -1 };
 
     opts = talloc_zero(memctx, struct sdap_options);
@@ -131,6 +133,12 @@ int ldap_get_options(TALLOC_CTX *memctx,
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
                                  &opts->sdom->service_search_bases);
+    if (ret != EOK && ret != ENOENT) goto done;
+
+    /* IP host search */
+    ret = sdap_parse_search_base(opts, opts->basic,
+                                 SDAP_IPHOST_SEARCH_BASE,
+                                 &opts->sdom->iphost_search_bases);
     if (ret != EOK && ret != ENOENT) goto done;
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
@@ -227,6 +235,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_host_map = host_map;
         default_service_map = service_map;
+        default_iphost_map = iphost_map;
     } else
     if (strcasecmp(schema, "rfc2307bis") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
@@ -236,6 +245,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_host_map = host_map;
         default_service_map = service_map;
+        default_iphost_map = iphost_map;
     } else
     if (strcasecmp(schema, "IPA") == 0) {
         opts->schema_type = SDAP_SCHEMA_IPA_V1;
@@ -245,6 +255,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_host_map = host_map;
         default_service_map = service_map;
+        default_iphost_map = iphost_map;
     } else
     if (strcasecmp(schema, "AD") == 0) {
         opts->schema_type = SDAP_SCHEMA_AD;
@@ -254,6 +265,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_host_map = host_map;
         default_service_map = service_map;
+        default_iphost_map = iphost_map;
     } else {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized schema type: %s\n", schema);
         ret = EINVAL;
@@ -323,6 +335,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
                        default_service_map,
                        SDAP_OPTS_SERVICES,
                        &opts->service_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_iphost_map,
+                       SDAP_OPTS_IPHOST,
+                       &opts->iphost_map);
     if (ret != EOK) {
         goto done;
     }
@@ -650,6 +670,9 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     case SDAP_AUTOFS_SEARCH_BASE:
         class_name = "AUTOFS";
+        break;
+    case SDAP_IPHOST_SEARCH_BASE:
+        class_name = "IPHOST";
         break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
