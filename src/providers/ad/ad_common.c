@@ -104,6 +104,15 @@ ad_create_default_sdap_options(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    /* IP host map */
+    ret = sdap_copy_map(id_opts,
+                        ad_iphost_map,
+                        SDAP_OPTS_IPHOST,
+                        &id_opts->iphost_map);
+    if (ret != EOK) {
+        goto fail;
+    }
+
     return id_opts;
 
 fail:
@@ -205,6 +214,16 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
                        ad_service_map,
                        SDAP_OPTS_SERVICES,
                        &id_opts->service_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* IP host map */
+    ret = sdap_get_map(id_opts,
+                       cdb, conf_path,
+                       ad_iphost_map,
+                       SDAP_OPTS_IPHOST,
+                       &id_opts->iphost_map);
     if (ret != EOK) {
         goto done;
     }

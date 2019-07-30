@@ -845,7 +845,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'ipa': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs',
                     'session', 'hostid', 'subdomains'],
             'ad': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs',
-                   'subdomains'],
+                   'subdomains', 'resolver'],
             'local': ['id', 'auth', 'chpass'],
             'ldap': ['id', 'auth', 'access', 'chpass', 'sudo', 'autofs',
                      'resolver'],
