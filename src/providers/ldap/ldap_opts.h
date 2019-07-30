@@ -54,6 +54,8 @@ extern struct sdap_attr_map native_sudorule_map[];
 
 extern struct sdap_attr_map service_map[];
 
+extern struct sdap_attr_map iphost_map[];
+
 extern struct sdap_attr_map rfc2307_autofs_mobject_map[];
 
 extern struct sdap_attr_map rfc2307_autofs_entry_map[];

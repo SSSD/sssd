@@ -527,6 +527,13 @@ class SSSDOptions(object):
         'ldap_autofs_search_base': _('Base DN for automounter map lookups'),
         'ldap_autofs_map_master_name': _('The name of the automount master map in LDAP.'),
 
+        # [provider/ldap/resolver]
+        'ldap_iphost_search_base': _('Base DN for IP hosts lookups'),
+        'ldap_iphost_object_class': _('Object class for IP hosts'),
+        'ldap_iphost_name': _('IP host name attribute'),
+        'ldap_iphost_number': _('IP host number (address) attribute'),
+        'ldap_iphost_entry_usn': _('IP host entryUSN attribute'),
+
         # [provider/simple/access]
         'simple_allow_users': _('Comma separated list of allowed users'),
         'simple_deny_users': _('Comma separated list of prohibited users'),
