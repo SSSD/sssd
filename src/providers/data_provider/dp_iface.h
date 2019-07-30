@@ -145,6 +145,23 @@ dp_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
                            uint32_t *_error,
                            const char **_err_msg);
 
+struct tevent_req *
+dp_resolver_handler_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sbus_request *sbus_req,
+                         struct data_provider *provider,
+                         uint32_t dp_flags,
+                         uint32_t entry_type,
+                         uint32_t filter_type,
+                         const char *filter_value);
+
+errno_t
+dp_resolver_handler_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         uint16_t *_dp_error,
+                         uint32_t *_error,
+                         const char **_err_msg);
+
 /*
  * Return a domain the account belongs to.
  *
