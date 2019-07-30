@@ -27,8 +27,6 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_enum.h"
 
-#define LDAP_ENUM_PURGE_TIMEOUT 10800
-
 errno_t ldap_id_setup_enumeration(struct be_ctx *be_ctx,
                                   struct sdap_id_ctx *id_ctx,
                                   struct sdap_domain *sdom,

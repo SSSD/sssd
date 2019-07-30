@@ -832,6 +832,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_dyndns.h \
     src/providers/ldap/sdap_async_enum.h \
     src/providers/ldap/sdap_ops.h \
+    src/providers/ldap/ldap_resolver_enum.h \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
@@ -4218,6 +4219,7 @@ pkglib_LTLIBRARIES += libsss_ldap_common.la
 libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
+    src/providers/ldap/ldap_resolver_enum.c \
     src/providers/ldap/sdap_async_enum.c \
     src/providers/ldap/ldap_id_cleanup.c \
     src/providers/ldap/ldap_id_netgroup.c \

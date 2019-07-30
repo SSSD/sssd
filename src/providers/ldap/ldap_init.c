@@ -31,6 +31,7 @@
 #include "providers/ldap/sdap_sudo.h"
 #include "providers/ldap/sdap_autofs.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ldap/ldap_resolver_enum.h"
 #include "providers/fail_over_srv.h"
 #include "providers/be_refresh.h"
 
@@ -720,6 +721,16 @@ errno_t sssm_ldap_resolver_init(TALLOC_CTX *mem_ctx,
     ret = sdap_resolver_ctx_new(init_ctx, init_ctx->id_ctx,
                                 &init_ctx->resolver_ctx);
     if (ret != EOK) {
+        return ret;
+    }
+
+    ret = ldap_resolver_setup_tasks(be_ctx, init_ctx->resolver_ctx,
+                                    ldap_resolver_enumeration_send,
+                                    ldap_resolver_enumeration_recv);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to setup resolver background tasks [%d]: %s\n",
+              ret, sss_strerror(ret));
         return ret;
     }
 
