@@ -22,6 +22,7 @@
 
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/ldap_resolver_enum.h"
+#include "providers/ldap/sdap_async_resolver_enum.h"
 
 static errno_t
 ldap_resolver_setup_enumeration(struct be_ctx *be_ctx,
@@ -214,8 +215,10 @@ ldap_resolver_setup_tasks(struct be_ctx *be_ctx,
 }
 
 struct ldap_resolver_enum_state {
-    int dummy;
+    struct sdap_resolver_ctx *resolver_ctx;
 };
+
+static void ldap_resolver_enumeration_done(struct tevent_req *subreq);
 
 struct tevent_req *
 ldap_resolver_enumeration_send(TALLOC_CTX *mem_ctx,
@@ -225,15 +228,65 @@ ldap_resolver_enumeration_send(TALLOC_CTX *mem_ctx,
                                void *pvt)
 {
     struct ldap_resolver_enum_state *state;
+    struct sdap_resolver_ctx *resolver_ctx;
     struct tevent_req *req;
+    struct tevent_req *subreq;
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct ldap_resolver_enum_state);
     if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
+    resolver_ctx = talloc_get_type(pvt, struct sdap_resolver_ctx);
+    if (resolver_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot retrieve sdap_resolver_ctx!\n");
+        ret = EFAULT;
+        goto fail;
+    }
+
+    state->resolver_ctx = resolver_ctx;
+
+    subreq = sdap_dom_resolver_enum_send(state, ev, state->resolver_ctx,
+                                         state->resolver_ctx->id_ctx,
+                                         state->resolver_ctx->id_ctx->opts->sdom,
+                                         state->resolver_ctx->id_ctx->conn);
+    if (subreq == NULL) {
+        /* The ptask API will reschedule the enumeration on its own on
+         * failure */
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to schedule enumeration, retrying later!\n");
+        ret = EIO;
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, ldap_resolver_enumeration_done, req);
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void
+ldap_resolver_enumeration_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+
+    ret = sdap_dom_resolver_enum_recv(subreq);
+
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not enumerate domain\n");
+        tevent_req_error(req, ret);
+        return;
+    }
+
     tevent_req_done(req);
-    return tevent_req_post(req, ev);
 }
 
 errno_t
