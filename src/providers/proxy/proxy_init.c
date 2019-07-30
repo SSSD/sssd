@@ -102,6 +102,42 @@ static errno_t proxy_auth_conf(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static errno_t proxy_resolver_conf(TALLOC_CTX *mem_ctx,
+                                   struct be_ctx *be_ctx,
+                                   char **_libname)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *libname;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
+                            CONFDB_PROXY_RESOLVER_LIBNAME, NULL, &libname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read confdb [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    } else if (libname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No resolver library name given\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_libname = talloc_steal(mem_ctx, libname);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static errno_t proxy_init_auth_ctx(TALLOC_CTX *mem_ctx,
                                    struct be_ctx *be_ctx,
                                    struct data_provider *provider,
@@ -179,25 +215,23 @@ errno_t sssm_proxy_init(TALLOC_CTX *mem_ctx,
     struct proxy_module_ctx *module_ctx;
     errno_t ret;
 
-    if (!dp_target_enabled(provider, module_name,
-                           DPT_ACCESS, DPT_AUTH, DPT_CHPASS)) {
-        return EOK;
-    }
-
     module_ctx = talloc_zero(mem_ctx, struct proxy_module_ctx);
     if (module_ctx == NULL) {
         return ENOMEM;
     }
 
-    /* Initialize auth_ctx since one of the access, auth or chpass is set. */
-
-    ret = proxy_init_auth_ctx(module_ctx, be_ctx, provider,
-                              &module_ctx->auth_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context [%d]: %s\n",
-              ret, sss_strerror(ret));
-        talloc_free(module_ctx);
-        return ret;
+    if (dp_target_enabled(provider, module_name,
+                          DPT_ACCESS, DPT_AUTH, DPT_CHPASS)) {
+        /* Initialize auth_ctx since one of the access, auth or chpass is
+         * set. */
+        ret = proxy_init_auth_ctx(module_ctx, be_ctx, provider,
+                                  &module_ctx->auth_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create auth context [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            talloc_free(module_ctx);
+            return ret;
+        }
     }
 
     *_module_data = module_ctx;
@@ -240,6 +274,27 @@ static errno_t proxy_load_nss_symbols(struct sss_nss_ops *ops,
     return EOK;
 }
 
+static errno_t proxy_load_nss_hosts_symbols(struct sss_nss_ops *ops,
+                                            const char *libname)
+{
+    errno_t ret;
+    struct sss_nss_symbols syms[] = {
+        {(void*)&ops->gethostbyname_r,  true,  "gethostbyname_r"},
+        {(void*)&ops->gethostbyname2_r, true,  "gethostbyname2_r"},
+        {(void*)&ops->gethostbyaddr_r,  true,  "gethostbyaddr_r"},
+        {(void*)&ops->sethostent,       false, "sethostent"},
+        {(void*)&ops->gethostent_r,     false, "gethostent_r"},
+        {(void*)&ops->endhostent,       false, "endhostent"},
+    };
+    size_t nsyms = sizeof(syms) / sizeof(struct sss_nss_symbols);
+
+    ret = sss_load_nss_symbols(ops, libname, syms, nsyms);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
 
 errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
                            struct be_ctx *be_ctx,
@@ -330,4 +385,44 @@ errno_t sssm_proxy_access_init(TALLOC_CTX *mem_ctx,
                   struct pam_data, struct pam_data *);
 
     return EOK;
+}
+
+errno_t sssm_proxy_resolver_init(TALLOC_CTX *mem_ctx,
+                                 struct be_ctx *be_ctx,
+                                 void *module_data,
+                                 struct dp_method *dp_methods)
+{
+    struct proxy_module_ctx *module_ctx;
+    char *libname;
+    errno_t ret;
+
+    /* New config option proxy_resolver_target = files | dns | mdns4 ... */
+
+    module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
+
+    module_ctx->resolver_ctx = talloc_zero(mem_ctx, struct proxy_resolver_ctx);
+    if (module_ctx->resolver_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = proxy_resolver_conf(module_ctx->resolver_ctx, be_ctx, &libname);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = proxy_load_nss_hosts_symbols(&module_ctx->resolver_ctx->ops, libname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_zfree(module_ctx->resolver_ctx);
+    }
+
+    return ret;
 }
