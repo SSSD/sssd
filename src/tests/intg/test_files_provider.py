@@ -235,6 +235,7 @@ def proxy_to_files_domain_only(request):
         id_provider = proxy
         proxy_lib_name = files
         auth_provider = none
+        resolver_provider = none
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)

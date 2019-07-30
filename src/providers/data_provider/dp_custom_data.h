@@ -58,6 +58,11 @@ struct dp_id_data {
     const char *domain;
 };
 
+struct dp_resolver_data {
+    uint32_t filter_type;
+    const char *filter_value;
+};
+
 /* Reply private data. */
 
 struct dp_reply_std {

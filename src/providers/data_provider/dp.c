@@ -88,6 +88,7 @@ dp_init_interface(struct data_provider *provider)
             SBUS_ASYNC(METHOD, sssd_dataprovider, pamHandler, dp_pam_handler_send, dp_pam_handler_recv, provider),
             SBUS_ASYNC(METHOD, sssd_dataprovider, sudoHandler, dp_sudo_handler_send, dp_sudo_handler_recv, provider),
             SBUS_ASYNC(METHOD, sssd_dataprovider, hostHandler, dp_host_handler_send, dp_host_handler_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_dataprovider, resolverHandler, dp_resolver_handler_send, dp_resolver_handler_recv, provider),
             SBUS_ASYNC(METHOD, sssd_dataprovider, getDomains, dp_subdomains_handler_send, dp_subdomains_handler_recv, provider),
             SBUS_ASYNC(METHOD, sssd_dataprovider, getAccountInfo, dp_get_account_info_send, dp_get_account_info_recv, provider),
             SBUS_ASYNC(METHOD, sssd_dataprovider, getAccountDomain, dp_get_account_domain_send, dp_get_account_domain_recv, provider)
