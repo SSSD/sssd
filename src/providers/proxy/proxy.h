@@ -65,9 +65,14 @@ struct proxy_auth_ctx {
     int timeout_ms;
 };
 
+struct proxy_resolver_ctx {
+    struct sss_nss_ops ops;
+};
+
 struct proxy_module_ctx {
     struct proxy_id_ctx *id_ctx;
     struct proxy_auth_ctx *auth_ctx;
+    struct proxy_resolver_ctx *resolver_ctx;
 };
 
 struct proxy_child_ctx {
