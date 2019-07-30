@@ -1,7 +1,7 @@
 // constants
 global TARGET_ID=0, TARGET_AUTH=1, TARGET_ACCESS=2, TARGET_CHPASS=3,
        TARGET_SUDO=4, TARGET_AUTOFS=5, TARGET_SELINUX=6, TARGET_HOSTID=7,
-       TARGET_SUBDOMAINS=8, TARGET_SENTINEL=9
+       TARGET_SUBDOMAINS=8, TARGET_SESSION=9, TARGET_SENTINEL=10
 
 global METHOD_CHECK_ONLINE=0, METHOD_ACCOUNT_HANDLER=1, METHOD_AUTH_HANDLER=2,
        METHOD_ACCESS_HANDLER=3, METHOD_SELINUX_HANDLER=4, METHOD_SUDO_HANDLER=5,
@@ -95,6 +95,8 @@ function dp_target_str(target)
         str_target = "HOSTID"
     } else if (target == TARGET_SUBDOMAINS) {
         str_target = "SUBDOMAINS"
+    } else if (target == TARGET_SESSION) {
+        str_target = "SESSION"
     } else if (target == TARGET_SENTINEL) {
         str_target = "TARGET_SENTINEL"
     } else {
