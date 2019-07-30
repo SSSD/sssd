@@ -42,6 +42,8 @@
 /* Only the asterisk is allowed in wildcard requests */
 #define LDAP_ALLOWED_WILDCARDS "*"
 
+#define LDAP_ENUM_PURGE_TIMEOUT 10800
+
 /* a fd the child process would log into */
 extern int ldap_child_debug_fd;
 
@@ -92,6 +94,14 @@ struct sdap_auth_ctx {
 
 struct sdap_resolver_ctx {
     struct sdap_id_ctx *id_ctx;
+
+    /* Enumeration/cleanup periodic task */
+    struct be_ptask *task;
+
+    /* enumeration loop timer */
+    struct timeval last_enum;
+    /* cleanup loop timer */
+    struct timeval last_purge;
 };
 
 struct tevent_req *
