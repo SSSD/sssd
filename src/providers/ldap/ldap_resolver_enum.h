@@ -38,4 +38,7 @@ ldap_resolver_enumeration_send(TALLOC_CTX *mem_ctx,
 errno_t
 ldap_resolver_enumeration_recv(struct tevent_req *req);
 
+errno_t
+ldap_resolver_cleanup(struct sdap_resolver_ctx *ctx);
+
 #endif /* LDAP_RESOLVER_ENUM_H_ */
