@@ -132,9 +132,7 @@ ldap_resolver_cleanup_task(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    /* TODO */
-
-    return EOK;
+    return ldap_resolver_cleanup(resolver_ctx);
 }
 
 static errno_t
