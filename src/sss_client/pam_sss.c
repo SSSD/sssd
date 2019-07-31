@@ -1609,7 +1609,7 @@ static int prompt_2fa_single(pam_handle_t *pamh, struct pam_items *pi,
     return PAM_SUCCESS;
 }
 
-#define SC_PROMPT_FMT "PIN for %s"
+#define SC_PROMPT_FMT "PIN for %s: "
 
 #ifndef discard_const
 #define discard_const(ptr) ((void *)((uintptr_t)(ptr)))
