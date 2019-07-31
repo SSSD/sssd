@@ -4222,6 +4222,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_id.c \
     src/providers/ldap/ldap_id_enum.c \
     src/providers/ldap/ldap_resolver_enum.c \
+    src/providers/ldap/ldap_resolver_cleanup.c \
     src/providers/ldap/sdap_async_enum.c \
     src/providers/ldap/sdap_async_resolver_enum.c \
     src/providers/ldap/ldap_id_cleanup.c \

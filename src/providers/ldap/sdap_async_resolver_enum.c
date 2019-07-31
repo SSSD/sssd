@@ -22,6 +22,7 @@
 
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/ldap_resolver_enum.h"
 #include "providers/ldap/sdap_async_resolver_enum.h"
 
 static errno_t sdap_dom_resolver_enum_retry(struct tevent_req *req,
@@ -214,7 +215,15 @@ static void sdap_dom_resolver_enum_iphost_done(struct tevent_req *subreq)
     }
 
     if (state->purge) {
-	    // TODO
+        ret = ldap_resolver_cleanup(state->resolver_ctx);
+        if (ret != EOK) {
+            /* Not fatal, worst case we'll have stale entries that would be
+             * removed on a subsequent online lookup
+             */
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cleanup failed: [%d]: %s\n",
+                  ret, sss_strerror(ret));
+        }
+
     }
 
     tevent_req_done(req);
