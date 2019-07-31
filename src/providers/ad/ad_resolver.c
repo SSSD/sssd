@@ -24,6 +24,7 @@
 #include "providers/ad/ad_domain_info.h"
 #include "providers/ad/ad_resolver.h"
 #include "providers/ldap/sdap_async_resolver_enum.h"
+#include "providers/ldap/ldap_resolver_enum.h"
 
 static errno_t
 ad_resolver_setup_enumeration(struct be_ctx *be_ctx,
@@ -133,8 +134,7 @@ ad_resolver_cleanup_task(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    // TODO
-    return EOK;
+    return ldap_resolver_cleanup(resolver_ctx->sdap_resolver_ctx);
 }
 
 static errno_t
