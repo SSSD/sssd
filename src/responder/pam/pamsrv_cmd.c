@@ -814,6 +814,7 @@ static void pam_reply(struct pam_auth_req *preq)
           pd->pam_status, pam_strerror(NULL, pd->pam_status));
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE
+            && !preq->cert_auth_local
             && (pd->pam_status == PAM_AUTHINFO_UNAVAIL
                 || pd->pam_status == PAM_NO_MODULE_DATA
                 || pd->pam_status == PAM_BAD_ITEM)
@@ -1475,7 +1476,8 @@ static void pam_forwarder_cert_cb(struct tevent_req *req)
                   "No certificate found and no logon name given, " \
                   "authentication not possible.\n");
             ret = ENOENT;
-        } else if (pd->cli_flags & PAM_CLI_FLAGS_TRY_CERT_AUTH) {
+        } else if (pd->cmd == SSS_PAM_PREAUTH
+                        && (pd->cli_flags & PAM_CLI_FLAGS_TRY_CERT_AUTH)) {
             DEBUG(SSSDBG_TRACE_ALL,
                   "try_cert_auth flag set but no certificate available, "
                   "request finished.\n");
