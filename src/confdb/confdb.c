@@ -1049,7 +1049,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
 
     /* Determine if user/group names will be Fully Qualified
      * in NSS interfaces */
-    if (default_domain != NULL) {
+    if (default_domain != NULL
+             && is_files_provider(domain) == false) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Default domain suffix set. Changing default for "
               "use_fully_qualified_names to True.\n");
@@ -1064,7 +1065,9 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    if (default_domain != NULL && domain->fqnames == false) {
+    if (default_domain != NULL
+            && domain->fqnames == false
+            && is_files_provider(domain) == false) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid configuration detected (default_domain_suffix is used "
               "while use_fully_qualified_names was set to false).\n");

@@ -311,6 +311,22 @@ def domain_resolution_order(request):
 
 
 @pytest.fixture
+def default_domain_suffix(request):
+    conf = unindent("""\
+        [sssd]
+        domains             = files
+        services            = nss
+        default_domain_suffix = foo
+
+        [domain/files]
+        id_provider = files
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
 def override_homedir_and_shell(request):
     conf = unindent("""\
         [sssd]
@@ -1204,6 +1220,21 @@ def test_files_with_domain_resolution_order(add_user_with_canary,
     its fully-qualified name.
     """
     check_user(USER1)
+
+
+def test_files_with_default_domain_suffix(add_user_with_canary,
+                                          default_domain_suffix):
+    """
+    Test that when using domain_resolution_order the user won't be using
+    its fully-qualified name.
+    """
+    ret = poll_canary(call_sssd_getpwuid, CANARY["uid"])
+    if ret is False:
+        return NssReturnCode.NOTFOUND, None
+
+    res, found_user = call_sssd_getpwuid(USER1["uid"])
+    assert res == NssReturnCode.SUCCESS
+    assert found_user == USER1
 
 
 def test_files_with_override_homedir(add_user_with_canary,

@@ -412,7 +412,13 @@
                                 to log in. Setting this option changes default
                                 of use_fully_qualified_names to True. It is not
                                 allowed to use this option together with
-                                use_fully_qualified_names set to False.
+                                use_fully_qualified_names set to False. One
+                                exception from this rule are domains with
+                                <quote>id_provider=files</quote> that always try
+                                to match the behaviour of nss_files
+                                and therefore their output is not
+                                qualified even when the default_domain_suffix
+                                option is used.
                             </para>
                             <para>
                                 Default: not set
