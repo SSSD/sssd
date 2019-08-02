@@ -399,6 +399,15 @@ int main(int argc, const char *argv[])
         }
     }
 
+    /* server_setup() might switch to an unprivileged user, so the permissions
+     * for p11_child.log have to be fixed first. */
+    ret = chown_debug_file("p11_child", uid, gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot chown the p11_child debug file, "
+              "debugging might not work!\n");
+    }
+
     ret = server_setup("sssd[pam]", 0, uid, gid, CONFDB_PAM_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
