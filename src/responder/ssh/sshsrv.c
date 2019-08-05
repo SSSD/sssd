@@ -187,6 +187,16 @@ int main(int argc, const char *argv[])
 
     sss_set_logger(opt_logger);
 
+    /* server_setup() might switch to an unprivileged user, so the permissions
+     * for p11_child.log have to be fixed first. We might call p11_child to
+     * validate certificates. */
+    ret = chown_debug_file("p11_child", uid, gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot chown the p11_child debug file, "
+              "debugging might not work!\n");
+    }
+
     ret = server_setup("sssd[ssh]", 0, uid, gid,
                        CONFDB_SSH_CONF_ENTRY, &main_ctx);
     if (ret != EOK) {
