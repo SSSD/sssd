@@ -554,6 +554,27 @@ done:
     return ret;
 }
 
+static void fix_child_log_permissions(uid_t uid, gid_t gid)
+{
+    int ret;
+    const char *child_names[] = { "krb5_child",
+                                  "ldap_child",
+                                  "selinux_child",
+                                  "ad_gpo_child",
+                                  "proxy_child",
+                                  NULL };
+    size_t c;
+
+    for (c = 0; child_names[c] != NULL; c++) {
+        ret = chown_debug_file(child_names[c], uid, gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot chown the [%s] debug file, "
+                  "debugging might not work!\n", child_names[c]);
+        }
+    }
+}
+
 static void dp_initialized(struct tevent_req *req)
 {
     struct tevent_signal *tes;
@@ -608,6 +629,8 @@ static void dp_initialized(struct tevent_req *req)
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot chown the debug files, debugging might not work!\n");
     }
+
+    fix_child_log_permissions(be_ctx->uid, be_ctx->gid);
 
     ret = become_user(be_ctx->uid, be_ctx->gid);
     if (ret != EOK) {
