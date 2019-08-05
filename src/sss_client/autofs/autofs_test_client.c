@@ -103,7 +103,7 @@ int main(int argc, const char *argv[])
         if (ret == ENOENT) {
             fprintf(stderr, "no such entry in map\n");
         } else if (ret != 0) {
-            fprintf(stderr, "getautomntent_r failed [%d]: %s\n",
+            fprintf(stderr, "getautomntbyname_r failed [%d]: %s\n",
                     ret, strerror(ret));
             goto end;
         } else {
