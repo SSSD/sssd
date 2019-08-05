@@ -1176,21 +1176,21 @@ errno_t sdap_fallback_local_user(TALLOC_CTX *memctx,
         goto done;
     }
 
-    if (pwd->pw_gecos) {
+    if (pwd->pw_gecos && *pwd->pw_gecos) {
         ret = sysdb_attrs_add_string(user, SYSDB_GECOS, pwd->pw_gecos);
         if (ret != EOK) {
             goto done;
         }
     }
 
-    if (pwd->pw_dir) {
+    if (pwd->pw_dir && *pwd->pw_dir) {
         ret = sysdb_attrs_add_string(user, SYSDB_HOMEDIR, pwd->pw_dir);
         if (ret != EOK) {
             goto done;
         }
     }
 
-    if (pwd->pw_shell) {
+    if (pwd->pw_shell && *pwd->pw_shell) {
         ret = sysdb_attrs_add_string(user, SYSDB_SHELL, pwd->pw_shell);
         if (ret != EOK) {
             goto done;
