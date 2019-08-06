@@ -316,5 +316,6 @@ extern const struct cache_req_plugin cache_req_svc_by_port;
 extern const struct cache_req_plugin cache_req_netgroup_by_name;
 extern const struct cache_req_plugin cache_req_host_by_name;
 extern const struct cache_req_plugin cache_req_autofs_map_entries;
+extern const struct cache_req_plugin cache_req_autofs_map_by_name;
 
 #endif /* _CACHE_REQ_PLUGIN_H_ */
