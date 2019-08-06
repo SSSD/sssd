@@ -65,6 +65,7 @@ SSSD_CACHE_REQ_OBJ = \
     ../../../src/responder/common/cache_req/plugins/cache_req_netgroup_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_host_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_autofs_map_entries.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_autofs_map_by_name.c \
     $(NULL)
 
 SSSD_RESPONDER_IFACE_OBJ = \
