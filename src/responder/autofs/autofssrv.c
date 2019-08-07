@@ -28,6 +28,7 @@
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
 #include "responder/autofs/autofs_private.h"
+#include "util/sss_ptr_hash.h"
 
 static int autofs_clean_hash_table(struct sbus_request *dbus_req, void *data);
 
@@ -105,7 +106,6 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     struct autofs_ctx *autofs_ctx;
     struct be_conn *iter;
     int ret;
-    int hret;
     int max_retries;
 
     autofs_cmds = get_autofs_cmds();
@@ -158,9 +158,8 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Create the lookup table for setautomntent results */
-    hret = sss_hash_create_ex(autofs_ctx, 10, &autofs_ctx->maps, 0, 0, 0, 0,
-                              autofs_map_hash_delete_cb, NULL);
-    if (hret != HASH_SUCCESS) {
+    autofs_ctx->maps = sss_ptr_hash_create(autofs_ctx, NULL, NULL);
+    if (autofs_ctx->maps == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to initialize automount maps hash table\n");
         ret = EIO;
