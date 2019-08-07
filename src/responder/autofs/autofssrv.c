@@ -28,6 +28,7 @@
 #include "providers/data_provider.h"
 #include "responder/autofs/autofs_private.h"
 #include "sss_iface/sss_iface_async.h"
+#include "util/sss_ptr_hash.h"
 
 static errno_t
 autofs_get_config(struct autofs_ctx *actx,
@@ -91,7 +92,6 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     struct sss_cmd_table *autofs_cmds;
     struct autofs_ctx *autofs_ctx;
     int ret;
-    int hret;
 
     autofs_cmds = get_autofs_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
@@ -123,9 +123,8 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     autofs_ctx->rctx->pvt_ctx = autofs_ctx;
 
     /* Create the lookup table for setautomntent results */
-    hret = sss_hash_create_ex(autofs_ctx, 10, &autofs_ctx->maps, 0, 0, 0, 0,
-                              autofs_map_hash_delete_cb, NULL);
-    if (hret != HASH_SUCCESS) {
+    autofs_ctx->maps = sss_ptr_hash_create(autofs_ctx, NULL, NULL);
+    if (autofs_ctx->maps == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to initialize automount maps hash table\n");
         ret = EIO;

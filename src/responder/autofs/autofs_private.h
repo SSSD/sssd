@@ -21,7 +21,8 @@
 #ifndef _AUTOFSSRV_PRIVATE_H_
 #define _AUTOFSSRV_PRIVATE_H_
 
-#include "responder/common/responder_sbus.h"
+#include "responder/common/responder.h"
+#include "responder/common/cache_req/cache_req.h"
 
 #define SSS_AUTOFS_PROTO_VERSION        0x001
 
@@ -33,55 +34,32 @@ struct autofs_ctx {
     hash_table_t *maps;
 };
 
-struct autofs_state_ctx {
-    char *automntmap_name;
-};
-
 struct autofs_cmd_ctx {
-    struct cli_ctx *cctx;
-    char *mapname;
-    char *key;
-    uint32_t cursor;
+    struct autofs_ctx *autofs_ctx;
+    struct cli_ctx *cli_ctx;
+
+    const char *mapname;
+    const char *keyname;
     uint32_t max_entries;
-    bool check_next;
+    uint32_t cursor;
 };
 
-struct autofs_dom_ctx {
-    struct autofs_cmd_ctx  *cmd_ctx;
-    struct sss_domain_info *domain;
-    bool check_provider;
+struct autofs_enum_ctx {
+    /* Results. First result is the map objects, next results are map entries. */
+    struct cache_req_result *result;
 
-    /* cache results */
-    struct ldb_message *map;
-
-    size_t entry_count;
-    struct ldb_message **entries;
-
-    struct autofs_map_ctx *map_ctx;
-};
-
-struct autofs_map_ctx {
-    /* state of the map entry */
-    bool ready;
+    /* True if the map was found. */
     bool found;
 
-    /* requests */
-    struct setent_req_list *reqs;
+    /* False if the result is being created. */
+    bool ready;
 
-    hash_table_t *map_table;
-    char *mapname;
-
-    /* map entry */
-    struct ldb_message *map;
-    size_t entry_count;
-    struct ldb_message **entries;
+    /* Requests that awaits the data. */
+    struct setent_req_list *notify_list;
 };
 
 struct sss_cmd_table *get_autofs_cmds(void);
 int autofs_connection_setup(struct cli_ctx *cctx);
-
-void autofs_map_hash_delete_cb(hash_entry_t *item,
-                               hash_destroy_enum deltype, void *pvt);
 
 errno_t autofs_orphan_maps(struct autofs_ctx *actx);
 
