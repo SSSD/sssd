@@ -43,6 +43,7 @@
 #define IPA_TRUSTED_DOMAIN_SID "ipaNTTrustedDomainSID"
 #define IPA_RANGE_TYPE "ipaRangeType"
 #define IPA_ADDITIONAL_SUFFIXES "ipaNTAdditionalSuffixes"
+#define IPA_SID_BLACKLIST_INCOMING "ipaNTSIDBlacklistIncoming"
 
 #define IPA_BASE_ID "ipaBaseID"
 #define IPA_ID_RANGE_SIZE "ipaIDRangeSize"
@@ -745,6 +746,129 @@ static void ipa_subdom_store_step(struct sss_domain_info *parent,
     }
 }
 
+static errno_t add_dom_sids_to_list(TALLOC_CTX *mem_ctx, const char **sids,
+                                    char ***list)
+{
+    size_t c;
+    errno_t ret;
+
+    for (c = 0; sids != NULL && sids[c] != NULL; c++) {
+        if (is_domain_sid(sids[c])) {
+            ret = add_string_to_list(mem_ctx, sids[c], list);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "add_string_to_list failed.\n");
+                return ret;
+            }
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t ipa_get_disabled_domain_sids(TALLOC_CTX *mem_ctx, size_t count,
+                                            struct sysdb_attrs **reply,
+                                            char ***disabled_domain_sids)
+{
+    size_t c;
+    char **dom_sid_list = NULL;
+    const char **tmp_list;
+    int ret;
+
+    for (c = 0; c < count; c++) {
+        ret = sysdb_attrs_get_string_array(reply[c], IPA_SID_BLACKLIST_INCOMING,
+                                           mem_ctx, &tmp_list);
+        if (ret != EOK) {
+            if (ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_attrs_get_string_array failed, list of disabled "
+                      "domains might be incomplete.\n");
+            }
+            continue;
+        }
+
+        ret = add_dom_sids_to_list(mem_ctx, tmp_list, &dom_sid_list);
+        talloc_free(tmp_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "add_dom_sids_to_list failed.\n");
+            talloc_free(dom_sid_list);
+            return ret;
+        }
+    }
+
+    *disabled_domain_sids = dom_sid_list;
+
+    return EOK;
+}
+
+static errno_t ipa_subdomains_check_domain_state(struct sss_domain_info *dom,
+                                                 char **disabled_domain_sids)
+{
+    int ret;
+
+    if (dom->domain_id == NULL) {
+        return EINVAL;
+    }
+
+    if (disabled_domain_sids != NULL
+            && string_in_list(dom->domain_id, disabled_domain_sids, true)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Domain [%s] is disabled on the server.\n",
+                                dom->name);
+        /* disable domain if not already disabled */
+        if (sss_domain_get_state(dom) != DOM_DISABLED) {
+            sss_domain_set_state(dom, DOM_DISABLED);
+            ret = sysdb_domain_set_enabled(dom->sysdb, dom->name, false);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_domain_set_enabled failed.\n");
+                return ret;
+            }
+        }
+    } else {
+        /* enabled domain if it was disabled */
+        DEBUG(SSSDBG_TRACE_ALL, "Domain [%s] is enabled on the server.\n",
+                                dom->name);
+        if (sss_domain_get_state(dom) == DOM_DISABLED) {
+            sss_domain_set_state(dom, DOM_ACTIVE);
+            ret = sysdb_domain_set_enabled(dom->sysdb, dom->name, true);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_domain_set_enabled failed.\n");
+                return ret;
+            }
+        }
+    }
+
+    return EOK;
+}
+
+
+static void ipa_subdomains_update_dom_state(struct sss_domain_info *parent,
+                                               int count,
+                                               struct sysdb_attrs **reply)
+{
+    int ret;
+    struct sss_domain_info *dom;
+    char **disabled_domain_sids = NULL;
+
+    ret = ipa_get_disabled_domain_sids(reply, count, reply,
+                                       &disabled_domain_sids);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_disabled_domain_sids failed, "
+                                 "assuming no domain is disabled.\n");
+        disabled_domain_sids = NULL;
+    }
+
+    for (dom = get_next_domain(parent, SSS_GND_DESCEND|SSS_GND_INCLUDE_DISABLED);
+         dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+         dom = get_next_domain(dom, SSS_GND_INCLUDE_DISABLED)) {
+
+        /* check if domain should be disabled/enabled */
+        ret = ipa_subdomains_check_domain_state(dom, disabled_domain_sids);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to check domain state, "
+                  "state of domain [%s] might be wrong.\n", dom->name);
+        }
+    }
+}
+
 static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
                                       int count, struct sysdb_attrs **reply,
                                       bool *changes)
@@ -1376,7 +1500,7 @@ ipa_subdomains_slave_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     const char *attrs[] = { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID,
                             IPA_TRUST_DIRECTION, IPA_ADDITIONAL_SUFFIXES,
-                            NULL };
+                            IPA_SID_BLACKLIST_INCOMING, NULL };
 
     req = tevent_req_create(mem_ctx, &state,
                             struct ipa_subdomains_slave_state);
@@ -1530,18 +1654,23 @@ static void ipa_subdomains_slave_search_done(struct tevent_req *subreq)
                                  "expected.\n");
     }
 
-    if (!has_changes) {
-        ret = EOK;
-        goto done;
+    /* If there are no changes this step can be skipped, but
+     * ipa_subdomains_update_dom_state() must be called after that in all case
+     * to cover existing an newly added domains. Since the domain state is not
+     * handled by a domain flag but by the blacklist has_changes does not
+     * cover the state. */
+    if (has_changes) {
+        ret = ipa_subdom_reinit(state->sd_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
+            goto done;
+        }
     }
 
-    ret = ipa_subdom_reinit(state->sd_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
-        goto done;
-    }
+    ipa_subdomains_update_dom_state(state->sd_ctx->be_ctx->domain,
+                                    reply_count, reply);
 
-    if (state->sd_ctx->ipa_id_ctx->server_mode == NULL) {
+    if (!has_changes || state->sd_ctx->ipa_id_ctx->server_mode == NULL) {
         ret = EOK;
         goto done;
     }
