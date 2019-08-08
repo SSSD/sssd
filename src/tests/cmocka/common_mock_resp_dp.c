@@ -95,6 +95,24 @@ sss_dp_resolver_get_recv(TALLOC_CTX *mem_ctx,
     return test_request_recv(req);
 }
 
+void mock_resolver_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
+                        resolver_cb_t cb, void *pvt)
+{
+    will_return(sss_dp_resolver_get_recv, dp_err);
+    will_return(sss_dp_resolver_get_recv, dp_ret);
+    will_return(sss_dp_resolver_get_recv, msg);
+
+    will_return(sss_dp_resolver_get_recv, cb);
+    if (cb) {
+        will_return(sss_dp_resolver_get_recv, pvt);
+    }
+}
+
+void mock_resolver_recv_simple(void)
+{
+    return mock_resolver_recv(0, 0, NULL, NULL, NULL);
+}
+
 struct tevent_req *
 sss_dp_get_ssh_host_send(TALLOC_CTX *mem_ctx,
                          struct resp_ctx *rctx,
