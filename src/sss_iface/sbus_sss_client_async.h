@@ -54,6 +54,46 @@ sbus_call_dp_access_RefreshRules_recv
     (struct tevent_req *req);
 
 struct tevent_req *
+sbus_call_dp_autofs_Enumerate_send
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_connection *conn,
+     const char *busname,
+     const char *object_path,
+     uint32_t arg_dp_flags,
+     const char * arg_mapname);
+
+errno_t
+sbus_call_dp_autofs_Enumerate_recv
+    (struct tevent_req *req);
+
+struct tevent_req *
+sbus_call_dp_autofs_GetEntry_send
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_connection *conn,
+     const char *busname,
+     const char *object_path,
+     uint32_t arg_dp_flags,
+     const char * arg_mapname,
+     const char * arg_entryname);
+
+errno_t
+sbus_call_dp_autofs_GetEntry_recv
+    (struct tevent_req *req);
+
+struct tevent_req *
+sbus_call_dp_autofs_GetMap_send
+    (TALLOC_CTX *mem_ctx,
+     struct sbus_connection *conn,
+     const char *busname,
+     const char *object_path,
+     uint32_t arg_dp_flags,
+     const char * arg_mapname);
+
+errno_t
+sbus_call_dp_autofs_GetMap_recv
+    (struct tevent_req *req);
+
+struct tevent_req *
 sbus_call_dp_backend_IsOnline_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
