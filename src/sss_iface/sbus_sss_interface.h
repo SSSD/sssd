@@ -153,6 +153,78 @@
         (handler_send), (handler_recv), (data)); \
 })
 
+/* Interface: sssd.DataProvider.Autofs */
+#define SBUS_IFACE_sssd_DataProvider_Autofs(methods, signals, properties) ({ \
+    sbus_interface("sssd.DataProvider.Autofs", NULL, \
+        (methods), (signals), (properties)); \
+})
+
+/* Method: sssd.DataProvider.Autofs.Enumerate */
+#define SBUS_METHOD_SYNC_sssd_DataProvider_Autofs_Enumerate(handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), uint32_t, const char *); \
+    sbus_method_sync("Enumerate", \
+        &_sbus_sss_args_sssd_DataProvider_Autofs_Enumerate, \
+        NULL, \
+        _sbus_sss_invoke_in_us_out__send, \
+        _sbus_sss_key_us_0_1, \
+        (handler), (data)); \
+})
+
+#define SBUS_METHOD_ASYNC_sssd_DataProvider_Autofs_Enumerate(handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data), uint32_t, const char *); \
+    SBUS_CHECK_RECV((handler_recv)); \
+    sbus_method_async("Enumerate", \
+        &_sbus_sss_args_sssd_DataProvider_Autofs_Enumerate, \
+        NULL, \
+        _sbus_sss_invoke_in_us_out__send, \
+        _sbus_sss_key_us_0_1, \
+        (handler_send), (handler_recv), (data)); \
+})
+
+/* Method: sssd.DataProvider.Autofs.GetEntry */
+#define SBUS_METHOD_SYNC_sssd_DataProvider_Autofs_GetEntry(handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), uint32_t, const char *, const char *); \
+    sbus_method_sync("GetEntry", \
+        &_sbus_sss_args_sssd_DataProvider_Autofs_GetEntry, \
+        NULL, \
+        _sbus_sss_invoke_in_uss_out__send, \
+        _sbus_sss_key_uss_0_1_2, \
+        (handler), (data)); \
+})
+
+#define SBUS_METHOD_ASYNC_sssd_DataProvider_Autofs_GetEntry(handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data), uint32_t, const char *, const char *); \
+    SBUS_CHECK_RECV((handler_recv)); \
+    sbus_method_async("GetEntry", \
+        &_sbus_sss_args_sssd_DataProvider_Autofs_GetEntry, \
+        NULL, \
+        _sbus_sss_invoke_in_uss_out__send, \
+        _sbus_sss_key_uss_0_1_2, \
+        (handler_send), (handler_recv), (data)); \
+})
+
+/* Method: sssd.DataProvider.Autofs.GetMap */
+#define SBUS_METHOD_SYNC_sssd_DataProvider_Autofs_GetMap(handler, data) ({ \
+    SBUS_CHECK_SYNC((handler), (data), uint32_t, const char *); \
+    sbus_method_sync("GetMap", \
+        &_sbus_sss_args_sssd_DataProvider_Autofs_GetMap, \
+        NULL, \
+        _sbus_sss_invoke_in_us_out__send, \
+        _sbus_sss_key_us_0_1, \
+        (handler), (data)); \
+})
+
+#define SBUS_METHOD_ASYNC_sssd_DataProvider_Autofs_GetMap(handler_send, handler_recv, data) ({ \
+    SBUS_CHECK_SEND((handler_send), (data), uint32_t, const char *); \
+    SBUS_CHECK_RECV((handler_recv)); \
+    sbus_method_async("GetMap", \
+        &_sbus_sss_args_sssd_DataProvider_Autofs_GetMap, \
+        NULL, \
+        _sbus_sss_invoke_in_us_out__send, \
+        _sbus_sss_key_us_0_1, \
+        (handler_send), (handler_recv), (data)); \
+})
+
 /* Interface: sssd.DataProvider.Backend */
 #define SBUS_IFACE_sssd_DataProvider_Backend(methods, signals, properties) ({ \
     sbus_interface("sssd.DataProvider.Backend", NULL, \
