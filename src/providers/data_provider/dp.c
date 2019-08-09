@@ -71,6 +71,17 @@ dp_init_interface(struct data_provider *provider)
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
+    SBUS_INTERFACE(iface_autofs,
+       sssd_DataProvider_Autofs,
+        SBUS_METHODS(
+            SBUS_ASYNC(METHOD, sssd_DataProvider_Autofs, GetMap, dp_autofs_get_map_send, dp_autofs_get_map_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_DataProvider_Autofs, GetEntry, dp_autofs_get_entry_send, dp_autofs_get_entry_recv, provider),
+            SBUS_ASYNC(METHOD, sssd_DataProvider_Autofs, Enumerate, dp_autofs_enumerate_send, dp_autofs_enumerate_recv, provider)
+        ),
+        SBUS_SIGNALS(SBUS_NO_SIGNALS),
+        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
+    );
+
     SBUS_INTERFACE(iface_dp,
         sssd_dataprovider,
         SBUS_METHODS(
@@ -92,6 +103,7 @@ dp_init_interface(struct data_provider *provider)
         {SSS_BUS_PATH, &iface_dp_failover},
         {SSS_BUS_PATH, &iface_dp_access},
         {SSS_BUS_PATH, &iface_dp},
+        {SSS_BUS_PATH, &iface_autofs},
         {NULL, NULL}
     };
 

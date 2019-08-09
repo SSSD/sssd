@@ -81,6 +81,24 @@
         <method name="RefreshRules" key="True" />
     </interface>
 
+    <interface name="sssd.DataProvider.Autofs">
+        <annotation name="codegen.Name" value="dp_autofs" />
+        <annotation name="codegen.SyncCaller" value="false" />
+        <method name="GetMap">
+            <arg name="dp_flags" type="u" direction="in" key="1" />
+            <arg name="mapname" type="s" direction="in" key="2" />
+        </method>
+        <method name="GetEntry">
+            <arg name="dp_flags" type="u" direction="in" key="1" />
+            <arg name="mapname" type="s" direction="in" key="2" />
+            <arg name="entryname" type="s" direction="in" key="3" />
+        </method>
+        <method name="Enumerate">
+            <arg name="dp_flags" type="u" direction="in" key="1" />
+            <arg name="mapname" type="s" direction="in" key="2" />
+        </method>
+    </interface>
+
     <interface name="sssd.dataprovider">
         <annotation name="codegen.Name" value="dp_dp" />
         <annotation name="codegen.SyncCaller" value="false" />

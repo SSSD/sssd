@@ -101,6 +101,37 @@ dp_autofs_handler_recv(TALLOC_CTX *mem_ctx,
                        const char **_err_msg);
 
 struct tevent_req *
+dp_autofs_get_map_send(TALLOC_CTX *mem_ctx,
+                       struct tevent_context *ev,
+                       struct sbus_request *sbus_req,
+                       struct data_provider *provider,
+                       uint32_t dp_flags,
+                       const char *mapname);
+
+errno_t dp_autofs_get_map_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req);
+
+struct tevent_req *
+dp_autofs_get_entry_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sbus_request *sbus_req,
+                         struct data_provider *provider,
+                         uint32_t dp_flags,
+                         const char *mapname,
+                         const char *entryname);
+
+errno_t dp_autofs_get_entry_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req);
+
+struct tevent_req *
+dp_autofs_enumerate_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct sbus_request *sbus_req,
+                         struct data_provider *provider,
+                         uint32_t dp_flags,
+                         const char *mapname);
+
+errno_t dp_autofs_enumerate_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req);
+
+struct tevent_req *
 dp_subdomains_handler_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
                            struct sbus_request *sbus_req,

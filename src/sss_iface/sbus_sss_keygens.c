@@ -107,6 +107,23 @@ _sbus_sss_key_uss_0_1
 }
 
 const char *
+_sbus_sss_key_uss_0_1_2
+   (TALLOC_CTX *mem_ctx,
+    struct sbus_request *sbus_req,
+    struct _sbus_sss_invoker_args_uss *args)
+{
+    if (sbus_req->sender == NULL) {
+        return talloc_asprintf(mem_ctx, "-:%u:%s.%s:%s:%" PRIu32 ":%s:%s",
+            sbus_req->type, sbus_req->interface, sbus_req->member,
+            sbus_req->path, args->arg0, args->arg1, args->arg2);
+    }
+
+    return talloc_asprintf(mem_ctx, "%"PRIi64":%u:%s.%s:%s:%" PRIu32 ":%s:%s",
+        sbus_req->sender->uid, sbus_req->type, sbus_req->interface, sbus_req->member,
+        sbus_req->path, args->arg0, args->arg1, args->arg2);
+}
+
+const char *
 _sbus_sss_key_uusss_0_1_2_3_4
    (TALLOC_CTX *mem_ctx,
     struct sbus_request *sbus_req,
