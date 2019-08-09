@@ -267,6 +267,15 @@ pipeline {
             aborted { CI_Aborted() }
           }
         }
+        stage('Test on Debian 10') {
+          agent {label "sssd-ci"}
+          environment { TEST_SYSTEM = "debian10" }
+          steps { CI_RunTests() }
+          post {
+            always { CI_Post() }
+            aborted { CI_Aborted() }
+          }
+        }
       }
     }
   }
