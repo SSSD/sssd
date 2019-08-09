@@ -367,6 +367,11 @@ errno_t check_and_open_readonly(const char *filename, int *fd,
 bool check_ipv4_addr(struct in_addr *addr, uint8_t check);
 bool check_ipv6_addr(struct in6_addr *addr, uint8_t check);
 
+/* Returns the canonical form of an IPv4 or IPv6 address */
+errno_t sss_canonicalize_ip_address(TALLOC_CTX *mem_ctx,
+                                    const char *address,
+                                    char **canonical_address);
+
 const char * const * get_known_services(void);
 
 errno_t sss_user_by_name_or_uid(const char *input, uid_t *_uid, gid_t *_gid);

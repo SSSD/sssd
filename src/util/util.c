@@ -1073,3 +1073,40 @@ int sss_rand(void)
     }
     return rand();
 }
+
+errno_t sss_canonicalize_ip_address(TALLOC_CTX *mem_ctx,
+                                    const char *address,
+                                    char **canonical_address)
+{
+    struct addrinfo hints;
+    struct addrinfo *result = NULL;
+    char buf[INET6_ADDRSTRLEN + 1];
+    int ret;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_flags = AI_NUMERICHOST;
+
+    ret = getaddrinfo(address, NULL, &hints, &result);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to canonicalize address [%s]: %s",
+              address, gai_strerror(ret));
+        return EINVAL;
+    }
+
+    ret = getnameinfo(result->ai_addr, result->ai_addrlen, buf, sizeof(buf),
+                      NULL, 0, NI_NUMERICHOST);
+    freeaddrinfo(result);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to canonicalize address [%s]: %s",
+              address, gai_strerror(ret));
+        return EINVAL;
+    }
+
+    *canonical_address = talloc_strdup(mem_ctx, buf);
+    if (*canonical_address == NULL) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
