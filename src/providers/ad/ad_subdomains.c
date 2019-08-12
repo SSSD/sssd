@@ -190,7 +190,7 @@ static errno_t ad_get_enabled_domains(TALLOC_CTX *mem_ctx,
 
     is_ad_in_domains = false;
     for (int i = 0; i < count; i++) {
-        is_ad_in_domains += strcmp(ad_domain, domains[i]) == 0 ? true : false;
+        is_ad_in_domains += strcasecmp(ad_domain, domains[i]) == 0 ? true : false;
     }
 
     if (is_ad_in_domains == false) {
