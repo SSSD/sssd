@@ -327,3 +327,132 @@ sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+struct sss_dp_resolver_get_state {
+    uint16_t dp_error;
+    uint32_t error;
+    const char *error_message;
+};
+
+static void sss_dp_resolver_get_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
+                         struct resp_ctx *rctx,
+                         struct sss_domain_info *dom,
+                         bool fast_reply,
+                         uint32_t entry_type,
+                         uint32_t filter_type,
+                         const char *filter_value)
+{
+    struct sss_dp_resolver_get_state *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct be_conn *be_conn;
+    uint32_t dp_flags;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sss_dp_resolver_get_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
+        return NULL;
+    }
+
+    /* Validate filter_type */
+    switch (filter_type) {
+    case BE_FILTER_NAME:
+    case BE_FILTER_ADDR:
+        break;
+    default:
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (dom == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "BUG: The Data Provider connection for %s is not available!\n",
+              dom->name);
+        ret = EIO;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Creating request for [%s][%#x][%s][%#x:%s]\n",
+          dom->name, entry_type, be_req2str(entry_type),
+          filter_type, filter_value ? filter_value : "-");
+
+    dp_flags = fast_reply ? DP_FAST_REPLY : 0;
+    subreq = sbus_call_dp_dp_resolverHandler_send(state, be_conn->conn,
+                                                  be_conn->bus_name,
+                                                  SSS_BUS_PATH,
+                                                  dp_flags, entry_type,
+                                                  filter_type, filter_value);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sss_dp_resolver_get_done, req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+        tevent_req_post(req, rctx->ev);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, rctx->ev);
+    }
+
+    return req;
+}
+
+static void sss_dp_resolver_get_done(struct tevent_req *subreq)
+{
+    struct sss_dp_resolver_get_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sss_dp_resolver_get_state);
+
+    ret = sbus_call_dp_dp_resolverHandler_recv(state, subreq,
+                                               &state->dp_error,
+                                               &state->error,
+                                               &state->error_message);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+errno_t
+sss_dp_resolver_get_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         uint16_t *_dp_error,
+                         uint32_t *_error,
+                         const char **_error_message)
+{
+    struct sss_dp_resolver_get_state *state;
+    state = tevent_req_data(req, struct sss_dp_resolver_get_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_dp_error = state->dp_error;
+    *_error = state->error;
+    *_error_message = talloc_steal(mem_ctx, state->error_message);
+
+    return EOK;
+}
