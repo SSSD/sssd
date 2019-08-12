@@ -296,6 +296,22 @@ sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
                         uint32_t *_error,
                         const char **_error_message);
 
+struct tevent_req *
+sss_dp_resolver_get_send(TALLOC_CTX *mem_ctx,
+                         struct resp_ctx *rctx,
+                         struct sss_domain_info *dom,
+                         bool fast_reply,
+                         uint32_t entry_type,
+                         uint32_t filter_type,
+                         const char *filter_value);
+
+errno_t
+sss_dp_resolver_get_recv(TALLOC_CTX *mem_ctx,
+                         struct tevent_req *req,
+                         uint16_t *_dp_error,
+                         uint32_t *_error,
+                         const char **_error_message);
+
 bool sss_utf8_check(const uint8_t *s, size_t n);
 
 void responder_set_fd_limit(rlim_t fd_limit);
