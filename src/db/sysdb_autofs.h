@@ -58,7 +58,9 @@ sysdb_save_autofsentry(struct sss_domain_info *domain,
                        const char *map,
                        const char *key,
                        const char *value,
-                       struct sysdb_attrs *attrs);
+                       struct sysdb_attrs *attrs,
+                       int cache_timeout,
+                       time_t now);
 errno_t
 sysdb_del_autofsentry(struct sss_domain_info *domain,
                       const char *entry_dn);

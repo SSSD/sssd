@@ -86,7 +86,8 @@ static errno_t
 add_autofs_entry(struct sss_domain_info *domain,
                  const char *map,
                  struct sdap_options *opts,
-                 struct sysdb_attrs *entry)
+                 struct sysdb_attrs *entry,
+                 time_t now)
 {
     const char *key;
     const char *value;
@@ -103,7 +104,8 @@ add_autofs_entry(struct sss_domain_info *domain,
         return EINVAL;
     }
 
-    return sysdb_save_autofsentry(domain, map, key, value, NULL);
+    return sysdb_save_autofsentry(domain, map, key, value, NULL,
+                                  domain->autofsmap_timeout, now);
 }
 
 static errno_t
@@ -119,10 +121,13 @@ save_autofs_entries(struct sss_domain_info *domain,
     int hret;
     errno_t ret;
     struct sysdb_attrs *entry;
+    time_t now;
 
     if (!add_dn_list) {
         return EOK;
     }
+
+    now = time(NULL);
 
     for (i=0; add_dn_list[i]; i++) {
         key.type = HASH_KEY_STRING;
@@ -144,7 +149,7 @@ save_autofs_entries(struct sss_domain_info *domain,
 
         DEBUG(SSSDBG_TRACE_FUNC,
               "Saving autofs entry [%s]\n", add_dn_list[i]);
-        ret = add_autofs_entry(domain, map, opts, entry);
+        ret = add_autofs_entry(domain, map, opts, entry, now);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Cannot save entry [%s] to cache\n", add_dn_list[i]);

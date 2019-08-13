@@ -248,7 +248,9 @@ sysdb_save_autofsentry(struct sss_domain_info *domain,
                        const char *map,
                        const char *key,
                        const char *value,
-                       struct sysdb_attrs *attrs)
+                       struct sysdb_attrs *attrs,
+                       int cache_timeout,
+                       time_t now)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
@@ -303,6 +305,15 @@ sysdb_save_autofsentry(struct sss_domain_info *domain,
     ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not set name attribute [%d]: %s\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 ((cache_timeout) ?
+                                  (now + cache_timeout) : 0));
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set sysdb cache expire [%d]: %s\n",
               ret, strerror(ret));
         goto done;
     }
