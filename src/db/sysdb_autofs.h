@@ -61,6 +61,14 @@ sysdb_save_autofsentry(struct sss_domain_info *domain,
                        struct sysdb_attrs *attrs,
                        int cache_timeout,
                        time_t now);
+
+errno_t
+sysdb_get_autofsentry(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *domain,
+                      const char *map_name,
+                      const char *entry_name,
+                      struct ldb_message **_entry);
+
 errno_t
 sysdb_del_autofsentry(struct sss_domain_info *domain,
                       const char *entry_dn);
