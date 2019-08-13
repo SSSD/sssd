@@ -342,6 +342,79 @@ done:
 }
 
 errno_t
+sysdb_get_autofsentry(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *domain,
+                      const char *map_name,
+                      const char *entry_name,
+                      struct ldb_message **_entry)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *safe_entryname;
+    char *filter;
+    struct ldb_dn *mapdn;
+    size_t count;
+    struct ldb_message **msgs;
+    errno_t ret;
+    const char *attrs[] = { SYSDB_AUTOFS_ENTRY_KEY,
+                            SYSDB_AUTOFS_ENTRY_VALUE,
+                            SYSDB_CACHE_EXPIRE,
+                            NULL };
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, entry_name, &safe_entryname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot sanitize map [%s] error [%d]: %s\n",
+               map_name, ret, strerror(ret));
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(&(objectclass=%s)(%s=%s))",
+                             SYSDB_AUTOFS_ENTRY_OC, SYSDB_AUTOFS_ENTRY_KEY,
+                             safe_entryname);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    mapdn = sysdb_autofsmap_dn(tmp_ctx, domain, map_name);
+    if (!mapdn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, mapdn, LDB_SCOPE_SUBTREE,
+                             filter, attrs, &count, &msgs);
+    if (ret == ENOENT) {
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb search failed: %d\n", ret);
+        goto done;
+    }
+
+    if (count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "More than one entry %s:%s found\n",
+              map_name, entry_name);
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    *_entry = talloc_steal(mem_ctx, msgs[0]);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t
 sysdb_del_autofsentry(struct sss_domain_info *domain,
                       const char *entry_dn)
 {
