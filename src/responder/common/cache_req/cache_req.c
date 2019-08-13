@@ -62,7 +62,8 @@ cache_req_get_plugin(enum cache_req_type type)
         &cache_req_host_by_name,
 
         &cache_req_autofs_map_entries,
-        &cache_req_autofs_map_by_name
+        &cache_req_autofs_map_by_name,
+        &cache_req_autofs_entry_by_name
     };
 
     if (type >= CACHE_REQ_SENTINEL) {
