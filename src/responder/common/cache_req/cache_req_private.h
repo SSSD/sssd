@@ -83,6 +83,7 @@ struct cache_req_data {
     const char *sid;
     const char *alias;
     const char **attrs;
+    const char *autofs_entry_name;
 
     struct {
         struct cache_req_parsed_name *name;
