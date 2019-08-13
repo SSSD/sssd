@@ -751,53 +751,33 @@ autofs_read_getautomntbyname_input(struct cli_ctx *cli_ctx,
 
 static errno_t
 autofs_write_getautomntbyname_output(struct cli_ctx *cli_ctx,
-                                     struct autofs_enum_ctx *enum_ctx,
+                                     struct cache_req_result *result,
                                      const char *keyname)
 {
     struct cli_protocol *pctx;
-    struct ldb_message **entries;
-    struct ldb_message *entry = NULL;
-    const char *entry_key;
+    struct ldb_message *entry;
     const char *value;
     size_t value_len;
     size_t len;
-    size_t count;
     uint8_t *body;
     size_t blen;
     size_t rp;
-    size_t i;
     errno_t ret;
 
     pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
 
-    count = enum_ctx->found ? enum_ctx->result->count - 1 : 0;
-    entries = count > 0 ? enum_ctx->result->msgs + 1 : NULL;
+    if (result == NULL || result->count == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Key [%s] was not found\n", keyname);
+        return sss_cmd_empty_packet(pctx->creq->out);
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found key [%s]\n", keyname);
+    entry = result->msgs[0];
 
     ret = sss_packet_new(pctx->creq, 0, sss_packet_get_cmd(pctx->creq->in),
                          &pctx->creq->out);
     if (ret != EOK) {
         return ret;
-    }
-
-    for (i = 0; i < count; i++) {
-        entry_key = ldb_msg_find_attr_as_string(entries[i],
-                                                SYSDB_AUTOFS_ENTRY_KEY,
-                                                NULL);
-        if (entry_key == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Skipping incomplete entry\n");
-            continue;
-        }
-
-        if (strcmp(entry_key, keyname) == 0) {
-            DEBUG(SSSDBG_TRACE_INTERNAL, "Found key [%s]\n", keyname);
-            entry = entries[i];
-            break;
-        }
-    }
-
-    if (!enum_ctx->found || count == 0 || entry == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Key [%s] was not found\n", keyname);
-        return sss_cmd_empty_packet(pctx->creq->out);
     }
 
     value = ldb_msg_find_attr_as_string(entry, SYSDB_AUTOFS_ENTRY_VALUE, NULL);
@@ -857,10 +837,14 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *cli_ctx)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Obtaining enumeration context for %s\n",
-          cmd_ctx->mapname);
+    DEBUG(SSSDBG_TRACE_FUNC, "Obtaining autofs entry %s:%s\n",
+          cmd_ctx->mapname, cmd_ctx->keyname);
 
-    req = autofs_setent_send(cli_ctx, cli_ctx->ev, autofs_ctx, cmd_ctx->mapname);
+    req = cache_req_autofs_entry_by_name_send(cli_ctx, cli_ctx->ev,
+                                              autofs_ctx->rctx,
+                                              autofs_ctx->rctx->ncache, 0, NULL,
+                                              cmd_ctx->mapname,
+                                              cmd_ctx->keyname);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request\n");
         ret = ENOMEM;
@@ -878,20 +862,20 @@ done:
 static void
 sss_autofs_cmd_getautomntbyname_done(struct tevent_req *req)
 {
-    struct autofs_enum_ctx *enum_ctx;
+    struct cache_req_result *result;
     struct autofs_cmd_ctx *cmd_ctx;
     errno_t ret;
 
     cmd_ctx = tevent_req_callback_data(req, struct autofs_cmd_ctx);
 
-    ret = autofs_setent_recv(req, &enum_ctx);
+    ret = cache_req_autofs_entry_by_name_recv(cmd_ctx, req, &result);
     talloc_zfree(req);
     if (ret != EOK) {
         autofs_cmd_done(cmd_ctx, ret);
         return;
     }
 
-    ret = autofs_write_getautomntbyname_output(cmd_ctx->cli_ctx, enum_ctx,
+    ret = autofs_write_getautomntbyname_output(cmd_ctx->cli_ctx, result,
                                                cmd_ctx->keyname);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create reply packet "
