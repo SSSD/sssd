@@ -6466,7 +6466,7 @@ START_TEST(test_autofs_store_entry_in_map)
 
         ret = sysdb_save_autofsentry(test_ctx->domain,
                                      autofsmapname, autofskey,
-                                     autofsval, NULL);
+                                     autofsval, NULL, 0, 0);
         fail_if(ret != EOK, "Could not save autofs entry %s", autofskey);
     }
 
@@ -6521,7 +6521,7 @@ START_TEST(test_autofs_key_duplicate)
 
     ret = sysdb_save_autofsentry(test_ctx->domain,
                                  autofsmapname, autofskey,
-                                 autofsval, NULL);
+                                 autofsval, NULL, 0, 0);
     fail_if(ret != EOK, "Could not save autofs entry %s", autofskey);
     talloc_free(test_ctx);
 }
