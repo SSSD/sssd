@@ -1256,7 +1256,7 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
 
                 ret = sysdb_save_autofsentry(domain,
                                              (const char *) val->data,
-                                             key, value, NULL);
+                                             key, value, NULL, 0, 0);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "Cannot save autofs entry [%s]-[%s] into map %s\n",
