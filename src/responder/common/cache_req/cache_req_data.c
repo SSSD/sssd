@@ -94,6 +94,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_INITGROUPS_BY_UPN:
     case CACHE_REQ_NETGROUP_BY_NAME:
     case CACHE_REQ_OBJECT_BY_NAME:
+    case CACHE_REQ_AUTOFS_MAP_ENTRIES:
         if (input->name.input == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;

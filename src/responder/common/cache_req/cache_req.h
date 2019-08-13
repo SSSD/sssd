@@ -54,6 +54,8 @@ enum cache_req_type {
 
     CACHE_REQ_HOST_BY_NAME,
 
+    CACHE_REQ_AUTOFS_MAP_ENTRIES,
+
     CACHE_REQ_SENTINEL
 };
 
@@ -428,6 +430,18 @@ cache_req_host_by_name_send(TALLOC_CTX *mem_ctx,
                             const char **attrs);
 
 #define cache_req_host_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_autofs_map_entries_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct resp_ctx *rctx,
+                                  struct sss_nc_ctx *ncache,
+                                  int cache_refresh_percent,
+                                  const char *domain,
+                                  const char *name);
+
+#define cache_req_autofs_map_entries_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 #endif /* _CACHE_REQ_H_ */

@@ -60,6 +60,8 @@ cache_req_get_plugin(enum cache_req_type type)
         &cache_req_netgroup_by_name,
 
         &cache_req_host_by_name,
+
+        &cache_req_autofs_map_entries,
     };
 
     if (type >= CACHE_REQ_SENTINEL) {
