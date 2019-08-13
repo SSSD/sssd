@@ -56,6 +56,7 @@ enum cache_req_type {
 
     CACHE_REQ_AUTOFS_MAP_ENTRIES,
     CACHE_REQ_AUTOFS_MAP_BY_NAME,
+    CACHE_REQ_AUTOFS_ENTRY_BY_NAME,
 
     CACHE_REQ_SENTINEL
 };
@@ -126,6 +127,13 @@ cache_req_data_host(TALLOC_CTX *mem_ctx,
                     const char *name,
                     const char *alias,
                     const char **attrs);
+
+struct cache_req_data *
+cache_req_data_autofs_entry(TALLOC_CTX *mem_ctx,
+                            enum cache_req_type type,
+                            const char *mapname,
+                            const char *entryname);
+
 void
 cache_req_data_set_bypass_cache(struct cache_req_data *data,
                                 bool bypass_cache);
@@ -455,6 +463,19 @@ cache_req_autofs_map_by_name_send(TALLOC_CTX *mem_ctx,
                                   const char *name);
 
 #define cache_req_autofs_map_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_autofs_entry_by_name_send(TALLOC_CTX *mem_ctx,
+                                    struct tevent_context *ev,
+                                    struct resp_ctx *rctx,
+                                    struct sss_nc_ctx *ncache,
+                                    int cache_refresh_percent,
+                                    const char *domain,
+                                    const char *mapname,
+                                    const char *entryname);
+
+#define cache_req_autofs_entry_by_name_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 #endif /* _CACHE_REQ_H_ */
