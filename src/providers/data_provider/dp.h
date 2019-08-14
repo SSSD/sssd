@@ -22,6 +22,7 @@
 #define _DP_H_
 
 #include <stdint.h>
+#include <string.h>
 
 #include "providers/backend.h"
 #include "providers/data_provider/dp_request.h"
@@ -106,6 +107,8 @@ typedef struct tevent_req *
 typedef errno_t
 (*dp_req_recv_fn)(TALLOC_CTX *mem_ctx, struct tevent_req *req, void *data);
 
+typedef char dp_no_output;
+
 /* Data provider initialization. */
 
 struct tevent_req *
@@ -157,6 +160,7 @@ void _dp_set_method(struct dp_method *methods,
             req_dtype *, struct dp_req_params *params) = (send_fn);           \
                                                                               \
         /* Check _recv function parameter types. */                           \
+        /* With output parameter. */                                          \
         errno_t (*__recv_fn)(TALLOC_CTX *, struct tevent_req *,               \
             output_dtype *) = (recv_fn);                                      \
         _dp_set_method(methods, method, (dp_req_send_fn)__send_fn,            \

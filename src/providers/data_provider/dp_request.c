@@ -397,7 +397,9 @@ errno_t _dp_req_recv(TALLOC_CTX *mem_ctx,
         return ERR_INVALID_DATA_TYPE;
     }
 
-    *_output_data = talloc_steal(mem_ctx, state->output_data);
+    if (_output_data != NULL) {
+        *_output_data = talloc_steal(mem_ctx, state->output_data);
+    }
 
     return EOK;
 }
