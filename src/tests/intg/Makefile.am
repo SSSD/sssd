@@ -40,6 +40,7 @@ dist_noinst_DATA = \
     test_ssh_pubkey.py \
     test_pam_responder.py \
     test_sudo.py \
+    test_resolver.py \
     $(NULL)
 
 EXTRA_DIST = data/cwrap-dbus-system.conf.in
