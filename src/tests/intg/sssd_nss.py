@@ -30,6 +30,26 @@ class NssReturnCode(object):
     RETURN = 2
 
 
+class HostError(object):
+    """ 'enum' class for h_errno (glibc >= 2.19) """
+    HOST_NOT_FOUND = 1
+    TRY_AGAIN = 2
+    NO_RECOVERY = 3
+    NO_DATA = 4
+
+    @classmethod
+    def tostring(cls, val):
+        if (val == 1):
+            return "HOST_NOT_FOUND"
+        if (val == 2):
+            return "TRY_AGAIN"
+        if (val == 3):
+            return "NO_RECOVERY"
+        if (val == 4):
+            return "NO_DATA"
+        return "UNKNOWN"
+
+
 class SssdNssError(Exception):
     """ Raised when one of the NSS operations fail """
     def __init__(self, errno, nssop):
@@ -38,6 +58,17 @@ class SssdNssError(Exception):
 
     def __str__(self):
         return "NSS operation %s failed %d" % (nssop, errno)
+
+
+class SssdNssHostError(Exception):
+    """ Raised when one of the NSS hosts operations fail """
+    def __init__(self, h_errno, nssop):
+        self.h_errno = h_errno
+        self.nssop = nssop
+
+    def __str__(self):
+        str_herr = HostError.tostring(self.h_errno)
+        return "NSS host operation %s failed: %s" % (self.nssop, str_herr)
 
 
 def nss_sss_ctypes_loader(func_name):

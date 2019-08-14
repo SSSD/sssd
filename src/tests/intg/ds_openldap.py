@@ -275,7 +275,8 @@ class DSOpenLDAP(DS):
         ldap_conn.add_s("cn=Manager," + self.base_dn, [
             ("objectClass", b"organizationalRole"),
         ])
-        for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
+        for ou in ("Users", "Groups", "Netgroups", "Services", "Policies",
+                   "Hosts"):
             ldap_conn.add_s("ou=" + ou + "," + self.base_dn, [
                 ("objectClass", [b"top", b"organizationalUnit"]),
             ])
