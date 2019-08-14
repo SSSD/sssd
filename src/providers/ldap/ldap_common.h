@@ -156,15 +156,15 @@ sdap_pam_chpass_handler_recv(TALLOC_CTX *mem_ctx,
 
 /* autofs */
 struct tevent_req *
-sdap_autofs_handler_send(TALLOC_CTX *mem_ctx,
-                         struct sdap_id_ctx *id_ctx,
-                         struct dp_autofs_data *data,
-                         struct dp_req_params *params);
+sdap_autofs_enumerate_handler_send(TALLOC_CTX *mem_ctx,
+                                   struct sdap_id_ctx *id_ctx,
+                                   struct dp_autofs_data *data,
+                                   struct dp_req_params *params);
 
 errno_t
-sdap_autofs_handler_recv(TALLOC_CTX *mem_ctx,
-                         struct tevent_req *req,
-                         struct dp_reply_std *data);
+sdap_autofs_enumerate_handler_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   dp_no_output *_no_output);
 
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *dns_service_name,

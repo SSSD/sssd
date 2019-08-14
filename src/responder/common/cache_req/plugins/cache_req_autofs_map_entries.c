@@ -111,7 +111,7 @@ cache_req_autofs_map_entries_dp_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    return sbus_call_dp_dp_autofsHandler_send(mem_ctx, be_conn->conn,
+    return sbus_call_dp_autofs_Enumerate_send(mem_ctx, be_conn->conn,
                                               be_conn->bus_name, SSS_BUS_PATH,
                                               DP_FAST_REPLY, data->name.name);
 }
@@ -120,19 +120,7 @@ bool
 cache_req_autofs_map_entries_dp_recv(struct tevent_req *subreq,
                                      struct cache_req *cr)
 {
-    const char *err_msg;
-    uint16_t err_maj;
-    uint32_t err_min;
-    errno_t ret;
-    bool bret;
-
-    /* Use subreq as memory context so err_msg is freed with it. */
-    ret = sbus_call_dp_dp_autofsHandler_recv(subreq, subreq, &err_maj,
-                                             &err_min, &err_msg);
-    bret = cache_req_common_process_dp_reply(cr, ret, err_maj,
-                                             err_min, err_msg);
-
-    return bret;
+    return sbus_call_dp_autofs_Enumerate_recv(subreq) == EOK;
 }
 
 const struct cache_req_plugin cache_req_autofs_map_entries = {

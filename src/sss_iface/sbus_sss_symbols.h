@@ -80,9 +80,6 @@ extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_Responder_NegativeCache_ResetUsers;
 
 extern const struct sbus_method_arguments
-_sbus_sss_args_sssd_dataprovider_autofsHandler;
-
-extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_getAccountDomain;
 
 extern const struct sbus_method_arguments
