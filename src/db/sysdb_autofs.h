@@ -41,7 +41,8 @@ sysdb_save_autofsmap(struct sss_domain_info *domain,
                      const char *autofsmapname,
                      struct sysdb_attrs *attrs,
                      int cache_timeout,
-                     time_t now);
+                     time_t now,
+                     bool enumerated);
 
 errno_t
 sysdb_get_map_byname(TALLOC_CTX *mem_ctx,

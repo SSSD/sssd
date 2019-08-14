@@ -6502,7 +6502,7 @@ START_TEST(test_autofs_create_map)
     fail_if(autofsmapname == NULL, "Out of memory\n");
 
     ret = sysdb_save_autofsmap(test_ctx->domain, autofsmapname,
-                               autofsmapname, NULL, 0, 0);
+                               autofsmapname, NULL, 0, 0, false);
     fail_if(ret != EOK, "Could not store autofs map %s", autofsmapname);
     talloc_free(test_ctx);
 }
