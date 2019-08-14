@@ -21,6 +21,7 @@
 from pprint import pformat
 import pwd
 import grp
+import socket
 
 _PASSWD_LIST_DESC = {None: ("user", {})}
 _GROUP_DESC = {"mem": ("member list", {None: ("member", {})})}
