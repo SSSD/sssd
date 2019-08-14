@@ -366,7 +366,7 @@ autofs_read_setautomntent_input(struct cli_ctx *cli_ctx,
 
 static errno_t
 autofs_write_setautomntent_output(struct cli_ctx *cli_ctx,
-                                  struct autofs_enum_ctx *enum_ctx)
+                                  struct cache_req_result *result)
 {
     struct cli_protocol *pctx;
     uint8_t *body;
@@ -381,7 +381,7 @@ autofs_write_setautomntent_output(struct cli_ctx *cli_ctx,
         return ret;
     }
 
-    if (!enum_ctx->found) {
+    if (result == NULL || result->count == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "Map was not found\n");
         return sss_cmd_empty_packet(pctx->creq->out);
     }
@@ -431,11 +431,13 @@ sss_autofs_cmd_setautomntent(struct cli_ctx *cli_ctx)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Creating enumeration context for %s\n",
+    DEBUG(SSSDBG_TRACE_FUNC, "Obtaining autofs map %s\n",
           cmd_ctx->mapname);
 
-    req = autofs_setent_send(cli_ctx, cli_ctx->ev, autofs_ctx,
-                             cmd_ctx->mapname);
+    req = cache_req_autofs_map_by_name_send(cli_ctx, cli_ctx->ev,
+                                            autofs_ctx->rctx,
+                                            autofs_ctx->rctx->ncache, 0, NULL,
+                                            cmd_ctx->mapname);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request\n");
         ret = ENOMEM;
@@ -453,20 +455,20 @@ done:
 static void
 sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
 {
-    struct autofs_enum_ctx *enum_ctx;
+    struct cache_req_result *result;
     struct autofs_cmd_ctx *cmd_ctx;
     errno_t ret;
 
     cmd_ctx = tevent_req_callback_data(req, struct autofs_cmd_ctx);
 
-    ret = autofs_setent_recv(req, &enum_ctx);
+    ret = cache_req_autofs_map_by_name_recv(cmd_ctx, req, &result);
     talloc_zfree(req);
     if (ret != EOK) {
         autofs_cmd_done(cmd_ctx, ret);
         return;
     }
 
-    ret = autofs_write_setautomntent_output(cmd_ctx->cli_ctx, enum_ctx);
+    ret = autofs_write_setautomntent_output(cmd_ctx->cli_ctx, result);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create reply packet "
               "[%d]: %s\n", ret, sss_strerror(ret));
