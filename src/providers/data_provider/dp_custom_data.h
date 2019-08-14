@@ -76,4 +76,7 @@ void dp_req_reply_std(const char *request_name,
                       uint32_t *_error,
                       const char **_message);
 
+/* Convert pair of ret and dp_error to single ret value. */
+errno_t dp_error_to_ret(errno_t ret, int dp_error);
+
 #endif /* _DP_CUSTOM_DATA_H_ */

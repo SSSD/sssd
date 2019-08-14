@@ -128,3 +128,23 @@ void dp_reply_std_set(struct dp_reply_std *reply,
     reply->error = error;
     reply->message = msg == NULL ? def_msg : msg;
 }
+
+errno_t dp_error_to_ret(errno_t ret, int dp_error)
+{
+    if (ret != EOK) {
+        return ret;
+    }
+
+    switch (dp_error) {
+    case DP_ERR_OK:
+        return EOK;
+    case DP_ERR_OFFLINE:
+        return ERR_OFFLINE;
+    case DP_ERR_TIMEOUT:
+        return ETIMEDOUT;
+    case DP_ERR_FATAL:
+        return EFAULT;
+    }
+
+    return ERR_INTERNAL;
+}
