@@ -189,7 +189,8 @@ del_autofs_entries(struct sss_domain_info *dom,
 static errno_t
 save_autofs_map(struct sss_domain_info *dom,
                 struct sdap_options *opts,
-                struct sysdb_attrs *map)
+                struct sysdb_attrs *map,
+                bool enumerated)
 {
     const char *mapname;
     errno_t ret;
@@ -201,7 +202,7 @@ save_autofs_map(struct sss_domain_info *dom,
     now = time(NULL);
 
     ret = sysdb_save_autofsmap(dom, mapname, mapname,
-                               NULL, dom->autofsmap_timeout, now);
+                               NULL, dom->autofsmap_timeout, now, enumerated);
     if (ret != EOK) {
         return ret;
     }
@@ -898,7 +899,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     in_transaction = true;
 
     /* Save the map itself */
-    ret = save_autofs_map(state->dom, state->opts, state->map);
+    ret = save_autofs_map(state->dom, state->opts, state->map, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
              "Cannot save autofs map entry [%d]: %s\n",

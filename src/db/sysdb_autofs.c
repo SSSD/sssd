@@ -101,8 +101,10 @@ sysdb_save_autofsmap(struct sss_domain_info *domain,
                      const char *autofsmapname,
                      struct sysdb_attrs *attrs,
                      int cache_timeout,
-                     time_t now)
+                     time_t now,
+                     bool enumerated)
 {
+    time_t expiration = cache_timeout ? now + cache_timeout : 0;
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
 
@@ -150,13 +152,20 @@ sysdb_save_autofsmap(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
-                                 ((cache_timeout) ?
-                                  (now + cache_timeout) : 0));
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE, expiration);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not set sysdb cache expire [%d]: %s\n",
               ret, strerror(ret));
         goto done;
+    }
+
+    if (enumerated) {
+        ret = sysdb_attrs_add_time_t(attrs, SYSDB_ENUM_EXPIRE, expiration);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not set sysdb enum expire [%d]: %s\n",
+                  ret, strerror(ret));
+            goto done;
+        }
     }
 
     ret = sysdb_store_custom(domain, name, AUTOFS_MAP_SUBDIR, attrs);
@@ -565,6 +574,11 @@ sysdb_invalidate_autofs_maps(struct sss_domain_info *domain)
     }
 
     ret = sysdb_attrs_add_time_t(sys_attrs, SYSDB_CACHE_EXPIRE, 1);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_time_t(sys_attrs, SYSDB_ENUM_EXPIRE, 1);
     if (ret != EOK) {
         goto done;
     }
