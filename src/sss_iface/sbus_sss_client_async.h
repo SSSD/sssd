@@ -233,23 +233,6 @@ sbus_call_resp_negcache_ResetUsers_recv
     (struct tevent_req *req);
 
 struct tevent_req *
-sbus_call_dp_dp_autofsHandler_send
-    (TALLOC_CTX *mem_ctx,
-     struct sbus_connection *conn,
-     const char *busname,
-     const char *object_path,
-     uint32_t arg_dp_flags,
-     const char * arg_mapname);
-
-errno_t
-sbus_call_dp_dp_autofsHandler_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     uint16_t* _dp_error,
-     uint32_t* _error,
-     const char ** _error_message);
-
-struct tevent_req *
 sbus_call_dp_dp_getAccountDomain_send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
