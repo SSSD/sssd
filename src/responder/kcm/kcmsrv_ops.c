@@ -1888,7 +1888,7 @@ static void kcm_op_get_kdc_offset_getbyname_done(struct tevent_req *subreq)
     }
 
     offset = kcm_cc_get_offset(cc);
-    DEBUG(SSSDBG_TRACE_LIBS, "KDC offset: %"PRIu32"\n", offset);
+    DEBUG(SSSDBG_TRACE_LIBS, "KDC offset: %"PRIi32"\n", offset);
 
     offset_be = htobe32(offset);
     ret = sss_iobuf_write_int32(state->op_ctx->reply, offset_be);
