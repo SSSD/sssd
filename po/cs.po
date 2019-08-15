@@ -5,11 +5,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2019-02-27 19:55+0100\n"
+"POT-Creation-Date: 2019-06-13 20:35+0200\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2019-05-03 07:12+0000\n"
+"PO-Revision-Date: 2019-06-21 01:21+0000\n"
 "Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech\n"
 "Language: cs\n"
@@ -23,19 +23,19 @@ msgstr "Nastavit úroveň podrobnosti zaznamenávání ladících informací"
 
 #: src/config/SSSDConfig/__init__.py.in:45
 msgid "Include timestamps in debug logs"
-msgstr ""
+msgstr "Zahrnout do ladících záznam časové značky"
 
 #: src/config/SSSDConfig/__init__.py.in:46
 msgid "Include microseconds in timestamps in debug logs"
-msgstr ""
+msgstr "Zahrnout do časových značek v ladících záznamech mikrosekundy"
 
 #: src/config/SSSDConfig/__init__.py.in:47
 msgid "Write debug messages to logfiles"
-msgstr ""
+msgstr "Zapisovat ladící zprávy do záznamů událostí"
 
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid "Watchdog timeout before restarting service"
-msgstr ""
+msgstr "Časová prodleva resetátoru (watchdog) před restartováním služby "
 
 #: src/config/SSSDConfig/__init__.py.in:49
 msgid "Command to start service"
@@ -43,96 +43,103 @@ msgstr "Příkaz pro spouštění služy"
 
 #: src/config/SSSDConfig/__init__.py.in:50
 msgid "Number of times to attempt connection to Data Providers"
-msgstr ""
+msgstr "Počet pokusů o připojení k poskytovatelům dat"
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "The number of file descriptors that may be opened by this responder"
-msgstr ""
+msgstr "Počet popisovačů souborů, které mohou tímto odpovídačem být otevřeny"
 
 #: src/config/SSSDConfig/__init__.py.in:52
 msgid "Idle time before automatic disconnection of a client"
-msgstr ""
+msgstr "Doba nečinnosti, po které dojde k automatickému odpojení klienta"
 
 #: src/config/SSSDConfig/__init__.py.in:53
 msgid "Idle time before automatic shutdown of the responder"
-msgstr ""
+msgstr "Doba nečinnosti, po které dojde k vypnutí odpovídače"
 
 #: src/config/SSSDConfig/__init__.py.in:54
 msgid "Always query all the caches before querying the Data Providers"
 msgstr ""
+"Vždy dotazovat všechny vyrovnávací paměti před dotazováním poskytovatelů "
+"údajů"
 
 #: src/config/SSSDConfig/__init__.py.in:57
 msgid "SSSD Services to start"
-msgstr ""
+msgstr "SSSD služby které spustit"
 
 #: src/config/SSSDConfig/__init__.py.in:58
 msgid "SSSD Domains to start"
-msgstr ""
+msgstr "SSSD domény které spustit"
 
 #: src/config/SSSDConfig/__init__.py.in:59
 msgid "Timeout for messages sent over the SBUS"
-msgstr ""
+msgstr "Časový limit pro zprávy posílané přes SBUS"
 
 #: src/config/SSSDConfig/__init__.py.in:60
 #: src/config/SSSDConfig/__init__.py.in:199
 msgid "Regex to parse username and domain"
-msgstr ""
+msgstr "Regulární výraz pro zpracování uživatelského jména a domény"
 
 #: src/config/SSSDConfig/__init__.py.in:61
 #: src/config/SSSDConfig/__init__.py.in:198
 msgid "Printf-compatible format for displaying fully-qualified names"
-msgstr ""
+msgstr "Formát kompatibilní s printf pro zobrazování úplných názvů"
 
 #: src/config/SSSDConfig/__init__.py.in:62
 msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Složka na souborovém systému kde by SSSD mělo ukládat soubory pro kerberos "
+"replay."
 
 #: src/config/SSSDConfig/__init__.py.in:63
 msgid "Domain to add to names without a domain component."
-msgstr ""
+msgstr "Doména kterou přidat k názvům bez doménové části."
 
 #: src/config/SSSDConfig/__init__.py.in:64
 msgid "The user to drop privileges to"
-msgstr ""
+msgstr "Uživatel na kterého se stáhnout z oprávnění"
 
 #: src/config/SSSDConfig/__init__.py.in:65
 msgid "Tune certificate verification"
-msgstr ""
+msgstr "Vyladit ověřování certifikátu"
 
 #: src/config/SSSDConfig/__init__.py.in:66
 msgid "All spaces in group or user names will be replaced with this character"
 msgstr ""
+"Všechny mezery v názvech skupin a uživatelských jménech budou nahrazeny "
+"tímto znakem"
 
 #: src/config/SSSDConfig/__init__.py.in:67
 msgid "Tune sssd to honor or ignore netlink state changes"
-msgstr ""
+msgstr "Vyladit sssd aby respektovalo nebo ignorovalo změny stavu netlink"
 
 #: src/config/SSSDConfig/__init__.py.in:68
 msgid "Enable or disable the implicit files domain"
-msgstr ""
+msgstr "Zapnout nebo vypnout implicitní doménu soubory"
 
 #: src/config/SSSDConfig/__init__.py.in:69
 msgid "A specific order of the domains to be looked up"
-msgstr ""
+msgstr "Konkrétní pořadí domén ve které je hledat"
 
 #: src/config/SSSDConfig/__init__.py.in:72
 msgid "Enumeration cache timeout length (seconds)"
-msgstr ""
+msgstr "Délka časového limitu mezipaměti vyčíslování (v sekundách)"
 
 #: src/config/SSSDConfig/__init__.py.in:73
 msgid "Entry cache background update timeout length (seconds)"
 msgstr ""
+"Délka časového limitu aktualizace mezipaměti položek na pozadí (v sekundách)"
 
 #: src/config/SSSDConfig/__init__.py.in:74
 #: src/config/SSSDConfig/__init__.py.in:116
 msgid "Negative cache timeout length (seconds)"
-msgstr ""
+msgstr "Délka časového limitu záporné mezipaměti (v sekundách)"
 
 #: src/config/SSSDConfig/__init__.py.in:75
 msgid "Files negative cache timeout length (seconds)"
-msgstr ""
+msgstr "Délka (v sekundách) časového limitu negativní mezipaměti souborů"
 
 #: src/config/SSSDConfig/__init__.py.in:76
 msgid "Users that SSSD should explicitly ignore"
@@ -144,24 +151,28 @@ msgstr "Skupiny, které by SSSD mělo výslovně ignorovat"
 
 #: src/config/SSSDConfig/__init__.py.in:78
 msgid "Should filtered users appear in groups"
-msgstr ""
+msgstr "Mají se filtrovaní uživatelé objevovat ve skupinách"
 
 #: src/config/SSSDConfig/__init__.py.in:79
 msgid "The value of the password field the NSS provider should return"
-msgstr ""
+msgstr "Hodnota kolonky hesla kterou by poskytovatel NSS měl vrátit"
 
 #: src/config/SSSDConfig/__init__.py.in:80
 msgid "Override homedir value from the identity provider with this value"
 msgstr ""
+"Přepsat hodnotu homedir (domovská složka), obdrženou z poskytovatele "
+"identit, touto hodnotou"
 
 #: src/config/SSSDConfig/__init__.py.in:81
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr ""
+"Nahradit prázdnou hodnotu homedir z poskytovatele identit touto hodnotou"
 
 #: src/config/SSSDConfig/__init__.py.in:82
 msgid "Override shell value from the identity provider with this value"
 msgstr ""
+"Přepsat hodnotu shell, obdrženou z poskytovatele identit, touto hodnotou"
 
 #: src/config/SSSDConfig/__init__.py.in:83
 msgid "The list of shells users are allowed to log in with"
@@ -172,59 +183,67 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:84
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
-msgstr ""
+msgstr "Seznam shellů, které budou vetovány a nahrazeny náhradním"
 
 #: src/config/SSSDConfig/__init__.py.in:85
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
 msgstr ""
+"Pokud shell uložený v centrálním adresáři je dovolen ale není k dispozici, "
+"použít tuto náhradu"
 
 #: src/config/SSSDConfig/__init__.py.in:86
 msgid "Shell to use if the provider does not list one"
-msgstr ""
+msgstr "Shell který použít pokud poskytovatel žádný neuvádí"
 
 #: src/config/SSSDConfig/__init__.py.in:87
 msgid "How long will be in-memory cache records valid"
-msgstr ""
+msgstr "Jak dlouho budou záznamy mezipaměti v paměti platné"
 
 #: src/config/SSSDConfig/__init__.py.in:88
 msgid "List of user attributes the NSS responder is allowed to publish"
-msgstr ""
+msgstr "Seznam atributů uživatelů, které je NSS dovoleno zveřejnit"
 
 #: src/config/SSSDConfig/__init__.py.in:91
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
+"Po jak dlouho umožnit přihlášení vůči mezipaměti do přihlášení při připojení "
+"(dny)"
 
 #: src/config/SSSDConfig/__init__.py.in:92
 msgid "How many failed logins attempts are allowed when offline"
-msgstr ""
+msgstr "Kolik nezdařených pokusů o přihlášení je dovoleno bez připojení"
 
 #: src/config/SSSDConfig/__init__.py.in:93
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
+"Jak dlouho (v minutách) odpírat přihlášení po dosažení "
+"offline_failed_login_attempts"
 
 #: src/config/SSSDConfig/__init__.py.in:94
 msgid "What kind of messages are displayed to the user during authentication"
-msgstr ""
+msgstr "Jaký druh zpráv je zobrazován při ověřování uživatele"
 
 #: src/config/SSSDConfig/__init__.py.in:95
 msgid "Filter PAM responses sent to the pam_sss"
-msgstr ""
+msgstr "Filtrovat PAM odpovědi poslané pam_sss"
 
 #: src/config/SSSDConfig/__init__.py.in:96
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr ""
+"Kolik sekund si ponechávat informace o identitě v mezipaměti pro PAM "
+"požadavky"
 
 #: src/config/SSSDConfig/__init__.py.in:97
 msgid "How many days before password expiration a warning should be displayed"
-msgstr ""
+msgstr "Kolik dnů před skončením platnosti hesla má být zobrazováno varování"
 
 #: src/config/SSSDConfig/__init__.py.in:98
 msgid "List of trusted uids or user's name"
-msgstr ""
+msgstr "Seznam důvěryhodných identifikátorů uživatelů nebo uživatelských jmen"
 
 #: src/config/SSSDConfig/__init__.py.in:99
 msgid "List of domains accessible even for untrusted users."
@@ -232,7 +251,7 @@ msgstr "Seznam domén přístupných i nedůvěryhodným uživatelům."
 
 #: src/config/SSSDConfig/__init__.py.in:100
 msgid "Message printed when user account is expired."
-msgstr ""
+msgstr "Zpráva vypsaná když platnost uživatelského účtu skončila."
 
 #: src/config/SSSDConfig/__init__.py.in:101
 msgid "Message printed when user account is locked."
@@ -240,144 +259,163 @@ msgstr "Zpráva vypisovaná když je účet uživatele uzamčen."
 
 #: src/config/SSSDConfig/__init__.py.in:102
 msgid "Allow certificate based/Smartcard authentication."
-msgstr ""
+msgstr "Umožnit ověřování založené na certifikátu/Smartcard"
 
 #: src/config/SSSDConfig/__init__.py.in:103
 msgid "Path to certificate database with PKCS#11 modules."
-msgstr ""
+msgstr "Popis umístění databáze certifikátů s PKCS#11 moduly."
 
 #: src/config/SSSDConfig/__init__.py.in:104
 msgid "How many seconds will pam_sss wait for p11_child to finish"
-msgstr ""
+msgstr "Kolik sekund bude pam_sss čekat na dokončení p11_child"
 
 #: src/config/SSSDConfig/__init__.py.in:105
 msgid "Which PAM services are permitted to contact application domains"
-msgstr ""
+msgstr "Kterým PAM službám je umožněno kontaktovat aplikační domény"
 
 #: src/config/SSSDConfig/__init__.py.in:106
 msgid "Allowed services for using smartcards"
-msgstr ""
+msgstr "Aplikace které je možné použít se SmartCard kartami"
 
 #: src/config/SSSDConfig/__init__.py.in:107
 msgid "Additional timeout to wait for a card if requested"
-msgstr ""
+msgstr "Dodatečný časový limit po který čekat pokud je vyžádána karta"
 
 #: src/config/SSSDConfig/__init__.py.in:108
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard "
 "authentication"
 msgstr ""
+"PKCS#11 URI pro omezení výběru zařízení pro ověřování pomocí Smartcard"
 
 #: src/config/SSSDConfig/__init__.py.in:111
 msgid "Whether to evaluate the time-based attributes in sudo rules"
-msgstr ""
+msgstr "Zda vyhodnocovat na času založené atributy v pravidlech sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:112
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
-msgstr ""
+msgstr "Pokud je zapnuto, SSSD přepne zpět na logiku řazení nižší vyhrává"
 
 #: src/config/SSSDConfig/__init__.py.in:113
 msgid ""
 "Maximum number of rules that can be refreshed at once. If this is exceeded, "
 "full refresh is performed."
 msgstr ""
+"Nejvyšší umožněný počet pravidel, aktualizovaných naráz. Pokud je toto "
+"překročeno, je provedena úplná aktualizace."
 
 #: src/config/SSSDConfig/__init__.py.in:119
 msgid "Whether to hash host names and addresses in the known_hosts file"
-msgstr ""
+msgstr "Zda v souboru known_hosts vytvářet otisk názvů strojů a adres"
 
 #: src/config/SSSDConfig/__init__.py.in:120
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
 msgstr ""
+"Kolik sekund ponechávat stroj v souboru known_hosts poté, co byly vyžádány "
+"klíče stroje"
 
 #: src/config/SSSDConfig/__init__.py.in:121
 msgid "Path to storage of trusted CA certificates"
-msgstr ""
+msgstr "Popis umístění úložiště certifikátů důvěryhodných cert. autorit"
 
 #: src/config/SSSDConfig/__init__.py.in:124
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr ""
+"Seznam UID nebo uživatelských jmen, kterým je umožněn přístup k PAC "
+"odpovídači"
 
 #: src/config/SSSDConfig/__init__.py.in:125
 msgid "How long the PAC data is considered valid"
-msgstr ""
+msgstr "Po jak dlouho jsou PAC data považována za platná"
 
 #: src/config/SSSDConfig/__init__.py.in:128
 msgid "List of UIDs or user names allowed to access the InfoPipe responder"
 msgstr ""
+"Seznam UID identifikátorů nebo uživatelských jmen, kterým je umožněn přístup "
+"k InfoPipe odpovídači"
 
 #: src/config/SSSDConfig/__init__.py.in:129
 msgid "List of user attributes the InfoPipe is allowed to publish"
-msgstr ""
+msgstr "Seznam atributů uživatele, které InfoPipe bude moci zveřejnit"
 
 #: src/config/SSSDConfig/__init__.py.in:132
 msgid "The provider where the secrets will be stored in"
-msgstr ""
+msgstr "Poskytovatel, ve kterém budou tajemství ukládána"
 
 #: src/config/SSSDConfig/__init__.py.in:133
 msgid "The maximum allowed number of nested containers"
-msgstr ""
+msgstr "Nejvyšší umožněný počet vnořených kontejnerů"
 
 #: src/config/SSSDConfig/__init__.py.in:134
 msgid "The maximum number of secrets that can be stored"
-msgstr ""
+msgstr "Nejvyšší umožněný počet tajemství, která mohou být uložena"
 
 #: src/config/SSSDConfig/__init__.py.in:135
 msgid "The maximum number of secrets that can be stored per UID"
-msgstr ""
+msgstr "Maximální počet tajemství, která je možné uložit pro jednotlivá UID"
 
 #: src/config/SSSDConfig/__init__.py.in:136
 msgid "The maximum payload size of a secret in kilobytes"
-msgstr ""
+msgstr "Nejvyšší umožněná velikost nákladu tajemství (v kilobajtech)"
 
 #: src/config/SSSDConfig/__init__.py.in:138
 msgid "The URL Custodia server is listening on"
-msgstr ""
+msgstr "URL adresa na které Custodia server očekává spojení"
 
 #: src/config/SSSDConfig/__init__.py.in:139
 msgid "The method to use when authenticating to a Custodia server"
-msgstr ""
+msgstr "Metoda kterou použít při ověřování se vůči Custodia serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:140
 msgid ""
 "The name of the headers that will be added into a HTTP request with the "
 "value defined in auth_header_value"
 msgstr ""
+"Název hlaviček které budou přidány do HTTP požadavku s hodnotou definovanou "
+"v auth_header_value"
 
 #: src/config/SSSDConfig/__init__.py.in:141
 msgid "The value sssd-secrets would use for auth_header_name"
-msgstr ""
+msgstr "Hodnota kterou by sssd-secrets použilo pro auth_header_name"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid ""
 "The list of the headers to forward to the Custodia server together with the "
 "request"
 msgstr ""
+"Seznam hlaviček které přeposlat Custodia serveru společně s požadavkem"
 
 #: src/config/SSSDConfig/__init__.py.in:143
 msgid ""
 "The username to use when authenticating to a Custodia server using "
 "basic_auth"
 msgstr ""
+"Uživatelské jméno které použít při ověřování se vůči Custodia serveru pomocí "
+"basic_auth"
 
 #: src/config/SSSDConfig/__init__.py.in:144
 msgid ""
 "The password to use when authenticating to a Custodia server using "
 "basic_auth"
 msgstr ""
+"Heslo které použít při ověřování se vůči Custodia serveru pomocí basic_auth"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 msgid ""
 "If true peer's certificate is verified if proxy_url uses https protocol"
 msgstr ""
+"Pokud je zapnuto, certifikát protějšku je ověřen pokud proxy_url používá "
+"https protokol"
 
 #: src/config/SSSDConfig/__init__.py.in:146
 msgid ""
 "If false peer's certificate may contain different hostname than proxy_url "
 "when https protocol is used"
 msgstr ""
+"Pokud není nastaveno, certifikát protějšku může obsahovat rozdílný název "
+"stroje než  proxy_url když je použit https protokol"
 
 #: src/config/SSSDConfig/__init__.py.in:147
 msgid "Path to directory where certificate authority certificates are stored"
@@ -387,14 +425,15 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:148
 msgid "Path to file containing server's CA certificate"
 msgstr ""
+"Popis umístění souboru obsahujícího certifikát certif. autority serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:149
 msgid "Path to file containing client's certificate"
-msgstr ""
+msgstr "Popis umístění souboru obsahujícího klientský certifikát"
 
 #: src/config/SSSDConfig/__init__.py.in:150
 msgid "Path to file containing client's private key"
-msgstr ""
+msgstr "Popis umístění souboru obsahujícího soukromý klíč klienta"
 
 #: src/config/SSSDConfig/__init__.py.in:153
 msgid "Identity provider"
@@ -434,31 +473,32 @@ msgstr "Poskytovatel správy sezení"
 
 #: src/config/SSSDConfig/__init__.py.in:164
 msgid "Whether the domain is usable by the OS or by applications"
-msgstr ""
+msgstr "Zda je doména použitelná pro operační systém nebo aplikace"
 
 #: src/config/SSSDConfig/__init__.py.in:165
 msgid "Minimum user ID"
-msgstr ""
+msgstr "Nejnižší identif. uživatele"
 
 #: src/config/SSSDConfig/__init__.py.in:166
 msgid "Maximum user ID"
-msgstr ""
+msgstr "Nejvyšší identif. uživatele"
 
 #: src/config/SSSDConfig/__init__.py.in:167
 msgid "Enable enumerating all users/groups"
-msgstr ""
+msgstr "Zapnout vyčíslování všech uživatelů/skupin"
 
 #: src/config/SSSDConfig/__init__.py.in:168
 msgid "Cache credentials for offline login"
 msgstr ""
+"Ukládat přihlašovací údaje do mezipaměti pro přihlašování se bez připojení"
 
 #: src/config/SSSDConfig/__init__.py.in:169
 msgid "Display users/groups in fully-qualified form"
-msgstr ""
+msgstr "Zobrazovat uživatele/skupiny v úplné podobě"
 
 #: src/config/SSSDConfig/__init__.py.in:170
 msgid "Don't include group members in group lookups"
-msgstr ""
+msgstr "Nezahrnovat členy skupiny do hledání skupiny"
 
 #: src/config/SSSDConfig/__init__.py.in:171
 #: src/config/SSSDConfig/__init__.py.in:178
@@ -468,28 +508,31 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:182
 #: src/config/SSSDConfig/__init__.py.in:183
 msgid "Entry cache timeout length (seconds)"
-msgstr ""
+msgstr "Délka časového limitu položky (v sekundách)"
 
 #: src/config/SSSDConfig/__init__.py.in:172
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
+"Omezit nebo upřednostnit konkrétní generaci adres při provádění DNS hledání"
 
 #: src/config/SSSDConfig/__init__.py.in:173
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
+"Jak dlouho si ponechávat položky v mezipaměti po posledním úspěšném "
+"přihlášení (dny)"
 
 #: src/config/SSSDConfig/__init__.py.in:174
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr ""
+msgstr "Jak dlouho čekat na odpovědi z DNS při překládání serverů (sekundy)"
 
 #: src/config/SSSDConfig/__init__.py.in:175
 msgid "The domain part of service discovery DNS query"
-msgstr ""
+msgstr "Doménová část DNS dotazu pro objevování služby"
 
 #: src/config/SSSDConfig/__init__.py.in:176
 msgid "Override GID value from the identity provider with this value"
-msgstr ""
+msgstr "Přebít hodnotu GID z poskytovatele identit touto hodnotou"
 
 #: src/config/SSSDConfig/__init__.py.in:177
 msgid "Treat usernames as case sensitive"
@@ -498,44 +541,47 @@ msgstr "U uživatelských jmen rozlišovat velká a malá písmena"
 #: src/config/SSSDConfig/__init__.py.in:184
 msgid "How often should expired entries be refreshed in background"
 msgstr ""
+"Jak často mají být položky, kterým skončila platnost, na pozadí obnovovány"
 
 #: src/config/SSSDConfig/__init__.py.in:185
 msgid "Whether to automatically update the client's DNS entry"
-msgstr ""
+msgstr "Zda automaticky aktualizovat DNS položku klienta"
 
 #: src/config/SSSDConfig/__init__.py.in:186
 #: src/config/SSSDConfig/__init__.py.in:208
 msgid "The TTL to apply to the client's DNS entry after updating it"
-msgstr ""
+msgstr "TTL které uplatnit na DNS položku klienta po její aktualizaci"
 
 #: src/config/SSSDConfig/__init__.py.in:187
 #: src/config/SSSDConfig/__init__.py.in:209
 msgid "The interface whose IP should be used for dynamic DNS updates"
-msgstr ""
+msgstr "Rozhraní, kterého IP adresu použít pro dynamickou aktualizaci DNS"
 
 #: src/config/SSSDConfig/__init__.py.in:188
 msgid "How often to periodically update the client's DNS entry"
-msgstr ""
+msgstr "Jak často pravidelně aktualizovat DNS záznam klienta"
 
 #: src/config/SSSDConfig/__init__.py.in:189
 msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr ""
+"Zda má poskytovatel výslovně aktualizovat také záznam pro zpětný překlad "
+"(PTR)"
 
 #: src/config/SSSDConfig/__init__.py.in:190
 msgid "Whether the nsupdate utility should default to using TCP"
-msgstr ""
+msgstr "Zda má nástroj nsupdate jako výchozí používat protokol TCP"
 
 #: src/config/SSSDConfig/__init__.py.in:191
 msgid "What kind of authentication should be used to perform the DNS update"
-msgstr ""
+msgstr "Jaký druh ověřování by měl být použit při provádění aktualizace DNS"
 
 #: src/config/SSSDConfig/__init__.py.in:192
 msgid "Override the DNS server used to perform the DNS update"
-msgstr ""
+msgstr "Přepsat DNS server použité pro provedení DNS aktualizace"
 
 #: src/config/SSSDConfig/__init__.py.in:193
 msgid "Control enumeration of trusted domains"
-msgstr ""
+msgstr "Řídí vyčíslování důvěryhodných domén"
 
 #: src/config/SSSDConfig/__init__.py.in:194
 msgid "How often should subdomains list be refreshed"
@@ -543,23 +589,25 @@ msgstr "Jak často má být znovu načítán seznam dílčích domén"
 
 #: src/config/SSSDConfig/__init__.py.in:195
 msgid "List of options that should be inherited into a subdomain"
-msgstr ""
+msgstr "Seznam voleb které by měly být převzaté do dílčí domény"
 
 #: src/config/SSSDConfig/__init__.py.in:196
 msgid "Default subdomain homedir value"
-msgstr ""
+msgstr "Výchozí hodnota homedir dílčí domény"
 
 #: src/config/SSSDConfig/__init__.py.in:197
 msgid "How long can cached credentials be used for cached authentication"
 msgstr ""
+"Po jak dlouho mohou být přihlašovací údaje, uložené v mezipaměti, pro "
+"ověřování"
 
 #: src/config/SSSDConfig/__init__.py.in:200
 msgid "Whether to automatically create private groups for users"
-msgstr ""
+msgstr "Zda uživatelům automaticky vytvářet soukromé skupiny"
 
 #: src/config/SSSDConfig/__init__.py.in:203
 msgid "IPA domain"
-msgstr ""
+msgstr "IPA doména"
 
 #: src/config/SSSDConfig/__init__.py.in:204
 msgid "IPA server address"
@@ -571,91 +619,97 @@ msgstr "Adresa záložního IPA serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:206
 msgid "IPA client hostname"
-msgstr ""
+msgstr "Název stroje klienta IPA"
 
 #: src/config/SSSDConfig/__init__.py.in:207
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
-msgstr ""
+msgstr "Zda automaticky aktualizovat DNS položku klienta ve FreeIPA"
 
 #: src/config/SSSDConfig/__init__.py.in:210
 msgid "Search base for HBAC related objects"
-msgstr ""
+msgstr "Základ hledání pro objekty, související s HBAC"
 
 #: src/config/SSSDConfig/__init__.py.in:211
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
-msgstr ""
+msgstr "Množství času mezi vyhledáváními HBAC pravidel vůči IPA serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:212
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr ""
+"Množství času (v sekundách) mezi vyhledáváními SELinux map vůči IPA serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:213
 msgid "If set to false, host argument given by PAM will be ignored"
-msgstr ""
+msgstr "Pokud je vypnuto, argument stroje daný PAM bude ignorován"
 
 #: src/config/SSSDConfig/__init__.py.in:214
 msgid "The automounter location this IPA client is using"
-msgstr ""
+msgstr "Umístění automounter, které tento IPA klient používá"
 
 #: src/config/SSSDConfig/__init__.py.in:215
 msgid "Search base for object containing info about IPA domain"
-msgstr ""
+msgstr "Základ hledání pro objekt obsahující informace o IPA doméně"
 
 #: src/config/SSSDConfig/__init__.py.in:216
 msgid "Search base for objects containing info about ID ranges"
 msgstr ""
+"Základ hledání pro objekty obsahující informace o rozsazích identifikátorů"
 
 #: src/config/SSSDConfig/__init__.py.in:217
 #: src/config/SSSDConfig/__init__.py.in:235
 msgid "Enable DNS sites - location based service discovery"
-msgstr ""
+msgstr "Zapnout DNS sites – na umístění založené objevování služby"
 
 #: src/config/SSSDConfig/__init__.py.in:218
 msgid "Search base for view containers"
-msgstr ""
+msgstr "Základ hledání pro zobrazení kontejnerů"
 
 #: src/config/SSSDConfig/__init__.py.in:219
 msgid "Objectclass for view containers"
-msgstr ""
+msgstr "Objektová třída pro zobrazení kontejnerů"
 
 #: src/config/SSSDConfig/__init__.py.in:220
 msgid "Attribute with the name of the view"
-msgstr ""
+msgstr "Atribut obsahující název pohledu"
 
 #: src/config/SSSDConfig/__init__.py.in:221
 msgid "Objectclass for override objects"
-msgstr ""
+msgstr "Objektová třída pro přepsání objektů"
 
 #: src/config/SSSDConfig/__init__.py.in:222
 msgid "Attribute with the reference to the original object"
-msgstr ""
+msgstr "Atribut obsahující odkaz na původní objekt"
 
 #: src/config/SSSDConfig/__init__.py.in:223
 msgid "Objectclass for user override objects"
-msgstr ""
+msgstr "Objektová třída pro uživatelské přepsání objektů"
 
 #: src/config/SSSDConfig/__init__.py.in:224
 msgid "Objectclass for group override objects"
-msgstr ""
+msgstr "Objektová třída pro objekty přepsání skupiny"
 
 #: src/config/SSSDConfig/__init__.py.in:225
 msgid "Search base for Desktop Profile related objects"
-msgstr ""
+msgstr "Základ hledání pro objekty související s desktopovým profilem"
 
 #: src/config/SSSDConfig/__init__.py.in:226
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr ""
+"Doba (v sekundách) mezi hledáními pravidel desktopového projektu vůči IPA "
+"serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:227
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
 msgstr ""
+"Množství času (v minutách) mezi vyhledáními pravidel desktopových profilů "
+"vůči IPA serveru když poslední požadavek nenašel žádné pravidlo"
 
 #: src/config/SSSDConfig/__init__.py.in:230
 msgid "Active Directory domain"
@@ -663,7 +717,7 @@ msgstr "Doména Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:231
 msgid "Enabled Active Directory domains"
-msgstr ""
+msgstr "Zapnout domény Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:232
 msgid "Active Directory server address"
@@ -675,81 +729,95 @@ msgstr "Adresa záložního serveru s Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:234
 msgid "Active Directory client hostname"
-msgstr ""
+msgstr "Název stroje klienta Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:236
-#: src/config/SSSDConfig/__init__.py.in:420
+#: src/config/SSSDConfig/__init__.py.in:421
 msgid "LDAP filter to determine access privileges"
-msgstr ""
+msgstr "LDAP filtr pro zjišťování přístupových oprávnění"
 
 #: src/config/SSSDConfig/__init__.py.in:237
 msgid "Whether to use the Global Catalog for lookups"
-msgstr ""
+msgstr "Zda pro hledání používat globální katalog"
 
 #: src/config/SSSDConfig/__init__.py.in:238
 msgid "Operation mode for GPO-based access control"
-msgstr ""
+msgstr "Režim fungování pro řízení přístupu založené na GPO objektech"
 
 #: src/config/SSSDConfig/__init__.py.in:239
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
-msgstr ""
+msgstr "Množství času mezi vyhledáními souborů GPO zásad vůči AD serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:240
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
+"Názvy PAM služby, která mapuje na (Deny)InteractiveLogonRight nastavení "
+"zásady"
 
 #: src/config/SSSDConfig/__init__.py.in:241
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
+"Názvy PAM služby, která mapuje GPO (Deny)RemoteInteractiveLogonRight "
+"nastavení zásady"
 
 #: src/config/SSSDConfig/__init__.py.in:242
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy "
 "settings"
 msgstr ""
+"Názvy PAM služby, která mapuje GPO (Deny)NetworkLogonRight nastavení zásady"
 
 #: src/config/SSSDConfig/__init__.py.in:243
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
+"PNázvy PAM služby, která mapuje GPO (Deny)BatchLogonRight nastavení zásady"
 
 #: src/config/SSSDConfig/__init__.py.in:244
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy "
 "settings"
 msgstr ""
+"Názvy PAM služby, která mapuje GPO (Deny)ServiceLogonRight nastavení zásady"
 
 #: src/config/SSSDConfig/__init__.py.in:245
 msgid "PAM service names for which GPO-based access is always granted"
 msgstr ""
+"Názvy PAM služby, pro které je přístup založený na GPO objektech vždy udělen"
 
 #: src/config/SSSDConfig/__init__.py.in:246
 msgid "PAM service names for which GPO-based access is always denied"
 msgstr ""
+"Názvy PAM služby, pro které je přístup založený na GPO objektech vždy "
+"odepřen"
 
 #: src/config/SSSDConfig/__init__.py.in:247
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
 msgstr ""
+"Výchozí přihlasovací oprávnění (nebo permit/deny), které použít pro názvy "
+"nenamapovaných PAM služeb"
 
 #: src/config/SSSDConfig/__init__.py.in:248
 msgid "a particular site to be used by the client"
-msgstr ""
+msgstr "konkrétní místo kterou použít klientem"
 
 #: src/config/SSSDConfig/__init__.py.in:249
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr ""
+"Nejvyšší umožněné stáří (ve dnech) než by mělo být obnoveno heslo účtu "
+"stroje"
 
 #: src/config/SSSDConfig/__init__.py.in:250
 msgid "Option for tuning the machine account renewal task"
-msgstr ""
+msgstr "Volba pro vyladění úlohy obnovování účtu stroje"
 
 #: src/config/SSSDConfig/__init__.py.in:253
 #: src/config/SSSDConfig/__init__.py.in:254
@@ -762,19 +830,19 @@ msgstr "Adresa záložního kerberos serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:256
 msgid "Kerberos realm"
-msgstr ""
+msgstr "Kerberos oblast"
 
 #: src/config/SSSDConfig/__init__.py.in:257
 msgid "Authentication timeout"
-msgstr ""
+msgstr "Časový limit ověřování"
 
 #: src/config/SSSDConfig/__init__.py.in:258
 msgid "Whether to create kdcinfo files"
-msgstr ""
+msgstr "Zda vytvářet kdcinfo souborů"
 
 #: src/config/SSSDConfig/__init__.py.in:259
 msgid "Where to drop krb5 config snippets"
-msgstr ""
+msgstr "Kam odkládat útržky nastavení krb5"
 
 #: src/config/SSSDConfig/__init__.py.in:262
 msgid "Directory to store credential caches"
@@ -782,816 +850,842 @@ msgstr "Složka ve které ukládat mezipaměť přihlašovacích údajů"
 
 #: src/config/SSSDConfig/__init__.py.in:263
 msgid "Location of the user's credential cache"
-msgstr ""
+msgstr "Umístění mezipaměti přihlašovacích údajů uživatele"
 
 #: src/config/SSSDConfig/__init__.py.in:264
 msgid "Location of the keytab to validate credentials"
 msgstr ""
+"Umístění uložených přihlašovacích údajů pro ověřování ověřovacích údajů"
 
 #: src/config/SSSDConfig/__init__.py.in:265
 msgid "Enable credential validation"
-msgstr ""
+msgstr "Zapnout ověřování přihlašovacích údajů"
 
 #: src/config/SSSDConfig/__init__.py.in:266
 msgid "Store password if offline for later online authentication"
-msgstr ""
+msgstr "Ukládat heslo pokud bez připojení pro pozdější ověření při připojení"
 
 #: src/config/SSSDConfig/__init__.py.in:267
 msgid "Renewable lifetime of the TGT"
-msgstr ""
+msgstr "Obnovovatelná životnost TGT lístku"
 
 #: src/config/SSSDConfig/__init__.py.in:268
 msgid "Lifetime of the TGT"
-msgstr ""
+msgstr "Životnost TGT lístku"
 
 #: src/config/SSSDConfig/__init__.py.in:269
 msgid "Time between two checks for renewal"
-msgstr ""
+msgstr "Doba mezi dvěma kontrolami pro obnovu"
 
 #: src/config/SSSDConfig/__init__.py.in:270
 msgid "Enables FAST"
-msgstr ""
+msgstr "Zapíná FAST"
 
 #: src/config/SSSDConfig/__init__.py.in:271
 msgid "Selects the principal to use for FAST"
-msgstr ""
+msgstr "Vybírá principal pro použití pro FAST"
 
 #: src/config/SSSDConfig/__init__.py.in:272
 msgid "Enables principal canonicalization"
-msgstr ""
+msgstr "Zapíná kanonizaci principalu"
 
 #: src/config/SSSDConfig/__init__.py.in:273
 msgid "Enables enterprise principals"
-msgstr ""
+msgstr "Zapíná podnikové principaly"
 
 #: src/config/SSSDConfig/__init__.py.in:274
 msgid "A mapping from user names to Kerberos principal names"
-msgstr ""
+msgstr "Mapování z uživatelských jmen na názvy kerberos principal"
 
 #: src/config/SSSDConfig/__init__.py.in:277
 #: src/config/SSSDConfig/__init__.py.in:278
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
+"Server na kterém je spuštěná služba pro změnu hesla, pokud to není KDC"
 
 #: src/config/SSSDConfig/__init__.py.in:281
 msgid "ldap_uri, The URI of the LDAP server"
-msgstr ""
+msgstr "ldap_uri, URI adresa LDAP serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:282
 msgid "ldap_backup_uri, The URI of the LDAP server"
-msgstr ""
+msgstr "ldap_backup_uri, URI adresa LDAP serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:283
 msgid "The default base DN"
-msgstr ""
+msgstr "Výchozí základ rozlišeného názvu"
 
 #: src/config/SSSDConfig/__init__.py.in:284
 msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr ""
+msgstr "Typ schématu používaný na LDAP serveru, dle normy rfc2307"
 
 #: src/config/SSSDConfig/__init__.py.in:285
-msgid "The default bind DN"
-msgstr ""
+msgid "Mode used to change user password"
+msgstr "Režim použitý pro změnu hesla uživatele"
 
 #: src/config/SSSDConfig/__init__.py.in:286
-msgid "The type of the authentication token of the default bind DN"
-msgstr ""
+msgid "The default bind DN"
+msgstr "Výchozí spojovací rozlišený název"
 
 #: src/config/SSSDConfig/__init__.py.in:287
-msgid "The authentication token of the default bind DN"
-msgstr ""
+msgid "The type of the authentication token of the default bind DN"
+msgstr "Typ ověřovacího tokenu výchozího spojovacího rozlišeného názvu"
 
 #: src/config/SSSDConfig/__init__.py.in:288
-msgid "Length of time to attempt connection"
-msgstr ""
+msgid "The authentication token of the default bind DN"
+msgstr "ověřovací token výchozího spojovacího rozlišeného názvu"
 
 #: src/config/SSSDConfig/__init__.py.in:289
-msgid "Length of time to attempt synchronous LDAP operations"
-msgstr ""
+msgid "Length of time to attempt connection"
+msgstr "Doba po kterou se pokoušet o připojení"
 
 #: src/config/SSSDConfig/__init__.py.in:290
-msgid "Length of time between attempts to reconnect while offline"
-msgstr ""
+msgid "Length of time to attempt synchronous LDAP operations"
+msgstr "Doba po kterou se pokoušet o synchronní LDAP operace"
 
 #: src/config/SSSDConfig/__init__.py.in:291
-msgid "Use only the upper case for realm names"
-msgstr ""
+msgid "Length of time between attempts to reconnect while offline"
+msgstr "Doba mezi pokusy o opětovné připojení když bez připojení"
 
 #: src/config/SSSDConfig/__init__.py.in:292
+msgid "Use only the upper case for realm names"
+msgstr "Pro názvy oblastí (realm) používat pouze velká písmena"
+
+#: src/config/SSSDConfig/__init__.py.in:293
 msgid "File that contains CA certificates"
 msgstr "Soubor obsahující certifikáty cert. autorit"
 
-#: src/config/SSSDConfig/__init__.py.in:293
+#: src/config/SSSDConfig/__init__.py.in:294
 msgid "Path to CA certificate directory"
 msgstr "Popis umístění složky s certifikáty cert. autority"
 
-#: src/config/SSSDConfig/__init__.py.in:294
+#: src/config/SSSDConfig/__init__.py.in:295
 msgid "File that contains the client certificate"
 msgstr "Soubor obsahující klientský certifikát"
 
-#: src/config/SSSDConfig/__init__.py.in:295
+#: src/config/SSSDConfig/__init__.py.in:296
 msgid "File that contains the client key"
 msgstr "Soubor který obsahuje klientský klíč"
 
-#: src/config/SSSDConfig/__init__.py.in:296
-msgid "List of possible ciphers suites"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:297
+msgid "List of possible ciphers suites"
+msgstr "Seznam možných šifrovacích algoritmů"
+
+#: src/config/SSSDConfig/__init__.py.in:298
 msgid "Require TLS certificate verification"
 msgstr "Vyžadovat ověření TSL certifikátem"
 
-#: src/config/SSSDConfig/__init__.py.in:298
-msgid "Specify the sasl mechanism to use"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:299
-msgid "Specify the sasl authorization id to use"
-msgstr ""
+msgid "Specify the sasl mechanism to use"
+msgstr "Určete sasl mechanizmus, který použít"
 
 #: src/config/SSSDConfig/__init__.py.in:300
-msgid "Specify the sasl authorization realm to use"
-msgstr ""
+msgid "Specify the sasl authorization id to use"
+msgstr "Zadejte identifikátor sasl ověřování které použít"
 
 #: src/config/SSSDConfig/__init__.py.in:301
-msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr ""
+msgid "Specify the sasl authorization realm to use"
+msgstr "Zadejte oblast (realm) sasl ověřování kterou použít"
 
 #: src/config/SSSDConfig/__init__.py.in:302
-msgid "Kerberos service keytab"
-msgstr ""
+msgid "Specify the minimal SSF for LDAP sasl authorization"
+msgstr "Zadejte minimální SSF pro LDAP sasl ověřování"
 
 #: src/config/SSSDConfig/__init__.py.in:303
-msgid "Use Kerberos auth for LDAP connection"
-msgstr ""
+msgid "Kerberos service keytab"
+msgstr "Uložené přihlašovací údaje (keytab) služby kerberos"
 
 #: src/config/SSSDConfig/__init__.py.in:304
-msgid "Follow LDAP referrals"
-msgstr ""
+msgid "Use Kerberos auth for LDAP connection"
+msgstr "Použít pro LDAP spojení kerberos"
 
 #: src/config/SSSDConfig/__init__.py.in:305
-msgid "Lifetime of TGT for LDAP connection"
-msgstr ""
+msgid "Follow LDAP referrals"
+msgstr "Následovat LDAP odkazy"
 
 #: src/config/SSSDConfig/__init__.py.in:306
-msgid "How to dereference aliases"
-msgstr ""
+msgid "Lifetime of TGT for LDAP connection"
+msgstr "Životnost TGT lístku pro LDAP spojení"
 
 #: src/config/SSSDConfig/__init__.py.in:307
-msgid "Service name for DNS service lookups"
-msgstr ""
+msgid "How to dereference aliases"
+msgstr "Jak rušit odkazování alternativních jmen"
 
 #: src/config/SSSDConfig/__init__.py.in:308
-msgid "The number of records to retrieve in a single LDAP query"
-msgstr ""
+msgid "Service name for DNS service lookups"
+msgstr "Název služby pro hledání služby pomocí DNS"
 
 #: src/config/SSSDConfig/__init__.py.in:309
-msgid "The number of members that must be missing to trigger a full deref"
-msgstr ""
+msgid "The number of records to retrieve in a single LDAP query"
+msgstr "Počet záznamů které získávat v rámci jediného LDAP dotazu"
 
 #: src/config/SSSDConfig/__init__.py.in:310
+msgid "The number of members that must be missing to trigger a full deref"
+msgstr "Počet členů který je třeba aby chyběli, aby bylo spuštěno plné deref"
+
+#: src/config/SSSDConfig/__init__.py.in:311
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:312
-msgid "entryUSN attribute"
-msgstr ""
+"Zda LDAP knihovna má provádět zpětný překlad pro kanonizaci názvu stroje při "
+"SASL spojení"
 
 #: src/config/SSSDConfig/__init__.py.in:313
-msgid "lastUSN attribute"
-msgstr ""
+msgid "entryUSN attribute"
+msgstr "atribut entryUSN"
 
-#: src/config/SSSDConfig/__init__.py.in:315
+#: src/config/SSSDConfig/__init__.py.in:314
+msgid "lastUSN attribute"
+msgstr "atribut lastUSN"
+
+#: src/config/SSSDConfig/__init__.py.in:316
 msgid ""
 "How long to retain a connection to the LDAP server before disconnecting"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:317
-msgid "Disable the LDAP paging control"
-msgstr ""
+msgstr "Jak dlouho ponechat spojení s LDAP serverem před odpojením"
 
 #: src/config/SSSDConfig/__init__.py.in:318
-msgid "Disable Active Directory range retrieval"
-msgstr ""
+msgid "Disable the LDAP paging control"
+msgstr "Vypnut řízení LDAP stránkování"
 
-#: src/config/SSSDConfig/__init__.py.in:321
-msgid "Length of time to wait for a search request"
-msgstr ""
+#: src/config/SSSDConfig/__init__.py.in:319
+msgid "Disable Active Directory range retrieval"
+msgstr "Vypnout získávání rozsahu Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:322
-msgid "Length of time to wait for a enumeration request"
-msgstr ""
+msgid "Length of time to wait for a search request"
+msgstr "Délka času po kterou čekat na požadavek hledání"
 
 #: src/config/SSSDConfig/__init__.py.in:323
-msgid "Length of time between enumeration updates"
-msgstr ""
+msgid "Length of time to wait for a enumeration request"
+msgstr "Délka času po kterou čekat na požadavek vyčíslení"
 
 #: src/config/SSSDConfig/__init__.py.in:324
-msgid "Length of time between cache cleanups"
-msgstr ""
+msgid "Length of time between enumeration updates"
+msgstr "Délka času po kterou čekat na aktualizace vyčíslení"
 
 #: src/config/SSSDConfig/__init__.py.in:325
-msgid "Require TLS for ID lookups"
-msgstr ""
+msgid "Length of time between cache cleanups"
+msgstr "Délka času po kterou čekat mezi vyčištěními mezipaměti"
 
 #: src/config/SSSDConfig/__init__.py.in:326
-msgid "Use ID-mapping of objectSID instead of pre-set IDs"
-msgstr ""
+msgid "Require TLS for ID lookups"
+msgstr "Vyžadovat pro vyhledání identifikátorů TLS šifrování"
 
 #: src/config/SSSDConfig/__init__.py.in:327
-msgid "Base DN for user lookups"
+msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr ""
+"Použít mapování identifikátorů objectSID namísto přednastavených "
+"identifikátorů"
 
 #: src/config/SSSDConfig/__init__.py.in:328
-msgid "Scope of user lookups"
-msgstr ""
+msgid "Base DN for user lookups"
+msgstr "Základ rozliš. názvu pro vyhledávání uživatelů"
 
 #: src/config/SSSDConfig/__init__.py.in:329
-msgid "Filter for user lookups"
-msgstr ""
+msgid "Scope of user lookups"
+msgstr "Rozsah vyhledávání uživatelů"
 
 #: src/config/SSSDConfig/__init__.py.in:330
-msgid "Objectclass for users"
-msgstr ""
+msgid "Filter for user lookups"
+msgstr "Filtr pro vyhledávání uživatelů"
 
 #: src/config/SSSDConfig/__init__.py.in:331
+msgid "Objectclass for users"
+msgstr "Objektová třída pro uživatele"
+
+#: src/config/SSSDConfig/__init__.py.in:332
 msgid "Username attribute"
 msgstr "Atribut uživatelské jméno"
 
-#: src/config/SSSDConfig/__init__.py.in:333
-msgid "UID attribute"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:334
-msgid "Primary GID attribute"
-msgstr ""
+msgid "UID attribute"
+msgstr "atribut UID"
 
 #: src/config/SSSDConfig/__init__.py.in:335
-msgid "GECOS attribute"
-msgstr ""
+msgid "Primary GID attribute"
+msgstr "atribut hlavní GID"
 
 #: src/config/SSSDConfig/__init__.py.in:336
+msgid "GECOS attribute"
+msgstr "atribut GECOS"
+
+#: src/config/SSSDConfig/__init__.py.in:337
 msgid "Home directory attribute"
 msgstr "Atribut domovská složka"
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:338
 msgid "Shell attribute"
 msgstr "Atribut shell"
 
-#: src/config/SSSDConfig/__init__.py.in:338
-msgid "UUID attribute"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:339
-#: src/config/SSSDConfig/__init__.py.in:381
-msgid "objectSID attribute"
-msgstr ""
+msgid "UUID attribute"
+msgstr "Atribut obsahující UUID"
 
 #: src/config/SSSDConfig/__init__.py.in:340
-msgid "Active Directory primary group attribute for ID-mapping"
-msgstr ""
+#: src/config/SSSDConfig/__init__.py.in:382
+msgid "objectSID attribute"
+msgstr "Atribut obsahující objectSID"
 
 #: src/config/SSSDConfig/__init__.py.in:341
+msgid "Active Directory primary group attribute for ID-mapping"
+msgstr "Hlavní atribut skupiny z Active Directory pro mapování identifikátoru"
+
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "User principal attribute (for Kerberos)"
-msgstr ""
+msgstr "Atribut obsahující principal uživatele (pro kerberos)"
 
 # auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId: cockpit
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:343
 msgid "Full Name"
 msgstr "Celé jméno"
 
-#: src/config/SSSDConfig/__init__.py.in:343
-msgid "memberOf attribute"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:344
-msgid "Modification time attribute"
-msgstr ""
+msgid "memberOf attribute"
+msgstr "atribut memberOf (členem)"
 
-#: src/config/SSSDConfig/__init__.py.in:346
-msgid "shadowLastChange attribute"
-msgstr ""
+#: src/config/SSSDConfig/__init__.py.in:345
+msgid "Modification time attribute"
+msgstr "atribut okamžik změny"
 
 #: src/config/SSSDConfig/__init__.py.in:347
-msgid "shadowMin attribute"
-msgstr ""
+msgid "shadowLastChange attribute"
+msgstr "atribut obsahující shadowLastChange"
 
 #: src/config/SSSDConfig/__init__.py.in:348
-msgid "shadowMax attribute"
-msgstr ""
+msgid "shadowMin attribute"
+msgstr "atribut shadowMin"
 
 #: src/config/SSSDConfig/__init__.py.in:349
-msgid "shadowWarning attribute"
-msgstr ""
+msgid "shadowMax attribute"
+msgstr "atribut shadowMax"
 
 #: src/config/SSSDConfig/__init__.py.in:350
-msgid "shadowInactive attribute"
-msgstr ""
+msgid "shadowWarning attribute"
+msgstr "atribut shadowWarning"
 
 #: src/config/SSSDConfig/__init__.py.in:351
-msgid "shadowExpire attribute"
-msgstr ""
+msgid "shadowInactive attribute"
+msgstr "atribut shadowInactive"
 
 #: src/config/SSSDConfig/__init__.py.in:352
-msgid "shadowFlag attribute"
-msgstr ""
+msgid "shadowExpire attribute"
+msgstr "atribut shadowExpire"
 
 #: src/config/SSSDConfig/__init__.py.in:353
-msgid "Attribute listing authorized PAM services"
-msgstr ""
+msgid "shadowFlag attribute"
+msgstr "atribut shadowFlag"
 
 #: src/config/SSSDConfig/__init__.py.in:354
-msgid "Attribute listing authorized server hosts"
-msgstr ""
+msgid "Attribute listing authorized PAM services"
+msgstr "Atribut vypisující pověřené PAM služby"
 
 #: src/config/SSSDConfig/__init__.py.in:355
-msgid "Attribute listing authorized server rhosts"
-msgstr ""
+msgid "Attribute listing authorized server hosts"
+msgstr "Atribut vypisující hostitele – pověřené servery"
 
 #: src/config/SSSDConfig/__init__.py.in:356
-msgid "krbLastPwdChange attribute"
-msgstr ""
+msgid "Attribute listing authorized server rhosts"
+msgstr "Atribut vypisující vzdálené hostitele – pověřené servery"
 
 #: src/config/SSSDConfig/__init__.py.in:357
-msgid "krbPasswordExpiration attribute"
-msgstr ""
+msgid "krbLastPwdChange attribute"
+msgstr "atribut krbLastPwdChange"
 
 #: src/config/SSSDConfig/__init__.py.in:358
-msgid "Attribute indicating that server side password policies are active"
-msgstr ""
+msgid "krbPasswordExpiration attribute"
+msgstr "atribut krbPasswordExpiration"
 
 #: src/config/SSSDConfig/__init__.py.in:359
-msgid "accountExpires attribute of AD"
-msgstr ""
+msgid "Attribute indicating that server side password policies are active"
+msgstr "Atribut indikující že zásady ohledně hesel na straně serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:360
-msgid "userAccountControl attribute of AD"
-msgstr ""
+msgid "accountExpires attribute of AD"
+msgstr "AD atribut accountExpires (platnost účtu končí)"
 
 #: src/config/SSSDConfig/__init__.py.in:361
-msgid "nsAccountLock attribute"
-msgstr ""
+msgid "userAccountControl attribute of AD"
+msgstr "AD atribut userAccountControl"
 
 #: src/config/SSSDConfig/__init__.py.in:362
-msgid "loginDisabled attribute of NDS"
-msgstr ""
+msgid "nsAccountLock attribute"
+msgstr "atribut nsAccountLock"
 
 #: src/config/SSSDConfig/__init__.py.in:363
-msgid "loginExpirationTime attribute of NDS"
-msgstr ""
+msgid "loginDisabled attribute of NDS"
+msgstr "NDS atribut loginDisabled"
 
 #: src/config/SSSDConfig/__init__.py.in:364
-msgid "loginAllowedTimeMap attribute of NDS"
-msgstr ""
+msgid "loginExpirationTime attribute of NDS"
+msgstr "NDS atribut loginExpirationTime"
 
 #: src/config/SSSDConfig/__init__.py.in:365
+msgid "loginAllowedTimeMap attribute of NDS"
+msgstr "NDS atribut loginAllowedTimeMap"
+
+#: src/config/SSSDConfig/__init__.py.in:366
 msgid "SSH public key attribute"
 msgstr "Atribut veřejná část ssh klíče"
 
-#: src/config/SSSDConfig/__init__.py.in:366
-msgid "attribute listing allowed authentication types for a user"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:367
-msgid "attribute containing the X509 certificate of the user"
-msgstr ""
+msgid "attribute listing allowed authentication types for a user"
+msgstr "atribut vypisující typy umožněných ověřování pro uživatele"
 
 #: src/config/SSSDConfig/__init__.py.in:368
+msgid "attribute containing the X509 certificate of the user"
+msgstr "atribut obsahující X509 certifikát uživatele"
+
+#: src/config/SSSDConfig/__init__.py.in:369
 msgid "attribute containing the email address of the user"
-msgstr ""
+msgstr "atribut obsahující e-mailovou adresu uživatele"
 
-#: src/config/SSSDConfig/__init__.py.in:370
+#: src/config/SSSDConfig/__init__.py.in:371
 msgid "A list of extra attributes to download along with the user entry"
-msgstr ""
+msgstr "Seznam dalších atributů, které stáhnout společně s položkou uživatele"
 
-#: src/config/SSSDConfig/__init__.py.in:372
+#: src/config/SSSDConfig/__init__.py.in:373
 msgid "Base DN for group lookups"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:375
-msgid "Objectclass for groups"
-msgstr ""
+msgstr "Základ rozliš. názvu pro vyhledávání skupin"
 
 #: src/config/SSSDConfig/__init__.py.in:376
+msgid "Objectclass for groups"
+msgstr "Objektová třída pro skupiny"
+
+#: src/config/SSSDConfig/__init__.py.in:377
 msgid "Group name"
 msgstr "Název skupiny"
 
-#: src/config/SSSDConfig/__init__.py.in:377
+#: src/config/SSSDConfig/__init__.py.in:378
 msgid "Group password"
 msgstr "Heslo skupiny"
 
-#: src/config/SSSDConfig/__init__.py.in:378
-msgid "GID attribute"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:379
-msgid "Group member attribute"
-msgstr ""
+msgid "GID attribute"
+msgstr "Atribut GID"
 
 #: src/config/SSSDConfig/__init__.py.in:380
-msgid "Group UUID attribute"
-msgstr ""
+msgid "Group member attribute"
+msgstr "Atribut člen skupin"
 
-#: src/config/SSSDConfig/__init__.py.in:382
-msgid "Modification time attribute for groups"
-msgstr ""
+#: src/config/SSSDConfig/__init__.py.in:381
+msgid "Group UUID attribute"
+msgstr "atribut UUID skupiny"
 
 #: src/config/SSSDConfig/__init__.py.in:383
-msgid "Type of the group and other flags"
-msgstr ""
+msgid "Modification time attribute for groups"
+msgstr "Atribut okamžik úpravy pro skupiny"
 
 #: src/config/SSSDConfig/__init__.py.in:384
+msgid "Type of the group and other flags"
+msgstr "Typ skupiny a ostatní příznaky"
+
+#: src/config/SSSDConfig/__init__.py.in:385
 msgid "The LDAP group external member attribute"
-msgstr ""
+msgstr "Atribut externí člen LDAP skupiny"
 
-#: src/config/SSSDConfig/__init__.py.in:386
+#: src/config/SSSDConfig/__init__.py.in:387
 msgid "Maximum nesting level SSSD will follow"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:388
-msgid "Base DN for netgroup lookups"
-msgstr ""
+msgstr "Do kolikáté úrovně vnoření bude SSSD následovat"
 
 #: src/config/SSSDConfig/__init__.py.in:389
-msgid "Objectclass for netgroups"
-msgstr ""
+msgid "Base DN for netgroup lookups"
+msgstr "Základ rozlišeného názvu pro vyhledávání negroup"
 
 #: src/config/SSSDConfig/__init__.py.in:390
-msgid "Netgroup name"
-msgstr ""
+msgid "Objectclass for netgroups"
+msgstr "Objektová třída pro netgroup"
 
 #: src/config/SSSDConfig/__init__.py.in:391
-msgid "Netgroups members attribute"
-msgstr ""
+msgid "Netgroup name"
+msgstr "Negroup název"
 
 #: src/config/SSSDConfig/__init__.py.in:392
-msgid "Netgroup triple attribute"
-msgstr ""
+msgid "Netgroups members attribute"
+msgstr "Atribut členové negroup"
 
 #: src/config/SSSDConfig/__init__.py.in:393
-msgid "Modification time attribute for netgroups"
-msgstr ""
+msgid "Netgroup triple attribute"
+msgstr "Atribut trojitý netgroup"
 
-#: src/config/SSSDConfig/__init__.py.in:395
-msgid "Base DN for service lookups"
-msgstr ""
+#: src/config/SSSDConfig/__init__.py.in:394
+msgid "Modification time attribute for netgroups"
+msgstr "Atribut okamžik změny pro netgroup"
 
 #: src/config/SSSDConfig/__init__.py.in:396
-msgid "Objectclass for services"
-msgstr ""
+msgid "Base DN for service lookups"
+msgstr "Základ rozliš. názvu pro hledání služeb"
 
 #: src/config/SSSDConfig/__init__.py.in:397
+msgid "Objectclass for services"
+msgstr "Objektová třída pro služby"
+
+#: src/config/SSSDConfig/__init__.py.in:398
 msgid "Service name attribute"
 msgstr "Atribut název služby"
 
-#: src/config/SSSDConfig/__init__.py.in:398
+#: src/config/SSSDConfig/__init__.py.in:399
 msgid "Service port attribute"
 msgstr "Atribut port služby"
 
-#: src/config/SSSDConfig/__init__.py.in:399
+#: src/config/SSSDConfig/__init__.py.in:400
 msgid "Service protocol attribute"
 msgstr "Atribut protokol služby"
 
-#: src/config/SSSDConfig/__init__.py.in:402
-msgid "Lower bound for ID-mapping"
-msgstr ""
-
 #: src/config/SSSDConfig/__init__.py.in:403
-msgid "Upper bound for ID-mapping"
-msgstr ""
+msgid "Lower bound for ID-mapping"
+msgstr "Spodní spojení pro mapování identifikátorů"
 
 #: src/config/SSSDConfig/__init__.py.in:404
-msgid "Number of IDs for each slice when ID-mapping"
-msgstr ""
+msgid "Upper bound for ID-mapping"
+msgstr "Horní spojení pro mapování identifikátorů"
 
 #: src/config/SSSDConfig/__init__.py.in:405
-msgid "Use autorid-compatible algorithm for ID-mapping"
-msgstr ""
+msgid "Number of IDs for each slice when ID-mapping"
+msgstr "Počet identifikátorů pro každý plátek při mapování identifikátorů"
 
 #: src/config/SSSDConfig/__init__.py.in:406
-msgid "Name of the default domain for ID-mapping"
-msgstr ""
+msgid "Use autorid-compatible algorithm for ID-mapping"
+msgstr "Použít pro mapování identifikátorů algoritmus kompatibilní s autorid"
 
 #: src/config/SSSDConfig/__init__.py.in:407
-msgid "SID of the default domain for ID-mapping"
-msgstr ""
+msgid "Name of the default domain for ID-mapping"
+msgstr "Název výchozí domény pro mapování identifikátorů"
 
 #: src/config/SSSDConfig/__init__.py.in:408
-msgid "Number of secondary slices"
-msgstr ""
+msgid "SID of the default domain for ID-mapping"
+msgstr "SID výchozí domény pro mapování identifikátorů"
 
-#: src/config/SSSDConfig/__init__.py.in:410
-msgid "Whether to use Token-Groups"
-msgstr ""
+#: src/config/SSSDConfig/__init__.py.in:409
+msgid "Number of secondary slices"
+msgstr "Počet sekundárních plátků"
 
 #: src/config/SSSDConfig/__init__.py.in:411
-msgid "Set lower boundary for allowed IDs from the LDAP server"
-msgstr ""
+msgid "Whether to use Token-Groups"
+msgstr "Zda používat skupiny tokenu"
 
 #: src/config/SSSDConfig/__init__.py.in:412
-msgid "Set upper boundary for allowed IDs from the LDAP server"
-msgstr ""
+msgid "Set lower boundary for allowed IDs from the LDAP server"
+msgstr "Nastavit spodní hranici pro umožněné identifikátory z LDAP serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:413
-msgid "DN for ppolicy queries"
-msgstr ""
+msgid "Set upper boundary for allowed IDs from the LDAP server"
+msgstr "Nastavit horní hranici pro umožněné identifikátory z LDAP serveru"
 
 #: src/config/SSSDConfig/__init__.py.in:414
-msgid "How many maximum entries to fetch during a wildcard request"
-msgstr ""
+msgid "DN for ppolicy queries"
+msgstr "Rozlišený název pro ppolicy dotazy"
 
-#: src/config/SSSDConfig/__init__.py.in:417
+#: src/config/SSSDConfig/__init__.py.in:415
+msgid "How many maximum entries to fetch during a wildcard request"
+msgstr "Kolik nejvýše položek získat při požadavku se zástupnými znaky"
+
+#: src/config/SSSDConfig/__init__.py.in:418
 msgid "Policy to evaluate the password expiration"
 msgstr "Pravidlo pro vyhodnocení skončení platnosti hesla"
 
-#: src/config/SSSDConfig/__init__.py.in:421
+#: src/config/SSSDConfig/__init__.py.in:422
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
+"Jaké atributy mají být použity pro vyhodnocování zda platnost účtu skončila"
 
-#: src/config/SSSDConfig/__init__.py.in:422
+#: src/config/SSSDConfig/__init__.py.in:423
 msgid "Which rules should be used to evaluate access control"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:425
-msgid "URI of an LDAP server where password changes are allowed"
-msgstr ""
+msgstr "Která pravidla by měla být použita pro vyhodnocení řízení přístupu"
 
 #: src/config/SSSDConfig/__init__.py.in:426
-msgid "URI of a backup LDAP server where password changes are allowed"
-msgstr ""
+msgid "URI of an LDAP server where password changes are allowed"
+msgstr "URI adresa LDAP serveru na kterém je dovoleno provádět změny hesel"
 
 #: src/config/SSSDConfig/__init__.py.in:427
-msgid "DNS service name for LDAP password change server"
-msgstr ""
+msgid "URI of a backup LDAP server where password changes are allowed"
+msgstr "URI záložního LDAP serveru, na kterém je možné měnit hesla"
 
 #: src/config/SSSDConfig/__init__.py.in:428
+msgid "DNS service name for LDAP password change server"
+msgstr "Název DNS služby pro LDAP server změny hesel"
+
+#: src/config/SSSDConfig/__init__.py.in:429
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:431
-msgid "Base DN for sudo rules lookups"
-msgstr ""
+msgstr "Zda aktualizovat atribut ldap_user_shadow_last_change po změně hesla"
 
 #: src/config/SSSDConfig/__init__.py.in:432
-msgid "Automatic full refresh period"
-msgstr ""
+msgid "Base DN for sudo rules lookups"
+msgstr "Základ rozliš. názvu pro vyhledávání sudo pravidel"
 
 #: src/config/SSSDConfig/__init__.py.in:433
-msgid "Automatic smart refresh period"
-msgstr ""
+msgid "Automatic full refresh period"
+msgstr "Perioda automatického úplného znovunačtení"
 
 #: src/config/SSSDConfig/__init__.py.in:434
-msgid "Whether to filter rules by hostname, IP addresses and network"
-msgstr ""
+msgid "Automatic smart refresh period"
+msgstr "Perioda chytrého automatického znovunačtení"
 
 #: src/config/SSSDConfig/__init__.py.in:435
+msgid "Whether to filter rules by hostname, IP addresses and network"
+msgstr "Zda filtrovat pravidla podle názvů strojů, IP adres a sítě"
+
+#: src/config/SSSDConfig/__init__.py.in:436
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
 msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:436
-msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
-msgstr ""
+"Názvy strojů a/nebo úplné doménové názvy tohoto stroje pro filtrování sudo "
+"pravidel"
 
 #: src/config/SSSDConfig/__init__.py.in:437
-msgid "Whether to include rules that contains netgroup in host attribute"
+msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
+"IPv4 nebo IPv6 adresy nebo sítě tohoto stroje pro filtrování sudo pravidel"
 
 #: src/config/SSSDConfig/__init__.py.in:438
+msgid "Whether to include rules that contains netgroup in host attribute"
+msgstr ""
+"Zda zahrnout pravidla která obsahují v atributu stroj síťovou skupinu "
+"(netgroup)"
+
+#: src/config/SSSDConfig/__init__.py.in:439
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:439
-msgid "Object class for sudo rules"
-msgstr ""
+"Zda zahrnout pravidla, která obsahují v atributu stroj regulární výraz"
 
 #: src/config/SSSDConfig/__init__.py.in:440
-msgid "Sudo rule name"
-msgstr ""
+msgid "Object class for sudo rules"
+msgstr "Objektová třída pro sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:441
-msgid "Sudo rule command attribute"
-msgstr ""
+msgid "Sudo rule name"
+msgstr "Název sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:442
-msgid "Sudo rule host attribute"
-msgstr ""
+msgid "Sudo rule command attribute"
+msgstr "Atribut příkaz sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:443
-msgid "Sudo rule user attribute"
-msgstr ""
+msgid "Sudo rule host attribute"
+msgstr "Atribut stroj sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:444
-msgid "Sudo rule option attribute"
-msgstr ""
+msgid "Sudo rule user attribute"
+msgstr "Atribut uživatel sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:445
-msgid "Sudo rule runas attribute"
-msgstr ""
+msgid "Sudo rule option attribute"
+msgstr "Atribut volba sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:446
-msgid "Sudo rule runasuser attribute"
-msgstr ""
+msgid "Sudo rule runas attribute"
+msgstr "Atribut runas (spustit jako) sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:447
-msgid "Sudo rule runasgroup attribute"
-msgstr ""
+msgid "Sudo rule runasuser attribute"
+msgstr "Atribut runasuser (spusť jako uživatel) sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:448
-msgid "Sudo rule notbefore attribute"
-msgstr ""
+msgid "Sudo rule runasgroup attribute"
+msgstr "Atribut runasgroup (spusť jako skupina) sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:449
-msgid "Sudo rule notafter attribute"
-msgstr ""
+msgid "Sudo rule notbefore attribute"
+msgstr "Atribut notbefore (ne před) sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:450
-msgid "Sudo rule order attribute"
-msgstr ""
+msgid "Sudo rule notafter attribute"
+msgstr "Atribut notafter (ne po) sudo pravidla"
 
-#: src/config/SSSDConfig/__init__.py.in:453
-msgid "Object class for automounter maps"
-msgstr ""
+#: src/config/SSSDConfig/__init__.py.in:451
+msgid "Sudo rule order attribute"
+msgstr "Atribut order (pořadí) sudo pravidla"
 
 #: src/config/SSSDConfig/__init__.py.in:454
-msgid "Automounter map name attribute"
-msgstr ""
+msgid "Object class for automounter maps"
+msgstr "Objektová třída pro mapy automounter"
 
 #: src/config/SSSDConfig/__init__.py.in:455
-msgid "Object class for automounter map entries"
-msgstr ""
+msgid "Automounter map name attribute"
+msgstr "Atribut automounter název mapy"
 
 #: src/config/SSSDConfig/__init__.py.in:456
-msgid "Automounter map entry key attribute"
-msgstr ""
+msgid "Object class for automounter map entries"
+msgstr "Objektová třída pro položky mapy automounteru"
 
 #: src/config/SSSDConfig/__init__.py.in:457
-msgid "Automounter map entry value attribute"
-msgstr ""
+msgid "Automounter map entry key attribute"
+msgstr "Atribut klíč položky mapy automounteru"
 
 #: src/config/SSSDConfig/__init__.py.in:458
-msgid "Base DN for automounter map lookups"
-msgstr ""
+msgid "Automounter map entry value attribute"
+msgstr "Atribut hodnoty položky mapy automounter"
 
-#: src/config/SSSDConfig/__init__.py.in:461
+#: src/config/SSSDConfig/__init__.py.in:459
+msgid "Base DN for automounter map lookups"
+msgstr "Základ rozlišeného názvu pro vyhledávání map automounter"
+
+#: src/config/SSSDConfig/__init__.py.in:462
 msgid "Comma separated list of allowed users"
 msgstr "Čárkou oddělovaný seznam uživatelů, kterým je umožněn přístup"
 
-#: src/config/SSSDConfig/__init__.py.in:462
+#: src/config/SSSDConfig/__init__.py.in:463
 msgid "Comma separated list of prohibited users"
 msgstr "Čárkou oddělovaný seznam uživatelů, kterým je odepřen přístup"
 
-#: src/config/SSSDConfig/__init__.py.in:465
+#: src/config/SSSDConfig/__init__.py.in:466
 msgid "Default shell, /bin/bash"
 msgstr "Výchozí shell, /bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:466
+#: src/config/SSSDConfig/__init__.py.in:467
 msgid "Base for home directories"
-msgstr ""
+msgstr "Základ pro domovské složky"
 
-#: src/config/SSSDConfig/__init__.py.in:469
+#: src/config/SSSDConfig/__init__.py.in:470
 msgid "The number of preforked proxy children."
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:472
-msgid "The name of the NSS library to use"
-msgstr ""
+msgstr "Počet předrozvětvených dílčích procesů proxy."
 
 #: src/config/SSSDConfig/__init__.py.in:473
+msgid "The name of the NSS library to use"
+msgstr "Název NSS knihovny, kterou použít"
+
+#: src/config/SSSDConfig/__init__.py.in:474
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
+"Zda vyhledávat kanonický název skupiny z mezipaměti, pokud je to možné"
 
-#: src/config/SSSDConfig/__init__.py.in:476
+#: src/config/SSSDConfig/__init__.py.in:477
 msgid "PAM stack to use"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:479
-msgid "Path of passwd file sources."
-msgstr ""
+msgstr "PAM vrstvy, které použít"
 
 #: src/config/SSSDConfig/__init__.py.in:480
-msgid "Path of group file sources."
-msgstr ""
+msgid "Path of passwd file sources."
+msgstr "Popis umístění souborových zdrojů passwd"
 
-#: src/monitor/monitor.c:2347
+#: src/config/SSSDConfig/__init__.py.in:481
+msgid "Path of group file sources."
+msgstr "Popis umístění souborových zdrojů group"
+
+#: src/monitor/monitor.c:2332
 msgid "Become a daemon (default)"
 msgstr "Přejít v proces služby (výchozí)"
 
-#: src/monitor/monitor.c:2349
+#: src/monitor/monitor.c:2334
 msgid "Run interactive (not a daemon)"
 msgstr "Spustit interaktivně (ne jako proces služby)"
 
-#: src/monitor/monitor.c:2352
+#: src/monitor/monitor.c:2337
 msgid "Disable netlink interface"
-msgstr ""
+msgstr "Vypnout netlink rozhraní"
 
-#: src/monitor/monitor.c:2354 src/tools/sssctl/sssctl_logs.c:311
+#: src/monitor/monitor.c:2339 src/tools/sssctl/sssctl_logs.c:311
 msgid "Specify a non-default config file"
-msgstr ""
+msgstr "Zadat nevýchozí soubor s nastaveními"
 
-#: src/monitor/monitor.c:2356
+#: src/monitor/monitor.c:2341
 msgid "Refresh the configuration database, then exit"
-msgstr ""
+msgstr "Znovu načíst databázi s nastaveními, pak skončit"
 
-#: src/monitor/monitor.c:2359
+#: src/monitor/monitor.c:2344
 msgid "Similar to --genconf, but only refreshes the given section"
-msgstr ""
+msgstr "Podobné s --genconf, ale znovu načte pouze danou sekci"
 
-#: src/monitor/monitor.c:2362
+#: src/monitor/monitor.c:2347
 msgid "Print version number and exit"
 msgstr "Vypsat "
 
-#: src/monitor/monitor.c:2538
+#: src/monitor/monitor.c:2523
 msgid "SSSD is already running\n"
 msgstr "SSSD už je spuštěné"
 
-#: src/providers/krb5/krb5_child.c:3219 src/providers/ldap/ldap_child.c:605
+#: src/providers/krb5/krb5_child.c:3232 src/providers/ldap/ldap_child.c:605
 msgid "Debug level"
-msgstr ""
+msgstr "Úroveň podrobností ladících zpráv"
 
-#: src/providers/krb5/krb5_child.c:3221 src/providers/ldap/ldap_child.c:607
+#: src/providers/krb5/krb5_child.c:3234 src/providers/ldap/ldap_child.c:607
 msgid "Add debug timestamps"
-msgstr ""
+msgstr "Přidat do ladících informací časové značky"
 
-#: src/providers/krb5/krb5_child.c:3223 src/providers/ldap/ldap_child.c:609
+#: src/providers/krb5/krb5_child.c:3236 src/providers/ldap/ldap_child.c:609
 msgid "Show timestamps with microseconds"
-msgstr ""
+msgstr "Zobrazovat časové značky s mikrosekundami"
 
-#: src/providers/krb5/krb5_child.c:3225 src/providers/ldap/ldap_child.c:611
+#: src/providers/krb5/krb5_child.c:3238 src/providers/ldap/ldap_child.c:611
 msgid "An open file descriptor for the debug logs"
-msgstr ""
+msgstr "Otevřený popisovač souboru pro záznam ladících informací"
 
-#: src/providers/krb5/krb5_child.c:3228 src/providers/ldap/ldap_child.c:613
+#: src/providers/krb5/krb5_child.c:3241 src/providers/ldap/ldap_child.c:613
 msgid "Send the debug output to stderr directly."
-msgstr ""
+msgstr "Poslat ladící výstup přímo na standardní chybový výstup."
 
-#: src/providers/krb5/krb5_child.c:3231
+#: src/providers/krb5/krb5_child.c:3244
 msgid "The user to create FAST ccache as"
-msgstr ""
+msgstr "Uživatel pod kterým vytvořit FAST ccache"
 
-#: src/providers/krb5/krb5_child.c:3233
+#: src/providers/krb5/krb5_child.c:3246
 msgid "The group to create FAST ccache as"
-msgstr ""
+msgstr "Skupina pod kterou vytvořit FAST ccache"
 
-#: src/providers/krb5/krb5_child.c:3235
+#: src/providers/krb5/krb5_child.c:3248
 msgid "Kerberos realm to use"
-msgstr ""
+msgstr "Kerberos oblast (realm) kterou použít"
 
-#: src/providers/krb5/krb5_child.c:3237
+#: src/providers/krb5/krb5_child.c:3250
 msgid "Requested lifetime of the ticket"
 msgstr "Požadovaná životnost lístku"
 
-#: src/providers/krb5/krb5_child.c:3239
+#: src/providers/krb5/krb5_child.c:3252
 msgid "Requested renewable lifetime of the ticket"
-msgstr ""
+msgstr "Požadovaná obnovitelná životnosti lístku"
 
-#: src/providers/krb5/krb5_child.c:3241
+#: src/providers/krb5/krb5_child.c:3254
 msgid "FAST options ('never', 'try', 'demand')"
-msgstr ""
+msgstr "FAST volby („never“, „try“, „demand“)"
 
-#: src/providers/krb5/krb5_child.c:3244
+#: src/providers/krb5/krb5_child.c:3257
 msgid "Specifies the server principal to use for FAST"
-msgstr ""
+msgstr "Určuje principal serveru které použít pro FAST"
 
-#: src/providers/krb5/krb5_child.c:3246
+#: src/providers/krb5/krb5_child.c:3259
 msgid "Requests canonicalization of the principal name"
-msgstr ""
+msgstr "Požaduje kanonizaci názvu principalu"
 
-#: src/providers/krb5/krb5_child.c:3248
+#: src/providers/krb5/krb5_child.c:3261
 msgid "Use custom version of krb5_get_init_creds_password"
-msgstr ""
+msgstr "Použít uživatelsky určenou verzi krb5_get_init_creds_password"
 
-#: src/providers/data_provider_be.c:630
+#: src/providers/data_provider_be.c:673
 msgid "Domain of the information provider (mandatory)"
-msgstr ""
+msgstr "Doména poskytovatele informace (povinné)"
 
-#: src/sss_client/common.c:1067
+#: src/sss_client/common.c:1079
 msgid "Privileged socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Privilegovaný soket má nesprávné vlastnictví nebo oprávnění."
 
-#: src/sss_client/common.c:1070
+#: src/sss_client/common.c:1082
 msgid "Public socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Veřejný soket má chybné vlastnictví nebo oprávnění."
 
-#: src/sss_client/common.c:1073
+#: src/sss_client/common.c:1085
 msgid "Unexpected format of the server credential message."
-msgstr ""
+msgstr "Neočekávaný formát zprávy o pověřeních serveru."
 
-#: src/sss_client/common.c:1076
+#: src/sss_client/common.c:1088
 msgid "SSSD is not run by root."
 msgstr "SSSD není spouštěno správcem."
 
-#: src/sss_client/common.c:1081
+#: src/sss_client/common.c:1091
+msgid "SSSD socket does not exist."
+msgstr "SSSD soket neexistuje."
+
+#: src/sss_client/common.c:1094
+msgid "Cannot get stat of SSSD socket."
+msgstr "Nedaří se získat stav SSSD soketu."
+
+#: src/sss_client/common.c:1099
 msgid "An error occurred, but no description can be found."
 msgstr "Došlo k chybě, ale nedaří se najít popis."
 
-#: src/sss_client/common.c:1087
+#: src/sss_client/common.c:1105
 msgid "Unexpected error while looking for an error description"
 msgstr "Neočekávaná chyba při hledání popisu chyby"
 
@@ -1599,90 +1693,91 @@ msgstr "Neočekávaná chyba při hledání popisu chyby"
 msgid "Permission denied. "
 msgstr "Přístup odepřen."
 
-#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:774
-#: src/sss_client/pam_sss.c:785
+#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:777
+#: src/sss_client/pam_sss.c:788
 msgid "Server message: "
 msgstr "Zpráva ze serveru:"
 
 # auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId: po/ipa
-#: src/sss_client/pam_sss.c:292
+#: src/sss_client/pam_sss.c:295
 msgid "Passwords do not match"
 msgstr "Zadání hesla se neshodují"
 
-#: src/sss_client/pam_sss.c:480
+#: src/sss_client/pam_sss.c:483
 msgid "Password reset by root is not supported."
 msgstr "Reset hesla správcem není podporován."
 
-#: src/sss_client/pam_sss.c:521
+#: src/sss_client/pam_sss.c:524
 msgid "Authenticated with cached credentials"
 msgstr "Přihlášeni přihlašovacími údaji z mezipaměti"
 
-#: src/sss_client/pam_sss.c:522
+#: src/sss_client/pam_sss.c:525
 msgid ", your cached password will expire at: "
 msgstr ", platnost mezipaměti skončí v:"
 
-#: src/sss_client/pam_sss.c:552
+#: src/sss_client/pam_sss.c:555
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
-msgstr ""
+msgstr "Platnost vašeho hesla skončila. Zbývá vám %1$d přihlášení."
 
-#: src/sss_client/pam_sss.c:598
+#: src/sss_client/pam_sss.c:601
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Platnost vašeho hesla skončí v %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:647
+#: src/sss_client/pam_sss.c:650
 msgid "Authentication is denied until: "
 msgstr "Ověření odepřeno do:"
 
-#: src/sss_client/pam_sss.c:668
+#: src/sss_client/pam_sss.c:671
 msgid "System is offline, password change not possible"
 msgstr "Systém není dostupný, změna hesla není možná"
 
-#: src/sss_client/pam_sss.c:683
+#: src/sss_client/pam_sss.c:686
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr ""
+"Po změně OTP hesla, je třeba se odhlásit/přihlásit aby byl získán lístek"
 
-#: src/sss_client/pam_sss.c:771 src/sss_client/pam_sss.c:784
+#: src/sss_client/pam_sss.c:774 src/sss_client/pam_sss.c:787
 msgid "Password change failed. "
 msgstr "Změna hesla se nezdařila."
 
-#: src/sss_client/pam_sss.c:1921
+#: src/sss_client/pam_sss.c:1977
 msgid "New Password: "
 msgstr "Nové heslo:"
 
-#: src/sss_client/pam_sss.c:1922
+#: src/sss_client/pam_sss.c:1978
 msgid "Reenter new Password: "
 msgstr "Zopakování nového hesla:"
 
-#: src/sss_client/pam_sss.c:2038 src/sss_client/pam_sss.c:2041
+#: src/sss_client/pam_sss.c:2139 src/sss_client/pam_sss.c:2142
 msgid "First Factor: "
-msgstr ""
+msgstr "Hlavní faktor:"
 
-#: src/sss_client/pam_sss.c:2039 src/sss_client/pam_sss.c:2201
+#: src/sss_client/pam_sss.c:2140 src/sss_client/pam_sss.c:2303
 msgid "Second Factor (optional): "
-msgstr ""
+msgstr "Druhý faktor (volitelné):"
 
-#: src/sss_client/pam_sss.c:2042 src/sss_client/pam_sss.c:2204
+#: src/sss_client/pam_sss.c:2143 src/sss_client/pam_sss.c:2306
 msgid "Second Factor: "
-msgstr ""
+msgstr "Druhý faktor:"
 
 # auto translated by TM merge from project: anaconda, version: f25, DocId: main
-#: src/sss_client/pam_sss.c:2057
+#: src/sss_client/pam_sss.c:2158
 msgid "Password: "
 msgstr "Heslo: "
 
-#: src/sss_client/pam_sss.c:2200 src/sss_client/pam_sss.c:2203
+#: src/sss_client/pam_sss.c:2302 src/sss_client/pam_sss.c:2305
 msgid "First Factor (Current Password): "
-msgstr ""
+msgstr "Hlavní faktor (stávající heslo):"
 
-#: src/sss_client/pam_sss.c:2207
+#: src/sss_client/pam_sss.c:2309
 msgid "Current Password: "
 msgstr "Stávající heslo:"
 
-#: src/sss_client/pam_sss.c:2562
+#: src/sss_client/pam_sss.c:2664
 msgid "Password expired. Change your password now."
 msgstr "Platnost hesla skončila. Změňte si ho."
 
@@ -1691,20 +1786,20 @@ msgstr "Platnost hesla skončila. Změňte si ho."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:668
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:687
+#: src/tools/sss_cache.c:704
 msgid "The debug level to run with"
-msgstr ""
+msgstr "Úroveň ladících informací, se kterou spustit"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:43
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:208
 msgid "The SSSD domain to use"
-msgstr ""
+msgstr "SSSD doména, kterou použít"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:57 src/tools/sss_useradd.c:74
 #: src/tools/sss_groupadd.c:59 src/tools/sss_groupdel.c:54
 #: src/tools/sss_groupmod.c:66 src/tools/sss_groupshow.c:680
 #: src/tools/sss_userdel.c:152 src/tools/sss_usermod.c:79
-#: src/tools/sss_cache.c:733
+#: src/tools/sss_cache.c:750
 msgid "Error setting the locale\n"
 msgstr "Chyba při nastavování místního a jazykového nastavení\n"
 
@@ -1714,47 +1809,52 @@ msgstr "Nedostatek paměti\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:83
 msgid "User not specified\n"
-msgstr ""
+msgstr "Uživatel nezadán\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:97
 msgid "Error looking up public keys\n"
-msgstr ""
+msgstr "Chyba při hledání veřejných klíčů\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:206
 msgid "The port to use to connect to the host"
-msgstr ""
+msgstr "Port který použít pro připojení se k hostiteli"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:210
 msgid "Print the host ssh public keys"
-msgstr ""
+msgstr "Vypsat veřejné ssh klíče stroje"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:252
 msgid "Invalid port\n"
-msgstr ""
+msgstr "Neplatný port\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:257
 msgid "Host not specified\n"
-msgstr ""
+msgstr "Stroj neurčen\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:263
 msgid "The path to the proxy command must be absolute\n"
-msgstr ""
+msgstr "Je třeba, aby popis umístění příkazu proxy byl úplný\n"
+
+#: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:342
+#, c-format
+msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
+msgstr "sss_ssh_knownhostsproxy: Nedaří se přeložit název stroje %s\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
-msgstr ""
+msgstr "UID uživatele"
 
 #: src/tools/sss_useradd.c:50 src/tools/sss_usermod.c:50
 msgid "The comment string"
-msgstr ""
+msgstr "Řetězec komentáře"
 
 #: src/tools/sss_useradd.c:51 src/tools/sss_usermod.c:51
 msgid "Home directory"
-msgstr ""
+msgstr "Domovská složka"
 
 #: src/tools/sss_useradd.c:52 src/tools/sss_usermod.c:52
 msgid "Login shell"
-msgstr ""
+msgstr "Přihlašovací shell"
 
 # auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId: cockpit
 #: src/tools/sss_useradd.c:53
@@ -1763,140 +1863,145 @@ msgstr "Skupiny"
 
 #: src/tools/sss_useradd.c:54
 msgid "Create user's directory if it does not exist"
-msgstr ""
+msgstr "Vytvořit složku uživatele (pokud neexistuje)"
 
 #: src/tools/sss_useradd.c:55
 msgid "Never create user's directory, overrides config"
-msgstr ""
+msgstr "Nikdy nevytvářet složku uživatele, přebije nastavení"
 
 #: src/tools/sss_useradd.c:56
 msgid "Specify an alternative skeleton directory"
-msgstr ""
+msgstr "Zadejte alternativní složku skeleton"
 
 #: src/tools/sss_useradd.c:57 src/tools/sss_usermod.c:60
 msgid "The SELinux user for user's login"
-msgstr ""
+msgstr "SELinux uživatel pro přihlášení uživatele"
 
 #: src/tools/sss_useradd.c:87 src/tools/sss_groupmod.c:79
 #: src/tools/sss_usermod.c:92
 msgid "Specify group to add to\n"
-msgstr ""
+msgstr "Zadejte skupinu do které přidat\n"
 
 #: src/tools/sss_useradd.c:111
 msgid "Specify user to add\n"
-msgstr ""
+msgstr "Zadejte uživatele kterého přidat\n"
 
 #: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
 #: src/tools/sss_groupdel.c:80 src/tools/sss_groupmod.c:113
 #: src/tools/sss_groupshow.c:714 src/tools/sss_userdel.c:198
 #: src/tools/sss_usermod.c:162
 msgid "Error initializing the tools - no local domain\n"
-msgstr ""
+msgstr "Chyba při inicializaci nástrojů – žádná místní doména\n"
 
 #: src/tools/sss_useradd.c:123 src/tools/sss_groupadd.c:88
 #: src/tools/sss_groupdel.c:82 src/tools/sss_groupmod.c:115
 #: src/tools/sss_groupshow.c:716 src/tools/sss_userdel.c:200
 #: src/tools/sss_usermod.c:164
 msgid "Error initializing the tools\n"
-msgstr ""
+msgstr "Chyba při inicializaci nástrojů\n"
 
 #: src/tools/sss_useradd.c:132 src/tools/sss_groupadd.c:97
 #: src/tools/sss_groupdel.c:91 src/tools/sss_groupmod.c:123
 #: src/tools/sss_groupshow.c:725 src/tools/sss_userdel.c:209
 #: src/tools/sss_usermod.c:173
 msgid "Invalid domain specified in FQDN\n"
-msgstr ""
+msgstr "V FQDN zadána neplatná doména\n"
 
 #: src/tools/sss_useradd.c:142 src/tools/sss_groupmod.c:144
 #: src/tools/sss_groupmod.c:173 src/tools/sss_usermod.c:197
 #: src/tools/sss_usermod.c:226
 msgid "Internal error while parsing parameters\n"
-msgstr ""
+msgstr "Vnitřní chyba při zpracovávání parametrů\n"
 
 #: src/tools/sss_useradd.c:151 src/tools/sss_usermod.c:206
 #: src/tools/sss_usermod.c:235
 msgid "Groups must be in the same domain as user\n"
-msgstr ""
+msgstr "Je třeba, aby skupiny byly ve stejné doméně, jako uživatel\n"
 
 #: src/tools/sss_useradd.c:159
 #, c-format
 msgid "Cannot find group %1$s in local domain\n"
-msgstr ""
+msgstr "Skupinu %1$s se nedaří nalézt v místní doméně\n"
 
 #: src/tools/sss_useradd.c:174 src/tools/sss_userdel.c:219
 msgid "Cannot set default values\n"
-msgstr ""
+msgstr "Nedaří se nastavit výchozí hodnoty\n"
 
 #: src/tools/sss_useradd.c:181 src/tools/sss_usermod.c:187
 msgid "The selected UID is outside the allowed range\n"
-msgstr ""
+msgstr "Vybrané UID je mimo dovolený rozsah\n"
 
 #: src/tools/sss_useradd.c:210 src/tools/sss_usermod.c:305
 msgid "Cannot set SELinux login context\n"
-msgstr ""
+msgstr "Nedaří se nastavit SELinux přihlašovací kontext\n"
 
 #: src/tools/sss_useradd.c:224
 msgid "Cannot get info about the user\n"
-msgstr ""
+msgstr "Nedaří se získat informace o uživateli\n"
 
 #: src/tools/sss_useradd.c:236
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
+"Domovská složka uživatele už existuje, data z té vzorové (skeldir) proto "
+"nekopírována\n"
 
 #: src/tools/sss_useradd.c:239
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
-msgstr ""
+msgstr "Domovskou složku uživatele se nedaří vytvořit: %1$s\n"
+"\n"
 
 #: src/tools/sss_useradd.c:250
 #, c-format
 msgid "Cannot create user's mail spool: %1$s\n"
-msgstr ""
+msgstr "Nedaří se vytvořit e-mailovou schránku uživatele: %1$s\n"
 
 #: src/tools/sss_useradd.c:270
 msgid "Could not allocate ID for the user - domain full?\n"
-msgstr ""
+msgstr "Nedaří se přiřadit identifikátor pro uživatele – doména je plná?\n"
 
 #: src/tools/sss_useradd.c:274
 msgid "A user or group with the same name or ID already exists\n"
 msgstr ""
+"Uživatel nebo skupina se stejným jménem/názvem nebo identifikátorem už "
+"existuje\n"
 
 #: src/tools/sss_useradd.c:280
 msgid "Transaction error. Could not add user.\n"
-msgstr ""
+msgstr "Chyba transakce. Nedaří se přidat uživatele.\n"
 
 #: src/tools/sss_groupadd.c:43 src/tools/sss_groupmod.c:48
 msgid "The GID of the group"
-msgstr ""
+msgstr "GID identifikátor skupiny"
 
 #: src/tools/sss_groupadd.c:76
 msgid "Specify group to add\n"
-msgstr ""
+msgstr "Zadejte skupinu kterou přidat\n"
 
 #: src/tools/sss_groupadd.c:106 src/tools/sss_groupmod.c:198
 msgid "The selected GID is outside the allowed range\n"
-msgstr ""
+msgstr "Zvolený identifikátor skupiny je mimo dovolený rozsah\n"
 
 #: src/tools/sss_groupadd.c:143
 msgid "Could not allocate ID for the group - domain full?\n"
-msgstr ""
+msgstr "Nedaří se přiřadit identifikátor pro skupinu – doména je plná?\n"
 
 #: src/tools/sss_groupadd.c:147
 msgid "A group with the same name or GID already exists\n"
-msgstr ""
+msgstr "Skupina se stejným jménem/názvem nebo identifikátorem už existuje\n"
 
 #: src/tools/sss_groupadd.c:153
 msgid "Transaction error. Could not add group.\n"
-msgstr ""
+msgstr "Chyba transakce. Skupinu se nedaří přidat.\n"
 
 #: src/tools/sss_groupdel.c:70
 msgid "Specify group to delete\n"
-msgstr ""
+msgstr "Zadejte skupinu, kterou smazat\n"
 
 #: src/tools/sss_groupdel.c:104
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "Identifikátor skupiny %1$s se nachází mimo určený rozsah pro doménu\n"
 
 #: src/tools/sss_groupdel.c:119 src/tools/sss_groupmod.c:225
 #: src/tools/sss_groupmod.c:232 src/tools/sss_groupmod.c:239
@@ -1905,42 +2010,50 @@ msgstr ""
 #, c-format
 msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 msgstr ""
+"NSS požadavek se nezdařil (%1$d). Položka mohla zůstat v mezipaměti v paměti."
+"\n"
 
 #: src/tools/sss_groupdel.c:132
 msgid ""
 "No such group in local domain. Removing groups only allowed in local domain."
 "\n"
 msgstr ""
+"V místní doméně taková skupina neexistuje. Odebírání skupin je umožněno "
+"pouze v místní doméně.\n"
 
 #: src/tools/sss_groupdel.c:137
 msgid "Internal error. Could not remove group.\n"
-msgstr ""
+msgstr "Vnitřní chyba. Skupinu se nedaří odstranit.\n"
 
 #: src/tools/sss_groupmod.c:44
 msgid "Groups to add this group to"
-msgstr ""
+msgstr "Skupiny do kterou tuto skupinu přidat"
 
 #: src/tools/sss_groupmod.c:46
 msgid "Groups to remove this group from"
-msgstr ""
+msgstr "Skupiny, ze kterých tuto skupinu odebrat"
 
 #: src/tools/sss_groupmod.c:87 src/tools/sss_usermod.c:100
 msgid "Specify group to remove from\n"
-msgstr ""
+msgstr "Zadejte skupinu, ze které odebrat\n"
 
 #: src/tools/sss_groupmod.c:101
 msgid "Specify group to modify\n"
-msgstr ""
+msgstr "Zadejte skupinu pro úpravu\n"
 
 #: src/tools/sss_groupmod.c:130
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
 msgstr ""
+"Skupinu se nedaří najít v místní doméně, upravování skupin je dovoleno pouze "
+"v místní doméně\n"
 
 #: src/tools/sss_groupmod.c:153 src/tools/sss_groupmod.c:182
 msgid "Member groups must be in the same domain as parent group\n"
 msgstr ""
+"Je třeba, aby skupiny, které mají být členy, se nacházely ve stejné doméně, "
+"jako skupina, které mají být členy\n"
 
 #: src/tools/sss_groupmod.c:161 src/tools/sss_groupmod.c:190
 #: src/tools/sss_usermod.c:214 src/tools/sss_usermod.c:243
@@ -1949,306 +2062,327 @@ msgid ""
 "Cannot find group %1$s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
+"Skupinu %1$s se nedaří najít v místní doméně, jsou dovoleny pouze skupiny z "
+"místní domény\n"
+"\n"
 
 #: src/tools/sss_groupmod.c:257
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
+"Skupinu se nedaří změnit – zkontrolujte, zda jsou názvy členských skupin "
+"správné\n"
 
 #: src/tools/sss_groupmod.c:261
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr ""
+msgstr "Skupinu se nedaří upravit – zkontrolujte, že je její název správně\n"
 
 #: src/tools/sss_groupmod.c:265
 msgid "Transaction error. Could not modify group.\n"
-msgstr ""
+msgstr "Chyba transakce. Skupinu se nedaří změnit.\n"
 
 #: src/tools/sss_groupshow.c:615
 #, c-format
 msgid "%1$s%2$sGroup: %3$s\n"
-msgstr ""
+msgstr "%1$s%2$sskupina: %3$s\n"
 
 #: src/tools/sss_groupshow.c:616
 msgid "Magic Private "
-msgstr ""
+msgstr "Magické soukromé"
 
 #: src/tools/sss_groupshow.c:618
 #, c-format
 msgid "%1$sGID number: %2$d\n"
-msgstr ""
+msgstr "%1$sGID číslo: %2$d\n"
 
 #: src/tools/sss_groupshow.c:620
 #, c-format
 msgid "%1$sMember users: "
-msgstr ""
+msgstr "%1$sčlenové uživatelé: "
 
 #: src/tools/sss_groupshow.c:627
 #, c-format
 msgid "\n"
 "%1$sIs a member of: "
-msgstr ""
+msgstr "\n"
+"%1$sJe členem: "
 
 #: src/tools/sss_groupshow.c:634
 #, c-format
 msgid "\n"
 "%1$sMember groups: "
-msgstr ""
+msgstr "\n"
+"%1$sČlenské skupiny: "
 
 #: src/tools/sss_groupshow.c:670
 msgid "Print indirect group members recursively"
-msgstr ""
+msgstr "Vypsat nepřímé členy skupiny rekurzivně"
 
 #: src/tools/sss_groupshow.c:704
 msgid "Specify group to show\n"
-msgstr ""
+msgstr "Zadejte skupinu, kterou zobrazit\n"
 
 #: src/tools/sss_groupshow.c:744
 msgid ""
 "No such group in local domain. Printing groups only allowed in local domain."
 "\n"
 msgstr ""
+"V místní doméně se taková skupina nenachází. Vypisování skupin je dovolené "
+"pouze v místní doméně.\n"
 
 #: src/tools/sss_groupshow.c:749
 msgid "Internal error. Could not print group.\n"
-msgstr ""
+msgstr "Vnitřní chyby. Skupinu se nedaří vypsat.\n"
 
 #: src/tools/sss_userdel.c:136
 msgid "Remove home directory and mail spool"
-msgstr ""
+msgstr "Odebrat domovskou složku a e-mailovou schránku"
 
 #: src/tools/sss_userdel.c:138
 msgid "Do not remove home directory and mail spool"
-msgstr ""
+msgstr "Neodebrat domovskou složku a e-mailovou schránku"
 
 #: src/tools/sss_userdel.c:140
 msgid "Force removal of files not owned by the user"
-msgstr ""
+msgstr "Vynutit odebrání souborů, nevlastněných uživatelem"
 
 #: src/tools/sss_userdel.c:142
 msgid "Kill users' processes before removing him"
 msgstr ""
+"Před jeho odebráním, vynutit ukončení všech procesů, spuštěných jak uživatel"
 
 #: src/tools/sss_userdel.c:188
 msgid "Specify user to delete\n"
-msgstr ""
+msgstr "Zadejte uživatele, kterého smazat\n"
 
 #: src/tools/sss_userdel.c:234
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
 msgstr ""
+"Uživatel %1$s se nachází mimo určený rozsah idenfifikátorů pro doménu\n"
 
 #: src/tools/sss_userdel.c:259
 msgid "Cannot reset SELinux login context\n"
-msgstr ""
+msgstr "Nedaří se resetovat SELinux přihlašovací kontext\n"
 
 #: src/tools/sss_userdel.c:271
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
-msgstr ""
+msgstr "VAROVÁNÍ: uživatel (uid %1$lu) byl při mazání stále přihlášen.\n"
 
 #: src/tools/sss_userdel.c:276
 msgid "Cannot determine if the user was logged in on this platform"
-msgstr ""
+msgstr "Nedaří se zjistit zda uživatel byl přihlášen na této platformě."
 
 #: src/tools/sss_userdel.c:281
 msgid "Error while checking if the user was logged in\n"
-msgstr ""
+msgstr "Chyba při zjišťování zda byl uživatel přihlášen\n"
 
 #: src/tools/sss_userdel.c:288
 #, c-format
 msgid "The post-delete command failed: %1$s\n"
-msgstr ""
+msgstr "Příkaz po smazání se nezdařil: %1$s\n"
 
 #: src/tools/sss_userdel.c:308
 msgid "Not removing home dir - not owned by user\n"
-msgstr ""
+msgstr "Neodebírá se domovská složka – nevlastněno uživatelem\n"
 
 #: src/tools/sss_userdel.c:310
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
-msgstr ""
+msgstr "Nedaří se odebrat domovskou složku: %1$s\n"
 
 #: src/tools/sss_userdel.c:324
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
+"V místní doméně žádný takový uživatel neexistuje. Odebírání uživatelů je "
+"dovoleno pouze v místní doméně.\n"
 
 #: src/tools/sss_userdel.c:329
 msgid "Internal error. Could not remove user.\n"
-msgstr ""
+msgstr "Vnitřní chyba. Uživatele se nedaří odebrat.\n"
 
 #: src/tools/sss_usermod.c:49
 msgid "The GID of the user"
-msgstr ""
+msgstr "GID identifikátor uživatele"
 
 #: src/tools/sss_usermod.c:53
 msgid "Groups to add this user to"
-msgstr ""
+msgstr "Skupiny do kterých tohoto uživatele přidat"
 
 #: src/tools/sss_usermod.c:54
 msgid "Groups to remove this user from"
-msgstr ""
+msgstr "Skupiny, ze kterých tohoto uživatele odebrat"
 
 #: src/tools/sss_usermod.c:55
 msgid "Lock the account"
-msgstr ""
+msgstr "Uzamknout účet"
 
 #: src/tools/sss_usermod.c:56
 msgid "Unlock the account"
-msgstr ""
+msgstr "Odemknout účet"
 
 #: src/tools/sss_usermod.c:57
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Přidat dvojici atribut a hodnota. Formát je nazevatributu=hodnota."
 
 #: src/tools/sss_usermod.c:58
 msgid "Delete an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Smazat dvojici atribut a hodnota. Formát je nazevatributu=hodnota."
 
 #: src/tools/sss_usermod.c:59
 msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
+"Nastavit atribut na dvojici název/hodnota. Formát je nazevatributu=hodnota. "
+"Pro atributy s vícero hodnotami, příkaz nahrazuje už přítomné hodnoty"
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
 msgid "Specify the attribute name/value pair(s)\n"
-msgstr ""
+msgstr "Zadejte dvojice název/hodnota atributu\n"
 
 #: src/tools/sss_usermod.c:152
 msgid "Specify user to modify\n"
-msgstr ""
+msgstr "Zadejte uživatele, kterého změnit\n"
 
 #: src/tools/sss_usermod.c:180
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
 msgstr ""
+"Uživatele se nedaří v místní doméně nedaří najít, úprava uživatelů je "
+"dovolena pouze v místní doméně\n"
 
 #: src/tools/sss_usermod.c:322
 msgid "Could not modify user - check if group names are correct\n"
-msgstr ""
+msgstr "Uživatele se nedaří změnit – ověřte, že jsou názvy skupin správně\n"
 
 #: src/tools/sss_usermod.c:326
 msgid "Could not modify user - user already member of groups?\n"
-msgstr ""
+msgstr "Uživatele se nedaří změnit – uživatel už je členem skupin?\n"
 
 #: src/tools/sss_usermod.c:330
 msgid "Transaction error. Could not modify user.\n"
-msgstr ""
+msgstr "Chyba transakce. Uživatele se nedaří změnit.\n"
 
-#: src/tools/sss_cache.c:228
+#: src/tools/sss_cache.c:245
 msgid "No cache object matched the specified search\n"
-msgstr ""
+msgstr "Žádný z objektů v mezipaměti se neshoduje se zadaným hledáním\n"
 
-#: src/tools/sss_cache.c:519
+#: src/tools/sss_cache.c:536
 #, c-format
 msgid "Couldn't invalidate %1$s\n"
-msgstr ""
+msgstr "Nedaří se zneplatnit %1$s\n"
 
-#: src/tools/sss_cache.c:526
+#: src/tools/sss_cache.c:543
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s\n"
-msgstr ""
+msgstr "Nedaří se zneplatnit %1$s %2$s\n"
 
-#: src/tools/sss_cache.c:689
+#: src/tools/sss_cache.c:706
 msgid "Invalidate all cached entries"
-msgstr ""
-
-#: src/tools/sss_cache.c:691
-msgid "Invalidate particular user"
-msgstr ""
-
-#: src/tools/sss_cache.c:693
-msgid "Invalidate all users"
-msgstr ""
-
-#: src/tools/sss_cache.c:695
-msgid "Invalidate particular group"
-msgstr ""
-
-#: src/tools/sss_cache.c:697
-msgid "Invalidate all groups"
-msgstr ""
-
-#: src/tools/sss_cache.c:699
-msgid "Invalidate particular netgroup"
-msgstr ""
-
-#: src/tools/sss_cache.c:701
-msgid "Invalidate all netgroups"
-msgstr ""
-
-#: src/tools/sss_cache.c:703
-msgid "Invalidate particular service"
-msgstr ""
-
-#: src/tools/sss_cache.c:705
-msgid "Invalidate all services"
-msgstr ""
+msgstr "Zneplatnit veškeré položky v mezipaměti"
 
 #: src/tools/sss_cache.c:708
-msgid "Invalidate particular autofs map"
-msgstr ""
+msgid "Invalidate particular user"
+msgstr "Zneplatnit konkrétního uživatele"
 
 #: src/tools/sss_cache.c:710
-msgid "Invalidate all autofs maps"
-msgstr ""
+msgid "Invalidate all users"
+msgstr "Zneplatnit všechny uživatele"
+
+#: src/tools/sss_cache.c:712
+msgid "Invalidate particular group"
+msgstr "Zneplatnit konkrétní skupinu"
 
 #: src/tools/sss_cache.c:714
-msgid "Invalidate particular SSH host"
-msgstr ""
+msgid "Invalidate all groups"
+msgstr "Zneplatnit všechny skupiny"
 
 #: src/tools/sss_cache.c:716
-msgid "Invalidate all SSH hosts"
-msgstr ""
+msgid "Invalidate particular netgroup"
+msgstr "Zneplatnit konkrétní síťovou skupinu"
+
+#: src/tools/sss_cache.c:718
+msgid "Invalidate all netgroups"
+msgstr "Zneplatnit veškeré síťové skupiny"
 
 #: src/tools/sss_cache.c:720
-msgid "Invalidate particular sudo rule"
-msgstr ""
+msgid "Invalidate particular service"
+msgstr "Zneplatnit konkrétní službu"
 
 #: src/tools/sss_cache.c:722
-msgid "Invalidate all cached sudo rules"
-msgstr ""
+msgid "Invalidate all services"
+msgstr "Zneplatnit všechny služby"
 
 #: src/tools/sss_cache.c:725
-msgid "Only invalidate entries from a particular domain"
-msgstr ""
+msgid "Invalidate particular autofs map"
+msgstr "Zneplatnit konkrétní autofs mapu"
 
-#: src/tools/sss_cache.c:779
+#: src/tools/sss_cache.c:727
+msgid "Invalidate all autofs maps"
+msgstr "Zneplatnit veškeré autofs mapy"
+
+#: src/tools/sss_cache.c:731
+msgid "Invalidate particular SSH host"
+msgstr "Zneplatnit konkrétního SSH hostitele"
+
+#: src/tools/sss_cache.c:733
+msgid "Invalidate all SSH hosts"
+msgstr "Zneplatnit veškeré SSH hostitele"
+
+#: src/tools/sss_cache.c:737
+msgid "Invalidate particular sudo rule"
+msgstr "Zneplatnit konkrétní sudo pravidlo"
+
+#: src/tools/sss_cache.c:739
+msgid "Invalidate all cached sudo rules"
+msgstr "Zneplatnit veškerá sudo pravidla v mezipaměti"
+
+#: src/tools/sss_cache.c:742
+msgid "Only invalidate entries from a particular domain"
+msgstr "Zneplatnit pouze položky z konkrétní domény"
+
+#: src/tools/sss_cache.c:796
 msgid ""
 "Unexpected argument(s) provided, options that invalidate a single object "
 "only accept a single provided argument.\n"
 msgstr ""
+"Poskytnuty neočekávané argumenty, volby které zneplatňují jediný objekt "
+"přijímají pouze jediný zadaný argument.\n"
 
-#: src/tools/sss_cache.c:789
+#: src/tools/sss_cache.c:806
 msgid "Please select at least one object to invalidate\n"
-msgstr ""
+msgstr "Vyberte alespoň jeden objekt, který zneplatnit\n"
 
-#: src/tools/sss_cache.c:872
+#: src/tools/sss_cache.c:889
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
+"Nedaří se otevřít doménu %1$s. Pokud je domény dílčí doménou (důvěryhodná "
+"doména), použijte úplný název namísto parametru --domain/-d."
 
-#: src/tools/sss_cache.c:877
+#: src/tools/sss_cache.c:894
 msgid "Could not open available domains\n"
-msgstr ""
+msgstr "Nedaří se otevřít které domény jsou k dispozici\n"
 
 #: src/tools/tools_util.c:202
 #, c-format
 msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
-msgstr ""
+msgstr "Název „%1$s“ se nezdá být FQDN (je nastaveno „%2$s = TRUE“)\n"
 
 #: src/tools/tools_util.c:309
 msgid "Out of memory\n"
-msgstr ""
+msgstr "Došla paměť\n"
 
 #: src/tools/tools_util.h:40
 #, c-format
 msgid "%1$s must be run as root\n"
-msgstr ""
+msgstr "%1$s je třeba spustit s právy správce systému (root)\n"
 
 # auto translated by TM merge from project: Cockpit, version: rhel-7.4, DocId: cockpit
 #: src/tools/sssctl/sssctl.c:35
@@ -2257,7 +2391,7 @@ msgstr "ano"
 
 #: src/tools/sssctl/sssctl.c:37
 msgid "no"
-msgstr ""
+msgstr "ne"
 
 # auto translated by TM merge from project: firewalld, version: master, DocId: po/firewalld
 #: src/tools/sssctl/sssctl.c:39
@@ -2266,39 +2400,39 @@ msgstr "chyba"
 
 #: src/tools/sssctl/sssctl.c:42
 msgid "Invalid result."
-msgstr ""
+msgstr "Neplatný výsledek."
 
 #: src/tools/sssctl/sssctl.c:78
 #, c-format
 msgid "Unable to read user input\n"
-msgstr ""
+msgstr "Nedaří se číst vstup od uživatele\n"
 
 #: src/tools/sssctl/sssctl.c:91
 #, c-format
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
-msgstr ""
+msgstr "Neplatný vstup, zadejte buď „%s“ nebo „%s“.\n"
 
 #: src/tools/sssctl/sssctl.c:109 src/tools/sssctl/sssctl.c:114
 #, c-format
 msgid "Error while executing external command\n"
-msgstr ""
+msgstr "Chyba při vykonávání externího příkazu\n"
 
 #: src/tools/sssctl/sssctl.c:156
 msgid "SSSD needs to be running. Start SSSD now?"
-msgstr ""
+msgstr "Je třeba, aby bylo SSSD spuštěné. Spustit ho nyní?"
 
 #: src/tools/sssctl/sssctl.c:195
 msgid "SSSD must not be running. Stop SSSD now?"
-msgstr ""
+msgstr "Je třeba, aby bylo SSSD zastavené. Zastavit ho nyní?"
 
 #: src/tools/sssctl/sssctl.c:231
 msgid "SSSD needs to be restarted. Restart SSSD now?"
-msgstr ""
+msgstr "Je třeba, aby bylo SSSD restartováno. Restartovat ho nyní?"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
 msgid " %s is not present in cache.\n"
-msgstr ""
+msgstr "%s se nenachází v mezipaměti.\n"
 
 # auto translated by TM merge from project: libosinfo, version: master, DocId: libosinfo
 #: src/tools/sssctl/sssctl_cache.c:33
@@ -2307,54 +2441,54 @@ msgstr "Název"
 
 #: src/tools/sssctl/sssctl_cache.c:34
 msgid "Cache entry creation date"
-msgstr ""
+msgstr "Datum vytvoření položky v mezipaměti"
 
 #: src/tools/sssctl/sssctl_cache.c:35
 msgid "Cache entry last update time"
-msgstr ""
+msgstr "Okamžik poslední aktualizace položky mezipaměti"
 
 #: src/tools/sssctl/sssctl_cache.c:36
 msgid "Cache entry expiration time"
-msgstr ""
+msgstr "Okamžik skončení platnosti položky mezipaměti"
 
 #: src/tools/sssctl/sssctl_cache.c:37
 msgid "Cached in InfoPipe"
-msgstr ""
+msgstr "Uloženo v mezipaměti v InfoPipe"
 
 #: src/tools/sssctl/sssctl_cache.c:522
 #, c-format
 msgid "Error: Unable to get object [%d]: %s\n"
-msgstr ""
+msgstr "Chyba: nedaří se získat objekt [%d]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:538
 #, c-format
 msgid "%s: Unable to read value [%d]: %s\n"
-msgstr ""
+msgstr "%s: nedaří se načíst hodnotu [%d]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:566
 msgid "Specify name."
-msgstr ""
+msgstr "Zadejte jméno."
 
 #: src/tools/sssctl/sssctl_cache.c:576
 #, c-format
 msgid "Unable to parse name %s.\n"
-msgstr ""
+msgstr "Nedaří se zpracovat název %s.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:602 src/tools/sssctl/sssctl_cache.c:649
 msgid "Search by SID"
-msgstr ""
+msgstr "Hledat podle SID identifikátoru"
 
 #: src/tools/sssctl/sssctl_cache.c:603
 msgid "Search by user ID"
-msgstr ""
+msgstr "Hledat podle identif. uživatele"
 
 #: src/tools/sssctl/sssctl_cache.c:612
 msgid "Initgroups expiration time"
-msgstr ""
+msgstr "Okamžik skončení platnosti initgroups"
 
 #: src/tools/sssctl/sssctl_cache.c:650
 msgid "Search by group ID"
-msgstr ""
+msgstr "Hledat podle identif. skupiny"
 
 #: src/tools/sssctl/sssctl_config.c:67
 #, c-format
@@ -2362,143 +2496,147 @@ msgid ""
 "File %1$s does not exist. SSSD will use default configuration with files "
 "provider.\n"
 msgstr ""
+"Soubor %1$s neexistuje. SSSD použije výchozí nastavení s poskytovatelem "
+"files (soubory).\n"
 
 #: src/tools/sssctl/sssctl_config.c:81
 #, c-format
 msgid ""
 "File ownership and permissions check failed. Expected root:root and 0600.\n"
 msgstr ""
+"Kontrola vlastnictví a oprávnění souboru se nezdařila. Očekáváno root:root a "
+"0600.\n"
 
 #: src/tools/sssctl/sssctl_config.c:104
 #, c-format
 msgid "Issues identified by validators: %zu\n"
-msgstr ""
+msgstr "Problémy identifikované ověřovači: %zu\n"
 
 #: src/tools/sssctl/sssctl_config.c:114
 #, c-format
 msgid "Messages generated during configuration merging: %zu\n"
-msgstr ""
+msgstr "Zprávy vytvořené při slučování nastavení: %zu\n"
 
 #: src/tools/sssctl/sssctl_config.c:127
 #, c-format
 msgid "Used configuration snippet files: %u\n"
-msgstr ""
+msgstr "Použité soubory s útržky nastavení: %u\n"
 
 #: src/tools/sssctl/sssctl_data.c:89
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
-msgstr ""
+msgstr "Nedaří se vytvořit složku zálohy [%d]: %s"
 
 #: src/tools/sssctl/sssctl_data.c:95
 msgid "SSSD backup of local data already exists, override?"
-msgstr ""
+msgstr "SSSD záloha místních dat už existuje, přepsat?"
 
 #: src/tools/sssctl/sssctl_data.c:111
 #, c-format
 msgid "Unable to export user overrides\n"
-msgstr ""
+msgstr "Nedaří se exportovat uživatelské přebití\n"
 
 #: src/tools/sssctl/sssctl_data.c:118
 #, c-format
 msgid "Unable to export group overrides\n"
-msgstr ""
+msgstr "Nedaří se exportovat přebití skupin\n"
 
 #: src/tools/sssctl/sssctl_data.c:134 src/tools/sssctl/sssctl_data.c:217
 msgid "Override existing backup"
-msgstr ""
+msgstr "Přepsat existující zálohu"
 
 #: src/tools/sssctl/sssctl_data.c:164
 #, c-format
 msgid "Unable to import user overrides\n"
-msgstr ""
+msgstr "Nedaří se importovat přebití uživatelů\n"
 
 #: src/tools/sssctl/sssctl_data.c:173
 #, c-format
 msgid "Unable to import group overrides\n"
-msgstr ""
+msgstr "Nedaří se importovat přebití skupin\n"
 
 #: src/tools/sssctl/sssctl_data.c:194 src/tools/sssctl/sssctl_domains.c:82
 #: src/tools/sssctl/sssctl_domains.c:315
 msgid "Start SSSD if it is not running"
-msgstr ""
+msgstr "Pokud není, spustit proces služby sssd"
 
 #: src/tools/sssctl/sssctl_data.c:195
 msgid "Restart SSSD after data import"
-msgstr ""
+msgstr "Po importu dat restartovat sssd"
 
 #: src/tools/sssctl/sssctl_data.c:218
 msgid "Create clean cache files and import local data"
-msgstr ""
+msgstr "Vytvořit prázdné soubory mezipaměti a importovat místní data"
 
 #: src/tools/sssctl/sssctl_data.c:219
 msgid "Stop SSSD before removing the cache"
-msgstr ""
+msgstr "Před odebráním mezipaměti zastavit sssd"
 
 #: src/tools/sssctl/sssctl_data.c:220
 msgid "Start SSSD when the cache is removed"
-msgstr ""
+msgstr "Při odebrání mezipaměti zastavit sssd"
 
 #: src/tools/sssctl/sssctl_data.c:235
 #, c-format
 msgid "Creating backup of local data...\n"
-msgstr ""
+msgstr "Vytváření zálohy místních dat…\n"
 
 #: src/tools/sssctl/sssctl_data.c:238
 #, c-format
 msgid "Unable to create backup of local data, can not remove the cache.\n"
-msgstr ""
+msgstr "Nedaří se vytvořit zálohu místních dat, nedaří se odebrat mezipaměť.\n"
 
 #: src/tools/sssctl/sssctl_data.c:243
 #, c-format
 msgid "Removing cache files...\n"
-msgstr ""
+msgstr "Odebírání souborů mezipaměti…\n"
 
 #: src/tools/sssctl/sssctl_data.c:246
 #, c-format
 msgid "Unable to remove cache files\n"
-msgstr ""
+msgstr "Nedaří se odebrat soubory mezipaměti\n"
 
 #: src/tools/sssctl/sssctl_data.c:251
 #, c-format
 msgid "Restoring local data...\n"
-msgstr ""
+msgstr "Obnovování místních dat…\n"
 
 #: src/tools/sssctl/sssctl_domains.c:83
 msgid "Show domain list including primary or trusted domain type"
-msgstr ""
+msgstr "Zobrazit seznam domén včetně typu hlavní nebo důvěryhodná doména"
 
 #: src/tools/sssctl/sssctl_domains.c:105 src/tools/sssctl/sssctl_domains.c:354
 #: src/tools/sssctl/sssctl_user_checks.c:95
 #, c-format
 msgid "Unable to connect to system bus!\n"
-msgstr ""
+msgstr "Nedaří se připojit ke sběrnici systému!\n"
 
 #: src/tools/sssctl/sssctl_domains.c:167
 #, c-format
 msgid "Online status: %s\n"
-msgstr ""
+msgstr "Online stav: %s\n"
 
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Online"
-msgstr ""
+msgstr "Online"
 
 #: src/tools/sssctl/sssctl_domains.c:167
 msgid "Offline"
-msgstr ""
+msgstr "Offline"
 
 #: src/tools/sssctl/sssctl_domains.c:212
 #, c-format
 msgid "Active servers:\n"
-msgstr ""
+msgstr "Aktivní servery:\n"
 
 #: src/tools/sssctl/sssctl_domains.c:223
 msgid "not connected"
-msgstr ""
+msgstr "nepřipojeno"
 
 #: src/tools/sssctl/sssctl_domains.c:260
 #, c-format
 msgid "Discovered %s servers:\n"
-msgstr ""
+msgstr "Objeveno %s serverů:\n"
 
 #: src/tools/sssctl/sssctl_domains.c:272
 msgid "None so far.\n"
@@ -2506,7 +2644,7 @@ msgstr "Zatím žádné.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:312
 msgid "Show online status"
-msgstr ""
+msgstr "Zobrazit stav online"
 
 #: src/tools/sssctl/sssctl_domains.c:313
 msgid "Show information about active server"
@@ -2518,7 +2656,7 @@ msgstr "Zobrazit seznam objevených serverů"
 
 #: src/tools/sssctl/sssctl_domains.c:320
 msgid "Specify domain name."
-msgstr ""
+msgstr "Zadejte název domény."
 
 # auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId: po/ipa
 #: src/tools/sssctl/sssctl_domains.c:342
@@ -2529,12 +2667,12 @@ msgstr "Nedostatek paměti!\n"
 #: src/tools/sssctl/sssctl_domains.c:362 src/tools/sssctl/sssctl_domains.c:372
 #, c-format
 msgid "Unable to get online status\n"
-msgstr ""
+msgstr "Nedaří se zjistit stav online\n"
 
 #: src/tools/sssctl/sssctl_domains.c:382
 #, c-format
 msgid "Unable to get server list\n"
-msgstr ""
+msgstr "Nedaří se získat seznam serverů\n"
 
 #: src/tools/sssctl/sssctl_logs.c:47
 msgid "\n"
@@ -2552,7 +2690,7 @@ msgstr "Mazání souborů se záznamem událostí…\n"
 #: src/tools/sssctl/sssctl_logs.c:251
 #, c-format
 msgid "Unable to remove log files\n"
-msgstr ""
+msgstr "Nedaří se odebrat soubory se záznamem událostí\n"
 
 #: src/tools/sssctl/sssctl_logs.c:257
 #, c-format
@@ -2562,61 +2700,61 @@ msgstr "Zkracování souborů…\n"
 #: src/tools/sssctl/sssctl_logs.c:260
 #, c-format
 msgid "Unable to truncate log files\n"
-msgstr ""
+msgstr "Nedaří se zkrátit soubory se záznamem událostí\n"
 
 #: src/tools/sssctl/sssctl_logs.c:286
 #, c-format
 msgid "Out of memory!"
-msgstr ""
+msgstr "Došla paměť!"
 
 #: src/tools/sssctl/sssctl_logs.c:289
 #, c-format
 msgid "Archiving log files into %s...\n"
-msgstr ""
+msgstr "Archivují se soubory se záznamem událostí do %s…\n"
 
 #: src/tools/sssctl/sssctl_logs.c:292
 #, c-format
 msgid "Unable to archive log files\n"
-msgstr ""
+msgstr "Nedaří se archivovat soubory se záznamem událostí\n"
 
 #: src/tools/sssctl/sssctl_logs.c:317
 msgid "Specify debug level you want to set"
-msgstr ""
+msgstr "Zadejte stupeň podrobností ladících informací, který chcete nastavit"
 
 #: src/tools/sssctl/sssctl_user_checks.c:117
 #, c-format
 msgid "SSSD InfoPipe user lookup result:\n"
-msgstr ""
+msgstr "Výsledek SSSD InfoPipe uživatel:\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:167
 #, c-format
 msgid "dlopen failed with [%s].\n"
-msgstr ""
+msgstr "dlopen se nezdařilo s [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:174
 #, c-format
 msgid "dlsym failed with [%s].\n"
-msgstr ""
+msgstr "dlsym se nezdařilo s [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:182
 #, c-format
 msgid "malloc failed.\n"
-msgstr ""
+msgstr "malloc se nezdařilo.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:189
 #, c-format
 msgid "sss_getpwnam_r failed with [%d].\n"
-msgstr ""
+msgstr "sss_getpwnam_r se nezdařilo s [%d].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:194
 #, c-format
 msgid "SSSD nss user lookup result:\n"
-msgstr ""
+msgstr "Výsledek SSSD nss hledání uživatele:\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:195
 #, c-format
 msgid " - user name: %s\n"
-msgstr ""
+msgstr " ‒ uživatelské jméno: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:196
 #, c-format
@@ -2631,7 +2769,7 @@ msgstr " - identif. skupiny: %d\n"
 #: src/tools/sssctl/sssctl_user_checks.c:198
 #, c-format
 msgid " - gecos: %s\n"
-msgstr ""
+msgstr " - gecos: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:199
 #, c-format
@@ -2647,7 +2785,7 @@ msgstr " - shell: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:232
 msgid "PAM action [auth|acct|setc|chau|open|clos], default: "
-msgstr ""
+msgstr "PAM akce [auth|acct|setc|chau|open|clos], výchozí: "
 
 #: src/tools/sssctl/sssctl_user_checks.c:235
 msgid "PAM service, default: "
@@ -2671,122 +2809,135 @@ msgstr "uživatel: %s\n"
 #: src/tools/sssctl/sssctl_user_checks.c:253
 #, c-format
 msgid "User name lookup with [%s] failed.\n"
-msgstr ""
+msgstr "Vyhledání uživatelského jména s [%s] se nezdařilo.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:258
 #, c-format
 msgid "InfoPipe User lookup with [%s] failed.\n"
-msgstr ""
+msgstr "InfoPipe vyhledání uživatele s [%s] se nezdařilo.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:265
 #, c-format
 msgid "pam_start failed: %s\n"
-msgstr ""
+msgstr "pam_start se nezdařilo: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:270
 #, c-format
 msgid "testing pam_authenticate\n"
 "\n"
-msgstr ""
+msgstr "zkoušení pam_authenticate\n"
+"\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:274
 #, c-format
 msgid "pam_get_item failed: %s\n"
-msgstr ""
+msgstr "pam_get_item se nezdařilo: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:278
 #, c-format
 msgid "pam_authenticate for user [%s]: %s\n"
 "\n"
-msgstr ""
+msgstr "pam_authenticate pro uživatele [%s]: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:281
 #, c-format
 msgid "testing pam_chauthtok\n"
 "\n"
-msgstr ""
+msgstr "zkoušení pam_chauthtok\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:283
 #, c-format
 msgid "pam_chauthtok: %s\n"
 "\n"
-msgstr ""
+msgstr "pam_chauthtok: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:285
 #, c-format
 msgid "testing pam_acct_mgmt\n"
 "\n"
-msgstr ""
+msgstr "zkoušení pam_acct_mgmt\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:287
 #, c-format
 msgid "pam_acct_mgmt: %s\n"
 "\n"
-msgstr ""
+msgstr "pam_acct_mgmt: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:289
 #, c-format
 msgid "testing pam_setcred\n"
 "\n"
-msgstr ""
+msgstr "zkoušení pam_setcred\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:291
 #, c-format
 msgid "pam_setcred: [%s]\n"
 "\n"
-msgstr ""
+msgstr "pam_setcred: [%s]\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:293
 #, c-format
 msgid "testing pam_open_session\n"
 "\n"
-msgstr ""
+msgstr "zkoušení pam_open_session\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:295
 #, c-format
 msgid "pam_open_session: %s\n"
 "\n"
-msgstr ""
+msgstr "pam_open_session: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:297
 #, c-format
 msgid "testing pam_close_session\n"
 "\n"
-msgstr ""
+msgstr "zkoušení pam_close_session\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:299
 #, c-format
 msgid "pam_close_session: %s\n"
 "\n"
-msgstr ""
+msgstr "pam_close_session: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:302
 #, c-format
 msgid "unknown action\n"
-msgstr ""
+msgstr "neznámá akce\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:305
 #, c-format
 msgid "PAM Environment:\n"
-msgstr ""
+msgstr "PAM prostředí:\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:313
 #, c-format
 msgid " - no env -\n"
-msgstr ""
+msgstr " - žádné prostředí -\n"
 
-#: src/util/util.h:73
+#: src/util/util.h:74
 msgid "The user ID to run the server as"
-msgstr ""
+msgstr "Identifikátor uživatele (UID) pod kterým server spustit"
 
-#: src/util/util.h:75
+#: src/util/util.h:76
 msgid "The group ID to run the server as"
-msgstr ""
+msgstr "Identifikátor uživatele (GID) pod kterým server spustit"
 
-#: src/util/util.h:83
+#: src/util/util.h:84
 msgid "Informs that the responder has been socket-activated"
-msgstr ""
+msgstr "Informuje, že odpovídač byl aktivován soketem"
 
-#: src/util/util.h:85
+#: src/util/util.h:86
 msgid "Informs that the responder has been dbus-activated"
-msgstr ""
+msgstr "Informuje, že odpovídač byl aktivován přes dbus"
