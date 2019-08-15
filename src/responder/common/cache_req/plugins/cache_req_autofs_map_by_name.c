@@ -69,7 +69,7 @@ cache_req_autofs_map_by_name_dp_send(TALLOC_CTX *mem_ctx,
                                      struct ldb_result *result)
 {
     return sss_dp_get_autofs_send(mem_ctx, cr->rctx, domain, true,
-                                  SSS_DP_AUTOFS_ENUMERATE,
+                                  SSS_DP_AUTOFS_GET_MAP,
                                   data->name.name, NULL);
 }
 
