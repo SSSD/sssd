@@ -450,6 +450,28 @@ sysdb_del_autofsentry(struct sss_domain_info *domain,
 }
 
 errno_t
+sysdb_del_autofsentry_by_key(struct sss_domain_info *domain,
+                             const char *map_name,
+                             const char *entry_key)
+{
+    struct ldb_message *entry;
+    errno_t ret;
+
+    ret = sysdb_get_autofsentry(NULL, domain, map_name, entry_key, &entry);
+    if (ret == ENOENT) {
+        return EOK;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get autofs entry [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    ret = sysdb_delete_entry(domain->sysdb, entry->dn, true);
+    talloc_free(entry);
+    return ret;
+}
+
+errno_t
 sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info *domain,
                             const char *mapname,

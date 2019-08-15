@@ -76,6 +76,11 @@ sysdb_del_autofsentry(struct sss_domain_info *domain,
                       const char *entry_dn);
 
 errno_t
+sysdb_del_autofsentry_by_key(struct sss_domain_info *domain,
+                             const char *map_name,
+                             const char *entry_key);
+
+errno_t
 sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info *domain,
                             const char *mapname,
