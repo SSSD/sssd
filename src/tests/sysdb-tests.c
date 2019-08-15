@@ -6493,6 +6493,7 @@ START_TEST(test_autofs_create_map)
 {
     struct sysdb_test_ctx *test_ctx;
     const char *autofsmapname;
+    const char *origdn;
     errno_t ret;
 
     ret = setup_sysdb_tests(&test_ctx);
@@ -6501,8 +6502,11 @@ START_TEST(test_autofs_create_map)
     autofsmapname = talloc_asprintf(test_ctx, "testmap%d", _i);
     fail_if(autofsmapname == NULL, "Out of memory\n");
 
+    origdn = talloc_asprintf(test_ctx, "cn=testmap%d,dc=test", _i);
+    fail_if(origdn == NULL, "Out of memory\n");
+
     ret = sysdb_save_autofsmap(test_ctx->domain, autofsmapname,
-                               autofsmapname, NULL, 0, 0, false);
+                               autofsmapname, origdn, NULL, 0, 0, false);
     fail_if(ret != EOK, "Could not store autofs map %s", autofsmapname);
     talloc_free(test_ctx);
 }

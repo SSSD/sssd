@@ -39,6 +39,7 @@ errno_t
 sysdb_save_autofsmap(struct sss_domain_info *domain,
                      const char *name,
                      const char *autofsmapname,
+                     const char *origdn,
                      struct sysdb_attrs *attrs,
                      int cache_timeout,
                      time_t now,
