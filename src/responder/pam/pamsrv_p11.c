@@ -1077,6 +1077,7 @@ done:
 
 static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
                               struct cert_auth_info *cert_info,
+                              const char *nss_name,
                               uint8_t **_msg, size_t *_msg_len)
 {
     uint8_t *msg = NULL;
@@ -1090,10 +1091,16 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     size_t module_len;
     size_t key_id_len;
     size_t prompt_len;
+    size_t nss_name_len;
     const char *username = "";
+    const char *nss_username = "";
 
     if (sysdb_username != NULL) {
         username = sysdb_username;
+    }
+
+    if (nss_name != NULL) {
+        nss_username = nss_name;
     }
 
     prompt = get_cert_prompt(mem_ctx, cert_info);
@@ -1111,7 +1118,10 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     module_len = strlen(module_name) + 1;
     key_id_len = strlen(key_id) + 1;
     prompt_len = strlen(prompt) + 1;
-    msg_len = user_len + token_len + module_len + key_id_len + prompt_len;
+    nss_name_len = strlen(nss_username) +1;
+
+    msg_len = user_len + token_len + module_len + key_id_len + prompt_len
+                       + nss_name_len;
 
     msg = talloc_zero_size(mem_ctx, msg_len);
     if (msg == NULL) {
@@ -1126,6 +1136,8 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     memcpy(msg + user_len + token_len + module_len, key_id, key_id_len);
     memcpy(msg + user_len + token_len + module_len + key_id_len,
            prompt, prompt_len);
+    memcpy(msg + user_len + token_len + module_len + key_id_len + prompt_len,
+           nss_username, nss_name_len);
     talloc_free(prompt);
 
     if (_msg != NULL) {
@@ -1159,6 +1171,8 @@ errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
     char *short_name = NULL;
     char *domain_name = NULL;
     const char *cert_info_name = sysdb_username;
+    struct sss_domain_info *user_dom;
+    char *nss_name = NULL;
 
 
     if (type != SSS_PAM_CERT_INFO && type != SSS_PAM_CERT_INFO_WITH_HINT) {
@@ -1194,15 +1208,24 @@ errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
                                        "using full name.\n",
                                         sysdb_username, ret, sss_strerror(ret));
         } else {
-            if (domain_name != NULL
-                    &&  is_files_provider(find_domain_by_name(dom, domain_name,
-                                                              false))) {
-                cert_info_name = short_name;
+            if (domain_name != NULL) {
+                user_dom = find_domain_by_name(dom, domain_name, false);
+
+                if (user_dom != NULL) {
+                    ret = sss_output_fqname(short_name, user_dom,
+                                            sysdb_username, false, &nss_name);
+                    if (ret != EOK) {
+                        nss_name = NULL;
+                    }
+                }
             }
+
         }
     }
 
-    ret = pack_cert_data(pd, cert_info_name, cert_info, &msg, &msg_len);
+    ret = pack_cert_data(pd, cert_info_name, cert_info,
+                         nss_name != NULL ? nss_name : sysdb_username,
+                         &msg, &msg_len);
     talloc_free(short_name);
     talloc_free(domain_name);
     if (ret != EOK) {

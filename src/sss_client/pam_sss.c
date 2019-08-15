@@ -124,6 +124,7 @@ struct cert_auth_info {
     char *module_name;
     char *key_id;
     char *prompt_str;
+    char *pam_cert_user;
     struct cert_auth_info *prev;
     struct cert_auth_info *next;
 };
@@ -853,7 +854,8 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
 }
 
 static int parse_cert_info(struct pam_items *pi, uint8_t *buf, size_t len,
-                           size_t *p, const char **cert_user)
+                           size_t *p, const char **cert_user,
+                           const char **pam_cert_user)
 {
     struct cert_auth_info *cai = NULL;
     size_t offset;
@@ -935,11 +937,27 @@ static int parse_cert_info(struct pam_items *pi, uint8_t *buf, size_t len,
         goto done;
     }
 
+    offset += strlen(cai->prompt_str) + 1;
+    if (offset >= len) {
+        D(("Cert message size mismatch"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    cai->pam_cert_user = strdup((char *) &buf[*p + offset]);
+    if (cai->pam_cert_user == NULL) {
+        D(("strdup failed"));
+        ret = ENOMEM;
+        goto done;
+    }
+    if (pam_cert_user != NULL) {
+        *pam_cert_user = cai->pam_cert_user;
+    }
 
     D(("cert user: [%s] token name: [%s] module: [%s] key id: [%s] "
-       "prompt: [%s]",
+       "prompt: [%s] pam cert user: [%s]",
        cai->cert_user, cai->token_name, cai->module_name,
-       cai->key_id, cai->prompt_str));
+       cai->key_id, cai->prompt_str, cai->pam_cert_user));
 
     DLIST_ADD(pi->cert_list, cai);
     ret = 0;
@@ -964,6 +982,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
     int32_t pam_status;
     size_t offset;
     const char *cert_user;
+    const char *pam_cert_user;
 
     if (buflen < (2*sizeof(int32_t))) {
         D(("response buffer is too small"));
@@ -1126,15 +1145,16 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     pi->user_name_hint = false;
                 }
 
-                ret = parse_cert_info(pi, buf, len, &p, &cert_user);
+                ret = parse_cert_info(pi, buf, len, &p, &cert_user,
+                                      &pam_cert_user);
                 if (ret != 0) {
                     D(("Failed to parse cert info"));
                     break;
                 }
 
                 if ((pi->pam_user == NULL || *(pi->pam_user) == '\0')
-                        && *cert_user != '\0') {
-                    ret = pam_set_item(pamh, PAM_USER, cert_user);
+                        && *cert_user != '\0' && *pam_cert_user != '\0') {
+                    ret = pam_set_item(pamh, PAM_USER, pam_cert_user);
                     if (ret != PAM_SUCCESS) {
                         D(("Failed to set PAM_USER during "
                            "Smartcard authentication [%s]",
@@ -1142,15 +1162,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                         break;
                     }
 
-                    ret = pam_get_item(pamh, PAM_USER,
-                                       (const void **)&(pi->pam_user));
-                    if (ret != PAM_SUCCESS) {
-                        D(("Failed to get PAM_USER during "
-                           "Smartcard authentication [%s]",
-                           pam_strerror(pamh, ret)));
-                        break;
-                    }
-
+                    pi->pam_user = cert_user;
                     pi->pam_user_size = strlen(pi->pam_user) + 1;
                 }
                 break;
