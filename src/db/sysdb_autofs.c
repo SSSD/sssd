@@ -99,6 +99,7 @@ errno_t
 sysdb_save_autofsmap(struct sss_domain_info *domain,
                      const char *name,
                      const char *autofsmapname,
+                     const char *origdn,
                      struct sysdb_attrs *attrs,
                      int cache_timeout,
                      time_t now,
@@ -134,6 +135,13 @@ sysdb_save_autofsmap(struct sss_domain_info *domain,
     ret = sysdb_attrs_add_string(attrs, SYSDB_AUTOFS_MAP_NAME, autofsmapname);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not set map name [%d]: %s\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, origdn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set origdn [%d]: %s\n",
               ret, strerror(ret));
         goto done;
     }
@@ -202,6 +210,7 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
     size_t count;
     struct ldb_message **msgs;
     const char *attrs[] = { SYSDB_OBJECTCLASS,
+                            SYSDB_ORIG_DN,
                             SYSDB_CACHE_EXPIRE,
                             SYSDB_LAST_UPDATE,
                             SYSDB_AUTOFS_MAP_NAME,
