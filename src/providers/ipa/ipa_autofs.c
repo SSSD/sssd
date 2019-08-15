@@ -51,5 +51,9 @@ errno_t ipa_autofs_init(TALLOC_CTX *mem_ctx,
                   sdap_autofs_enumerate_handler_send, sdap_autofs_enumerate_handler_recv, id_ctx->sdap_id_ctx,
                   struct sdap_id_ctx, struct dp_autofs_data, dp_no_output);
 
+    dp_set_method(dp_methods, DPM_AUTOFS_GET_MAP,
+                  sdap_autofs_get_map_handler_send, sdap_autofs_get_map_handler_recv, id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, dp_no_output);
+
     return ret;
 }

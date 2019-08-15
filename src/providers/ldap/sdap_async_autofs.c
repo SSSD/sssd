@@ -28,6 +28,7 @@
 #include "db/sysdb_autofs.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_autofs.h"
+#include "providers/ldap/sdap_ops.h"
 
 enum autofs_map_op {
     AUTOFS_MAP_OP_ADD,
@@ -970,3 +971,209 @@ sdap_autofs_setautomntent_recv(struct tevent_req *req)
     return EOK;
 }
 
+struct sdap_autofs_get_map_state {
+    struct sdap_id_ctx *id_ctx;
+    struct sdap_options *opts;
+    struct sdap_id_op *sdap_op;
+    const char *mapname;
+    int dp_error;
+};
+
+static errno_t sdap_autofs_get_map_retry(struct tevent_req *req);
+static void sdap_autofs_get_map_connect_done(struct tevent_req *subreq);
+static void sdap_autofs_get_map_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
+                                            struct sdap_id_ctx *id_ctx,
+                                            const char *mapname)
+{
+    struct tevent_req *req;
+    struct sdap_autofs_get_map_state *state;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sdap_autofs_get_map_state);
+    if (!req) {
+        return NULL;
+    }
+
+    state->id_ctx = id_ctx;
+    state->opts = id_ctx->opts;
+    state->mapname = mapname;
+    state->dp_error = DP_ERR_FATAL;
+
+    state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
+    if (!state->sdap_op) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sdap_autofs_get_map_retry(req);
+    if (ret == EAGAIN) {
+        /* asynchronous processing */
+        return req;
+    }
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, id_ctx->be->ev);
+
+    return req;
+}
+
+static errno_t sdap_autofs_get_map_retry(struct tevent_req *req)
+{
+    struct sdap_autofs_get_map_state *state;
+    struct tevent_req *subreq;
+    int ret;
+
+    state = tevent_req_data(req, struct sdap_autofs_get_map_state);
+
+    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed: "
+                                   "%d(%s)\n", ret, strerror(ret));
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, sdap_autofs_get_map_connect_done, req);
+
+    return EAGAIN;
+}
+
+static void sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_autofs_get_map_state *state;
+    char *filter;
+    char *safe_mapname;
+    const char **attrs;
+    int dp_error;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_autofs_get_map_state);
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "LDAP connection failed "
+                                   "[%d]: %s\n", ret, strerror(ret));
+        state->dp_error = dp_error;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "LDAP connection successful\n");
+
+    ret = sss_filter_sanitize(state, state->mapname, &safe_mapname);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                 state->opts->autofs_mobject_map[SDAP_AT_AUTOFS_MAP_NAME].name,
+                 safe_mapname,
+                 state->opts->autofs_mobject_map[SDAP_OC_AUTOFS_MAP].name);
+    if (filter == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build filter\n");
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = build_attrs_from_map(state, state->opts->autofs_mobject_map,
+                               SDAP_OPTS_AUTOFS_MAP, NULL, &attrs, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build attributes from map\n");
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sdap_search_bases_return_first_send(state, state->id_ctx->be->ev,
+                    state->opts, sdap_id_op_handle(state->sdap_op),
+                    state->opts->sdom->autofs_search_bases,
+                    state->opts->autofs_mobject_map, false,
+                    dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT),
+                    filter, attrs);
+    if (subreq == NULL) {
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, sdap_autofs_get_map_done, req);
+}
+
+static void sdap_autofs_get_map_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_autofs_get_map_state *state;
+    struct sysdb_attrs **reply;
+    size_t reply_count;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_autofs_get_map_state);
+
+    ret = sdap_search_bases_return_first_recv(subreq, state, &reply_count,
+                                              &reply);
+    talloc_zfree(subreq);
+
+    ret = sdap_id_op_done(state->sdap_op, ret, &state->dp_error);
+    if (state->dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = sdap_autofs_get_map_retry(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    } else if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (reply_count == 0) {
+        ret = sysdb_delete_autofsmap(state->id_ctx->be->domain, state->mapname);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Cannot delete autofs map %s [%d]: %s\n",
+                 state->mapname, ret, strerror(ret));
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        tevent_req_done(req);
+        return;
+    }
+
+    ret = save_autofs_map(state->id_ctx->be->domain, state->opts, reply[0], false);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+             "Cannot save autofs map %s [%d]: %s\n",
+              state->mapname, ret, strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t sdap_autofs_get_map_recv(struct tevent_req *req,
+                                 int *dp_error)
+{
+    struct sdap_autofs_get_map_state *state;
+
+    state = tevent_req_data(req, struct sdap_autofs_get_map_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *dp_error = state->dp_error;
+
+    return EOK;
+}
