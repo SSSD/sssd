@@ -193,15 +193,23 @@ save_autofs_map(struct sss_domain_info *dom,
                 bool enumerated)
 {
     const char *mapname;
+    const char *origdn;
     errno_t ret;
     time_t now;
 
     mapname = get_autofs_map_name(map, opts);
     if (!mapname) return EINVAL;
 
+    ret = sysdb_attrs_get_string(map, SYSDB_ORIG_DN, &origdn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get original dn [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
     now = time(NULL);
 
-    ret = sysdb_save_autofsmap(dom, mapname, mapname,
+    ret = sysdb_save_autofsmap(dom, mapname, mapname, origdn,
                                NULL, dom->autofsmap_timeout, now, enumerated);
     if (ret != EOK) {
         return ret;
