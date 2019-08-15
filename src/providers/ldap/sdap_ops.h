@@ -34,7 +34,8 @@ struct tevent_req *sdap_search_bases_send(TALLOC_CTX *mem_ctx,
                                           bool allow_paging,
                                           int timeout,
                                           const char *filter,
-                                          const char **attrs);
+                                          const char **attrs,
+                                          const char *base_dn);
 
 int sdap_search_bases_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
@@ -51,7 +52,8 @@ sdap_search_bases_return_first_send(TALLOC_CTX *mem_ctx,
                                     bool allow_paging,
                                     int timeout,
                                     const char *filter,
-                                    const char **attrs);
+                                    const char **attrs,
+                                    const char *base_dn);
 
 int sdap_search_bases_return_first_recv(struct tevent_req *req,
                                         TALLOC_CTX *mem_ctx,
