@@ -545,7 +545,7 @@ static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
                             dp_opt_get_int(state->sdap_id_ctx->opts->basic,
                                             SDAP_ENUM_SEARCH_TIMEOUT),
                             IPA_EXT_GROUPS_FILTER,
-                            NULL);
+                            NULL, NULL);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
         ret = ENOMEM;

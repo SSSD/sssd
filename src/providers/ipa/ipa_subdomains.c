@@ -1005,7 +1005,7 @@ ipa_subdomains_ranges_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_search_bases_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
                                     sd_ctx->ranges_search_bases, NULL, false,
-                                    0, RANGE_FILTER, attrs);
+                                    0, RANGE_FILTER, attrs, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1251,7 +1251,7 @@ ipa_subdomains_master_send(TALLOC_CTX *mem_ctx,
     subreq = sdap_search_bases_return_first_send(state, ev,
                                      sd_ctx->sdap_id_ctx->opts, sh,
                                      sd_ctx->master_search_bases, NULL, false,
-                                     0, MASTER_DOMAIN_FILTER, attrs);
+                                     0, MASTER_DOMAIN_FILTER, attrs, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1397,7 +1397,7 @@ ipa_subdomains_slave_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_search_bases_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
                                     sd_ctx->search_bases, NULL, false,
-                                    0, SUBDOMAINS_FILTER, attrs);
+                                    0, SUBDOMAINS_FILTER, attrs, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;

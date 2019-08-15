@@ -1110,7 +1110,7 @@ static void ad_get_slave_domain_connect_done(struct tevent_req *subreq)
                                     sdap_id_op_handle(state->sdap_op),
                                     state->root_sdom->search_bases,
                                     NULL, false, 0,
-                                    SLAVE_DOMAIN_FILTER, attrs);
+                                    SLAVE_DOMAIN_FILTER, attrs, NULL);
     if (subreq == NULL) {
         tevent_req_error(req, ret);
         return;
@@ -1304,7 +1304,8 @@ ad_get_root_domain_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_search_bases_return_first_send(state, ev, opts, sh,
                                                  opts->sdom->search_bases,
-                                                 NULL, false, 0, filter, attrs);
+                                                 NULL, false, 0, filter, attrs,
+                                                 NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;

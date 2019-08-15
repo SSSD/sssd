@@ -492,7 +492,7 @@ ipa_sudo_fetch_addtl_cmdgroups(struct tevent_req *req)
 
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
                                     state->sh, state->sudo_sb, map, true, 0,
-                                    filter, NULL);
+                                    filter, NULL, NULL);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -582,7 +582,7 @@ ipa_sudo_fetch_rules(struct tevent_req *req)
 
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
                                     state->sh, state->sudo_sb, map, true, 0,
-                                    filter, NULL);
+                                    filter, NULL, NULL);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -662,7 +662,7 @@ ipa_sudo_fetch_cmdgroups(struct tevent_req *req)
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
                                     state->sh, state->sudo_sb,
                                     state->map_cmdgroup, true, 0,
-                                    filter, NULL);
+                                    filter, NULL, NULL);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -742,7 +742,7 @@ ipa_sudo_fetch_cmds(struct tevent_req *req)
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
                                     state->sh, state->sudo_sb,
                                     state->map_cmd, true, 0,
-                                    filter, NULL);
+                                    filter, NULL, NULL);
     if (subreq == NULL) {
         return ENOMEM;
     }

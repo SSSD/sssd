@@ -75,7 +75,7 @@ sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_search_bases_send(state, ev, opts, sh, sb,
                                     opts->sudorule_map, true, 0,
-                                    ldap_filter, NULL);
+                                    ldap_filter, NULL, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
