@@ -391,6 +391,90 @@ sdap_autofs_get_map_handler_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+struct sdap_autofs_get_entry_handler_state {
+    struct dp_reply_std reply;
+};
+
+static void sdap_autofs_get_entry_handler_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_autofs_get_entry_handler_send(TALLOC_CTX *mem_ctx,
+                                 struct sdap_id_ctx *id_ctx,
+                                 struct dp_autofs_data *data,
+                                 struct dp_req_params *params)
+{
+    struct sdap_autofs_get_entry_handler_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_autofs_get_entry_handler_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "Requested refresh for: %s:%s\n",
+          data->mapname, data->entryname);
+
+    subreq = sdap_autofs_get_entry_send(mem_ctx, id_ctx,
+                                        data->mapname, data->entryname);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request for %s:%s.\n",
+              data->mapname, data->entryname);
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_autofs_get_entry_handler_done, req);
+
+    return req;
+
+immediately:
+    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    tevent_req_done(req);
+    tevent_req_post(req, params->ev);
+
+    return req;
+}
+
+static void sdap_autofs_get_entry_handler_done(struct tevent_req *subreq)
+{
+    struct sdap_autofs_get_entry_handler_state *state;
+    struct tevent_req *req;
+    int dp_error;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_autofs_get_entry_handler_state);
+
+    ret = sdap_autofs_get_entry_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    /* TODO For backward compatibility we always return EOK to DP now. */
+    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
+    tevent_req_done(req);
+}
+
+errno_t
+sdap_autofs_get_entry_handler_recv(TALLOC_CTX *mem_ctx,
+                                   struct tevent_req *req,
+                                   struct dp_reply_std *data)
+{
+    struct sdap_autofs_get_entry_handler_state *state = NULL;
+
+    state = tevent_req_data(req, struct sdap_autofs_get_entry_handler_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *data = state->reply;
+
+    return EOK;
+}
+
 errno_t sdap_autofs_init(TALLOC_CTX *mem_ctx,
                          struct be_ctx *be_ctx,
                          struct sdap_id_ctx *id_ctx,
@@ -412,6 +496,10 @@ errno_t sdap_autofs_init(TALLOC_CTX *mem_ctx,
 
     dp_set_method(dp_methods, DPM_AUTOFS_GET_MAP,
                   sdap_autofs_get_map_handler_send, sdap_autofs_get_map_handler_recv, id_ctx,
+                  struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
+
+    dp_set_method(dp_methods, DPM_AUTOFS_GET_ENTRY,
+                  sdap_autofs_get_entry_handler_send, sdap_autofs_get_entry_handler_recv, id_ctx,
                   struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
 
     return EOK;
