@@ -44,9 +44,11 @@ int main(int argc, const char *argv[])
     char *key = NULL;
     char *value = NULL;
     char *pc_key = NULL;
+    int pc_setent = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "by-name",  'n', POPT_ARG_STRING, &pc_key, 0, "Request map by name", NULL },
+        { "only-setent",  's', POPT_ARG_VAL, &pc_setent, 1, "Run only setent, do not enumerate", NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -74,6 +76,10 @@ int main(int argc, const char *argv[])
         exit(EXIT_FAILURE);
     }
     printf("setautomntent done for %s\n", mapname);
+
+    if (pc_setent) {
+        goto end;
+    }
 
     if (!pc_key) {
         do {
