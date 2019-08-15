@@ -50,5 +50,13 @@ struct tevent_req *sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
 errno_t sdap_autofs_get_map_recv(struct tevent_req *req,
                                  int *dp_error);
 
+struct tevent_req *sdap_autofs_get_entry_send(TALLOC_CTX *mem_ctx,
+                                              struct sdap_id_ctx *id_ctx,
+                                              const char *mapname,
+                                              const char *entryname);
+
+errno_t sdap_autofs_get_entry_recv(struct tevent_req *req,
+                                   int *dp_error);
+
 #endif /* _SDAP_AUTOFS_H_ */
 
