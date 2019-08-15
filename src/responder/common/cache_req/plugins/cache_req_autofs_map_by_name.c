@@ -79,16 +79,16 @@ cache_req_autofs_map_by_name_dp_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    return sbus_call_dp_autofs_Enumerate_send(mem_ctx, be_conn->conn,
-                                              be_conn->bus_name, SSS_BUS_PATH,
-                                              DP_FAST_REPLY, data->name.name);
+    return sbus_call_dp_autofs_GetMap_send(mem_ctx, be_conn->conn,
+                                           be_conn->bus_name, SSS_BUS_PATH,
+                                           DP_FAST_REPLY, data->name.name);
 }
 
 bool
 cache_req_autofs_map_by_name_dp_recv(struct tevent_req *subreq,
                                      struct cache_req *cr)
 {
-    return sbus_call_dp_autofs_Enumerate_recv(subreq) == EOK;
+    return sbus_call_dp_autofs_GetMap_recv(subreq) == EOK;
 }
 
 const struct cache_req_plugin cache_req_autofs_map_by_name = {
