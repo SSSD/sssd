@@ -892,7 +892,8 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
                                 + sizeof(TEST_TOKEN_NAME)
                                 + sizeof(TEST_MODULE_NAME)
                                 + sizeof(TEST_KEY_ID)
-                                + sizeof(TEST_PROMPT)));
+                                + sizeof(TEST_PROMPT)
+                                + sizeof("pamuser")));
 
     assert_int_equal(*(body + rp + sizeof("pamuser@"TEST_DOM_NAME) - 1), 0);
     assert_string_equal(body + rp, "pamuser@"TEST_DOM_NAME);
@@ -913,6 +914,10 @@ static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
     assert_int_equal(*(body + rp + sizeof(TEST_PROMPT) - 1), 0);
     assert_string_equal(body + rp, TEST_PROMPT);
     rp += sizeof(TEST_PROMPT);
+
+    assert_int_equal(*(body + rp + sizeof("pamuser") - 1), 0);
+    assert_string_equal(body + rp, "pamuser");
+    rp += sizeof("pamuser");
 
     assert_int_equal(rp, blen);
     return EOK;
@@ -943,7 +948,7 @@ static size_t check_string_array_len(const char **strs)
 
 static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                   enum response_type type, const char *name,
-                                  const char *name2)
+                                  const char *name2, const char *nss_name)
 {
     size_t rp = 0;
     uint32_t val;
@@ -955,6 +960,7 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                     TEST_MODULE_NAME,
                                     TEST_KEY_ID,
                                     TEST_PROMPT,
+                                    NULL,
                                     NULL };
 
     size_t check2_len = 0;
@@ -963,14 +969,18 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
                                      TEST_MODULE_NAME,
                                      TEST2_KEY_ID,
                                      TEST2_PROMPT,
+                                     NULL,
                                      NULL };
 
     assert_int_equal(status, 0);
 
     check_strings[0] = name;
+    check_strings[5] = nss_name;
     check_len = check_string_array_len(check_strings);
     check2_strings[0] = name;
+    check2_strings[5] = nss_name;
     check2_len = check_string_array_len(check2_strings);
+
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
     assert_int_equal(val, pam_test_ctx->exp_pam_status);
@@ -1042,7 +1052,8 @@ static int test_pam_cert_check_ex(uint32_t status, uint8_t *body, size_t blen,
 
 static int test_pam_cert2_token2_check_ex(uint32_t status, uint8_t *body,
                                           size_t blen, enum response_type type,
-                                          const char *name)
+                                          const char *name,
+                                          const char *nss_name)
 {
     size_t rp = 0;
     uint32_t val;
@@ -1052,11 +1063,13 @@ static int test_pam_cert2_token2_check_ex(uint32_t status, uint8_t *body,
                                      TEST_MODULE_NAME,
                                      TEST2_KEY_ID,
                                      TEST2_PROMPT,
+                                     NULL,
                                      NULL };
 
     assert_int_equal(status, 0);
 
     check2_strings[0] = name;
+    check2_strings[5] = nss_name;
     check2_len = check_string_array_len(check2_strings);
 
     SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
@@ -1092,13 +1105,13 @@ static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
 {
     return test_pam_cert_check_ex(status, body, blen,
                                   SSS_PAM_CERT_INFO, "pamuser@"TEST_DOM_NAME,
-                                  NULL);
+                                  NULL, "pamuser");
 }
 
 static int test_pam_cert2_check(uint32_t status, uint8_t *body, size_t blen)
 {
     return test_pam_cert2_token2_check_ex(status, body, blen, SSS_PAM_CERT_INFO,
-                                          "pamuser@"TEST_DOM_NAME);
+                                          "pamuser@"TEST_DOM_NAME, "pamuser");
 }
 
 static int test_pam_cert_check_auth_success(uint32_t status, uint8_t *body,
@@ -1108,7 +1121,7 @@ static int test_pam_cert_check_auth_success(uint32_t status, uint8_t *body,
     pam_test_ctx->exp_pam_status = PAM_SUCCESS;
     return test_pam_cert_check_ex(status, body, blen,
                                   SSS_PAM_CERT_INFO, "pamuser@"TEST_DOM_NAME,
-                                  NULL);
+                                  NULL, "pamuser");
 }
 
 static int test_pam_cert_check_with_hint(uint32_t status, uint8_t *body,
@@ -1116,14 +1129,15 @@ static int test_pam_cert_check_with_hint(uint32_t status, uint8_t *body,
 {
     return test_pam_cert_check_ex(status, body, blen,
                                   SSS_PAM_CERT_INFO_WITH_HINT,
-                                  "pamuser@"TEST_DOM_NAME, NULL);
+                                  "pamuser@"TEST_DOM_NAME, NULL,
+                                  "pamuser");
 }
 
 static int test_pam_cert_check_with_hint_no_user(uint32_t status, uint8_t *body,
                                                  size_t blen)
 {
     return test_pam_cert_check_ex(status, body, blen,
-                                  SSS_PAM_CERT_INFO_WITH_HINT, "", NULL);
+                                  SSS_PAM_CERT_INFO_WITH_HINT, "", NULL, "");
 }
 
 static int test_pam_cert_check_2certs(uint32_t status, uint8_t *body,
@@ -1131,7 +1145,8 @@ static int test_pam_cert_check_2certs(uint32_t status, uint8_t *body,
 {
     return test_pam_cert_check_ex(status, body, blen,
                                   SSS_PAM_CERT_INFO, "pamuser@"TEST_DOM_NAME,
-                                  "pamuser@"TEST_DOM_NAME);
+                                  "pamuser@"TEST_DOM_NAME,
+                                  "pamuser");
 }
 
 static int test_pam_offline_chauthtok_check(uint32_t status,

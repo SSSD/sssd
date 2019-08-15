@@ -131,13 +131,44 @@ def format_pam_cert_auth_conf(config):
         [pam]
         pam_cert_auth = True
         pam_p11_allowed_services = +pam_sss_service, +pam_sss_sc_required, \
-                                   +pam_sss_try_sc
+                                   +pam_sss_try_sc, +pam_sss_allow_missing_name
         pam_cert_db_path = {config.PAM_CERT_DB_PATH}
         p11_child_timeout = 5
         p11_wait_for_card_timeout = 5
         debug_level = 10
 
         [domain/auth_only]
+        debug_level = 10
+        id_provider = files
+
+        [certmap/auth_only/user1]
+        matchrule = <SUBJECT>.*CN=SSSD test cert 0001.*
+    """).format(**locals())
+
+
+def format_pam_cert_auth_conf_name_format(config):
+    """Format SSSD configuration with full_name_format"""
+    return unindent("""\
+        [sssd]
+        debug_level = 10
+        domains = auth_only
+        services = pam, nss
+
+        [nss]
+        debug_level = 10
+
+        [pam]
+        pam_cert_auth = True
+        pam_p11_allowed_services = +pam_sss_service, +pam_sss_sc_required, \
+                                   +pam_sss_try_sc, +pam_sss_allow_missing_name
+        pam_cert_db_path = {config.PAM_CERT_DB_PATH}
+        p11_child_timeout = 5
+        p11_wait_for_card_timeout = 5
+        debug_level = 10
+
+        [domain/auth_only]
+        use_fully_qualified_names = True
+        full_name_format = %2$s\%1$s
         debug_level = 10
         id_provider = files
 
@@ -281,6 +312,19 @@ def simple_pam_cert_auth_no_cert(request, passwd_ops_setup):
     passwd_ops_setup.useradd(**USER1)
     passwd_ops_setup.useradd(**USER2)
 
+    return None
+
+
+@pytest.fixture
+def simple_pam_cert_auth_name_format(request, passwd_ops_setup):
+    """Setup SSSD with pam_cert_auth=True and full_name_format"""
+    config.PAM_CERT_DB_PATH = os.environ['PAM_CERT_DB_PATH']
+    conf = format_pam_cert_auth_conf_name_format(config)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    create_nssdb_fixture(request)
+    passwd_ops_setup.useradd(**USER1)
+    passwd_ops_setup.useradd(**USER2)
     return None
 
 
@@ -546,3 +590,59 @@ def test_try_sc_auth_root(simple_pam_cert_auth, env_for_sssctl):
 
     assert err.find("pam_authenticate for user [root]: Authentication " +
                     "service cannot retrieve authentication info") != -1
+
+
+def test_sc_auth_missing_name(simple_pam_cert_auth, env_for_sssctl):
+    """
+    Test pam_sss allow_missing_name feature.
+    """
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "",
+                               "--action=auth",
+                               "--service=pam_sss_allow_missing_name"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [user1]: Success") != -1
+
+
+def test_sc_auth_name_format(simple_pam_cert_auth_name_format, env_for_sssctl):
+    """
+    Test that full_name_format is respected with pam_sss allow_missing_name
+    option.
+    """
+
+    sssctl = subprocess.Popen(["sssctl", "user-checks", "",
+                               "--action=auth",
+                               "--service=pam_sss_allow_missing_name"],
+                              universal_newlines=True,
+                              env=env_for_sssctl, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        out, err = sssctl.communicate(input="123456")
+    except:
+        sssctl.kill()
+        out, err = sssctl.communicate()
+
+    sssctl.stdin.close()
+    sssctl.stdout.close()
+
+    if sssctl.wait() != 0:
+        raise Exception("sssctl failed")
+
+    assert err.find("pam_authenticate for user [auth_only\user1]: " +
+                    "Success") != -1
