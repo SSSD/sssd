@@ -27,14 +27,10 @@
 #include "responder/ifp/ifp_iface/ifp_iface_async.h"
 
 struct ifp_user_get_attr_state {
-    const char *inp;
     const char **attrs;
     struct ldb_result *res;
 
     enum sss_dp_acct_type search_type;
-
-    char *inp_name;
-    char *domname;
 
     struct sss_domain_info *dom;
 
@@ -42,36 +38,59 @@ struct ifp_user_get_attr_state {
     struct sss_nc_ctx *ncache;
 };
 
-static void ifp_user_get_attr_lookup(struct tevent_req *subreq);
 static void ifp_user_get_attr_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 ifp_user_get_attr_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
                        struct sss_nc_ctx *ncache,
                        enum sss_dp_acct_type search_type,
-                       const char *inp, const char **attrs)
+                       const char *input, const char **attrs)
 {
     errno_t ret;
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct ifp_user_get_attr_state *state;
+    struct cache_req_data *data;
 
     req = tevent_req_create(mem_ctx, &state, struct ifp_user_get_attr_state);
     if (req == NULL) {
          return NULL;
     }
-    state->inp = inp;
     state->attrs = attrs;
     state->rctx = rctx;
     state->ncache = ncache;
     state->search_type = search_type;
 
-    subreq = sss_parse_inp_send(req, rctx, rctx->default_domain, inp);
+    switch (state->search_type) {
+    case SSS_DP_USER:
+        data = cache_req_data_name(state, CACHE_REQ_USER_BY_NAME, input);
+        break;
+    case SSS_DP_INITGROUPS:
+        data = cache_req_data_name(state, CACHE_REQ_INITGROUPS, input);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported search type [%d]!\n",
+              state->search_type);
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    if (data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* IFP serves both POSIX and application domains. Requests that need
+     * to differentiate between the two must be qualified
+     */
+    subreq = cache_req_send(state, state->rctx->ev, state->rctx, state->ncache,
+                            0, CACHE_REQ_ANY_DOM, NULL, data);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
     }
-    tevent_req_set_callback(subreq, ifp_user_get_attr_lookup, req);
+
+    tevent_req_set_callback(subreq, ifp_user_get_attr_done, req);
 
     ret = EOK;
 done:
@@ -81,68 +100,13 @@ done:
     return req;
 }
 
-static void
-ifp_user_get_attr_lookup(struct tevent_req *subreq)
-{
-    struct ifp_user_get_attr_state *state = NULL;
-    struct tevent_req *req = NULL;
-    struct cache_req_data *data;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct ifp_user_get_attr_state);
-
-    ret = sss_parse_inp_recv(subreq, state,
-                             &state->inp_name, &state->domname);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    switch (state->search_type) {
-    case SSS_DP_USER:
-        data = cache_req_data_name(state, CACHE_REQ_USER_BY_NAME,
-                                   state->inp_name);
-        break;
-    case SSS_DP_INITGROUPS:
-        data = cache_req_data_name(state, CACHE_REQ_INITGROUPS,
-                                   state->inp_name);
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported search type [%d]!\n",
-              state->search_type);
-        tevent_req_error(req, ERR_INTERNAL);
-        return;
-    }
-
-    if (data == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    /* IFP serves both POSIX and application domains. Requests that need
-     * to differentiate between the two must be qualified
-     */
-    subreq = cache_req_send(state, state->rctx->ev, state->rctx,
-                            state->ncache, 0,
-                            CACHE_REQ_ANY_DOM,
-                            state->domname, data);
-    if (subreq == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    tevent_req_set_callback(subreq, ifp_user_get_attr_done, req);
-}
-
 static void ifp_user_get_attr_done(struct tevent_req *subreq)
 {
     struct ifp_user_get_attr_state *state = NULL;
     struct tevent_req *req = NULL;
     struct cache_req_result *result;
     errno_t ret;
-    char *fqdn;
+    const char *fqdn;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ifp_user_get_attr_state);
@@ -158,10 +122,9 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
     state->dom = result->domain;
     talloc_zfree(result);
 
-    fqdn = sss_create_internal_fqname(state, state->inp_name,
-                                      state->dom->name);
+    fqdn = ldb_msg_find_attr_as_string(state->res->msgs[0], SYSDB_NAME, NULL);
     if (fqdn == NULL) {
-        tevent_req_error(req, ENOMEM);
+        tevent_req_error(req, ERR_INTERNAL);
         return;
     }
 
