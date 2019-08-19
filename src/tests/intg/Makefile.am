@@ -184,5 +184,5 @@ intgcheck-installed: config.py passwd group pam_sss_service pam_sss_alt_service 
 	DBUS_SESSION_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/fake_socket" \
 	DBUS_SYSTEM_BUS_ADDRESS="unix:path=$$DBUS_SOCK_DIR/system_bus_socket" \
 	DBUS_SYSTEM_BUS_DEFAULT_ADDRESS="$$DBUS_SYSTEM_BUS_ADDRESS" \
-	    fakeroot $(PYTHON2) $(PYTEST) -v -r a --tb=native $(INTGCHECK_PYTEST_ARGS) .
+	    fakeroot $(PYTHON2) $(PYTEST2) -v -r a --tb=native $(INTGCHECK_PYTEST_ARGS) .
 	rm -f $(DESTDIR)$(logpath)/*

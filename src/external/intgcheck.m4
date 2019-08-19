@@ -1,7 +1,10 @@
 AC_CHECK_PROG([HAVE_FAKEROOT], [fakeroot], [yes], [no])
 
+dnl Check for pytest binary. When available, we will use py.test-2 for python2
+dnl version. If it is not available we will try to use py.test.
 AC_PATH_PROG([PYTEST], [py.test])
-AS_IF([test -n "$PYTEST"], [HAVE_PYTEST=yes], [HAVE_PYTEST=no])
+AC_PATH_PROG([PYTEST2], [py.test-2], [$PYTEST])
+AS_IF([test -n "$PYTEST2"], [HAVE_PYTEST2=yes], [HAVE_PYTEST2=no])
 
 dnl Check for variable and fail unless value is "yes"
 dnl The second argument will be printed in error message in case of error
@@ -27,7 +30,7 @@ AC_DEFUN([SSS_ENABLE_INTGCHECK_REQS], [
         SSS_INTGCHECK_REQ([HAVE_LDAPMODIFY], [ldapmodify])
         SSS_INTGCHECK_REQ([HAVE_FAKEROOT], [fakeroot])
         SSS_INTGCHECK_REQ([HAVE_PYTHON2], [python2])
-        SSS_INTGCHECK_REQ([HAVE_PYTEST], [pytest])
+        SSS_INTGCHECK_REQ([HAVE_PYTEST2], [pytest2])
         SSS_INTGCHECK_REQ([HAVE_PY2MOD_LDAP], [python-ldap])
         SSS_INTGCHECK_REQ([HAVE_PY2MOD_LDAP], [pyldb])
     fi
