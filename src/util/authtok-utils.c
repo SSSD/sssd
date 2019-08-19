@@ -163,3 +163,36 @@ errno_t sss_auth_pack_sc_blob(const char *pin, size_t pin_len,
 
     return 0;
 }
+
+const char *sss_auth_get_pin_from_sc_blob(uint8_t *blob, size_t blob_len)
+{
+    size_t c = 0;
+    uint32_t pin_len;
+    uint32_t token_name_len;
+    uint32_t module_name_len;
+    uint32_t key_id_len;
+
+    if (blob == NULL || blob_len == 0) {
+        return NULL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&pin_len, blob, &c);
+    if (pin_len == 0) {
+        return NULL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&token_name_len, blob + c, &c);
+    SAFEALIGN_COPY_UINT32(&module_name_len, blob + c, &c);
+    SAFEALIGN_COPY_UINT32(&key_id_len, blob + c, &c);
+
+    if (blob_len != 4 * sizeof(uint32_t) + pin_len + token_name_len
+                                         + module_name_len + key_id_len) {
+        return NULL;
+    }
+
+    if (blob[c + pin_len - 1] != '\0') {
+        return NULL;
+    }
+
+    return (const char *) blob + c;
+}

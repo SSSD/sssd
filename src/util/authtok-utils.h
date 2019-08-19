@@ -123,4 +123,14 @@ errno_t sss_auth_unpack_sc_blob(TALLOC_CTX *mem_ctx,
                                  char **token_name, size_t *_token_name_len,
                                  char **module_name, size_t *_module_name_len,
                                  char **key_id, size_t *_key_id_len);
+
+/**
+ * @brief Return a pointer to the PIN string in the memory buffer
+ *
+ * @param[in]  blob              Memory buffer containing the 2FA data
+ * @param[in]  blob_len          Size of the memory buffer
+ *
+ * @return     pointer to 0-terminate PIN string in the memory buffer
+ */
+const char *sss_auth_get_pin_from_sc_blob(uint8_t *blob, size_t blob_len);
 #endif /*  __AUTHTOK_UTILS_H__ */

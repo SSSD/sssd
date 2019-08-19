@@ -473,6 +473,11 @@ void test_sss_authtok_sc_blobs(void **state)
                         needed_size);
 #endif
 
+    pin = sss_auth_get_pin_from_sc_blob(buf, needed_size);
+    assert_non_null(pin);
+    assert_string_equal(pin, "abc");
+    pin = NULL;
+
     ret = sss_authtok_set(ts->authtoken, SSS_AUTHTOK_TYPE_SC_PIN, buf,
                           needed_size);
     assert_int_equal(ret, EOK);
