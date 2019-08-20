@@ -56,7 +56,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
 
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[1-9]* ]]; then
         DEPS_LIST+=(
-            python3-pep8
+            python3-pycodestyle
         )
     else
         DEPS_LIST+=(
