@@ -1905,10 +1905,10 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         }
     }
 
-    if (answer == NULL) {
-        pi->pam_authtok = NULL;
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-        pi->pam_authtok_size=0;
+    if (answer == NULL || *answer == '\0') {
+        D(("Missing PIN."));
+        ret = PAM_CRED_INSUFFICIENT;
+        goto done;
     } else {
 
         ret = sss_auth_pack_sc_blob(answer, 0, cai->token_name, 0,
