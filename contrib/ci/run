@@ -58,6 +58,12 @@ declare BASE_DIR=`pwd`
 declare MODERATE=false
 declare RIGOROUS=false
 
+# pep8 was renamed to pycodestyle
+declare PEP8_BIN="pep8"
+if which pycodestyle &> /dev/null; then
+  PEP8_BIN="pycodestyle"
+fi
+
 # Output program usage information.
 function usage()
 {
@@ -398,7 +404,7 @@ if [[ "$DISTRO_BRANCH" != redhat-* ]]; then
     PEP8_IGNORE+=",E722"
 fi
 stage pep8          find . -path ./src/config -prune -o \
-                           -name \*.py -exec pep8 $PEP8_IGNORE {} +
+                           -name \*.py -exec $PEP8_BIN $PEP8_IGNORE {} +
 stage autoreconf    autoreconf --install --force
 run_build debug     build_debug
 if "$RIGOROUS"; then
