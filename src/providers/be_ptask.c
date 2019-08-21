@@ -228,13 +228,13 @@ static void be_ptask_schedule(struct be_ptask *task,
         delay = delay + (sss_rand() % task->random_offset);
     }
 
-    if(from | BE_PTASK_SCHEDULE_FROM_NOW) {
+    if(from & BE_PTASK_SCHEDULE_FROM_NOW) {
         tv = tevent_timeval_current_ofs(delay, 0);
 
         DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %lu seconds "
               "from now [%lu]\n", task->name, delay, tv.tv_sec);
     }
-    else if (from | BE_PTASK_SCHEDULE_FROM_LAST) {
+    else if (from & BE_PTASK_SCHEDULE_FROM_LAST) {
         tv = tevent_timeval_set(task->last_execution + delay, 0);
 
         DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %lu seconds "
