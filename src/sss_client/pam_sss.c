@@ -1804,21 +1804,21 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
     struct cert_auth_info *cai = pi->selected_cert;
 
     if (cai == NULL || cai->token_name == NULL || *cai->token_name == '\0') {
-        return EINVAL;
+        return PAM_SYSTEM_ERR;
     }
 
     size = sizeof(SC_PROMPT_FMT) + strlen(cai->token_name);
     prompt = malloc(size);
     if (prompt == NULL) {
         D(("malloc failed."));
-        return ENOMEM;
+        return PAM_BUF_ERR;
     }
 
     ret = snprintf(prompt, size, SC_PROMPT_FMT, cai->token_name);
     if (ret < 0 || ret >= size) {
         D(("snprintf failed."));
         free(prompt);
-        return EFAULT;
+        return PAM_SYSTEM_ERR;
     }
 
     if (pi->user_name_hint) {
@@ -2075,7 +2075,7 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
     int ret;
 
     if (pi->pc == NULL || *pi->pc == NULL) {
-        return EINVAL;
+        return PAM_SYSTEM_ERR;
     }
 
     for (c = 0; pi->pc[c] != NULL; c++) {
@@ -2096,7 +2096,7 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
             /* Todo: add extra string option */
             break;
         default:
-            ret = EINVAL;
+            ret = PAM_SYSTEM_ERR;
         }
 
         /* If not credential where given try the next type otherwise we are
