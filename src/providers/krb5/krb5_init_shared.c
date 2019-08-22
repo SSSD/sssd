@@ -71,12 +71,6 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
         goto done;
     }
 
-    ret = krb5_install_sigterm_handler(bectx->ev, krb5_auth_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_install_sigterm_handler failed.\n");
-        goto done;
-    }
-
     krb5_auth_ctx->child_debug_fd = -1; /* -1 means not initialized */
     ret = child_debug_init(KRB5_CHILD_LOG_FILE,
                            &krb5_auth_ctx->child_debug_fd);
