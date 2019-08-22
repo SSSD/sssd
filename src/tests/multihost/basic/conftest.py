@@ -43,7 +43,9 @@ def package_install(session_multihost):
     if 'Fedora' in distro:
         cmd = 'dnf install -y %s' % (pkg_list)
     elif '8.' in distro.split()[5]:
-        cmd = 'dnf module -y install 389-ds:1.4'
+        enableidm = 'yum -y module enable idm:DL1'
+        session_multihost.master[0].run_command(enableidm)
+        cmd = 'yum install -y %s' % (pkg_list)
     session_multihost.master[0].run_command(cmd)
 
 
