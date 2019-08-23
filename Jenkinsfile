@@ -122,6 +122,18 @@ class CI {
       ctx.env.CHANGE_TARGET
     )
 
+    // Remove left overs from previous rebase if there are any
+    ctx.sh String.format(
+      'git -C %s rebase --abort || :',
+      "${ctx.env.WORKSPACE}/sssd"
+    )
+
+    // Just to be sure
+    ctx.sh String.format(
+      'rm -fr "%s/.git/rebase-apply" || :',
+      "${ctx.env.WORKSPACE}/sssd"
+    )
+
     ctx.sh String.format(
       'git -C %s rebase origin/%s',
       "${ctx.env.WORKSPACE}/sssd",
