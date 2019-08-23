@@ -445,36 +445,6 @@ be_register_monitor_iface(struct sbus_connection *conn, struct be_ctx *be_ctx)
     return sbus_connection_add_path_map(be_ctx->mon_conn, paths);
 }
 
-static void be_process_finalize(struct tevent_context *ev,
-                                struct tevent_signal *se,
-                                int signum,
-                                int count,
-                                void *siginfo,
-                                void *private_data)
-{
-    struct be_ctx *be_ctx;
-
-    be_ctx = talloc_get_type(private_data, struct be_ctx);
-    talloc_free(be_ctx);
-    orderly_shutdown(0);
-}
-
-static errno_t be_process_install_sigterm_handler(struct be_ctx *be_ctx)
-{
-    struct tevent_signal *sige;
-
-    BlockSignals(false, SIGTERM);
-
-    sige = tevent_add_signal(be_ctx->ev, be_ctx, SIGTERM, SA_SIGINFO,
-                             be_process_finalize, be_ctx);
-    if (sige == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
-        return ENOMEM;
-    }
-
-    return EOK;
-}
-
 static void dp_initialized(struct tevent_req *req);
 
 errno_t be_process_init(TALLOC_CTX *mem_ctx,

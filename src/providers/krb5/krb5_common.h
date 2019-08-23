@@ -203,6 +203,9 @@ void krb5_finalize(struct tevent_context *ev,
                    void *siginfo,
                    void *private_data);
 
+errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
+                                     struct krb5_ctx *krb5_ctx);
+
 errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm);
 
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,

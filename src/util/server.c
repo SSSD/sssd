@@ -256,8 +256,6 @@ static void default_quit(struct tevent_context *ev,
                          void *siginfo,
                          void *private_data)
 {
-    struct main_context *ctx = talloc_get_type(private_data, struct main_context);
-    talloc_free(ctx);
     orderly_shutdown(0);
 }
 
@@ -542,6 +540,20 @@ int server_setup(const char *name, int flags,
         return 1;
     }
 
+    /* Set up an event handler for a SIGINT */
+    tes = tevent_add_signal(event_ctx, event_ctx, SIGINT, 0,
+                            default_quit, NULL);
+    if (tes == NULL) {
+        return EIO;
+    }
+
+    /* Set up an event handler for a SIGTERM */
+    tes = tevent_add_signal(event_ctx, event_ctx, SIGTERM, 0,
+                            default_quit, NULL);
+    if (tes == NULL) {
+        return EIO;
+    }
+
     ctx = talloc(event_ctx, struct main_context);
     if (ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, aborting!\n");
@@ -550,20 +562,6 @@ int server_setup(const char *name, int flags,
 
     ctx->parent_pid = getppid();
     ctx->event_ctx = event_ctx;
-
-    /* Set up an event handler for a SIGINT */
-    tes = tevent_add_signal(event_ctx, event_ctx, SIGINT, 0,
-                            default_quit, ctx);
-    if (tes == NULL) {
-        return EIO;
-    }
-
-    /* Set up an event handler for a SIGTERM */
-    tes = tevent_add_signal(event_ctx, event_ctx, SIGTERM, 0,
-                            default_quit, ctx);
-    if (tes == NULL) {
-        return EIO;
-    }
 
     conf_db = talloc_asprintf(ctx, "%s/%s",
                               get_db_path(), CONFDB_FILE);

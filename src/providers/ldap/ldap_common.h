@@ -187,6 +187,10 @@ errno_t sdap_install_offline_callback(TALLOC_CTX *mem_ctx,
                                       const char *realm,
                                       const char *service_name);
 
+errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     const char *realm);
+
 void sdap_remove_kdcinfo_files_callback(void *pvt);
 
 /* options parser */
