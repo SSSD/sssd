@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <signal.h>
+
 #include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
 #include "providers/ldap/sdap_async_private.h"
@@ -147,6 +149,43 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     talloc_zfree(service->sockaddr);
     service->sockaddr = talloc_steal(service, sockaddr);
     talloc_free(tmp_ctx);
+}
+
+static void sdap_finalize(struct tevent_context *ev,
+                          struct tevent_signal *se,
+                          int signum,
+                          int count,
+                          void *siginfo,
+                          void *private_data)
+{
+    orderly_shutdown(0);
+}
+
+errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     const char *realm)
+{
+    char *sig_realm;
+    struct tevent_signal *sige;
+
+    BlockSignals(false, SIGTERM);
+
+    sig_realm = talloc_strdup(mem_ctx, realm);
+    if (sig_realm == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed!\n");
+        return ENOMEM;
+    }
+
+    sige = tevent_add_signal(ev, mem_ctx, SIGTERM, SA_SIGINFO, sdap_finalize,
+                             sig_realm);
+    if (sige == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
+        talloc_free(sig_realm);
+        return ENOMEM;
+    }
+    talloc_steal(sige, sig_realm);
+
+    return EOK;
 }
 
 errno_t
@@ -339,6 +378,12 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
                             &service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init KRB5 failover service!\n");
+        goto done;
+    }
+
+    ret = sdap_install_sigterm_handler(mem_ctx, bectx->ev, krb5_realm);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to install sigterm handler\n");
         goto done;
     }
 
