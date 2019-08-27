@@ -1685,6 +1685,7 @@ static void kcm_op_set_default_ccache_getbyname_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_TRACE_LIBS,
               "The ccache does not exist, creating a new one\n");
         kcm_op_set_default_create_step(req);
+        return;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot get ccache by name [%d]: %s\n",
