@@ -576,6 +576,7 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_common.c \
     src/responder/common/responder_dp.c \
     src/responder/common/responder_dp_ssh.c \
+    src/responder/common/responder_dp_autofs.c \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_get_domains.c \
     src/responder/common/responder_utils.c \
@@ -1434,7 +1435,6 @@ if BUILD_AUTOFS
 sssd_autofs_SOURCES = \
     src/responder/autofs/autofssrv.c \
     src/responder/autofs/autofssrv_cmd.c \
-    src/responder/autofs/autofssrv_dp.c \
     $(SSSD_RESPONDER_OBJ)
 sssd_autofs_LDADD = \
     $(LIBADD_DL) \

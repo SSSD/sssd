@@ -95,6 +95,40 @@ sss_dp_get_ssh_host_recv(TALLOC_CTX *mem_ctx,
     return test_request_recv(req);
 }
 
+struct tevent_req *
+sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
+                       struct resp_ctx *rctx,
+                       struct sss_domain_info *dom,
+                       bool fast_reply,
+                       enum sss_dp_autofs_type type,
+                       const char *mapname,
+                       const char *entryname)
+{
+    return test_req_succeed_send(mem_ctx, rctx->ev);
+}
+
+
+errno_t
+sss_dp_get_autofs_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *req,
+                       dbus_uint16_t *dp_err,
+                       dbus_uint32_t *dp_ret,
+                       char **err_msg)
+{
+    acct_cb_t cb;
+
+    *dp_err = sss_mock_type(dbus_uint16_t);
+    *dp_ret = sss_mock_type(dbus_uint32_t);
+    *err_msg = sss_mock_ptr_type(char *);
+
+    cb = sss_mock_ptr_type(acct_cb_t);
+    if (cb) {
+        (cb)(sss_mock_ptr_type(void *));
+    }
+
+    return test_request_recv(req);
+}
+
 errno_t
 sss_dp_req_recv(TALLOC_CTX *mem_ctx,
                 struct tevent_req *req,
