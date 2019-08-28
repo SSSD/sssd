@@ -257,13 +257,14 @@ errno_t kcm_ccdb_create_cc_recv(struct tevent_req *req);
  */
 struct kcm_mod_ctx {
     int32_t kdc_offset;
+    krb5_principal client;
     /* More settable properties (like name, when we support renames
      * will be added later
      */
 };
 
-void kcm_mod_ctx_clear(struct kcm_mod_ctx *mod_ctx);
-void kcm_mod_cc(struct kcm_ccache *cc, struct kcm_mod_ctx *mod_ctx);
+struct kcm_mod_ctx *kcm_mod_ctx_new(TALLOC_CTX *mem_ctx);
+errno_t kcm_mod_cc(struct kcm_ccache *cc, struct kcm_mod_ctx *mod_ctx);
 
 struct tevent_req *kcm_ccdb_mod_cc_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
