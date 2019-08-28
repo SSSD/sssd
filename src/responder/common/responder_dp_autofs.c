@@ -34,7 +34,8 @@ struct sss_dp_get_autofs_info {
 
     bool fast_reply;
     enum sss_dp_autofs_type type;
-    const char *name;
+    const char *mapname;
+    const char *entryname;
 };
 
 static DBusMessage *
@@ -46,7 +47,8 @@ sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *dom,
                        bool fast_reply,
                        enum sss_dp_autofs_type type,
-                       const char *name)
+                       const char *mapname,
+                       const char *entryname)
 {
     struct tevent_req *req;
     struct sss_dp_req_state *state;
@@ -64,6 +66,8 @@ sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
         goto error;
     }
 
+    entryname = entryname == NULL ? "" : entryname;
+
     info = talloc_zero(state, struct sss_dp_get_autofs_info);
     if (info == NULL) {
         ret = ENOMEM;
@@ -71,10 +75,11 @@ sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
     }
     info->fast_reply = fast_reply;
     info->type = type;
-    info->name = name;
+    info->mapname = mapname;
+    info->entryname = entryname;
     info->dom = dom;
 
-    key = talloc_asprintf(state, "%d:%s@%s", type, name, dom->name);
+    key = talloc_asprintf(state, "%d:%s@%s:%s", type, mapname, dom->name, entryname);
     if (!key) {
         ret = ENOMEM;
         goto error;
@@ -124,11 +129,13 @@ sss_dp_get_autofs_msg(void *pvt)
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
           "Creating autofs request for [%s][%u][%s]\n",
-           info->dom->name, dp_flags, info->name);
+           info->dom->name, dp_flags, info->mapname);
 
     dbret = dbus_message_append_args(msg,
                                      DBUS_TYPE_UINT32, &dp_flags,
-                                     DBUS_TYPE_STRING, &info->name,
+                                     DBUS_TYPE_UINT32, &info->type,
+                                     DBUS_TYPE_STRING, &info->mapname,
+                                     DBUS_TYPE_STRING, &info->entryname,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");

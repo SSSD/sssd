@@ -107,7 +107,7 @@ struct iface_dp {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
     sbus_msg_handler_fn pamHandler;
     sbus_msg_handler_fn sudoHandler;
-    int (*autofsHandler)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, const char *arg_mapname);
+    int (*autofsHandler)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, uint32_t arg_method, const char *arg_mapname, const char *arg_entryname);
     int (*hostHandler)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, const char *arg_name, const char *arg_alias);
     int (*getDomains)(struct sbus_request *req, void *data, const char *arg_domain_hint);
     int (*getAccountInfo)(struct sbus_request *req, void *data, uint32_t arg_dp_flags, uint32_t arg_entry_type, const char *arg_filter, const char *arg_domain, const char *arg_extra);

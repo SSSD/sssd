@@ -26,14 +26,19 @@
 #include "providers/data_provider/dp_iface.h"
 #include "providers/backend.h"
 #include "util/util.h"
+#include "responder/common/responder.h"
 
 errno_t dp_autofs_handler(struct sbus_request *sbus_req,
                           void *dp_cli,
                           uint32_t dp_flags,
-                          const char *mapname)
+                          uint32_t method,
+                          const char *mapname,
+                          const char *entryname)
 {
     struct dp_autofs_data *data;
     const char *key;
+    enum dp_methods dp_method;
+
 
     if (mapname == NULL) {
         return EINVAL;
@@ -45,10 +50,27 @@ errno_t dp_autofs_handler(struct sbus_request *sbus_req,
     }
 
     data->mapname = mapname;
-    key = mapname;
+    data->entryname = entryname;
+
+    key = talloc_asprintf(sbus_req, "%u:%s:%s", method, mapname, entryname);
+    if (key == NULL) {
+        return ENOMEM;
+    }
+
+    switch (method) {
+    case SSS_DP_AUTOFS_ENUMERATE:
+        dp_method = DPM_AUTOFS_ENUMERATE;
+        break;
+    case SSS_DP_AUTOFS_GET_MAP:
+        dp_method = DPM_AUTOFS_GET_MAP;
+        break;
+    case SSS_DP_AUTOFS_GET_ENTRY:
+        dp_method = DPM_AUTOFS_GET_ENTRY;
+        break;
+    }
 
     dp_req_with_reply(dp_cli, NULL, "AutoFS", key, sbus_req, DPT_AUTOFS,
-                      DPM_AUTOFS_ENUMERATE, dp_flags, data,
+                      dp_method, dp_flags, data,
                       dp_req_reply_std, struct dp_reply_std);
 
     return EOK;

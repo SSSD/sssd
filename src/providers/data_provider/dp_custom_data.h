@@ -37,6 +37,7 @@ struct dp_hostid_data {
 
 struct dp_autofs_data {
     const char *mapname;
+    const char *entryname;
 };
 
 struct dp_subdomains_data {

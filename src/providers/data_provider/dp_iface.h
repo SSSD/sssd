@@ -52,7 +52,9 @@ errno_t dp_host_handler(struct sbus_request *sbus_req,
 errno_t dp_autofs_handler(struct sbus_request *sbus_req,
                           void *dp_cli,
                           uint32_t dp_flags,
-                          const char *mapname);
+                          uint32_t method,
+                          const char *mapname,
+                          const char *entryname);
 
 errno_t dp_subdomains_handler(struct sbus_request *sbus_req,
                               void *dp_cli,
