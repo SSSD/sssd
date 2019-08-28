@@ -676,7 +676,13 @@ static struct tevent_req *ccdb_mem_mod_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
-    kcm_mod_cc(ccwrap->cc, mod_cc);
+    ret = kcm_mod_cc(ccwrap->cc, mod_cc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot modify ccache [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto immediate;
+    }
 
     ret = EOK;
 immediate:

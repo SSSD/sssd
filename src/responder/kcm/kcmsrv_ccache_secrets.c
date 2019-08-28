@@ -1842,7 +1842,14 @@ static void ccdb_sec_mod_cred_get_done(struct tevent_req *subreq)
         return;
     }
 
-    kcm_mod_cc(cc, state->mod_cc);
+    ret = kcm_mod_cc(cc, state->mod_cc);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot modify ccache [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
 
     ret = kcm_ccache_to_sec_kv(state, cc, state->client, &url, &payload);
     if (ret != EOK) {

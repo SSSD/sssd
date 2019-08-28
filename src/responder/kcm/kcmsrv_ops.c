@@ -1990,13 +1990,11 @@ static void kcm_op_set_kdc_offset_getbyname_done(struct tevent_req *subreq)
         return;
     }
 
-    mod_ctx = talloc(state, struct kcm_mod_ctx);
+    mod_ctx = kcm_mod_ctx_new(state);
     if (mod_ctx == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-
-    kcm_mod_ctx_clear(mod_ctx);
     mod_ctx->kdc_offset = be32toh(offset_be);
 
     subreq = kcm_ccdb_mod_cc_send(state,
