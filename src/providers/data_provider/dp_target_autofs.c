@@ -48,7 +48,7 @@ errno_t dp_autofs_handler(struct sbus_request *sbus_req,
     key = mapname;
 
     dp_req_with_reply(dp_cli, NULL, "AutoFS", key, sbus_req, DPT_AUTOFS,
-                      DPM_AUTOFS_HANDLER, dp_flags, data,
+                      DPM_AUTOFS_ENUMERATE, dp_flags, data,
                       dp_req_reply_std, struct dp_reply_std);
 
     return EOK;
