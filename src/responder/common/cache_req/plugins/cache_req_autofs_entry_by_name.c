@@ -72,7 +72,8 @@ cache_req_autofs_entry_by_name_dp_send(TALLOC_CTX *mem_ctx,
                                        struct ldb_result *result)
 {
     return sss_dp_get_autofs_send(mem_ctx, cr->rctx, domain, true,
-                                  SSS_DP_AUTOFS, data->name.name);
+                                  SSS_DP_AUTOFS_ENUMERATE,
+                                  data->name.name, NULL);
 }
 
 const struct cache_req_plugin cache_req_autofs_entry_by_name = {

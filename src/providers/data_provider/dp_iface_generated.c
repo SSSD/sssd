@@ -12,14 +12,17 @@
 /* invokes a handler with a 's' DBus signature */
 static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr);
 
-/* invokes a handler with a 'us' DBus signature */
-static int invoke_us_method(struct sbus_request *dbus_req, void *function_ptr);
+/* invokes a handler with a 'uuss' DBus signature */
+static int invoke_uuss_method(struct sbus_request *dbus_req, void *function_ptr);
 
 /* invokes a handler with a 'uss' DBus signature */
 static int invoke_uss_method(struct sbus_request *dbus_req, void *function_ptr);
 
 /* invokes a handler with a 'uusss' DBus signature */
 static int invoke_uusss_method(struct sbus_request *dbus_req, void *function_ptr);
+
+/* invokes a handler with a 'us' DBus signature */
+static int invoke_us_method(struct sbus_request *dbus_req, void *function_ptr);
 
 /* arguments for org.freedesktop.sssd.DataProvider.Client.Register */
 const struct sbus_arg_meta iface_dp_client_Register__in[] = {
@@ -217,7 +220,9 @@ const struct sbus_interface_meta iface_dp_access_control_meta = {
 /* arguments for org.freedesktop.sssd.dataprovider.autofsHandler */
 const struct sbus_arg_meta iface_dp_autofsHandler__in[] = {
     { "dp_flags", "u" },
+    { "method", "u" },
     { "mapname", "s" },
+    { "entryname", "s" },
     { NULL, }
 };
 
@@ -358,7 +363,7 @@ const struct sbus_method_meta iface_dp__methods[] = {
         iface_dp_autofsHandler__in,
         iface_dp_autofsHandler__out,
         offsetof(struct iface_dp, autofsHandler),
-        invoke_us_method,
+        invoke_uuss_method,
     },
     {
         "hostHandler", /* name */
@@ -399,6 +404,31 @@ const struct sbus_interface_meta iface_dp_meta = {
     NULL, /* no properties */
     sbus_invoke_get_all, /* GetAll invoker */
 };
+
+/* invokes a handler with a 'uuss' DBus signature */
+static int invoke_uuss_method(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint32_t arg_0;
+    uint32_t arg_1;
+    const char * arg_2;
+    const char * arg_3;
+    int (*handler)(struct sbus_request *, void *, uint32_t, uint32_t, const char *, const char *) = function_ptr;
+
+    if (!sbus_request_parse_or_finish(dbus_req,
+                               DBUS_TYPE_UINT32, &arg_0,
+                               DBUS_TYPE_UINT32, &arg_1,
+                               DBUS_TYPE_STRING, &arg_2,
+                               DBUS_TYPE_STRING, &arg_3,
+                               DBUS_TYPE_INVALID)) {
+         return EOK; /* request handled */
+    }
+
+    return (handler)(dbus_req, dbus_req->intf->handler_data,
+                     arg_0,
+                     arg_1,
+                     arg_2,
+                     arg_3);
+}
 
 /* invokes a handler with a 's' DBus signature */
 static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr)

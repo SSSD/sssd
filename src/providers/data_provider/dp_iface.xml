@@ -50,7 +50,9 @@
         </method>
         <method name="autofsHandler">
             <arg name="dp_flags" type="u" direction="in" />
+            <arg name="method" type="u" direction="in" />
             <arg name="mapname" type="s" direction="in" />
+            <arg name="entryname" type="s" direction="in" />
             <arg name="dp_error" type="q" direction="out" />
             <arg name="error" type="u" direction="out" />
             <arg name="error_message" type="s" direction="out" />

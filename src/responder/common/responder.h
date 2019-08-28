@@ -364,7 +364,9 @@ sss_dp_get_ssh_host_recv(TALLOC_CTX *mem_ctx,
                          char **err_msg);
 
 enum sss_dp_autofs_type {
-    SSS_DP_AUTOFS
+    SSS_DP_AUTOFS_ENUMERATE,
+    SSS_DP_AUTOFS_GET_MAP,
+    SSS_DP_AUTOFS_GET_ENTRY
 };
 
 struct tevent_req *
@@ -373,7 +375,8 @@ sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *dom,
                        bool fast_reply,
                        enum sss_dp_autofs_type type,
-                       const char *name);
+                       const char *mapname,
+                       const char *entryname);
 
 errno_t
 sss_dp_get_autofs_recv(TALLOC_CTX *mem_ctx,
