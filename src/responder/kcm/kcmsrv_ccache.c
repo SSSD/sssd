@@ -1089,25 +1089,56 @@ errno_t kcm_ccdb_create_cc_recv(struct tevent_req *req)
     return EOK;
 }
 
-void kcm_mod_ctx_clear(struct kcm_mod_ctx *mod_ctx)
+static void kcm_mod_ctx_clear(struct kcm_mod_ctx *mod_ctx)
 {
     if (mod_ctx == NULL) {
         return;
     }
 
     mod_ctx->kdc_offset = INT32_MAX;
+    if (mod_ctx->client != NULL) {
+        krb5_free_principal(NULL, mod_ctx->client);
+        mod_ctx->client = NULL;
+    }
+
+    return;
 }
 
-void kcm_mod_cc(struct kcm_ccache *cc, struct kcm_mod_ctx *mod_ctx)
+struct kcm_mod_ctx *kcm_mod_ctx_new(TALLOC_CTX *mem_ctx)
+{
+    struct kcm_mod_ctx *mod_ctx;
+
+    mod_ctx = talloc_zero(mem_ctx, struct kcm_mod_ctx);
+    if (mod_ctx == NULL) {
+        return NULL;
+    }
+
+    kcm_mod_ctx_clear(mod_ctx);
+    return mod_ctx;
+}
+
+errno_t kcm_mod_cc(struct kcm_ccache *cc, struct kcm_mod_ctx *mod_ctx)
 {
     if (cc == NULL || mod_ctx == NULL) {
-        return;
+        return EINVAL;
     }
 
     if (mod_ctx->kdc_offset != INT32_MAX) {
         cc->kdc_offset = mod_ctx->kdc_offset;
     }
 
+    if (mod_ctx->client != NULL) {
+        krb5_error_code kret;
+
+        kret = krb5_copy_principal(NULL, mod_ctx->client, &cc->client);
+        if (kret != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "krb5_copy_principal failed: %d\n", kret);
+            return ERR_INTERNAL;
+        }
+    }
+
+    return EOK;
 }
 
 struct kcm_ccdb_mod_cc_state {
