@@ -367,6 +367,8 @@ struct kcm_op_initialize_state {
 static void kcm_op_initialize_got_byname(struct tevent_req *subreq);
 static void kcm_op_initialize_cc_create_done(struct tevent_req *subreq);
 static void kcm_op_initialize_cc_delete_done(struct tevent_req *subreq);
+static void kcm_op_initialize_fill_princ_step(struct tevent_req *req);
+static void kcm_op_initialize_fill_princ_done(struct tevent_req *subreq);
 static void kcm_op_initialize_create_step(struct tevent_req *req);
 static void kcm_op_initialize_got_default(struct tevent_req *subreq);
 static void kcm_op_initialize_set_default_done(struct tevent_req *subreq);
@@ -450,6 +452,15 @@ static void kcm_op_initialize_got_byname(struct tevent_req *subreq)
     }
 
     if (state->new_cc != NULL) {
+        if (kcm_cc_get_client_principal(state->new_cc) == NULL) {
+            /* This is a cache that was pre-created w/o a principal (sshd does this),
+             * let's fill in the principal and set the cache as default if not
+             * already
+             */
+            kcm_op_initialize_fill_princ_step(req);
+            return;
+        }
+
         ok = kcm_cc_access(state->new_cc, state->op_ctx->client);
         if (!ok) {
             state->op_ret = EACCES;
@@ -499,6 +510,70 @@ static void kcm_op_initialize_cc_delete_done(struct tevent_req *subreq)
     }
 
     kcm_op_initialize_create_step(req);
+}
+
+static void kcm_op_initialize_fill_princ_step(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct kcm_op_initialize_state *state = tevent_req_data(req,
+                                            struct kcm_op_initialize_state);
+    errno_t ret;
+    struct kcm_mod_ctx *mod_ctx;
+    uuid_t uuid;
+
+    mod_ctx = kcm_mod_ctx_new(state);
+    if (mod_ctx == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    mod_ctx->client = state->princ;
+
+    ret = kcm_cc_get_uuid(state->new_cc, uuid);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = kcm_ccdb_mod_cc_send(state,
+                                  state->ev,
+                                  state->op_ctx->kcm_data->db,
+                                  state->op_ctx->client,
+                                  uuid,
+                                  mod_ctx);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, kcm_op_initialize_fill_princ_done, req);
+}
+
+static void kcm_op_initialize_fill_princ_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct kcm_op_initialize_state *state = tevent_req_data(req,
+                                            struct kcm_op_initialize_state);
+    errno_t ret;
+
+    ret = kcm_ccdb_mod_cc_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot modify ccache [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Make sure the cache we just initialized is the default one */
+    subreq = kcm_ccdb_get_default_send(state, state->ev,
+                                       state->op_ctx->kcm_data->db,
+                                       state->op_ctx->client);
+    if (subreq == NULL) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    tevent_req_set_callback(subreq, kcm_op_initialize_got_default, req);
 }
 
 static void kcm_op_initialize_create_step(struct tevent_req *req)
@@ -588,11 +663,14 @@ static void kcm_op_initialize_got_default(struct tevent_req *subreq)
         ret = kcm_cc_get_uuid(state->new_cc, dfl_uuid);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get new ccache UUID [%d]: %s\n",
-              ret, sss_strerror(ret));
+                  "Cannot get new ccache UUID [%d]: %s\n",
+                  ret, sss_strerror(ret));
             return;
         }
 
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "The default ccached was not set, switching to the "
+              "initialized\n");
         subreq = kcm_ccdb_set_default_send(state,
                                            state->ev,
                                            state->op_ctx->kcm_data->db,
@@ -1755,6 +1833,8 @@ static void kcm_op_set_default_create_step_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "The ccache was created, switching to it");
 
     ret = kcm_cc_get_uuid(state->new_cc, state->dfl_uuid);
     if (ret != EOK) {
