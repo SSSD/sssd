@@ -383,7 +383,7 @@ AC_DEFUN([WITH_PYTHON2_BINDINGS],
                 [with_python2_bindings=yes]
                )
     if test x"$with_python2_bindings" = xyes; then
-        AC_SUBST([HAVE_PYTHON2_BINDINGS], [1])
+        AC_SUBST([HAVE_PYTHON2_BINDINGS], [yes])
         AC_DEFINE_UNQUOTED([HAVE_PYTHON2_BINDINGS], [1],
                            [Build with python2 bindings])
     fi
@@ -400,7 +400,7 @@ AC_DEFUN([WITH_PYTHON3_BINDINGS],
                 [with_python3_bindings=yes]
                )
     if test x"$with_python3_bindings" = xyes; then
-        AC_SUBST([HAVE_PYTHON3_BINDINGS], [1])
+        AC_SUBST([HAVE_PYTHON3_BINDINGS], [yes])
         AC_DEFINE_UNQUOTED([HAVE_PYTHON3_BINDINGS], [1],
                            [Build with python3 bindings])
     fi
