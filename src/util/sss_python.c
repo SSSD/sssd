@@ -21,10 +21,14 @@
 #include "src/util/sss_python.h"
 
 PyObject *
-sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict)
+sss_exception_with_doc(const char *name, const char *doc, PyObject *base,
+                       PyObject *dict)
 {
-#if PY_VERSION_HEX >= 0x02070000
+#if PY_VERSION_HEX >= 0x03080000
     return PyErr_NewExceptionWithDoc(name, doc, base, dict);
+#elif PY_VERSION_HEX >= 0x02070000
+    return PyErr_NewExceptionWithDoc(discard_const_p(char, name),
+                                     discard_const_p(char, doc), base, dict);
 #else
     int result;
     PyObject *ret = NULL;
@@ -48,7 +52,7 @@ sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict)
             goto failure;
     }
 
-    ret = PyErr_NewException(name, base, dict);
+    ret = PyErr_NewException(discard_const_p(char, name), base, dict);
   failure:
     Py_XDECREF(mydict);
     return ret;

@@ -1944,8 +1944,7 @@ initpyhbac(void)
 
     /* The HBAC module exception */
     PyExc_HbacError = sss_exception_with_doc(
-                        discard_const_p(char, "hbac.HbacError"),
-                        HbacError__doc__,
+                        "hbac.HbacError", HbacError__doc__,
                         PyExc_EnvironmentError, NULL);
     Py_INCREF(PyExc_HbacError);
     ret = PyModule_AddObject(m, sss_py_const_p(char, "HbacError"), PyExc_HbacError);
