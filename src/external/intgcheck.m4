@@ -80,7 +80,12 @@ AC_DEFUN([SSS_ENABLE_INTGCHECK_REQS], [
         SSS_INTGCHECK_REQ([HAVE_LDAPMODIFY], [ldapmodify])
         SSS_INTGCHECK_REQ([HAVE_FAKEROOT], [fakeroot])
 
-        SSS_CHECK_PYTHON_INTG_REQ([2])
+        SSS_CHECK_PYTHON_INTG_REQ([3], [just_warning])
+
+        AS_IF([test "x$HAVE_PYTHON_INTG_DEPS" = xyes], [],
+              dnl fallback to python2 checks due to missing
+              dnl python3 dependencies for intgcheck
+              [SSS_CHECK_PYTHON_INTG_REQ([2])])
     fi
 ])
 
