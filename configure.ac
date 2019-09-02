@@ -385,8 +385,6 @@ AM_CONDITIONAL([BUILD_PYTHON_BINDINGS],
                [test x"$with_python2_bindings" = xyes \
                      -o x"$with_python3_bindings" = xyes])
 
-AM_PYTHON2_MODULE([ldap])
-
 if test x$HAVE_SELINUX != x; then
     AM_CHECK_SELINUX
 fi
