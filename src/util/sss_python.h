@@ -30,7 +30,8 @@
 
 /* Exceptions compatibility */
 PyObject *
-sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict);
+sss_exception_with_doc(const char *name, const char *doc, PyObject *base,
+                       PyObject *dict);
 
 /* Convenience macros */
 #define TYPE_READY(module, type, name) do {         \
