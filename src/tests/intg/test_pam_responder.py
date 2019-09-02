@@ -168,7 +168,7 @@ def format_pam_cert_auth_conf_name_format(config):
 
         [domain/auth_only]
         use_fully_qualified_names = True
-        full_name_format = %2$s\%1$s
+        full_name_format = %2$s\\%1$s
         debug_level = 10
         id_provider = files
 
