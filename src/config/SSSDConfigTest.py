@@ -2089,6 +2089,33 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertRaises(SSSDConfig.NoDomainError,
                           sssdconfig.activate_domain, self)
 
+    def testParse(self):
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+
+        with open(srcdir + "/testconfigs/sssd-test-parse.conf", "r") as f:
+            data = sssdconfig.parse(f)
+
+        self.assertEqual(len(data), 4)
+        self.assertEqual(data[-1], {'type': "section",
+                                    'name': "nss",
+                                    'value': [{'type': 'option',
+                                               'name': 'debug_level',
+                                               'value': '1'},
+                                              {'type': 'empty',
+                                               'name': 'empty'}]})
+
+        with open(srcdir + "/testconfigs/sssd-valid.conf", "r") as f:
+            data = sssdconfig.parse(f)
+
+        self.assertEqual(len(data), 10)
+        self.assertEqual(data[-1], {'name': "sudo",
+                                    'type': "section",
+                                    'value': [{'type': 'option',
+                                               'name': 'debug_level',
+                                               'value': '0xfC10'}]})
+
+
 if __name__ == "__main__":
     error = 0
 
