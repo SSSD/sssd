@@ -40,10 +40,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         nss_wrapper
         openldap-clients
         openldap-servers
-        pytest
-        python-ldap
-        python-psutil
-        pyldb
         rpm-build
         uid_wrapper
         pam_wrapper
@@ -51,16 +47,29 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         curl-devel
         krb5-server
         krb5-workstation
-        dbus-python
     )
 
-    if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[1-9]* ]]; then
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[1-9]* ||
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos-8.*- ]]; then
         DEPS_LIST+=(
+            python3-dbus
+            python3-ldap
+            python3-ldb
+            python3-psutil
             python3-pycodestyle
+            python3-pytest
+            python3-requests
         )
     else
         DEPS_LIST+=(
+            dbus-python
+            pyldb
+            pytest
+            python-ldap
             python-pep8
+            python-psutil
+            python-requests
         )
     fi
 
