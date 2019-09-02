@@ -153,3 +153,31 @@ AC_DEFUN([AM_PYTHON3_MODULE],[
         fi
     fi
 ])
+
+dnl SYNOPSIS
+dnl
+dnl   SSS_CHECK_PYTEST(python_interpreter, have_suffix)
+dnl
+dnl DESCRIPTION
+dnl
+dnl   Checks for pytest
+AC_DEFUN([SSS_CHECK_PYTEST],[
+    if test x"$1" = x; then
+        if test -n "$2"; then
+            AC_MSG_ERROR([cannot look for pytest: $(basename $1) not found])
+        else
+            AC_MSG_NOTICE([cannot look for pytest module: $(basename $1) not found])
+            eval AS_TR_CPP(HAVE_$2)=no
+        fi
+    else
+        AC_MSG_CHECKING($(basename $1) pytest)
+        $1 -m pytest --version 2>/dev/null
+        if test $? -eq 0; then
+            AC_MSG_RESULT(yes)
+            eval AS_TR_CPP(HAVE_$2)=yes
+        else
+            AC_MSG_RESULT(no)
+            eval AS_TR_CPP(HAVE_$2)=no
+        fi
+    fi
+])
