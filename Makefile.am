@@ -473,6 +473,7 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-invalid.conf \
     src/config/testconfigs/sssd-invalid-badbool.conf \
     src/config/testconfigs/sssd-nonexisting-services-domains.conf \
+    src/config/testconfigs/sssd-test-parse.conf \
     src/config/etc/sssd.api.d/crash_test_dummy \
     contrib/ci/README.md \
     contrib/ci/configure.sh \
