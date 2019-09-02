@@ -30,6 +30,7 @@ AC_DEFUN([SSS_ENABLE_INTGCHECK_REQS], [
         SSS_INTGCHECK_REQ([HAVE_LDAPMODIFY], [ldapmodify])
         SSS_INTGCHECK_REQ([HAVE_FAKEROOT], [fakeroot])
 
+        SSS_CHECK_PYTEST([$PYTHON2], [PY2_PYTEST])
         AM_PYTHON2_MODULE([ldap])
         AM_PYTHON2_MODULE([ldb])
         AM_PYTHON2_MODULE([requests])
