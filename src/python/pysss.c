@@ -20,6 +20,7 @@
 
 #include "config.h"
 
+#define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 #include <structmember.h>
 #include <talloc.h>
@@ -68,7 +69,7 @@ static PyObject *py_sss_encrypt(PySssPasswordObject *self,
                                 PyObject *args)
 {
     char *password = NULL;
-    int plen; /* may contain NULL bytes */
+    Py_ssize_t plen; /* may contain NULL bytes */
     char *obfpwd = NULL;
     TALLOC_CTX *tctx = NULL;
     int ret;
@@ -87,7 +88,7 @@ static PyObject *py_sss_encrypt(PySssPasswordObject *self,
         return NULL;
     }
 
-    ret = sss_password_encrypt(tctx, password, plen+1,
+    ret = sss_password_encrypt(tctx, password, (int)(plen + 1),
                                mode, &obfpwd);
     if (ret != EOK) {
         PyErr_SetSssError(ret);
