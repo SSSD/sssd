@@ -59,10 +59,10 @@ static int
 sss_ptr_hash_spy_destructor(struct sss_ptr_hash_spy *spy)
 {
     spy->value->spy = NULL;
-    spy->value->ptr = NULL;
 
     /* This results in removing entry from hash table and freeing the value. */
     sss_ptr_hash_delete(spy->table, spy->key, false);
+
     return 0;
 }
 
