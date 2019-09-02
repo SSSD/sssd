@@ -21,6 +21,8 @@
 #ifndef _AUTOFSSRV_PRIVATE_H_
 #define _AUTOFSSRV_PRIVATE_H_
 
+#include <dhash.h>
+
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 
@@ -54,6 +56,12 @@ struct autofs_enum_ctx {
     /* False if the result is being created. */
     bool ready;
 
+    /* Enumeration context key. */
+    const char *key;
+
+    /* Hash table that contains this enumeration context. */
+    hash_table_t *table;
+
     /* Requests that awaits the data. */
     struct setent_req_list *notify_list;
 };
@@ -61,6 +69,6 @@ struct autofs_enum_ctx {
 struct sss_cmd_table *get_autofs_cmds(void);
 int autofs_connection_setup(struct cli_ctx *cctx);
 
-errno_t autofs_orphan_maps(struct autofs_ctx *actx);
+void autofs_orphan_maps(struct autofs_ctx *actx);
 
 #endif /* _AUTOFSSRV_PRIVATE_H_ */

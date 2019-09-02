@@ -132,12 +132,12 @@ autofs_fill_entry(struct ldb_message *entry, struct sss_packet *packet, size_t *
     return EOK;
 }
 
-errno_t
+void
 autofs_orphan_maps(struct autofs_ctx *autofs_ctx)
 {
-    sss_ptr_hash_delete_all(autofs_ctx->maps, true);
-
-    return EOK;
+    /* It will automatically decrease the refcount of enum_ctx through
+     * delete callback. */
+    sss_ptr_hash_delete_all(autofs_ctx->maps, false);
 }
 
 static void
@@ -150,8 +150,8 @@ autofs_enumctx_lifetime_timeout(struct tevent_context *ev,
 
     enum_ctx = talloc_get_type(pvt, struct autofs_enum_ctx);
 
-    /* Free the context. It will be automatically removed from the hash table. */
-    talloc_free(enum_ctx);
+    /* Remove it from the table. It will automatically decrease the refcount. */
+    sss_ptr_hash_delete(enum_ctx->table, enum_ctx->key, false);
 }
 
 static void
@@ -186,6 +186,13 @@ autofs_create_enumeration_context(TALLOC_CTX *mem_ctx,
     }
 
     enum_ctx->ready = false;
+    enum_ctx->table = autofs_ctx->maps;
+
+    enum_ctx->key = talloc_strdup(enum_ctx, mapname);
+    if (enum_ctx->key == NULL) {
+        talloc_free(enum_ctx);
+        return NULL;
+    }
 
     ret = sss_ptr_hash_add(autofs_ctx->maps, mapname,
                            enum_ctx, struct autofs_enum_ctx);
@@ -195,6 +202,34 @@ autofs_create_enumeration_context(TALLOC_CTX *mem_ctx,
     }
 
     return enum_ctx;
+}
+
+static void
+autofs_orphan_master_map(struct autofs_ctx *autofs_ctx,
+                         const char *mapname)
+{
+    struct sss_domain_info *dom;
+    errno_t ret;
+
+    if (strcmp(mapname, "auto.master") != 0) {
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Invalidating master map\n");
+
+    /* Remove and invalidate all maps. */
+    autofs_orphan_maps(autofs_ctx);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Invalidating autofs maps\n");
+    for (dom = autofs_ctx->rctx->domains;
+         dom != NULL;
+         dom = get_next_domain(dom, SSS_GND_DESCEND)) {
+        ret = sysdb_invalidate_autofs_maps(dom);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to invalidate maps in "
+                  "%s [%d]: %s\n", dom->name, ret, sss_strerror(ret));
+        }
+    }
 }
 
 struct autofs_setent_state {
@@ -324,7 +359,8 @@ static void autofs_setent_done(struct tevent_req *subreq)
 }
 
 static errno_t
-autofs_setent_recv(struct tevent_req *req,
+autofs_setent_recv(TALLOC_CTX *mem_ctx,
+                   struct tevent_req *req,
                    struct autofs_enum_ctx **_enum_ctx)
 {
     struct autofs_setent_state *state;
@@ -332,7 +368,7 @@ autofs_setent_recv(struct tevent_req *req,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *_enum_ctx = state->enum_ctx;
+    *_enum_ctx = talloc_reference(mem_ctx, state->enum_ctx);
 
     return EOK;
 }
@@ -430,6 +466,8 @@ sss_autofs_cmd_setautomntent(struct cli_ctx *cli_ctx)
     if (ret != EOK) {
         goto done;
     }
+
+    autofs_orphan_master_map(autofs_ctx, cmd_ctx->mapname);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Obtaining autofs map %s\n",
           cmd_ctx->mapname);
@@ -669,7 +707,7 @@ sss_autofs_cmd_getautomntent_done(struct tevent_req *req)
 
     cmd_ctx = tevent_req_callback_data(req, struct autofs_cmd_ctx);
 
-    ret = autofs_setent_recv(req, &enum_ctx);
+    ret = autofs_setent_recv(cmd_ctx, req, &enum_ctx);
     talloc_zfree(req);
     if (ret != EOK) {
         autofs_cmd_done(cmd_ctx, ret);
