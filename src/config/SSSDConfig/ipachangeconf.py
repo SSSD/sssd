@@ -396,7 +396,7 @@ class IPAChangeConf(object):
             curopts.append(self.parseLine(line))
 
         #Add last section if any
-        if len(sectopts) is not 0:
+        if sectopts:
             opts.append({'name':section, 'type':'section', 'value':sectopts})
 
         return opts
