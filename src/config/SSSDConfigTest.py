@@ -391,6 +391,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'enable_files_domain',
             'domain_resolution_order',
             'try_inotify',
+            'monitor_resolv_conf',
         ]
 
         self.assertTrue(type(options) == dict,
