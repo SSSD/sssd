@@ -32,7 +32,7 @@ AC_DEFUN([SSS_ENABLE_INTGCHECK_REQS], [
         SSS_INTGCHECK_REQ([HAVE_PYTHON2], [python2])
         SSS_INTGCHECK_REQ([HAVE_PYTEST2], [pytest2])
         SSS_INTGCHECK_REQ([HAVE_PY2MOD_LDAP], [python-ldap])
-        SSS_INTGCHECK_REQ([HAVE_PY2MOD_LDAP], [pyldb])
+        SSS_INTGCHECK_REQ([HAVE_PY2MOD_LDB], [pyldb])
     fi
 ])
 
