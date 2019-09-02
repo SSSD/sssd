@@ -1852,6 +1852,41 @@ static void missing_resolv_conf(struct tevent_context *ev,
     }
 }
 
+static int monitor_config_files(struct mt_ctx *ctx)
+{
+    int ret;
+    bool monitor_resolv_conf;
+    struct timeval tv;
+    struct tevent_timer *te;
+
+    /* Watch for changes to the DNS resolv.conf */
+    ret = confdb_get_bool(ctx->cdb,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_RESOLV_CONF,
+                          true, &monitor_resolv_conf);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (monitor_resolv_conf) {
+        ret = monitor_config_file(ctx, ctx, monitor_update_resolv,
+                                  RESOLV_CONF_PATH);
+        if (ret == ENOENT) {
+            tv = tevent_timeval_current_ofs(MISSING_RESOLV_CONF_POLL_TIME, 0);
+            te = tevent_add_timer(ctx->ev, ctx, tv, missing_resolv_conf, ctx);
+            if (te == NULL) {
+                DEBUG(SSSDBG_FATAL_FAILURE, "resolv.conf will be ignored\n");
+            }
+        } else if (ret != EOK) {
+            return ret;
+        }
+    } else {
+        DEBUG(SSS_LOG_NOTICE, "%s monitoring is disabled\n", RESOLV_CONF_PATH);
+    }
+
+    return EOK;
+}
+
 static void monitor_sbus_connected(struct tevent_req *req);
 
 static int monitor_process_init(struct mt_ctx *ctx,
@@ -1859,8 +1894,6 @@ static int monitor_process_init(struct mt_ctx *ctx,
 {
     TALLOC_CTX *tmp_ctx;
     struct tevent_signal *tes;
-    struct timeval tv;
-    struct tevent_timer *te;
     struct tevent_req *req;
     char *rcachedir;
     int ret;
@@ -1933,15 +1966,9 @@ static int monitor_process_init(struct mt_ctx *ctx,
     ret = sss_sigchld_init(ctx, ctx->ev, &ctx->sigchld_ctx);
     if (ret != EOK) return ret;
 
-    /* Watch for changes to the DNS resolv.conf */
-    ret = monitor_config_file(ctx, ctx, monitor_update_resolv, RESOLV_CONF_PATH);
-    if (ret == ENOENT) {
-        tv = tevent_timeval_current_ofs(MISSING_RESOLV_CONF_POLL_TIME, 0);
-        te = tevent_add_timer(ctx->ev, ctx, tv, missing_resolv_conf, ctx);
-        if (te == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "resolv.conf will be ignored\n");
-        }
-    } else if (ret != EOK) {
+    /* Set up watchers for system config files */
+    ret = monitor_config_files(ctx);
+    if (ret != EOK) {
         return ret;
     }
 

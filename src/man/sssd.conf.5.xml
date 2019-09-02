@@ -319,15 +319,26 @@
                         </listitem>
                     </varlistentry>
                     <varlistentry>
+                        <term>monitor_resolv_conf (boolean)</term>
+                        <listitem>
+                            <para>
+                                Controls if SSSD should monitor the state of
+                                resolv.conf to identify when it needs to
+                                update its internal DNS resolver.
+                            </para>
+                            <para>
+                                Default: true
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
                         <term>try_inotify (boolean)</term>
                         <listitem>
                             <para>
-                                SSSD monitors the state of resolv.conf to
-                                identify when it needs to update its internal
-                                DNS resolver. By default, we will attempt to
-                                use inotify for this, and will fall back to
-                                polling resolv.conf every five seconds if
-                                inotify cannot be used.
+                                By default, SSSD will attempt to use inotify
+                                to monitor configuration files changes and
+                                will fall back to polling every five seconds
+                                if inotify cannot be used.
                             </para>
                             <para>
                                 There are some limited situations where it is
