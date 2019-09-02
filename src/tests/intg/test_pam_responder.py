@@ -644,5 +644,5 @@ def test_sc_auth_name_format(simple_pam_cert_auth_name_format, env_for_sssctl):
     if sssctl.wait() != 0:
         raise Exception("sssctl failed")
 
-    assert err.find("pam_authenticate for user [auth_only\user1]: " +
+    assert err.find(r"pam_authenticate for user [auth_only\user1]: " +
                     "Success") != -1
