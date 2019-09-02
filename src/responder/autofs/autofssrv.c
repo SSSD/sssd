@@ -85,15 +85,24 @@ static int autofs_clean_hash_table(struct sbus_request *dbus_req, void *data)
     struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct autofs_ctx *actx =
             talloc_get_type(rctx->pvt_ctx, struct autofs_ctx);
-    errno_t ret;
 
-    ret = autofs_orphan_maps(actx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not invalidate maps\n");
-        return ret;
-    }
+    autofs_orphan_maps(actx);
 
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
+}
+
+static void
+autofs_maps_delete_cb(hash_entry_t *item,
+                      hash_destroy_enum deltype,
+                      void *pvt)
+{
+    struct autofs_ctx *autofs_ctx;
+    struct autofs_enum_ctx *enum_ctx;
+
+    autofs_ctx = talloc_get_type(pvt, struct autofs_ctx);
+
+    enum_ctx = sss_ptr_get_value(&item->value, struct autofs_enum_ctx);
+    talloc_unlink(autofs_ctx->maps, enum_ctx);
 }
 
 static int
@@ -158,7 +167,9 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Create the lookup table for setautomntent results */
-    autofs_ctx->maps = sss_ptr_hash_create(autofs_ctx, NULL, NULL);
+    autofs_ctx->maps = sss_ptr_hash_create(autofs_ctx,
+                                           autofs_maps_delete_cb,
+                                           autofs_ctx);
     if (autofs_ctx->maps == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to initialize automount maps hash table\n");
