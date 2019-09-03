@@ -169,13 +169,13 @@ class krb5srv(object):
         if service is None:
             service = 'host'
 
-        if p_type is 'user':
+        if p_type == 'user':
             add_principal = "add_principal -clearpolicy"\
                             " -pw %s %s@%s" % (password, principal,
                                                self.krb_realm)
             kadmin_local_cmd = ['kadmin.local', '-r',
                                 self.krb_realm, '-q', add_principal]
-        elif p_type is 'admin':
+        elif p_type == 'admin':
             add_principal = "add_principal -clearpolicy"\
                             " -pw %s %s/%s" % (password, service, 'admin')
             kadmin_local_cmd = ['kadmin.local', '-r', self.krb_realm,
