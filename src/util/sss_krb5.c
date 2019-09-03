@@ -356,13 +356,14 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
                                          krb5_principal *princ)
 {
     krb5_error_code kerr;
-    krb5_error_code kt_err;
-    krb5_error_code kerr_d;
+    krb5_error_code kerr_dbg;
     krb5_kt_cursor cursor;
     krb5_keytab_entry entry;
     bool principal_found = false;
 
     memset(&cursor, 0, sizeof(cursor));
+    memset(&entry, 0, sizeof(entry));
+
     kerr = krb5_kt_start_seq_get(ctx, keytab, &cursor);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_start_seq_get failed.\n");
@@ -371,15 +372,14 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
 
     DEBUG(SSSDBG_TRACE_ALL,
           "Trying to find principal %s@%s in keytab.\n", pattern_primary, pattern_realm);
-    memset(&entry, 0, sizeof(entry));
-    while ((kt_err = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
+    while ((kerr = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
         principal_found = match_principal(ctx, entry.principal, pattern_primary, pattern_realm);
         if (principal_found) {
             break;
         }
 
-        kerr = sss_krb5_free_keytab_entry_contents(ctx, &entry);
-        if (kerr != 0) {
+        kerr_dbg = sss_krb5_free_keytab_entry_contents(ctx, &entry);
+        if (kerr_dbg != 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to free keytab entry.\n");
         }
         memset(&entry, 0, sizeof(entry));
@@ -388,16 +388,23 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
     /* Close the keytab here.  Even though we're using cursors, the file
      * handle is stored in the krb5_keytab structure, and it gets
      * overwritten by other keytab calls, creating a leak. */
-    kerr = krb5_kt_end_seq_get(ctx, keytab, &cursor);
-    if (kerr != 0) {
+    kerr_dbg = krb5_kt_end_seq_get(ctx, keytab, &cursor);
+    if (kerr_dbg != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_end_seq_get failed.\n");
-        goto done;
     }
 
-    if (!principal_found) {
-        /* If principal was not found then 'kt_err' was set */
-        if (kt_err != KRB5_KT_END) {
-            kerr = kt_err;
+    if (principal_found) {
+        kerr = krb5_copy_principal(ctx, entry.principal, princ);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
+        }
+        kerr_dbg = sss_krb5_free_keytab_entry_contents(ctx, &entry);
+        if (kerr_dbg != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to free keytab entry.\n");
+        }
+    } else {
+        /* If principal was not found then 'kerr' was set */
+        if (kerr != KRB5_KT_END) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Error while reading keytab.\n");
         } else {
             kerr = KRB5_KT_NOTFOUND;
@@ -405,20 +412,6 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
                   "No principal matching %s@%s found in keytab.\n",
                    pattern_primary, pattern_realm);
         }
-        goto done;
-    }
-
-    kerr = krb5_copy_principal(ctx, entry.principal, princ);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
-        goto done;
-    }
-    kerr = 0;
-
-done:
-    kerr_d = sss_krb5_free_keytab_entry_contents(ctx, &entry);
-    if (kerr_d != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to free keytab entry.\n");
     }
 
     return kerr;
