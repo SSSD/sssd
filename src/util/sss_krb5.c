@@ -395,16 +395,16 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
     }
 
     if (!principal_found) {
-        kerr = KRB5_KT_NOTFOUND;
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "No principal matching %s@%s found in keytab.\n",
-               pattern_primary, pattern_realm);
-        goto done;
-    }
-
-    /* check if we got any errors from krb5_kt_next_entry */
-    if (kt_err != 0 && kt_err != KRB5_KT_END) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error while reading keytab.\n");
+        /* If principal was not found then 'kt_err' was set */
+        if (kt_err != KRB5_KT_END) {
+            kerr = kt_err;
+            DEBUG(SSSDBG_CRIT_FAILURE, "Error while reading keytab.\n");
+        } else {
+            kerr = KRB5_KT_NOTFOUND;
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "No principal matching %s@%s found in keytab.\n",
+                   pattern_primary, pattern_realm);
+        }
         goto done;
     }
 
@@ -413,7 +413,6 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
         goto done;
     }
-
     kerr = 0;
 
 done:
