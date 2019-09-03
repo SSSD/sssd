@@ -126,10 +126,12 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         kerr = krb5_kt_default(krb_ctx, &keytab);
     }
     if (kerr) {
+        const char *krb5_err_msg = sss_krb5_get_error_message(krb_ctx, kerr);
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to read keytab [%s]: %s\n",
                KEYTAB_CLEAN_NAME,
-               sss_krb5_get_error_message(krb_ctx, kerr));
+               (krb5_err_msg ? krb5_err_msg : "- no error message available -"));
+        sss_krb5_free_error_message(krb_ctx, krb5_err_msg);
         ret = EFAULT;
         goto done;
     }
@@ -187,7 +189,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             }
 
             *_principal = talloc_strdup(mem_ctx, principal_string);
-            free(principal_string);
+            sss_krb5_free_unparsed_name(krb_ctx, principal_string);
             if (!*_principal) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
                 ret = ENOMEM;
@@ -207,7 +209,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             }
 
             *_primary = talloc_strdup(mem_ctx, principal_string);
-            free(principal_string);
+            sss_krb5_free_unparsed_name(krb_ctx, principal_string);
             if (!*_primary) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
                 if (_principal) talloc_zfree(*_principal);
@@ -446,7 +448,9 @@ const char *KRB5_CALLCONV sss_krb5_get_error_message(krb5_context ctx,
 void KRB5_CALLCONV sss_krb5_free_error_message(krb5_context ctx, const char *s)
 {
 #ifdef HAVE_KRB5_GET_ERROR_MESSAGE
-    krb5_free_error_message(ctx, s);
+    if (s != NULL) {
+        krb5_free_error_message(ctx, s);
+    }
 #else
     free(s);
 #endif
@@ -486,7 +490,9 @@ void KRB5_CALLCONV sss_krb5_get_init_creds_opt_free (krb5_context context,
 void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name)
 {
 #ifdef HAVE_KRB5_FREE_UNPARSED_NAME
-    krb5_free_unparsed_name(context, name);
+    if (name != NULL) {
+        krb5_free_unparsed_name(context, name);
+    }
 #else
     if (name != NULL) {
         memset(name, 0, strlen(name));
@@ -798,21 +804,16 @@ void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
 }
 #endif
 
+krb5_error_code
+sss_krb5_free_keytab_entry_contents(krb5_context context,
+                                    krb5_keytab_entry *entry)
+{
 #ifdef HAVE_KRB5_FREE_KEYTAB_ENTRY_CONTENTS
-krb5_error_code
-sss_krb5_free_keytab_entry_contents(krb5_context context,
-                                    krb5_keytab_entry *entry)
-{
     return krb5_free_keytab_entry_contents(context, entry);
-}
 #else
-krb5_error_code
-sss_krb5_free_keytab_entry_contents(krb5_context context,
-                                    krb5_keytab_entry *entry)
-{
     return krb5_kt_free_entry(context, entry);
-}
 #endif
+}
 
 
 #ifdef HAVE_KRB5_SET_TRACE_CALLBACK
