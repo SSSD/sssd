@@ -41,6 +41,18 @@ class CI {
   public static String CIDir = this.BaseDir + '/sssd-ci'
 
   /**
+   * True if this was executed as on demand run.
+   *
+   * Github notifications are disabled in this mode.
+   */
+  public static boolean OnDemandRun = false
+
+  /**
+   * User that triggered this build.
+   */
+  public static String User = 'sssd-ci'
+
+  /**
    * Workaround for https://issues.jenkins-ci.org/browse/JENKINS-39203
    *
    * At this moment if one stage in parallel block fails, failure branch in
@@ -82,9 +94,29 @@ class CI {
   }
 
   /**
+   * Setup initial variables.
+   */
+  public static def Setup(ctx) {
+    if (ctx.params.ON_DEMAND) {
+      this.OnDemandRun = true
+
+      def build = ctx.currentBuild.rawBuild
+      def cause = build.getCause(hudson.model.Cause.UserIdCause.class)
+      this.User = cause.getUserId()
+      ctx.currentBuild.description = "${this.User}: ${ctx.params.REPO_BRANCH}"
+    } else {
+      this.OnDemandRun = false
+    }
+  }
+
+  /**
    * Send commit status to Github for sssd-ci context.
    */
   public static def Notify(ctx, status, message) {
+    if (this.OnDemandRun) {
+      return
+    }
+
     ctx.githubNotify status: status,
       context: this.GHContext,
       description: message,
@@ -95,6 +127,10 @@ class CI {
    * Send commit status to Github for specific build (e.g. sssd-ci/fedora28).
    */
   public static def NotifyBuild(ctx, status, message) {
+    if (this.OnDemandRun) {
+      return
+    }
+
     ctx.githubNotify status: status,
       context: String.format('%s/%s', this.GHContext, ctx.env.TEST_SYSTEM),
       description: message,
@@ -107,8 +143,21 @@ class CI {
       )
   }
 
+  public static def Checkout(ctx) {
+    if (!this.OnDemandRun) {
+      /* The repository is checked out automatically. */
+      return
+    }
+
+    ctx.dir('sssd') {
+        ctx.git branch: "${ctx.params.REPO_BRANCH}", url: "${ctx.params.REPO_URL}"
+    }
+  }
+
   public static def Rebase(ctx) {
-    if (!ctx.env.CHANGE_TARGET) {
+    /* Do not rebase if there is no target available (not a pull request) or
+     * this is an on demand run. */
+    if (!ctx.env.CHANGE_TARGET || this.OnDemandRun) {
       this.RebaseSuccessful(ctx.env.TEST_SYSTEM)
       return
     }
@@ -147,8 +196,15 @@ class CI {
    * Run tests. TEST_SYSTEM environment variable must be defined.
    */
   public static def RunTests(ctx) {
+    if (this.OnDemandRun) {
+      ctx.echo "This build was requested by: ${this.User}"
+      ctx.echo "Repository: ${ctx.params.REPO_URL}"
+      ctx.echo "Branch: ${ctx.params.REPO_BRANCH}"
+    }
+
     ctx.echo "Running on ${ctx.env.NODE_NAME}"
     this.NotifyBuild(ctx, 'PENDING', 'Build is in progress.')
+    this.Checkout(ctx)
     this.Rebase(ctx)
 
     ctx.echo String.format(
@@ -183,13 +239,18 @@ class CI {
     }
 
     ctx.archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
-    ctx.sh String.format(
-      '%s/sssd-ci archive --name "%s" --system "%s" --artifacts "%s"',
-      "${this.CIDir}",
-      "${ctx.env.BRANCH_NAME}/${ctx.env.BUILD_ID}",
-      ctx.env.TEST_SYSTEM,
-      "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
-    )
+
+    if (this.OnDemandRun) {
+      ctx.echo 'This is an on demand run. Artifacts are not stored in the cloud.'
+    } else {
+      ctx.sh String.format(
+        '%s/sssd-ci archive --name "%s" --system "%s" --artifacts "%s"',
+        "${this.CIDir}",
+        "${ctx.env.BRANCH_NAME}/${ctx.env.BUILD_ID}",
+        ctx.env.TEST_SYSTEM,
+        "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
+      )
+    }
     ctx.sh "rm -fr ${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
 
     if (this.IsBuildSuccessful(ctx.env.TEST_SYSTEM)) {
@@ -213,6 +274,7 @@ class CI {
  * yield 'Expected a symbol' error for some reason. This is a workaround
  * for this issue.
  */
+def CI_Setup() { CI.Setup(this) }
 def CI_RunTests() { CI.RunTests(this) }
 def CI_Post() { CI.WhenCompleted(this) }
 def CI_Aborted() { CI.WhenAborted(this) }
@@ -226,6 +288,7 @@ pipeline {
   stages {
     stage('Prepare') {
       steps {
+        CI_Setup()
         CI_Notify('PENDING', 'Running tests.')
       }
     }
