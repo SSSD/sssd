@@ -34,7 +34,6 @@
 "version: 2\n\n" \
 "dn: cn=sssd,cn=config\n" \
 "cn: sssd\n" \
-"enable_files_domain: true\n" \
 "services: nss\n\n"
 #endif /* SSSD_FALLBACK_CONFIG_LDIF */
 
