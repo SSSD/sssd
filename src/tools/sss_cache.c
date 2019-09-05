@@ -593,8 +593,23 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
                                                  sys_attrs, SYSDB_MOD_REP);
                     break;
                 case TYPE_AUTOFSMAP:
+                    /* For users, we also need to reset the enumeration
+                     * expiration time. */
+                    ret = sysdb_attrs_add_time_t(sys_attrs,
+                                                 SYSDB_ENUM_EXPIRE, 1);
+                    if (ret != EOK) {
+                        return ret;
+                    }
+
                     ret = sysdb_set_autofsmap_attr(domain, name,
                                                    sys_attrs, SYSDB_MOD_REP);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_MINOR_FAILURE, "Could not invalidate "
+                              "autofs map %s\n", name);
+                        break;
+                    }
+
+                    ret = sysdb_invalidate_autofs_entries(domain, name);
                     break;
                 case TYPE_SSH_HOST:
 #ifdef BUILD_SSH
