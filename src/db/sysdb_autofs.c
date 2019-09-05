@@ -531,6 +531,37 @@ done:
 }
 
 errno_t
+sysdb_set_autofsentry_attr(struct sss_domain_info *domain,
+                           const char *mapname,
+                           const char *key,
+                           const char *value,
+                           struct sysdb_attrs *attrs,
+                           int mod_op)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    dn = sysdb_autofsentry_dn(tmp_ctx, domain, mapname, key, value);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_set_entry_attr(domain->sysdb, dn, attrs, mod_op);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
 sysdb_set_autofsmap_attr(struct sss_domain_info *domain,
                          const char *name,
                          struct sysdb_attrs *attrs,
@@ -554,6 +585,99 @@ sysdb_set_autofsmap_attr(struct sss_domain_info *domain,
     ret = sysdb_set_entry_attr(domain->sysdb, dn, attrs, mod_op);
 
 done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_invalidate_autofs_entries(struct sss_domain_info *domain,
+                                const char *mapname)
+{
+    TALLOC_CTX *tmp_ctx;
+    bool in_transaction = false;
+    struct ldb_message **entries;
+    struct sysdb_attrs *attrs;
+    const char *value;
+    const char *key;
+    size_t count;
+    errno_t ret;
+    size_t i;
+    int sret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_autofs_entries_by_map(tmp_ctx, domain, mapname,
+                                      &count, &entries);
+    if (ret == ENOENT) {
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    if (attrs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE, 1);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
+        goto done;
+    }
+    in_transaction = true;
+
+    for (i = 0; i < count; i++) {
+        key = ldb_msg_find_attr_as_string(entries[i], SYSDB_AUTOFS_ENTRY_KEY,
+                                          NULL);
+        if (key == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "An entry with no key?\n");
+            continue;
+        }
+
+        value = ldb_msg_find_attr_as_string(entries[i],
+                                            SYSDB_AUTOFS_ENTRY_VALUE,
+                                            NULL);
+        if (value == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "An entry with no value?\n");
+            continue;
+        }
+
+        ret = sysdb_set_autofsentry_attr(domain, mapname, key, value,
+                                         attrs, SYSDB_MOD_REP);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not expire entry %s\n", key);
+            continue;
+        }
+    }
+
+    ret = sysdb_transaction_commit(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not commit transaction\n");
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(domain->sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
+        }
+    }
+
     talloc_free(tmp_ctx);
     return ret;
 }
@@ -632,6 +756,13 @@ sysdb_invalidate_autofs_maps(struct sss_domain_info *domain)
                                        sys_attrs, SYSDB_MOD_REP);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Could not expire map %s\n", name);
+            continue;
+        }
+
+        ret =  sysdb_invalidate_autofs_entries(domain, name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not expire map entries %s\n",
+                  name);
             continue;
         }
     }

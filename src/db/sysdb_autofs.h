@@ -94,6 +94,10 @@ sysdb_set_autofsmap_attr(struct sss_domain_info *domain,
                          int mod_op);
 
 errno_t
+sysdb_invalidate_autofs_entries(struct sss_domain_info *domain,
+                                const char *mapname);
+
+errno_t
 sysdb_invalidate_autofs_maps(struct sss_domain_info *domain);
 
 char *
