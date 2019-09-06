@@ -14,8 +14,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2019-08-15 02:07+0200\n"
-"PO-Revision-Date: 2019-06-14 02:06+0000\n"
+"POT-Creation-Date: 2019-09-12 02:51+0200\n"
+"PO-Revision-Date: 2019-08-16 05:48+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/sssd/language/"
 "uk/)\n"
@@ -551,10 +551,12 @@ msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
 msgstr ""
+"Гранична тривалість спроби обмінятися даними SSSD з окремим сервером DNS, "
+"перш ніж програма спробує наступний сервер (у мілісекундах)"
 
 #: src/config/SSSDConfig/__init__.py.in:175
 msgid "How long should keep trying to resolve single DNS query (seconds)"
-msgstr ""
+msgstr "Гранична тривалість спроби обробки окремого запиту DNS (у секундах)"
 
 #: src/config/SSSDConfig/__init__.py.in:176
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
@@ -1720,7 +1722,7 @@ msgstr "Вимагає перетворення реєстраційного з�
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Використовувати нетипову версію krb5_get_init_creds_password"
 
-#: src/providers/data_provider_be.c:674
+#: src/providers/data_provider_be.c:711
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -1760,46 +1762,46 @@ msgstr "Неочікувана помилка під час пошуку опи�
 msgid "Permission denied. "
 msgstr "Відмовлено у доступі. "
 
-#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:777
-#: src/sss_client/pam_sss.c:788
+#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:778
+#: src/sss_client/pam_sss.c:789
 msgid "Server message: "
 msgstr "Повідомлення сервера: "
 
-#: src/sss_client/pam_sss.c:295
+#: src/sss_client/pam_sss.c:296
 msgid "Passwords do not match"
 msgstr "Паролі не збігаються"
 
-#: src/sss_client/pam_sss.c:483
+#: src/sss_client/pam_sss.c:484
 msgid "Password reset by root is not supported."
 msgstr "Підтримки скидання пароля користувачем root не передбачено."
 
-#: src/sss_client/pam_sss.c:524
+#: src/sss_client/pam_sss.c:525
 msgid "Authenticated with cached credentials"
 msgstr "Розпізнано за реєстраційними даними з кешу"
 
-#: src/sss_client/pam_sss.c:525
+#: src/sss_client/pam_sss.c:526
 msgid ", your cached password will expire at: "
 msgstr ", строк дії вашого кешованого пароля завершиться: "
 
-#: src/sss_client/pam_sss.c:555
+#: src/sss_client/pam_sss.c:556
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Строк дії вашого пароля вичерпано. Залишилося %1$d резервних входи."
 
-#: src/sss_client/pam_sss.c:601
+#: src/sss_client/pam_sss.c:602
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Строк дії вашого пароля завершиться за %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:650
+#: src/sss_client/pam_sss.c:651
 msgid "Authentication is denied until: "
 msgstr "Розпізнавання заборонено до: "
 
-#: src/sss_client/pam_sss.c:671
+#: src/sss_client/pam_sss.c:672
 msgid "System is offline, password change not possible"
 msgstr "Система працює у автономному режимі, зміна пароля неможлива"
 
-#: src/sss_client/pam_sss.c:686
+#: src/sss_client/pam_sss.c:687
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -1807,43 +1809,43 @@ msgstr ""
 "Після зміни пароля OTP вам слід вийти із системи і увійти до неї знову, щоб "
 "отримати про квиток"
 
-#: src/sss_client/pam_sss.c:774 src/sss_client/pam_sss.c:787
+#: src/sss_client/pam_sss.c:775 src/sss_client/pam_sss.c:788
 msgid "Password change failed. "
 msgstr "Спроба зміни пароля зазнала невдачі. "
 
-#: src/sss_client/pam_sss.c:1977
+#: src/sss_client/pam_sss.c:1989
 msgid "New Password: "
 msgstr "Новий пароль: "
 
-#: src/sss_client/pam_sss.c:1978
+#: src/sss_client/pam_sss.c:1990
 msgid "Reenter new Password: "
 msgstr "Ще раз введіть новий пароль: "
 
-#: src/sss_client/pam_sss.c:2139 src/sss_client/pam_sss.c:2142
+#: src/sss_client/pam_sss.c:2152 src/sss_client/pam_sss.c:2155
 msgid "First Factor: "
 msgstr "Перший фактор:"
 
-#: src/sss_client/pam_sss.c:2140 src/sss_client/pam_sss.c:2303
+#: src/sss_client/pam_sss.c:2153 src/sss_client/pam_sss.c:2324
 msgid "Second Factor (optional): "
 msgstr "Другий фактор (необов'язковий): "
 
-#: src/sss_client/pam_sss.c:2143 src/sss_client/pam_sss.c:2306
+#: src/sss_client/pam_sss.c:2156 src/sss_client/pam_sss.c:2327
 msgid "Second Factor: "
 msgstr "Другий фактор:"
 
-#: src/sss_client/pam_sss.c:2158
+#: src/sss_client/pam_sss.c:2171
 msgid "Password: "
 msgstr "Пароль: "
 
-#: src/sss_client/pam_sss.c:2302 src/sss_client/pam_sss.c:2305
+#: src/sss_client/pam_sss.c:2323 src/sss_client/pam_sss.c:2326
 msgid "First Factor (Current Password): "
 msgstr "Перший фактор (поточний пароль): "
 
-#: src/sss_client/pam_sss.c:2309
+#: src/sss_client/pam_sss.c:2330
 msgid "Current Password: "
 msgstr "Поточний пароль: "
 
-#: src/sss_client/pam_sss.c:2664
+#: src/sss_client/pam_sss.c:2685
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 

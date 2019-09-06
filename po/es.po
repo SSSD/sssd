@@ -13,12 +13,13 @@
 # sgallagh <sgallagh@redhat.com>, 2011
 # vareli <ehespinosa@ya.com>, 2013
 # Emilio Herrera <ehespinosa57@gmail.com>, 2018. #zanata
+# Emilio Herrera <ehespinosa57@gmail.com>, 2019. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2019-08-15 02:07+0200\n"
-"PO-Revision-Date: 2018-09-10 10:06+0000\n"
+"POT-Creation-Date: 2019-09-12 02:51+0200\n"
+"PO-Revision-Date: 2019-08-26 09:45+0000\n"
 "Last-Translator: Emilio Herrera <ehespinosa57@gmail.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/sssd/language/"
 "es/)\n"
@@ -299,16 +300,18 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:106
 msgid "Allowed services for using smartcards"
-msgstr ""
+msgstr "Servicios permitidos usando smartcards"
 
 #: src/config/SSSDConfig/__init__.py.in:107
 msgid "Additional timeout to wait for a card if requested"
-msgstr ""
+msgstr "Tiempo de espera adicional a esperar por una tarjeta si se pide"
 
 #: src/config/SSSDConfig/__init__.py.in:108
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
 msgstr ""
+"PKCS#11 URI para restringir la selección de dispositivos para autenticación "
+"Smartcard"
 
 #: src/config/SSSDConfig/__init__.py.in:111
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -547,10 +550,14 @@ msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
 msgstr ""
+"Cuanto debería SSSD hablar con un único servidor DNS antes de intentar el "
+"siguiente servidor (milisegundos)"
 
 #: src/config/SSSDConfig/__init__.py.in:175
 msgid "How long should keep trying to resolve single DNS query (seconds)"
 msgstr ""
+"Cuanto debería mantenerse intentando resolver una única petición DNS "
+"(segundos)"
 
 #: src/config/SSSDConfig/__init__.py.in:176
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
@@ -972,7 +979,7 @@ msgstr "El Tipo de Esquema a usar en el servidor LDAP, rfc2307"
 
 #: src/config/SSSDConfig/__init__.py.in:287
 msgid "Mode used to change user password"
-msgstr ""
+msgstr "Modo usado para cambiar la contraseña de usuario"
 
 #: src/config/SSSDConfig/__init__.py.in:288
 msgid "The default bind DN"
@@ -1645,7 +1652,7 @@ msgstr "Refrescar la base de datos de configuración, después salir"
 
 #: src/monitor/monitor.c:2344
 msgid "Similar to --genconf, but only refreshes the given section"
-msgstr ""
+msgstr "Similar a --genconf, pero solo refresca la sección dada"
 
 #: src/monitor/monitor.c:2347
 msgid "Print version number and exit"
@@ -1711,7 +1718,7 @@ msgstr "Solicita la canonización del nombre principal"
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Usar versión personal de krb5_get_init_creds_password"
 
-#: src/providers/data_provider_be.c:674
+#: src/providers/data_provider_be.c:711
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
@@ -1733,11 +1740,11 @@ msgstr "SSSD no está siendo ejecutado por el usuario root."
 
 #: src/sss_client/common.c:1096
 msgid "SSSD socket does not exist."
-msgstr ""
+msgstr "El socket SSSD no existe."
 
 #: src/sss_client/common.c:1099
 msgid "Cannot get stat of SSSD socket."
-msgstr ""
+msgstr "No se pueden obtener estadísticas del socket SSSD."
 
 #: src/sss_client/common.c:1104
 msgid "An error occurred, but no description can be found."
@@ -1752,46 +1759,46 @@ msgstr ""
 msgid "Permission denied. "
 msgstr "Permiso denegado."
 
-#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:777
-#: src/sss_client/pam_sss.c:788
+#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:778
+#: src/sss_client/pam_sss.c:789
 msgid "Server message: "
 msgstr "Mensaje del servidor:"
 
-#: src/sss_client/pam_sss.c:295
+#: src/sss_client/pam_sss.c:296
 msgid "Passwords do not match"
 msgstr "Las contraseñas no coinciden"
 
-#: src/sss_client/pam_sss.c:483
+#: src/sss_client/pam_sss.c:484
 msgid "Password reset by root is not supported."
 msgstr "No existe soporte para reseteado de la contraseña por el usuario root."
 
-#: src/sss_client/pam_sss.c:524
+#: src/sss_client/pam_sss.c:525
 msgid "Authenticated with cached credentials"
 msgstr "Autenticado mediante credenciales cacheada"
 
-#: src/sss_client/pam_sss.c:525
+#: src/sss_client/pam_sss.c:526
 msgid ", your cached password will expire at: "
 msgstr ", su contraseña cacheada vencerá el:"
 
-#: src/sss_client/pam_sss.c:555
+#: src/sss_client/pam_sss.c:556
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Su contraseña ha expirado. Usted tiene %1$d accesos restantes."
 
-#: src/sss_client/pam_sss.c:601
+#: src/sss_client/pam_sss.c:602
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Su contraseña expirará en %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:650
+#: src/sss_client/pam_sss.c:651
 msgid "Authentication is denied until: "
 msgstr "La autenticación ha sido denegada hasta:"
 
-#: src/sss_client/pam_sss.c:671
+#: src/sss_client/pam_sss.c:672
 msgid "System is offline, password change not possible"
 msgstr "El sistema está fuera de línea, no se puede cambiar la contraseña"
 
-#: src/sss_client/pam_sss.c:686
+#: src/sss_client/pam_sss.c:687
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -1799,43 +1806,43 @@ msgstr ""
 "Después de cambiar la contraseña OTP, usted debe salir y volver a entrar con "
 "el objetivo de fijarla"
 
-#: src/sss_client/pam_sss.c:774 src/sss_client/pam_sss.c:787
+#: src/sss_client/pam_sss.c:775 src/sss_client/pam_sss.c:788
 msgid "Password change failed. "
 msgstr "Falló el cambio de contraseña."
 
-#: src/sss_client/pam_sss.c:1977
+#: src/sss_client/pam_sss.c:1989
 msgid "New Password: "
 msgstr "Nueva contraseña: "
 
-#: src/sss_client/pam_sss.c:1978
+#: src/sss_client/pam_sss.c:1990
 msgid "Reenter new Password: "
 msgstr "Reingrese la contraseña nueva:"
 
-#: src/sss_client/pam_sss.c:2139 src/sss_client/pam_sss.c:2142
+#: src/sss_client/pam_sss.c:2152 src/sss_client/pam_sss.c:2155
 msgid "First Factor: "
 msgstr "Primer Factor: "
 
-#: src/sss_client/pam_sss.c:2140 src/sss_client/pam_sss.c:2303
+#: src/sss_client/pam_sss.c:2153 src/sss_client/pam_sss.c:2324
 msgid "Second Factor (optional): "
 msgstr "Segundo Factor (opcional): "
 
-#: src/sss_client/pam_sss.c:2143 src/sss_client/pam_sss.c:2306
+#: src/sss_client/pam_sss.c:2156 src/sss_client/pam_sss.c:2327
 msgid "Second Factor: "
 msgstr "Segundo Factor:"
 
-#: src/sss_client/pam_sss.c:2158
+#: src/sss_client/pam_sss.c:2171
 msgid "Password: "
 msgstr "Contraseña: "
 
-#: src/sss_client/pam_sss.c:2302 src/sss_client/pam_sss.c:2305
+#: src/sss_client/pam_sss.c:2323 src/sss_client/pam_sss.c:2326
 msgid "First Factor (Current Password): "
 msgstr "Primer Factor (Contraseña Actual): "
 
-#: src/sss_client/pam_sss.c:2309
+#: src/sss_client/pam_sss.c:2330
 msgid "Current Password: "
 msgstr "Contraseña actual: "
 
-#: src/sss_client/pam_sss.c:2664
+#: src/sss_client/pam_sss.c:2685
 msgid "Password expired. Change your password now."
 msgstr "La contraseña ha expirado. Modifíquela en este preciso momento."
 
@@ -1879,7 +1886,7 @@ msgstr "El puerto a usar para conectar al host"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:210
 msgid "Print the host ssh public keys"
-msgstr ""
+msgstr "Imprimir las claves públicas ssh del host"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:252
 msgid "Invalid port\n"
@@ -1896,7 +1903,7 @@ msgstr "La ruta al comando proxy debe ser absoluta\n"
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:342
 #, c-format
 msgid "sss_ssh_knownhostsproxy: Could not resolve hostname %s\n"
-msgstr ""
+msgstr "sss_ssh_knownhostsproxy: Podría no resolver el nombre de host %s\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -2674,7 +2681,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_user_checks.c:95
 #, c-format
 msgid "Unable to connect to system bus!\n"
-msgstr ""
+msgstr "¡Incapaz de conectar al bus del sistema!\n"
 
 #: src/tools/sssctl/sssctl_domains.c:167
 #, c-format

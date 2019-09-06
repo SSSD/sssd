@@ -14,8 +14,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2019-08-15 02:07+0200\n"
-"PO-Revision-Date: 2019-06-15 11:34+0000\n"
+"POT-Creation-Date: 2019-09-12 02:51+0200\n"
+"PO-Revision-Date: 2019-08-26 02:06+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish (http://www.transifex.com/projects/p/sssd/language/"
 "pl/)\n"
@@ -104,7 +104,7 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
-"Katalog w systemie plików, w którym SSSD powinno przechowywać pliki pamięci "
+"Katalog w systemie plików, w którym SSSD ma przechowywać pliki pamięci "
 "podręcznej odtwarzania Kerberosa."
 
 #: src/config/SSSDConfig/__init__.py.in:63
@@ -156,19 +156,19 @@ msgstr "Ujemny czas oczekiwania pamięci podręcznej plików (sekundy)"
 
 #: src/config/SSSDConfig/__init__.py.in:76
 msgid "Users that SSSD should explicitly ignore"
-msgstr "Użytkownicy, którzy powinni być bezpośrednio ignorowani przez SSSD"
+msgstr "Użytkownicy, którzy mają być bezpośrednio ignorowani przez SSSD"
 
 #: src/config/SSSDConfig/__init__.py.in:77
 msgid "Groups that SSSD should explicitly ignore"
-msgstr "Grupy, które powinny być bezpośrednio ignorowane przez SSSD"
+msgstr "Grupy, które mają być bezpośrednio ignorowane przez SSSD"
 
 #: src/config/SSSDConfig/__init__.py.in:78
 msgid "Should filtered users appear in groups"
-msgstr "Czy filtrowani użytkownicy powinni pojawiać się w grupach"
+msgstr "Czy filtrowani użytkownicy mają pojawiać się w grupach"
 
 #: src/config/SSSDConfig/__init__.py.in:79
 msgid "The value of the password field the NSS provider should return"
-msgstr "Wartość pola hasła, jaką dostawca NSS powinien zwrócić"
+msgstr "Wartość pola hasła, jaką dostawca NSS ma zwrócić"
 
 #: src/config/SSSDConfig/__init__.py.in:80
 msgid "Override homedir value from the identity provider with this value"
@@ -533,10 +533,12 @@ msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
 msgstr ""
+"Jak długo SSSD ma komunikować się z jednym serwerem DNS przed spróbowaniem "
+"następnego serwera (milisekundy)"
 
 #: src/config/SSSDConfig/__init__.py.in:175
 msgid "How long should keep trying to resolve single DNS query (seconds)"
-msgstr ""
+msgstr "Jak długo próbować rozwiązać jedno zapytanie DNS (sekundy)"
 
 #: src/config/SSSDConfig/__init__.py.in:176
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
@@ -573,8 +575,7 @@ msgstr "TTL do zastosowania do wpisu DNS klienta po jego zaktualizowaniu"
 #: src/config/SSSDConfig/__init__.py.in:211
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
-"Interfejs, którego adres IP powinien być używany do dynamicznych "
-"aktualizacji DNS"
+"Interfejs, którego adres IP ma być używany do dynamicznych aktualizacji DNS"
 
 #: src/config/SSSDConfig/__init__.py.in:190
 msgid "How often to periodically update the client's DNS entry"
@@ -582,17 +583,17 @@ msgstr "Jak często okresowo aktualizować wpis DNS klienta"
 
 #: src/config/SSSDConfig/__init__.py.in:191
 msgid "Whether the provider should explicitly update the PTR record as well"
-msgstr "Określa, czy dostawca powinien aktualizować także wpis PTR"
+msgstr "Określa, czy dostawca ma aktualizować także wpis PTR"
 
 #: src/config/SSSDConfig/__init__.py.in:192
 msgid "Whether the nsupdate utility should default to using TCP"
-msgstr "Określa, czy narzędzie nsupdate powinno domyślnie używać portu TCP"
+msgstr "Określa, czy narzędzie nsupdate ma domyślnie używać portu TCP"
 
 #: src/config/SSSDConfig/__init__.py.in:193
 msgid "What kind of authentication should be used to perform the DNS update"
 msgstr ""
-"Jakiego rodzaju uwierzytelnianie powinno być używane do wykonywania "
-"aktualizacji DNS"
+"Jakiego rodzaju uwierzytelnianie ma być używane do wykonywania aktualizacji "
+"DNS"
 
 #: src/config/SSSDConfig/__init__.py.in:194
 msgid "Override the DNS server used to perform the DNS update"
@@ -1049,7 +1050,7 @@ msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
-"Określa, czy biblioteka LDAP powinna wykonywać odwrotne wyszukanie, aby "
+"Określa, czy biblioteka LDAP ma wykonywać odwrotne wyszukanie, aby "
 "ujednolicić nazwę komputera podczas dowiązania SASL"
 
 #: src/config/SSSDConfig/__init__.py.in:315
@@ -1408,11 +1409,11 @@ msgstr "Polityka do oszacowania wygaszenia hasła"
 
 #: src/config/SSSDConfig/__init__.py.in:424
 msgid "Which attributes shall be used to evaluate if an account is expired"
-msgstr "Które atrybuty powinny być używane do sprawdzenia, czy konto wygasło"
+msgstr "Które atrybuty mają być używane do sprawdzenia, czy konto wygasło"
 
 #: src/config/SSSDConfig/__init__.py.in:425
 msgid "Which rules should be used to evaluate access control"
-msgstr "Które reguły powinny być używane do sprawdzania kontroli dostępu"
+msgstr "Które reguły mają być używane do sprawdzania kontroli dostępu"
 
 #: src/config/SSSDConfig/__init__.py.in:428
 msgid "URI of an LDAP server where password changes are allowed"
@@ -1679,7 +1680,7 @@ msgstr "Żąda ujednolicenie nazwy naczelnika"
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Użycie niestandardowej wersji krb5_get_init_creds_password"
 
-#: src/providers/data_provider_be.c:674
+#: src/providers/data_provider_be.c:711
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
@@ -1719,46 +1720,46 @@ msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 msgid "Permission denied. "
 msgstr "Odmowa uprawnienia."
 
-#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:777
-#: src/sss_client/pam_sss.c:788
+#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:778
+#: src/sss_client/pam_sss.c:789
 msgid "Server message: "
 msgstr "Komunikat serwera: "
 
-#: src/sss_client/pam_sss.c:295
+#: src/sss_client/pam_sss.c:296
 msgid "Passwords do not match"
 msgstr "Hasła się nie zgadzają"
 
-#: src/sss_client/pam_sss.c:483
+#: src/sss_client/pam_sss.c:484
 msgid "Password reset by root is not supported."
 msgstr "Przywrócenie hasła przez użytkownika root nie jest obsługiwane."
 
-#: src/sss_client/pam_sss.c:524
+#: src/sss_client/pam_sss.c:525
 msgid "Authenticated with cached credentials"
 msgstr "Uwierzytelniono za pomocą danych z pamięci podręcznej"
 
-#: src/sss_client/pam_sss.c:525
+#: src/sss_client/pam_sss.c:526
 msgid ", your cached password will expire at: "
 msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 
-#: src/sss_client/pam_sss.c:555
+#: src/sss_client/pam_sss.c:556
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Hasło wygasło. Pozostało %1$d możliwych logowań."
 
-#: src/sss_client/pam_sss.c:601
+#: src/sss_client/pam_sss.c:602
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Hasło wygaśnie za %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:650
+#: src/sss_client/pam_sss.c:651
 msgid "Authentication is denied until: "
 msgstr "Uwierzytelnianie jest zabronione do: "
 
-#: src/sss_client/pam_sss.c:671
+#: src/sss_client/pam_sss.c:672
 msgid "System is offline, password change not possible"
 msgstr "System jest w trybie offline, zmiana hasła nie jest możliwa"
 
-#: src/sss_client/pam_sss.c:686
+#: src/sss_client/pam_sss.c:687
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -1766,43 +1767,43 @@ msgstr ""
 "Po zmianie hasła OTP należy się wylogować i zalogować ponownie, aby uzyskać "
 "bilet"
 
-#: src/sss_client/pam_sss.c:774 src/sss_client/pam_sss.c:787
+#: src/sss_client/pam_sss.c:775 src/sss_client/pam_sss.c:788
 msgid "Password change failed. "
 msgstr "Zmiana hasła się nie powiodła. "
 
-#: src/sss_client/pam_sss.c:1977
+#: src/sss_client/pam_sss.c:1989
 msgid "New Password: "
 msgstr "Nowe hasło: "
 
-#: src/sss_client/pam_sss.c:1978
+#: src/sss_client/pam_sss.c:1990
 msgid "Reenter new Password: "
 msgstr "Proszę ponownie podać nowe hasło: "
 
-#: src/sss_client/pam_sss.c:2139 src/sss_client/pam_sss.c:2142
+#: src/sss_client/pam_sss.c:2152 src/sss_client/pam_sss.c:2155
 msgid "First Factor: "
 msgstr "Pierwszy czynnik: "
 
-#: src/sss_client/pam_sss.c:2140 src/sss_client/pam_sss.c:2303
+#: src/sss_client/pam_sss.c:2153 src/sss_client/pam_sss.c:2324
 msgid "Second Factor (optional): "
 msgstr "Drugi czynnik (opcjonalnie): "
 
-#: src/sss_client/pam_sss.c:2143 src/sss_client/pam_sss.c:2306
+#: src/sss_client/pam_sss.c:2156 src/sss_client/pam_sss.c:2327
 msgid "Second Factor: "
 msgstr "Drugi czynnik: "
 
-#: src/sss_client/pam_sss.c:2158
+#: src/sss_client/pam_sss.c:2171
 msgid "Password: "
 msgstr "Hasło: "
 
-#: src/sss_client/pam_sss.c:2302 src/sss_client/pam_sss.c:2305
+#: src/sss_client/pam_sss.c:2323 src/sss_client/pam_sss.c:2326
 msgid "First Factor (Current Password): "
 msgstr "Pierwszy czynnik (obecne hasło): "
 
-#: src/sss_client/pam_sss.c:2309
+#: src/sss_client/pam_sss.c:2330
 msgid "Current Password: "
 msgstr "Bieżące hasło: "
 
-#: src/sss_client/pam_sss.c:2664
+#: src/sss_client/pam_sss.c:2685
 msgid "Password expired. Change your password now."
 msgstr "Hasło wygasło. Proszę je zmienić teraz."
 
