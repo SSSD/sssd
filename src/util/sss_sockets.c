@@ -79,6 +79,7 @@ static errno_t set_fd_common_opts(int fd, int timeout)
     int dummy = 1;
     int ret;
     struct timeval tv;
+    unsigned int milli;
 
     /* SO_KEEPALIVE and TCP_NODELAY are set by OpenLDAP client libraries but
      * failures are ignored.*/
@@ -115,6 +116,16 @@ static errno_t set_fd_common_opts(int fd, int timeout)
             ret = errno;
             DEBUG(SSSDBG_FUNC_DATA,
                   "setsockopt SO_SNDTIMEO failed.[%d][%s].\n", ret,
+                  strerror(ret));
+        }
+
+        milli = timeout * 1000; /* timeout in milliseconds */
+        ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, milli,
+                         sizeof(milli));
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "setsockopt TCP_USER_TIMEOUT failed.[%d][%s].\n", ret,
                   strerror(ret));
         }
     }
