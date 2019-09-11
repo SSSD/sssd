@@ -904,22 +904,22 @@ fail:
  */
 static PyMethodDef sss_local_methods[] = {
     { sss_py_const_p(char, "useradd"), (PyCFunction)(void *) py_sss_useradd,
-      METH_KEYWORDS, py_sss_useradd__doc__
+      METH_VARARGS | METH_KEYWORDS, py_sss_useradd__doc__
     },
     { sss_py_const_p(char, "userdel"), (PyCFunction)(void *) py_sss_userdel,
-      METH_KEYWORDS, py_sss_userdel__doc__
+      METH_VARARGS | METH_KEYWORDS, py_sss_userdel__doc__
     },
     { sss_py_const_p(char, "usermod"), (PyCFunction)(void *) py_sss_usermod,
-      METH_KEYWORDS, py_sss_usermod__doc__
+      METH_VARARGS | METH_KEYWORDS, py_sss_usermod__doc__
     },
     { sss_py_const_p(char, "groupadd"), (PyCFunction)(void *) py_sss_groupadd,
-      METH_KEYWORDS, py_sss_groupadd__doc__
+      METH_VARARGS | METH_KEYWORDS, py_sss_groupadd__doc__
     },
     { sss_py_const_p(char, "groupdel"), (PyCFunction)(void *) py_sss_groupdel,
-      METH_KEYWORDS, py_sss_groupdel__doc__
+      METH_VARARGS | METH_KEYWORDS, py_sss_groupdel__doc__
     },
     { sss_py_const_p(char, "groupmod"), (PyCFunction)(void *) py_sss_groupmod,
-      METH_KEYWORDS, py_sss_groupmod__doc__
+      METH_VARARGS | METH_KEYWORDS, py_sss_groupmod__doc__
     },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
