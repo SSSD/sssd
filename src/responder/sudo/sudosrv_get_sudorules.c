@@ -147,7 +147,8 @@ static errno_t sudosrv_format_runas(struct resp_ctx *rctx,
             continue;
         }
 
-        dom = find_domain_by_object_name_ex(rctx->domains, value, true);
+        dom = find_domain_by_object_name_ex(rctx->domains, value, true,
+                                            SSS_GND_DESCEND);
         if (dom == NULL) {
             continue;
         }

@@ -401,6 +401,92 @@ void test_find_domain_by_name_disabled(void **state)
     }
 }
 
+void test_find_domain_by_name_ex_disabled(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+    struct sss_domain_info *disabled_dom;
+    size_t c;
+    size_t mis;
+
+    mis = test_ctx->dom_count/2;
+    assert_true((mis >= 1 && mis < test_ctx->dom_count));
+
+    dom = test_ctx->dom_list;
+    for (c = 0; c < mis; c++) {
+        assert_non_null(dom);
+        dom = dom->next;
+    }
+    assert_non_null(dom);
+    sss_domain_set_state(dom, DOM_DISABLED);
+    disabled_dom = dom;
+
+    dom = find_domain_by_name(test_ctx->dom_list, disabled_dom->name, true);
+    assert_null(dom);
+
+    dom = find_domain_by_name_ex(test_ctx->dom_list, disabled_dom->name, true,
+                                 SSS_GND_DESCEND);
+    assert_null(dom);
+
+    dom = find_domain_by_name_ex(test_ctx->dom_list, disabled_dom->name, true,
+                                 SSS_GND_DESCEND | SSS_GND_INCLUDE_DISABLED);
+    assert_non_null(dom);
+    assert_ptr_equal(disabled_dom, dom);
+
+    dom = find_domain_by_name_ex(test_ctx->dom_list, disabled_dom->name, true,
+                                 SSS_GND_ALL_DOMAINS);
+    assert_non_null(dom);
+    assert_ptr_equal(disabled_dom, dom);
+}
+
+void test_find_domain_by_object_name_ex(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+    struct sss_domain_info *disabled_dom;
+    size_t c;
+    size_t mis;
+    char *obj_name;
+
+    mis = test_ctx->dom_count/2;
+    assert_true((mis >= 1 && mis < test_ctx->dom_count));
+
+    dom = test_ctx->dom_list;
+    for (c = 0; c < mis; c++) {
+        assert_non_null(dom);
+        dom = dom->next;
+    }
+    assert_non_null(dom);
+    sss_domain_set_state(dom, DOM_DISABLED);
+    disabled_dom = dom;
+
+    obj_name = talloc_asprintf(global_talloc_context, "myname@%s",
+                               disabled_dom->name);
+    assert_non_null(obj_name);
+
+
+    dom = find_domain_by_object_name(test_ctx->dom_list, obj_name);
+    assert_null(dom);
+
+    dom = find_domain_by_object_name_ex(test_ctx->dom_list, obj_name, true,
+                                        SSS_GND_DESCEND);
+    assert_null(dom);
+
+    dom = find_domain_by_object_name_ex(test_ctx->dom_list, obj_name, true,
+                                    SSS_GND_DESCEND | SSS_GND_INCLUDE_DISABLED);
+    assert_non_null(dom);
+    assert_ptr_equal(disabled_dom, dom);
+
+    dom = find_domain_by_object_name_ex(test_ctx->dom_list, obj_name, true,
+                                        SSS_GND_ALL_DOMAINS);
+    assert_non_null(dom);
+    assert_ptr_equal(disabled_dom, dom);
+
+    talloc_free(obj_name);
+}
+
 void test_find_domain_by_sid_null(void **state)
 {
     struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
@@ -1896,6 +1982,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_find_domain_by_name_missing_flat_name,
                                         setup_dom_list, teardown_dom_list),
         cmocka_unit_test_setup_teardown(test_find_domain_by_name_disabled,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_name_ex_disabled,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_object_name_ex,
                                         setup_dom_list, teardown_dom_list),
 
         cmocka_unit_test_setup_teardown(test_sss_names_init,

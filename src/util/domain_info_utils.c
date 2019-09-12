@@ -93,9 +93,10 @@ bool subdomain_enumerates(struct sss_domain_info *parent,
     return false;
 }
 
-struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
-                                            const char *name,
-                                            bool match_any)
+struct sss_domain_info *find_domain_by_name_ex(struct sss_domain_info *domain,
+                                                const char *name,
+                                                bool match_any,
+                                                uint32_t gnd_flags)
 {
     struct sss_domain_info *dom = domain;
 
@@ -103,19 +104,29 @@ struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
         return NULL;
     }
 
-    while (dom && sss_domain_get_state(dom) == DOM_DISABLED) {
-        dom = get_next_domain(dom, SSS_GND_DESCEND);
+    if (!(gnd_flags & SSS_GND_INCLUDE_DISABLED)) {
+        while (dom && sss_domain_get_state(dom) == DOM_DISABLED) {
+            dom = get_next_domain(dom, gnd_flags);
+        }
     }
+
     while (dom) {
         if (strcasecmp(dom->name, name) == 0 ||
             ((match_any == true) && (dom->flat_name != NULL) &&
              (strcasecmp(dom->flat_name, name) == 0))) {
             return dom;
         }
-        dom = get_next_domain(dom, SSS_GND_DESCEND);
+        dom = get_next_domain(dom, gnd_flags);
     }
 
     return NULL;
+}
+
+struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
+                                            const char *name,
+                                            bool match_any)
+{
+    return find_domain_by_name_ex(domain, name, match_any, SSS_GND_DESCEND);
 }
 
 struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
@@ -175,7 +186,8 @@ sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,
 
 struct sss_domain_info *
 find_domain_by_object_name_ex(struct sss_domain_info *domain,
-                              const char *object_name, bool strict)
+                              const char *object_name, bool strict,
+                              uint32_t gnd_flags)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom = NULL;
@@ -203,7 +215,7 @@ find_domain_by_object_name_ex(struct sss_domain_info *domain,
             dom = domain;
         }
     } else {
-        dom = find_domain_by_name(domain, domainname, true);
+        dom = find_domain_by_name_ex(domain, domainname, true, gnd_flags);
     }
 
 done:
@@ -215,7 +227,8 @@ struct sss_domain_info *
 find_domain_by_object_name(struct sss_domain_info *domain,
                            const char *object_name)
 {
-    return find_domain_by_object_name_ex(domain, object_name, false);
+    return find_domain_by_object_name_ex(domain, object_name, false,
+                                         SSS_GND_DESCEND);
 }
 
 errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
