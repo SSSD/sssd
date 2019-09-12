@@ -136,7 +136,7 @@ static void ifp_list_domains_done(struct tevent_req *subreq)
     for (dom = state->ifp_ctx->rctx->domains;
             dom != NULL;
             dom = get_next_domain(dom, SSS_GND_DESCEND)) {
-        state->paths[pi] = sbus_opath_compose(state, IFP_PATH_DOMAINS, dom->name);
+        state->paths[pi] = sbus_opath_compose(state->paths, IFP_PATH_DOMAINS, dom->name);
         if (state->paths[pi] == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not create path for dom %s\n",
                   dom->name);
