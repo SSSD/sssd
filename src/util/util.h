@@ -534,6 +534,10 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
 struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
                                             const char *name,
                                             bool match_any);
+struct sss_domain_info *find_domain_by_name_ex(struct sss_domain_info *domain,
+                                               const char *name,
+                                               bool match_any,
+                                               uint32_t gnd_flags);
 struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
                                            const char *sid);
 enum sss_domain_state sss_domain_get_state(struct sss_domain_info *dom);
@@ -552,7 +556,8 @@ find_domain_by_object_name(struct sss_domain_info *domain,
 
 struct sss_domain_info *
 find_domain_by_object_name_ex(struct sss_domain_info *domain,
-                              const char *object_name, bool strict);
+                              const char *object_name, bool strict,
+                              uint32_t gnd_flags);
 
 bool subdomain_enumerates(struct sss_domain_info *parent,
                           const char *sd_name);
