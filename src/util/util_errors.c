@@ -35,6 +35,7 @@ struct err_string error_to_str[] = {
     { "Invalid data type" },       /* ERR_INVALID_DATA_TYPE */
     { "DP target is not configured" }, /* ERR_MISSING_DP_TARGET */
     { "Account Unknown" },      /* ERR_ACCOUNT_UNKNOWN */
+    { "No suitable principal found in keytab" }, /* ERR_KRB5_PRINCIPAL_NOT_FOUND */
     { "Invalid credential type" },  /* ERR_INVALID_CRED_TYPE */
     { "No credentials available" }, /* ERR_NO_CREDS */
     { "Credentials are expired" }, /* ERR_CREDS_EXPIRED */
