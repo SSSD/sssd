@@ -637,10 +637,16 @@ static errno_t add_v1_user_data(struct sss_domain_info *dom,
             }
 
             if (domain != NULL) {
-                obj_domain = find_domain_by_name(parent_domain, domain, true);
+                obj_domain = find_domain_by_name_ex(parent_domain, domain, true, SSS_GND_ALL_DOMAINS);
                 if (obj_domain == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
                     return ENOMEM;
+                } else if (sss_domain_get_state(obj_domain) == DOM_DISABLED) {
+                    /* skipping objects from disabled domains */
+                    DEBUG(SSSDBG_TRACE_ALL,
+                          "Skipping object [%s] from disabled domain.\n",
+                          list[c]);
+                    continue;
                 }
             } else {
                 obj_domain = parent_domain;
@@ -656,6 +662,7 @@ static errno_t add_v1_user_data(struct sss_domain_info *dom,
             gc++;
         }
     }
+    attrs->ngroups = gc;
 
     tag = ber_peek_tag(ber, &ber_len);
     DEBUG(SSSDBG_TRACE_ALL, "BER tag is [%d]\n", (int) tag);
@@ -1634,11 +1641,15 @@ static errno_t process_members(struct sss_domain_info *domain,
     parent_domain = get_domains_head(domain);
 
     for (c = 0; members[c] != NULL; c++) {
-        obj_domain = find_domain_by_object_name(parent_domain, members[c]);
+        obj_domain = find_domain_by_object_name_ex(parent_domain, members[c],
+                                                   false, SSS_GND_ALL_DOMAINS);
         if (obj_domain == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_object_name failed.\n");
             ret = ENOMEM;
             goto done;
+        } else if (sss_domain_get_state(obj_domain) == DOM_DISABLED) {
+            /* skip members from disabled domains */
+            continue;
         }
 
         ret = sysdb_search_user_by_name(tmp_ctx, obj_domain, members[c], attrs,
