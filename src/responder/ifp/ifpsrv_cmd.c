@@ -96,6 +96,7 @@ ifp_user_get_attr_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
 done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
+        tevent_req_post(req, rctx->ev);
     }
     return req;
 }
