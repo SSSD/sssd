@@ -4615,6 +4615,7 @@ ldap_child_SOURCES = \
     src/util/util_ext.c \
     src/util/signal.c \
     src/util/become_user.c \
+    src/util/util_errors.c \
     $(NULL)
 ldap_child_CFLAGS = \
     $(AM_CFLAGS) \
