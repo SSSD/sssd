@@ -58,6 +58,12 @@ declare BASE_DIR=`pwd`
 declare MODERATE=false
 declare RIGOROUS=false
 
+# Additional valgrind flags
+declare VALGRIND_FLAGS=""
+if [ -e "$CI_DIR/sssd.$DISTRO_ID.supp" ]; then
+    VALGRIND_FLAGS+=" --suppressions=\"$CI_DIR/sssd.$DISTRO_ID.supp\""
+fi
+
 # Output program usage information.
 function usage()
 {
@@ -230,6 +236,7 @@ function build_debug()
                                 --leak-check=full \
                                 --gen-suppressions=all \
                                 --suppressions=\"$CI_DIR/sssd.supp\" \
+                                $VALGRIND_FLAGS \
                                 --verbose" ||
             status=$?
     mv "$test_dir" ci-test-dir
