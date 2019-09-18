@@ -821,6 +821,13 @@ static errno_t ipa_subdomains_check_domain_state(struct sss_domain_info *dom,
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_domain_set_enabled failed.\n");
                 return ret;
             }
+
+            ret = sysdb_subdomain_content_delete(dom->sysdb, dom->name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_subdomain_content_delete failed.\n");
+                return ret;
+            }
         }
     } else {
         /* enabled domain if it was disabled */
