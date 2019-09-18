@@ -554,6 +554,9 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
 
 errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name);
 
+errno_t sysdb_subdomain_content_delete(struct sysdb_ctx *sysdb,
+                                       const char *name);
+
 errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                              size_t *range_count,
                              struct range_info ***range_list);
@@ -893,6 +896,11 @@ int sysdb_delete_entry(struct sysdb_ctx *sysdb,
 int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
                            struct ldb_dn *dn,
                            bool ignore_not_found);
+
+int sysdb_delete_recursive_with_filter(struct sysdb_ctx *sysdb,
+                                       struct ldb_dn *dn,
+                                       bool ignore_not_found,
+                                       const char *filter);
 
 /* Mark entry as expired */
 errno_t sysdb_mark_entry_as_expired_ldb_dn(struct sss_domain_info *dom,

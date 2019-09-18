@@ -1250,7 +1250,9 @@ done:
     return ret;
 }
 
-errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name)
+static errno_t sysdb_subdomain_delete_with_filter(struct sysdb_ctx *sysdb,
+                                                  const char *name,
+                                                  const char *filter)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_dn *dn;
@@ -1269,7 +1271,7 @@ errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name)
         goto done;
     }
 
-    ret = sysdb_delete_recursive(sysdb, dn, true);
+    ret = sysdb_delete_recursive_with_filter(sysdb, dn, true, filter);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_recursive failed.\n");
         goto done;
@@ -1278,6 +1280,20 @@ errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name)
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name)
+{
+    return sysdb_subdomain_delete_with_filter(sysdb, name,
+                                              "(distinguishedName=*)");
+}
+
+errno_t sysdb_subdomain_content_delete(struct sysdb_ctx *sysdb,
+                                       const char *name)
+{
+    const char *filter = "(|("SYSDB_UC")("SYSDB_GC"))";
+
+    return sysdb_subdomain_delete_with_filter(sysdb, name, filter);
 }
 
 errno_t

@@ -196,9 +196,10 @@ int sysdb_delete_entry(struct sysdb_ctx *sysdb,
 
 /* =Remove-Subentries-From-Sysdb=========================================== */
 
-int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
-                           struct ldb_dn *dn,
-                           bool ignore_not_found)
+int sysdb_delete_recursive_with_filter(struct sysdb_ctx *sysdb,
+                                       struct ldb_dn *dn,
+                                       bool ignore_not_found,
+                                       const char *filter)
 {
     const char *no_attrs[] = { NULL };
     struct ldb_message **msgs;
@@ -219,7 +220,7 @@ int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_search_entry(tmp_ctx, sysdb, dn,
-                             LDB_SCOPE_SUBTREE, "(distinguishedName=*)",
+                             LDB_SCOPE_SUBTREE, filter,
                              no_attrs, &msgs_count, &msgs);
     if (ret) {
         if (ignore_not_found && ret == ENOENT) {
@@ -256,6 +257,14 @@ done:
     }
     talloc_free(tmp_ctx);
     return ret;
+}
+
+int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
+                           struct ldb_dn *dn,
+                           bool ignore_not_found)
+{
+    return sysdb_delete_recursive_with_filter(sysdb, dn, ignore_not_found,
+                                              "(distinguishedName=*)");
 }
 
 
