@@ -6332,6 +6332,93 @@ START_TEST(test_sysdb_subdomain_store_user)
 }
 END_TEST
 
+START_TEST(test_sysdb_subdomain_content_delete)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    struct sss_domain_info *subdomain = NULL;
+    struct ldb_result *results = NULL;
+    struct ldb_dn *base_dn = NULL;
+    struct ldb_dn *check_dn = NULL;
+    struct ldb_dn *check_dom_dn = NULL;
+    struct test_data *data;
+    char *alias;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    subdomain = new_subdomain(test_ctx, test_ctx->domain,
+                              testdom[0], testdom[1], testdom[2], testdom[3],
+                              MPG_DISABLED, false, NULL, NULL, 0, NULL, true);
+    fail_unless(subdomain != NULL, "Failed to create new subdomain.");
+    ret = sysdb_subdomain_store(test_ctx->sysdb,
+                                testdom[0], testdom[1], testdom[2], testdom[3],
+                                false, false, NULL, 0, NULL);
+    fail_if(ret != EOK, "Could not set up the test (test subdom)");
+
+    ret = sysdb_update_subdomains(test_ctx->domain, NULL);
+    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
+                            ret, strerror(ret));
+
+    data = test_data_new_user(test_ctx, 12345);
+    fail_if(data == NULL);
+    data->username = test_asprintf_fqname(data, subdomain, "SubDomUser");
+
+    alias = test_asprintf_fqname(data, subdomain, "subdomuser");
+    fail_if(alias == NULL);
+
+    ret = sysdb_attrs_add_string(data->attrs, SYSDB_NAME_ALIAS, alias);
+    fail_unless(ret == EOK, "sysdb_store_user failed.");
+
+    ret = sysdb_store_user(subdomain, data->username,
+                           NULL, data->uid, 0, "Sub Domain User",
+                           "/home/subdomuser", "/bin/bash",
+                           NULL, data->attrs, NULL, -1, 0);
+    fail_unless(ret == EOK, "sysdb_store_user failed.");
+
+    base_dn =ldb_dn_new(test_ctx, test_ctx->sysdb->ldb, "cn=sysdb");
+    fail_unless(base_dn != NULL);
+
+    check_dn = sysdb_user_dn(data, subdomain, data->username);
+    fail_unless(check_dn != NULL);
+
+    ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
+                     LDB_SCOPE_SUBTREE, NULL, "name=%s", data->username);
+    fail_unless(ret == EOK, "ldb_search failed.");
+    fail_unless(results->count == 1, "Unexpected number of results, "
+                                     "expected [%d], got [%d]",
+                                     1, results->count);
+    fail_unless(ldb_dn_compare(results->msgs[0]->dn, check_dn) == 0,
+                "Unexpected DN returned");
+
+    ret = sysdb_subdomain_content_delete(test_ctx->sysdb, testdom[0]);
+    fail_unless(ret == EOK, "sysdb_subdomain_content_delete failed.");
+
+    /* Check if user is removed */
+    ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
+                     LDB_SCOPE_SUBTREE, NULL, "name=%s", alias);
+    fail_unless(ret == EOK, "ldb_search failed.");
+    fail_unless(results->count == 0, "Unexpected number of results, "
+                                     "expected [%d], got [%d]",
+                                     0, results->count);
+
+    check_dom_dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb,
+                                  SYSDB_DOM_BASE, testdom[0]);
+    fail_unless(check_dom_dn != NULL, "ldb_dn_new_fmt failed.");
+
+    /* Check if domain object is still present */
+    ret = ldb_search(test_ctx->sysdb->ldb, test_ctx, &results, base_dn,
+                     LDB_SCOPE_SUBTREE, NULL, "cn=%s", testdom[0]);
+    fail_unless(ret == EOK, "ldb_search failed.");
+    fail_unless(results->count == 1, "Unexpected number of results, "
+                                     "expected [%d], got [%d]",
+                                     1, results->count);
+    fail_unless(ldb_dn_compare(results->msgs[0]->dn, check_dom_dn) == 0,
+                "Unexpected DN returned");
+
+}
+END_TEST
+
 START_TEST(test_sysdb_subdomain_user_ops)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -7707,6 +7794,7 @@ Suite *create_sysdb_suite(void)
     TCase *tc_subdomain = tcase_create("SYSDB sub-domain Tests");
 
     tcase_add_test(tc_subdomain, test_sysdb_subdomain_store_user);
+    tcase_add_test(tc_subdomain, test_sysdb_subdomain_content_delete);
     tcase_add_test(tc_subdomain, test_sysdb_subdomain_user_ops);
     tcase_add_test(tc_subdomain, test_sysdb_subdomain_group_ops);
 
