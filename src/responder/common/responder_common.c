@@ -123,7 +123,8 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     }
 
     DEBUG(SSSDBG_TRACE_ALL,
-          "Client creds: euid[%d] egid[%d] pid[%d].\n",
+          "Client [%p][%d] creds: euid[%d] egid[%d] pid[%d].\n",
+          cctx, cctx->cfd,
           cctx->creds->ucred.uid, cctx->creds->ucred.gid,
           cctx->creds->ucred.pid);
 #endif
@@ -616,8 +617,9 @@ static void accept_fd_handler(struct tevent_context *ev,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Client connected%s!\n",
-           accept_ctx->is_private ? " to privileged pipe" : "");
+          "Client [%p][%d] connected%s!\n",
+          cctx, cctx->cfd,
+          accept_ctx->is_private ? " to privileged pipe" : "");
 
     return;
 }

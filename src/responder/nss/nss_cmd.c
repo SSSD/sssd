@@ -168,7 +168,8 @@ static errno_t nss_getby_id(struct cli_ctx *cli_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Input ID: %u\n", id);
+    DEBUG(SSSDBG_TRACE_FUNC, "Input ID: %u (looking up '%s')\n", id,
+          (fill_fn == nss_protocol_fill_sid) ? "SID" : "POSIX data");
 
     data = cache_req_data_id_attrs(cmd_ctx, type, id, attrs);
     if (data == NULL) {
@@ -418,7 +419,9 @@ static errno_t nss_getby_sid(struct cli_ctx *cli_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Input SID: %s\n", sid);
+    DEBUG(SSSDBG_TRACE_FUNC, "Input SID: %s (looking up '%s')\n", sid,
+          (fill_fn == nss_protocol_fill_name) ? "name"
+          : ((fill_fn == nss_protocol_fill_id) ? "id" : ""));
 
     data = cache_req_data_sid(cmd_ctx, type, sid, NULL);
     if (data == NULL) {
