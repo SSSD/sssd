@@ -207,6 +207,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   const char *domain,
                                   struct cache_req_data *data);
 
+uint32_t cache_req_get_reqid(struct tevent_req *req);
+
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        struct cache_req_result ***_results);
