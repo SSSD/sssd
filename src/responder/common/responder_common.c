@@ -103,6 +103,9 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
 
 #ifdef HAVE_UCRED
     socklen_t client_cred_len = sizeof(struct ucred);
+    char proc_path[32];
+    char cmd_line[255] = { 0 };
+    int proc_fd;
 
     cctx->creds->ucred.uid = -1;
     cctx->creds->ucred.gid = -1;
@@ -122,11 +125,26 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
         return ENOMSG;
     }
 
+    if (cctx->creds->ucred.pid > -1) {
+        snprintf(proc_path, sizeof(proc_path), "/proc/%d/cmdline",
+                 (int)cctx->creds->ucred.pid);
+        proc_fd = open(proc_path, O_RDONLY);
+        if (proc_fd != -1) {
+            if (sss_fd_nonblocking(proc_fd) == EOK) {
+                ret = read(proc_fd, cmd_line, sizeof(cmd_line)-1);
+                if (ret > 0) {
+                    cmd_line[ret] = 0;
+                }
+            }
+            close(proc_fd);
+        }
+    }
+
     DEBUG(SSSDBG_TRACE_ALL,
-          "Client [%p][%d] creds: euid[%d] egid[%d] pid[%d].\n",
+          "Client [%p][%d] creds: euid[%d] egid[%d] pid[%d] cmd_line['%s'].\n",
           cctx, cctx->cfd,
           cctx->creds->ucred.uid, cctx->creds->ucred.gid,
-          cctx->creds->ucred.pid);
+          cctx->creds->ucred.pid, cmd_line);
 #endif
 
     ret = SELINUX_getpeercon(cctx->cfd, &secctx);
