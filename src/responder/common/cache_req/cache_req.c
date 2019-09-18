@@ -1503,6 +1503,19 @@ static void cache_req_done(struct tevent_req *subreq)
     }
 }
 
+uint32_t cache_req_get_reqid(struct tevent_req *req)
+{
+    const struct cache_req_state *state;
+
+    state = tevent_req_data(req, struct cache_req_state);
+
+    if (state && state->cr) {
+        return state->cr->reqid;
+    }
+
+    return 0;
+}
+
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        struct cache_req_result ***_results)
