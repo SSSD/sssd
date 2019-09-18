@@ -1033,7 +1033,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_group_type (integer)</term>
+                    <term>ldap_group_type (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that contains an integer value
