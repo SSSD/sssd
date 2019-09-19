@@ -171,7 +171,7 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
 {
     unsigned long usn_number;
     char *newusn;
-    char *endptr = NULL;
+    char *timezone = NULL;
     errno_t ret;
 
     if (srv_opts == NULL) {
@@ -184,20 +184,42 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
         return;
     }
 
-    errno = 0;
-    usn_number = strtoul(usn, &endptr, 10);
-    if (errno != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
-              usn, ret, sss_strerror(ret));
-        return;
+    /* If usn == 0 it means that no new rules were found. We will use last known
+     * USN number as the new highest value. However, we need to get the timezone
+     * information in case this is a modify timestamp attribute instead of usn.
+     */
+    if (!srv_opts->supports_usn && strcmp("0", usn) == 0) {
+        usn_number = 0;
+
+        /* The value may not be defined yet. */
+        if (srv_opts->max_sudo_value == NULL) {
+            timezone = NULL;
+        } else {
+            errno = 0;
+            strtoul(srv_opts->max_sudo_value, &timezone, 10);
+            if (errno != 0) {
+                ret = errno;
+                DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
+                      srv_opts->max_sudo_value, ret, sss_strerror(ret));
+                return;
+            }
+        }
+    } else {
+        errno = 0;
+        usn_number = strtoul(usn, &timezone, 10);
+        if (errno != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
+                  usn, ret, sss_strerror(ret));
+            return;
+        }
     }
 
     if (usn_number > srv_opts->last_usn) {
         srv_opts->last_usn = usn_number;
     }
 
-    newusn = sdap_sudo_new_usn(srv_opts, srv_opts->last_usn, endptr,
+    newusn = sdap_sudo_new_usn(srv_opts, srv_opts->last_usn, timezone,
                                srv_opts->supports_usn);
     if (newusn == NULL) {
         return;
