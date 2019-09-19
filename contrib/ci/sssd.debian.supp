@@ -44,3 +44,13 @@
    fun:test_sss_encrypt_decrypt
    ...
 }
+
+{
+   debian-openssl-issue
+   Memcheck:Cond
+   ...
+   fun:RAND_DRBG_generate
+   fun:RAND_DRBG_bytes
+   fun:sss_encrypt
+   ...
+}
