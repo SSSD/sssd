@@ -620,7 +620,8 @@ static errno_t add_v1_user_data(struct sss_domain_info *dom,
     if (attrs->ngroups > 0) {
         attrs->groups = talloc_zero_array(attrs, char *, attrs->ngroups + 1);
         if (attrs->groups == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
+            attrs->ngroups = 0;
             ret = ENOMEM;
             goto done;
         }
@@ -639,8 +640,10 @@ static errno_t add_v1_user_data(struct sss_domain_info *dom,
             if (domain != NULL) {
                 obj_domain = find_domain_by_name_ex(parent_domain, domain, true, SSS_GND_ALL_DOMAINS);
                 if (obj_domain == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
-                    return ENOMEM;
+                    DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name_ex failed.\n");
+                    attrs->ngroups = gc;
+                    ret = ENOMEM;
+                    goto done;
                 } else if (sss_domain_get_state(obj_domain) == DOM_DISABLED) {
                     /* skipping objects from disabled domains */
                     DEBUG(SSSDBG_TRACE_ALL,
@@ -655,14 +658,15 @@ static errno_t add_v1_user_data(struct sss_domain_info *dom,
             attrs->groups[gc] = sss_create_internal_fqname(attrs->groups,
                                                            name, obj_domain->name);
             if (attrs->groups[gc] == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                DEBUG(SSSDBG_OP_FAILURE, "sss_create_internal_fqname failed.\n");
+                attrs->ngroups = gc;
                 ret = ENOMEM;
                 goto done;
             }
             gc++;
         }
+        attrs->ngroups = gc;
     }
-    attrs->ngroups = gc;
 
     tag = ber_peek_tag(ber, &ber_len);
     DEBUG(SSSDBG_TRACE_ALL, "BER tag is [%d]\n", (int) tag);
