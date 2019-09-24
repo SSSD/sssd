@@ -37,7 +37,9 @@ enum input_types {
     INP_NAME,
     INP_POSIX_UID,
     INP_POSIX_GID,
-    INP_CERT
+    INP_CERT,
+    INP_USERNAME,
+    INP_GROUPNAME
 };
 
 enum request_types {
@@ -56,6 +58,64 @@ enum response_types {
     RESP_NAME_LIST
 };
 
+struct extdom_protocol_map_item {
+    int protocol;
+    const char *oid;
+};
+
+static struct extdom_protocol_map_item extdom_protocol_map[] = {
+    { EXTDOM_V2, EXOP_SID2NAME_V2_OID },
+    { EXTDOM_V1, EXOP_SID2NAME_V1_OID },
+    { EXTDOM_V0, EXOP_SID2NAME_OID },
+    { EXTDOM_INVALID_VERSION, NULL }
+};
+
+static const char* extdom_protocol_to_oid(enum extdom_protocol protocol)
+{
+    int i;
+
+    for (i = 0; extdom_protocol_map[i].protocol != EXTDOM_INVALID_VERSION; ++i) {
+        if (extdom_protocol_map[i].protocol == protocol) {
+            return extdom_protocol_map[i].oid;
+        }
+    }
+
+    return NULL;
+}
+
+static enum extdom_protocol extdom_oid_to_protocol(const char *oid)
+{
+    int i;
+
+    if (oid == NULL) {
+        return EXTDOM_INVALID_VERSION;
+    }
+
+    for (i = 0; extdom_protocol_map[i].protocol != EXTDOM_INVALID_VERSION; ++i) {
+        if (strcmp(extdom_protocol_map[i].oid, oid) == 0) {
+            return extdom_protocol_map[i].protocol;
+        }
+    }
+
+    return EXTDOM_INVALID_VERSION;
+}
+
+static enum extdom_protocol extdom_preferred_protocol(struct sdap_handle *sh) {
+    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_V2_OID)) {
+        return EXTDOM_V2;
+    }
+
+    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_V1_OID)) {
+        return EXTDOM_V1;
+    }
+
+    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_OID)) {
+        return EXTDOM_V0;
+    }
+
+    return EXTDOM_INVALID_VERSION;
+}
+
 /* ==Sid2Name Extended Operation============================================= */
 struct ipa_s2n_exop_state {
     struct sdap_handle *sh;
@@ -73,7 +133,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
 static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct sdap_handle *sh,
-                                            bool is_v1,
+                                            enum extdom_protocol protocol,
                                             int timeout,
                                             struct berval *bv)
 {
@@ -92,8 +152,8 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Executing extended operation\n");
 
     ret = ldap_extended_operation(state->sh->ldap,
-                               is_v1 ? EXOP_SID2NAME_V1_OID : EXOP_SID2NAME_OID,
-                               bv, NULL, NULL, &msgid);
+                                  extdom_protocol_to_oid(protocol),
+                                  bv, NULL, NULL, &msgid);
     if (ret == -1 || msgid == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_extended_operation failed\n");
         ret = ERR_NETWORK_IO;
@@ -309,10 +369,15 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
                                   int entry_type,
                                   enum request_types request_type,
                                   struct req_input *req_input,
+                                  enum extdom_protocol protocol,
                                   struct berval **_bv)
 {
     BerElement *ber = NULL;
     int ret;
+
+    if (protocol == EXTDOM_INVALID_VERSION) {
+        return EINVAL;
+    }
 
     ber = ber_alloc_t( LBER_USE_DER );
     if (ber == NULL) {
@@ -321,12 +386,15 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
 
     switch (entry_type) {
         case BE_REQ_USER:
-        case BE_REQ_USER_AND_GROUP:  /* the extdom exop does not care if the
-                                        ID belongs to a user or a group */
+        case BE_REQ_USER_AND_GROUP:  /* the extdom V0/V1 exop does not care if
+                                        the ID belongs to a user or a group */
             if (req_input->type == REQ_INP_NAME) {
-                ret = ber_printf(ber, "{ee{ss}}", INP_NAME, request_type,
-                                                  domain_name,
-                                                  req_input->inp.name);
+                ret = ber_printf(ber, "{ee{ss}}",
+                                 (protocol == EXTDOM_V2
+                                  ? INP_USERNAME : INP_NAME),
+                                 request_type,
+                                 domain_name,
+                                 req_input->inp.name);
             } else if (req_input->type == REQ_INP_ID) {
                 ret = ber_printf(ber, "{ee{si}}", INP_POSIX_UID, request_type,
                                                   domain_name,
@@ -340,9 +408,12 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
             break;
         case BE_REQ_GROUP:
             if (req_input->type == REQ_INP_NAME) {
-                ret = ber_printf(ber, "{ee{ss}}", INP_NAME, request_type,
-                                                  domain_name,
-                                                  req_input->inp.name);
+                ret = ber_printf(ber, "{ee{ss}}",
+                                 (protocol == EXTDOM_V2
+                                  ? INP_GROUPNAME : INP_NAME),
+                                 request_type,
+                                 domain_name,
+                                 req_input->inp.name);
             } else if (req_input->type == REQ_INP_ID) {
                 ret = ber_printf(ber, "{ee{si}}", INP_POSIX_GID, request_type,
                                                   domain_name,
@@ -799,7 +870,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     gid_t gid;
     struct resp_attrs *attrs = NULL;
     char *sid_str;
-    bool is_v1 = false;
+    enum extdom_protocol protocol;
     char **name_list = NULL;
     ber_len_t ber_len;
     char *fq_name = NULL;
@@ -810,14 +881,12 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    if (strcmp(retoid, EXOP_SID2NAME_V1_OID) == 0) {
-        is_v1 = true;
-    } else if (strcmp(retoid, EXOP_SID2NAME_OID) == 0) {
-        is_v1 = false;
-    } else {
+    protocol = extdom_oid_to_protocol(retoid);
+    if (protocol == EXTDOM_INVALID_VERSION) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Result has wrong OID, expected [%s] or [%s], got [%s].\n",
-              EXOP_SID2NAME_OID, EXOP_SID2NAME_V1_OID, retoid);
+              "Result has wrong OID, expected [%s], [%s] or [%s], got [%s].\n",
+              EXOP_SID2NAME_OID, EXOP_SID2NAME_V1_OID,
+              EXOP_SID2NAME_V2_OID, retoid);
         return EINVAL;
     }
 
@@ -875,7 +944,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
             attrs->a.user.pw_uid = uid;
             attrs->a.user.pw_gid = gid;
 
-            if (is_v1 && type == RESP_USER_GROUPLIST) {
+            if (protocol > EXTDOM_V0 && type == RESP_USER_GROUPLIST) {
                 ret = add_v1_user_data(dom, ber, attrs);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_v1_user_data failed.\n");
@@ -923,7 +992,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
 
             attrs->a.group.gr_gid = gid;
 
-            if (is_v1 && type == RESP_GROUP_MEMBERS) {
+            if (protocol > EXTDOM_V0 && type == RESP_GROUP_MEMBERS) {
                 ret = add_v1_group_data(ber, dom, attrs);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_v1_group_data failed.\n");
@@ -1106,6 +1175,7 @@ struct ipa_s2n_get_list_state {
     struct ipa_id_ctx *ipa_ctx;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
+    enum extdom_protocol protocol;
     struct req_input req_input;
     char **list;
     size_t list_idx;
@@ -1157,6 +1227,7 @@ static struct tevent_req *ipa_s2n_get_list_send(TALLOC_CTX *mem_ctx,
     state->ipa_ctx = ipa_ctx;
     state->dom = dom;
     state->sh = sh;
+    state->protocol = extdom_preferred_protocol(sh);
     state->list = list;
     state->list_idx = 0;
     state->req_input.type = list_type;
@@ -1195,7 +1266,6 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
     char *domain_name = NULL;
     uint32_t id;
     char *endptr;
-    bool need_v1 = false;
     struct dp_id_data *ar;
 
     parent_domain = get_domains_head(state->dom);
@@ -1285,15 +1355,16 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
     }
 
     ret = s2n_encode_request(state, state->obj_domain->name, state->entry_type,
-                             state->request_type,
-                             &state->req_input, &bv_req);
+                             state->request_type, &state->req_input,
+                             state->protocol, &bv_req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n_encode_request failed.\n");
         return ret;
     }
 
-    if (state->request_type == REQ_FULL_WITH_MEMBERS) {
-        need_v1 = true;
+    if (state->request_type == REQ_FULL_WITH_MEMBERS && state->protocol == EXTDOM_V0) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop failed, protocol > V0 needed for this request.\n");
+        return EINVAL;
     }
 
     if (state->req_input.type == REQ_INP_NAME
@@ -1304,7 +1375,7 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
               state->list[state->list_idx]);
     }
 
-    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, need_v1,
+    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, state->protocol,
                                state->exop_timeout, bv_req);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
@@ -1502,6 +1573,7 @@ struct ipa_s2n_get_user_state {
     struct sdap_options *opts;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
+    enum extdom_protocol protocol;
     struct req_input *req_input;
     int entry_type;
     enum request_types request_type;
@@ -1530,7 +1602,6 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     struct berval *bv_req = NULL;
     const char *input;
     int ret = EFAULT;
-    bool is_v1 = false;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_s2n_get_user_state);
     if (req == NULL) {
@@ -1542,6 +1613,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
+    state->protocol = extdom_preferred_protocol(sh);
     state->req_input = req_input;
     state->entry_type = entry_type;
     state->attrs = NULL;
@@ -1549,12 +1621,10 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     state->exop_timeout = dp_opt_get_int(opts->basic, SDAP_SEARCH_TIMEOUT);
     state->override_attrs = override_attrs;
 
-    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_V1_OID)) {
+    if (state->protocol == EXTDOM_V1 || state->protocol == EXTDOM_V2) {
         state->request_type = REQ_FULL_WITH_MEMBERS;
-        is_v1 = true;
-    } else if (sdap_is_extension_supported(sh, EXOP_SID2NAME_OID)) {
+    } else if (state->protocol == EXTDOM_V0) {
         state->request_type = REQ_FULL;
-        is_v1 = false;
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Extdom not supported on the server, "
                               "cannot resolve objects from trusted domains.\n");
@@ -1568,7 +1638,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = s2n_encode_request(state, dom->name, entry_type, state->request_type,
-                             req_input, &bv_req);
+                             req_input, state->protocol, &bv_req);
     if (ret != EOK) {
         goto fail;
     }
@@ -1582,7 +1652,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
         talloc_zfree(input);
     }
 
-    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, is_v1,
+    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, state->protocol,
                                state->exop_timeout, bv_req);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
@@ -2083,6 +2153,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         ret = s2n_encode_request(state, state->dom->name, state->entry_type,
                                  state->request_type, state->req_input,
+                                 state->protocol,
                                  &bv_req);
         if (ret != EOK) {
             goto done;

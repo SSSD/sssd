@@ -531,10 +531,12 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
     }
 
     if (state->entry_type == BE_REQ_INITGROUPS) {
-        /* With V1 of the extdom plugin a user lookup will resolve the full
+        /* With V1/V2 of the extdom plugin a user lookup will resolve the full
          * group membership of the user. */
         if (sdap_is_extension_supported(sdap_id_op_handle(state->op),
-                                        EXOP_SID2NAME_V1_OID)) {
+                                        EXOP_SID2NAME_V1_OID) ||
+            sdap_is_extension_supported(sdap_id_op_handle(state->op),
+                                        EXOP_SID2NAME_V2_OID)) {
             state->entry_type = BE_REQ_USER;
         } else {
             if (state->use_pac && state->user_msg != NULL) {
@@ -622,7 +624,9 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
             break;
         case BE_FILTER_CERT:
             if (sdap_is_extension_supported(sdap_id_op_handle(state->op),
-                                            EXOP_SID2NAME_V1_OID)) {
+                                            EXOP_SID2NAME_V1_OID) ||
+                sdap_is_extension_supported(sdap_id_op_handle(state->op),
+                                            EXOP_SID2NAME_V2_OID)) {
                 req_input->type = REQ_INP_CERT;
                 req_input->inp.cert = talloc_strdup(req_input, state->filter);
                 if (req_input->inp.cert == NULL) {
