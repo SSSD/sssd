@@ -36,6 +36,14 @@
 /* ==Sid2Name Extended Operation============================================= */
 #define EXOP_SID2NAME_OID "2.16.840.1.113730.3.8.10.4"
 #define EXOP_SID2NAME_V1_OID "2.16.840.1.113730.3.8.10.4.1"
+#define EXOP_SID2NAME_V2_OID "2.16.840.1.113730.3.8.10.4.2"
+
+enum extdom_protocol {
+    EXTDOM_INVALID_VERSION = -1,
+    EXTDOM_V0,
+    EXTDOM_V1,
+    EXTDOM_V2
+};
 
 errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
                             struct be_ctx *be_ctx,
