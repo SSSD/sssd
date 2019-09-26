@@ -29,7 +29,8 @@
 #define AD_SERVICE_NAME    "AD"
 #define AD_GC_SERVICE_NAME "AD_GC"
 /* The port the Global Catalog runs on */
-#define AD_GC_PORT      3268
+#define AD_GC_PORT         3268
+#define AD_GC_LDAPS_PORT   3269
 
 #define AD_AT_OBJECT_SID "objectSID"
 #define AD_AT_DNS_DOMAIN "DnsDomain"
@@ -68,6 +69,7 @@ enum ad_basic_opt {
     AD_MAXIMUM_MACHINE_ACCOUNT_PASSWORD_AGE,
     AD_MACHINE_ACCOUNT_PASSWORD_RENEWAL_OPTS,
     AD_UPDATE_SAMBA_MACHINE_ACCOUNT_PASSWORD,
+    AD_USE_LDAPS,
 
     AD_OPTS_BASIC /* opts counter */
 };
@@ -83,6 +85,9 @@ struct ad_service {
     struct sdap_service *sdap;
     struct sdap_service *gc;
     struct krb5_service *krb5_service;
+    const char *ldap_scheme;
+    int port;
+    int gc_port;
 };
 
 struct ad_options {
@@ -148,6 +153,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                  const char *ad_gc_service,
                  const char *ad_domain,
                  bool use_kdcinfo,
+                 bool ad_use_ldaps,
                  size_t n_lookahead_primary,
                  size_t n_lookahead_backup,
                  struct ad_service **_service);

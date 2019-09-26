@@ -1032,6 +1032,26 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_use_ldaps (bool)</term>
+                    <listitem>
+                        <para>
+                            By default SSSD uses the plain LDAP port 389 and the
+                            Global Catalog port 3628. If this option is set to
+                            True SSSD will use the LDAPS port 636 and Global
+                            Catalog port 3629 with LDAPS protection. Since AD
+                            does not allow to have multiple encryption layers on
+                            a single connection and we still want to use
+                            SASL/GSSAPI or SASL/GSS-SPNEGO for authentication
+                            the SASL security property maxssf is set to 0 (zero)
+                            for those connections.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>

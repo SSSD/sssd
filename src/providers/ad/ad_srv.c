@@ -244,6 +244,7 @@ struct ad_get_client_site_state {
     enum host_database *host_db;
     struct sdap_options *opts;
     const char *ad_domain;
+    bool ad_use_ldaps;
     struct fo_server_info *dcs;
     size_t num_dcs;
     size_t dc_index;
@@ -264,6 +265,7 @@ struct tevent_req *ad_get_client_site_send(TALLOC_CTX *mem_ctx,
                                            enum host_database *host_db,
                                            struct sdap_options *opts,
                                            const char *ad_domain,
+                                           bool ad_use_ldaps,
                                            struct fo_server_info *dcs,
                                            size_t num_dcs)
 {
@@ -288,6 +290,7 @@ struct tevent_req *ad_get_client_site_send(TALLOC_CTX *mem_ctx,
     state->host_db = host_db;
     state->opts = opts;
     state->ad_domain = ad_domain;
+    state->ad_use_ldaps = ad_use_ldaps;
     state->dcs = dcs;
     state->num_dcs = num_dcs;
 
@@ -331,8 +334,11 @@ static errno_t ad_get_client_site_next_dc(struct tevent_req *req)
     subreq = sdap_connect_host_send(state, state->ev, state->opts,
                                     state->be_res->resolv,
                                     state->be_res->family_order,
-                                    state->host_db, "ldap", state->dc.host,
-                                    state->dc.port, false);
+                                    state->host_db,
+                                    state->ad_use_ldaps ? "ldaps" : "ldap",
+                                    state->dc.host,
+                                    state->ad_use_ldaps ? 636 : state->dc.port,
+                                    false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
@@ -491,6 +497,7 @@ struct ad_srv_plugin_ctx {
     const char *ad_domain;
     const char *ad_site_override;
     const char *current_site;
+    bool ad_use_ldaps;
 };
 
 struct ad_srv_plugin_ctx *
@@ -501,7 +508,8 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
                        struct sdap_options *opts,
                        const char *hostname,
                        const char *ad_domain,
-                       const char *ad_site_override)
+                       const char *ad_site_override,
+                       bool ad_use_ldaps)
 {
     struct ad_srv_plugin_ctx *ctx = NULL;
     errno_t ret;
@@ -515,6 +523,7 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
     ctx->be_res = be_res;
     ctx->host_dbs = host_dbs;
     ctx->opts = opts;
+    ctx->ad_use_ldaps = ad_use_ldaps;
 
     ctx->hostname = talloc_strdup(ctx, hostname);
     if (ctx->hostname == NULL) {
@@ -714,6 +723,7 @@ static void ad_srv_plugin_dcs_done(struct tevent_req *subreq)
                                      state->ctx->host_dbs,
                                      state->ctx->opts,
                                      state->discovery_domain,
+                                     state->ctx->ad_use_ldaps,
                                      dcs, num_dcs);
     if (subreq == NULL) {
         ret = ENOMEM;

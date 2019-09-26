@@ -729,6 +729,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                  const char *ad_gc_service,
                  const char *ad_domain,
                  bool use_kdcinfo,
+                 bool ad_use_ldaps,
                  size_t n_lookahead_primary,
                  size_t n_lookahead_backup,
                  struct ad_service **_service)
@@ -744,6 +745,16 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     if (!service) {
         ret = ENOMEM;
         goto done;
+    }
+
+    if (ad_use_ldaps) {
+        service->ldap_scheme = "ldaps";
+        service->port = LDAPS_PORT;
+        service->gc_port = AD_GC_LDAPS_PORT;
+    } else {
+        service->ldap_scheme = "ldap";
+        service->port = LDAP_PORT;
+        service->gc_port = AD_GC_PORT;
     }
 
     service->sdap = talloc_zero(service, struct sdap_service);
@@ -927,7 +938,8 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
         goto done;
     }
 
-    new_uri = talloc_asprintf(service->sdap, "ldap://%s", srv_name);
+    new_uri = talloc_asprintf(service->sdap, "%s://%s", service->ldap_scheme,
+                                                        srv_name);
     if (!new_uri) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy URI\n");
         ret = ENOMEM;
@@ -935,7 +947,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     }
     DEBUG(SSSDBG_CONF_SETTINGS, "Constructed uri '%s'\n", new_uri);
 
-    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT);
+    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, service->port);
     if (sockaddr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_sockaddr_address failed.\n");
         ret = EIO;
@@ -951,8 +963,12 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     talloc_zfree(service->gc->uri);
     talloc_zfree(service->gc->sockaddr);
     if (sdata && sdata->gc) {
-        new_port = fo_get_server_port(server);
-        new_port = (new_port == 0) ? AD_GC_PORT : new_port;
+        if (service->gc_port == AD_GC_LDAPS_PORT) {
+            new_port = service->gc_port;
+        } else {
+            new_port = fo_get_server_port(server);
+            new_port = (new_port == 0) ? service->gc_port : new_port;
+        }
 
         service->gc->uri = talloc_asprintf(service->gc, "%s:%d",
                                            new_uri, new_port);
