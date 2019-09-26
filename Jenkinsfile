@@ -106,6 +106,17 @@ class CI {
       ctx.currentBuild.description = "${this.User}: ${ctx.params.REPO_BRANCH}"
     } else {
       this.OnDemandRun = false
+
+      /* Set a nice name */
+      if (ctx.env.CHANGE_TARGET) {
+        def title = ctx.sh returnStdout: true, script: """
+          curl -s https://api.github.com/repos/SSSD/sssd/pulls/${ctx.env.CHANGE_ID} | \
+          python -c "import sys, json; print(json.load(sys.stdin).get('title'))"
+        """
+        ctx.currentBuild.description = "PR ${ctx.env.CHANGE_ID}: ${title}"
+      } else {
+        ctx.currentBuild.description = "Branch: ${ctx.env.BRANCH_NAME}"
+      }
     }
   }
 
@@ -287,6 +298,9 @@ pipeline {
   }
   stages {
     stage('Prepare') {
+      agent {
+        label 'master'
+      }
       steps {
         CI_Setup()
         CI_Notify('PENDING', 'Running tests.')
