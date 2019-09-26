@@ -319,7 +319,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ret = ad_failover_init(ad_options, be_ctx, ad_servers, ad_backup_servers,
                            subdom->realm,
                            service_name, gc_service_name,
-                           subdom->name, use_kdcinfo,
+                           subdom->name, use_kdcinfo, false,
                            n_lookahead_primary, n_lookahead_backup,
                            &ad_options->service);
     if (ret != EOK) {
@@ -344,7 +344,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
                                      ad_id_ctx->ad_options->id,
                                      id_ctx->server_mode->hostname,
                                      ad_domain,
-                                     ad_site_override);
+                                     ad_site_override, false);
     if (srv_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
         return ENOMEM;
