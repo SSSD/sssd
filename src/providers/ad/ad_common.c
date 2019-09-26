@@ -1479,9 +1479,26 @@ errno_t ad_inherit_opts_if_needed(struct dp_option *parent_opts,
     const char *parent_val = NULL;
     char *dummy = NULL;
     char *option_list[2] = { NULL, NULL };
+    bool is_default = true;
 
-    parent_val = dp_opt_get_cstring(parent_opts, opt_id);
-    if (parent_val != NULL) {
+    switch (parent_opts[opt_id].type) {
+    case DP_OPT_STRING:
+        parent_val = dp_opt_get_cstring(parent_opts, opt_id);
+        break;
+    case DP_OPT_BOOL:
+        /* For booleans it is hard to say if the option is set or not since
+         * both possible values are valid ones. So we check if the value is
+         * different from the default and skip if it is the default. In this
+         * case the sub-domain option would either be the default as well or
+         * manully set and in both cases we do not have to change it. */
+        is_default = (parent_opts[opt_id].val.boolean
+                                == parent_opts[opt_id].def_val.boolean);
+        break;
+    default:
+        DEBUG(SSSDBG_TRACE_FUNC, "Unsupported type, skipping.\n");
+    }
+
+    if (parent_val != NULL || !is_default) {
         ret = confdb_get_string(cdb, NULL, subdom_conf_path,
                                 parent_opts[opt_id].opt_name, NULL, &dummy);
         if (ret != EOK) {
