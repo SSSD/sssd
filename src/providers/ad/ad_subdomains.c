@@ -282,6 +282,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     bool use_kdcinfo = false;
     size_t n_lookahead_primary = SSS_KRB5_LOOKAHEAD_PRIMARY_DEFAULT;
     size_t n_lookahead_backup = SSS_KRB5_LOOKAHEAD_BACKUP_DEFAULT;
+    bool ad_use_ldaps = false;
 
     realm = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_KRB5_REALM);
     hostname = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_HOSTNAME);
@@ -310,6 +311,21 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
         talloc_free(ad_options);
         talloc_free(subdom_conf_path);
         return ENOMEM;
+    }
+
+    ret = ad_inherit_opts_if_needed(id_ctx->ad_options->basic,
+                                    ad_options->basic,
+                                    be_ctx->cdb, subdom_conf_path,
+                                    AD_USE_LDAPS);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to inherit option [%s] to sub-domain [%s]. "
+              "This error is ignored but might cause issues or unexpected "
+              "behavior later on.\n",
+              id_ctx->ad_options->basic[AD_USE_LDAPS].opt_name,
+              subdom->name);
+
+        return ret;
     }
 
     ret = ad_inherit_opts_if_needed(id_ctx->sdap_id_ctx->opts->basic,
@@ -344,6 +360,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
 
     servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
     backup_servers = dp_opt_get_string(ad_options->basic, AD_BACKUP_SERVER);
+    ad_use_ldaps = dp_opt_get_bool(ad_options->basic, AD_USE_LDAPS);
 
     if (id_ctx->ad_options->auth_ctx != NULL
             && id_ctx->ad_options->auth_ctx->opts != NULL) {
@@ -362,7 +379,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
 
     ret = ad_failover_init(ad_options, be_ctx, servers, backup_servers,
                            subdom->realm, service_name, gc_service_name,
-                           subdom->name, use_kdcinfo,
+                           subdom->name, use_kdcinfo, ad_use_ldaps,
                            n_lookahead_primary,
                            n_lookahead_backup,
                            &ad_options->service);
@@ -386,7 +403,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
                                      ad_id_ctx->ad_options->id,
                                      hostname,
                                      ad_domain,
-                                     ad_site_override);
+                                     ad_site_override, ad_use_ldaps);
     if (srv_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
         return ENOMEM;

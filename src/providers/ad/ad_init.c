@@ -138,6 +138,7 @@ static errno_t ad_init_options(TALLOC_CTX *mem_ctx,
     char *ad_servers = NULL;
     char *ad_backup_servers = NULL;
     char *ad_realm;
+    bool ad_use_ldaps = false;
     errno_t ret;
 
     ad_sasl_initialize();
@@ -154,12 +155,14 @@ static errno_t ad_init_options(TALLOC_CTX *mem_ctx,
     ad_servers = dp_opt_get_string(ad_options->basic, AD_SERVER);
     ad_backup_servers = dp_opt_get_string(ad_options->basic, AD_BACKUP_SERVER);
     ad_realm = dp_opt_get_string(ad_options->basic, AD_KRB5_REALM);
+    ad_use_ldaps = dp_opt_get_bool(ad_options->basic, AD_USE_LDAPS);
 
     /* Set up the failover service */
     ret = ad_failover_init(ad_options, be_ctx, ad_servers, ad_backup_servers,
                            ad_realm, AD_SERVICE_NAME, AD_GC_SERVICE_NAME,
                            dp_opt_get_string(ad_options->basic, AD_DOMAIN),
                            false, /* will be set in ad_get_auth_options() */
+                           ad_use_ldaps,
                            (size_t) -1,
                            (size_t) -1,
                            &ad_options->service);
@@ -184,11 +187,13 @@ static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
     const char *ad_site_override;
     bool sites_enabled;
     errno_t ret;
+    bool ad_use_ldaps;
 
     hostname = dp_opt_get_string(ad_options->basic, AD_HOSTNAME);
     ad_domain = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
     ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
     sites_enabled = dp_opt_get_bool(ad_options->basic, AD_ENABLE_DNS_SITES);
+    ad_use_ldaps = dp_opt_get_bool(ad_options->basic, AD_USE_LDAPS);
 
 
     if (!sites_enabled) {
@@ -205,7 +210,8 @@ static errno_t ad_init_srv_plugin(struct be_ctx *be_ctx,
     srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx, be_ctx->be_res,
                                      default_host_dbs, ad_options->id,
                                      hostname, ad_domain,
-                                     ad_site_override);
+                                     ad_site_override,
+                                     ad_use_ldaps);
     if (srv_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
         return ENOMEM;

@@ -55,6 +55,7 @@ struct dp_option ad_basic_opts[] = {
     { "ad_maximum_machine_account_password_age", DP_OPT_NUMBER, { .number = 30 }, NULL_NUMBER },
     { "ad_machine_account_password_renewal_opts", DP_OPT_STRING, { "86400:750" }, NULL_STRING },
     { "ad_update_samba_machine_account_password", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ad_use_ldaps", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     DP_OPTION_TERMINATOR
 };
 

@@ -253,6 +253,7 @@ option_strings = {
     'ad_maximum_machine_account_password_age' : _('Maximum age in days before the machine account password should be renewed'),
     'ad_machine_account_password_renewal_opts' : _('Option for tuning the machine account renewal task'),
     'ad_update_samba_machine_account_password' : _('Whether to update the machine account password in the Samba database'),
+    'ad_use_ldaps' : _('Use LDAPS port for LDAP and Global Catalog requests'),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),
