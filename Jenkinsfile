@@ -137,13 +137,13 @@ class CI {
   /**
    * Send commit status to Github for specific build (e.g. sssd-ci/fedora28).
    */
-  public static def NotifyBuild(ctx, status, message) {
+  public static def NotifyBuild(ctx, build, status, message) {
     if (this.OnDemandRun) {
       return
     }
 
     ctx.githubNotify status: status,
-      context: String.format('%s/%s', this.GHContext, ctx.env.TEST_SYSTEM),
+      context: String.format('%s/%s', this.GHContext, build),
       description: message,
       targetUrl: String.format(
         '%s/%s/%s/%s/index.html',
@@ -214,7 +214,7 @@ class CI {
     }
 
     ctx.echo "Running on ${ctx.env.NODE_NAME}"
-    this.NotifyBuild(ctx, 'PENDING', 'Build is in progress.')
+    this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'PENDING', 'Build is in progress.')
     this.Checkout(ctx)
     this.Rebase(ctx)
 
@@ -245,7 +245,7 @@ class CI {
   public static def WhenCompleted(ctx) {
     if (!this.IsRebaseSuccessful(ctx.env.TEST_SYSTEM)) {
       ctx.echo "Unable to rebase on target branch."
-      this.NotifyBuild(ctx, 'FAILURE', 'Unable to rebase on target branch.')
+      this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'FAILURE', 'Unable to rebase on target branch.')
       return
     }
 
@@ -265,18 +265,18 @@ class CI {
     ctx.sh "rm -fr ${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
 
     if (this.IsBuildSuccessful(ctx.env.TEST_SYSTEM)) {
-      this.NotifyBuild(ctx, 'SUCCESS', 'Success.')
+      this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'SUCCESS', 'Success.')
       return
     }
 
-    this.NotifyBuild(ctx, 'FAILURE', 'Build failed.')
+    this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'FAILURE', 'Build failed.')
   }
 
   /**
    * Notify Github that the build was aborted.
    */
   public static def WhenAborted(ctx) {
-    this.NotifyBuild(ctx, 'ERROR', 'Aborted.')
+    this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'ERROR', 'Aborted.')
   }
 }
 
@@ -290,6 +290,7 @@ def CI_RunTests() { CI.RunTests(this) }
 def CI_Post() { CI.WhenCompleted(this) }
 def CI_Aborted() { CI.WhenAborted(this) }
 def CI_Notify(status, message) { CI.Notify(this, status, message) }
+def CI_NotifyBuild(build, status, message) { CI.NotifyBuild(this, build, status, message) }
 
 pipeline {
   agent none
@@ -304,6 +305,11 @@ pipeline {
       steps {
         CI_Setup()
         CI_Notify('PENDING', 'Running tests.')
+        CI_NotifyBuild('fedora28', 'PENDING', 'Awaiting executors.')
+        CI_NotifyBuild('fedora29', 'PENDING', 'Awaiting executors.')
+        CI_NotifyBuild('fedora30', 'PENDING', 'Awaiting executors.')
+        CI_NotifyBuild('fedora-rawhide', 'PENDING', 'Awaiting executors.')
+        CI_NotifyBuild('debian10', 'PENDING', 'Awaiting executors.')
       }
     }
     stage('Run Tests') {
