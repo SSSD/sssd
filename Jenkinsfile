@@ -1,376 +1,327 @@
-/**
- * SSSD CI.
- *
- * This class hold SSSD CI settings and defines several helper methods
- * that helps reducing code duplication. Unfortunately, it does not
- * seem to be possible to run those methods directly from the pipeline
- * as CI.MethodName() as it produces 'Expected a symbol' error therefore
- * functions outside this class scope must be defined as well. These functions
- * can be then called directly from the pipeline.
+import hudson.AbortException
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
+
+/* Tests will be run on these systems.
+ * To add a new sytem simple extend this list.
  */
-class CI {
-  /**
-   * Absolute path to directory that holds the workspace on Jenkins slave.
-   */
-  public static String BaseDir = '/home/fedora'
+def systems = [
+  'fedora28',
+  'fedora29',
+  'fedora30',
+  'fedora-rawhide',
+  'debian10',
+]
 
-  /**
-   * Github status context name that is visible in pull request statuses.
-   */
-  public static String GHContext = 'sssd-ci'
+/* Send notifications to Github.
+ * If it is an on-demand run then no notifications are sent.
+ */
+class Notification {
+  def pipeline
+  String context
+  String details_url
+  String aws_url
+  boolean on_demand
 
-  /**
-   * URL that will be opened when user clicks on 'details' on 'sssd-ci' status.
-   */
-  public static String GHUrl = 'https://pagure.io/SSSD/sssd'
-
-  /**
-   * URL that will be opened when user clicks on 'details' on specific
-   * build status (e.g. sssd-ci/fedora28).
-   */
-  public static String AWS = 'https://s3.eu-central-1.amazonaws.com/sssd-ci'
-
-  /**
-   * Path to SSSD Test Suite on Jenkins slave.
-   */
-  public static String SuiteDir = this.BaseDir + '/sssd-test-suite'
-
-  /**
-   * Path to SSSD CI tools on Jenkins slave.
-   */
-  public static String CIDir = this.BaseDir + '/sssd-ci'
-
-  /**
-   * True if this was executed as on demand run.
+  /* @param pipeline Jenkins pipeline context.
+   * @param context Github notification context (the bold text).
+   * @param details_url Link for "details" button.
+   * @param aws_url Link to cloud where logs are stored.
+   * @param on_demand True if this is an on-demand run.
    *
-   * Github notifications are disabled in this mode.
+   * There are two types of notifications:
+   * a) Summary (i.e. sssd-ci: Success. details: @details_url)
+   * b) Single build (i.e. sssd-ci/fedora28: Success. details: @aws_url)
    */
-  public static boolean OnDemandRun = false
-
-  /**
-   * User that triggered this build.
-   */
-  public static String User = 'sssd-ci'
-
-  /**
-   * Workaround for https://issues.jenkins-ci.org/browse/JENKINS-39203
-   *
-   * At this moment if one stage in parallel block fails, failure branch in
-   * post block is run in all stages even though they might have been successful.
-   *
-   * We remember result of test stages in this variable so we can correctly
-   * report a success or error even if one of the stages that are run in
-   * parallel failed.
-   */
-  public static def Results = [:]
-  public static def RebaseResults = [:]
-
-  /**
-   * Mark build as successfull.
-   */
-  public static def BuildSuccessful(build) {
-    this.Results[build] = "success"
+  Notification(pipeline, context, details_url, aws_url, on_demand) {
+    this.pipeline = pipeline
+    this.context = context
+    this.details_url = details_url
+    this.aws_url = aws_url
+    this.on_demand = on_demand
   }
 
-  /**
-   * Return true if the build was successful.
-   */
-  public static def IsBuildSuccessful(build) {
-    return this.Results[build] == "success"
-  }
+  /* Send notification. If system is not null single build is notified. */
+  def notify(status, message, system = null) {
+    def context = system ? "${this.context}/${system}" : this.context
+    this.pipeline.echo "[${context}] ${status}: ${message}"
 
-  /**
-   * Mark build as successfully rebased.
-   */
-  public static def RebaseSuccessful(build) {
-    this.RebaseResults[build] = "success"
-  }
-
-  /**
-   * Return true if the rebase was successful.
-   */
-  public static def IsRebaseSuccessful(build) {
-    return this.RebaseResults[build] == "success"
-  }
-
-  /**
-   * Setup initial variables.
-   */
-  public static def Setup(ctx) {
-    if (ctx.params.ON_DEMAND) {
-      this.OnDemandRun = true
-
-      def build = ctx.currentBuild.rawBuild
-      def cause = build.getCause(hudson.model.Cause.UserIdCause.class)
-      this.User = cause.getUserId()
-      ctx.currentBuild.description = "${this.User}: ${ctx.params.REPO_BRANCH}"
-    } else {
-      this.OnDemandRun = false
-
-      /* Set a nice name */
-      if (ctx.env.CHANGE_TARGET) {
-        def title = ctx.sh returnStdout: true, script: """
-          curl -s https://api.github.com/repos/SSSD/sssd/pulls/${ctx.env.CHANGE_ID} | \
-          python -c "import sys, json; print(json.load(sys.stdin).get('title'))"
-        """
-        ctx.currentBuild.description = "PR ${ctx.env.CHANGE_ID}: ${title}"
-      } else {
-        ctx.currentBuild.description = "Branch: ${ctx.env.BRANCH_NAME}"
-      }
-    }
-  }
-
-  /**
-   * Send commit status to Github for sssd-ci context.
-   */
-  public static def Notify(ctx, status, message) {
-    if (this.OnDemandRun) {
+    if (this.on_demand) {
       return
     }
 
-    ctx.githubNotify status: status,
-      context: this.GHContext,
-      description: message,
-      targetUrl: this.GHUrl
+    this.send(status, message, context, this.getTargetURL(system))
   }
 
-  /**
-   * Send commit status to Github for specific build (e.g. sssd-ci/fedora28).
-   */
-  public static def NotifyBuild(ctx, build, status, message) {
-    if (this.OnDemandRun) {
-      return
-    }
-
-    ctx.githubNotify status: status,
-      context: String.format('%s/%s', this.GHContext, build),
+  private def send(status, message, context, url) {
+    this.pipeline.githubNotify status: status,
+      context: context,
       description: message,
-      targetUrl: String.format(
+      targetUrl: url
+  }
+
+  private def getTargetURL(system) {
+    if (system) {
+      return String.format(
         '%s/%s/%s/%s/index.html',
-        this.AWS,
-        ctx.env.BRANCH_NAME,
-        ctx.env.BUILD_ID,
-        ctx.env.TEST_SYSTEM
-      )
-  }
-
-  public static def Checkout(ctx) {
-    if (!this.OnDemandRun) {
-      /* The repository is checked out automatically. */
-      return
-    }
-
-    ctx.dir('sssd') {
-        ctx.git branch: "${ctx.params.REPO_BRANCH}", url: "${ctx.params.REPO_URL}"
-    }
-  }
-
-  public static def Rebase(ctx) {
-    /* Do not rebase if there is no target available (not a pull request) or
-     * this is an on demand run. */
-    if (!ctx.env.CHANGE_TARGET || this.OnDemandRun) {
-      this.RebaseSuccessful(ctx.env.TEST_SYSTEM)
-      return
-    }
-
-    ctx.echo String.format('Rebasing on %s', ctx.env.CHANGE_TARGET)
-
-    ctx.sh String.format(
-      'git -C %s fetch --no-tags --progress origin +refs/heads/%s:refs/remotes/origin/%s',
-      "${ctx.env.WORKSPACE}/sssd",
-      ctx.env.CHANGE_TARGET,
-      ctx.env.CHANGE_TARGET
-    )
-
-    // Remove left overs from previous rebase if there are any
-    ctx.sh String.format(
-      'git -C %s rebase --abort || :',
-      "${ctx.env.WORKSPACE}/sssd"
-    )
-
-    // Just to be sure
-    ctx.sh String.format(
-      'rm -fr "%s/.git/rebase-apply" || :',
-      "${ctx.env.WORKSPACE}/sssd"
-    )
-
-    ctx.sh String.format(
-      'git -C %s rebase origin/%s',
-      "${ctx.env.WORKSPACE}/sssd",
-      ctx.env.CHANGE_TARGET
-    )
-
-    this.RebaseSuccessful(ctx.env.TEST_SYSTEM)
-  }
-
-  /**
-   * Run tests. TEST_SYSTEM environment variable must be defined.
-   */
-  public static def RunTests(ctx) {
-    if (this.OnDemandRun) {
-      ctx.echo "This build was requested by: ${this.User}"
-      ctx.echo "Repository: ${ctx.params.REPO_URL}"
-      ctx.echo "Branch: ${ctx.params.REPO_BRANCH}"
-    }
-
-    ctx.echo "Running on ${ctx.env.NODE_NAME}"
-    this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'PENDING', 'Build is in progress.')
-    this.Checkout(ctx)
-    this.Rebase(ctx)
-
-    ctx.echo String.format(
-      'Executing tests, started at %s',
-      (new Date()).format('dd. MM. yyyy HH:mm:ss')
-    )
-
-    ctx.sh String.format(
-      '%s/sssd-test-suite -c "%s" run --sssd "%s" --artifacts "%s" --update --prune',
-      "${this.SuiteDir}",
-      "${this.BaseDir}/configs/${ctx.env.TEST_SYSTEM}.json",
-      "${ctx.env.WORKSPACE}/sssd",
-      "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
-    )
-
-    ctx.echo String.format(
-      'Finished at %s',
-      (new Date()).format('dd. MM. yyyy HH:mm:ss')
-    )
-
-    this.BuildSuccessful(ctx.env.TEST_SYSTEM)
-  }
-
-  /**
-   * Archive artifacts and notify Github about build result.
-   */
-  public static def WhenCompleted(ctx) {
-    if (!this.IsRebaseSuccessful(ctx.env.TEST_SYSTEM)) {
-      ctx.echo "Unable to rebase on target branch."
-      this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'FAILURE', 'Unable to rebase on target branch.')
-      return
-    }
-
-    ctx.archiveArtifacts artifacts: "artifacts/**", allowEmptyArchive: true
-
-    if (this.OnDemandRun) {
-      ctx.echo 'This is an on demand run. Artifacts are not stored in the cloud.'
-    } else {
-      ctx.sh String.format(
-        '%s/sssd-ci archive --name "%s" --system "%s" --artifacts "%s"',
-        "${this.CIDir}",
-        "${ctx.env.BRANCH_NAME}/${ctx.env.BUILD_ID}",
-        ctx.env.TEST_SYSTEM,
-        "${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
+        this.aws_url,
+        this.pipeline.env.BRANCH_NAME,
+        this.pipeline.env.BUILD_ID,
+        system
       )
     }
-    ctx.sh "rm -fr ${ctx.env.WORKSPACE}/artifacts/${ctx.env.TEST_SYSTEM}"
 
-    if (this.IsBuildSuccessful(ctx.env.TEST_SYSTEM)) {
-      this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'SUCCESS', 'Success.')
-      return
-    }
-
-    this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'FAILURE', 'Build failed.')
-  }
-
-  /**
-   * Notify Github that the build was aborted.
-   */
-  public static def WhenAborted(ctx) {
-    this.NotifyBuild(ctx, ctx.env.TEST_SYSTEM, 'ERROR', 'Aborted.')
+    return this.details_url
   }
 }
 
-/**
- * CI class methods cannot be called directly from the pipeline as it
- * yield 'Expected a symbol' error for some reason. This is a workaround
- * for this issue.
- */
-def CI_Setup() { CI.Setup(this) }
-def CI_RunTests() { CI.RunTests(this) }
-def CI_Post() { CI.WhenCompleted(this) }
-def CI_Aborted() { CI.WhenAborted(this) }
-def CI_Notify(status, message) { CI.Notify(this, status, message) }
-def CI_NotifyBuild(build, status, message) { CI.NotifyBuild(this, build, status, message) }
+/* Manage test run. */
+class Test {
+  def pipeline
+  String system
+  Notification notification
 
-pipeline {
-  agent none
-  options {
-    checkoutToSubdirectory('sssd')
+  String artifactsdir
+  String basedir
+  String codedir
+  String target
+
+  /* @param pipeline Jenkins pipeline context.
+   * @param system System to test on.
+   * @param notification Notification object.
+   */
+  Test(pipeline, system, notification) {
+    this.pipeline = pipeline
+    this.system = system
+    this.notification = notification
+
+    this.basedir = "/home/fedora"
+    this.target = pipeline.env.CHANGE_TARGET
   }
-  stages {
-    stage('Prepare') {
-      agent {
-        label 'master'
+
+  /* Test entry point. */
+  def run() {
+    /* These needs to be set here in order to get correct workspace. */
+    this.artifactsdir = "${this.pipeline.env.WORKSPACE}/artifacts/${this.system}"
+    this.codedir = "${this.pipeline.env.WORKSPACE}/sssd"
+
+    try {
+      this.pipeline.echo "Running on ${this.pipeline.env.NODE_NAME}"
+      this.notify('PENDING', 'Build is in progress.')
+      this.checkout()
+
+      try {
+        this.rebase()
+      } catch (e) {
+        this.pipeline.error "Unable to rebase on ${this.target}."
       }
-      steps {
-        CI_Setup()
-        CI_Notify('PENDING', 'Running tests.')
-        CI_NotifyBuild('fedora28', 'PENDING', 'Awaiting executors.')
-        CI_NotifyBuild('fedora29', 'PENDING', 'Awaiting executors.')
-        CI_NotifyBuild('fedora30', 'PENDING', 'Awaiting executors.')
-        CI_NotifyBuild('fedora-rawhide', 'PENDING', 'Awaiting executors.')
-        CI_NotifyBuild('debian10', 'PENDING', 'Awaiting executors.')
+
+      this.pipeline.echo "Executing tests, started at ${this.getCurrentTime()}"
+
+      def command = String.format(
+        '%s/sssd-test-suite -c "%s" run --sssd "%s" --artifacts "%s" --update --prune',
+        "${this.basedir}/sssd-test-suite",
+        "${this.basedir}/configs/${this.system}.json",
+        this.codedir,
+        this.artifactsdir
+      )
+
+      def rc = this.pipeline.sh script: command, returnStatus: true
+      if (rc == 255) {
+        this.pipeline.error "Timeout reached."
+      } else if (rc != 0) {
+        this.pipeline.error "Some tests failed."
       }
-    }
-    stage('Run Tests') {
-      parallel {
-        stage('Test on Fedora 28') {
-          agent {label "sssd-ci"}
-          environment { TEST_SYSTEM = "fedora28" }
-          steps { CI_RunTests() }
-          post {
-            always { CI_Post() }
-            aborted { CI_Aborted() }
-          }
-        }
-        stage('Test on Fedora 29') {
-          agent {label "sssd-ci"}
-          environment { TEST_SYSTEM = "fedora29" }
-          steps { CI_RunTests() }
-          post {
-            always { CI_Post() }
-            aborted { CI_Aborted() }
-          }
-        }
-        stage('Test on Fedora 30') {
-          agent {label "sssd-ci"}
-          environment { TEST_SYSTEM = "fedora30" }
-          steps { CI_RunTests() }
-          post {
-            always { CI_Post() }
-            aborted { CI_Aborted() }
-          }
-        }
-        stage('Test on Fedora Rawhide') {
-          agent {label "sssd-ci"}
-          environment { TEST_SYSTEM = "fedora-rawhide" }
-          steps { CI_RunTests() }
-          post {
-            always { CI_Post() }
-            aborted { CI_Aborted() }
-          }
-        }
-        stage('Test on Debian 10') {
-          agent {label "sssd-ci"}
-          environment { TEST_SYSTEM = "debian10" }
-          steps { CI_RunTests() }
-          post {
-            always { CI_Post() }
-            aborted { CI_Aborted() }
-          }
-        }
-      }
+
+      this.pipeline.echo "Finished at ${this.getCurrentTime()}"
+      this.notify('SUCCESS', 'Success.')
+    } catch (FlowInterruptedException e) {
+      this.notify('ERROR', 'Aborted.')
+      throw e
+    } catch (AbortException e) {
+      this.notify('ERROR', e.getMessage())
+      throw e
+    } catch (e) {
+      this.notify('ERROR', 'Build failed.')
+      throw e
+    } finally {
+      this.archive()
     }
   }
-  post {
-    failure {
-      CI_Notify('FAILURE', 'Some tests failed.')
+
+  def getCurrentTime() {
+    def date = new Date()
+    return date.format('dd. MM. yyyy HH:mm:ss')
+  }
+
+  def checkout() {
+    this.pipeline.dir('sssd') {
+      this.pipeline.checkout this.pipeline.scm
     }
-    aborted {
-      CI_Notify('ERROR', 'Builds were aborted.')
+  }
+
+  def rebase() {
+    /* Do not rebase if there is no target (not a pull request). */
+    if (!this.target) {
+      return
     }
-    success {
-      CI_Notify('SUCCESS', 'All tests succeeded.')
+
+    this.pipeline.echo "Rebasing on ${this.target}"
+
+    // Fetch refs
+    this.git(String.format(
+      "fetch --no-tags --progress origin +refs/heads/%s:refs/remotes/origin/%s",
+      this.target, this.target
+    ))
+
+    // Remove left overs from previous rebase if there are any
+    this.git("rebase --abort || :")
+
+    // Just to be sure
+    this.pipeline.sh "rm -fr '${this.codedir}/.git/rebase-apply' || :"
+
+    // Rebase
+    this.git("rebase origin/${this.target}")
+  }
+
+  def git(command) {
+    this.pipeline.sh "git -C '${this.codedir}' ${command}"
+  }
+
+  def archive() {
+    this.pipeline.archiveArtifacts artifacts: "artifacts/**",
+      allowEmptyArchive: true
+
+    this.pipeline.sh String.format(
+      '%s/sssd-ci archive --name "%s" --system "%s" --artifacts "%s"',
+      "${this.basedir}/sssd-ci",
+      "${pipeline.env.BRANCH_NAME}/${pipeline.env.BUILD_ID}",
+      this.system,
+      "${artifactsdir}"
+    )
+
+    this.pipeline.sh "rm -fr ${this.artifactsdir}"
+  }
+
+  def notify(status, message) {
+    this.notification.notify(status, message, this.system)
+  }
+}
+
+/* Manage test run for on demand test. */
+class OnDemandTest extends Test {
+  String repo
+  String branch
+
+  /* @param pipeline Jenkins pipeline context.
+   * @param system System to test on.
+   * @param notification Notification object.
+   * @param repo Repository fetch URL.
+   * @param branch Branch to checkout.
+   */
+  OnDemandTest(pipeline, system, notification, repo, branch) {
+    super(pipeline, system, notification)
+
+    this.repo = repo
+    this.branch = branch
+  }
+
+  def run() {
+    this.pipeline.echo "Repository: ${this.repo}"
+    this.pipeline.echo "Branch: ${this.branch}"
+
+    super.run()
+  }
+
+  def checkout() {
+    this.pipeline.dir('sssd') {
+      this.pipeline.git branch: this.branch, url: this.repo
     }
+  }
+
+  def rebase() {
+    /* Do nothing. */
+  }
+
+  def archive() {
+    this.pipeline.echo 'On demand run. Artifacts are not stored in the cloud.'
+  }
+}
+
+def on_demand = params.ON_DEMAND ? true : false
+def notification = new Notification(
+  this, 'sssd-ci',
+  'https://github.com/SSSD/sssd/blob/master/contrib/test-suite/README.md',
+  'https://s3.eu-central-1.amazonaws.com/sssd-ci',
+  on_demand
+)
+
+try {
+  /* Setup nice build description so pull request are easy to find. */
+  stage('Setup description') {
+    node('master') {
+      if (on_demand) {
+        /* user: branch */
+        def build = currentBuild.rawBuild
+        def cause = build.getCause(hudson.model.Cause.UserIdCause.class)
+        def user = cause.getUserId()
+        currentBuild.description = "${user}: ${params.REPO_BRANCH}"
+      } else {
+        if (env.CHANGE_TARGET) {
+          /* PR XXX: pull request name */
+          def title = sh returnStdout: true, script: """
+            curl -s https://api.github.com/repos/SSSD/sssd/pulls/${env.CHANGE_ID} | \
+            python -c "import sys, json; print(json.load(sys.stdin).get('title'))"
+          """
+          currentBuild.description = "PR ${env.CHANGE_ID}: ${title}"
+        } else {
+          /* Branch: name */
+          currentBuild.description = "Branch: ${env.BRANCH_NAME}"
+        }
+      }
+    }
+  }
+
+  stage('Prepare systems') {
+    /* Notify that all systems are pending. */
+    for (system in systems) {
+      notification.notify('PENDING', 'Awaiting executor', system)
+    }
+  }
+
+  /* Run tests on multiple systems in parallel. */
+  stage('Run Tests') {
+    def stages = [:]
+    for (system in systems) {
+      def test = null
+      if (!on_demand) {
+        test = new Test(this, system, notification)
+      } else {
+        test = new OnDemandTest(
+            this, system, notification,
+            params.REPO_URL, params.REPO_BRANCH
+        )
+      }
+      stages.put("${system}", {
+        node("sssd-ci") {
+          stage("${system}") {
+            test.run()
+          }
+        }
+      })
+    }
+    parallel(stages)
+  }
+  stage('Report results') {
+    notification.notify('SUCCESS', 'All tests succeeded.')
+  }
+} catch (FlowInterruptedException e) {
+  stage('Report results') {
+    notification.notify('ERROR', 'Aborted.')
+    throw e
+  }
+} catch (e) {
+  stage('Report results') {
+    notification.notify('ERROR', 'Some tests failed.')
+    throw e
   }
 }
