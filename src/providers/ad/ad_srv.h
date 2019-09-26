@@ -31,7 +31,8 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
                        struct sdap_options *opts,
                        const char *hostname,
                        const char *ad_domain,
-                       const char *ad_site_override);
+                       const char *ad_site_override,
+                       bool ad_use_ldaps);
 
 struct tevent_req *ad_srv_plugin_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
