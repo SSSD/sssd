@@ -148,6 +148,8 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     const char *sasl_mech;
     int sasl_minssf;
     ber_len_t ber_sasl_minssf;
+    int sasl_maxssf;
+    ber_len_t ber_sasl_maxssf;
 
     ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
     talloc_zfree(subreq);
@@ -288,6 +290,18 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
             if (lret != LDAP_OPT_SUCCESS) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set LDAP MIN SSF option "
                                             "to %d\n", sasl_minssf);
+                goto fail;
+            }
+        }
+
+        sasl_maxssf = dp_opt_get_int(state->opts->basic, SDAP_SASL_MAXSSF);
+        if (sasl_maxssf >= 0) {
+            ber_sasl_maxssf = (ber_len_t)sasl_maxssf;
+            lret = ldap_set_option(state->sh->ldap, LDAP_OPT_X_SASL_SSF_MAX,
+                                   &ber_sasl_maxssf);
+            if (lret != LDAP_OPT_SUCCESS) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set LDAP MAX SSF option "
+                                            "to %d\n", sasl_maxssf);
                 goto fail;
             }
         }

@@ -613,6 +613,22 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_sasl_maxssf (integer)</term>
+                    <listitem>
+                        <para>
+                            When communicating with an LDAP server using SASL,
+                            specify the maximal security level necessary to
+                            establish the connection. The values of this
+                            option are defined by OpenLDAP.
+                        </para>
+                        <para>
+                            Default: Use the system default (usually specified
+                            by ldap.conf)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_deref_threshold (integer)</term>
                     <listitem>
                         <para>
