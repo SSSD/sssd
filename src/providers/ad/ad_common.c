@@ -1021,6 +1021,23 @@ done:
     return;
 }
 
+void ad_set_ssf_for_ldaps(struct sdap_options *id_opts)
+{
+    int ret;
+
+    DEBUG(SSSDBG_TRACE_ALL, "Setting ssf for ldaps usage.\n");
+    ret = dp_opt_set_int(id_opts->basic, SDAP_SASL_MINSSF, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set SASL minssf for ldaps usage, ignored.\n");
+    }
+    ret = dp_opt_set_int(id_opts->basic, SDAP_SASL_MAXSSF, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set SASL maxssf for ldaps usage, ignored.\n");
+    }
+}
+
 static errno_t
 ad_set_sdap_options(struct ad_options *ad_opts,
                     struct sdap_options *id_opts)
@@ -1077,6 +1094,10 @@ ad_set_sdap_options(struct ad_options *ad_opts,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot set the SASL-related options\n");
         goto done;
+    }
+
+    if (dp_opt_get_bool(ad_opts->basic, AD_USE_LDAPS)) {
+        ad_set_ssf_for_ldaps(id_opts);
     }
 
     /* Warn if the user is doing something silly like overriding the schema

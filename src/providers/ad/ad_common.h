@@ -182,6 +182,8 @@ errno_t
 ad_get_dyndns_options(struct be_ctx *be_ctx,
                       struct ad_options *ad_opts);
 
+void ad_set_ssf_for_ldaps(struct sdap_options *id_opts);
+
 struct ad_id_ctx *
 ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx);
 

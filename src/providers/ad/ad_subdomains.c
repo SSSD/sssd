@@ -328,6 +328,10 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
         return ret;
     }
 
+    if (dp_opt_get_bool(ad_options->basic, AD_USE_LDAPS)) {
+        ad_set_ssf_for_ldaps(ad_options->id);
+    }
+
     ret = ad_inherit_opts_if_needed(id_ctx->sdap_id_ctx->opts->basic,
                                     ad_options->id->basic,
                                     be_ctx->cdb, subdom_conf_path,
