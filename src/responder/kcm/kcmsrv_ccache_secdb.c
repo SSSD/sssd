@@ -560,7 +560,7 @@ static errno_t ccdb_secdb_init(struct kcm_ccdb *db,
 
     kcm_section_quota[0] = talloc_zero(kcm_section_quota,
                                        struct sss_sec_hive_config);
-    if (kcm_section_quota == NULL) {
+    if (kcm_section_quota[0] == NULL) {
         talloc_free(secdb);
         return ENOMEM;
     }
