@@ -7,6 +7,7 @@ from setuptools import setup
 REQUIRES = [
     'paramiko',
     'PyYAML',
+    'python-ldap',
     'pytest_multihost',
     'pytest']
 
