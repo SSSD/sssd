@@ -526,6 +526,7 @@ struct sdap_options {
     bool support_matching_rule;
     enum dc_functional_level dc_functional_level;
     const char *schema_basedn;
+    bool allow_remote_domain_local_groups;
 
     /* Certificate mapping support */
     struct sdap_certmap_ctx *sdap_certmap_ctx;
