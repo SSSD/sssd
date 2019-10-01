@@ -1106,6 +1106,55 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_allow_remote_domain_local_groups (boolean)</term>
+                    <listitem>
+                        <para>
+                            If this option is set to <quote>true</quote> SSSD
+                            will not filter out Domain Local groups from remote
+                            domains in the AD forest. By default they are
+                            filtered out e.g. when following a nested group
+                            hierarchy in remote domains because they are not
+                            valid in the local domain. To be compatible with
+                            other solutions which make AD users and groups
+                            available on Linux client this option was added.
+                        </para>
+                        <para>
+                            Please note that setting this option to
+                            <quote>true</quote> will be against the intention of
+                            Domain Local group in Active Directory and
+                            <emphasis>SHOULD ONLY BE USED TO FACILITATE
+                            MIGRATION FROM OTHER SOLUTIONS</emphasis>. Although
+                            the group exists and user can be member of the group
+                            the intention is that the group should be only used
+                            in the domain it is defined and in no others. Since
+                            there is only one type of POSIX groups the only way
+                            to achieve this on the Linux side is to ignore those
+                            groups. This is also done by Active Directory as can
+                            be seen in the PAC of the Kerberos ticket for a
+                            local service or in tokenGroups requests where
+                            remote Domain Local groups are missing as well.
+                        </para>
+                        <para>
+                            Given the comments above, if this option is set to
+                            <quote>true</quote> the tokenGroups request must be
+                            disabled by setting
+                            <quote>ldap_use_tokengroups</quote> to
+                            <quote>false</quote> to get consistent
+                            group-memberships of a users. Additionally the
+                            Global Catalog lookup should be skipped as well by
+                            setting <quote>ad_enable_gc</quote> to
+                            <quote>false</quote>. Finally it might be necessary
+                            to modify <quote>ldap_group_nesting_level</quote> if
+                            the remote Domain Local groups can only be found
+                            with a deeper nesting level.
+                        </para>
+                        <para>
+                            Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>
