@@ -58,6 +58,7 @@ struct dp_option ad_basic_opts[] = {
     { "ad_machine_account_password_renewal_opts", DP_OPT_STRING, { "86400:750" }, NULL_STRING },
     { "ad_update_samba_machine_account_password", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ad_use_ldaps", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ad_allow_remote_domain_local_groups", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     DP_OPTION_TERMINATOR
 };
 

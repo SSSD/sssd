@@ -322,6 +322,7 @@ class SSSDOptions(object):
         'ad_update_samba_machine_account_password': _('Whether to update the machine account password in the Samba '
                                                       'database'),
         'ad_use_ldaps': _('Use LDAPS port for LDAP and Global Catalog requests'),
+        'ad_allow_remote_domain_local_groups' : _('Do not filter domain local groups from other domains'),
 
         # [provider/krb5]
         'krb5_kdcip': _('Kerberos server address'),
