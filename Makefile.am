@@ -5476,7 +5476,7 @@ dist_noinst_DATA += \
     COPYING \
     src/tests/multihost/basic/conftest.py \
     src/tests/multihost/basic/mhc.yaml \
-    src/tests/multihost/basic/README \
+    src/tests/multihost/basic/README.md \
     src/tests/multihost/basic/test_basic.py \
     src/tests/multihost/basic/test_config.py \
     src/tests/multihost/basic/test_files.py \
