@@ -248,7 +248,7 @@ ndr_pull_security_ace_object_ctr(struct ndr_pull *ndr,
     return NDR_ERR_SUCCESS;
 }
 
-static enum ndr_err_code
+enum ndr_err_code
 ndr_pull_dom_sid(struct ndr_pull *ndr,
                  int ndr_flags,
                  struct dom_sid *r)
