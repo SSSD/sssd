@@ -41,6 +41,7 @@ probe sdap_search_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sd
     } else {
         filter = user_string($arg3);
     }
+    attrs = __get_argv($arg4, 0);
 
     probestr = sprintf("-> search base [%s] scope [%d] filter [%s]",
                        base, scope, filter);

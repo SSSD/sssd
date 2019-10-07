@@ -1398,7 +1398,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     state->serverctrls[i] = NULL;
 
     PROBE(SDAP_GET_GENERIC_EXT_SEND, state->search_base,
-          state->scope, state->filter);
+          state->scope, state->filter, state->attrs);
 
     ret = sdap_get_generic_ext_step(req);
     if (ret != EOK) {
