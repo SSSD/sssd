@@ -191,14 +191,14 @@ errno_t sysdb_store_selinux_config(struct sss_domain_info *domain,
     errno_t ret;
     struct sysdb_attrs *attrs;
 
+    if (order == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "The SELinux order is missing\n");
+        return EINVAL;
+    }
+
     attrs = talloc_zero(NULL, struct sysdb_attrs);
     if (attrs == NULL) {
         return ENOMEM;
-    }
-
-    if (!order) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "The SELinux order is missing\n");
-        return EINVAL;
     }
 
     if (default_user) {
