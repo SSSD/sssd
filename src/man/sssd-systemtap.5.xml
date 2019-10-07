@@ -152,6 +152,7 @@ probestr:string
 base:string
 scope:integer
 filter:string
+attrs:string
 probestr:string
                         </programlisting>
                     </listitem>

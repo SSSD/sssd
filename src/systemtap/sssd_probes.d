@@ -18,7 +18,8 @@ provider sssd {
     probe sdap_search_user_save_end(const char *filter);
     probe sdap_search_user_recv(const char *filter);
 
-    probe sdap_get_generic_ext_send(const char *base, int scope, const char *filter);
+    probe sdap_get_generic_ext_send(const char *base, int scope,
+                                    const char *filter, const char **attrs);
     probe sdap_get_generic_ext_recv(const char *base, int scope, const char *filter);
 
     probe sdap_deref_search_send(const char *base_dn, const char *deref_attr);
