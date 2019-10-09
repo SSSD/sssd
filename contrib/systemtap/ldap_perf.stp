@@ -1,0 +1,114 @@
+/* Start Run with:
+ *
+ *   stap ldap_perf.stp
+ *
+ * Then reproduce slow operation in another terminal.
+ * Ctrl-C running stap once login completes.
+ *
+ * This script watches all sssd_be processes. This can be limited by
+ * specifying sssd_be process id
+ *
+ *   stap -G sssd_be_pid=1234 ldap_perf.stp
+ *
+ * Probe tapsets are in /usr/share/systemtap/tapset/sssd.stp
+ */
+
+global start_time;
+global sdap_attributes;
+global query_attributes;
+global sssd_be_pid=0;
+
+global slowest_request_time;
+global slowest_request_filter;
+global slowest_request_scope;
+global slowest_request_base;
+global slowest_request_attrs;
+
+probe begin
+{
+    printf("===== ldap queries probe started =====\n");
+    id = pid();
+    start_time[id] = gettimeofday_us();
+    query_attributes[id] = "";
+    slowest_request_time = 0;
+    slowest_request_filter = "";
+    slowest_request_scope = 0;
+    slowest_request_base = "";
+    slowest_request_attrs = "";
+}
+
+probe sdap_parse_entry
+{
+    id = pid();
+    if (sssd_be_pid == 0 || sssd_be_pid == id) {
+        idx = 0;
+        while ([id, attr, idx] in sdap_attributes) {
+            idx++;
+        }
+        sdap_attributes[id, attr, idx] = value;
+    }
+}
+
+probe sdap_parse_entry_done
+{
+    id = pid();
+    if (sssd_be_pid == 0 || sssd_be_pid == id) {
+        dn = sdap_attributes[id, "OriginalDN", 0];
+        printf("[%d] <- dn: %s\n", id, dn);
+        delete sdap_attributes[id, "OriginalDN", *];
+        foreach ([x, attr, idx] in sdap_attributes[id,*,*]) {
+            printf("[%d] <- %s: %s\n", id, attr, sdap_attributes[x, attr, idx]);
+        }
+        delete sdap_attributes[id, *, *];
+    }
+}
+
+probe sdap_search_send
+{
+    id = pid();
+    if (sssd_be_pid == 0 || sssd_be_pid == id) {
+	    printf("[%d] -> ldap request: basedn '%s', scope %d, filter '%s'\n",
+               id, base, scope, filter);
+        printf("[%d] -> attrs: %s\n", id, attrs);
+        query_attributes[id] = attrs;
+        start_time[id] = gettimeofday_ms();
+        delete sdap_attributes[id, *, *];
+	}
+}
+
+
+probe sdap_search_recv
+{
+    id = pid();
+    if (sssd_be_pid == 0 || sssd_be_pid == id) {
+        delta = gettimeofday_ms() - start_time[id];
+	    printf("[%d] ldap response to request: basedn '%s', scope %d, filter '%s'\n",
+               id, base, scope, filter);
+        printf("[%d] took: %d ms\n", id, delta);
+        printf("[%d]--------------------------------------------------\n", id);
+
+        if (slowest_request_time < delta) {
+            slowest_request_time = delta;
+            slowest_request_base = base;
+            slowest_request_scope = scope;
+            slowest_request_filter = filter;
+            slowest_request_attrs = query_attributes[id];
+        }
+    }
+}
+
+probe process("/usr/libexec/sssd/sssd_be").end
+{
+    printf("done\n");
+}
+
+probe end
+{
+    printf("\n===== slowest ldap request =====\n");
+    printf("base: '%s'\nscope: %d\nfilter: '%s'\nattrs: %s\ntook: %d ms\n",
+           slowest_request_base,
+           slowest_request_scope,
+           slowest_request_filter,
+           slowest_request_attrs,
+           slowest_request_time);
+}
