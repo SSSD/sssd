@@ -173,6 +173,31 @@ probestr:string
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>probe sdap_parse_entry</term>
+                    <listitem>
+                        <para>
+                            Probes the sdap_parse_entry()
+                            function. It is called repeatedly
+                            with every received attribute.
+                        </para>
+                        <programlisting>
+attr:string
+value:string
+                        </programlisting>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>probe sdap_parse_entry_done</term>
+                    <listitem>
+                        <para>
+                            Probes the sdap_parse_entry()
+                            function. It is called when
+                            parsing of received object is
+                            finished.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>probe sdap_deref_send</term>
                     <listitem>
                         <para>
