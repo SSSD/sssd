@@ -61,6 +61,17 @@ probe sdap_search_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sd
                        base, scope, filter);
 }
 
+probe sdap_parse_entry = process("/usr/lib64/sssd/libsss_ldap_common.so").mark("sdap_parse_entry")
+{
+    attr = user_string($arg1);
+    value = user_string_n($arg2, $arg3);
+}
+
+probe sdap_parse_entry_done = process("/usr/lib64/sssd/libsss_ldap_common.so").mark("sdap_parse_entry_done")
+{
+   # No arguments
+}
+
 probe sdap_deref_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_deref_search_send")
 {
     base_dn = user_string($arg1);
