@@ -25,6 +25,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_range.h"
+#include "util/probes.h"
 
 /* =Retrieve-Options====================================================== */
 
@@ -433,6 +434,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     }
 
     DEBUG(SSSDBG_TRACE_LIBS, "OriginalDN: [%s].\n", str);
+    PROBE(SDAP_PARSE_ENTRY, "OriginalDN", str, strlen(str));
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
     ldap_memfree(str);
     if (ret) goto done;
@@ -570,6 +572,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                         v.data = (uint8_t *)vals[i]->bv_val;
                         v.length = vals[i]->bv_len;
                     }
+                    PROBE(SDAP_PARSE_ENTRY, str, v.data, v.length);
 
                     if (map) {
                         /* The same LDAP attr might be used for more sysdb
@@ -619,6 +622,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         goto done;
     }
 
+    PROBE(SDAP_PARSE_ENTRY_DONE);
     *_attrs = talloc_steal(memctx, attrs);
     ret = EOK;
 
