@@ -23,6 +23,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -43,27 +44,16 @@
 static void close_low_fds(void)
 {
 #ifndef VALGRIND
-    int fd;
-    int i;
-
-    close(0);
-    close(1);
-    close(2);
-
     /* try and use up these file descriptors, so silly
        library routines writing to stdout etc. won't cause havoc */
-    for (i = 0; i < 3; i++) {
-        fd = open("/dev/null", O_RDWR, 0);
-        if (fd < 0)
-            fd = open("/dev/null", O_WRONLY, 0);
-        if (fd < 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Can't open /dev/null\n");
-            return;
-        }
-        if (fd != i) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Didn't get file descriptor %d\n",i);
-            return;
-        }
+    if (freopen ("/dev/null", "r", stdin) == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Can't freopen() stdin to /dev/null\n");
+    }
+    if (freopen ("/dev/null", "w", stdout) == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Can't freopen() stdout to /dev/null\n");
+    }
+    if (freopen ("/dev/null", "w", stderr) == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Can't freopen() stderr to /dev/null\n");
     }
 #endif
 }
