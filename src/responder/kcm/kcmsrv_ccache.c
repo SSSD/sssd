@@ -82,7 +82,7 @@ errno_t kcm_cc_new(TALLOC_CTX *mem_ctx,
 
     cc->owner.uid = cli_creds_get_uid(owner);
     cc->owner.gid = cli_creds_get_gid(owner);
-    cc->kdc_offset = INT32_MAX;
+    cc->kdc_offset = 0;
 
     talloc_set_destructor(cc, kcm_cc_destructor);
     *_cc = cc;
