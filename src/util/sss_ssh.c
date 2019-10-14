@@ -232,6 +232,7 @@ sss_ssh_print_pubkey(struct sss_ssh_pubkey *pubkey)
         DEBUG(SSSDBG_OP_FAILURE,
               "sss_ssh_format_pubkey() failed (%d): %s\n",
               ret, strerror(ret));
+        sss_log(SSS_LOG_ERR, "SSH key is malformed: %s\n", strerror(ret));
         goto end;
     }
 
