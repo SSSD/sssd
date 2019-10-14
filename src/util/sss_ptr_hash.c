@@ -136,7 +136,7 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
 {
     struct sss_ptr_hash_delete_data *data;
     struct sss_ptr_hash_value *value;
-    void *ptr;
+    struct hash_entry_t callback_entry;
 
     data = talloc_get_type(pvt, struct sss_ptr_hash_delete_data);
     if (data == NULL) {
@@ -150,16 +150,17 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
         return;
     }
 
-    ptr = value->ptr;
-
-    /* Free value. */
-    talloc_free(value);
+    callback_entry.key = item->key;
+    callback_entry.value.type = HASH_VALUE_PTR;
+    callback_entry.value.ptr = value->ptr;
 
     /* Switch to the input value and call custom callback. */
     if (data->callback != NULL) {
-        item->value.ptr = ptr;
-        data->callback(item, deltype, data->pvt);
+        data->callback(&callback_entry, deltype, data->pvt);
     }
+
+    /* Free value. */
+    talloc_free(value);
 }
 
 hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
