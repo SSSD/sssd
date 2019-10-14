@@ -2195,6 +2195,9 @@ libsss_test_common_la_LIBADD = \
     $(LDB_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
+if BUILD_SYSTEMTAP
+libsss_test_common_la_LIBADD += stap_generated_probes.lo
+endif
 
 if HAVE_CHECK
 libsss_test_common_la_SOURCES += \
