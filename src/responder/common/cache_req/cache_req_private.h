@@ -40,9 +40,10 @@ struct cache_req {
 
     /* Domain related information. */
     struct sss_domain_info *domain;
-    bool cache_first;
-    bool bypass_cache;
-    bool bypass_dp;
+
+    /* wanted cache behavior */
+    enum cache_req_behavior cache_behavior;
+
     /* Only contact domains with this type */
     enum cache_req_dom_type req_dom_type;
 
@@ -105,8 +106,8 @@ struct tevent_req *
 cache_req_search_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct cache_req *cr,
-                      bool bypass_cache,
-                      bool bypass_dp);
+                      bool first_iteration,
+                      bool cache_only_override);
 
 errno_t cache_req_search_recv(TALLOC_CTX *mem_ctx,
                               struct tevent_req *req,
