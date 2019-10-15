@@ -301,12 +301,14 @@ struct tevent_req *
 cache_req_search_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct cache_req *cr,
-                      bool bypass_cache,
-                      bool bypass_dp)
+                      bool first_iteration,
+                      bool cache_only_override)
 {
     struct cache_req_search_state *state;
     enum cache_object_status status;
     struct tevent_req *req;
+    bool bypass_cache = false;
+    bool bypass_dp = false;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct cache_req_search_state);
@@ -323,6 +325,25 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
     ret = cache_req_search_ncache(cr);
     if (ret != EOK) {
         goto done;
+    }
+
+    if (cache_only_override) {
+        bypass_dp = true;
+    } else {
+        switch (cr->cache_behavior) {
+        case CACHE_REQ_CACHE_FIRST:
+            bypass_cache = first_iteration ? false : true;
+            bypass_dp = first_iteration ? true : false;
+            break;
+        case CACHE_REQ_BYPASS_CACHE:
+            bypass_cache = true;
+            break;
+        case CACHE_REQ_BYPASS_PROVIDER:
+            bypass_dp = true;
+            break;
+        default:
+            break;
+        }
     }
 
     /* If bypass_cache is enabled we always contact data provider before

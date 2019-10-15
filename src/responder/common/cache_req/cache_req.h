@@ -80,6 +80,17 @@ enum cache_req_dom_type {
     CACHE_REQ_ANY_DOM
 };
 
+/* Controls behavior about how to use cached information during
+ * a lookup, this is to fine tune some behaviors for specific
+ * situations
+ */
+enum cache_req_behavior {
+    CACHE_REQ_NORMAL,
+    CACHE_REQ_CACHE_FIRST,
+    CACHE_REQ_BYPASS_CACHE,
+    CACHE_REQ_BYPASS_PROVIDER,
+};
+
 /* Input data. */
 
 struct cache_req_data;
