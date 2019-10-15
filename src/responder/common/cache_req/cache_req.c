@@ -127,6 +127,7 @@ cache_req_create(TALLOC_CTX *mem_ctx,
                  enum cache_req_dom_type req_dom_type)
 {
     struct cache_req *cr;
+    bool bypass_cache;
     errno_t ret;
 
     cr = talloc_zero(mem_ctx, struct cache_req);
@@ -150,14 +151,21 @@ cache_req_create(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    cr->cache_first = rctx->cache_first;
-    cr->bypass_cache = cr->plugin->bypass_cache || cr->data->bypass_cache;
-    cr->bypass_dp = cr->data->bypass_dp;
-    if (cr->bypass_cache && cr->bypass_dp) {
+    bypass_cache = cr->plugin->bypass_cache || cr->data->bypass_cache;
+    if (bypass_cache && cr->data->bypass_dp) {
         CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                         "Cannot bypass cache and dp at the same time!");
         talloc_free(cr);
         return NULL;
+    }
+    if (rctx->cache_first) {
+        cr->cache_behavior = CACHE_REQ_CACHE_FIRST;
+    }
+    /* it is ok to override cache_first here */
+    if (bypass_cache) {
+        cr->cache_behavior = CACHE_REQ_BYPASS_CACHE;
+    } else if (cr->data->bypass_dp) {
+        cr->cache_behavior = CACHE_REQ_BYPASS_PROVIDER;
     }
 
     return cr;
@@ -499,8 +507,8 @@ static struct tevent_req *cache_req_locate_dom_send(TALLOC_CTX *mem_ctx,
     subreq = cache_req_search_send(state,
                                    state->ev,
                                    state->cr,
-                                   false,       /* Don't bypass cache */
-                                   true);       /* Do bypass DP */
+                                   false,
+                                   true);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -683,8 +691,8 @@ struct cache_req_search_domains_state {
     size_t num_results;
     bool check_next;
     bool dp_success;
-    bool bypass_cache;
-    bool bypass_dp;
+    bool first_iteration;
+    enum cache_req_behavior cache_behavior;
 };
 
 static errno_t cache_req_search_domains_next(struct tevent_req *req);
@@ -701,9 +709,7 @@ cache_req_search_domains_send(TALLOC_CTX *mem_ctx,
                               struct cache_req *cr,
                               struct cache_req_domain *cr_domain,
                               bool check_next,
-                              bool first_iteration,
-                              bool bypass_cache,
-                              bool bypass_dp)
+                              bool first_iteration)
 {
     struct tevent_req *req;
     struct cache_req_search_domains_state *state = NULL;
@@ -723,12 +729,12 @@ cache_req_search_domains_send(TALLOC_CTX *mem_ctx,
     state->req_domains = cr_domain;
     state->check_next = check_next;
     state->dp_success = true;
-    state->bypass_cache = bypass_cache;
-    state->bypass_dp = bypass_dp;
+    state->first_iteration = first_iteration;
 
     if (cr->plugin->dp_get_domain_send_fn != NULL
             && ((state->check_next && cr_domain->next != NULL)
-                || (state->bypass_cache && !first_iteration))) {
+                || ((state->cr->cache_behavior == CACHE_REQ_CACHE_FIRST)
+                    && !first_iteration))) {
         /* If the request is not qualified with a domain name AND
          * there are multiple domains to search OR if this is the second
          * pass during the "check-cache-first" schema, it makes sense
@@ -820,7 +826,8 @@ static errno_t cache_req_search_domains_next(struct tevent_req *req)
         }
 
         subreq = cache_req_search_send(state, state->ev, cr,
-                                       state->bypass_cache, state->bypass_dp);
+                                       state->first_iteration,
+                                       false);
         if (subreq == NULL) {
             return ENOMEM;
         }
@@ -1024,66 +1031,6 @@ cache_req_search_domains_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-/**
- * Return true if we should issue another search.
- */
-static bool cache_req_search_schema(struct cache_req *cr,
-                                    const char *input_domain,
-                                    bool first_iteration,
-                                    bool *_bypass_cache,
-                                    bool *_bypass_dp)
-{
-    bool bypass_cache;
-    bool bypass_dp;
-
-    if (cr->bypass_cache) {
-        /* The caller wants to contact Data Provider first
-         * or it is inferred by cache_req plug-in. */
-        bypass_cache = true;
-        bypass_dp = false;
-
-        if (!first_iteration) {
-            return false;
-        }
-    } else if (cr->bypass_dp) {
-        /* The caller wants to lookup only in the cache */
-        bypass_cache = false;
-        bypass_dp = true;
-
-        if (!first_iteration) {
-            return false;
-        }
-    } else if (input_domain != NULL) {
-        /* We will search only one domain. */
-        bypass_cache = false;
-        bypass_dp = false;
-
-        if (!first_iteration) {
-            return false;
-        }
-     } else if (!cr->cache_first) {
-        /* We will search cache and on cache-miss
-         * contact domain provider sequentially. */
-        bypass_cache = false;
-        bypass_dp = false;
-
-        if (!first_iteration) {
-            return false;
-        }
-    } else {
-        /* We will first search the cache in all domains. If we don't get
-         * any match we will then contact Data Provider starting with the
-         * first domain again. */
-        bypass_cache = first_iteration ? false : true;
-        bypass_dp = first_iteration ? true : false;
-    }
-
-    *_bypass_cache = bypass_cache;
-    *_bypass_dp = bypass_dp;
-
-    return true;
-}
-
 struct cache_req_state {
     /* input data */
     struct tevent_context *ev;
@@ -1117,9 +1064,7 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
 static errno_t
 cache_req_search_domains(struct tevent_req *req,
                          struct cache_req_domain *oredered_domain,
-                         bool check_next,
-                         bool bypass_cache,
-                         bool bypass_dp);
+                         bool check_next);
 
 static void cache_req_process_result(struct tevent_req *subreq);
 
@@ -1343,19 +1288,17 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
     struct cache_req_state *state = NULL;
     struct cache_req_domain *cr_domain;
     bool check_next;
-    bool bypass_cache;
-    bool bypass_dp;
-    bool search;
     errno_t ret;
 
     state = tevent_req_data(req, struct cache_req_state);
 
-    search = cache_req_search_schema(state->cr, domain_name,
-                                     state->first_iteration,
-                                     &bypass_cache, &bypass_dp);
-    if (!search) {
-        /* We're done here. */
-        return EOK;
+    if ((state->cr->cache_behavior != CACHE_REQ_CACHE_FIRST)
+        || (domain_name != NULL)) {
+
+        if (!state->first_iteration) {
+            /* We're done here. */
+            return EOK;
+        }
     }
 
     ret = cache_req_domain_copy_cr_domains(state,
@@ -1384,31 +1327,46 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
         check_next = true;
     }
 
-    return cache_req_search_domains(req, cr_domain, check_next,
-                                    bypass_cache, bypass_dp);
+    return cache_req_search_domains(req, cr_domain, check_next);
 }
 
 static errno_t
 cache_req_search_domains(struct tevent_req *req,
                          struct cache_req_domain *cr_domain,
-                         bool check_next,
-                         bool bypass_cache,
-                         bool bypass_dp)
+                         bool check_next)
 {
     struct tevent_req *subreq;
     struct cache_req_state *state = NULL;
+    const char *cache_action;
+    const char *provider_action;
 
     state = tevent_req_data(req, struct cache_req_state);
 
+    switch (state->cr->cache_behavior) {
+    case CACHE_REQ_CACHE_FIRST:
+        cache_action = (state->first_iteration) ? "check" : "bypass";
+        provider_action = (state->first_iteration) ? "bypass" : "check";
+        break;
+    case CACHE_REQ_BYPASS_CACHE:
+        cache_action = "bypass";
+        provider_action = "check";
+        break;
+    case CACHE_REQ_BYPASS_PROVIDER:
+        cache_action = "check";
+        provider_action = "bypass";
+        break;
+    default:
+        cache_action = "check";
+        provider_action = "check";
+        break;
+    }
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                     "Search will %s the cache and %s the data provider\n",
-                    bypass_cache ? "bypass" : "check",
-                    bypass_dp ? "bypass" : "check");
+                    cache_action, provider_action);
 
     subreq = cache_req_search_domains_send(state, state->ev, state->cr,
                                            cr_domain, check_next,
-                                           state->first_iteration,
-                                           bypass_cache, bypass_dp);
+                                           state->first_iteration);
     if (subreq == NULL) {
         return ENOMEM;
     }
