@@ -823,7 +823,7 @@ int main(int argc, const char **argv)
     /* interactive mode to fill in user information */
     if (sctx->interact == true) {
         if (sctx->user_cached == true) {
-            ERROR(_("User entry already exists in the cache.\n"));
+            ERROR("User entry already exists in the cache.\n");
             ret = EEXIST;
             goto done;
         } else {
@@ -871,10 +871,10 @@ int main(int argc, const char **argv)
         goto done;
     } else {
         if (sctx->user_cached == false) {
-            printf(_("User cache entry created for %1$s\n"), sctx->uctx->name);
+            PRINT("User cache entry created for %1$s\n", sctx->uctx->name);
         }
-        printf(_("Temporary password added to cache entry for %1$s\n"),
-                 sctx->uctx->name);
+        PRINT("Temporary password added to cache entry for %1$s\n",
+              sctx->uctx->name);
     }
 
 done:

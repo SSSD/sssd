@@ -51,7 +51,7 @@ static errno_t sssctl_systemd_call(systemd_method method)
 
     conn = sbus_sync_connect_system(tmp_ctx, NULL);
     if (conn == NULL) {
-        fprintf(stderr, _("Unable to connect to system bus!\n"));
+        ERROR("Unable to connect to system bus!\n");
         ret = EIO;
         goto done;
     }
