@@ -75,7 +75,7 @@ sssctl_prompt(const char *message,
         while ((c = getchar()) != '\n' && c != EOF);
 
         if (ret != 1) {
-            fprintf(stderr, _("Unable to read user input\n"));
+            ERROR("Unable to read user input\n");
             return SSSCTL_PROMPT_ERROR;
         }
 
@@ -88,8 +88,8 @@ sssctl_prompt(const char *message,
             return SSSCTL_PROMPT_NO;
         }
 
-        fprintf(stderr, _("Invalid input, please provide either "
-                "'%s' or '%s'.\n"), yes, no);
+        ERROR("Invalid input, please provide either "
+              "'%s' or '%s'.\n", yes, no);
 
         attempts++;
     } while (attempts < 3);
@@ -106,12 +106,12 @@ errno_t sssctl_run_command(const char *command)
     ret = system(command);
     if (ret == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to execute %s\n", command);
-        fprintf(stderr, _("Error while executing external command\n"));
+        ERROR("Error while executing external command\n");
         return EFAULT;
     } else if (WEXITSTATUS(ret) != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Command %s failed with [%d]\n",
               command, WEXITSTATUS(ret));
-        fprintf(stderr, _("Error while executing external command\n"));
+        ERROR("Error while executing external command\n");
         return EIO;
     }
 

@@ -612,26 +612,26 @@ static void print_group_info(struct group_info *g, unsigned level)
     snprintf(fmt, 8, "%%%ds", level*PADDING_SPACES);
     snprintf(padding, 512, fmt, "");
 
-    printf(_("%1$s%2$sGroup: %3$s\n"), padding,
-                                 g->mpg ? _("Magic Private ") : "",
-                                 g->name);
-    printf(_("%1$sGID number: %2$d\n"), padding, g->gid);
+    PRINT("%1$s%2$sGroup: %3$s\n", padding,
+          g->mpg ? _("Magic Private ") : "",
+          g->name);
+    PRINT("%1$sGID number: %2$d\n", padding, g->gid);
 
-    printf(_("%1$sMember users: "), padding);
+    PRINT("%1$sMember users: ", padding);
     if (g->user_members) {
         for (i=0; g->user_members[i]; ++i) {
             printf("%s%s", i>0 ? "," : "",
                            g->user_members[i]);
         }
     }
-    printf(_("\n%1$sIs a member of: "), padding);
+    PRINT("\n%1$sIs a member of: ", padding);
     if (g->memberofs) {
         for (i=0; g->memberofs[i]; ++i) {
             printf("%s%s", i>0 ? "," : "",
                            g->memberofs[i]);
         }
     }
-    printf(_("\n%1$sMember groups: "), padding);
+    PRINT("\n%1$sMember groups: ", padding);
 }
 
 static void print_recursive(struct group_info **group_members, unsigned level)

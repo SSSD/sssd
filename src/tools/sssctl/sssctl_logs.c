@@ -245,19 +245,19 @@ errno_t sssctl_logs_remove(struct sss_cmdline *cmdline,
     }
 
     if (opts.delete) {
-        printf(_("Deleting log files...\n"));
+        PRINT("Deleting log files...\n");
         ret = sss_remove_subtree(LOG_PATH);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to remove log files\n"));
+            ERROR("Unable to remove log files\n");
             return ret;
         }
 
         sss_signal(SIGHUP);
     } else {
-        printf(_("Truncating log files...\n"));
+        PRINT("Truncating log files...\n");
         ret = sssctl_run_command("truncate --size 0 " LOG_FILES);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to truncate log files\n"));
+            ERROR("Unable to truncate log files\n");
             return ret;
         }
     }
@@ -283,13 +283,13 @@ errno_t sssctl_logs_fetch(struct sss_cmdline *cmdline,
 
     cmd = talloc_asprintf(tool_ctx, "tar -czf %s %s", file, LOG_FILES);
     if (cmd == NULL) {
-        fprintf(stderr, _("Out of memory!"));
+        ERROR("Out of memory!");
     }
 
-    printf(_("Archiving log files into %s...\n"), file);
+    PRINT("Archiving log files into %s...\n", file);
     ret = sssctl_run_command(cmd);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to archive log files\n"));
+        ERROR("Unable to archive log files\n");
         return ret;
     }
 

@@ -32,7 +32,7 @@
 
 static void sss_tool_print_common_opts(int min_len)
 {
-    fprintf(stderr, _("Help options:\n"));
+    ERROR("Help options:\n");
     fprintf(stderr, "  %-*s\t %s\n", min_len, "-?, --help",
                     _("Show this for a command"));
     fprintf(stderr, "  %-*s\t %s\n", min_len, "--usage",
@@ -241,8 +241,8 @@ void sss_tool_usage(const char *tool_name, struct sss_route_cmd *commands)
     int min_len;
     int i;
 
-    fprintf(stderr, _("Usage:\n%s COMMAND COMMAND-ARGS\n\n"), tool_name);
-    fprintf(stderr, _("Available commands:\n"));
+    ERROR("Usage:\n%s COMMAND COMMAND-ARGS\n\n", tool_name);
+    ERROR("Available commands:\n");
 
     min_len = sss_tool_max_length(commands);
 
@@ -260,7 +260,7 @@ void sss_tool_usage(const char *tool_name, struct sss_route_cmd *commands)
         }
     }
 
-    fprintf(stderr, _("\n"));
+    ERROR("\n");
     sss_tool_print_common_opts(min_len);
 }
 
@@ -433,8 +433,8 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
                 goto done;
             }
         } else {
-            fprintf(stderr, _("Invalid option %s: %s\n\n"),
-                    poptBadOption(pc, 0), poptStrerror(ret));
+            ERROR("Invalid option %s: %s\n\n",
+                  poptBadOption(pc, 0), poptStrerror(ret));
             poptPrintHelp(pc, stderr, 0);
             ret = EINVAL;
             goto done;
@@ -445,7 +445,7 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
     fopt = poptGetArg(pc);
     if (_fopt != NULL) {
         if (fopt == NULL) {
-            fprintf(stderr, _("Missing option: %s\n\n"), fopt_help);
+            ERROR("Missing option: %s\n\n", fopt_help);
             poptPrintHelp(pc, stderr, 0);
             ret = EINVAL;
             goto done;
@@ -453,7 +453,7 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
 
         /* No more arguments expected. If something follows it is an error. */
         if (poptGetArg(pc)) {
-            fprintf(stderr, _("Only one free argument is expected!\n\n"));
+            ERROR("Only one free argument is expected!\n\n");
             poptPrintHelp(pc, stderr, 0);
             ret = EINVAL;
             goto done;
@@ -462,7 +462,7 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
         *_fopt = fopt;
     } else if (_fopt == NULL && fopt != NULL) {
         /* Unexpected free argument. */
-        fprintf(stderr, _("Unexpected parameter: %s\n\n"), fopt);
+        ERROR("Unexpected parameter: %s\n\n", fopt);
         poptPrintHelp(pc, stderr, 0);
         ret = EINVAL;
         goto done;
@@ -474,7 +474,7 @@ errno_t sss_tool_popt_ex(struct sss_cmdline *cmdline,
 
         /* If at least one option is required and not provided, print error. */
         if (require_option == SSS_TOOL_OPT_REQUIRED) {
-            fprintf(stderr, _("At least one option is required!\n\n"));
+            ERROR("At least one option is required!\n\n");
             poptPrintHelp(pc, stderr, 0);
             ret = EINVAL;
             goto done;
