@@ -519,8 +519,8 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
         ret = EOK;
         goto done;
     } else if (ret != EOK) {
-        fprintf(stderr, _("Error: Unable to get object [%d]: %s\n"),
-                ret, sss_strerror(ret));
+        ERROR("Error: Unable to get object [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
@@ -535,8 +535,8 @@ static errno_t sssctl_print_object(struct sssctl_object_info *info,
         if (ret == ENOENT) {
             continue;
         } else if (ret != EOK) {
-            fprintf(stderr, _("%s: Unable to read value [%d]: %s\n"),
-                    info[i].msg, ret, sss_strerror(ret));
+            ERROR("%s: Unable to read value [%d]: %s\n",
+                  info[i].msg, ret, sss_strerror(ret));
             continue;
         }
 
@@ -573,7 +573,7 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
     ret = sss_tool_parse_name(tool_ctx, tool_ctx, input_name,
                               &orig_name, &domain);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to parse name %s.\n"), input_name);
+        ERROR("Unable to parse name %s.\n", input_name);
         return ret;
     }
 

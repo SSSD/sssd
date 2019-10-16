@@ -102,7 +102,7 @@ errno_t sssctl_domain_list(struct sss_cmdline *cmdline,
 
     conn = sbus_sync_connect_system(tmp_ctx, NULL);
     if (conn == NULL) {
-        fprintf(stderr, _("Unable to connect to system bus!\n"));
+        ERROR("Unable to connect to system bus!\n");
         ret = EIO;
         goto done;
     }
@@ -164,7 +164,7 @@ sssctl_domain_status_online(struct sbus_sync_connection *conn,
         return ret;
     }
 
-    printf(_("Online status: %s\n"), is_online ? _("Online") : _("Offline"));
+    PRINT("Online status: %s\n", is_online ? _("Online") : _("Offline"));
 
     return EOK;
 }
@@ -209,7 +209,7 @@ sssctl_domain_status_active_server(struct sbus_sync_connection *conn,
         goto done;
     }
 
-    printf(_("Active servers:\n"));
+    PRINT("Active servers:\n");
     for (i = 0; services[i] != NULL; i++) {
         ret = sbus_call_ifp_domain_ActiveServer(tmp_ctx, conn, IFP_BUS,
                   domain_path, services[i], &server);
@@ -257,7 +257,7 @@ sssctl_domain_status_server_list(struct sbus_sync_connection *conn,
     }
 
     for (i = 0; services[i] != NULL; i++) {
-        printf(_("Discovered %s servers:\n"), proper_service_name(services[i]));
+        PRINT("Discovered %s servers:\n", proper_service_name(services[i]));
 
         ret = sbus_call_ifp_domain_ListServers(tmp_ctx, conn, IFP_BUS,
                   domain_path, services[i], &servers);
@@ -339,7 +339,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
 
     path = sbus_opath_compose(tmp_ctx, IFP_PATH_DOMAINS, opts.domain);
     if (path == NULL) {
-        printf(_("Out of memory!\n"));
+        PRINT("Out of memory!\n");
         ret = ENOMEM;
         goto done;
     }
@@ -351,7 +351,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
 
     conn = sbus_sync_connect_system(tmp_ctx, NULL);
     if (conn == NULL) {
-        fprintf(stderr, _("Unable to connect to system bus!\n"));
+        ERROR("Unable to connect to system bus!\n");
         ret = EIO;
         goto done;
     }
@@ -359,7 +359,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
     if (opts.online) {
         ret = sssctl_domain_status_online(conn, path);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to get online status\n"));
+            ERROR("Unable to get online status\n");
             goto done;
         }
 
@@ -369,7 +369,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
     if (opts.active) {
         ret = sssctl_domain_status_active_server(conn, path);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to get online status\n"));
+            ERROR("Unable to get online status\n");
             goto done;
         }
 
@@ -379,7 +379,7 @@ errno_t sssctl_domain_status(struct sss_cmdline *cmdline,
     if (opts.servers) {
         ret = sssctl_domain_status_server_list(conn, path);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to get server list\n"));
+            ERROR("Unable to get server list\n");
             goto done;
         }
     }

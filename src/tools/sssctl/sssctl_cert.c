@@ -142,7 +142,7 @@ errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
 
     conn = sbus_sync_connect_system(tmp_ctx, NULL);
     if (conn == NULL) {
-        fprintf(stderr, _("Unable to connect to system bus!\n"));
+        ERROR("Unable to connect to system bus!\n");
         ret = EIO;
         goto done;
     }

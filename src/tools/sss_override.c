@@ -80,7 +80,7 @@ static errno_t parse_cmdline(struct sss_cmdline *cmdline,
     ret = sss_tool_parse_name(tool_ctx, tool_ctx, input_name,
                               &orig_name, &domain);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to parse name %s.\n"), input_name);
+        ERROR("Unable to parse name %s.\n", input_name);
         return ret;
     }
 
@@ -184,7 +184,7 @@ static errno_t parse_cmdline_find(struct sss_cmdline *cmdline,
     dom = find_domain_by_name(tool_ctx->domains, domname, true);
     if (dom == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to find domain %s\n", domname);
-        fprintf(stderr, _("Unable to find domain %s\n"), domname);
+        ERROR("Unable to find domain %s\n", domname);
         return EINVAL;
     }
 
@@ -267,11 +267,11 @@ errno_t prepare_view_msg(struct sss_domain_info *domain)
 
     ret = prepare_view(domain);
     if (ret == EEXIST) {
-        fprintf(stderr, _("Other than " LOCALVIEW " view already exists "
-                "in domain %s.\n"), domain->name);
+        ERROR("Other than " LOCALVIEW " view already exists "
+              "in domain %s.\n", domain->name);
     } else if (ret != EOK) {
-        fprintf(stderr, _("Unable to prepare " LOCALVIEW
-                " view in domain %s.\n"), domain->name);
+        ERROR("Unable to prepare " LOCALVIEW
+              " view in domain %s.\n", domain->name);
     }
 
     return ret;
@@ -580,8 +580,7 @@ static errno_t get_user_domain_msg(struct sss_tool_ctx *tool_ctx,
                                user->domain, tool_ctx->domains);
     if (newdom == NULL) {
         domname = user->domain == NULL ? "[unknown]" : user->domain->name;
-        fprintf(stderr, _("Unable to find user %s@%s.\n"),
-                user->orig_name, domname);
+        ERROR("Unable to find user %s@%s.\n", user->orig_name, domname);
         return ENOENT;
     }
 
@@ -605,8 +604,7 @@ static errno_t get_group_domain_msg(struct sss_tool_ctx *tool_ctx,
                                group->domain, tool_ctx->domains);
     if (newdom == NULL) {
         domname = group->domain == NULL ? "[unknown]" : group->domain->name;
-        fprintf(stderr, _("Unable to find group %s@%s.\n"),
-                group->orig_name, domname);
+        ERROR("Unable to find group %s@%s.\n", group->orig_name, domname);
         return ENOENT;
     }
 
@@ -756,12 +754,12 @@ static errno_t override_fqn(TALLOC_CTX *mem_ctx,
     if (ret == EAGAIN) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to find domain from "
               "fqn %s\n", input);
-        fprintf(stderr, _("Changing domain is not allowed!\n"));
+        ERROR("Changing domain is not allowed!\n");
         ret = EINVAL;
     } else if (ret == EOK && dom != NULL && dom != domain) {
         DEBUG(SSSDBG_OP_FAILURE, "Trying to change domain from "
               "%s to %s, not allowed!\n", domain->name, dom->name);
-        fprintf(stderr, _("Changing domain is not allowed!\n"));
+        ERROR("Changing domain is not allowed!\n");
         ret = EINVAL;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name %s [%d]: %s\n",
@@ -1293,8 +1291,8 @@ static errno_t user_export(const char *filename,
 
     db = sss_colondb_open(tmp_ctx, SSS_COLONDB_WRITE, filename);
     if (db == NULL) {
-        fprintf(stderr, _("Unable to open %s.\n"),
-                filename == NULL ? "stdout" : filename);
+        ERROR("Unable to open %s.\n",
+              filename == NULL ? "stdout" : filename);
         ret = EIO;
         goto done;
     }
@@ -1363,7 +1361,7 @@ static errno_t group_export(const char *filename,
 
     db = sss_colondb_open(tmp_ctx, SSS_COLONDB_WRITE, filename);
     if (db == NULL) {
-        fprintf(stderr, _("Unable to open %s.\n"),
+        ERROR("Unable to open %s.\n",
                 filename == NULL ? "stdout" : filename);
         ret = EIO;
         goto done;
@@ -1600,7 +1598,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
 
     db = sss_colondb_open(tool_ctx, SSS_COLONDB_READ, filename);
     if (db == NULL) {
-        fprintf(stderr, _("Unable to open %s.\n"), filename);
+        ERROR("Unable to open %s.\n", filename);
         ret = EIO;
         goto done;
     }
@@ -1611,7 +1609,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
         ret = sss_tool_parse_name(tool_ctx, tool_ctx, obj.input_name,
                                   &obj.orig_name, &obj.domain);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to parse name %s.\n"), obj.input_name);
+            ERROR("Unable to parse name %s.\n", obj.input_name);
             goto done;
         }
 
@@ -1629,8 +1627,8 @@ static int override_user_import(struct sss_cmdline *cmdline,
     }
 
     if (ret != EOF) {
-        fprintf(stderr, _("Invalid format on line %d. "
-                "Use --debug option for more information.\n"), linenum);
+        ERROR("Invalid format on line %d. "
+              "Use --debug option for more information.\n", linenum);
         goto done;
     }
 
@@ -1851,7 +1849,7 @@ static int override_group_import(struct sss_cmdline *cmdline,
 
     db = sss_colondb_open(tool_ctx, SSS_COLONDB_READ, filename);
     if (db == NULL) {
-        fprintf(stderr, _("Unable to open %s.\n"), filename);
+        ERROR("Unable to open %s.\n", filename);
         ret = EIO;
         goto done;
     }
@@ -1862,7 +1860,7 @@ static int override_group_import(struct sss_cmdline *cmdline,
         ret = sss_tool_parse_name(tool_ctx, tool_ctx, obj.input_name,
                                   &obj.orig_name, &obj.domain);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to parse name %s.\n"), obj.input_name);
+            ERROR("Unable to parse name %s.\n", obj.input_name);
             goto done;
         }
 
@@ -1880,8 +1878,8 @@ static int override_group_import(struct sss_cmdline *cmdline,
     }
 
     if (ret != EOF) {
-        fprintf(stderr, _("Invalid format on line %d. "
-                "Use --debug option for more information.\n"), linenum);
+        ERROR("Invalid format on line %d. "
+              "Use --debug option for more information.\n", linenum);
         goto done;
     }
 

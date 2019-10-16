@@ -86,8 +86,8 @@ static errno_t sssctl_backup(bool force)
 
     ret = sssctl_create_backup_dir(SSS_BACKUP_DIR);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to create backup directory [%d]: %s"),
-                ret, sss_strerror(ret));
+        ERROR("Unable to create backup directory [%d]: %s",
+              ret, sss_strerror(ret));
         return ret;
     }
 
@@ -108,14 +108,14 @@ static errno_t sssctl_backup(bool force)
     ret = sssctl_run_command("sss_override user-export "
                              SSS_BACKUP_USER_OVERRIDES);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to export user overrides\n"));
+        ERROR("Unable to export user overrides\n");
         return ret;
     }
 
     ret = sssctl_run_command("sss_override group-export "
                              SSS_BACKUP_GROUP_OVERRIDES);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to export group overrides\n"));
+        ERROR("Unable to export group overrides\n");
         return ret;
     }
 
@@ -161,7 +161,7 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
         ret = sssctl_run_command("sss_override user-import "
                                  SSS_BACKUP_USER_OVERRIDES);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to import user overrides\n"));
+            ERROR("Unable to import user overrides\n");
             return ret;
         }
     }
@@ -170,7 +170,7 @@ static errno_t sssctl_restore(bool force_start, bool force_restart)
         ret = sssctl_run_command("sss_override group-import "
                                  SSS_BACKUP_GROUP_OVERRIDES);
         if (ret != EOK) {
-            fprintf(stderr, _("Unable to import group overrides\n"));
+            ERROR("Unable to import group overrides\n");
             return ret;
         }
     }
@@ -232,23 +232,23 @@ errno_t sssctl_cache_remove(struct sss_cmdline *cmdline,
         return ERR_SSSD_RUNNING;
     }
 
-    printf(_("Creating backup of local data...\n"));
+    PRINT("Creating backup of local data...\n");
     ret = sssctl_backup(opts.override);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to create backup of local data,"
-                " can not remove the cache.\n"));
+        ERROR("Unable to create backup of local data,"
+              " can not remove the cache.\n");
         return ret;
     }
 
-    printf(_("Removing cache files...\n"));
+    PRINT("Removing cache files...\n");
     ret = sss_remove_subtree(DB_PATH);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to remove cache files\n"));
+        ERROR("Unable to remove cache files\n");
         return ret;
     }
 
     if (opts.restore) {
-        printf(_("Restoring local data...\n"));
+        PRINT("Restoring local data...\n");
         sssctl_restore(opts.start, opts.start);
     } else {
         sssctl_start_sssd(opts.start);

@@ -78,8 +78,8 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     /* Check the file permissions */
     ret = sss_ini_config_access_check(init_data);
     if (ret != EOK) {
-        printf(_("File ownership and permissions check failed. "
-               "Expected root:root and 0600.\n"));
+        PRINT("File ownership and permissions check failed. "
+              "Expected root:root and 0600.\n");
         ret = EPERM;
         goto done;
     }
@@ -101,7 +101,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     }
 
     /* Output from validators */
-    printf(_("Issues identified by validators: %zu\n"), num_errors);
+    PRINT("Issues identified by validators: %zu\n", num_errors);
     for (i = 0; i < num_errors; i++) {
         printf("%s\n", strs[i]);
     }
@@ -111,8 +111,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     num_ra_error = ref_array_len(ra);
 
     printf("\n");
-    printf(_("Messages generated during configuration merging: %zu\n"),
-           num_ra_error);
+    PRINT("Messages generated during configuration merging: %zu\n",num_ra_error);
 
     i = 0;
     while (ref_array_get(ra, i, &msg) != NULL) {
@@ -124,8 +123,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     ra = sss_ini_get_ra_success_list(init_data);
 
     printf("\n");
-    printf(_("Used configuration snippet files: %u\n"),
-           ref_array_len(ra));
+    PRINT("Used configuration snippet files: %u\n", ref_array_len(ra));
 
     i = 0;
     while (ref_array_get(ra, i, &msg) != NULL) {

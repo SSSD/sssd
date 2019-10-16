@@ -282,14 +282,14 @@ static errno_t refresh_hbac_rules(struct sss_tool_ctx *tool_ctx,
 
     path = sbus_opath_compose(tmp_ctx, IFP_PATH_DOMAINS, domain->name);
     if (path == NULL) {
-        printf(_("Out of memory!\n"));
+        PRINT("Out of memory!\n");
         ret = ENOMEM;
         goto done;
     }
 
     conn = sbus_sync_connect_system(tmp_ctx, NULL);
     if (conn == NULL) {
-        fprintf(stderr, _("Unable to connect to system bus!\n"));
+        ERROR("Unable to connect to system bus!\n");
         ret = EIO;
         goto done;
     }
