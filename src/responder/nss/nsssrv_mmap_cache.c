@@ -1353,7 +1353,10 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
     /* generate a pseudo-random seed.
      * Needed to fend off dictionary based collision attacks */
-    mc_ctx->seed = sss_rand();
+    ret = sss_generate_csprng_buffer((uint8_t *)&mc_ctx->seed, sizeof(mc_ctx->seed));
+    if (ret != EOK) {
+        goto done;
+    }
 
     sss_mc_header_update(mc_ctx, SSS_MC_HEADER_ALIVE);
 
