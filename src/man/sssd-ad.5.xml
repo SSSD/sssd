@@ -364,6 +364,15 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                             <quote>ad_gpo_map</quote> options.
                         </para>
                         <para>
+                            Please note that current version of SSSD does
+                            not support Active Directory's built-in groups.
+                            Built-in groups (such as Administrators with
+                            SID S-1-5-32-544) in GPO access control rules
+                            will be ignored by SSSD.
+                            See upstream issue tracker
+                            https://pagure.io/SSSD/sssd/issue/4099 .
+                        </para>
+                        <para>
                             Before performing access control SSSD applies group
                             policy security filtering on the GPOs. For every
                             single user login, the applicability of the GPOs
