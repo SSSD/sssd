@@ -2084,8 +2084,9 @@ void test_pam_auth_no_upn_logon_name(void **state)
     assert_int_equal(ret, EOK);
 
     mock_input_pam_ex(pam_test_ctx, "upn@"TEST_DOM_NAME, "12345", NULL, NULL,
-                      true);
+                      false);
     mock_account_recv_simple();
+    mock_parse_inp("upn@"TEST_DOM_NAME, NULL, EOK);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -2124,6 +2125,8 @@ void test_pam_auth_upn_logon_name(void **state)
     mock_input_pam_ex(pam_test_ctx, "upn@"TEST_DOM_NAME, "12345", NULL, NULL,
                       true);
     mock_account_recv_simple();
+
+    mock_parse_inp("pamuser", NULL, EOK);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -2404,6 +2407,8 @@ void test_pam_preauth_cert_no_logon_name(void **state)
                         test_lookup_by_cert_cb, SSSD_TEST_CERT_0001, false);
     mock_account_recv_simple();
     mock_parse_inp("pamuser", NULL, EOK);
+    mock_account_recv_simple();
+    mock_parse_inp("pamuser", NULL, EOK);
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -2628,6 +2633,8 @@ void test_pam_cert_auth_no_logon_name(void **state)
                         "C554C9F82C2A9D58B70921C143304153A8A42F17", NULL,
                         test_lookup_by_cert_cb, SSSD_TEST_CERT_0001, true);
 
+    mock_account_recv_simple();
+    mock_parse_inp("pamuser", NULL, EOK);
     mock_account_recv_simple();
     mock_parse_inp("pamuser", NULL, EOK);
 
@@ -3255,6 +3262,7 @@ void test_appsvc_posix_dom(void **state)
 
     /* The domain is POSIX, the request will skip over it */
     mock_input_pam_ex(pam_test_ctx, "pamuser", NULL, NULL, "app_svc", false);
+    mock_parse_inp("pamuser", NULL, EOK);
     pam_test_ctx->exp_pam_status = PAM_USER_UNKNOWN;
 
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
@@ -3339,6 +3347,7 @@ void test_not_appsvc_app_dom(void **state)
 
     /* A different service than the app one can authenticate against a POSIX domain */
     mock_input_pam_ex(pam_test_ctx, "pamuser", NULL, NULL, "not_app_svc", false);
+    mock_parse_inp("pamuser", NULL, EOK);
 
     pam_test_ctx->exp_pam_status = PAM_USER_UNKNOWN;
 
