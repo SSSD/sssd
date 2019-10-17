@@ -1917,6 +1917,35 @@ class SSSDConfig(SSSDChangeConf):
         providers = [ (x['name'],x['value']) for x in self.strip_comments_empty(self.options('domain/%s' % name))
                      if x['name'].rfind('_provider') > 0]
 
+        # Handle the default value for providers if those weren't set in the configuration file
+        default_providers = {
+            'id_provider': None,
+            'sudo_provider': 'id_provider',
+            'auth_provider': 'id_provider',
+            'chpass_provider': 'auth_provider',
+            'autofs_provider': 'id_provider',
+            'selinux_provider': 'id_provider',
+            'subdomains_provider': 'id_provider',
+            'session_provider': 'id_provider',
+            'hostid_provider': 'id_provider',
+        }
+
+        configured_providers = domain.list_providers()
+        providers_list = [x[0] for x in providers]
+
+        if 'access_provider' not in providers_list:
+            providers.append(('access_provider', 'permit'))
+
+        for provider, default_provider in default_providers.items():
+            if provider in providers_list:
+                continue
+
+            if default_provider in providers_list:
+                default_provider_value = providers[providers_list.index(default_provider)]
+                if default_provider_value[1] in configured_providers.keys():
+                    if provider[:provider.rfind('_provider')] in configured_providers[default_provider_value[1]]:
+                        providers.append((provider, default_provider_value[1]))
+
         for (option, value) in providers:
             try:
                 domain.set_option(option, value)
