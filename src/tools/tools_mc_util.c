@@ -129,7 +129,7 @@ done:
     return ret;
 }
 
-static int clear_fastcache(bool *sssd_nss_is_off)
+static int clear_memcache(bool *sssd_nss_is_off)
 {
     int ret;
     ret = sss_memcache_invalidate(SSS_NSS_MCACHE_DIR"/passwd");
@@ -199,13 +199,13 @@ errno_t sss_memcache_clear_all(void)
     bool sssd_nss_is_off = false;
     FILE *clear_mc_flag;
 
-    ret = clear_fastcache(&sssd_nss_is_off);
+    ret = clear_memcache(&sssd_nss_is_off);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to clear caches.\n");
         return EIO;
     }
     if (!sssd_nss_is_off) {
-        /* sssd_nss is running -> signal monitor to invalidate fastcache */
+        /* sssd_nss is running -> signal monitor to invalidate memcache */
         clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
         if (clear_mc_flag == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -231,8 +231,7 @@ errno_t sss_memcache_clear_all(void)
 
         ret = wait_till_nss_responder_invalidate_cache();
         if (ret != EOK) {
-            ERROR("The fast memory caches was not invalidated by NSS "
-                  "responder.\n");
+            ERROR("The memcache was not invalidated by NSS responder.\n");
         }
     }
 
