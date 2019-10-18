@@ -539,7 +539,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Corrupted fastcache. Slot number too big.\n");
+                  "Corrupted memcache. Slot number too big.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             return NULL;
@@ -570,7 +570,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
                 || strs_offset > max_addr - (uint8_t *)rec->data
                 || strs_len > max_addr - (uint8_t *)rec->data - strs_offset) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Corrupted fastcache entry at slot %u. "
+                  "Corrupted memcache entry at slot %u. "
                   "name_ptr value is %u.\n", slot, name_ptr);
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
@@ -813,7 +813,7 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
 
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted fastcache.\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted memcache.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
@@ -952,7 +952,7 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
 
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted fastcache.\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted memcache.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
