@@ -209,6 +209,12 @@ sssctl_domain_status_active_server(struct sbus_sync_connection *conn,
         goto done;
     }
 
+    if (services == NULL) {
+        PRINT("This domain has no active servers.\n");
+        ret = EOK;
+        goto done;
+    }
+
     PRINT("Active servers:\n");
     for (i = 0; services[i] != NULL; i++) {
         ret = sbus_call_ifp_domain_ActiveServer(tmp_ctx, conn, IFP_BUS,
@@ -220,6 +226,7 @@ sssctl_domain_status_active_server(struct sbus_sync_connection *conn,
             goto done;
         }
 
+        /* SBUS_REQ_STRING_DEFAULT handles (server == NULL) case gracefully */
         server = SBUS_REQ_STRING_DEFAULT(server, _("not connected"));
         printf("%s: %s\n", proper_service_name(services[i]), server);
     }
@@ -253,6 +260,12 @@ sssctl_domain_status_server_list(struct sbus_sync_connection *conn,
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain services [%d]: %s\n",
               ret, sss_strerror(ret));
         PRINT_IFP_WARNING(ret);
+        goto done;
+    }
+
+    if (services == NULL) {
+        PRINT("No servers discovered.\n");
+        ret = EOK;
         goto done;
     }
 
