@@ -257,7 +257,7 @@
         <title>NOTES</title>
         <para>
             If the environment variable SSS_NSS_USE_MEMCACHE is set to "NO",
-            client applications will not use the fast in memory cache.
+            client applications will not use the fast in-memory cache.
         </para>
     </refsect1>
 
