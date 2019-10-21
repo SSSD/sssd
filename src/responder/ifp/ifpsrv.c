@@ -145,6 +145,9 @@ sysbus_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    sbus_connection_set_access_check(system_bus->conn,
+         (sbus_connection_access_check_fn)ifp_check_access, pvt);
+
     ret = ifp_register_sbus_interface(system_bus->conn, pvt);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not register interfaces\n");

@@ -28,6 +28,36 @@
 #include "sbus/sssd_dbus_meta.h"
 #include "sbus/sssd_dbus_private.h"
 
+static errno_t
+sbus_check_access(struct sbus_connection *conn,
+                  struct sbus_request *sbus_req)
+{
+    const char *iface = dbus_message_get_interface(sbus_req->message);
+    errno_t ret;
+
+    if (conn->access_fn == NULL) {
+        return EOK;
+    }
+
+    ret = conn->access_fn(sbus_req, conn->access_data);
+    if (ret == EPERM || ret == EACCES) {
+        if (sbus_req->client == -1) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "%s.%s: permission denied for unknown sender\n",
+                  iface, sbus_req->method->name);
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "%s.%s: permission denied for sender with uid %"PRIi64"\n",
+                  iface, sbus_req->method->name, sbus_req->client);
+        }
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to perform access check [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+
+    return ret;
+}
+
 static struct sbus_interface *
 sbus_iface_list_lookup(struct sbus_interface_list *list,
                        const char *iface)
@@ -1037,6 +1067,14 @@ sbus_message_handler_got_caller_id(struct tevent_req *req)
     if (ret != EOK) {
         error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to "
                                "resolve caller's ID: %s\n", sss_strerror(ret));
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    ret = sbus_check_access(sbus_req->conn, sbus_req);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_ACCESS_DENIED, "[%d]: %s",
+                               ret, sss_strerror(ret));
         sbus_request_fail_and_finish(sbus_req, error);
         return;
     }

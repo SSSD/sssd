@@ -72,6 +72,9 @@ struct sbus_connection {
 
     /* client related stuff */
     void *client_destructor_data;
+
+    sbus_connection_access_check_fn access_fn;
+    sbus_connection_access_check_data access_data;
 };
 
 /* =Standard=interfaces=================================================== */

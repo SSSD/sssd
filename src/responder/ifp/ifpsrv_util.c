@@ -32,12 +32,39 @@
                                 "groups", "domain", "domainname", \
                                 NULL}
 
+errno_t ifp_check_access(struct sbus_request *dbus_req,
+                         struct ifp_ctx *ifp_ctx)
+{
+    errno_t ret;
+
+    if (dbus_req->client == -1) {
+        /* We got a sysbus message but couldn't identify the
+         * caller? Bail out! */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "BUG: Received a message without a known caller!\n");
+        return EACCES;
+    }
+
+    ret = check_allowed_uids(dbus_req->client,
+                             ifp_ctx->rctx->allowed_uids_count,
+                             ifp_ctx->rctx->allowed_uids);
+    if (ret == EACCES) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "User %"PRIi64" not in ACL\n", dbus_req->client);
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot check if user %"PRIi64" is present in ACL\n",
+              dbus_req->client);
+    }
+
+    return ret;
+}
+
 errno_t ifp_req_create(struct sbus_request *dbus_req,
                        struct ifp_ctx *ifp_ctx,
                        struct ifp_req **_ifp_req)
 {
     struct ifp_req *ireq = NULL;
-    errno_t ret;
 
     if (ifp_ctx->sysbus == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Responder not connected to sysbus!\n");
@@ -52,36 +79,9 @@ errno_t ifp_req_create(struct sbus_request *dbus_req,
     ireq->ifp_ctx = ifp_ctx;
     ireq->dbus_req = dbus_req;
 
-    if (dbus_req->client == -1) {
-        /* We got a sysbus message but couldn't identify the
-         * caller? Bail out! */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "BUG: Received a message without a known caller!\n");
-        ret = EACCES;
-        goto done;
-    }
-
-    ret = check_allowed_uids(dbus_req->client,
-                             ifp_ctx->rctx->allowed_uids_count,
-                             ifp_ctx->rctx->allowed_uids);
-    if (ret == EACCES) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "User %"PRIi64" not in ACL\n", dbus_req->client);
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot check if user %"PRIi64" is present in ACL\n",
-              dbus_req->client);
-        goto done;
-    }
-
     *_ifp_req = ireq;
-    ret = EOK;
-done:
-    if (ret != EOK) {
-        talloc_free(ireq);
-    }
-    return ret;
+
+    return EOK;
 }
 
 int ifp_req_create_handle_failure(struct sbus_request *dbus_req, errno_t err)

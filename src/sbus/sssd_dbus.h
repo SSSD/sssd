@@ -451,4 +451,14 @@ sbus_signal_listen(struct sbus_connection *conn,
  * down, unregistering them in the monitor. */
 void *sbus_connection_get_destructor_data(struct sbus_connection *conn);
 
+/* Access check callback. */
+typedef void * sbus_connection_access_check_data;
+typedef errno_t
+(*sbus_connection_access_check_fn)(struct sbus_request *,
+                                   sbus_connection_access_check_data);
+
+void sbus_connection_set_access_check(struct sbus_connection *conn,
+                                      sbus_connection_access_check_fn check_fn,
+                                      sbus_connection_access_check_data data);
+
 #endif /* _SSSD_DBUS_H_*/

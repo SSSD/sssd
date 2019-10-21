@@ -613,3 +613,29 @@ void *sbus_connection_get_destructor_data(struct sbus_connection *conn)
 
     return conn->client_destructor_data;
 }
+
+void sbus_connection_set_access_check(struct sbus_connection *conn,
+                                      sbus_connection_access_check_fn check_fn,
+                                      sbus_connection_access_check_data data)
+{
+    if (conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: connection is NULL\n");
+        return;
+    }
+
+    if (check_fn == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Unsetting access check function\n");
+        conn->access_data = NULL;
+        conn->access_fn = NULL;
+        return;
+    }
+
+    if (conn->access_fn != NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: access check function is "
+              "already set\n");
+        return;
+    }
+
+    conn->access_fn = check_fn;
+    conn->access_data = data;
+}

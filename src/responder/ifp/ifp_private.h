@@ -61,6 +61,9 @@ struct ifp_req {
     struct ifp_ctx *ifp_ctx;
 };
 
+errno_t ifp_check_access(struct sbus_request *dbus_req,
+                         struct ifp_ctx *ifp_ctx);
+
 errno_t ifp_req_create(struct sbus_request *dbus_req,
                        struct ifp_ctx *ifp_ctx,
                        struct ifp_req **_ifp_req);

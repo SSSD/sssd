@@ -110,7 +110,6 @@ void ifp_test_req_create(void **state)
 
 void ifp_test_req_wrong_uid(void **state)
 {
-    struct ifp_req *ireq;
     struct sbus_request *sr;
     struct ifp_ctx *ifp_ctx;
     errno_t ret;
@@ -124,7 +123,7 @@ void ifp_test_req_wrong_uid(void **state)
     sr = mock_sbus_request(ifp_ctx, geteuid()+1);
     assert_non_null(sr);
 
-    ret = ifp_req_create(sr, ifp_ctx, &ireq);
+    ret = ifp_check_access(sr, ifp_ctx);
     assert_int_equal(ret, EACCES);
     talloc_free(sr);
 
