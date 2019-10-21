@@ -7,38 +7,37 @@ an NSS and PAM interface toward the system and a pluggable backend system
 to connect to multiple different account sources.
 
 More information about SSSD can be found on its project page -
-https://pagure.io/SSSD/sssd/
+https://pagure.io/SSSD/sssd/.
 
 ## Downloading SSSD
 SSSD is shipped as a binary package by most Linux distributions. If you
 want to obtain the latest source files, please navigate to the
-[Releases folder on pagure](https://releases.pagure.org/SSSD/sssd/)
+[Releases folder on pagure](https://releases.pagure.org/SSSD/sssd/).
 
 ## Releases
 SSSD maintains two release streams - stable and LTM. Releases designated as
 LTM are long-term maintenance releases and will see bugfixes and security
 patches for a longer time than other releases.
 
-The list of all releases is maintained together with [SSSD documentation](https://docs.pagure.org/SSSD.sssd/users/releases.html)
+The list of all releases is maintained together with [SSSD documentation](https://docs.pagure.org/SSSD.sssd/users/releases.html).
 
 ## Building and installation from source
-Please see the [our developer documentation](https://docs.pagure.org/SSSD.sssd/developers/)
+Please see the [our developer documentation](https://docs.pagure.org/SSSD.sssd/developers/).
 
 ## Documentation
-The most up-to-date documentation can be found at https://docs.pagure.org/SSSD.sssd/
+The most up-to-date documentation can be found at https://docs.pagure.org/SSSD.sssd/.
 
-Its source code is hosted at https://pagure.io/SSSD/docs
+Its source code is hosted at https://pagure.io/SSSD/docs.
 
 ## Submitting bugs
 Please file an issue in the [SSSD pagure instance](https://pagure.io/SSSD/sssd/issues).
-Make sure to follow the [guide on reporting SSSD bugs](https://docs.pagure.org/SSSD.sssd/users/reporting_bugs.html)
+Make sure to follow the [guide on reporting SSSD bugs](https://docs.pagure.org/SSSD.sssd/users/reporting_bugs.html).
 
 ## Licensing
-Please see the file called COPYING.
+Please see the file called [COPYING](COPYING).
 
 ## Social networks
-We maintain our presence on [Twitter](https://twitter.com/SysSecSvcDaemon)
-and [Google plus](https://plus.google.com/114204339376082660377)
+We maintain our presence on [Twitter](https://twitter.com/SysSecSvcDaemon).
 
 ## Contacts
 There are several ways to contact us:
