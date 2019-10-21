@@ -168,7 +168,7 @@ errno_t sssctl_cert_map(struct sss_cmdline *cmdline,
             puts(name);
         }
     } else {
-        puts(" - no mapped users found -");
+        PRINT(" - no mapped users found -");
     }
 
     ret = EOK;
