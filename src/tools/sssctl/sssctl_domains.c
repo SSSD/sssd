@@ -269,7 +269,7 @@ sssctl_domain_status_server_list(struct sbus_sync_connection *conn,
         }
 
         if (servers == NULL || servers[0] == NULL) {
-            puts(_("None so far.\n"));
+            PRINT("None so far.\n");
             continue;
         }
 
