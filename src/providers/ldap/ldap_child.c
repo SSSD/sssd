@@ -187,15 +187,18 @@ static int lc_verify_keytab_ex(const char *principal,
 
     krberr = krb5_kt_start_seq_get(context, keytab, &cursor);
     if (krberr) {
+        const char *__err_msg = sss_krb5_get_error_message(context, krberr);
+
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Cannot read keytab [%s].\n", KEYTAB_CLEAN_NAME);
+              "Cannot read keytab [%s]: [%d][%s].\n", KEYTAB_CLEAN_NAME,
+              krberr, __err_msg);
 
         sss_log(SSS_LOG_ERR, "Error reading keytab file [%s]: [%d][%s]. "
                              "Unable to create GSSAPI-encrypted LDAP "
                              "connection.",
-                             KEYTAB_CLEAN_NAME, krberr,
-                             sss_krb5_get_error_message(context, krberr));
+                             KEYTAB_CLEAN_NAME, krberr, __err_msg);
 
+        sss_krb5_free_error_message(context, __err_msg);
         return EIO;
     }
 
