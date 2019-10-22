@@ -406,7 +406,55 @@ dp_errorstr:string
 
     </refsect1>
 
-	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+    <refsect1 id='sample-systemtap-scripts'>
+        <title>SAMPLE SYSTEMTAP SCRIPTS</title>
+        <para>
+            Start the SystemTap script
+            (<command>stap /usr/share/sssd/systemtap/&lt;script_name&gt;.stp</command>),
+            then perform an identity operation and the script
+            will collect information from probes.
+        </para>
+        <para>
+            Provided SystemTap scripts are:
+        </para>
+        <variablelist>
+            <varlistentry>
+                <term>dp_request.stp</term>
+                <listitem>
+                    <para>
+                        Monitoring of data provider request performance.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>id_perf.stp</term>
+                <listitem>
+                    <para>
+                        Monitoring of <command>id</command> command
+                        performance.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+          <term>ldap_perf.stp</term>
+          <listitem>
+              <para>
+                  Monitoring of LDAP queries.
+              </para>
+          </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>nested_group_perf.stp</term>
+                <listitem>
+                    <para>
+                        Performance of nested groups resolving.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
 </reference>
