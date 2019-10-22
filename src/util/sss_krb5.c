@@ -153,8 +153,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
     }
     if (kerr) {
         const char *krb5_err_msg = sss_krb5_get_error_message(krb_ctx, kerr);
-        error_message = (krb5_err_msg ?
-                         talloc_strdup(tmp_ctx, krb5_err_msg) : NULL);
+        error_message = talloc_strdup(tmp_ctx, krb5_err_msg);
         sss_krb5_free_error_message(krb_ctx, krb5_err_msg);
         ret = EFAULT;
         goto done;
@@ -390,9 +389,6 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
     kerr = krb5_kt_start_seq_get(ctx, keytab, &cursor);
     if (kerr != 0) {
         const char *krb5_err_msg = sss_krb5_get_error_message(ctx, kerr);
-        if (krb5_err_msg == NULL) {
-            krb5_err_msg = "- no error message available -";
-        }
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_start_seq_get failed: %s\n",
               krb5_err_msg);
         sss_log(SSS_LOG_ERR, "krb5_kt_start_seq_get failed: %s\n",
@@ -452,34 +448,33 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
     return kerr;
 }
 
+static const char *__SSS_KRB5_NO_ERR_MSG_AVAILABLE = "- no krb5 error message available -";
+
 const char *KRB5_CALLCONV sss_krb5_get_error_message(krb5_context ctx,
-                                               krb5_error_code ec)
+                                                     krb5_error_code ec)
 {
 #ifdef HAVE_KRB5_GET_ERROR_MESSAGE
     return krb5_get_error_message(ctx, ec);
 #else
-    int ret;
-    char *s = NULL;
     int size = sizeof("Kerberos error [XXXXXXXXXXXX]");
-
-    s = malloc(sizeof(char) * (size));
-    if (s == NULL) {
-        return NULL;
+    char *s = malloc(sizeof(char) * size);
+    if (s != NULL) {
+        int ret = snprintf(s, size, "Kerberos error [%12d]", ec);
+        if (ret < 0 || ret >= size) {
+            free(s);
+            s = NULL;
+        }
     }
-
-    ret = snprintf(s, size, "Kerberos error [%12d]", ec);
-
-    if (ret < 0 || ret >= size) {
-        free(s);
-        return NULL;
-    }
-
-    return s;
+    return (s ? s : __SSS_KRB5_NO_ERR_MSG_AVAILABLE);
 #endif
 }
 
 void KRB5_CALLCONV sss_krb5_free_error_message(krb5_context ctx, const char *s)
 {
+    if (s == __SSS_KRB5_NO_ERR_MSG_AVAILABLE) {
+        return;
+    }
+
 #ifdef HAVE_KRB5_GET_ERROR_MESSAGE
     if (s != NULL) {
         krb5_free_error_message(ctx, s);
