@@ -43,7 +43,8 @@
  * authentication is presumably a rare case a separate config option is not
  * necessary. */
 #define KERBEROS_PWEXPIRE_WARNING_TIME (7 * 24 * 60 * 60)
-#define KEYTAB_CLEAN_NAME keytab_name ? keytab_name : "default"
+
+const char *sss_printable_keytab_name(krb5_context ctx, const char *keytab_name);
 
 #if defined HAVE_KRB5_CC_CACHE_MATCH && defined HAVE_KRB5_CC_GET_FULL_NAME
 #define HAVE_KRB5_CC_COLLECTION 1

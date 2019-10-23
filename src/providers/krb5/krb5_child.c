@@ -2631,7 +2631,7 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
         const char *__err_msg = sss_krb5_get_error_message(ctx, kerr);
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to read keytab file [%s]: %s\n",
-               KEYTAB_CLEAN_NAME,
+               sss_printable_keytab_name(ctx, keytab_name),
                __err_msg);
         sss_krb5_free_error_message(ctx, __err_msg);
         goto done;
