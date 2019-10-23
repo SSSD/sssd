@@ -44,6 +44,7 @@ fedconfig()
         --infodir=/usr/share/info \
         --enable-nsslibdir=/$SSS_LIB \
         --enable-pammoddir=/$SSS_LIB/security \
+        --enable-systemtap \
         --with-krb5-rcache-dir=/var/cache/krb5rcache \
         --with-initscript=systemd \
         --with-syslog=journald \
