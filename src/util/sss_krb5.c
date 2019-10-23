@@ -67,8 +67,7 @@ sss_krb5_get_primary(TALLOC_CTX *mem_ctx,
     return talloc_asprintf(mem_ctx, pattern, hostname);
 }
 
-static const char *sss_printable_keytab_name(krb5_context ctx,
-                                             const char *keytab_name)
+const char *sss_printable_keytab_name(krb5_context ctx, const char *keytab_name)
 {
     /* sss_printable_keytab_name() output is expected to be used
        for logging purposes only. Thus it is non-critical to provide
