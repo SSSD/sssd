@@ -45,13 +45,6 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len, int *sd)
     int sock = -1;
     int ret;
 
-    /* set O_NONBLOCK on standard input */
-    ret = sss_fd_nonblocking(0);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to make fd=0 nonblocking\n");
-        return ret;
-    }
-
     /* create socket */
     sock = socket(family, SOCK_STREAM, IPPROTO_TCP);
     if (sock == -1) {
@@ -84,6 +77,13 @@ static int proxy_data(int sock)
     int i;
     ssize_t res;
     int ret;
+
+    /* set O_NONBLOCK on standard input */
+    ret = sss_fd_nonblocking(0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to make fd=0 nonblocking\n");
+        goto done;
+    }
 
     /* set O_NONBLOCK on the socket */
     ret = sss_fd_nonblocking(sock);
