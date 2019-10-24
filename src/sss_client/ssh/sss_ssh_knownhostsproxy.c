@@ -42,25 +42,14 @@
 static int
 connect_socket(int family, struct sockaddr *addr, size_t addr_len, int *sd)
 {
-    int flags;
     int sock = -1;
     int ret;
 
     /* set O_NONBLOCK on standard input */
-    flags = fcntl(0, F_GETFL);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
-                ret, strerror(ret));
-        goto done;
-    }
-
-    ret = fcntl(0, F_SETFL, flags | O_NONBLOCK);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
-                ret, strerror(ret));
-        goto done;
+    ret = sss_fd_nonblocking(0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to make fd=0 nonblocking\n");
+        return ret;
     }
 
     /* create socket */
@@ -90,7 +79,6 @@ done:
 
 static int proxy_data(int sock)
 {
-    int flags;
     struct pollfd fds[2];
     char buffer[BUFFER_SIZE];
     int i;
@@ -98,19 +86,9 @@ static int proxy_data(int sock)
     int ret;
 
     /* set O_NONBLOCK on the socket */
-    flags = fcntl(sock, F_GETFL);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
-                ret, strerror(ret));
-        goto done;
-    }
-
-    ret = fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
-                ret, strerror(ret));
+    ret = sss_fd_nonblocking(sock);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to make socket nonblocking\n");
         goto done;
     }
 

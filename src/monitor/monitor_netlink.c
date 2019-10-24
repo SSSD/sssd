@@ -791,7 +791,6 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct netlink_ctx *nlctx;
     int ret;
     int nlfd;
-    unsigned flags;
     int groups[] = { RTNLGRP_LINK, RTNLGRP_IPV4_ROUTE, RTNLGRP_IPV6_ROUTE,
                      RTNLGRP_IPV4_IFADDR, RTNLGRP_IPV6_IFADDR, 0 };
 
@@ -847,12 +846,8 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     nlw_disable_seq_check(nlctx->nlp);
 
     nlfd = nl_socket_get_fd(nlctx->nlp);
-    flags = fcntl(nlfd, F_GETFL, 0);
-
-    errno = 0;
-    ret = fcntl(nlfd, F_SETFL, flags | O_NONBLOCK);
-    if (ret < 0) {
-        ret = errno;
+    ret = sss_fd_nonblocking(nlfd);
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot set the netlink fd to nonblocking\n");
         goto fail;
