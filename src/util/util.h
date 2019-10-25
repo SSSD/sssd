@@ -498,6 +498,13 @@ int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);
 
 bool is_host_in_domain(const char *host, const char *domain);
 
+/* This is simple wrapper around libc rand() intended to avoid calling srand()
+ * explicitly, thus *not* suitable to be used in security relevant context.
+ * If CS properties are desired (security relevant functionality/FIPS/etc) then
+ * use sss_crypto.h:sss_generate_csprng_buffer() instead!
+ */
+int sss_rand(void);
+
 /* from nscd.c */
 enum nscd_db {
     NSCD_DB_PASSWD,
