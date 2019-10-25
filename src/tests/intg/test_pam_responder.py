@@ -272,13 +272,15 @@ def cleanup_nssdb():
 
 
 def create_nssdb_fixture(request):
-    create_nssdb()
-    request.addfinalizer(cleanup_nssdb)
+    if 'USE_NSS' in os.environ and os.environ['USE_NSS'] == '1':
+        create_nssdb()
+        request.addfinalizer(cleanup_nssdb)
 
 
 def create_nssdb_no_cert_fixture(request):
-    create_nssdb_no_cert()
-    request.addfinalizer(cleanup_nssdb)
+    if 'USE_NSS' in os.environ and os.environ['USE_NSS'] == '1':
+        create_nssdb_no_cert()
+        request.addfinalizer(cleanup_nssdb)
 
 
 @pytest.fixture
