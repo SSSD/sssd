@@ -21,12 +21,6 @@
 #include <talloc.h>
 #include <stdint.h>
 
-/* Does its best to generate crypto strong random int but fallbacks to
- * plain `rand()` in case of failure.
- * Thus *not* suitable to be used in security relevant context.
- */
-int sss_rand(void);
-
 /* Guaranteed either to fill given buffer with crypto strong random data
  * or to fail with error code (for example in the case of the lack of
  * proper entropy)
