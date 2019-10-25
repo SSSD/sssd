@@ -1067,3 +1067,18 @@ bool local_provider_is_built(void)
     return false;
 #endif
 }
+
+int sss_rand(void)
+{
+    static bool srand_done = false;
+
+    /* Coverity might complain here: "DC.WEAK_CRYPTO (CWE-327)"
+     * It is safe to ignore as this helper function is *NOT* intended
+     * to be used in security relevant context.
+     */
+    if (!srand_done) {
+        srand(time(NULL) * getpid());
+        srand_done = true;
+    }
+    return rand();
+}

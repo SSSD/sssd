@@ -28,27 +28,6 @@
 #include "util/util_errors.h"
 #include "util/crypto/sss_crypto.h"
 
-int sss_rand(void)
-{
-    static bool srand_done = false;
-    int result;
-
-    if (RAND_bytes((unsigned char*)&result, (int)sizeof(int)) == 1) {
-        return result;
-    }
-
-    /* Fallback to libc `rand()`
-     * Coverity might complain here: "DC.WEAK_CRYPTO (CWE-327)"
-     * But if `RAND_bytes()` failed then there is no entropy available
-     * so it doesn't make any sense to try reading "/dev/[u]random"
-     */
-    if (!srand_done) {
-        srand(time(NULL) * getpid());
-        srand_done = true;
-    }
-    return rand();
-}
-
 int sss_generate_csprng_buffer(uint8_t *buf, size_t size)
 {
     if ((buf == NULL) || (size > INT_MAX)) {
