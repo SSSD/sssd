@@ -116,8 +116,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libnfsidmap-dev
         libnl-3-dev
         libnl-route-3-dev
-        libnspr4-dev
-        libnss3-dev
         libpam0g-dev
         libpcre3-dev
         libpopt-dev
