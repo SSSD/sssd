@@ -73,7 +73,7 @@ int sss_nss_timedlock(unsigned int timeout_ms, int *time_left_ms)
 
     ret = clock_gettime(CLOCK_REALTIME, &starttime);
     if (ret != 0) {
-        return ret;
+        return errno;
     }
     endtime.tv_sec = starttime.tv_sec + SEC_FROM_MSEC(timeout_ms);
     endtime.tv_nsec = starttime.tv_nsec + NSEC_FROM_MSEC(timeout_ms);
@@ -83,6 +83,7 @@ int sss_nss_timedlock(unsigned int timeout_ms, int *time_left_ms)
     if (ret == 0) {
         ret = clock_gettime(CLOCK_REALTIME, &endtime);
         if (ret != 0) {
+            ret = errno;
             sss_nss_unlock();
             return ret;
         }
