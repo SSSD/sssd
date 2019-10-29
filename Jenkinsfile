@@ -104,6 +104,9 @@ class Test {
     this.artifactsdir = "${this.pipeline.env.WORKSPACE}/artifacts/${this.system}"
     this.codedir = "${this.pipeline.env.WORKSPACE}/sssd"
 
+    /* Clean-up previous artifacts just to be sure there are no leftovers. */
+    this.pipeline.sh "rm -fr ${this.artifactsdir} || :"
+
     try {
       this.pipeline.echo "Running on ${this.pipeline.env.NODE_NAME}"
       this.notify('PENDING', 'Build is in progress.')
@@ -244,6 +247,12 @@ class OnDemandTest extends Test {
 
   def archive() {
     this.pipeline.echo 'On demand run. Artifacts are not stored in the cloud.'
+    this.pipeline.echo 'They are accessible only from Jenkins.'
+    this.pipeline.echo "${this.pipeline.env.BUILD_URL}/artifact/artifacts/${this.system}"
+    this.pipeline.archiveArtifacts artifacts: "artifacts/**",
+      allowEmptyArchive: true
+
+    this.pipeline.sh "rm -fr ${this.artifactsdir}"
   }
 }
 
