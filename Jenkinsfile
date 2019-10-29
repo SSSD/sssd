@@ -264,6 +264,12 @@ def notification = new Notification(
   on_demand
 )
 
+if (params.SYSTEMS) {
+  if (params.SYSTEMS != 'all') {
+    systems = params.SYSTEMS.split()
+  }
+}
+
 try {
   /* Setup nice build description so pull request are easy to find. */
   stage('Setup description') {
