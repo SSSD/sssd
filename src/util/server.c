@@ -86,7 +86,7 @@ void become_daemon(bool Fork)
             do {
                 errno = 0;
                 cpid = waitpid(pid, &status, 0);
-                if (cpid == 1) {
+                if (cpid == -1) {
                     /* An error occurred while waiting */
                     error = errno;
                     if (error != EINTR) {
