@@ -147,9 +147,10 @@ static int sc_set_seuser(const char *login_name, const char *seuser_name,
     int ret;
     mode_t old_mask;
 
-    /* This is a workaround for
-     * https://bugzilla.redhat.com/show_bug.cgi?id=1186422 to make sure
-     * the directories are created with the expected permissions
+    /* Bug origin: https://bugzilla.redhat.com/show_bug.cgi?id=1186422
+     * This workaround is required for libsemanage < 2.5-13.el7
+     * It will remain here as a precaution in case of unexpected
+     * libsemanage behaviour.
      */
     old_mask = umask(0);
     if (strcmp(seuser_name, "") == 0) {
