@@ -296,6 +296,7 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
     struct ipa_fetch_hbac_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
+    int dp_error;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_fetch_hbac_state);
@@ -308,7 +309,22 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
     state->hosts->entry_subdir = HBAC_HOSTS_SUBDIR;
     state->hosts->group_subdir = HBAC_HOSTGROUPS_SUBDIR;
     talloc_zfree(subreq);
+
     if (ret != EOK) {
+        /* Only call sdap_id_op_done in case of an error to trigger a
+         * failover. In general changing the tevent_req layout would be better
+         * so that all searches are in another sub-request so that we can
+         * error out at any step and the parent request can call
+         * sdap_id_op_done just once. */
+        ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+        if (dp_error == DP_ERR_OK && ret != EOK) {
+            /* retry */
+            ret = ipa_fetch_hbac_retry(req);
+            if (ret != EAGAIN) {
+                goto done;
+            }
+            return;
+        }
         goto done;
     }
 
