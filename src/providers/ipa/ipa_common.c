@@ -81,9 +81,9 @@ int ipa_get_options(TALLOC_CTX *memctx,
     if (ipa_hostname == NULL) {
         ret = gethostname(hostname, sizeof(hostname));
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "gethostname failed [%d][%s].\n", errno,
-                      strerror(errno));
             ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "gethostname failed [%d][%s].\n", ret,
+                      strerror(ret));
             goto done;
         }
         hostname[HOST_NAME_MAX] = '\0';

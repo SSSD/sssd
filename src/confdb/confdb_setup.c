@@ -172,9 +172,9 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
         errno = 0;
         ret = sss_ini_get_mtime(init_data, sizeof(timestr), timestr);
         if (ret <= 0 || ret >= (int)sizeof(timestr)) {
+            ret = errno ? errno : EFAULT;
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Failed to convert time_t to string??\n");
-            ret = errno ? errno : EFAULT;
             return ret;
         }
     } else {
