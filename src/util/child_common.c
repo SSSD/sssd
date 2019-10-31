@@ -822,9 +822,9 @@ errno_t child_debug_init(const char *logfile, int *debug_fd)
 
         *debug_fd = fileno(debug_filep);
         if (*debug_fd == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "fileno failed [%d][%s]\n", errno, strerror(errno));
             ret = errno;
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "fileno failed [%d][%s]\n", ret, strerror(ret));
             return ret;
         }
     }
