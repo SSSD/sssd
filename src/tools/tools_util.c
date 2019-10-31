@@ -578,8 +578,8 @@ int run_userdel_cmd(struct tools_ctx *tctx)
             }
         }
         if (child_pid == -1) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "waitpid failed\n");
             ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "waitpid failed\n");
             goto done;
         }
     }

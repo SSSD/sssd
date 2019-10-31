@@ -343,9 +343,9 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
 
     fd = open(krb5info_name, O_RDONLY);
     if (fd == -1) {
-        PLUGIN_DEBUG("open failed [%s][%d][%s].\n",
-                     krb5info_name, errno, strerror(errno));
         ret = errno;
+        PLUGIN_DEBUG("open failed [%s][%d][%s].\n",
+                     krb5info_name, ret, strerror(ret));
         goto done;
     }
 
