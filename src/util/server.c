@@ -124,7 +124,6 @@ static void become_daemon(void)
         ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE, "Cannot change directory (%d [%s])\n",
                                      ret, strerror(ret));
-        return;
     }
 
     /* Close FDs 0,1,2. Needed if started by rsh */
