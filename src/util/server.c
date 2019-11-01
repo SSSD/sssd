@@ -115,8 +115,14 @@ static void become_daemon(void)
         _exit(ret);
     }
 
-    /* detach from the terminal */
-    setsid();
+    /* create new session, process group and detach from the terminal */
+    if (setsid() == (pid_t) -1) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, "setsid() failed: %d [%s]\n",
+                                     ret, strerror(ret));
+        sss_log(SSS_LOG_ERR, "can't start: setsid() failed");
+        _exit(1);
+    }
 
     /* chdir to / to be sure we're not on a remote filesystem */
     errno = 0;
