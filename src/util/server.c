@@ -67,50 +67,48 @@ static void daemon_parent_sigterm(int sig)
  Become a daemon, discarding the controlling terminal.
 **/
 
-static void become_daemon(bool Fork)
+static void become_daemon(void)
 {
     pid_t pid, cpid;
     int status;
     int ret, error;
 
-    if (Fork) {
-        pid = fork();
-        if (pid != 0) {
-            /* Terminate parent process on demand so we can hold systemd
-             * or initd from starting next service until SSSD is initialized.
-             * We use signals directly here because we don't have a tevent
-             * context yet. */
-            CatchSignal(SIGTERM, daemon_parent_sigterm);
+    pid = fork();
+    if (pid != 0) {
+        /* Terminate parent process on demand so we can hold systemd
+         * or initd from starting next service until SSSD is initialized.
+         * We use signals directly here because we don't have a tevent
+         * context yet. */
+        CatchSignal(SIGTERM, daemon_parent_sigterm);
 
-            /* or exit when sssd monitor is terminated */
-            do {
-                errno = 0;
-                cpid = waitpid(pid, &status, 0);
-                if (cpid == -1) {
-                    /* An error occurred while waiting */
-                    error = errno;
-                    if (error != EINTR) {
-                        DEBUG(SSSDBG_CRIT_FAILURE,
-                              "Error [%d][%s] while waiting for child\n",
-                               error, strerror(error));
-                        /* Forcibly kill this child */
-                        kill(pid, SIGKILL);
-                        ret = 1;
-                    }
+        /* or exit when sssd monitor is terminated */
+        do {
+            errno = 0;
+            cpid = waitpid(pid, &status, 0);
+            if (cpid == -1) {
+                /* An error occurred while waiting */
+                error = errno;
+                if (error != EINTR) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Error [%d][%s] while waiting for child\n",
+                           error, strerror(error));
+                    /* Forcibly kill this child */
+                    kill(pid, SIGKILL);
+                    ret = 1;
                 }
+            }
 
-                error = 0;
-                /* return error if we didn't exited normally */
-                ret = 1;
+            error = 0;
+            /* return error if we didn't exited normally */
+            ret = 1;
 
-                if (WIFEXITED(status)) {
-                    /* but return our exit code otherwise */
-                    ret = WEXITSTATUS(status);
-                }
-            } while (error == EINTR);
+            if (WIFEXITED(status)) {
+                /* but return our exit code otherwise */
+                ret = WEXITSTATUS(status);
+            }
+        } while (error == EINTR);
 
-            _exit(ret);
-        }
+        _exit(ret);
     }
 
     /* detach from the terminal */
@@ -495,7 +493,7 @@ int server_setup(const char *name, int flags,
 
     if (flags & FLAGS_DAEMON) {
         DEBUG(SSSDBG_IMPORTANT_INFO, "Becoming a daemon.\n");
-        become_daemon(true);
+        become_daemon();
     }
 
     if (flags & FLAGS_PID_FILE) {
