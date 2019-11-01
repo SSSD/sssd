@@ -74,6 +74,13 @@ static void become_daemon(void)
     int ret, error;
 
     pid = fork();
+    if (pid == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed: %d [%s]\n",
+                                     ret, strerror(ret));
+        sss_log(SSS_LOG_ERR, "can't start: fork() failed");
+        _exit(1);
+    }
     if (pid != 0) {
         /* Terminate parent process on demand so we can hold systemd
          * or initd from starting next service until SSSD is initialized.
