@@ -88,9 +88,9 @@ static void become_daemon(void)
          * context yet. */
         CatchSignal(SIGTERM, daemon_parent_sigterm);
 
-        /* or exit when sssd monitor is terminated */
+        /* or exit when child process (i.e. sssd monitor) is terminated */
         do {
-            errno = 0;
+            error = 0;
             cpid = waitpid(pid, &status, 0);
             if (cpid == -1) {
                 /* An error occurred while waiting */
@@ -105,7 +105,6 @@ static void become_daemon(void)
                 }
             }
 
-            error = 0;
             /* return error if we didn't exited normally */
             ret = 1;
 
