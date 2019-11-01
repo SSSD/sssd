@@ -67,7 +67,7 @@ static void daemon_parent_sigterm(int sig)
  Become a daemon, discarding the controlling terminal.
 **/
 
-void become_daemon(bool Fork)
+static void become_daemon(bool Fork)
 {
     pid_t pid, cpid;
     int status;
