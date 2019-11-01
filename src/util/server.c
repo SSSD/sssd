@@ -88,7 +88,9 @@ static void become_daemon(void)
          * context yet. */
         CatchSignal(SIGTERM, daemon_parent_sigterm);
 
-        /* or exit when child process (i.e. sssd monitor) is terminated */
+        /* or exit when child process (i.e. sssd monitor) is terminated
+         * and return error in this case */
+        ret = 1;
         do {
             error = 0;
             cpid = waitpid(pid, &status, 0);
@@ -101,16 +103,12 @@ static void become_daemon(void)
                            error, strerror(error));
                     /* Forcibly kill this child */
                     kill(pid, SIGKILL);
-                    ret = 1;
                 }
-            }
-
-            /* return error if we didn't exited normally */
-            ret = 1;
-
-            if (WIFEXITED(status)) {
-                /* but return our exit code otherwise */
-                ret = WEXITSTATUS(status);
+            } else {
+                if (WIFEXITED(status)) {
+                    /* return our exit code if available */
+                    ret = WEXITSTATUS(status);
+                }
             }
         } while (error == EINTR);
 
