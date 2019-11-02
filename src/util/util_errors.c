@@ -123,6 +123,7 @@ struct err_string error_to_str[] = {
     { "The last GetAccountDomain() result is still valid" }, /* ERR_GET_ACCT_DOM_CACHED */
     { "ID is outside the allowed range" }, /* ERR_ID_OUTSIDE_RANGE */
     { "Group ID is duplicated" }, /* ERR_GID_DUPLICATED */
+    { "Multiple objects were found when only one was expected" }, /* ERR_MULTIPLE_ENTRIES */
 
     /* DBUS Errors */
     { "Connection was killed on demand" }, /* ERR_SBUS_KILL_CONNECTION */
