@@ -226,7 +226,7 @@ static errno_t cache_req_search_cache(TALLOC_CTX *mem_ctx,
             CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                             "Multiple objects were found when "
                             "only one was expected!\n");
-            ret = ERR_INTERNAL;
+            ret = ERR_MULTIPLE_ENTRIES;
             goto done;
         }
 
