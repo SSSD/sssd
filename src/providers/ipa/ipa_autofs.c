@@ -48,16 +48,22 @@ errno_t ipa_autofs_init(TALLOC_CTX *mem_ctx,
     }
 
     dp_set_method(dp_methods, DPM_AUTOFS_ENUMERATE,
-                  sdap_autofs_enumerate_handler_send, sdap_autofs_enumerate_handler_recv, id_ctx,
-                  struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
+                  sdap_autofs_enumerate_handler_send,
+                  sdap_autofs_enumerate_handler_recv,
+                  id_ctx->sdap_id_ctx, struct sdap_id_ctx,
+                  struct dp_autofs_data, struct dp_reply_std);
 
     dp_set_method(dp_methods, DPM_AUTOFS_GET_MAP,
-                  sdap_autofs_get_map_handler_send, sdap_autofs_get_map_handler_recv, id_ctx,
-                  struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
+                  sdap_autofs_get_map_handler_send,
+                  sdap_autofs_get_map_handler_recv,
+                  id_ctx->sdap_id_ctx, struct sdap_id_ctx,
+                  struct dp_autofs_data, struct dp_reply_std);
 
     dp_set_method(dp_methods, DPM_AUTOFS_GET_ENTRY,
-                  sdap_autofs_get_entry_handler_send, sdap_autofs_get_entry_handler_recv, id_ctx,
-                  struct sdap_id_ctx, struct dp_autofs_data, struct dp_reply_std);
+                  sdap_autofs_get_entry_handler_send,
+                  sdap_autofs_get_entry_handler_recv,
+                  id_ctx->sdap_id_ctx, struct sdap_id_ctx,
+                  struct dp_autofs_data, struct dp_reply_std);
 
     return ret;
 }
