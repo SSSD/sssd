@@ -109,8 +109,10 @@ static int kick_user(struct tools_ctx *tctx)
             }
         }
         if (child_pid == -1) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "waitpid failed\n");
-            return errno;
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "waitpid failed [%d]: %s\n", ret, strerror(ret));
+            return ret;
         }
     }
 

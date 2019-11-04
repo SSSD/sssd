@@ -568,6 +568,7 @@ errno_t string_to_shadowpw_days(const char *s, long *d)
 {
     long l;
     char *endptr;
+    int ret;
 
     if (s == NULL || *s == '\0') {
         *d = -1;
@@ -577,9 +578,10 @@ errno_t string_to_shadowpw_days(const char *s, long *d)
     errno = 0;
     l = strtol(s, &endptr, 10);
     if (errno != 0) {
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "strtol failed [%d][%s].\n", errno, strerror(errno));
-        return errno;
+              "strtol failed [%d][%s].\n", ret, strerror(ret));
+        return ret;
     }
 
     if (*endptr != '\0') {
