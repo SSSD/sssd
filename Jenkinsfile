@@ -8,6 +8,7 @@ def systems = [
   'fedora28',
   'fedora29',
   'fedora30',
+  'fedora31',
   'fedora-rawhide',
   'debian10',
 ]
