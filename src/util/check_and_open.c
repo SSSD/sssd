@@ -53,9 +53,10 @@ errno_t check_file(const char *filename,
         ret = lstat(filename, stat_buf);
     }
     if (ret == -1) {
+        ret = errno;
         DEBUG(SSSDBG_TRACE_FUNC, "lstat for [%s] failed: [%d][%s].\n",
-                                 filename, errno, strerror(errno));
-        return errno;
+                                 filename, ret, strerror(ret));
+        return ret;
     }
 
     return perform_checks(stat_buf, uid, gid, mode, mask);
@@ -77,10 +78,11 @@ errno_t check_fd(int fd, uid_t uid, gid_t gid,
 
     ret = fstat(fd, stat_buf);
     if (ret == -1) {
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "fstat for [%d] failed: [%d][%s].\n", fd, errno,
-                                                        strerror(errno));
-        return errno;
+              "fstat for [%d] failed: [%d][%s].\n", fd, ret,
+                                                        strerror(ret));
+        return ret;
     }
 
     return perform_checks(stat_buf, uid, gid, mode, mask);
@@ -133,10 +135,11 @@ errno_t check_and_open_readonly(const char *filename, int *fd,
 
     *fd = open(filename, O_RDONLY);
     if (*fd == -1) {
+        ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "open [%s] failed: [%d][%s].\n", filename, errno,
-                  strerror(errno));
-        return errno;
+              "open [%s] failed: [%d][%s].\n", filename, ret,
+                  strerror(ret));
+        return ret;
     }
 
     ret = check_fd(*fd, uid, gid, mode, mask, &stat_buf);
