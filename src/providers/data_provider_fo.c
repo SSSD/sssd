@@ -670,6 +670,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
      * requested or if the server is the same but changed status since last time*/
     if (state->svc->last_good_srv == NULL ||
         strcmp(fo_get_server_name(state->srv), state->svc->last_good_srv) != 0 ||
+        fo_get_server_port(state->srv) != state->svc->last_good_port ||
         state->svc->run_callbacks ||
         srv_status_change > state->svc->last_status_change) {
         state->svc->last_status_change = srv_status_change;
@@ -683,6 +684,7 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
 
         talloc_free(state->svc->last_good_srv);
         state->svc->last_good_srv = srvname;
+        state->svc->last_good_port = fo_get_server_port(state->srv);
 
         DLIST_FOR_EACH(callback, state->svc->callbacks) {
             callback->fn(callback->private_data, state->srv);
