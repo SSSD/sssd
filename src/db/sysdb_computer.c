@@ -120,7 +120,9 @@ int
 sysdb_set_computer(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domain,
                    const char *computer_name,
-                   const char *sid_str)
+                   const char *sid_str,
+                   int cache_timeout,
+                   time_t now)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
@@ -147,13 +149,32 @@ sysdb_set_computer(TALLOC_CTX *mem_ctx,
     if (ret) goto done;
 
     /* creation time */
-    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CREATE_TIME, time(NULL));
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CREATE_TIME, now);
     if (ret) goto done;
+
+    /* Set a cache expire time. There is a periodic task that cleans up
+     * expired entries from the cache even when enumeration is disabled */
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 cache_timeout ? (now + cache_timeout) : 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set sysdb cache expire [%d]: %s\n",
+              ret, strerror(ret));
+        goto done;
+    }
 
     ret = sysdb_store_custom(domain, computer_name, COMPUTERS_SUBDIR, attrs);
     if (ret) goto done;
 
-
+    /* FIXME As a future improvement we have to extend domain enumeration.
+     * When 'enumerate = true' for a domain, sssd starts a periodic task
+     * that brings all users and groups to the cache, cleaning up
+     * stale objects after each run. If enumeration is disabled, the cleanup
+     * task for expired entries is started instead.
+     *
+     * We have to extend the enumeration task to fetch 'computer'
+     * objects as well (see ad_id_enumeration_send, the entry point of the
+     * enumeration task for the  id provider).
+     */
 done:
     if (ret) {
         DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
