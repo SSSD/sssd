@@ -575,10 +575,8 @@ ad_gpo_dom_sid_equal(const struct dom_sid *sid1, const struct dom_sid *sid2)
 static errno_t
 ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
                 const char *user,
-                const char *ad_hostname,
                 struct sss_domain_info *domain,
                 const char **_user_sid,
-                const char **_host_sid,
                 const char ***_group_sids,
                 int *_group_size)
 {
@@ -588,7 +586,6 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
     int i = 0;
     int num_group_sids = 0;
     const char *user_sid = NULL;
-    const char *host_sid = NULL;
     const char *group_sid = NULL;
     const char **group_sids = NULL;
 
@@ -646,24 +643,6 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
     *_group_size = num_group_sids + 1;
     *_group_sids = talloc_steal(mem_ctx, group_sids);
     *_user_sid = talloc_steal(mem_ctx, user_sid);
-
-    /* Get the cached computer object by computer name */
-    if (ad_hostname != NULL) {
-        static const char *host_attrs[] = { SYSDB_SID_STR, NULL };
-        struct ldb_message *msg;
-        ret = sysdb_get_computer(tmp_ctx, domain, ad_hostname, host_attrs, &msg);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "sysdb_get_computer failed: [%d](%s)\n",
-                  ret, sss_strerror(ret));
-            goto done;
-        }
-
-        /* Get the computer SID from the cached entry */
-        host_sid = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
-        *_host_sid = talloc_steal(mem_ctx, host_sid);
-    }
-
     ret = EOK;
 
  done:
@@ -879,7 +858,7 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
 static errno_t
 ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
                            const char *user,
-                           const char *ad_hostname,
+                           const char *host_sid,
                            struct sss_domain_info *domain,
                            struct sss_idmap_ctx *idmap_ctx,
                            struct gp_gpo **candidate_gpos,
@@ -894,7 +873,6 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
     struct security_descriptor *sd = NULL;
     struct security_acl *dacl = NULL;
     const char *user_sid = NULL;
-    const char *host_sid = NULL;
     const char **group_sids = NULL;
     int group_size = 0;
     int gpo_dn_idx = 0;
@@ -907,8 +885,8 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = ad_gpo_get_sids(tmp_ctx, user, ad_hostname, domain, &user_sid,
-                          &host_sid, &group_sids, &group_size);
+    ret = ad_gpo_get_sids(tmp_ctx, user, domain, &user_sid,
+                          &group_sids, &group_size);
     if (ret != EOK) {
         ret = ERR_NO_SIDS;
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1431,7 +1409,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_FUNC, " denied_sids[%d] = %s\n", j, denied_sids[j]);
     }
 
-    ret = ad_gpo_get_sids(mem_ctx, user, NULL, domain, &user_sid, NULL,
+    ret = ad_gpo_get_sids(mem_ctx, user, domain, &user_sid,
                           &group_sids, &group_size);
     if (ret != EOK) {
         ret = ERR_NO_SIDS;
@@ -1645,6 +1623,7 @@ struct ad_gpo_access_state {
     const char *user;
     int gpo_timeout_option;
     const char *ad_hostname;
+    const char *host_sid;
     const char *target_dn;
     struct gp_gpo **dacl_filtered_gpos;
     int num_dacl_filtered_gpos;
@@ -1971,6 +1950,8 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     char *filter = NULL;
     char *domain_dn;
     const char *attrs[] = {AD_AT_SID, NULL};
+    struct ldb_message *msg;
+    static const char *host_attrs[] = { SYSDB_SID_STR, NULL };
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
@@ -2055,36 +2036,70 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
         goto done;
     }
 
-    /* Convert the domain name into domain DN */
-    ret = domain_to_basedn(state, state->host_domain->name, &domain_dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot convert domain name [%s] to base DN [%d]: %s\n",
-               state->host_domain->name, ret, sss_strerror(ret));
+    /* Check if computer exists in cache */
+    ret = sysdb_get_computer(state, state->user_domain, state->ad_hostname,
+                             host_attrs, &msg);
+    if (ret == ENOENT) {
+        /* The computer is not in cache so query LDAP server */
+        /* Convert the domain name into domain DN */
+        ret = domain_to_basedn(state, state->host_domain->name, &domain_dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot convert domain name [%s] to base DN [%d]: %s\n",
+                   state->host_domain->name, ret, sss_strerror(ret));
+            goto done;
+        }
+
+        filter = talloc_asprintf(subreq, SYSDB_COMP_FILTER, state->ad_hostname);
+        if (!filter) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        subreq = sdap_get_generic_send(state, state->ev, state->opts,
+                                       sdap_id_op_handle(state->sdap_op),
+                                       domain_dn, LDAP_SCOPE_SUBTREE,
+                                       filter, attrs, NULL, 0,
+                                       state->timeout,
+                                       false);
+
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq, ad_gpo_get_host_sid_retrieval_done, req);
+        return;
+    } else if (ret != EOK) {
+        ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
         goto done;
     }
 
-    /* Query the computer sid from LDAP, if computer does not exist in cache */
-    filter = talloc_asprintf(subreq, SYSDB_COMP_FILTER, state->ad_hostname);
-    if (!filter) {
+    /* The computer exists in the cache, there is no need to query LDAP.
+     * Store the retrieved host sid from cache in the state to avoid querying
+     * the cache again in ad_gpo_get_sids.
+     */
+    state->host_sid = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
+    talloc_steal(state, state->host_sid);
+
+    subreq = ad_gpo_process_som_send(state,
+                                     state->ev,
+                                     state->conn,
+                                     state->ldb_ctx,
+                                     state->sdap_op,
+                                     state->opts,
+                                     state->access_ctx->ad_options,
+                                     state->timeout,
+                                     state->target_dn,
+                                     state->host_domain->name);
+    if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    subreq = sdap_get_generic_send(state, state->ev, state->opts,
-                                   sdap_id_op_handle(state->sdap_op),
-                                   domain_dn, LDAP_SCOPE_SUBTREE,
-                                   filter, attrs, NULL, 0,
-                                   state->timeout,
-                                   false);
+    tevent_req_set_callback(subreq, ad_gpo_process_som_done, req);
 
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
-        ret = EIO;
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, ad_gpo_get_host_sid_retrieval_done, req);
     ret = EOK;
 
  done:
@@ -2174,10 +2189,16 @@ static void ad_gpo_get_host_sid_retrieval_done(struct tevent_req *subreq)
                ret, sss_strerror(ret));
         goto done;
     }
+    state->host_sid = talloc_steal(state, sid_str);
 
     /* Put the sid string in the sysdb */
+    /* FIXME Using the same timeout as user cache objects. We should create
+     * a specific setting, check autofsmap_timeout or ssh_host_timeout for
+     * example */
     ret = sysdb_set_computer(subreq, state->user_domain,
-                             state->ad_hostname, sid_str);
+                             state->ad_hostname, state->host_sid,
+                             state->user_domain->user_timeout,
+                             time(NULL));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_set_computer failed: [%d](%s)\n",
@@ -2320,7 +2341,7 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = ad_gpo_filter_gpos_by_dacl(state, state->user, state->ad_hostname,
+    ret = ad_gpo_filter_gpos_by_dacl(state, state->user, state->host_sid,
                                      state->user_domain,
                                      state->opts->idmap_ctx->map,
                                      candidate_gpos, num_candidate_gpos,
