@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <locale.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #include <security/pam_modules.h>
 #include <security/pam_appl.h>
@@ -1191,6 +1192,23 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
     return PAM_SUCCESS;
 }
 
+bool is_string_empty_or_whitespace(const char *str)
+{
+    int i;
+
+    if (str == NULL) {
+        return true;
+    }
+
+    for (i = 0; str[i] != '\0'; i++) {
+        if (!isspace(str[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
                          struct pam_items *pi)
 {
@@ -1215,13 +1233,14 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
         ret = PAM_SUCCESS;
     }
     if (ret != PAM_SUCCESS) return ret;
-    if (pi->pam_user == NULL) {
-        if (flags & PAM_CLI_FLAGS_ALLOW_MISSING_NAME) {
+    if (flags & PAM_CLI_FLAGS_ALLOW_MISSING_NAME) {
+        if (is_string_empty_or_whitespace(pi->pam_user)) {
             pi->pam_user = "";
-        } else {
-            D(("No user found, aborting."));
-            return PAM_BAD_ITEM;
         }
+    }
+    if (pi->pam_user == NULL) {
+        D(("No user found, aborting."));
+        return PAM_BAD_ITEM;
     }
     if (strcmp(pi->pam_user, "root") == 0) {
         D(("pam_sss will not handle root."));
