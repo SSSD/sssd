@@ -44,6 +44,8 @@ int
 sysdb_set_computer(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domain,
                    const char *computer_name,
-                   const char *sid_str);
+                   const char *sid_str,
+                   int cache_timeout,
+                   time_t now);
 
 #endif /* SYSDB_COMPUTERS_H_ */
