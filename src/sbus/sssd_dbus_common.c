@@ -53,6 +53,7 @@ static int watch_destructor(void *mem)
 
     watch = talloc_get_type(mem, struct sbus_watch_ctx);
     DLIST_REMOVE(watch->conn->watch_list, watch);
+    talloc_free(watch->fde);
 
     return 0;
 }
