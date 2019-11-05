@@ -63,10 +63,14 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len, int *sd)
         goto done;
     }
 
-    *sd = sock;
-
 done:
-    if (ret != 0 && sock >= 0) close(sock);
+    if (ret != 0) {
+        if (sock >= 0) {
+            close(sock);
+        }
+    } else {
+        *sd = sock;
+    }
     return ret;
 }
 
