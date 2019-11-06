@@ -49,6 +49,15 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
         krb5-workstation
     )
 
+    if [[ "$DISTRO_BRANCH" == -redhat-fedora-31* ||
+          "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos-8.*- ]]; then
+        DEPS_LIST+=(
+            python2
+            python2-devel
+        )
+    fi
+
     if [[ "$DISTRO_BRANCH" == -redhat-fedora-3[1-9]* ||
           "$DISTRO_BRANCH" == -redhat-redhatenterprise*-8.*- ||
           "$DISTRO_BRANCH" == -redhat-centos-8.*- ]]; then
