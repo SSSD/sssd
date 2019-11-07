@@ -1,0 +1,70 @@
+<variablelist>
+    <varlistentry>
+        <term>ldap_autofs_map_object_class (string)</term>
+        <listitem>
+            <para>
+                The object class of an automount map entry in LDAP.
+            </para>
+            <para>
+                Default: nisMap (rfc2307, autofs_provider=ad),
+                otherwise automountMap
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>ldap_autofs_map_name (string)</term>
+        <listitem>
+            <para>
+                The name of an automount map entry in LDAP.
+            </para>
+            <para>
+                Default: nisMapName (rfc2307,
+                autofs_provider=ad), otherwise automountMapName
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>ldap_autofs_entry_object_class (string)</term>
+        <listitem>
+            <para>
+                The object class of an automount entry
+                in LDAP. The entry usually corresponds to a mount
+                point.
+            </para>
+            <para>
+                Default: nisObject (rfc2307, autofs_provider=ad),
+                otherwise automount
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>ldap_autofs_entry_key (string)</term>
+        <listitem>
+            <para>
+                The key of an automount entry in LDAP. The
+                entry usually corresponds to a mount point.
+            </para>
+            <para>
+                Default: cn (rfc2307, autofs_provider=ad),
+                otherwise automountKey
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>ldap_autofs_entry_value (string)</term>
+        <listitem>
+            <para>
+                The key of an automount entry in LDAP. The
+                entry usually corresponds to a mount point.
+            </para>
+            <para>
+                Default: nisMapEntry (rfc2307,
+                autofs_provider=ad), otherwise automountInformation
+            </para>
+        </listitem>
+    </varlistentry>
+</variablelist>
