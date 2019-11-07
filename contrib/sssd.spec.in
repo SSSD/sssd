@@ -1100,6 +1100,7 @@ done
 %license COPYING
 %{_libdir}/%{name}/libsss_ldap.so
 %{_mandir}/man5/sssd-ldap.5*
+%{_mandir}/man5/sssd-ldap-attributes.5*
 
 %files krb5-common
 %defattr(-,root,root,-)
