@@ -195,6 +195,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/sssd-ipa.5*
 %{_mandir}/man5/sssd-krb5.5*
 %{_mandir}/man5/sssd-ldap.5*
+%{_mandir}/man5/sssd-ldap-attributes.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_groupadd.8*
 %{_mandir}/man8/sss_groupdel.8*
