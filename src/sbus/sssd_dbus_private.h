@@ -88,6 +88,7 @@ struct sbus_watch_ctx {
 
     struct tevent_fd *fde;
     int fd;
+    struct tevent_immediate *im_event;
 
     DBusWatch *dbus_read_watch;
     DBusWatch *dbus_write_watch;
