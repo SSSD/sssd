@@ -133,6 +133,12 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
             DEBUG(SSSDBG_FATAL_FAILURE, "Out of Memory!\n");
             return FALSE;
         }
+        watch->im_event = tevent_create_immediate(watch);
+        if (watch->im_event == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of Memory!\n");
+            talloc_free(watch);
+            return FALSE;
+        }
         watch->conn = conn;
         watch->fd = fd;
     }
@@ -243,6 +249,13 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
            enabled?"enabled":"disabled");
 }
 
+static void free_sbus_watch(struct tevent_context *ev,
+                            struct tevent_immediate *im,
+                            void *data)
+{
+    struct sbus_watch_ctx *w = talloc_get_type(data, struct sbus_watch_ctx);
+    talloc_free(w); /* this will free attached 'im' as well */
+}
 /*
  * sbus_remove_watch
  * Hook for D-BUS to remove file descriptor-based events
@@ -274,7 +287,16 @@ void sbus_remove_watch(DBusWatch *dbus_watch, void *data)
         watch->dbus_write_watch = NULL;
     }
     if (!watch->dbus_read_watch && !watch->dbus_write_watch) {
-        talloc_free(watch);
+        /* libdus doesn't need this watch{fd} anymore, so associated
+         * tevent_fd should be removed from monitoring at the spot.
+         */
+        talloc_zfree(watch->fde);
+        /* watch itself can't be freed yet as it still may be referenced
+         * in the current context (for example in sbus_watch_handler())
+         * so instead schedule immediate event to delete it.
+         */
+        tevent_schedule_immediate(watch->im_event, watch->conn->ev,
+                                  free_sbus_watch, watch);
     }
 }
 
