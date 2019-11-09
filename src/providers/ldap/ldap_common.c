@@ -253,8 +253,10 @@ sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
 
     krberr = krb5_get_default_realm(context, &krb5_realm);
     if (krberr) {
+        const char *krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get default realm name: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+                  krb5_err_msg);
+        sss_krb5_free_error_message(context, krb5_err_msg);
         goto done;
     }
 

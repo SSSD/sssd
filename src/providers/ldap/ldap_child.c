@@ -187,14 +187,15 @@ static int lc_verify_keytab_ex(const char *principal,
 
     krberr = krb5_kt_start_seq_get(context, keytab, &cursor);
     if (krberr) {
+        const char *krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Cannot read keytab [%s].\n", KEYTAB_CLEAN_NAME);
 
         sss_log(SSS_LOG_ERR, "Error reading keytab file [%s]: [%d][%s]. "
                              "Unable to create GSSAPI-encrypted LDAP "
                              "connection.",
-                             KEYTAB_CLEAN_NAME, krberr,
-                             sss_krb5_get_error_message(context, krberr));
+                             KEYTAB_CLEAN_NAME, krberr, krb5_err_msg);
+        sss_krb5_free_error_message(context, krb5_err_msg);
 
         return EIO;
     }
@@ -280,6 +281,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     TALLOC_CTX *tmp_ctx;
     char *ccname_file_dummy = NULL;
     char *ccname_file;
+    const char *krb5_err_msg = NULL;
 
     tmp_ctx = talloc_new(memctx);
     if (tmp_ctx == NULL) {
@@ -295,8 +297,9 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     if (!realm_str) {
         krberr = krb5_get_default_realm(context, &default_realm);
         if (krberr) {
+            krb5_err_msg = sss_krb5_get_error_message(context, krberr);
             DEBUG(SSSDBG_OP_FAILURE, "Failed to get default realm name: %s\n",
-                      sss_krb5_get_error_message(context, krberr));
+                      krb5_err_msg);
             goto done;
         }
 
@@ -350,8 +353,9 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
     krberr = krb5_parse_name(context, full_princ, &kprinc);
     if (krberr) {
+        krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_OP_FAILURE, "Unable to build principal: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+                  krb5_err_msg);
         goto done;
     }
 
@@ -362,10 +366,10 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     }
     DEBUG(SSSDBG_CONF_SETTINGS, "Using keytab [%s]\n", KEYTAB_CLEAN_NAME);
     if (krberr) {
+        krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to read keytab file [%s]: %s\n",
-               KEYTAB_CLEAN_NAME,
-               sss_krb5_get_error_message(context, krberr));
+               KEYTAB_CLEAN_NAME, krb5_err_msg);
         goto done;
     }
 
@@ -428,9 +432,9 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krb5_kt_close(context, keytab);
     keytab = NULL;
     if (krberr) {
+        krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to init credentials: %s\n",
-               sss_krb5_get_error_message(context, krberr));
+              "Failed to init credentials: %s\n", krb5_err_msg);
         goto done;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "credentials initialized\n");
@@ -445,23 +449,26 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
     krberr = krb5_cc_resolve(context, ccname_dummy, &ccache);
     if (krberr) {
+        krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_OP_FAILURE, "Failed to set cache name: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+                  krb5_err_msg);
         goto done;
     }
 
     /* Use updated principal if changed due to canonicalization. */
     krberr = krb5_cc_initialize(context, ccache, my_creds.client);
     if (krberr) {
+        krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_OP_FAILURE, "Failed to init ccache: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+                  krb5_err_msg);
         goto done;
     }
 
     krberr = krb5_cc_store_cred(context, ccache, &my_creds);
     if (krberr) {
+        krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_OP_FAILURE, "Failed to store creds: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+                  krb5_err_msg);
         goto done;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "credentials stored\n");
@@ -470,8 +477,9 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krberr = krb5_get_time_offsets(context, &kdc_time_offset,
             &kdc_time_offset_usec);
     if (krberr) {
+        krb5_err_msg = sss_krb5_get_error_message(context, krberr);
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get KDC time offset: %s\n",
-                  sss_krb5_get_error_message(context, krberr));
+                  krb5_err_msg);
         kdc_time_offset = 0;
     } else {
         if (kdc_time_offset_usec > 0) {
@@ -501,17 +509,13 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
 done:
     if (krberr != 0) {
-        const char *krb5_msg;
-
         sss_log(SSS_LOG_ERR,
                 "Failed to initialize credentials using keytab [%s]: %s. "
                 "Unable to create GSSAPI-encrypted LDAP connection.",
-                KEYTAB_CLEAN_NAME,
-                sss_krb5_get_error_message(context, krberr));
-        krb5_msg = sss_krb5_get_error_message(context, krberr);
-        *_krb5_msg = talloc_strdup(memctx, krb5_msg);
-        sss_krb5_free_error_message(context, krb5_msg);
+                KEYTAB_CLEAN_NAME, krb5_err_msg);
+        *_krb5_msg = talloc_strdup(memctx, krb5_err_msg);
     }
+    if (krb5_err_msg) sss_krb5_free_error_message(context, krb5_err_msg);
     if (keytab) krb5_kt_close(context, keytab);
     if (context) krb5_free_context(context);
     talloc_free(tmp_ctx);
