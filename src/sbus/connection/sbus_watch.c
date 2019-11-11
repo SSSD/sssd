@@ -102,6 +102,7 @@ struct sbus_watch_fd {
 
     int fd;
     struct tevent_fd *fdevent;
+    struct tevent_immediate *im_event;
 
     struct sbus_watch_fd *prev;
     struct sbus_watch_fd *next;
@@ -174,6 +175,13 @@ sbus_watch_get_by_fd(TALLOC_CTX *mem_ctx,
     watch_fd = talloc_zero(mem_ctx, struct sbus_watch_fd);
     if (watch_fd == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    watch_fd->im_event = tevent_create_immediate(watch_fd);
+    if (watch_fd->im_event == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of Memory!\n");
+        talloc_free(watch_fd);
         return NULL;
     }
 
@@ -254,6 +262,14 @@ sbus_watch_add(DBusWatch *dbus_watch, void *data)
 }
 
 static void
+free_sbus_watch(struct tevent_context *ev, struct tevent_immediate *im,
+                void *data)
+{
+    struct sbus_watch_fd *w = talloc_get_type(data, struct sbus_watch_fd);
+    talloc_free(w); /* this will free attached 'im' as well */
+}
+
+static void
 sbus_watch_remove(DBusWatch *dbus_watch, void *data)
 {
     struct sbus_watch_fd *watch_fd;
@@ -280,8 +296,16 @@ sbus_watch_remove(DBusWatch *dbus_watch, void *data)
 
     if (watch_fd->dbus_watch.read == NULL
             && watch_fd->dbus_watch.write == NULL) {
-        talloc_free(watch_fd->fdevent);
-        talloc_free(watch_fd);
+        /* libdbus doesn't need this watch{fd} anymore, so associated
+         * tevent_fd should be removed from monitoring at the spot.
+         */
+        talloc_zfree(watch_fd->fdevent);
+        /* watch_fd itself can't be freed yet as it still may be referenced
+         * in the current context (for example in sbus_watch_handler())
+         * so instead schedule immediate event to delete it.
+         */
+        tevent_schedule_immediate(watch_fd->im_event, watch_fd->sbus_watch->ev,
+                                  free_sbus_watch, watch_fd);
     }
 }
 
