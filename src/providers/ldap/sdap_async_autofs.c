@@ -1337,6 +1337,12 @@ static void sdap_autofs_get_entry_connect_done(struct tevent_req *subreq)
     tevent_req_set_callback(subreq, sdap_autofs_get_entry_done, req);
 }
 
+static errno_t sdap_autofs_save_entry(struct sss_domain_info *domain,
+                                      struct sdap_options *opts,
+                                      struct sysdb_attrs *newentry,
+                                      const char *mapname,
+                                      const char *entryname);
+
 static void sdap_autofs_get_entry_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
@@ -1365,31 +1371,18 @@ static void sdap_autofs_get_entry_done(struct tevent_req *subreq)
         return;
     }
 
-    if (reply_count == 0) {
-        ret = sysdb_del_autofsentry_by_key(state->id_ctx->be->domain,
-                                           state->mapname, state->entryname);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Cannot delete entry %s:%s\n",
-                  state->mapname, state->entryname);
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        tevent_req_done(req);
-        return;
-    }
-
-    ret = add_autofs_entry(state->id_ctx->be->domain, state->mapname,
-                           state->opts, reply[0], time(NULL));
+    ret = sdap_autofs_save_entry(state->id_ctx->be->domain,
+                                 state->opts,
+                                 reply_count != 0 ? reply[0] : NULL,
+                                 state->mapname,
+                                 state->entryname);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-             "Cannot save autofs entry %s:%s [%d]: %s\n",
-              state->mapname, state->entryname, ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
 
     tevent_req_done(req);
+    return;
 }
 
 errno_t sdap_autofs_get_entry_recv(struct tevent_req *req,
@@ -1404,4 +1397,66 @@ errno_t sdap_autofs_get_entry_recv(struct tevent_req *req,
     *dp_error = state->dp_error;
 
     return EOK;
+}
+
+static errno_t sdap_autofs_save_entry(struct sss_domain_info *domain,
+                                      struct sdap_options *opts,
+                                      struct sysdb_attrs *newentry,
+                                      const char *mapname,
+                                      const char *entryname)
+{
+    bool in_transaction = false;
+    errno_t ret;
+    int tret;
+
+    ret = sysdb_transaction_start(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot start sysdb transaction [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+    in_transaction = true;
+
+    /* Delete existing entry to cover case where new entry has the same key
+     * but different automountInformation. Because the dn is created from the
+     * combination of key and information it would be possible to end up with
+     * two entries with same key but different information otherwise.
+     */
+    ret = sysdb_del_autofsentry_by_key(domain, mapname, entryname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot delete entry %s:%s\n",
+              mapname, entryname);
+        goto done;
+    }
+
+    if (newentry != NULL) {
+        ret = add_autofs_entry(domain, mapname, opts, newentry, time(NULL));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot save autofs entry %s:%s [%d]: %s\n",
+                  mapname, entryname, ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = sysdb_transaction_commit(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot commit sysdb transaction [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        tret = sysdb_transaction_cancel(domain->sysdb);
+        if (tret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot cancel sysdb transaction "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+        }
+    }
+
+    return ret;
 }
