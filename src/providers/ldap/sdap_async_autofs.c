@@ -30,11 +30,6 @@
 #include "providers/ldap/sdap_autofs.h"
 #include "providers/ldap/sdap_ops.h"
 
-enum autofs_map_op {
-    AUTOFS_MAP_OP_ADD,
-    AUTOFS_MAP_OP_DEL
-};
-
 /* ====== Utility functions ====== */
 static const char *
 get_autofs_map_name(struct sysdb_attrs *map, struct sdap_options *opts)
