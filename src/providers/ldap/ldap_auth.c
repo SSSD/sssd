@@ -1402,7 +1402,7 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
                 ret = pam_add_response(state->pd, SSS_PAM_USER_INFO,
                                        msg_len, msg);
                 if (ret != EOK) {
-                   DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
                 }
             }
             break;

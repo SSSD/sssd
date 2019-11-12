@@ -72,7 +72,7 @@ dp_init_interface(struct data_provider *provider)
     );
 
     SBUS_INTERFACE(iface_autofs,
-       sssd_DataProvider_Autofs,
+        sssd_DataProvider_Autofs,
         SBUS_METHODS(
             SBUS_ASYNC(METHOD, sssd_DataProvider_Autofs, GetMap, dp_autofs_get_map_send, dp_autofs_get_map_recv, provider),
             SBUS_ASYNC(METHOD, sssd_DataProvider_Autofs, GetEntry, dp_autofs_get_entry_send, dp_autofs_get_entry_recv, provider),

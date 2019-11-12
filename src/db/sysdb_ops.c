@@ -647,10 +647,10 @@ int sysdb_search_user_by_sid_str(TALLOC_CTX *mem_ctx,
                                  struct ldb_message **msg)
 {
 
-   return sysdb_search_entry_by_sid_str(mem_ctx, domain,
-                                        SYSDB_TMPL_USER_BASE,
-                                        SYSDB_PWSID_FILTER,
-                                        sid_str, attrs, msg);
+    return sysdb_search_entry_by_sid_str(mem_ctx, domain,
+                                         SYSDB_TMPL_USER_BASE,
+                                         SYSDB_PWSID_FILTER,
+                                         sid_str, attrs, msg);
 }
 
 int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
@@ -840,10 +840,10 @@ int sysdb_search_group_by_sid_str(TALLOC_CTX *mem_ctx,
                                   struct ldb_message **msg)
 {
 
-   return sysdb_search_entry_by_sid_str(mem_ctx, domain,
-                                        SYSDB_TMPL_GROUP_BASE,
-                                        SYSDB_GRSID_FILTER,
-                                        sid_str, attrs, msg);
+    return sysdb_search_entry_by_sid_str(mem_ctx, domain,
+                                         SYSDB_TMPL_GROUP_BASE,
+                                         SYSDB_GRSID_FILTER,
+                                         sid_str, attrs, msg);
 }
 
 /* =Search-Group-by-Name============================================ */
@@ -3563,7 +3563,7 @@ int sysdb_store_custom(struct sss_domain_info *domain,
     }
 
     if (ret == ENOENT) {
-       add_object = true;
+        add_object = true;
     }
 
     msg = ldb_msg_new(tmp_ctx);
@@ -3870,12 +3870,12 @@ int sysdb_search_users_by_timestamp(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-       ret = sysdb_merge_msg_list_ts_attrs(domain->sysdb, msgs_count, msgs, attrs);
-       if (ret != EOK) {
-           goto done;
-       }
+        ret = sysdb_merge_msg_list_ts_attrs(domain->sysdb, msgs_count, msgs, attrs);
+        if (ret != EOK) {
+            goto done;
+        }
 
-       goto immediately;
+        goto immediately;
     } else if (ret != EOK) {
         goto done;
     }
@@ -4234,12 +4234,12 @@ int sysdb_search_groups_by_timestamp(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-       ret = sysdb_merge_msg_list_ts_attrs(domain->sysdb, msgs_count, msgs, attrs);
-       if (ret != EOK) {
-           goto done;
-       }
+        ret = sysdb_merge_msg_list_ts_attrs(domain->sysdb, msgs_count, msgs, attrs);
+        if (ret != EOK) {
+            goto done;
+        }
 
-       goto immediately;
+        goto immediately;
     } else if (ret != EOK) {
         goto done;
     }

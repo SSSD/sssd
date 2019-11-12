@@ -91,13 +91,13 @@ static int seed_prompt(const char *req)
     }
 
     while (prompt[i] != '\0') {
-       errno = 0;
-       len = sss_atomic_write_s(STDOUT_FILENO, &prompt[i++], 1);
-       if (len == -1) {
-           ret = errno;
-           DEBUG(SSSDBG_CRIT_FAILURE, "write failed [%d][%s].\n",
-                                       ret, strerror(ret));
-           goto done;
+        errno = 0;
+        len = sss_atomic_write_s(STDOUT_FILENO, &prompt[i++], 1);
+        if (len == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "write failed [%d][%s].\n",
+                                        ret, strerror(ret));
+            goto done;
        }
     }
 

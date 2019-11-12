@@ -3203,15 +3203,15 @@ static errno_t ipa_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
                                            struct tevent_req *req,
                                            struct dp_reply_std *data)
 {
-   struct ipa_subdomains_handler_state *state;
+    struct ipa_subdomains_handler_state *state;
 
-   state = tevent_req_data(req, struct ipa_subdomains_handler_state);
+    state = tevent_req_data(req, struct ipa_subdomains_handler_state);
 
-   TEVENT_REQ_RETURN_ON_ERROR(req);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-   *data = state->reply;
+    *data = state->reply;
 
-   return EOK;
+    return EOK;
 }
 
 static struct tevent_req *

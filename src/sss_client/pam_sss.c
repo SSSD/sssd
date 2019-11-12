@@ -725,8 +725,8 @@ static int user_info_account_expired(pam_handle_t *pamh, size_t buflen,
 
     user_msg = (char *)malloc(sizeof(char) * bufsize);
     if (!user_msg) {
-       D(("Out of memory."));
-       return PAM_SYSTEM_ERR;
+        D(("Out of memory."));
+        return PAM_SYSTEM_ERR;
     }
 
     ret = snprintf(user_msg, bufsize, "%s%s%.*s",
@@ -780,8 +780,8 @@ static int user_info_chpass_error(pam_handle_t *pamh, size_t buflen,
 
     user_msg = (char *)malloc(sizeof(char) * bufsize);
     if (!user_msg) {
-       D(("Out of memory."));
-       return PAM_SYSTEM_ERR;
+        D(("Out of memory."));
+        return PAM_SYSTEM_ERR;
     }
 
     ret = snprintf(user_msg, bufsize, "%s%s%.*s",
@@ -2339,7 +2339,7 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
                 D(("Failed to set PAM_OLDAUTHTOK [%s], "
                    "oldauthtok may not be available",
                    pam_strerror(pamh,ret)));
-                   return ret;
+                return ret;
             }
 
             if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_2FA) {

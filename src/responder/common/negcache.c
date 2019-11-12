@@ -1113,7 +1113,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
 
                 ret = sss_ncache_set_upn(ncache, true, dom, fqname);
                 if (ret != EOK) {
-                   DEBUG(SSSDBG_CRIT_FAILURE,
+                    DEBUG(SSSDBG_CRIT_FAILURE,
                          "Failed to store permanent upn filter for"
                              " [%s:%s] (%d [%s])\n",
                              dom->name, filter_list[i],
@@ -1123,7 +1123,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 ret = sss_ncache_set_user(ncache, true, dom, fqname);
                 talloc_zfree(fqname);
                 if (ret != EOK) {
-                   DEBUG(SSSDBG_CRIT_FAILURE,
+                    DEBUG(SSSDBG_CRIT_FAILURE,
                          "Failed to store permanent user filter for"
                              " [%s:%s] (%d [%s])\n",
                              dom->name, filter_list[i],
@@ -1238,7 +1238,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 ret = sss_ncache_set_group(ncache, true, dom, fqname);
                 talloc_zfree(fqname);
                 if (ret != EOK) {
-                   DEBUG(SSSDBG_CRIT_FAILURE,
+                    DEBUG(SSSDBG_CRIT_FAILURE,
                          "Failed to store permanent group filter for"
                              " [%s:%s] (%d [%s])\n",
                              dom->name, filter_list[i],
