@@ -299,12 +299,12 @@ static char *get_pkcs11_uri(TALLOC_CTX *mem_ctx, SECMODModule *mod,
 
 static char *password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
 {
-  /* give up if 1) no password was supplied, or 2) the password has already
-   * been rejected once by this token. */
-  if (retry || (arg == NULL)) {
-    return NULL;
-  }
-  return PL_strdup((char *)arg);
+    /* give up if 1) no password was supplied, or 2) the password has already
+     * been rejected once by this token. */
+    if (retry || (arg == NULL)) {
+        return NULL;
+    }
+    return PL_strdup((char *)arg);
 }
 
 static char *get_key_id_str(PK11SlotInfo *slot, CERTCertificate *cert)

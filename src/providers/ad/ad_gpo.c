@@ -1197,7 +1197,7 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
         }
 
         for (int a = 0; errors[a]; a++) {
-             DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[a]);
+            DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[a]);
         }
         ini_config_free_errors(errors);
 
@@ -1249,7 +1249,7 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
             }
 
             for (int a = 0; errors[a]; a++) {
-                 DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[a]);
+                DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[a]);
             }
             ini_config_free_errors(errors);
 
@@ -1324,7 +1324,7 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
  done:
 
     if (ret != EOK) {
-      DEBUG(SSSDBG_CRIT_FAILURE, "Error encountered: %d.\n", ret);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error encountered: %d.\n", ret);
     }
     ini_config_file_destroy(file_ctx);
     ini_config_destroy(ini_config);
@@ -3810,11 +3810,11 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
 
 done:
 
-   if (ret == EOK) {
-       tevent_req_done(req);
-   } else if (ret != EAGAIN) {
-       tevent_req_error(req, ret);
-   }
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
 }
 
 void
@@ -3848,11 +3848,11 @@ ad_gpo_get_sd_referral_done(struct tevent_req *subreq)
 
 done:
 
-   if (ret == EOK) {
-       tevent_req_done(req);
-   } else if (ret != EAGAIN) {
-       tevent_req_error(req, ret);
-   }
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
 }
 
 static bool machine_ext_names_is_blank(char *attr_value)
@@ -4691,13 +4691,13 @@ ad_gpo_get_sd_referral_search_done(struct tevent_req *subreq)
     state->reply = talloc_steal(state, results[0]);
 
 done:
-   talloc_free(results);
+    talloc_free(results);
 
-   if (ret == EOK) {
-       tevent_req_done(req);
-   } else if (ret != EAGAIN) {
-       tevent_req_error(req, ret);
-   }
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
 }
 
 errno_t

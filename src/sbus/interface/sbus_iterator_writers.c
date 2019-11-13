@@ -61,8 +61,8 @@ sbus_iterator_write_string(DBusMessageIter *iterator,
     /* D-Bus can send only correct UTF-8 strings. */
     is_valid = sss_utf8_check((const uint8_t *)value, strlen(value));
     if (!is_valid) {
-          DEBUG(SSSDBG_CRIT_FAILURE, "String with non-utf8 characters was "
-                "given [%s]\n", value);
+        DEBUG(SSSDBG_CRIT_FAILURE, "String with non-utf8 characters was "
+              "given [%s]\n", value);
         return ERR_SBUS_INVALID_STRING;
     }
 

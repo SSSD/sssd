@@ -97,8 +97,8 @@ errno_t sss_memcache_invalidate(const char *mc_filename)
               "File %s already locked by someone else.\n", mc_filename);
         goto done;
     } else if (ret != EOK) {
-       DEBUG(SSSDBG_CRIT_FAILURE, "Failed to lock file %s.\n", mc_filename);
-       goto done;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to lock file %s.\n", mc_filename);
+        goto done;
     }
     /* Mark the mc file as recycled. */
     ret = sss_mc_set_recycled(mc_fd);

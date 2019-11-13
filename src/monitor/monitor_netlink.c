@@ -433,20 +433,20 @@ static int nlw_group_subscribe(struct nlw_handle *nlp, int group)
         return ret;
     }
 #else
-     int nlfd = nl_socket_get_fd(nlp);
+    int nlfd = nl_socket_get_fd(nlp);
 
-     errno = 0;
-     ret = setsockopt(nlfd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
-                      &group, sizeof(group));
-     if (ret < 0) {
-         ret = errno;
-         DEBUG(SSSDBG_CRIT_FAILURE,
-               "setsockopt failed (%d): %s\n", ret, strerror(ret));
-         return ret;
-     }
+    errno = 0;
+    ret = setsockopt(nlfd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
+                     &group, sizeof(group));
+    if (ret < 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "setsockopt failed (%d): %s\n", ret, strerror(ret));
+        return ret;
+    }
 #endif
 
-     return 0;
+    return 0;
 }
 
 static int nlw_groups_subscribe(struct nlw_handle *nlp, int *groups)
@@ -699,9 +699,9 @@ static void addr_msg_handler(struct nl_object *obj, void *arg)
                                     (struct sockaddr *) &sa6,
                                     &salen);
         if (err < 0) {
-          DEBUG(SSSDBG_MINOR_FAILURE,
-                "Unknown error in nl_addr_fill_sockaddr\n");
-          return;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Unknown error in nl_addr_fill_sockaddr\n");
+            return;
         }
 
         if (!check_ipv6_addr(&sa6.sin6_addr, SSS_NO_SPECIAL)) {

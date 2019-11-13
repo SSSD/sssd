@@ -85,7 +85,7 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
     req = tevent_req_create(memctx, &state, struct ipa_subdomain_account_state);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
-         return NULL;
+        return NULL;
     }
 
     state->ev = ev;

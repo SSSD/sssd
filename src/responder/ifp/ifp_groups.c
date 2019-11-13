@@ -181,10 +181,10 @@ static void ifp_groups_find_by_name_done(struct tevent_req *subreq)
 
     state->path = ifp_groups_build_path_from_msg(state, result->domain,
                                                  result->msgs[0]);
-     if (state->path == NULL) {
-         tevent_req_error(req, ENOMEM);
-         return;
-     }
+    if (state->path == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
 
     tevent_req_done(req);
     return;

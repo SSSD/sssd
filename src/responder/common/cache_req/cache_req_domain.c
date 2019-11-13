@@ -127,13 +127,13 @@ cache_req_domain_use_fqnames(struct sss_domain_info *domain,
      *       - false: in this case, the usage of fully-qualified-names will be
      *                done accordingly to what's set for the domain itself.
      */
-     if (head->fqnames) {
-         return true;
-     } else if (enforce_non_fqnames) {
-         return false;
-     } else {
-         return domain->fqnames;
-     }
+    if (head->fqnames) {
+        return true;
+    } else if (enforce_non_fqnames) {
+        return false;
+    } else {
+        return domain->fqnames;
+    }
 }
 
 static struct cache_req_domain *

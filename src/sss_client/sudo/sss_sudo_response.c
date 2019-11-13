@@ -131,7 +131,7 @@ int sss_sudo_parse_rule(const char *message,
     ret = sss_sudo_parse_uint32(message, message_len,
                                 _cursor, &_rule->num_attrs);
     if (ret != EOK) {
-       return ret;
+        return ret;
     }
 
     /* attrs */
@@ -144,7 +144,7 @@ int sss_sudo_parse_rule(const char *message,
         ret = sss_sudo_parse_attr(message, message_len,
                                   _cursor, &_rule->attrs[i]);
         if (ret != EOK) {
-           return ret;
+            return ret;
         }
     }
 
@@ -196,10 +196,10 @@ int sss_sudo_parse_uint32(const char *message,
                           size_t *_cursor,
                           uint32_t *_number)
 {
-   size_t start_pos = 0;
+    size_t start_pos = 0;
 
     if (_cursor == NULL) {
-       return EINVAL;
+        return EINVAL;
     }
 
     start_pos = *_cursor;
@@ -227,7 +227,7 @@ int sss_sudo_parse_string(const char *message,
     size_t maxlen = 0;
 
     if (_cursor == NULL) {
-       return EINVAL;
+        return EINVAL;
     }
 
     start_pos = *_cursor;

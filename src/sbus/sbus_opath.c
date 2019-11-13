@@ -274,58 +274,58 @@ char *
 sbus_opath_unescape(TALLOC_CTX *mem_ctx,
                     const char *component)
 {
-     TALLOC_CTX *tmp_ctx;
-     char *safe_path;
-     const char *p;
-     int a, b, c;
+    TALLOC_CTX *tmp_ctx;
+    char *safe_path;
+    const char *p;
+    int a, b, c;
 
-     tmp_ctx = talloc_new(NULL);
-     if (tmp_ctx == NULL) {
-         return NULL;
-     }
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
+    }
 
-     safe_path = talloc_strdup(tmp_ctx, "");
-     if (safe_path == NULL) {
-         goto done;
-     }
+    safe_path = talloc_strdup(tmp_ctx, "");
+    if (safe_path == NULL) {
+        goto done;
+    }
 
-     /* Special case for the empty string */
-     if (strcmp(component, "_") == 0) {
-         safe_path = talloc_steal(mem_ctx, safe_path);
-         goto done;
-     }
+    /* Special case for the empty string */
+    if (strcmp(component, "_") == 0) {
+        safe_path = talloc_steal(mem_ctx, safe_path);
+        goto done;
+    }
 
-     for (p = component; *p; p++) {
-         if (*p == '_') {
-             /* There must be at least two more chars after underscore */
-             if (p[1] == '\0' || p[2] == '\0') {
-                 safe_path = NULL;
-                 goto done;
-             }
+    for (p = component; *p; p++) {
+        if (*p == '_') {
+            /* There must be at least two more chars after underscore */
+            if (p[1] == '\0' || p[2] == '\0') {
+                safe_path = NULL;
+                goto done;
+            }
 
-             if ((a = unhexchar(p[1])) < 0
-                     || (b = unhexchar(p[2])) < 0) {
-                 /* Invalid escape code, let's take it literal then */
-                 c = '_';
-             } else {
-                 c = ((a << 4) | b);
-                 p += 2;
-             }
-         } else  {
-             c = *p;
-         }
+            if ((a = unhexchar(p[1])) < 0
+                    || (b = unhexchar(p[2])) < 0) {
+                /* Invalid escape code, let's take it literal then */
+                c = '_';
+            } else {
+                c = ((a << 4) | b);
+                p += 2;
+            }
+        } else  {
+            c = *p;
+        }
 
-         safe_path = talloc_asprintf_append_buffer(safe_path, "%c", c);
-         if (safe_path == NULL) {
-             goto done;
-         }
-     }
+        safe_path = talloc_asprintf_append_buffer(safe_path, "%c", c);
+        if (safe_path == NULL) {
+            goto done;
+        }
+    }
 
-     safe_path = talloc_steal(mem_ctx, safe_path);
+    safe_path = talloc_steal(mem_ctx, safe_path);
 
  done:
-     talloc_free(tmp_ctx);
-     return safe_path;
+    talloc_free(tmp_ctx);
+    return safe_path;
 }
 
 const char *

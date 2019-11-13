@@ -65,14 +65,14 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
                          sanitized_name);
             break;
 
-         case BE_REQ_GROUP:
+        case BE_REQ_GROUP:
             filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(%s=%s))",
                         ipa_opts->override_map[IPA_OC_OVERRIDE_GROUP].name,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_GROUP_NAME].name,
                         sanitized_name);
             break;
 
-         case BE_REQ_USER_AND_GROUP:
+        case BE_REQ_USER_AND_GROUP:
             filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(|(%s=%s)(%s=%s)))",
                         ipa_opts->override_map[IPA_OC_OVERRIDE].name,
                         ipa_opts->override_map[IPA_AT_OVERRIDE_USER_NAME].name,
@@ -106,7 +106,7 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
                         id);
             break;
 
-         case BE_REQ_GROUP:
+        case BE_REQ_GROUP:
             filter = talloc_asprintf(mem_ctx,
                   "(&(objectClass=%s)(%s=%"PRIu32"))",
                   ipa_opts->override_map[IPA_OC_OVERRIDE_GROUP].name,
@@ -114,7 +114,7 @@ static errno_t dp_id_data_to_override_filter(TALLOC_CTX *mem_ctx,
                   id);
             break;
 
-         case BE_REQ_USER_AND_GROUP:
+        case BE_REQ_USER_AND_GROUP:
             filter = talloc_asprintf(mem_ctx,
                   "(&(objectClass=%s)(|(%s=%"PRIu32")(%s=%"PRIu32")))",
                   ipa_opts->override_map[IPA_OC_OVERRIDE].name,

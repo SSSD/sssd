@@ -1250,7 +1250,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
 
     /* Sudo */
     if (!sdom->sudo_search_bases) {
-       ret = sdap_set_search_base(opts, sdom,
+        ret = sdap_set_search_base(opts, sdom,
                                    SDAP_SUDO_SEARCH_BASE,
                                    naming_context);
         if (ret != EOK) goto done;
@@ -1258,17 +1258,17 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
 
     /* Services */
     if (!sdom->service_search_bases) {
-       ret = sdap_set_search_base(opts, sdom,
-                                  SDAP_SERVICE_SEARCH_BASE,
-                                  naming_context);
+        ret = sdap_set_search_base(opts, sdom,
+                                   SDAP_SERVICE_SEARCH_BASE,
+                                   naming_context);
         if (ret != EOK) goto done;
     }
 
     /* autofs */
     if (!sdom->autofs_search_bases) {
-       ret = sdap_set_search_base(opts, sdom,
-                                  SDAP_AUTOFS_SEARCH_BASE,
-                                  naming_context);
+        ret = sdap_set_search_base(opts, sdom,
+                                   SDAP_AUTOFS_SEARCH_BASE,
+                                   naming_context);
         if (ret != EOK) goto done;
     }
 

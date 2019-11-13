@@ -248,9 +248,9 @@ static void ifp_find_domain_by_name_done(struct tevent_req *subreq)
     }
 
     if (iter == NULL) {
-         DEBUG(SSSDBG_MINOR_FAILURE, "Domain not found: %s\n", state->name);
-         tevent_req_error(req, ERR_DOMAIN_NOT_FOUND);
-         return;
+        DEBUG(SSSDBG_MINOR_FAILURE, "Domain not found: %s\n", state->name);
+        tevent_req_error(req, ERR_DOMAIN_NOT_FOUND);
+        return;
     }
 
     state->path = sbus_opath_compose(state, IFP_PATH_DOMAINS, iter->name);
@@ -795,10 +795,10 @@ ifp_domains_domain_active_server_send(TALLOC_CTX *mem_ctx,
     ret = EAGAIN;
 
 done:
-if (ret != EAGAIN) {
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-}
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
 
     return req;
 }
@@ -986,10 +986,10 @@ ifp_domains_domain_refresh_access_rules_send(TALLOC_CTX *mem_ctx,
     ret = EAGAIN;
 
 done:
-if (ret != EAGAIN) {
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-}
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
 
     return req;
 }

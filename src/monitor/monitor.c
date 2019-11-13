@@ -439,7 +439,7 @@ static int notify_startup(void)
                 "Error sending notification to systemd %d: %s\n",
                 ret, sss_strerror(ret));
 
-       return ret;
+        return ret;
     }
 #endif
 

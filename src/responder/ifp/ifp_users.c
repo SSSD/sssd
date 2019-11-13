@@ -371,11 +371,11 @@ static void ifp_users_find_by_cert_done(struct tevent_req *subreq)
     }
 
     if (result->count > 1) {
-         DEBUG(SSSDBG_CRIT_FAILURE, "More than one user found. "
-               "Use ListByCertificate to get all.\n");
-         tevent_req_error(req, EINVAL);
-         return;
-     }
+        DEBUG(SSSDBG_CRIT_FAILURE, "More than one user found. "
+              "Use ListByCertificate to get all.\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
 
     state->path = ifp_users_build_path_from_msg(state, result->domain,
                                                 result->msgs[0]);

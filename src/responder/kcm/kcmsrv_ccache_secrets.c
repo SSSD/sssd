@@ -675,7 +675,7 @@ static errno_t ccdb_sec_init(struct kcm_ccdb *db,
         DEBUG(SSSDBG_FATAL_FAILURE, "Cannot initialize tcurl\n");
         talloc_zfree(secdb);
         return ENOMEM;
-   }
+    }
 
     db->db_handle = secdb;
     return EOK;

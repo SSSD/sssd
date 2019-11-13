@@ -488,7 +488,7 @@ ad_gpo_parse_ini_file(const char *smb_path,
         }
 
         for (int i = 0; errors[i]; i++) {
-             DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[i]);
+            DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", errors[i]);
         }
         ini_config_free_errors(errors);
 

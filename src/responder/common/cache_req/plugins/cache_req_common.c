@@ -29,12 +29,12 @@
 errno_t cache_req_idminmax_check(struct cache_req_data *data,
                                  struct sss_domain_info *domain)
 {
-   if (((domain->id_min != 0) && (data->id < domain->id_min)) ||
-       ((domain->id_max != 0) && (data->id > domain->id_max))) {
+    if (((domain->id_min != 0) && (data->id < domain->id_min)) ||
+        ((domain->id_max != 0) && (data->id > domain->id_max))) {
         DEBUG(SSSDBG_FUNC_DATA, "id exceeds min/max boundaries\n");
         return ERR_ID_OUTSIDE_RANGE;
-   }
-   return EOK;
+    }
+    return EOK;
 }
 
 static struct ldb_message *

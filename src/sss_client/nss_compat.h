@@ -36,32 +36,32 @@
    touched at all. */
 struct __netgrent
 {
-  enum { triple_val, group_val } type;
-  union
-  {
-    struct
+    enum { triple_val, group_val } type;
+    union
     {
-      const char *host;
-      const char *user;
-      const char *domain;
-    } triple;
-    const char *group;
-  } val;
-  /* the following stuff is used by some NSS services
-     but not by ours (it's not completely clear how these
-     are shared between different services) or is used
-     by our caller */
-  char *data;
-  size_t data_size;
-  union
-  {
-    char *cursor;
-    unsigned long int position;
-  } idx;  /* added name to union to avoid warning */
-  int first;
-  struct name_list *known_groups;
-  struct name_list *needed_groups;
-  void *nip; /* changed from `service_user *nip' */
+        struct
+        {
+            const char *host;
+            const char *user;
+            const char *domain;
+        } triple;
+        const char *group;
+    } val;
+    /* the following stuff is used by some NSS services
+       but not by ours (it's not completely clear how these
+       are shared between different services) or is used
+       by our caller */
+    char *data;
+    size_t data_size;
+    union
+    {
+        char *cursor;
+        unsigned long int position;
+    } idx;  /* added name to union to avoid warning */
+    int first;
+    struct name_list *known_groups;
+    struct name_list *needed_groups;
+    void *nip; /* changed from `service_user *nip' */
 };
 
 #endif /* NSS_COMPAT_H_ */

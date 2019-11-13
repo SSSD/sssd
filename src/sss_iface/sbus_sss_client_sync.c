@@ -96,9 +96,9 @@ sbus_call_systemd_RestartUnit
      const char * arg_mode,
      const char ** _arg_job)
 {
-     return sbus_method_in_ss_out_o(mem_ctx, conn,
-          busname, object_path, "org.freedesktop.systemd1.Manager", "RestartUnit", arg_name, arg_mode,
-          _arg_job);
+    return sbus_method_in_ss_out_o(mem_ctx, conn,
+         busname, object_path, "org.freedesktop.systemd1.Manager", "RestartUnit", arg_name, arg_mode,
+         _arg_job);
 }
 
 errno_t
@@ -111,9 +111,9 @@ sbus_call_systemd_StartUnit
      const char * arg_mode,
      const char ** _arg_job)
 {
-     return sbus_method_in_ss_out_o(mem_ctx, conn,
-          busname, object_path, "org.freedesktop.systemd1.Manager", "StartUnit", arg_name, arg_mode,
-          _arg_job);
+    return sbus_method_in_ss_out_o(mem_ctx, conn,
+         busname, object_path, "org.freedesktop.systemd1.Manager", "StartUnit", arg_name, arg_mode,
+         _arg_job);
 }
 
 errno_t
@@ -126,8 +126,8 @@ sbus_call_systemd_StopUnit
      const char * arg_mode,
      const char ** _arg_job)
 {
-     return sbus_method_in_ss_out_o(mem_ctx, conn,
-          busname, object_path, "org.freedesktop.systemd1.Manager", "StopUnit", arg_name, arg_mode,
-          _arg_job);
+    return sbus_method_in_ss_out_o(mem_ctx, conn,
+         busname, object_path, "org.freedesktop.systemd1.Manager", "StopUnit", arg_name, arg_mode,
+         _arg_job);
 }
 

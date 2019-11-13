@@ -54,7 +54,7 @@ ifp_user_get_attr_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
 
     req = tevent_req_create(mem_ctx, &state, struct ifp_user_get_attr_state);
     if (req == NULL) {
-         return NULL;
+        return NULL;
     }
     state->attrs = attrs;
     state->rctx = rctx;

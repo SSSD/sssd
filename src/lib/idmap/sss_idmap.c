@@ -1510,8 +1510,8 @@ enum idmap_error_code
 sss_idmap_ctx_get_autorid(struct sss_idmap_ctx *ctx, bool *_autorid)
 {
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
-     *_autorid = ctx->idmap_opts.autorid_mode;
-     return IDMAP_SUCCESS;
+    *_autorid = ctx->idmap_opts.autorid_mode;
+    return IDMAP_SUCCESS;
 }
 
 enum idmap_error_code

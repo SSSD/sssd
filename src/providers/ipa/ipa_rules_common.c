@@ -198,7 +198,7 @@ ipa_common_get_cached_rules(TALLOC_CTX *mem_ctx,
     }
 
     if (ret == ENOENT) {
-       rule_count = 0;
+        rule_count = 0;
     }
 
     ret = sysdb_msg2attrs(tmp_ctx, rule_count, msgs, &rules);

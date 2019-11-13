@@ -826,7 +826,7 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
         do_update = true;
     }
 
-   if (forest != NULL && (domain->forest == NULL ||
+    if (forest != NULL && (domain->forest == NULL ||
                        strcmp(domain->forest, forest) != 0)) {
         ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_FOREST,
                                 LDB_FLAG_MOD_REPLACE, NULL);
@@ -844,7 +844,7 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
         do_update = true;
     }
 
-   if (realm != NULL && (domain->realm == NULL ||
+    if (realm != NULL && (domain->realm == NULL ||
                        strcmp(domain->realm, realm) != 0)) {
         ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_REALM,
                                 LDB_FLAG_MOD_REPLACE, NULL);

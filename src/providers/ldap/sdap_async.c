@@ -2226,15 +2226,15 @@ sdap_x_deref_search_recv(struct tevent_req *req,
 
 /* ==Security Descriptor (ACL) search=================================== */
 struct sdap_sd_search_state {
-  LDAPControl **ctrls;
-  struct sdap_options *opts;
-  size_t reply_count;
-  struct sysdb_attrs **reply;
-  struct sdap_reply sreply;
+    LDAPControl **ctrls;
+    struct sdap_options *opts;
+    size_t reply_count;
+    struct sysdb_attrs **reply;
+    struct sdap_reply sreply;
 
-  /* Referrals returned by the search */
-  size_t ref_count;
-  char **refs;
+    /* Referrals returned by the search */
+    size_t ref_count;
+    char **refs;
 };
 
 static int sdap_sd_search_create_control(struct sdap_handle *sh,

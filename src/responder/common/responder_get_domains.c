@@ -167,7 +167,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct sss_dp_get_domains_state);
     if (req == NULL) {
-         return NULL;
+        return NULL;
     }
 
     if (rctx->domains == NULL) {
@@ -538,7 +538,7 @@ sss_parse_inp_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct sss_parse_inp_state);
     if (req == NULL) {
-         return NULL;
+        return NULL;
     }
 
     if (rawinp == NULL) {

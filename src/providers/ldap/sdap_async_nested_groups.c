@@ -1866,68 +1866,68 @@ sdap_nested_group_lookup_group_send(TALLOC_CTX *mem_ctx,
                                     struct sdap_nested_group_ctx *group_ctx,
                                     struct sdap_nested_group_member *member)
 {
-     struct sdap_nested_group_lookup_group_state *state = NULL;
-     struct tevent_req *req = NULL;
-     struct tevent_req *subreq = NULL;
-     struct sdap_attr_map *map = group_ctx->opts->group_map;
-     const char **attrs = NULL;
-     const char *base_filter = NULL;
-     const char *filter = NULL;
-     char *oc_list;
-     errno_t ret;
+    struct sdap_nested_group_lookup_group_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_attr_map *map = group_ctx->opts->group_map;
+    const char **attrs = NULL;
+    const char *base_filter = NULL;
+    const char *filter = NULL;
+    char *oc_list;
+    errno_t ret;
 
-     PROBE(SDAP_NESTED_GROUP_LOOKUP_GROUP_SEND);
+    PROBE(SDAP_NESTED_GROUP_LOOKUP_GROUP_SEND);
 
-     req = tevent_req_create(mem_ctx, &state,
-                             struct sdap_nested_group_lookup_group_state);
-     if (req == NULL) {
-         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
-         return NULL;
-     }
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_nested_group_lookup_group_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
 
-     ret = build_attrs_from_map(state, group_ctx->opts->group_map,
-                                SDAP_OPTS_GROUP, NULL, &attrs, NULL);
-     if (ret != EOK) {
-         goto immediately;
-     }
+    ret = build_attrs_from_map(state, group_ctx->opts->group_map,
+                               SDAP_OPTS_GROUP, NULL, &attrs, NULL);
+    if (ret != EOK) {
+        goto immediately;
+    }
 
-     /* create filter */
-     oc_list = sdap_make_oc_list(state, map);
-     if (oc_list == NULL) {
+    /* create filter */
+    oc_list = sdap_make_oc_list(state, map);
+    if (oc_list == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create objectClass list.\n");
         ret = ENOMEM;
         goto immediately;
-     }
+    }
 
-     base_filter = talloc_asprintf(attrs, "(&(%s)(%s=*))", oc_list,
-                                   map[SDAP_AT_GROUP_NAME].name);
-     if (base_filter == NULL) {
-         ret = ENOMEM;
-         goto immediately;
-     }
+    base_filter = talloc_asprintf(attrs, "(&(%s)(%s=*))", oc_list,
+                                  map[SDAP_AT_GROUP_NAME].name);
+    if (base_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
 
-     /* use search base filter if needed */
-     filter = sdap_combine_filters(state, base_filter, member->group_filter);
-     if (filter == NULL) {
-         ret = ENOMEM;
-         goto immediately;
-     }
+    /* use search base filter if needed */
+    filter = sdap_combine_filters(state, base_filter, member->group_filter);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
 
-     /* search */
-     subreq = sdap_get_generic_send(state, ev, group_ctx->opts, group_ctx->sh,
-                                    member->dn, LDAP_SCOPE_BASE, filter, attrs,
-                                    map, SDAP_OPTS_GROUP,
-                                    dp_opt_get_int(group_ctx->opts->basic,
-                                                   SDAP_SEARCH_TIMEOUT),
-                                    false);
-     if (subreq == NULL) {
-         ret = ENOMEM;
-         goto immediately;
-     }
+    /* search */
+    subreq = sdap_get_generic_send(state, ev, group_ctx->opts, group_ctx->sh,
+                                   member->dn, LDAP_SCOPE_BASE, filter, attrs,
+                                   map, SDAP_OPTS_GROUP,
+                                   dp_opt_get_int(group_ctx->opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
 
-     tevent_req_set_callback(subreq, sdap_nested_group_lookup_group_done, req);
+    tevent_req_set_callback(subreq, sdap_nested_group_lookup_group_done, req);
 
-     return req;
+    return req;
 
 immediately:
     if (ret == EOK) {
@@ -1986,18 +1986,18 @@ static errno_t sdap_nested_group_lookup_group_recv(TALLOC_CTX *mem_ctx,
                                                    struct tevent_req *req,
                                                    struct sysdb_attrs **_group)
 {
-     struct sdap_nested_group_lookup_group_state *state = NULL;
-     state = tevent_req_data(req, struct sdap_nested_group_lookup_group_state);
+    struct sdap_nested_group_lookup_group_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_nested_group_lookup_group_state);
 
-     PROBE(SDAP_NESTED_GROUP_LOOKUP_GROUP_RECV);
+    PROBE(SDAP_NESTED_GROUP_LOOKUP_GROUP_RECV);
 
-     TEVENT_REQ_RETURN_ON_ERROR(req);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-     if (_group != NULL) {
-         *_group = talloc_steal(mem_ctx, state->group);
-     }
+    if (_group != NULL) {
+        *_group = talloc_steal(mem_ctx, state->group);
+    }
 
-     return EOK;
+    return EOK;
 }
 
 struct sdap_nested_group_lookup_unknown_state {
