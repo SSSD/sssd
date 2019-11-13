@@ -2238,8 +2238,8 @@ struct sdap_sd_search_state {
 };
 
 static int sdap_sd_search_create_control(struct sdap_handle *sh,
-					 int val,
-					 LDAPControl **ctrl);
+                                         int val,
+                                         LDAPControl **ctrl);
 static int sdap_sd_search_ctrls_destructor(void *ptr);
 static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
                                           struct sdap_msg *msg,
@@ -2296,8 +2296,8 @@ fail:
 }
 
 static int sdap_sd_search_create_control(struct sdap_handle *sh,
-					 int val,
-					 LDAPControl **ctrl)
+                                         int val,
+                                         LDAPControl **ctrl)
 {
     struct berval *sdval;
     int ret;

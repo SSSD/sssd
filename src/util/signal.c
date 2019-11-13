@@ -35,23 +35,23 @@
 void BlockSignals(bool block, int signum)
 {
 #ifdef HAVE_SIGPROCMASK
-	sigset_t set;
-	sigemptyset(&set);
-	sigaddset(&set,signum);
-	sigprocmask(block?SIG_BLOCK:SIG_UNBLOCK,&set,NULL);
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set,signum);
+    sigprocmask(block?SIG_BLOCK:SIG_UNBLOCK,&set,NULL);
 #elif defined(HAVE_SIGBLOCK)
-	if (block) {
-		sigblock(sigmask(signum));
-	} else {
-		sigsetmask(siggetmask() & ~sigmask(signum));
-	}
+    if (block) {
+        sigblock(sigmask(signum));
+    } else {
+        sigsetmask(siggetmask() & ~sigmask(signum));
+    }
 #else
-	/* yikes! This platform can't block signals? */
-	static int done;
-	if (!done) {
-		DEBUG(SSSDBG_FATAL_FAILURE,"WARNING: No signal blocking available\n");
-		done=1;
-	}
+/* yikes! This platform can't block signals? */
+    static int done;
+    if (!done) {
+        DEBUG(SSSDBG_FATAL_FAILURE,"WARNING: No signal blocking available\n");
+        done=1;
+    }
 #endif
 }
 
@@ -65,25 +65,25 @@ void BlockSignals(bool block, int signum)
 void (*CatchSignal(int signum,void (*handler)(int )))(int)
 {
 #ifdef HAVE_SIGACTION
-	struct sigaction act;
-	struct sigaction oldact;
+    struct sigaction act;
+    struct sigaction oldact;
 
-	memset(&act, 0, sizeof(act));
+    memset(&act, 0, sizeof(act));
 
-	act.sa_handler = handler;
+    act.sa_handler = handler;
 #ifdef SA_RESTART
-	/*
-	 * We *want* SIGALRM to interrupt a system call.
-	 */
-	if(signum != SIGALRM)
-		act.sa_flags = SA_RESTART;
+    /*
+     * We *want* SIGALRM to interrupt a system call.
+     */
+    if(signum != SIGALRM)
+        act.sa_flags = SA_RESTART;
 #endif
-	sigemptyset(&act.sa_mask);
-	sigaddset(&act.sa_mask,signum);
-	sigaction(signum,&act,&oldact);
-	return oldact.sa_handler;
+    sigemptyset(&act.sa_mask);
+    sigaddset(&act.sa_mask,signum);
+    sigaction(signum,&act,&oldact);
+    return oldact.sa_handler;
 #else /* !HAVE_SIGACTION */
-	/* FIXME: need to handle sigvec and systems with broken signal() */
-	return signal(signum, handler);
+    /* FIXME: need to handle sigvec and systems with broken signal() */
+    return signal(signum, handler);
 #endif
 }

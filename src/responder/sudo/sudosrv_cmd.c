@@ -283,7 +283,7 @@ static int sudosrv_cmd_get_defaults(struct cli_ctx *cli_ctx)
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version sudo_cli_protocol_version[] = {
-		{1, "2012-05-14", "require uid and domain"},
+        {1, "2012-05-14", "require uid and domain"},
         {0, NULL, NULL}
     };
 

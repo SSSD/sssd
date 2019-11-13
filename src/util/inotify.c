@@ -433,7 +433,7 @@ static errno_t copy_filenames(struct snotify_ctx *snctx,
 
     ret = resolve_filename(snctx, filename, resolved, sizeof(resolved));
     if (ret != EOK) {
-		return ret;
+        return ret;
     }
 
     strncpy(fcopy, resolved, sizeof(fcopy) - 1);

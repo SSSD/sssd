@@ -299,13 +299,13 @@ int sdap_deref_search_recv(struct tevent_req *req,
 
 struct tevent_req *
 sdap_sd_search_send(TALLOC_CTX *memctx,
-		    struct tevent_context *ev,
-		    struct sdap_options *opts,
-		    struct sdap_handle *sh,
-		    const char *base_dn,
-		    int sd_flags,
-		    const char **attrs,
-		    int timeout);
+                    struct tevent_context *ev,
+                    struct sdap_options *opts,
+                    struct sdap_handle *sh,
+                    const char *base_dn,
+                    int sd_flags,
+                    const char **attrs,
+                    int timeout);
 int sdap_sd_search_recv(struct tevent_req *req,
                         TALLOC_CTX *mem_ctx,
                         size_t *_reply_count,

@@ -282,8 +282,8 @@ _nss_sss_getservbyport_r(int port, const char *protocol,
 
     /* Caught once glibc passing in buffer == 0x0 */
     if (!buffer || !buflen) {
-	*errnop = ERANGE;
-	return NSS_STATUS_TRYAGAIN;
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
     }
 
     if (protocol) {

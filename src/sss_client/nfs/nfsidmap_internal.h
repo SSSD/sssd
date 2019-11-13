@@ -41,33 +41,33 @@ struct conf_list *get_local_realms(void);
 typedef struct trans_func * (*libnfsidmap_plugin_init_t)(void);
 
 struct trans_func {
-	char *name;
-	int (*init)(void);
-	int (*princ_to_ids)(char *secname, char *princ, uid_t *uid, gid_t *gid,
-		extra_mapping_params **ex);
-	int (*name_to_uid)(char *name, uid_t *uid);
-	int (*name_to_gid)(char *name, gid_t *gid);
-	int (*uid_to_name)(uid_t uid, char *domain, char *name, size_t len);
-	int (*gid_to_name)(gid_t gid, char *domain, char *name, size_t len);
-	int (*gss_princ_to_grouplist)(char *secname, char *princ, gid_t *groups,
-		int *ngroups, extra_mapping_params **ex);
+    char *name;
+    int (*init)(void);
+    int (*princ_to_ids)(char *secname, char *princ, uid_t *uid, gid_t *gid,
+        extra_mapping_params **ex);
+    int (*name_to_uid)(char *name, uid_t *uid);
+    int (*name_to_gid)(char *name, gid_t *gid);
+    int (*uid_to_name)(uid_t uid, char *domain, char *name, size_t len);
+    int (*gid_to_name)(gid_t gid, char *domain, char *name, size_t len);
+    int (*gss_princ_to_grouplist)(char *secname, char *princ, gid_t *groups,
+        int *ngroups, extra_mapping_params **ex);
 };
 
 struct mapping_plugin {
-	void *dl_handle;
-	struct trans_func *trans;
+    void *dl_handle;
+    struct trans_func *trans;
 };
 
 typedef enum {
-	IDTYPE_USER = 1,
-	IDTYPE_GROUP = 2
+    IDTYPE_USER = 1,
+    IDTYPE_GROUP = 2
 } idtypes;
 
 extern int idmap_verbosity;
 extern nfs4_idmap_log_function_t idmap_log_func;
 /* Level zero always prints, others print depending on verbosity level */
 #define IDMAP_LOG(LVL, MSG) \
-	do { if (LVL <= idmap_verbosity) (*idmap_log_func)MSG; } while (0)
+    do { if (LVL <= idmap_verbosity) (*idmap_log_func)MSG; } while (0)
 
 
 /*
