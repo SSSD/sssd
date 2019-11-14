@@ -48,4 +48,6 @@ extern struct sdap_attr_map ad_autofs_entry_map[];
 
 extern struct dp_option ad_dyndns_opts[];
 
+extern struct sdap_attr_map ad_sudorule_map[];
+
 #endif /* AD_OPTS_H_ */

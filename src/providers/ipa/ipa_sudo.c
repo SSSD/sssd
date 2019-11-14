@@ -21,6 +21,7 @@
 #include "providers/ipa/ipa_opts.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap_sudo.h"
+#include "providers/ldap/ldap_opts.h"
 #include "providers/ipa/ipa_sudo.h"
 #include "db/sysdb_sudo.h"
 
@@ -311,7 +312,7 @@ int ipa_sudo_init(TALLOC_CTX *mem_ctx,
         ret = sdap_sudo_init(mem_ctx,
                              be_ctx,
                              id_ctx->sdap_id_ctx,
-                             "objectClass",
+                             native_sudorule_map,
                              dp_methods);
         break;
     }

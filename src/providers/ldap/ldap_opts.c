@@ -342,6 +342,7 @@ struct sdap_attr_map host_map[] = {
 
 struct sdap_attr_map native_sudorule_map[] = {
     { "ldap_sudorule_object_class", "sudoRole", SYSDB_SUDO_CACHE_OC, NULL },
+    { "ldap_sudorule_object_class_attr", "objectClass", SYSDB_OBJECTCATEGORY, NULL },
     { "ldap_sudorule_name", "cn", SYSDB_SUDO_CACHE_AT_CN, NULL },
     { "ldap_sudorule_command", "sudoCommand", SYSDB_SUDO_CACHE_AT_COMMAND, NULL },
     { "ldap_sudorule_host", "sudoHost", SYSDB_SUDO_CACHE_AT_HOST, NULL },

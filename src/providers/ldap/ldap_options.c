@@ -386,6 +386,7 @@ done:
 int ldap_get_sudo_options(struct confdb_ctx *cdb,
                           const char *conf_path,
                           struct sdap_options *opts,
+                          struct sdap_attr_map *native_map,
                           bool *use_host_filter,
                           bool *include_regexp,
                           bool *include_netgroups)
@@ -425,7 +426,7 @@ int ldap_get_sudo_options(struct confdb_ctx *cdb,
 
     /* attrs map */
     ret = sdap_get_map(opts, cdb, conf_path,
-                       native_sudorule_map,
+                       native_map,
                        SDAP_OPTS_SUDO,
                        &opts->sudorule_map);
     if (ret != EOK) {

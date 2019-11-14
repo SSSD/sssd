@@ -440,6 +440,7 @@ option_strings = {
     'ldap_sudo_include_netgroups' : _('Whether to include rules that contains netgroup in host attribute'),
     'ldap_sudo_include_regexp' : _('Whether to include rules that contains regular expression in host attribute'),
     'ldap_sudorule_object_class' : _('Object class for sudo rules'),
+    'ldap_sudorule_object_class_attr' : _('Name of attribute that is used as object class for sudo rules'),
     'ldap_sudorule_name' : _('Sudo rule name'),
     'ldap_sudorule_command' : _('Sudo rule command attribute'),
     'ldap_sudorule_host' : _('Sudo rule host attribute'),
