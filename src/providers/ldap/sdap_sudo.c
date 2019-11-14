@@ -159,7 +159,7 @@ static void sdap_sudo_online_cb(void *pvt)
 errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
                        struct be_ctx *be_ctx,
                        struct sdap_id_ctx *id_ctx,
-                       const char *objectclass_attr,
+                       struct sdap_attr_map *native_map,
                        struct dp_method *dp_methods)
 {
     struct sdap_sudo_ctx *sudo_ctx;
@@ -174,13 +174,9 @@ errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
     }
 
     sudo_ctx->id_ctx = id_ctx;
-    sudo_ctx->objectclass_attr = talloc_strdup(sudo_ctx, objectclass_attr);
-    if (sudo_ctx->objectclass_attr == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
 
     ret = ldap_get_sudo_options(be_ctx->cdb, be_ctx->conf_path, id_ctx->opts,
+                                native_map,
                                 &sudo_ctx->use_host_filter,
                                 &sudo_ctx->include_regexp,
                                 &sudo_ctx->include_netgroups);

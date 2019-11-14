@@ -23,6 +23,7 @@
 #include "src/providers/data_provider.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
+#include "db/sysdb_sudo.h"
 #include "providers/ldap/ldap_common.h"
 #include "config.h"
 
@@ -286,4 +287,22 @@ struct dp_option ad_dyndns_opts[] = {
     { "dyndns_auth", DP_OPT_STRING, { "gss-tsig" }, NULL_STRING },
     { "dyndns_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
+};
+
+struct sdap_attr_map ad_sudorule_map[] = {
+    { "ldap_sudorule_object_class", "sudoRole", SYSDB_SUDO_CACHE_OC, NULL },
+    { "ldap_sudorule_object_class_attr", "objectCategory", SYSDB_OBJECTCATEGORY, NULL },
+    { "ldap_sudorule_name", "cn", SYSDB_SUDO_CACHE_AT_CN, NULL },
+    { "ldap_sudorule_command", "sudoCommand", SYSDB_SUDO_CACHE_AT_COMMAND, NULL },
+    { "ldap_sudorule_host", "sudoHost", SYSDB_SUDO_CACHE_AT_HOST, NULL },
+    { "ldap_sudorule_user", "sudoUser", SYSDB_SUDO_CACHE_AT_USER, NULL },
+    { "ldap_sudorule_option", "sudoOption", SYSDB_SUDO_CACHE_AT_OPTION, NULL },
+    { "ldap_sudorule_runas", "sudoRunAs", SYSDB_SUDO_CACHE_AT_RUNAS, NULL },
+    { "ldap_sudorule_runasuser", "sudoRunAsUser", SYSDB_SUDO_CACHE_AT_RUNASUSER, NULL },
+    { "ldap_sudorule_runasgroup", "sudoRunAsGroup", SYSDB_SUDO_CACHE_AT_RUNASGROUP, NULL },
+    { "ldap_sudorule_notbefore", "sudoNotBefore", SYSDB_SUDO_CACHE_AT_NOTBEFORE, NULL },
+    { "ldap_sudorule_notafter", "sudoNotAfter", SYSDB_SUDO_CACHE_AT_NOTAFTER, NULL },
+    { "ldap_sudorule_order", "sudoOrder", SYSDB_SUDO_CACHE_AT_ORDER, NULL },
+    { "ldap_sudorule_entry_usn", NULL, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
 };

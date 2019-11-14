@@ -232,6 +232,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
 int ldap_get_sudo_options(struct confdb_ctx *cdb,
                           const char *conf_path,
                           struct sdap_options *opts,
+                          struct sdap_attr_map *native_map,
                           bool *use_host_filter,
                           bool *include_regexp,
                           bool *include_netgroups);

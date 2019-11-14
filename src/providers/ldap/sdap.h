@@ -326,6 +326,7 @@ enum sdap_netgroup_attrs {
 
 enum sdap_sudorule_attrs {
     SDAP_OC_SUDORULE = 0,
+    SDAP_AT_SUDO_OC,
     SDAP_AT_SUDO_NAME,
     SDAP_AT_SUDO_COMMAND,
     SDAP_AT_SUDO_HOST,
