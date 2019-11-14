@@ -45,7 +45,6 @@ struct files_ctx {
 };
 
 static errno_t enum_files_users(TALLOC_CTX *mem_ctx,
-                                struct files_id_ctx *id_ctx,
                                 const char *passwd_file,
                                 struct passwd ***_users)
 {
@@ -143,7 +142,6 @@ done:
 }
 
 static errno_t enum_files_groups(TALLOC_CTX *mem_ctx,
-                                 struct files_id_ctx *id_ctx,
                                  const char *group_file,
                                  struct group ***_groups)
 {
@@ -465,8 +463,7 @@ errno_t sf_enum_users(struct files_id_ctx *id_ctx,
         return ENOMEM;
     }
 
-    ret = enum_files_users(tmp_ctx, id_ctx, passwd_file,
-                           &users);
+    ret = enum_files_users(tmp_ctx, passwd_file, &users);
     if (ret != EOK) {
         goto done;
     }
@@ -680,8 +677,7 @@ static errno_t sf_enum_groups(struct files_id_ctx *id_ctx,
         return ENOMEM;
     }
 
-    ret = enum_files_groups(tmp_ctx, id_ctx, group_file,
-                            &groups);
+    ret = enum_files_groups(tmp_ctx, group_file, &groups);
     if (ret != EOK) {
         goto done;
     }
