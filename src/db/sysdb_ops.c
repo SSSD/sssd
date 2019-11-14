@@ -235,14 +235,118 @@ int sysdb_delete_recursive_with_filter(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "Found [%zu] items to delete.\n", msgs_count);
+    DEBUG(SSSDBG_TRACE_FUNC, "Found [%zu] items to delete.\n", msgs_count);
 
     qsort(msgs, msgs_count,
           sizeof(struct ldb_message *), compare_ldb_dn_comp_num);
 
     for (i = 0; i < msgs_count; i++) {
-        DEBUG(SSSDBG_TRACE_ALL, "Trying to delete [%s].\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "Trying to delete [%s].\n",
                   ldb_dn_get_linearized(msgs[i]->dn));
+
+        ret = sysdb_delete_entry(sysdb, msgs[i]->dn, false);
+        if (ret) {
+            goto done;
+        }
+    }
+
+done:
+    if (ret == EOK) {
+        ret = ldb_transaction_commit(sysdb->ldb);
+        ret = sysdb_error_to_errno(ret);
+    } else {
+        ldb_transaction_cancel(sysdb->ldb);
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysdb_delete_recursive_with_whitelist(struct sysdb_ctx *sysdb,
+                                          struct ldb_dn *dn,
+                                          bool ignore_not_found,
+                                          const char **whitelist)
+{
+    const char *no_attrs[] = { NULL };
+    struct ldb_message **msgs;
+    size_t msgs_count;
+    int ret;
+    bool name_on_whitelist = false;
+    const char *linearized_record = NULL;
+    char *name_start = NULL;
+    const int NAME_MAX_LEN = 32 + 1;
+    char name[NAME_MAX_LEN];
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = ldb_transaction_start(sysdb->ldb);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    /* Get all records using wildcard */
+    ret = sysdb_search_entry(tmp_ctx, sysdb, dn,
+                             LDB_SCOPE_SUBTREE, "(distinguishedName=*)",
+                             no_attrs, &msgs_count, &msgs);
+    if (ret) {
+        if (ignore_not_found && ret == ENOENT) {
+            ret = EOK;
+        }
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Search error: %d (%s)\n",
+                                     ret, strerror(ret));
+        }
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Found [%zu] items to delete.\n", msgs_count);
+
+    qsort(msgs, msgs_count,
+          sizeof(struct ldb_message *), compare_ldb_dn_comp_num);
+
+    /* Iterate over records found */
+    for (int i = 0; i < msgs_count; i++) {
+        linearized_record = ldb_dn_get_linearized(msgs[i]->dn);
+
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Evaluating record [%s]\n",
+              linearized_record);
+
+        name_on_whitelist = false;
+        bzero(name, NAME_MAX_LEN);
+
+        /* Extract name value from linearized dn record */
+        name_start = strchr(linearized_record, '=') + sizeof(char);
+
+        for (size_t k = 0; name_start[k] != '@' && k < NAME_MAX_LEN - 1; k++) {
+            name[k] = name_start[k];
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Decoded name field: [%s]\n",
+              name);
+
+        for (size_t k = 0; whitelist[k]; k++) {
+            if (0 == strcmp(name, whitelist[k])) {
+                name_on_whitelist = true;
+                break;
+            }
+        }
+
+        /* Delete only entries not presented on whitelist */
+        if (name_on_whitelist) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Name [%s] found on whitelist, skipping\n",
+                  name);
+            continue;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Trying to delete [%s]\n",
+                  linearized_record);
 
         ret = sysdb_delete_entry(sysdb, msgs[i]->dn, false);
         if (ret) {

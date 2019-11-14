@@ -920,6 +920,11 @@ int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
                            struct ldb_dn *dn,
                            bool ignore_not_found);
 
+int sysdb_delete_recursive_with_whitelist(struct sysdb_ctx *sysdb,
+                                          struct ldb_dn *dn,
+                                          bool ignore_not_found,
+                                          const char **whitelist);
+
 int sysdb_delete_recursive_with_filter(struct sysdb_ctx *sysdb,
                                        struct ldb_dn *dn,
                                        bool ignore_not_found,

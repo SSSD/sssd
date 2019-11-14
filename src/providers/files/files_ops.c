@@ -71,12 +71,13 @@ static errno_t enum_files_users(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Enumerating passwd file: %s\n", passwd_file);
     while ((pwd_iter = fgetpwent(pwd_handle)) != NULL) {
         /* FIXME - we might want to support paging of sorts to avoid allocating
          * all users atop a memory context or only return users that differ from
          * the local storage as a diff to minimize memory spikes
          */
-        DEBUG(SSSDBG_TRACE_LIBS,
+        DEBUG(SSSDBG_TRACE_FUNC,
               "User found (%s, %s, %"SPRIuid", %"SPRIgid", %s, %s, %s)\n",
               pwd_iter->pw_name, pwd_iter->pw_passwd,
               pwd_iter->pw_uid, pwd_iter->pw_gid,
@@ -168,8 +169,9 @@ static errno_t enum_files_groups(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Enumerating group file: %s\n", group_file);
     while ((grp_iter = fgetgrent(grp_handle)) != NULL) {
-        DEBUG(SSSDBG_TRACE_LIBS,
+        DEBUG(SSSDBG_TRACE_FUNC,
               "Group found (%s, %"SPRIgid")\n",
               grp_iter->gr_name, grp_iter->gr_gid);
 
@@ -272,6 +274,81 @@ static errno_t delete_all_users(struct sss_domain_info *dom)
     }
 
     ret = EOK;
+    DEBUG(SSSDBG_TRACE_FUNC, "All users deleted from database\n");
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t delete_non_existing_users(struct files_id_ctx *id_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_dn *base_dn;
+    struct passwd **users = NULL;
+    struct passwd **tmp_users = NULL;
+    const char **whitelist = NULL;
+    int users_num = 0;
+    int iter = 0;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    /* Process password files to get existing users */
+    for (size_t i = 0; id_ctx->passwd_files[i] != NULL; i++) {
+        ret = enum_files_users(tmp_ctx,
+                               id_ctx->passwd_files[i],
+                               &tmp_users);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        iter = 0;
+        while (tmp_users[iter]) {
+            users[users_num] = tmp_users[iter];
+            users_num++;
+            iter++;
+        }
+    }
+    users[users_num] = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Users whitelist size: %d\n", users_num);
+
+    whitelist = talloc_zero_array(tmp_ctx, const char *, users_num + 1);
+    if (whitelist == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (size_t i = 0; users[i]; i++) {
+        whitelist[i] = users[i]->pw_name;
+        DEBUG(SSSDBG_TRACE_FUNC, "Name added to whitelist: %s\n", whitelist[i]);
+    }
+
+    base_dn = sysdb_user_base_dn(tmp_ctx, id_ctx->domain);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_delete_recursive_with_whitelist(id_ctx->domain->sysdb,
+                                                base_dn,
+                                                true,
+                                                whitelist);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to delete users subtree [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+    DEBUG(SSSDBG_TRACE_FUNC, "Non existing users deleted from database\n");
 
 done:
     talloc_free(tmp_ctx);
@@ -551,6 +628,81 @@ static errno_t delete_all_groups(struct sss_domain_info *dom)
     }
 
     ret = EOK;
+    DEBUG(SSSDBG_TRACE_FUNC, "All groups deleted from database\n");
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t delete_non_existing_groups(struct files_id_ctx *id_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_dn *base_dn;
+    struct group **groups = NULL;
+    struct group **tmp_groups = NULL;
+    const char **whitelist = NULL;
+    int groups_num = 0;
+    int iter = 0;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    /* Process group files to get existing groups */
+    for (size_t i = 0; id_ctx->group_files[i] != NULL; i++) {
+        ret = enum_files_groups(tmp_ctx,
+                                id_ctx->group_files[i],
+                                &groups);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        iter = 0;
+        while (tmp_groups[iter]) {
+            groups[groups_num] = tmp_groups[iter];
+            groups_num++;
+            iter++;
+        }
+    }
+    groups[groups_num] = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Groups whitelist size: %d\n", groups_num);
+
+    whitelist = talloc_zero_array(tmp_ctx, const char *, groups_num + 1);
+    if (whitelist == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (size_t i = 0; groups[i]; i++) {
+        whitelist[i] = groups[i]->gr_name;
+        DEBUG(SSSDBG_TRACE_FUNC, "Name added to whitelist: %s\n", whitelist[i]);
+    }
+
+    base_dn = sysdb_group_base_dn(tmp_ctx, id_ctx->domain);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_delete_recursive_with_whitelist(id_ctx->domain->sysdb,
+                                                base_dn,
+                                                true,
+                                                whitelist);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to delete groups subtree [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+    DEBUG(SSSDBG_TRACE_FUNC, "Non existing groups deleted from database\n");
 
 done:
     talloc_free(tmp_ctx);
@@ -723,7 +875,7 @@ static errno_t sf_enum_files(struct files_id_ctx *id_ctx,
     in_transaction = true;
 
     if (flags & SF_UPDATE_PASSWD) {
-        ret = delete_all_users(id_ctx->domain);
+        ret = delete_non_existing_users(id_ctx);
         if (ret != EOK) {
             goto done;
         }
@@ -746,7 +898,7 @@ static errno_t sf_enum_files(struct files_id_ctx *id_ctx,
     }
 
     if (flags & SF_UPDATE_GROUP) {
-        ret = delete_all_groups(id_ctx->domain);
+        ret = delete_non_existing_groups(id_ctx);
         if (ret != EOK) {
             goto done;
         }
