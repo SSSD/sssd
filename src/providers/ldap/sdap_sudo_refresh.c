@@ -62,7 +62,7 @@ struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
 
     /* Download all rules from LDAP */
     search_filter = talloc_asprintf(state, SDAP_SUDO_FILTER_CLASS,
-                            sudo_ctx->objectclass_attr,
+                            id_ctx->opts->sudorule_map[SDAP_AT_SUDO_OC].name,
                             id_ctx->opts->sudorule_map[SDAP_OC_SUDORULE].name);
     if (search_filter == NULL) {
         ret = ENOMEM;
@@ -185,12 +185,12 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
         usn = "0";
         search_filter = talloc_asprintf(state, "(%s=%s)",
-                                        sudo_ctx->objectclass_attr,
+                                        map[SDAP_AT_SUDO_OC].name,
                                         map[SDAP_OC_SUDORULE].name);
     } else {
         usn = srv_opts->max_sudo_value;
         search_filter = talloc_asprintf(state, "(&(%s=%s)(%s>=%s))",
-                                        sudo_ctx->objectclass_attr,
+                                        map[SDAP_AT_SUDO_OC].name,
                                         map[SDAP_OC_SUDORULE].name,
                                         map[SDAP_AT_SUDO_USN].name, usn);
     }
@@ -339,7 +339,7 @@ struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     state->num_rules = i;
 
     search_filter = talloc_asprintf(tmp_ctx, "(&"SDAP_SUDO_FILTER_CLASS"(|%s))",
-                                    sudo_ctx->objectclass_attr,
+                                    opts->sudorule_map[SDAP_AT_SUDO_OC].name,
                                     opts->sudorule_map[SDAP_OC_SUDORULE].name,
                                     search_filter);
     if (search_filter == NULL) {

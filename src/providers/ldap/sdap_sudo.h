@@ -29,7 +29,6 @@ struct sdap_sudo_ctx {
 
     char **hostnames;
     char **ip_addr;
-    const char *objectclass_attr;
     bool include_netgroups;
     bool include_regexp;
     bool use_host_filter;
@@ -44,7 +43,7 @@ struct sdap_sudo_ctx {
 errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
                        struct be_ctx *be_ctx,
                        struct sdap_id_ctx *id_ctx,
-                       const char *objectclass_attr,
+                       struct sdap_attr_map *native_map,
                        struct dp_method *dp_methods);
 
 /* sdap async interface */

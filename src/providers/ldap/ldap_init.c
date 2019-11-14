@@ -24,6 +24,7 @@
 
 #include "util/child_common.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/ldap_opts.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_access.h"
 #include "providers/ldap/sdap_hostid.h"
@@ -695,7 +696,7 @@ errno_t sssm_ldap_sudo_init(TALLOC_CTX *mem_ctx,
     return sdap_sudo_init(mem_ctx,
                           be_ctx,
                           init_ctx->id_ctx,
-                          "objectClass",
+                          native_sudorule_map,
                           dp_methods);
 #else
     DEBUG(SSSDBG_MINOR_FAILURE, "Sudo init handler called but SSSD is "
