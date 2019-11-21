@@ -181,7 +181,7 @@ void sss_authtok_set_empty(struct sss_auth_token *tok)
     case SSS_AUTHTOK_TYPE_2FA:
     case SSS_AUTHTOK_TYPE_SC_PIN:
     case SSS_AUTHTOK_TYPE_2FA_SINGLE:
-        safezero(tok->data, tok->length);
+        sss_erase_mem_securely(tok->data, tok->length);
         break;
     case SSS_AUTHTOK_TYPE_CCFILE:
     case SSS_AUTHTOK_TYPE_SC_KEYPAD:
@@ -289,7 +289,7 @@ void sss_authtok_wipe_password(struct sss_auth_token *tok)
         return;
     }
 
-    safezero(tok->data, tok->length);
+    sss_erase_mem_securely(tok->data, tok->length);
 }
 
 errno_t sss_auth_unpack_2fa_blob(TALLOC_CTX *mem_ctx,

@@ -305,8 +305,7 @@ static inline checker pick_checker(int format)
 
 static int token_pin_destructor(char *mem)
 {
-    safezero(mem, strlen(mem));
-    return 0;
+    return sss_erase_talloc_mem_securely(mem);
 }
 
 static krb5_error_code tokeninfo_matches_2fa(TALLOC_CTX *mem_ctx,
