@@ -197,15 +197,14 @@ void (*CatchSignal(int signum,void (*handler)(int )))(int);
 
 /* from memory.c */
 typedef int (void_destructor_fn_t)(void *);
-
-struct mem_holder {
-    void *mem;
-    void_destructor_fn_t *fn;
-};
-
-void *sss_mem_attach(TALLOC_CTX *mem_ctx,
-                     void *ptr,
-                     void_destructor_fn_t *fn);
+/* sssd_mem_attach
+ * This function will take a non-talloc pointer and "attach" it to a talloc
+ * memory context. It will accept a destructor for the original pointer
+ * so that when the parent memory context is freed, the non-talloc
+ * pointer will also be freed properly.
+ * Returns EOK in case of success.
+ */
+int sss_mem_attach(TALLOC_CTX *mem_ctx, void *ptr, void_destructor_fn_t *fn);
 
 int password_destructor(void *memctx);
 

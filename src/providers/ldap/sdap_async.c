@@ -36,18 +36,6 @@ static int lmsg_destructor(void *mem)
     return 0;
 }
 
-static int sdap_msg_attach(TALLOC_CTX *memctx, LDAPMessage *msg)
-{
-    void *h;
-
-    if (!msg) return EINVAL;
-
-    h = sss_mem_attach(memctx, msg, lmsg_destructor);
-    if (!h) return ENOMEM;
-
-    return EOK;
-}
-
 /* ==sdap-handle-utility-functions======================================== */
 
 static inline void sdap_handle_release(struct sdap_handle *sh);
@@ -331,7 +319,7 @@ static void sdap_process_message(struct tevent_context *ev,
         ret = ENOMEM;
     } else {
         reply->msg = msg;
-        ret = sdap_msg_attach(reply, msg);
+        ret = sss_mem_attach(reply, msg, lmsg_destructor);
         if (ret != EOK) {
             ldap_msgfree(msg);
             talloc_zfree(reply);
