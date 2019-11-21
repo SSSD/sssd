@@ -92,6 +92,8 @@ LIBS=$SAVE_LIBS
 AC_CHECK_FUNCS([ utimensat \
                  futimens ])
 
+AC_CHECK_FUNCS([ explicit_bzero ])
+
 #Check for endian headers
 AC_CHECK_HEADERS([endian.h sys/endian.h byteswap.h])
 

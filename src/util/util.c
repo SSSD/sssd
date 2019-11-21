@@ -618,15 +618,6 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     return EOK;
 }
 
-void safezero(void *data, size_t size)
-{
-    volatile uint8_t *p = data;
-
-    while (size--) {
-        *p++ = 0;
-    }
-}
-
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
 {
     const char *s;

@@ -206,7 +206,11 @@ typedef int (void_destructor_fn_t)(void *);
  */
 int sss_mem_attach(TALLOC_CTX *mem_ctx, void *ptr, void_destructor_fn_t *fn);
 
-int password_destructor(void *memctx);
+/* sss_erase_talloc_mem_securely() function always returns 0 as an int value
+ * to make it possible to use it as talloc destructor.
+ */
+int sss_erase_talloc_mem_securely(void *p);
+void sss_erase_mem_securely(void *p, size_t size);
 
 /* from usertools.c */
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name);
@@ -483,15 +487,6 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
                            char ***list_p);
 
 bool string_in_list(const char *string, char **list, bool case_sensitive);
-
-/**
- * @brief Safely zero a segment of memory,
- *        prevents the compiler from optimizing out
- *
- * @param data   The address of buffer to wipe
- * @param size   Size of the buffer
- */
-void safezero(void *data, size_t size);
 
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);
 

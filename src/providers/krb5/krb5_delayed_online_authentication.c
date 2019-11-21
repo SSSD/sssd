@@ -86,7 +86,7 @@ static void authenticate_user(struct tevent_context *ev,
     }
 
     ret = sss_authtok_set_password(pd->authtok, password, keysize);
-    safezero(password, keysize);
+    sss_erase_mem_securely(password, keysize);
     free(password);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,

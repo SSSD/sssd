@@ -229,7 +229,8 @@ static int seed_password_input_prompt(TALLOC_CTX *mem_ctx, char **_password)
         goto done;
     }
 
-    talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
+    talloc_set_destructor((TALLOC_CTX *)password,
+                          sss_erase_talloc_mem_securely);
 
     temp = getpass("Enter temporary password again:");
     if (temp == NULL) {

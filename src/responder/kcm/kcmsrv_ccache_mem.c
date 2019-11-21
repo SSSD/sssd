@@ -140,7 +140,8 @@ static int ccwrap_destructor(void *ptr)
 
     if (ccwrap->cc != NULL) {
         if (ccwrap->cc->creds) {
-            safezero(sss_iobuf_get_data(ccwrap->cc->creds->cred_blob),
+            sss_erase_mem_securely(
+                     sss_iobuf_get_data(ccwrap->cc->creds->cred_blob),
                      sss_iobuf_get_size(ccwrap->cc->creds->cred_blob));
         }
     }
