@@ -4582,6 +4582,7 @@ krb5_child_SOURCES = \
     src/util/sss_iobuf.c \
     src/util/find_uid.c \
     src/util/atomic_io.c \
+    src/util/memory.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \
@@ -4614,6 +4615,7 @@ ldap_child_SOURCES = \
     src/util/sss_krb5.c \
     src/util/sss_iobuf.c \
     src/util/atomic_io.c \
+    src/util/memory.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
     src/util/util.c \

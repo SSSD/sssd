@@ -121,7 +121,7 @@ errno_t sss_authtok_set_ccfile(struct sss_auth_token *tok,
  *
  * @param tok    A pointer to an sss_auth_token structure to reset
  *
- * NOTE: This function uses safezero() on the payload if the type
+ * NOTE: This function uses sss_erase_mem_securely() on the payload if the type
  * is SSS_AUTHTOK_TYPE_PASSWORD
  */
 void sss_authtok_set_empty(struct sss_auth_token *tok);
@@ -156,8 +156,8 @@ errno_t sss_authtok_copy(struct sss_auth_token *src,
                          struct sss_auth_token *dst);
 
 /**
- * @brief Uses safezero to wipe the password from memory if the
- *        authtoken contains a password, otherwise does nothing.
+ * @brief Uses sss_erase_mem_securely to wipe the password from memory
+ *        if the authtoken contains a password, otherwise does nothing.
  *
  * @param tok       A pointer to an sss_auth_token structure to change
  *
