@@ -31,7 +31,7 @@
 
 #define RULES_PATH ABS_SRC_DIR"/src/config/cfg_rules.ini"
 
-struct sss_ini_initdata {
+struct sss_ini {
     char **error_list;
     struct ref_array *ra_success_list;
     struct ref_array *ra_error_list;
@@ -39,13 +39,14 @@ struct sss_ini_initdata {
     struct value_obj *obj;
     const struct stat *cstat;
     struct ini_cfgfile *file;
+    bool main_config_exists;
 };
 
 void config_check_test_common(const char *cfg_string,
                               size_t num_errors_expected,
                               const char **errors_expected)
 {
-    struct sss_ini_initdata *init_data;
+    struct sss_ini *init_data;
     size_t num_errors;
     char **strs;
     int ret;
@@ -54,11 +55,9 @@ void config_check_test_common(const char *cfg_string,
     tmp_ctx = talloc_new(NULL);
     assert_non_null(tmp_ctx);
 
-    init_data = sss_ini_initdata_init(tmp_ctx);
+    init_data = sss_ini_new(tmp_ctx);
 
-    ret = ini_config_file_from_mem(discard_const(cfg_string),
-                                   strlen(cfg_string),
-                                   &init_data->file);
+    ret = sss_ini_open(init_data, NULL, cfg_string);
     assert_int_equal(ret, EOK);
 
     ret = ini_config_create(&(init_data->sssd_config));
@@ -90,8 +89,6 @@ void config_check_test_common(const char *cfg_string,
     /* Check if the number of errors is the same */
     assert_int_equal(num_errors_expected, num_errors);
 
-    sss_ini_close_file(init_data);
-    sss_ini_config_destroy(init_data);
     talloc_free(tmp_ctx);
 }
 
