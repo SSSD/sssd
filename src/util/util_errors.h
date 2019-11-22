@@ -158,6 +158,12 @@ enum sssd_errors {
     ERR_SBUS_UNKNOWN_OWNER,
     ERR_SBUS_NO_REPLY,
 
+    /* ini parsing errors */
+    ERR_INI_OPEN_FAILED,
+    ERR_INI_INVALID_PERMISSION,
+    ERR_INI_PARSE_FAILED,
+    ERR_INI_ADD_SNIPPETS_FAILED,
+
     ERR_LAST            /* ALWAYS LAST */
 };
 

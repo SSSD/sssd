@@ -129,38 +129,22 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
                                      const char *config_file,
                                      const char *config_dir,
                                      const char *only_section,
-                                     struct sss_ini_initdata *init_data,
+                                     struct sss_ini *init_data,
                                      const char **_timestr,
                                      const char **_ldif)
 {
     errno_t ret;
     char timestr[21];
     int version;
-    char fallback_cfg[] =
-        "[sssd]\n"
-        "services = nss\n";
 
-    /* Open config file */
-    ret = sss_ini_config_file_open(init_data, config_file);
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No sssd.conf.\n");
-        ret = sss_ini_config_file_from_mem(fallback_cfg,
-                                           strlen(fallback_cfg),
-                                           init_data);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "sss_ini_config_file_from_mem failed. Error %d: %s\n",
-                  ret, sss_strerror(ret));
-            return ret;
-        }
-    } else if (ret == EOK) {
-        ret = sss_ini_config_access_check(init_data);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Permission check on config file failed.\n");
-            return EPERM;
-        }
+    ret = sss_ini_read_sssd_conf(init_data,
+                                 config_file,
+                                 config_dir);
+    if (ret != EOK) {
+        return ret;
+    }
 
+    if (sss_ini_exists(init_data)) {
         ret = sss_ini_get_stat(init_data);
         if (ret != EOK) {
             ret = errno;
@@ -177,23 +161,12 @@ static int confdb_ldif_from_ini_file(TALLOC_CTX *mem_ctx,
                   "Failed to convert time_t to string??\n");
             return ret;
         }
-    } else {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "sss_ini_config_file_open failed: %s [%d]\n", sss_strerror(ret),
-              ret);
-        return ret;
     }
 
     /* FIXME: Determine if the conf file or any snippet has changed
      * since we last updated the confdb or if some snippet was
      * added or removed.
      */
-
-    ret = sss_ini_get_config(init_data, config_file, config_dir);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to load configuration\n");
-        return ret;
-    }
 
     ret = sss_ini_call_validators(init_data,
                                   SSSDDATADIR"/cfg_rules.ini");
@@ -303,7 +276,7 @@ static int confdb_init_db(const char *config_file,
     const char *timestr = NULL;
     const char *config_ldif;
     const char *vals[2] = { NULL, NULL };
-    struct sss_ini_initdata *init_data;
+    struct sss_ini *init_data;
 
     tmp_ctx = talloc_new(cdb);
     if (tmp_ctx == NULL) {
@@ -311,7 +284,7 @@ static int confdb_init_db(const char *config_file,
         return ENOMEM;
     }
 
-    init_data = sss_ini_initdata_init(tmp_ctx);
+    init_data = sss_ini_new(tmp_ctx);
     if (!init_data) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory.\n");
         ret = ENOMEM;
@@ -389,9 +362,6 @@ done:
             DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
-
-    sss_ini_config_destroy(init_data);
-    sss_ini_close_file(init_data);
 
     talloc_zfree(tmp_ctx);
     return ret;

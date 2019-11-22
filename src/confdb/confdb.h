@@ -45,6 +45,9 @@
 #define SSSD_MIN_ID 1
 #define SSSD_LOCAL_MINID 1000
 #define CONFDB_DEFAULT_SHELL_FALLBACK "/bin/sh"
+#define CONFDB_FALLBACK_CONFIG \
+    "[sssd]\n" \
+    "services = nss\n"
 
 
 /* Configuration options */

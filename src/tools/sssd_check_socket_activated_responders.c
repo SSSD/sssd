@@ -22,109 +22,61 @@
 
 #include <popt.h>
 #include <stdio.h>
-#include <ini_configobj.h>
 
 #include "util/util.h"
+#include "util/sss_ini.h"
 #include "confdb/confdb.h"
 
 static errno_t check_socket_activated_responder(const char *responder)
 {
     errno_t ret;
-    struct ini_cfgfile *file_ctx = NULL;
-    struct ini_cfgobj *ini_config = NULL;
-    struct ini_cfgobj *modified_ini_config = NULL;
-    struct value_obj *vobj = NULL;
-    struct access_check snip_check;
     const char *services;
-    const char *patterns[] = { "^[^\\.].*\\.conf$", NULL };
-    const char *sections[] = { "sssd", NULL };
     const char *str;
     TALLOC_CTX *tmp_ctx;
+    struct sss_ini *init_data;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         return ENOMEM;
     }
 
-    ret = ini_config_create(&ini_config);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ini_config_create() failed [%d][%s]\n",
-              ret, sss_strerror(ret));
+    init_data = sss_ini_new(tmp_ctx);
+    if (init_data == NULL) {
+        ret = ENOMEM;
         goto done;
     }
 
-    ret = ini_config_file_open(SSSD_CONFIG_FILE, 0, &file_ctx);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ini_config_file_open() failed [%d][%s]\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    /* Using the same flags used by sss_ini_get_config(), which is used to
-     * load the config file ... */
-    ret = ini_config_parse(file_ctx,
-                           INI_STOP_ON_ANY,
-                           INI_MV1S_OVERWRITE,
-                           INI_PARSE_NOWRAP,
-                           ini_config);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ini_config_parse() failed [%d][%s]\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    /* And also check the snippets ... */
-    snip_check.flags = INI_ACCESS_CHECK_MODE |
-                       INI_ACCESS_CHECK_UID |
-                       INI_ACCESS_CHECK_GID;
-    snip_check.uid = 0; /* owned by root */
-    snip_check.gid = 0; /* owned by root */
-    snip_check.mode = S_IRUSR; /* r**------ */
-    snip_check.mask = ALLPERMS & ~(S_IWUSR | S_IXUSR);
-
-    ret = ini_config_augment(ini_config,
-                             CONFDB_DEFAULT_CONFIG_DIR,
-                             patterns,
-                             sections,
-                             &snip_check,
-                             INI_STOP_ON_ANY,
-                             INI_MV1S_OVERWRITE,
-                             INI_PARSE_NOWRAP,
-                             INI_MV2S_OVERWRITE,
-                             &modified_ini_config,
-                             NULL,
-                             NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ini_config_augment failed [%d][%s]\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    if (modified_ini_config != NULL) {
-        ini_config_destroy(ini_config);
-        ini_config = modified_ini_config;
-    }
-
-    ret = ini_get_config_valueobj("sssd", "services", ini_config,
-                                  INI_GET_FIRST_VALUE, &vobj);
+    ret = sss_ini_read_sssd_conf(init_data,
+                                 SSSD_CONFIG_FILE,
+                                 CONFDB_DEFAULT_CONFIG_DIR);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_get_config_valueobj() failed [%d][%s]\n",
-              ret, sss_strerror(ret));
+              "Failed to read configuration: [%d] [%s]",
+              ret,
+              sss_strerror(ret));
         goto done;
     }
 
-    /* In case there's no services' line at all, just return EOK. */
-    if (vobj == NULL) {
+    ret = sss_ini_get_cfgobj(init_data, "sssd", "services");
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_ini_get_cfgobj() failed [%d].\n", ret);
+        goto done;
+    }
+
+    ret = sss_ini_check_config_obj(init_data);
+    if (ret == ENOENT) {
+        /* In case there's no services' line at all, just return EOK. */
         ret = EOK;
         goto done;
     }
 
-    services = ini_get_string_config_value(vobj, &ret);
+    services = sss_ini_get_string_config_value(init_data, &ret);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_get_string_config_value() failed [%d][%s]\n",
-              ret, sss_strerror(ret));
+              "sss_ini_get_string_config_value() failed [%d]\n",
+              ret);
         goto done;
     }
 
@@ -137,8 +89,6 @@ static errno_t check_socket_activated_responder(const char *responder)
     ret = EOK;
 
 done:
-    ini_config_file_destroy(file_ctx);
-    ini_config_destroy(ini_config);
     talloc_free(tmp_ctx);
 
     return ret;
