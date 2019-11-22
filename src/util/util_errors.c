@@ -137,6 +137,12 @@ struct err_string error_to_str[] = {
     { "Unknown bus owner" }, /* ERR_SBUS_UNKNOWN_OWNER */
     { "No reply was received" }, /* ERR_SBUS_NO_REPLY */
 
+    /* ini parsing errors */
+    { "Failed to open configuration" }, /* ERR_INI_OPEN_FAILED */
+    { "File ownership and permissions check failed" }, /* ERR_INI_INVALID_PERMISSION */
+    { "Error while parsing configuration file" }, /* ERR_INI_PARSE_FAILED */
+    { "Failed to add configuration snippets" }, /* ERR_INI_ADD_SNIPPETS_FAILED */
+
     { "ERR_LAST" } /* ERR_LAST */
 };
 
