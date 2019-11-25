@@ -224,6 +224,7 @@ static int seed_password_input_prompt(TALLOC_CTX *mem_ctx, char **_password)
     }
 
     password = talloc_strdup(tmp_ctx, temp);
+    sss_erase_mem_securely(temp, strlen(temp));
     if (password == NULL) {
         ret = ENOMEM;
         goto done;
@@ -250,6 +251,9 @@ static int seed_password_input_prompt(TALLOC_CTX *mem_ctx, char **_password)
 
 done:
     talloc_free(tmp_ctx);
+    if (temp != NULL) {
+        sss_erase_mem_securely(temp, strlen(temp));
+    }
     return ret;
 }
 
@@ -335,10 +339,14 @@ static int seed_password_input_file(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    talloc_set_destructor((TALLOC_CTX *)password,
+                          sss_erase_talloc_mem_securely);
+
     *_password = talloc_steal(mem_ctx, password);
 
 done:
     talloc_free(tmp_ctx);
+    sss_erase_mem_securely(buf, sizeof(buf));
     return ret;
 }
 
