@@ -370,14 +370,14 @@ int s3crypt_gen_salt(TALLOC_CTX *memctx, char **_salt)
     size_t slen;
     int ret;
 
-    salt = talloc_size(memctx, SALT_LEN_MAX + 1);
-    if (!salt) {
-        return ENOMEM;
-    }
-
     ret = sss_generate_csprng_buffer(rb, SALT_RAND_LEN);
     if (ret != EOK) {
         return ret;
+    }
+
+    salt = talloc_size(memctx, SALT_LEN_MAX + 1);
+    if (!salt) {
+        return ENOMEM;
     }
 
     slen = SALT_LEN_MAX;
