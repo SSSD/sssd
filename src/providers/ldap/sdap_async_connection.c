@@ -621,7 +621,6 @@ struct simple_bind_state {
     struct tevent_context *ev;
     struct sdap_handle *sh;
     const char *user_dn;
-    struct berval *pw;
 
     struct sdap_op *op;
 
@@ -660,7 +659,6 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->sh = sh;
     state->user_dn = user_dn;
-    state->pw = pw;
 
     ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
                                   0, NULL, 0, &ctrls[0]);
@@ -1329,6 +1327,9 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
         size_t pwlen;
         errno_t ret;
 
+        /* this code doesn't make copies of password
+         * but only uses pointer to authtok internals
+         */
         ret = sss_authtok_get_password(authtok, &password, &pwlen);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Cannot parse authtok.\n");
@@ -1882,6 +1883,7 @@ static void sdap_cli_auth_step(struct tevent_req *req)
                             user_dn, authtok,
                             dp_opt_get_int(state->opts->basic,
                                            SDAP_OPT_TIMEOUT));
+    talloc_free(authtok);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -2239,6 +2241,9 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
 
         user_dn = dp_opt_get_string(p->opts->basic, SDAP_DEFAULT_BIND_DN);
         if (user_dn != NULL) {
+            /* this code doesn't make copies of password
+             * but only keeps pointer to opts internals
+             */
             ret = sdap_auth_get_authtok(dp_opt_get_string(p->opts->basic,
                                                      SDAP_DEFAULT_AUTHTOK_TYPE),
                                         dp_opt_get_blob(p->opts->basic,
