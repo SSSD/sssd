@@ -205,7 +205,6 @@ static int sha512_crypt_r(const char *key,
         goto done;
     }
 
-    /* For every character in the password add the entire salt. */
     for (cnt = 0; cnt < 16 + alt_result[0]; cnt++) {
         EVP_DigestUpdate(alt_ctx, (const unsigned char *)salt, salt_len);
     }
