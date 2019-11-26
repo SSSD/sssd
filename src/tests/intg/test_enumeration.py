@@ -34,15 +34,18 @@ from util import *
 
 LDAP_BASE_DN = "dc=example,dc=com"
 
-# There is no explation neither in the code nor in the commit message that
-# introduced this timeout why 4 was chosen as value. The very same happens
-# with respect to why the time we should wait in order to have the changes
-# reflected on SSSD is INTERACTIVE_TIMEOUT/2.
-# Having INTERACTIVE_TIMEOUT/2 has been causing a lot of failures in some of
-# our CI tests, so it's been changed to INTERACTIVE_TIMEOUT and the way it's
-# been tested was just empirically by running or CI several times and checking
-# whether a failure happened or not.
-INTERACTIVE_TIMEOUT = 4
+# Enumeration is run periodically. It is scheduled during SSSD startup
+# and then it runs every four seconds. We do not know precisely when
+# the enumeration refresh is triggered so sleeping for four seconds is
+# not enough, we have to sleep longer time to adapt for delays (it is
+# not scheduled on precise time because of other sssd operation, it
+# takes some time to finish so each run moves it further away from
+# exact 4 seconds period, cpu scheduler, context switches, ...).
+# I agree that just little bit longer timeout may work as well.
+# However we can be sure when using twice the period because we know
+# that enumeration was indeed run at least once.
+ENUMERATION_TIMEOUT = 4
+INTERACTIVE_TIMEOUT = ENUMERATION_TIMEOUT*2
 
 
 @pytest.fixture(scope="module")
@@ -160,7 +163,7 @@ def format_interactive_conf(ldap_conn, schema):
             ldap_enumeration_refresh_timeout    = {0}
             ldap_purge_cache_timeout            = 1
             entry_cache_timeout                 = {0}
-        """).format(INTERACTIVE_TIMEOUT)
+        """).format(ENUMERATION_TIMEOUT)
 
 
 def create_conf_file(contents):
