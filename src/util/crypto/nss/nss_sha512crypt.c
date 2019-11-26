@@ -317,9 +317,7 @@ static int sha512_crypt_r(const char *key,
 
 done:
     /* Clear the buffer for the intermediate result so that people attaching
-     * to processes or reading core dumps cannot get any information. We do it
-     * in this way to clear correct_words[] inside the SHA512 implementation
-     * as well.  */
+     * to processes or reading core dumps cannot get any information. */
     if (ctx) HASH_Destroy(ctx);
     if (alt_ctx) HASH_Destroy(alt_ctx);
     if (p_bytes) memset(p_bytes, '\0', key_len);
