@@ -68,15 +68,12 @@ static inline void b64_from_24bit(char **dest, size_t *len, size_t n,
     *dest += i;
 }
 
-#define PTR_2_INT(x) ((x) - ((__typeof__ (x)) NULL))
-#define ALIGN64 __alignof__(uint64_t)
-
 static int sha512_crypt_r(const char *key,
                           const char *salt,
                           char *buffer, size_t buflen)
 {
-    unsigned char temp_result[64] __attribute__((__aligned__(ALIGN64)));
-    unsigned char alt_result[64] __attribute__((__aligned__(ALIGN64)));
+    unsigned char temp_result[64];
+    unsigned char alt_result[64];
     size_t rounds = ROUNDS_DEFAULT;
     bool rounds_custom = false;
     EVP_MD_CTX *alt_ctx = NULL;
@@ -84,13 +81,11 @@ static int sha512_crypt_r(const char *key,
     size_t salt_len;
     size_t key_len;
     size_t cnt;
-    char *copied_salt = NULL;
-    char *copied_key = NULL;
     char *p_bytes = NULL;
     char *s_bytes = NULL;
     int p1, p2, p3, pt, n;
     unsigned int part;
-    char *cp, *tmp;
+    char *cp;
     int ret;
 
     /* Find beginning of salt string. The prefix should normally always be
@@ -118,16 +113,6 @@ static int sha512_crypt_r(const char *key,
 
     salt_len = MIN(strcspn(salt, "$"), SALT_LEN_MAX);
     key_len = strlen(key);
-
-    if ((PTR_2_INT(key) % ALIGN64) != 0) {
-        tmp = (char *)alloca(key_len + ALIGN64);
-        key = copied_key = memcpy(tmp + ALIGN64 - PTR_2_INT(tmp) % ALIGN64, key, key_len);
-    }
-
-    if (PTR_2_INT(salt) % ALIGN64 != 0) {
-        tmp = (char *)alloca(salt_len + ALIGN64);
-        salt = copied_salt = memcpy(tmp + ALIGN64 - PTR_2_INT(tmp) % ALIGN64, salt, salt_len);
-    }
 
     ctx = EVP_MD_CTX_new();
     if (ctx == NULL) {
@@ -335,8 +320,6 @@ done:
     EVP_MD_CTX_free(alt_ctx);
     if (p_bytes) memset(p_bytes, '\0', key_len);
     if (s_bytes) memset(s_bytes, '\0', salt_len);
-    if (copied_key) memset(copied_key, '\0', key_len);
-    if (copied_salt) memset(copied_salt, '\0', salt_len);
     memset(temp_result, '\0', sizeof(temp_result));
 
     return ret;
