@@ -359,6 +359,13 @@ int ldap_get_options(TALLOC_CTX *memctx,
         authtok_blob.data = (uint8_t *) cleartext;
         authtok_blob.length = strlen(cleartext);
         ret = dp_opt_set_blob(opts->basic, SDAP_DEFAULT_AUTHTOK, authtok_blob);
+        /* `cleartext` is erased only to reduce possible attack surface.
+         * Its copy will be kept in opts->basic[SDAP_DEFAULT_AUTHTOK]
+         * during program execution anyway.
+         * This option is never replaced so it doesn't make a sense to set
+         * a destructor.
+         */
+        sss_erase_talloc_mem_securely(cleartext);
         talloc_free(cleartext);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
