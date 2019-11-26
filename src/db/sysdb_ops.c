@@ -4629,6 +4629,8 @@ static errno_t check_for_combined_2fa_password(struct sss_domain_info *domain,
         ret = ENOMEM;
         goto done;
     }
+    talloc_set_destructor((TALLOC_CTX *)short_pw,
+                          sss_erase_talloc_mem_securely);
 
     ret = s3crypt_sha512(tmp_ctx, short_pw, userhash, &comphash);
     if (ret != EOK) {
