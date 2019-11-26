@@ -317,9 +317,14 @@ done:
      * as well.  */
     EVP_MD_CTX_free(ctx);
     EVP_MD_CTX_free(alt_ctx);
-    if (p_bytes) memset(p_bytes, '\0', key_len);
-    if (s_bytes) memset(s_bytes, '\0', salt_len);
-    memset(temp_result, '\0', sizeof(temp_result));
+    if (p_bytes != NULL) {
+        sss_erase_mem_securely(p_bytes, key_len);
+    }
+    if (s_bytes != NULL) {
+        sss_erase_mem_securely(s_bytes, salt_len);
+    }
+    sss_erase_mem_securely(temp_result, sizeof(temp_result));
+    sss_erase_mem_securely(alt_result, sizeof(alt_result));
 
     return ret;
 }
