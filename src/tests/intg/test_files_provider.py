@@ -451,7 +451,11 @@ def user_generator(seqnum):
                 shell='/bin/bash')
 
 
-def check_user(exp_user, delay=1.0):
+def check_user(exp_user, delay=3.0):
+    # We need to delay the flow a little bit to ensure that inotify callback
+    # in SSSD had a chance to fire. One second was sometimes not enough
+    # on some slow virtual environments. Three seconds is large hopefully
+    # safe random value as there is nothing else we can do here.
     if delay > 0:
         time.sleep(delay)
 
@@ -466,7 +470,11 @@ def group_generator(seqnum):
                 mem=[])
 
 
-def check_group(exp_group, delay=1.0):
+def check_group(exp_group, delay=3.0):
+    # We need to delay the flow a little bit to ensure that inotify callback
+    # in SSSD had a chance to fire. One second was sometimes not enough
+    # on some slow virtual environments. Three seconds is large hopefully
+    # safe random value as there is nothing else we can do here.
     if delay > 0:
         time.sleep(delay)
 
@@ -475,7 +483,7 @@ def check_group(exp_group, delay=1.0):
     assert found_group == exp_group
 
 
-def check_group_by_gid(exp_group, delay=1.0):
+def check_group_by_gid(exp_group, delay=3.0):
     if delay > 0:
         time.sleep(delay)
 
@@ -779,7 +787,7 @@ def test_add_remove_add_file_group(setup_gr_with_canary, files_domain_only):
     check_group(GROUP1)
 
     setup_gr_with_canary.groupdel(GROUP1["name"])
-    time.sleep(1)
+    time.sleep(3)
     res, group = call_sssd_getgrnam(GROUP1["name"])
     assert res == NssReturnCode.NOTFOUND
 
