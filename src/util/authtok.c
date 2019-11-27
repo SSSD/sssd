@@ -270,6 +270,14 @@ errno_t sss_authtok_copy(struct sss_auth_token *src,
     return EOK;
 }
 
+static int sss_auth_token_destructor(struct sss_auth_token *tok)
+{
+    if (tok != NULL) {
+        sss_erase_talloc_mem_securely(tok->data);
+    }
+    return 0;
+}
+
 struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx)
 {
     struct sss_auth_token *token;
@@ -278,6 +286,8 @@ struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx)
     if (token == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
     }
+
+    talloc_set_destructor(token, sss_auth_token_destructor);
 
     return token;
 }
