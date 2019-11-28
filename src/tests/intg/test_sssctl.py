@@ -70,13 +70,20 @@ def create_ldap_fixture(request, ldap_conn, ent_list):
     request.addfinalizer(teardown)
 
 
-def create_conf_fixture(request, contents):
+def create_conf_fixture(request, contents, snippet=None):
     """Generate sssd.conf and add teardown for removing it"""
-    conf = open(config.CONF_PATH, "w")
-    conf.write(contents)
-    conf.close()
-    os.chmod(config.CONF_PATH, stat.S_IRUSR | stat.S_IWUSR)
-    request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
+    if contents is not None:
+        conf = open(config.CONF_PATH, "w")
+        conf.write(contents)
+        conf.close()
+        os.chmod(config.CONF_PATH, stat.S_IRUSR | stat.S_IWUSR)
+        request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
+    if snippet is not None:
+        conf = open(config.CONF_SNIPPET_PATH, "w")
+        conf.write(snippet)
+        conf.close()
+        os.chmod(config.CONF_SNIPPET_PATH, stat.S_IRUSR | stat.S_IWUSR)
+        request.addfinalizer(lambda: os.unlink(config.CONF_SNIPPET_PATH))
 
 
 def stop_sssd():
@@ -380,3 +387,27 @@ def test_netgroup_show(ldap_conn,
 
     output = get_call_output(["sssctl", "netgroup-show", "tripled_netgroup"])
     assert "Name: tripled_netgroup" in output
+
+
+@pytest.fixture
+def conf_snippets_only(request):
+    snip = unindent("""\
+        [sssd]
+        services = nss, pam, ssh
+        [nss]
+        [pam]
+        [ssh]
+    """)
+    create_conf_fixture(request, None, snip)
+    return None
+
+
+def test_sssctl_snippets_only(conf_snippets_only, portable_LC_ALL):
+    output = get_call_output(["sssctl", "config-check"])
+    assert "There is no configuration" not in output
+    assert config.CONF_SNIPPET_PATH in output
+
+
+def test_sssctl_no_config(portable_LC_ALL):
+    output = get_call_output(["sssctl", "config-check"])
+    assert "There is no configuration" in output
