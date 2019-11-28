@@ -35,6 +35,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     DEPS_LIST+=(
         clang-analyzer
         fakeroot
+        libfaketime
         libcmocka-devel
         mock
         nss_wrapper
@@ -148,6 +149,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         xsltproc
         libssl-dev
         fakeroot
+        faketime
         libnss-wrapper
         libuid-wrapper
         libpam-wrapper

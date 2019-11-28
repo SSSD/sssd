@@ -44,6 +44,8 @@ static struct cert_verify_opts *init_cert_verify_opts(TALLOC_CTX *mem_ctx)
     cert_verify_opts->ocsp_default_responder_signing_cert = NULL;
     cert_verify_opts->crl_file = NULL;
     cert_verify_opts->ocsp_dgst = CKM_SHA256;
+    cert_verify_opts->soft_ocsp = false;
+    cert_verify_opts->soft_crl = false;
 
     return cert_verify_opts;
 }
@@ -176,6 +178,16 @@ errno_t parse_cert_verify_opts(TALLOC_CTX *mem_ctx, const char *verify_opts,
                 cert_verify_opts->ocsp_dgst = CKM_SHA256;
             }
 #endif
+        } else if (strcasecmp(opts[c], "soft_ocsp") == 0) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Found 'soft_ocsp' option, verification will not fail if "
+                  "OCSP responder cannot be connected.\n");
+            cert_verify_opts->soft_ocsp = true;
+        } else if (strcasecmp(opts[c], "soft_crl") == 0) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Found 'soft_crl' option, verification will not fail if "
+                  "CRL is expired.\n");
+            cert_verify_opts->soft_crl = true;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unsupported certificate verification option [%s], " \
