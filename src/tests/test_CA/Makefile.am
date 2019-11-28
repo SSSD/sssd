@@ -5,10 +5,12 @@ dist_noinst_DATA = \
     SSSD_test_cert_0002.config \
     SSSD_test_cert_0003.config \
     SSSD_test_cert_0004.config \
+    SSSD_test_cert_0005.config \
     SSSD_test_cert_key_0001.pem \
     SSSD_test_cert_key_0002.pem \
     SSSD_test_cert_key_0003.pem \
     SSSD_test_cert_key_0004.pem \
+    SSSD_test_cert_key_0005.pem \
     $(NULL)
 
 openssl_ca_config = $(srcdir)/SSSD_test_CA.config
@@ -24,9 +26,12 @@ pubkeys_h = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 
 if HAVE_NSS
-extra = p11_nssdb p11_nssdb_2certs
+extra = p11_nssdb p11_nssdb_2certs p11_nssdb_ocsp
 else
-extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens
+extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp
+if HAVE_FAKETIME
+extra += SSSD_test_CA_expired_crl.pem
+endif
 endif
 
 # If openssl is run in parallel there might be conflicts with the serial
@@ -66,6 +71,9 @@ SSSD_test_cert_x509_%.h: SSSD_test_cert_x509_%.pem
 SSSD_test_cert_pubsshkey_%.h: SSSD_test_cert_pubsshkey_%.pub
 	@echo "#define SSSD_TEST_CERT_SSH_KEY_$* \""$(shell cut -d' ' -f2 $<)"\"" > $@
 
+SSSD_test_CA_expired_crl.pem:
+	$(FAKETIME) -f '-7d' $(OPENSSL) ca -gencrl -out $@ -keyfile $(openssl_ca_key) -config ${openssl_ca_config} -crlhours 1
+
 # This nss db is used in
 # - src/tests/cmocka/test_cert_utils.c (validation only)
 # - src/tests/cmocka/test_pam_srv.c
@@ -83,6 +91,12 @@ p11_nssdb_2certs: SSSD_test_cert_pkcs12_0001.pem SSSD_test_cert_pkcs12_0002.pem 
 	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem -f $(pwdfile)
 	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0001.pem -w $(pwdfile) -k $(pwdfile)
 	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0002.pem -w $(pwdfile) -k $(pwdfile)
+
+p11_nssdb_ocsp: SSSD_test_cert_pkcs12_0005.pem SSSD_test_CA.pem $(pwdfile)
+	mkdir $@
+	$(CERTUTIL) -d sql:./$@ -N -f $(pwdfile)
+	$(CERTUTIL) -d sql:./$@ -A -n 'SSSD test CA' -t CT,CT,CT -a -i SSSD_test_CA.pem -f $(pwdfile)
+	$(PK12UTIL) -d sql:./$@ -i SSSD_test_cert_pkcs12_0005.pem -w $(pwdfile) -k $(pwdfile)
 
 # The softhsm2 PKCS#11 setups are used in
 # - src/tests/cmocka/test_pam_srv.c
@@ -134,11 +148,22 @@ softhsm2_2tokens.conf:
 	@echo "objectstore.backend = file" >> $@
 	@echo "slots.removable = true" >> $@
 
+softhsm2_ocsp: softhsm2_ocsp.conf SSSD_test_cert_x509_0005.pem
+	mkdir $@
+	SOFTHSM2_CONF=./$< $(SOFTHSM2_UTIL) --init-token  --label "SSSD Test Token" --pin 123456 --so-pin 123456 --free
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --no-mark-private --load-certificate=SSSD_test_cert_x509_0005.pem --login  --label 'SSSD test cert 0005' --id '1195833C424AB00297F582FC43FFFFAB47A64CC9'
+	GNUTLS_PIN=123456 SOFTHSM2_CONF=./$< $(P11TOOL) --provider=$(SOFTHSM2_PATH) --write --load-privkey=$(srcdir)/SSSD_test_cert_key_0005.pem --login  --label 'SSSD test cert 0005' --id '1195833C424AB00297F582FC43FFFFAB47A64CC9'
+
+softhsm2_ocsp.conf:
+	@echo "directories.tokendir = "$(abs_top_builddir)"/src/tests/test_CA/softhsm2_ocsp" > $@
+	@echo "objectstore.backend = file" >> $@
+	@echo "slots.removable = true" >> $@
+
 CLEANFILES = \
     index.txt  index.txt.attr \
     index.txt.attr.old  index.txt.old \
     serial  serial.old  \
-    SSSD_test_CA.pem $(pwdfile) \
+    SSSD_test_CA.pem $(pwdfile) SSSD_test_CA_expired_crl.pem \
     $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) \
     softhsm2_*.conf \
     $(NULL)
@@ -147,6 +172,7 @@ clean-local:
 	rm -rf newcerts
 	rm -rf p11_nssdb
 	rm -rf p11_nssdb_2certs
+	rm -rf p11_nssdb_ocsp
 	rm -rf softhsm*
 
 serial: clean

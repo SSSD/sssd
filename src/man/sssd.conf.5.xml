@@ -480,6 +480,21 @@
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
+                                    <term>soft_ocsp</term>
+                                    <listitem>
+                                        <para>(NSS Version) This option is
+                                        ignored.</para>
+
+                                        <para>(OpenSSL Version) If a connection
+                                        cannot be established to an OCSP
+                                        responder the OCSP check is skipped.
+                                        This option should be used to allow
+                                        authentication when the system is
+                                        offline and the OCSP responder cannot be
+                                        reached.</para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
                                     <term>ocsp_dgst</term>
                                     <listitem>
                                         <para>Digest (hash) function used to
@@ -562,6 +577,21 @@
                                                 <manvolnum>1ssl</manvolnum>
                                             </citerefentry>
                                         for details.</para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>soft_crl</term>
+                                    <listitem>
+                                        <para>(NSS Version) This option is
+                                        ignored.</para>
+
+                                        <para>(OpenSSL Version) If a
+                                        Certificate Revocation List (CRL) is
+                                        expired ignore the CRL checks for the
+                                        related certificates. This option should
+                                        be used to allow authentication when the
+                                        system is offline and the CRL cannot be
+                                        renewed.</para>
                                     </listitem>
                                 </varlistentry>
                                 </variablelist>
