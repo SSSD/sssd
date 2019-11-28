@@ -21,6 +21,7 @@
 #include <popt.h>
 
 #include "util/util.h"
+#include "util/child_common.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder.h"
 #include "responder/ssh/ssh_private.h"
@@ -123,6 +124,16 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
                                     " from confdb (%d) [%s].\n", ret,
                                     sss_strerror(ret));
         goto fail;
+    }
+
+    ssh_ctx->p11_child_debug_fd = -1;
+    if (ssh_ctx->use_cert_keys) {
+        ret = child_debug_init(P11_CHILD_LOG_FILE,
+                               &ssh_ctx->p11_child_debug_fd);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to setup p11_child logging, ignored.\n");
+        }
     }
 
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
