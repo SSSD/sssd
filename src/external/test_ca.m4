@@ -65,4 +65,15 @@ AC_DEFUN([AM_CHECK_TEST_CA],
                [AC_DEFINE_UNQUOTED(HAVE_TEST_CA, 1,
                                    [Build with certificates from test CA])],
                [AC_MSG_WARN([Test CA cannot be build, skiping some tests])])
+
+    AC_PATH_PROG([FAKETIME], [faketime])
+    if test ! -x "$FAKETIME"; then
+        AC_MSG_NOTICE([Could not find faketime])
+    fi
+    AM_CONDITIONAL([HAVE_FAKETIME], [test -x "$FAKETIME"])
+
+    AM_COND_IF([HAVE_FAKETIME],
+               [AC_DEFINE_UNQUOTED(HAVE_FAKETIME, 1,
+                                   [Using faketime for some tests])],
+               [AC_MSG_WARN([faketime not available, skiping some tests])])
 ])

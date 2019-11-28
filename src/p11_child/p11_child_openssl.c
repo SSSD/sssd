@@ -138,6 +138,7 @@ static OCSP_RESPONSE *query_responder(BIO *cbio, const char *host,
 #define X509_OBJECT_get_type(object) (object->type)
 #define X509_OBJECT_get0_X509(object) (object->data.x509)
 #define EVP_MD_CTX_free EVP_MD_CTX_destroy
+#define X509_CRL_get0_nextUpdate(object) (object->crl->nextUpdate)
 #endif
 
 OCSP_RESPONSE *process_responder(OCSP_REQUEST *req,
@@ -205,6 +206,78 @@ static const EVP_MD *get_dgst(CK_MECHANISM_TYPE ocsp_dgst)
     return dgst;
 }
 
+static char *get_issuer_subject_str(TALLOC_CTX *mem_ctx, X509 *cert)
+{
+    X509_NAME *issuer_name;
+    X509_NAME *subject_name;
+    char *tmp_str = NULL;
+    BIO *bio_mem = NULL;
+    int ret;
+    char *str = NULL;
+    long mem_len;
+
+    issuer_name = X509_get_issuer_name(cert);
+    subject_name = X509_get_subject_name(cert);
+
+    if (issuer_name == NULL || subject_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing issuer or subject.\n");
+        return NULL;
+    }
+
+    bio_mem = BIO_new(BIO_s_mem());
+    if (bio_mem == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "BIO_new failed.\n");
+        return NULL;
+    }
+
+    ret = BIO_printf(bio_mem, "Issuer: [");
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "BIO_printf failed.\n");
+        goto done;
+    }
+
+    ret = X509_NAME_print_ex(bio_mem, issuer_name, 0, XN_FLAG_ONELINE);
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "X509_NAME_print_ex failed.\n");
+        goto done;
+    }
+
+    ret = BIO_printf(bio_mem, "] Subject: [");
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "BIO_printf failed.\n");
+        goto done;
+    }
+
+    ret = X509_NAME_print_ex(bio_mem, subject_name, 0, XN_FLAG_ONELINE);
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "X509_NAME_print_ex failed.\n");
+        goto done;
+    }
+
+    ret = BIO_printf(bio_mem, "]");
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "BIO_printf failed.\n");
+        goto done;
+    }
+
+    mem_len = BIO_get_mem_data(bio_mem, &tmp_str);
+    if (mem_len <= 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "BIO_get_mem_data failed.\n");
+        goto done;
+    }
+
+    str = talloc_asprintf(mem_ctx, "%.*s",
+                          mem_len < INT_MAX ? (int) mem_len : INT_MAX, tmp_str);
+    if (str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+    }
+
+done:
+    BIO_free_all(bio_mem);
+
+    return str;
+}
+
 static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
 {
     OCSP_REQUEST *ocsp_req = NULL;
@@ -231,6 +304,7 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
     X509_OBJECT *x509_obj;
     STACK_OF(X509_OBJECT) *store_objects;
     const EVP_MD *ocsp_dgst = NULL;
+    char *tmp_str;
 
     ocsp_urls = X509_get1_ocsp(cert);
     if (ocsp_urls == NULL
@@ -319,8 +393,23 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
     ocsp_resp = process_responder(ocsp_req, host, path, port, use_ssl,
                                   req_timeout);
     if (ocsp_resp == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "process_responder failed.\n");
-        ret = EIO;
+        if (p11_ctx->cert_verify_opts->soft_ocsp) {
+            tmp_str = get_issuer_subject_str(p11_ctx, cert);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to get an OCSP response from [%s] for %s, but "
+                  "'soft_ocsp' is set and OCSP check will be skipped.\n",
+                  url_str, tmp_str == NULL ? " - not available -" : tmp_str);
+            sss_log(SSS_LOG_CRIT,
+                    "Skipping OCSP check because 'soft_ocsp' is set and no "
+                    "OCSP response is available from [%s] for %s.\n", url_str,
+                    tmp_str == NULL ? " - not available -" : tmp_str);
+            talloc_free(tmp_str);
+
+            ret = EOK;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "process_responder failed.\n");
+            ret = EIO;
+        }
         goto done;
     }
 
@@ -632,6 +721,8 @@ bool do_verification(struct p11_ctx *p11_ctx, X509 *cert)
     int ret;
     X509_STORE_CTX *ctx = NULL;
     unsigned long err;
+    char *tmp_str = NULL;
+    X509_VERIFY_PARAM *verify_param = NULL;
 
     ctx = X509_STORE_CTX_new();
     if (ctx == NULL) {
@@ -652,10 +743,59 @@ bool do_verification(struct p11_ctx *p11_ctx, X509 *cert)
     if (ret != 1) {
         DEBUG(SSSDBG_OP_FAILURE, "X509_verify_cert failed [%d].\n", ret);
         ret = X509_STORE_CTX_get_error(ctx);
-        DEBUG(SSSDBG_OP_FAILURE, "X509_verify_cert failed [%d][%s].\n",
-                                 ret, X509_verify_cert_error_string(ret));
-        ret = EINVAL;
-        goto done;
+        if (ret == X509_V_ERR_CRL_HAS_EXPIRED
+                && p11_ctx->cert_verify_opts->soft_crl) {
+            tmp_str = get_issuer_subject_str(p11_ctx, cert);
+            DEBUG(SSSDBG_OP_FAILURE, "CRL is expired but 'soft_crl' is set, "
+                                     "ignoring CRL check for certificate %s.\n",
+                                     tmp_str == NULL ? " - not available - "
+                                                     : tmp_str);
+
+            /* We have to check again without the CRL check if the certificate
+             * is valid or not. The X509_STORE_CTX must be freshly initialized
+             * for another call to X509_verify_cert(), see e.g.
+             * man X509_STORE_CTX_init for details. */
+            X509_STORE_CTX_cleanup(ctx);
+            if (!X509_STORE_CTX_init(ctx, p11_ctx->x509_store, cert, NULL)) {
+                err = ERR_get_error();
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "X509_STORE_CTX_init failed [%lu][%s].\n", err,
+                      ERR_error_string(err, NULL));
+                goto done;
+            }
+
+            verify_param = X509_STORE_CTX_get0_param(ctx);
+            if (verify_param == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "X509_VERIFY_PARAM_new failed.\n");
+                goto done;
+            }
+
+            X509_VERIFY_PARAM_clear_flags(verify_param, (X509_V_FLAG_CRL_CHECK
+                                                   |X509_V_FLAG_CRL_CHECK_ALL));
+
+            ret = X509_verify_cert(ctx);
+            if (ret != 1) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "X509_verify_cert failed [%d].\n", ret);
+                ret = X509_STORE_CTX_get_error(ctx);
+                DEBUG(SSSDBG_OP_FAILURE, "X509_verify_cert failed [%d][%s].\n",
+                                         ret,
+                                         X509_verify_cert_error_string(ret));
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Certificate valid after ignoring expired CRL.\n");
+            sss_log(SSS_LOG_CRIT, "Certificate %s is valid after ignoring "
+                                  "expired CRL because 'soft_crl' is set.\n",
+                                  tmp_str == NULL ? " - not available -"
+                                                  :tmp_str);
+
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "X509_verify_cert failed [%d][%s].\n",
+                                     ret, X509_verify_cert_error_string(ret));
+            goto done;
+        }
     }
 
     if (p11_ctx->cert_verify_opts->do_ocsp) {
@@ -669,6 +809,7 @@ bool do_verification(struct p11_ctx *p11_ctx, X509 *cert)
     res = true;
 
 done:
+    talloc_free(tmp_str);
     X509_STORE_CTX_free(ctx);
 
     return res;

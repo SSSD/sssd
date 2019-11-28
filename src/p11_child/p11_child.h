@@ -44,6 +44,8 @@ struct cert_verify_opts {
     char *ocsp_default_responder_signing_cert;
     char *crl_file;
     CK_MECHANISM_TYPE ocsp_dgst;
+    bool soft_ocsp;
+    bool soft_crl;
 };
 
 enum op_mode {

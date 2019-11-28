@@ -19,7 +19,7 @@ pkcs12 = $(addprefix SSSD_test_ECC_cert_pkcs12_,$(addsuffix .pem,$(ids)))
 if HAVE_NSS
 extra = p11_ecc_nssdb
 else
-extra = softhsm2_ecc_one p11_ecc_nssdb
+extra = softhsm2_ecc_one
 endif
 
 # If openssl is run in parallel there might be conflicts with the serial

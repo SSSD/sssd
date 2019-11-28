@@ -42,11 +42,13 @@
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_x509_0001.h"
 #include "tests/test_CA/SSSD_test_cert_x509_0002.h"
+#include "tests/test_CA/SSSD_test_cert_x509_0005.h"
 
 #include "tests/test_ECC_CA/SSSD_test_ECC_cert_x509_0001.h"
 #else
 #define SSSD_TEST_CERT_0001 ""
 #define SSSD_TEST_CERT_0002 ""
+#define SSSD_TEST_CERT_0005 ""
 
 #define SSSD_TEST_ECC_CERT_0001 ""
 #endif
@@ -62,6 +64,9 @@
 
 #define NSS_DB_PATH_2CERTS TESTS_PATH "_2certs"
 #define NSS_DB_2CERTS "sql:"NSS_DB_PATH_2CERTS
+
+#define NSS_DB_PATH_OCSP TESTS_PATH "_ocsp"
+#define NSS_DB_OCSP "sql:"NSS_DB_PATH_OCSP
 
 #define NSS_DB_PATH_ECC TESTS_PATH "_ecc"
 #define NSS_DB_ECC "sql:"NSS_DB_PATH_ECC
@@ -81,13 +86,16 @@
 #define TEST_MODULE_NAME "NSS-Internal"
 #define TEST_PROMPT "SSSD test cert 0001 - SSSD\nCN=SSSD test cert 0001,OU=SSSD test,O=SSSD"
 #define TEST2_PROMPT "SSSD test cert 0002 - SSSD\nCN=SSSD test cert 0002,OU=SSSD test,O=SSSD"
+#define TEST5_PROMPT "SSSD test cert 0005 - SSSD\nCN=SSSD test cert 0005,OU=SSSD test,O=SSSD"
 #else
 #define TEST_MODULE_NAME SOFTHSM2_PATH
 #define TEST_PROMPT "SSSD test cert 0001\nCN=SSSD test cert 0001,OU=SSSD test,O=SSSD"
 #define TEST2_PROMPT "SSSD test cert 0002\nCN=SSSD test cert 0002,OU=SSSD test,O=SSSD"
+#define TEST5_PROMPT "SSSD test cert 0005\nCN=SSSD test cert 0005,OU=SSSD test,O=SSSD"
 #endif
 
 #define TEST2_KEY_ID "5405842D56CF31F0BB025A695C5F3E907051C5B9"
+#define TEST5_KEY_ID "1195833C424AB00297F582FC43FFFFAB47A64CC9"
 
 static char CACHED_AUTH_TIMEOUT_STR[] = "4";
 static const int CACHED_AUTH_TIMEOUT = 4;
@@ -132,6 +140,13 @@ static errno_t setup_nss_db(void)
         return ret;
     }
 
+    ret = mkdir(NSS_DB_PATH_OCSP, 0775);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to create " NSS_DB_PATH_OCSP ".\n");
+        return ret;
+    }
+
     ret = mkdir(NSS_DB_PATH_ECC, 0775);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -159,6 +174,22 @@ static errno_t setup_nss_db(void)
     if (child_pid == 0) { /* child */
         ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
                      NSS_DB_2CERTS, NULL);
+        if (ret == -1) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
+            exit(-1);
+        }
+    } else if (child_pid > 0) {
+        wait(&status);
+    } else {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE, "fork() failed\n");
+        return ret;
+    }
+
+    child_pid = fork();
+    if (child_pid == 0) { /* child */
+        ret = execlp("certutil", "certutil", "-N", "--empty-password", "-d",
+                     NSS_DB_OCSP, NULL);
         if (ret == -1) {
             DEBUG(SSSDBG_FATAL_FAILURE, "execl() failed.\n");
             exit(-1);
@@ -219,6 +250,27 @@ static errno_t setup_nss_db(void)
         return ret;
     }
     ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/test_CA/p11_nssdb_2certs' dbSlotDescription='SSSD Test Slot' dbTokenDescription='SSSD Test Token' secmod='secmod.db' flags=readOnly \n\n", ABS_BUILD_DIR);
+    if (ret < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
+        return ret;
+    }
+    ret = fclose(fp);
+    if (ret != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fclose() failed.\n");
+        return ret;
+    }
+
+    fp = fopen(NSS_DB_PATH_OCSP"/pkcs11.txt", "w");
+    if (fp == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fopen() failed.\n");
+        return ret;
+    }
+    ret = fprintf(fp, "library=libsoftokn3.so\nname=soft\n");
+    if (ret < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
+        return ret;
+    }
+    ret = fprintf(fp, "parameters=configdir='sql:%s/src/tests/test_CA/p11_nssdb_ocsp' dbSlotDescription='SSSD Test Slot' dbTokenDescription='SSSD Test Token' secmod='secmod.db' flags=readOnly \n\n", ABS_BUILD_DIR);
     if (ret < 0) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fprintf() failed.\n");
         return ret;
@@ -293,6 +345,26 @@ static void cleanup_nss_db(void)
     }
 
     ret = rmdir(NSS_DB_PATH_2CERTS);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_OCSP"/cert9.db");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove cert9.db.\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_OCSP"/key4.db");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove key4.db.\n");
+    }
+
+    ret = unlink(NSS_DB_PATH_OCSP"/pkcs11.txt");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to remove pkcs11.db.\n");
+    }
+
+    ret = rmdir(NSS_DB_PATH_OCSP);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to remove " NSS_DB_PATH "\n");
     }
@@ -1101,6 +1173,51 @@ static int test_pam_cert2_token2_check_ex(uint32_t status, uint8_t *body,
     return EOK;
 }
 
+static int test_pam_cert_X_token_X_check_ex(uint32_t status, uint8_t *body,
+                                          size_t blen, enum response_type type,
+                                          const char *name,
+                                          const char *nss_name,
+                                          char const *check_strings[])
+{
+    size_t rp = 0;
+    uint32_t val;
+    size_t check_len = 0;
+
+    assert_int_equal(status, 0);
+
+    check_strings[0] = name;
+    check_strings[5] = nss_name;
+    check_len = check_string_array_len(check_strings);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, pam_test_ctx->exp_pam_status);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 2);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 9);
+
+    assert_int_equal(*(body + rp + val - 1), 0);
+    assert_string_equal(body + rp, TEST_DOM_NAME);
+    rp += val;
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, type);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, check_len);
+
+    check_string_array(check_strings, body, &rp);
+
+    assert_int_equal(rp, blen);
+
+    return EOK;
+}
+
 static int test_pam_cert_check(uint32_t status, uint8_t *body, size_t blen)
 {
     return test_pam_cert_check_ex(status, body, blen,
@@ -1112,6 +1229,21 @@ static int test_pam_cert2_check(uint32_t status, uint8_t *body, size_t blen)
 {
     return test_pam_cert2_token2_check_ex(status, body, blen, SSS_PAM_CERT_INFO,
                                           "pamuser@"TEST_DOM_NAME, "pamuser");
+}
+
+static int test_pam_cert5_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    char const *check5_strings[] = { NULL,
+                                     TEST_TOKEN_NAME,
+                                     TEST_MODULE_NAME,
+                                     TEST5_KEY_ID,
+                                     TEST5_PROMPT,
+                                     NULL,
+                                     NULL };
+    return test_pam_cert_X_token_X_check_ex(status, body, blen,
+                                            SSS_PAM_CERT_INFO,
+                                          "pamuser@"TEST_DOM_NAME, "pamuser",
+                                          check5_strings);
 }
 
 static int test_pam_cert_check_auth_success(uint32_t status, uint8_t *body,
@@ -2723,6 +2855,199 @@ void test_pam_cert_preauth_uri_token2(void **state)
     assert_int_equal(ret, EOK);
 }
 
+/* with an expired CRL file no certificate should be returned */
+void test_pam_preauth_expired_crl_file(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "crl_file=" ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA_expired_crl.pem" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    struct sss_test_conf_param pam_params[] = {
+        { CONFDB_PAM_P11_URI, NULL },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
+                        NULL, NULL, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_simple_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_preauth_expired_crl_file_soft(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "soft_crl,crl_file=" ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA_expired_crl.pem" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_one.conf"));
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
+                        test_lookup_by_cert_cb, SSSD_TEST_CERT_0001, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_cert_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* with enabled OCSP no certificate should be returned becasuse there is not
+ * OCSP responder available. */
+void test_pam_preauth_ocsp(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", NULL },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+#ifdef HAVE_NSS
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_OCSP);
+#else
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_ocsp.conf"));
+#endif
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
+                        NULL, NULL, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_simple_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* If no_ocsp is set, there should be a certificate returned even if a OCSP
+ * URI is set in the certificate. */
+void test_pam_preauth_ocsp_no_ocsp(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "no_ocsp" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    struct sss_test_conf_param pam_params[] = {
+        { CONFDB_PAM_P11_URI, NULL },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+#ifdef HAVE_NSS
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_OCSP);
+#else
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_ocsp.conf"));
+#endif
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
+                        test_lookup_by_cert_cb, SSSD_TEST_CERT_0005, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_cert5_check);
+
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* If soft_ocsp is set, there should be a certificate returned even if a OCSP
+ * URI is set in the certificate. */
+void test_pam_preauth_ocsp_soft_ocsp(void **state)
+{
+    int ret;
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "soft_ocsp" },
+        { NULL, NULL }, /* Sentinel */
+    };
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+#ifdef HAVE_NSS
+    set_cert_auth_param(pam_test_ctx->pctx, NSS_DB_OCSP);
+#else
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+    putenv(discard_const("SOFTHSM2_CONF=" ABS_BUILD_DIR "/src/tests/test_CA/softhsm2_ocsp.conf"));
+#endif
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
+                        test_lookup_by_cert_cb, SSSD_TEST_CERT_0005, false);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_cert5_check);
+
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_filter_response(void **state)
 {
     int ret;
@@ -3167,6 +3492,20 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_uri_token1,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_preauth_uri_token2,
+                                        pam_test_setup, pam_test_teardown),
+#ifdef HAVE_FAKETIME
+        cmocka_unit_test_setup_teardown(test_pam_preauth_expired_crl_file,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_expired_crl_file_soft,
+                                        pam_test_setup, pam_test_teardown),
+#endif /* HAVE_FAKETIME */
+#endif /* ! HAVE_NSS */
+        cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp_no_ocsp,
+                                        pam_test_setup, pam_test_teardown),
+#ifndef HAVE_NSS
+        cmocka_unit_test_setup_teardown(test_pam_preauth_ocsp_soft_ocsp,
                                         pam_test_setup, pam_test_teardown),
 #endif /* ! HAVE_NSS */
 #endif /* HAVE_TEST_CA */
