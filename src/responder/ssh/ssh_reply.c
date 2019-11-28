@@ -240,7 +240,8 @@ struct tevent_req *ssh_get_output_keys_send(TALLOC_CTX *mem_ctx,
     state->current_cert = state->user_cert != NULL ? state->user_cert
                                                    : state->user_cert_override;
 
-    subreq = cert_to_ssh_key_send(state, state->ev, -1,
+    subreq = cert_to_ssh_key_send(state, state->ev,
+                                  state->ssh_ctx->p11_child_debug_fd,
                                   state->p11_child_timeout,
                                   state->ssh_ctx->ca_db,
                                   state->ssh_ctx->sss_certmap_ctx,
