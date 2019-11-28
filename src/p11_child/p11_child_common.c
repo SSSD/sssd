@@ -81,7 +81,8 @@ static int do_work(TALLOC_CTX *mem_ctx, enum op_mode mode, const char *ca_db,
 
 
     if (mode == OP_VERIFIY) {
-        if (do_verification_b64(p11_ctx, cert_b64)) {
+        if (!cert_verify_opts->do_verification
+                    || do_verification_b64(p11_ctx, cert_b64)) {
             DEBUG(SSSDBG_TRACE_FUNC, "Certificate is valid.\n");
             ret = 0;
         } else {
@@ -356,9 +357,8 @@ int main(int argc, const char *argv[])
 
     if (mode == OP_VERIFIY && !cert_verify_opts->do_verification) {
         fprintf(stderr,
-                "Cannot run verification with option 'no_verification'.\n");
-        ret = EINVAL;
-        goto fail;
+                "Called verification with option 'no_verification', "
+                "it this intended?\n");
     }
 
     if (mode == OP_AUTH && pin_mode == PIN_STDIN) {
