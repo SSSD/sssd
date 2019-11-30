@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2019-08-15 02:07+0200\n"
+"POT-Creation-Date: 2019-09-12 02:51+0200\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -1665,7 +1665,7 @@ msgstr "Požaduje kanonizaci názvu principalu"
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Použít uživatelsky určenou verzi krb5_get_init_creds_password"
 
-#: src/providers/data_provider_be.c:674
+#: src/providers/data_provider_be.c:711
 msgid "Domain of the information provider (mandatory)"
 msgstr "Doména poskytovatele informace (povinné)"
 
@@ -1705,91 +1705,91 @@ msgstr "Neočekávaná chyba při hledání popisu chyby"
 msgid "Permission denied. "
 msgstr "Přístup odepřen."
 
-#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:777
-#: src/sss_client/pam_sss.c:788
+#: src/sss_client/pam_sss.c:68 src/sss_client/pam_sss.c:778
+#: src/sss_client/pam_sss.c:789
 msgid "Server message: "
 msgstr "Zpráva ze serveru:"
 
 # auto translated by TM merge from project: FreeIPA, version: ipa-4-5, DocId: po/ipa
-#: src/sss_client/pam_sss.c:295
+#: src/sss_client/pam_sss.c:296
 msgid "Passwords do not match"
 msgstr "Zadání hesla se neshodují"
 
-#: src/sss_client/pam_sss.c:483
+#: src/sss_client/pam_sss.c:484
 msgid "Password reset by root is not supported."
 msgstr "Reset hesla správcem není podporován."
 
-#: src/sss_client/pam_sss.c:524
+#: src/sss_client/pam_sss.c:525
 msgid "Authenticated with cached credentials"
 msgstr "Přihlášeni přihlašovacími údaji z mezipaměti"
 
-#: src/sss_client/pam_sss.c:525
+#: src/sss_client/pam_sss.c:526
 msgid ", your cached password will expire at: "
 msgstr ", platnost mezipaměti skončí v:"
 
-#: src/sss_client/pam_sss.c:555
+#: src/sss_client/pam_sss.c:556
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Platnost vašeho hesla skončila. Zbývá vám %1$d přihlášení."
 
-#: src/sss_client/pam_sss.c:601
+#: src/sss_client/pam_sss.c:602
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Platnost vašeho hesla skončí v %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:650
+#: src/sss_client/pam_sss.c:651
 msgid "Authentication is denied until: "
 msgstr "Ověření odepřeno do:"
 
-#: src/sss_client/pam_sss.c:671
+#: src/sss_client/pam_sss.c:672
 msgid "System is offline, password change not possible"
 msgstr "Systém není dostupný, změna hesla není možná"
 
-#: src/sss_client/pam_sss.c:686
+#: src/sss_client/pam_sss.c:687
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr ""
 "Po změně OTP hesla, je třeba se odhlásit/přihlásit aby byl získán lístek"
 
-#: src/sss_client/pam_sss.c:774 src/sss_client/pam_sss.c:787
+#: src/sss_client/pam_sss.c:775 src/sss_client/pam_sss.c:788
 msgid "Password change failed. "
 msgstr "Změna hesla se nezdařila."
 
-#: src/sss_client/pam_sss.c:1977
+#: src/sss_client/pam_sss.c:1989
 msgid "New Password: "
 msgstr "Nové heslo:"
 
-#: src/sss_client/pam_sss.c:1978
+#: src/sss_client/pam_sss.c:1990
 msgid "Reenter new Password: "
 msgstr "Zopakování nového hesla:"
 
-#: src/sss_client/pam_sss.c:2139 src/sss_client/pam_sss.c:2142
+#: src/sss_client/pam_sss.c:2152 src/sss_client/pam_sss.c:2155
 msgid "First Factor: "
 msgstr "Hlavní faktor:"
 
-#: src/sss_client/pam_sss.c:2140 src/sss_client/pam_sss.c:2303
+#: src/sss_client/pam_sss.c:2153 src/sss_client/pam_sss.c:2324
 msgid "Second Factor (optional): "
 msgstr "Druhý faktor (volitelné):"
 
-#: src/sss_client/pam_sss.c:2143 src/sss_client/pam_sss.c:2306
+#: src/sss_client/pam_sss.c:2156 src/sss_client/pam_sss.c:2327
 msgid "Second Factor: "
 msgstr "Druhý faktor:"
 
 # auto translated by TM merge from project: anaconda, version: f25, DocId: main
-#: src/sss_client/pam_sss.c:2158
+#: src/sss_client/pam_sss.c:2171
 msgid "Password: "
 msgstr "Heslo: "
 
-#: src/sss_client/pam_sss.c:2302 src/sss_client/pam_sss.c:2305
+#: src/sss_client/pam_sss.c:2323 src/sss_client/pam_sss.c:2326
 msgid "First Factor (Current Password): "
 msgstr "Hlavní faktor (stávající heslo):"
 
-#: src/sss_client/pam_sss.c:2309
+#: src/sss_client/pam_sss.c:2330
 msgid "Current Password: "
 msgstr "Stávající heslo:"
 
-#: src/sss_client/pam_sss.c:2664
+#: src/sss_client/pam_sss.c:2685
 msgid "Password expired. Change your password now."
 msgstr "Platnost hesla skončila. Změňte si ho."
 
