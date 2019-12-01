@@ -40,6 +40,7 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
                                     const char *ad_hostname,
                                     const char *ad_keytab,
                                     size_t pw_lifetime_in_days,
+                                    bool add_samba_data,
                                     size_t period,
                                     size_t initial_delay,
                                     struct renewal_data *renewal_data)
@@ -58,7 +59,7 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
         return ENOMEM;
     }
 
-    args = talloc_array(renewal_data, const char *, 8);
+    args = talloc_array(renewal_data, const char *, 9);
     if (args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
@@ -70,6 +71,9 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
     args[c++] = NULL;
     args[c++] = talloc_asprintf(args, "--computer-password-lifetime=%zu",
                                 pw_lifetime_in_days);
+    if (add_samba_data) {
+        args[c++] = talloc_strdup(args, "--add-samba-data");
+    }
     args[c++] = talloc_asprintf(args, "--host-fqdn=%s", ad_hostname);
     if (ad_keytab != NULL) {
         args[c++] = talloc_asprintf(args, "--host-keytab=%s", ad_keytab);
@@ -375,7 +379,10 @@ errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
                    dp_opt_get_cstring(ad_opts->basic, AD_HOSTNAME),
                    dp_opt_get_cstring(ad_opts->id_ctx->sdap_id_ctx->opts->basic,
                                       SDAP_KRB5_KEYTAB),
-                   lifetime, period, initial_delay, renewal_data);
+                   lifetime,
+                   dp_opt_get_bool(ad_opts->basic,
+                                   AD_UPDATE_SAMBA_MACHINE_ACCOUNT_PASSWORD),
+                   period, initial_delay, renewal_data);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "get_adcli_extra_args failed.\n");
         goto done;
