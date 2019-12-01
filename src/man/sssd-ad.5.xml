@@ -1016,6 +1016,22 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_update_samba_machine_account_password (boolean)</term>
+                    <listitem>
+                        <para>
+                            If enabled, when SSSD renews the machine account
+                            password, it will also be updated in Samba's
+                            database. This prevents Samba's copy of the machine
+                            account password from getting out of date when it is
+                            set up to use AD for authentication.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>
