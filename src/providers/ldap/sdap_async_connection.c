@@ -1803,6 +1803,8 @@ static void sdap_cli_auth_step(struct tevent_req *req)
     struct tevent_req *subreq;
     time_t now;
     int expire_timeout;
+    int expire_offset;
+
     const char *sasl_mech = dp_opt_get_string(state->opts->basic,
                                               SDAP_SASL_MECH);
     const char *user_dn = dp_opt_get_string(state->opts->basic,
@@ -1832,6 +1834,16 @@ static void sdap_cli_auth_step(struct tevent_req *req)
      */
     now = time(NULL);
     expire_timeout = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_TIMEOUT);
+    expire_offset = dp_opt_get_int(state->opts->basic, SDAP_EXPIRE_OFFSET);
+    if (expire_offset > 0) {
+        expire_timeout += sss_rand() % (expire_offset + 1);
+    } else if (expire_offset < 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Negative value [%d] of ldap_connection_expire_offset "
+              "is not allowed.\n",
+              expire_offset);
+    }
+
     DEBUG(SSSDBG_CONF_SETTINGS, "expire timeout is %d\n", expire_timeout);
     if (!state->sh->expire_time
             || (state->sh->expire_time > (now + expire_timeout))) {

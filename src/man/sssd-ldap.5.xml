@@ -510,7 +510,26 @@
                             will be used.
                         </para>
                         <para>
+                            This timeout can be extended of a random
+                            value specified by
+                            <emphasis>ldap_connection_expire_offset</emphasis>
+                        </para>
+                        <para>
                             Default: 900 (15 minutes)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_connection_expire_offset (integer)</term>
+                    <listitem>
+                        <para>
+                            Random offset between 0 and configured value
+                            is added to
+                            <emphasis>ldap_connection_expire_timeout</emphasis>.
+                        </para>
+                        <para>
+                            Default: 0
                         </para>
                     </listitem>
                 </varlistentry>
