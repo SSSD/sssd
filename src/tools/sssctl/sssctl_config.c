@@ -82,7 +82,7 @@ errno_t sssctl_config_check(struct sss_cmdline *cmdline,
     }
 
     if (ret == ERR_INI_PARSE_FAILED) {
-        PRINT("Failed to load configuration configuration from %s.\n",
+        PRINT("Failed to load configuration from %s.\n",
               SSSD_CONFIG_FILE);
         goto done;
     }
