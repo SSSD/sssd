@@ -774,14 +774,13 @@ int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
     return sysdb_search_by_name(mem_ctx, domain, name, SYSDB_GROUP, attrs, msg);
 }
 
-/* Please note that sysdb_search_group_by_gid() is not aware of MPGs. If MPG
- * support is needed either the caller must handle it or sysdb_getgrgid() or
- * sysdb_getgrgid_attrs() should be used. */
-int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
-                              struct sss_domain_info *domain,
-                              gid_t gid,
-                              const char **attrs,
-                              struct ldb_message **msg)
+static int
+sysdb_search_group_by_id(TALLOC_CTX *mem_ctx,
+                         struct sss_domain_info *domain,
+                         const char *filterfmt,
+                         gid_t gid,
+                         const char **attrs,
+                         struct ldb_message **msg)
 {
     TALLOC_CTX *tmp_ctx;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
@@ -802,7 +801,7 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, SYSDB_GRGID_FILTER, (unsigned long)gid);
+    filter = talloc_asprintf(tmp_ctx, filterfmt, (unsigned long)gid);
     if (!filter) {
         ret = ENOMEM;
         goto done;
@@ -831,6 +830,29 @@ done:
 
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+/* Please note that sysdb_search_group_by_gid() is not aware of MPGs. If MPG
+ * support is needed either the caller must handle it or sysdb_getgrgid() or
+ * sysdb_getgrgid_attrs() should be used. */
+int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *domain,
+                              gid_t gid,
+                              const char **attrs,
+                              struct ldb_message **msg)
+{
+    return sysdb_search_group_by_id(mem_ctx, domain, SYSDB_GRGID_FILTER,
+                                    gid, attrs, msg);
+}
+
+int sysdb_search_group_by_origgid(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  gid_t gid,
+                                  const char **attrs,
+                                  struct ldb_message **msg)
+{
+    return sysdb_search_group_by_id(mem_ctx, domain, SYSDB_GRORIGGID_FILTER,
+                                    gid, attrs, msg);
 }
 
 int sysdb_search_group_by_sid_str(TALLOC_CTX *mem_ctx,
