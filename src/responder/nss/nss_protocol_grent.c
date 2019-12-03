@@ -317,6 +317,7 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
     struct sss_domain_info *domain;
     struct ldb_message *user;
     struct ldb_message *msg;
+    struct ldb_message *primary_group_msg;
     const char *posix;
     struct sized_string rawname;
     struct sized_string unique_name;
@@ -348,6 +349,19 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
     orig_gid = sss_view_ldb_msg_find_attr_as_uint64(domain, user,
                                                     SYSDB_PRIMARY_GROUP_GIDNUM,
                                                     0);
+
+    /* Try to get the real gid in case the primary group's gid was overriden. */
+    ret = sysdb_search_group_by_origgid(NULL, domain, orig_gid, NULL,
+                                        &primary_group_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to find primary gid [%d]: %s\n",
+              ret, sss_strerror(ret));
+        /* Just continue with what we have. */
+    } else {
+        orig_gid = ldb_msg_find_attr_as_uint64(primary_group_msg, SYSDB_GIDNUM,
+                                               orig_gid);
+        talloc_free(primary_group_msg);
+    }
 
     /* If the GID of the original primary group is available but equal to the
      * current primary GID it must not be added. */
