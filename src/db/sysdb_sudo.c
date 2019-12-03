@@ -55,6 +55,22 @@ static errno_t sysdb_sudo_convert_time(const char *str, time_t *unix_time)
                              "%Y%m%d%H%M%S.0%z",
                              "%Y%m%d%H%M%S,0Z",
                              "%Y%m%d%H%M%S,0%z",
+                             /* LDAP specification says that minutes and seconds
+                                might be omitted and in that case these are meant
+                                to be treated as zeros [1].
+                             */
+                             "%Y%m%d%H%MZ",    /* Discard seconds */
+                             "%Y%m%d%H%M%z",
+                             "%Y%m%d%H%M.0Z",
+                             "%Y%m%d%H%M.0%z",
+                             "%Y%m%d%H%M,0Z",
+                             "%Y%m%d%H%M,0%z",
+                             "%Y%m%d%HZ",    /* Discard minutes and seconds*/
+                             "%Y%m%d%H%z",
+                             "%Y%m%d%H.0Z",
+                             "%Y%m%d%H.0%z",
+                             "%Y%m%d%H,0Z",
+                             "%Y%m%d%H,0%z",
                              NULL};
 
     for (format = formats; *format != NULL; format++) {
