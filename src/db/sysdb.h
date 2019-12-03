@@ -208,6 +208,7 @@
 
 #define SYSDB_GRNAM_FILTER "(&("SYSDB_GC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_GRGID_FILTER "(&("SYSDB_GC")("SYSDB_GIDNUM"=%lu))"
+#define SYSDB_GRORIGGID_FILTER "(&("SYSDB_GC")("ORIGINALAD_PREFIX SYSDB_GIDNUM"=%lu))"
 #define SYSDB_GRSID_FILTER "(&("SYSDB_GC")("SYSDB_SID_STR"=%s))"
 #define SYSDB_GRENT_FILTER "("SYSDB_GC")"
 #define SYSDB_GRNAM_MPG_FILTER "(&("SYSDB_MPGC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
@@ -976,6 +977,12 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               gid_t gid,
                               const char **attrs,
                               struct ldb_message **msg);
+
+int sysdb_search_group_by_origgid(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  gid_t gid,
+                                  const char **attrs,
+                                  struct ldb_message **msg);
 
 int sysdb_search_group_by_sid_str(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *domain,
