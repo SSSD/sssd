@@ -165,6 +165,7 @@
 #endif
 #define CONFDB_SSH_USE_CERT_KEYS "ssh_use_certificate_keys"
 #define CONFDB_DEFAULT_SSH_USE_CERT_KEYS true
+#define CONFDB_SSH_USE_CERT_RULES "ssh_use_certificate_matching_rules"
 
 /* PAC */
 #define CONFDB_PAC_CONF_ENTRY "config/pac"

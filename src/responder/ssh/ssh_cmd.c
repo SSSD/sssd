@@ -156,6 +156,7 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
     struct certmap_info **certmap_list;
     size_t c;
     int ret;
+    bool rule_added;
 
     if (!ssh_ctx->use_cert_keys
             || ssh_ctx->certmap_last_read
@@ -170,6 +171,7 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
         goto done;
     }
 
+    rule_added = false;
     DLIST_FOR_EACH(dom, domains) {
         certmap_list = dom->certmaps;
         if (certmap_list == NULL || *certmap_list == NULL) {
@@ -177,6 +179,16 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
         }
 
         for (c = 0; certmap_list[c] != NULL; c++) {
+
+            if (ssh_ctx->cert_rules != NULL
+                        && !string_in_list(certmap_list[c]->name,
+                                           ssh_ctx->cert_rules, true)) {
+                DEBUG(SSSDBG_TRACE_ALL, "Skipping matching rule [%s], it is "
+                      "not listed in the ssh_use_certificate_matching_rules "
+                      "option.\n", certmap_list[c]->name);
+                continue;
+            }
+
             DEBUG(SSSDBG_TRACE_ALL,
                   "Trying to add rule [%s][%d][%s][%s].\n",
                   certmap_list[c]->name, certmap_list[c]->priority,
@@ -195,7 +207,16 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
                       certmap_list[c]->name, ret, sss_strerror(ret));
                 continue;
             }
+            rule_added = true;
         }
+    }
+
+    if (!rule_added) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "No matching rule added, all certificates will be used.\n");
+
+        sss_certmap_free_ctx(sss_certmap_ctx);
+        sss_certmap_ctx = NULL;
     }
 
     ret = EOK;
