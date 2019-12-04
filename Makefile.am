@@ -1668,6 +1668,7 @@ sssd_ssh_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SYSTEMD_DAEMON_LIBS) \
     libsss_cert.la \
+    libsss_certmap.la \
     libsss_iface.la \
     libsss_sbus.la \
     $(NULL)
