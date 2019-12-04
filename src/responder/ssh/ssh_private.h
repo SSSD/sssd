@@ -35,6 +35,9 @@ struct ssh_ctx {
     int known_hosts_timeout;
     char *ca_db;
     bool use_cert_keys;
+
+    time_t certmap_last_read;
+    struct sss_certmap_ctx *sss_certmap_ctx;
 };
 
 struct sss_cmd_table *get_ssh_cmds(void);

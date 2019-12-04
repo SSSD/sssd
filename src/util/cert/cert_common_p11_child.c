@@ -48,6 +48,7 @@ struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
                                         int child_debug_fd, time_t timeout,
                                         const char *ca_db,
+                                        struct sss_certmap_ctx *sss_certmap_ctx,
                                         size_t cert_count,
                                         struct ldb_val *bin_certs,
                                         const char *verify_opts)
@@ -117,17 +118,29 @@ struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    state->cert_count = 0;
     for (c = 0; c < cert_count; c++) {
-        state->certs[c] = sss_base64_encode(state->certs, bin_certs[c].data,
-                                            bin_certs[c].length);
-        if (state->certs[c] == NULL) {
+
+        if (sss_certmap_ctx != NULL) {
+            ret = sss_certmap_match_cert(sss_certmap_ctx, bin_certs[c].data,
+                                         bin_certs[c].length);
+            if (ret != 0) {
+                DEBUG(SSSDBG_TRACE_ALL, "Certificate does not match matching "
+                                        "rules and is ignored.\n");
+                continue;
+            }
+        }
+        state->certs[state->cert_count] = sss_base64_encode(state->certs,
+                                                            bin_certs[c].data,
+                                                            bin_certs[c].length);
+        if (state->certs[state->cert_count] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "sss_base64_encode failed.\n");
             ret = EINVAL;
             goto done;
         }
+        state->cert_count++;
     }
 
-    state->cert_count = cert_count;
     state->iter = 0;
 
     ret = cert_to_ssh_key_step(req);
