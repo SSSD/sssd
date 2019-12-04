@@ -112,6 +112,19 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ret = confdb_get_string_as_list(ssh_ctx->rctx->cdb, ssh_ctx,
+                                    CONFDB_SSH_CONF_ENTRY,
+                                    CONFDB_SSH_USE_CERT_RULES,
+                                    &ssh_ctx->cert_rules);
+    if (ret == ENOENT) {
+        ssh_ctx->cert_rules = NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading " CONFDB_SSH_USE_CERT_RULES
+                                    " from confdb (%d) [%s].\n", ret,
+                                    sss_strerror(ret));
+        goto fail;
+    }
+
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");

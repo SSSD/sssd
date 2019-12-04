@@ -1718,6 +1718,28 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>ssh_use_certificate_matching_rules (string)</term>
+                    <listitem>
+                        <para>
+                            By default the ssh responder will use all available
+                            certificate matching rules to filter the
+                            certificates so that ssh keys are only derived from
+                            the matching ones. With this option the used rules
+                            can be restricted with a comma separated list of
+                            mapping and matching rule names. All other rules
+                            will be ignored.
+                        </para>
+                        <para>
+                            If a non-existing rule name is given all rules will
+                            be ignored and all available certificates will be
+                            used to derive ssh keys.
+                        </para>
+                        <para>
+                            Default: not set, all found rules are used
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>ca_db (string)</term>
                     <listitem>
                         <para>

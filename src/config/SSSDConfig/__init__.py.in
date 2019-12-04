@@ -120,6 +120,7 @@ option_strings = {
     'ssh_known_hosts_timeout': _('How many seconds to keep a host in the known_hosts file after its host keys were requested'),
     'ca_db': _('Path to storage of trusted CA certificates'),
     'ssh_use_certificate_keys': _('Allow to generate ssh-keys from certificates'),
+    'ssh_use_certificate_matching_rules': _('Use the following matching rules to filter the certificates for ssh-key generation'),
 
     # [pac]
     'allowed_uids': _('List of UIDs or user names allowed to access the PAC responder'),
