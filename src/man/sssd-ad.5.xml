@@ -407,13 +407,6 @@ DOM:dom1:(memberOf:1.2.840.113556.1.4.1941:=cn=nestedgroup,ou=groups,dc=example,
                             always apply also to the user.
                         </para>
                         <para>
-                            NOTE: The current version of SSSD does not support
-                            host (computer) entries in the GPO 'Security
-                            Filtering' list. Only user and group entries are
-                            supported. Host entries in the list have no
-                            effect.
-                        </para>
-                        <para>
                             NOTE: If the operation mode is set to enforcing, it
                             is possible that users that were previously allowed
                             logon access will now be denied logon access (as
