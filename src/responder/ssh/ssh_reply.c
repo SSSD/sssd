@@ -243,6 +243,7 @@ struct tevent_req *ssh_get_output_keys_send(TALLOC_CTX *mem_ctx,
     subreq = cert_to_ssh_key_send(state, state->ev, -1,
                                   state->p11_child_timeout,
                                   state->ssh_ctx->ca_db,
+                                  state->ssh_ctx->sss_certmap_ctx,
                                   state->current_cert->num_values,
                                   state->current_cert->values,
                                   state->cert_verification_opts);
@@ -328,6 +329,7 @@ void ssh_get_output_keys_done(struct tevent_req *subreq)
     subreq = cert_to_ssh_key_send(state, state->ev, -1,
                                   state->p11_child_timeout,
                                   state->ssh_ctx->ca_db,
+                                  state->ssh_ctx->sss_certmap_ctx,
                                   state->current_cert->num_values,
                                   state->current_cert->values,
                                   state->cert_verification_opts);

@@ -29,6 +29,7 @@
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "responder/ssh/ssh_private.h"
+#include "lib/certmap/sss_certmap.h"
 
 struct ssh_cmd_ctx {
     struct cli_ctx *cli_ctx;
@@ -123,11 +124,100 @@ done:
     return ret;
 }
 
+struct priv_sss_debug {
+    int level;
+};
+
+static void ssh_ext_debug(void *private, const char *file, long line,
+                      const char *function, const char *format, ...)
+{
+    va_list ap;
+    struct priv_sss_debug *data = private;
+    int level = SSSDBG_OP_FAILURE;
+
+    if (data != NULL) {
+        level = data->level;
+    }
+
+    if (DEBUG_IS_SET(level)) {
+        va_start(ap, format);
+        sss_vdebug_fn(file, line, function, level, APPEND_LINE_FEED,
+                      format, ap);
+        va_end(ap);
+    }
+}
+
+static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
+                                           struct sss_domain_info *domains)
+{
+
+    struct sss_certmap_ctx *sss_certmap_ctx = NULL;
+    struct sss_domain_info *dom;
+    struct certmap_info **certmap_list;
+    size_t c;
+    int ret;
+
+    if (!ssh_ctx->use_cert_keys
+            || ssh_ctx->certmap_last_read
+                    >= ssh_ctx->rctx->get_domains_last_call.tv_sec) {
+        DEBUG(SSSDBG_TRACE_ALL, "No certmap update needed.\n");
+        return EOK;
+    }
+
+    ret = sss_certmap_init(ssh_ctx, ssh_ext_debug, NULL, &sss_certmap_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_init failed.\n");
+        goto done;
+    }
+
+    DLIST_FOR_EACH(dom, domains) {
+        certmap_list = dom->certmaps;
+        if (certmap_list == NULL || *certmap_list == NULL) {
+            continue;
+        }
+
+        for (c = 0; certmap_list[c] != NULL; c++) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Trying to add rule [%s][%d][%s][%s].\n",
+                  certmap_list[c]->name, certmap_list[c]->priority,
+                  certmap_list[c]->match_rule, certmap_list[c]->map_rule);
+
+            ret = sss_certmap_add_rule(sss_certmap_ctx,
+                                       certmap_list[c]->priority,
+                                       certmap_list[c]->match_rule,
+                                       certmap_list[c]->map_rule,
+                                       certmap_list[c]->domains);
+            if (ret != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sss_certmap_add_rule failed for rule [%s] "
+                      "with error [%d][%s], skipping. "
+                      "Please check for typos and if rule syntax is supported.\n",
+                      certmap_list[c]->name, ret, sss_strerror(ret));
+                continue;
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        sss_certmap_free_ctx(ssh_ctx->sss_certmap_ctx);
+        ssh_ctx->sss_certmap_ctx = sss_certmap_ctx;
+        ssh_ctx->certmap_last_read = ssh_ctx->rctx->get_domains_last_call.tv_sec;
+    } else {
+        sss_certmap_free_ctx(sss_certmap_ctx);
+    }
+
+    return ret;
+}
+
 static void ssh_cmd_get_user_pubkeys_done(struct tevent_req *subreq)
 {
     struct cache_req_result *result;
     struct ssh_cmd_ctx *cmd_ctx;
     errno_t ret;
+    struct ssh_ctx *ssh_ctx;
 
     cmd_ctx = tevent_req_callback_data(subreq, struct ssh_cmd_ctx);
 
@@ -141,6 +231,14 @@ static void ssh_cmd_get_user_pubkeys_done(struct tevent_req *subreq)
 
         ssh_protocol_done(cmd_ctx->cli_ctx, ret);
         goto done;
+    }
+
+    ssh_ctx = talloc_get_type(cmd_ctx->cli_ctx->rctx->pvt_ctx, struct ssh_ctx);
+    ret = ssh_cmd_refresh_certmap_ctx(ssh_ctx, cmd_ctx->cli_ctx->rctx->domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ssh_cmd_refresh_certmap_ctx failed, "
+              "certificate matching might not work as expected.\n");
     }
 
     ssh_protocol_reply(cmd_ctx->cli_ctx, result);
