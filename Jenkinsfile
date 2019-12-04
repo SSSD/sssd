@@ -299,6 +299,8 @@ try {
   }
 
   stage('Prepare systems') {
+    notification.notify('PENDING', 'Pending.')
+
     /* Notify that all systems are pending. */
     for (system in systems) {
       notification.notify('PENDING', 'Awaiting executor', system)
