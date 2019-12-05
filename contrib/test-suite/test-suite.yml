@@ -8,4 +8,5 @@
   - ci-*.log
   - ci-build-debug/ci-*.log
   - ci-build-debug/test-suite.log
+  - ci-build-debug/ci-mock-result/*.log
   timeout: 6 hours
