@@ -2244,6 +2244,19 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                 </varlistentry>
 
                 <varlistentry>
+                    <term>entry_cache_computer_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds to keep the local computer
+                            entry before asking the backend again
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>refresh_expired_interval (integer)</term>
                     <listitem>
                         <para>
