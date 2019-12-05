@@ -2192,12 +2192,9 @@ static void ad_gpo_get_host_sid_retrieval_done(struct tevent_req *subreq)
     state->host_sid = talloc_steal(state, sid_str);
 
     /* Put the sid string in the sysdb */
-    /* FIXME Using the same timeout as user cache objects. We should create
-     * a specific setting, check autofsmap_timeout or ssh_host_timeout for
-     * example */
     ret = sysdb_set_computer(subreq, state->user_domain,
                              state->ad_hostname, state->host_sid,
-                             state->user_domain->user_timeout,
+                             state->user_domain->computer_timeout,
                              time(NULL));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
