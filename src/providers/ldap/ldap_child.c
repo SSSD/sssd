@@ -277,7 +277,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krb5_ccache ccache = NULL;
     krb5_principal kprinc;
     krb5_creds my_creds;
-    krb5_get_init_creds_opt options;
+    krb5_get_init_creds_opt *options = NULL;
     krb5_error_code krberr;
     krb5_timestamp kdc_time_offset;
     int canonicalize = 0;
@@ -392,19 +392,32 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     }
 
     memset(&my_creds, 0, sizeof(my_creds));
-    memset(&options, 0, sizeof(options));
 
-    krb5_get_init_creds_opt_set_address_list(&options, NULL);
-    krb5_get_init_creds_opt_set_forwardable(&options, 0);
-    krb5_get_init_creds_opt_set_proxiable(&options, 0);
-    krb5_get_init_creds_opt_set_tkt_life(&options, lifetime);
+    krberr = krb5_get_init_creds_opt_alloc(context, &options);
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_get_init_creds_opt_alloc failed.\n");
+        goto done;
+    }
+
+    krb5_get_init_creds_opt_set_address_list(options, NULL);
+    krb5_get_init_creds_opt_set_forwardable(options, 0);
+    krb5_get_init_creds_opt_set_proxiable(options, 0);
+    krb5_get_init_creds_opt_set_tkt_life(options, lifetime);
+    krberr = krb5_get_init_creds_opt_set_pa(context, options,
+                                            "X509_user_identity", "");
+    if (krberr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "krb5_get_init_creds_opt_set_pa failed [%d], ignored.\n",
+              krberr);
+    }
+
 
     tmp_str = getenv("KRB5_CANONICALIZE");
     if (tmp_str != NULL && strcasecmp(tmp_str, "true") == 0) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Will canonicalize principals\n");
         canonicalize = 1;
     }
-    sss_krb5_get_init_creds_opt_set_canonicalize(&options, canonicalize);
+    sss_krb5_get_init_creds_opt_set_canonicalize(options, canonicalize);
 
     ccname_file = talloc_asprintf(tmp_ctx, "%s/ccache_%s",
                                   DB_PATH, realm_name);
@@ -433,7 +446,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     }
 
     krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
-                                        keytab, 0, NULL, &options);
+                                        keytab, 0, NULL, options);
     if (krberr != 0) {
         DEBUG(SSSDBG_OP_FAILURE,
               "krb5_get_init_creds_keytab() failed: %d\n", krberr);
@@ -513,6 +526,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     *expire_time_out = my_creds.times.endtime - kdc_time_offset;
 
 done:
+    krb5_get_init_creds_opt_free(context, options);
     if (krberr != 0) {
         if (*_krb5_msg == NULL) {
             /* no custom error message provided hence get one from libkrb5 */
