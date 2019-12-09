@@ -29,6 +29,11 @@
 
 #define EOK 0
 
+#ifndef HAVE_ERRNO_T
+#define HAVE_ERRNO_T
+typedef int errno_t;
+#endif
+
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, bool skip_empty,
                        char ***_list, int *size)
@@ -140,4 +145,98 @@ bool string_in_list(const char *string, char **list, bool case_sensitive)
     }
 
     return false;
+}
+
+errno_t sss_filter_sanitize_ex(TALLOC_CTX *mem_ctx,
+                               const char *input,
+                               char **sanitized,
+                               const char *ignore)
+{
+    char *output;
+    size_t i = 0;
+    size_t j = 0;
+    char *allowed;
+
+    /* Assume the worst-case. We'll resize it later, once */
+    output = talloc_array(mem_ctx, char, strlen(input) * 3 + 1);
+    if (!output) {
+        return ENOMEM;
+    }
+
+    while (input[i]) {
+        /* Even though this character might have a special meaning, if it's
+         * explicitly allowed, just copy it and move on
+         */
+        if (ignore == NULL) {
+            allowed = NULL;
+        } else {
+            allowed = strchr(ignore, input[i]);
+        }
+        if (allowed) {
+            output[j++] = input[i++];
+            continue;
+        }
+
+        switch(input[i]) {
+        case '\t':
+            output[j++] = '\\';
+            output[j++] = '0';
+            output[j++] = '9';
+            break;
+        case ' ':
+            output[j++] = '\\';
+            output[j++] = '2';
+            output[j++] = '0';
+            break;
+        case '*':
+            output[j++] = '\\';
+            output[j++] = '2';
+            output[j++] = 'a';
+            break;
+        case '(':
+            output[j++] = '\\';
+            output[j++] = '2';
+            output[j++] = '8';
+            break;
+        case ')':
+            output[j++] = '\\';
+            output[j++] = '2';
+            output[j++] = '9';
+            break;
+        case '\\':
+            output[j++] = '\\';
+            output[j++] = '5';
+            output[j++] = 'c';
+            break;
+        case '\r':
+            output[j++] = '\\';
+            output[j++] = '0';
+            output[j++] = 'd';
+            break;
+        case '\n':
+            output[j++] = '\\';
+            output[j++] = '0';
+            output[j++] = 'a';
+            break;
+        default:
+            output[j++] = input[i];
+        }
+
+        i++;
+    }
+    output[j] = '\0';
+    *sanitized = talloc_realloc(mem_ctx, output, char, j+1);
+    if (!*sanitized) {
+        talloc_free(output);
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
+                            const char *input,
+                            char **sanitized)
+{
+    return sss_filter_sanitize_ex(mem_ctx, input, sanitized, NULL);
 }
