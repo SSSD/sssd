@@ -196,13 +196,6 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
 void remove_krb5_info_files_callback(void *pvt);
 
-void krb5_finalize(struct tevent_context *ev,
-                   struct tevent_signal *se,
-                   int signum,
-                   int count,
-                   void *siginfo,
-                   void *private_data);
-
 errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm);
 
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,

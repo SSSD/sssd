@@ -1133,16 +1133,6 @@ void remove_krb5_info_files_callback(void *pvt)
     talloc_free(ctx);
 }
 
-void krb5_finalize(struct tevent_context *ev,
-                   struct tevent_signal *se,
-                   int signum,
-                   int count,
-                   void *siginfo,
-                   void *private_data)
-{
-    orderly_shutdown(0);
-}
-
 errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                             struct sss_domain_info *dom, const char *username,
                             const char *user_dom, char **_upn)
