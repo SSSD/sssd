@@ -1049,9 +1049,10 @@ static char *get_cert_prompt(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_certmap_get_search_filter(ctx, der, der_size, &filter, &domains);
+    ret = sss_certmap_expand_mapping_rule(ctx, der, der_size,
+                                          &filter, &domains);
     if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_get_search_filter failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sss_certmap_expand_mapping_rule failed.\n");
         goto done;
     }
 
