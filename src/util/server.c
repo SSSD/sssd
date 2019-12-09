@@ -242,7 +242,8 @@ void orderly_shutdown(int status)
         kill(-getpgrp(), SIGTERM);
     }
 #endif
-    if (status == 0) sss_log(SSS_LOG_INFO, "Shutting down");
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Shutting down (status = %d)", status);
+    sss_log(SSS_LOG_INFO, "Shutting down (status = %d)", status);
     exit(status);
 }
 
