@@ -1431,6 +1431,15 @@ static void test_sss_certmap_get_search_filter(void **state)
                                         &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
+    assert_string_equal(filter, "rule100=<I>CN=Certificate\\20Authority,O=IPA.DEVEL"
+                                "<S>CN=ipa-devel.ipa.devel,O=IPA.DEVEL");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
     assert_string_equal(filter, "rule100=<I>CN=Certificate Authority,O=IPA.DEVEL"
                                 "<S>CN=ipa-devel.ipa.devel,O=IPA.DEVEL");
     assert_null(domains);
@@ -1443,6 +1452,17 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert_der),
                                         sizeof(test_cert_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule99=<I>CN=Certificate\\20Authority,O=IPA.DEVEL"
+                                "<S>CN=ipa-devel.ipa.devel,O=IPA.DEVEL");
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule99=<I>CN=Certificate Authority,O=IPA.DEVEL"
@@ -1466,6 +1486,16 @@ static void test_sss_certmap_get_search_filter(void **state)
     assert_string_equal(domains[0], "test.dom");
     assert_null(domains[1]);
 
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule98=userCertificate;binary=" TEST_CERT_BIN);
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
+
     ret = sss_certmap_add_rule(ctx, 97,
                             "KRB5:<ISSUER>CN=Certificate Authority,O=IPA.DEVEL",
                             "LDAP:rule97=<I>{issuer_dn!nss_x500}<S>{subject_dn}",
@@ -1474,6 +1504,17 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert_der),
                                         sizeof(test_cert_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule97=<I>O=IPA.DEVEL,CN=Certificate\\20Authority"
+                                "<S>CN=ipa-devel.ipa.devel,O=IPA.DEVEL");
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule97=<I>O=IPA.DEVEL,CN=Certificate Authority"
@@ -1490,6 +1531,17 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert_der),
                                         sizeof(test_cert_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule96=<I>O=IPA.DEVEL,CN=Certificate\\20Authority"
+                                "<S>O=IPA.DEVEL,CN=ipa-devel.ipa.devel");
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule96=<I>O=IPA.DEVEL,CN=Certificate Authority"
@@ -1510,6 +1562,14 @@ static void test_sss_certmap_get_search_filter(void **state)
     assert_string_equal(filter, "(userCertificate;binary=" TEST_CERT_BIN ")");
     assert_null(domains);
 
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "(userCertificate;binary=" TEST_CERT_BIN ")");
+    assert_null(domains);
+
     ret = sss_certmap_add_rule(ctx, 94,
                       "KRB5:<ISSUER>CN=Certificate Authority,O=IPA.DEVEL",
                       "LDAP:rule94=<I>{issuer_dn!ad_x500}<S>{subject_dn!ad_x500}",
@@ -1520,12 +1580,22 @@ static void test_sss_certmap_get_search_filter(void **state)
                                         &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
-    assert_string_equal(filter, "rule94=<I>O=IPA.DEVEL,CN=Certificate Authority"
+    assert_string_equal(filter, "rule94=<I>O=IPA.DEVEL,CN=Certificate\\20Authority"
                                 "<S>O=IPA.DEVEL,CN=ipa-devel.ipa.devel");
     assert_non_null(domains);
     assert_string_equal(domains[0], "test.dom");
     assert_null(domains[1]);
 
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert_der),
+                                          sizeof(test_cert_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule94=<I>O=IPA.DEVEL,CN=Certificate Authority"
+                                "<S>O=IPA.DEVEL,CN=ipa-devel.ipa.devel");
+    assert_non_null(domains);
+    assert_string_equal(domains[0], "test.dom");
+    assert_null(domains[1]);
 
     ret = sss_certmap_add_rule(ctx, 89, NULL,
                             "(rule89={subject_nt_principal})",
@@ -1534,6 +1604,14 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
                                         sizeof(test_cert2_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "(rule89=tu1@ad.devel)");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "(rule89=tu1@ad.devel)");
@@ -1561,6 +1639,15 @@ static void test_sss_certmap_get_search_filter(void **state)
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule87=<I>DC=devel,DC=ad,CN=ad-AD-SERVER-CA"
+                  "<S>DC=devel,DC=ad,CN=Users,CN=t\\20u,E=test.user@email.domain");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule87=<I>DC=devel,DC=ad,CN=ad-AD-SERVER-CA"
                   "<S>DC=devel,DC=ad,CN=Users,CN=t u,E=test.user@email.domain");
     assert_null(domains);
 
@@ -1571,6 +1658,15 @@ static void test_sss_certmap_get_search_filter(void **state)
     ret = sss_certmap_get_search_filter(ctx, discard_const(test_cert2_der),
                                         sizeof(test_cert2_der),
                                         &filter, &domains);
+    assert_int_equal(ret, 0);
+    assert_non_null(filter);
+    assert_string_equal(filter, "rule86=<I>DC=devel,DC=ad,CN=ad-AD-SERVER-CA"
+                  "<S>DC=devel,DC=ad,CN=Users,CN=t\\20u,E=test.user@email.domain");
+    assert_null(domains);
+
+    ret = sss_certmap_expand_mapping_rule(ctx, discard_const(test_cert2_der),
+                                          sizeof(test_cert2_der),
+                                          &filter, &domains);
     assert_int_equal(ret, 0);
     assert_non_null(filter);
     assert_string_equal(filter, "rule86=<I>DC=devel,DC=ad,CN=ad-AD-SERVER-CA"

@@ -441,10 +441,12 @@ static int expand_san(struct sss_certmap_ctx *ctx,
 static int expand_template(struct sss_certmap_ctx *ctx,
                            struct parsed_template *parsed_template,
                            struct sss_cert_content *cert_content,
+                           bool sanitize,
                            char **expanded)
 {
     int ret;
     char *exp = NULL;
+    char *exp_sanitized = NULL;
 
     if (strcmp("issuer_dn", parsed_template->name) == 0) {
         ret = rdn_list_2_dn_str(ctx, parsed_template->conversion,
@@ -455,6 +457,8 @@ static int expand_template(struct sss_certmap_ctx *ctx,
     } else if (strncmp("subject_", parsed_template->name, 8) == 0) {
         ret = expand_san(ctx, parsed_template, cert_content->san_list, &exp);
     } else if (strcmp("cert", parsed_template->name) == 0) {
+        /* cert blob is already sanitized */
+        sanitize = false;
         ret = expand_cert(ctx, parsed_template, cert_content, &exp);
     } else {
         CM_DEBUG(ctx, "Unsupported template name.");
@@ -471,6 +475,16 @@ static int expand_template(struct sss_certmap_ctx *ctx,
         goto done;
     }
 
+    if (sanitize) {
+        ret = sss_filter_sanitize(ctx, exp, &exp_sanitized);
+        if (ret != EOK) {
+            CM_DEBUG(ctx, "Failed to sanitize expanded template.");
+            goto done;
+        }
+        talloc_free(exp);
+        exp = exp_sanitized;
+    }
+
     ret = 0;
 
 done:
@@ -485,7 +499,7 @@ done:
 
 static int get_filter(struct sss_certmap_ctx *ctx,
                       struct ldap_mapping_rule *parsed_mapping_rule,
-                      struct sss_cert_content *cert_content,
+                      struct sss_cert_content *cert_content, bool sanitize,
                       char **filter)
 {
     struct ldap_mapping_rule_comp *comp;
@@ -503,7 +517,7 @@ static int get_filter(struct sss_certmap_ctx *ctx,
             result = talloc_strdup_append(result, comp->val);
         } else if (comp->type == comp_template) {
             ret = expand_template(ctx, comp->parsed_template, cert_content,
-                                  &expanded);
+                                  sanitize, &expanded);
             if (ret != 0) {
                 CM_DEBUG(ctx, "Failed to expanded template.");
                 goto done;
@@ -791,8 +805,9 @@ done:
     return ret;
 }
 
-int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
+static int expand_mapping_rule_ex(struct sss_certmap_ctx *ctx,
                                   const uint8_t *der_cert, size_t der_size,
+                                  bool sanitize,
                                   char **_filter, char ***_domains)
 {
     int ret;
@@ -819,7 +834,8 @@ int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
             return EINVAL;
         }
 
-        ret = get_filter(ctx, ctx->default_mapping_rule, cert_content, &filter);
+        ret = get_filter(ctx, ctx->default_mapping_rule, cert_content, sanitize,
+                         &filter);
         goto done;
     }
 
@@ -829,7 +845,7 @@ int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
             if (ret == 0) {
                 /* match */
                 ret = get_filter(ctx, r->parsed_mapping_rule, cert_content,
-                                 &filter);
+                                 sanitize, &filter);
                 if (ret != 0) {
                     CM_DEBUG(ctx, "Failed to get filter");
                     goto done;
@@ -871,6 +887,22 @@ done:
     }
 
     return ret;
+}
+
+int sss_certmap_get_search_filter(struct sss_certmap_ctx *ctx,
+                                  const uint8_t *der_cert, size_t der_size,
+                                  char **_filter, char ***_domains)
+{
+    return expand_mapping_rule_ex(ctx, der_cert, der_size, true,
+                                  _filter, _domains);
+}
+
+int sss_certmap_expand_mapping_rule(struct sss_certmap_ctx *ctx,
+                                    const uint8_t *der_cert, size_t der_size,
+                                    char **_expanded, char ***_domains)
+{
+    return expand_mapping_rule_ex(ctx, der_cert, der_size, false,
+                                  _expanded, _domains);
 }
 
 int sss_certmap_init(TALLOC_CTX *mem_ctx,
