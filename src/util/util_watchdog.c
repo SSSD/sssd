@@ -54,9 +54,8 @@ static void watchdog_detect_timeshift(void)
         if (write(watchdog_ctx.pipefd[1], "1", 1) != 1) {
             if (getpid() == getpgrp()) {
                 kill(-getpgrp(), SIGTERM);
-            } else {
-                _exit(1);
             }
+            _exit(1);
         }
     }
 }
@@ -75,9 +74,8 @@ static void watchdog_handler(int sig)
     if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) > WATCHDOG_MAX_TICKS) {
         if (getpid() == getpgrp()) {
             kill(-getpgrp(), SIGTERM);
-        } else {
-            _exit(1);
         }
+        _exit(1);
     }
 }
 
