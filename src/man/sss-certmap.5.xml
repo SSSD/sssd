@@ -92,6 +92,15 @@
                     <para>
                         Example: &lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN
                     </para>
+                    <para>
+                        Please note that the characters "^.[$()|*+?{\" have a
+                        special meaning in regular expressions and must be
+                        escaped with the help of the '\' character so that they
+                        are matched as ordinary characters.
+                    </para>
+                    <para>
+                        Example: &lt;SUBJECT&gt;^CN=.* \(Admin\),DC=MY,DC=DOMAIN$
+                    </para>
                     </listitem>
                 </varlistentry>
                 <varlistentry>
