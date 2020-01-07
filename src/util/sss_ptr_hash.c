@@ -154,13 +154,13 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
     callback_entry.value.type = HASH_VALUE_PTR;
     callback_entry.value.ptr = value->ptr;
 
+    /* Free value, this also will disable spy */
+    talloc_free(value);
+
     /* Switch to the input value and call custom callback. */
     if (data->callback != NULL) {
         data->callback(&callback_entry, deltype, data->pvt);
     }
-
-    /* Free value. */
-    talloc_free(value);
 }
 
 hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
