@@ -206,3 +206,23 @@ done:
 
     return ret;
 }
+
+errno_t get_ssh_key_from_derb64(TALLOC_CTX *mem_ctx, const char *derb64,
+                                uint8_t **key_blob, size_t *key_size)
+{
+    int ret;
+    uint8_t *der_blob;
+    size_t der_size;
+
+    der_blob = sss_base64_decode(mem_ctx, derb64, &der_size);
+    if (der_blob == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+        return EIO;
+    }
+
+    ret = get_ssh_key_from_cert(mem_ctx, der_blob, der_size,
+                                key_blob, key_size);
+    talloc_free(der_blob);
+
+    return ret;
+}
