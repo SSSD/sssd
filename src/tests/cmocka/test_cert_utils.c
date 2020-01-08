@@ -711,6 +711,84 @@ void test_cert_to_ssh_2keys_with_certmap_send(void **state)
     talloc_free(ev);
 }
 
+void test_cert_to_ssh_2keys_with_certmap_2_done(struct tevent_req *req)
+{
+    int ret;
+    struct test_state *ts = tevent_req_callback_data(req, struct test_state);
+    struct ldb_val *keys;
+    uint8_t *exp_key;
+    size_t exp_key_size;
+    size_t valid_keys;
+
+    assert_non_null(ts);
+    ts->done = true;
+
+    ret = cert_to_ssh_key_recv(req, ts, &keys, &valid_keys);
+    talloc_free(req);
+    assert_int_equal(ret, 0);
+    assert_non_null(keys[0].data);
+    assert_int_equal(valid_keys, 1);
+
+    exp_key = sss_base64_decode(ts, SSSD_TEST_CERT_SSH_KEY_0002, &exp_key_size);
+    assert_non_null(exp_key);
+    assert_int_equal(keys[0].length, exp_key_size);
+    assert_memory_equal(keys[0].data, exp_key, exp_key_size);
+    talloc_free(exp_key);
+
+    talloc_free(keys);
+    sss_certmap_free_ctx(ts->sss_certmap_ctx);
+}
+
+void test_cert_to_ssh_2keys_with_certmap_2_send(void **state)
+{
+    int ret;
+    struct tevent_context *ev;
+    struct tevent_req *req;
+    struct ldb_val val[2];
+
+    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    assert_non_null(ts);
+    ts->done = false;
+
+    ret = sss_certmap_init(ts, NULL, NULL, &ts->sss_certmap_ctx);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_certmap_add_rule(ts->sss_certmap_ctx, -1,
+                               "<SUBJECT>CN=SSSD test cert 0002,.*", NULL,
+                               NULL);
+    assert_int_equal(ret, EOK);
+
+    val[0].data = sss_base64_decode(ts, SSSD_TEST_CERT_0001,
+                                          &val[0].length);
+    assert_non_null(val[0].data);
+
+    val[1].data = sss_base64_decode(ts, SSSD_TEST_CERT_0002,
+                                          &val[1].length);
+    assert_non_null(val[1].data);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    req = cert_to_ssh_key_send(ts, ev, -1, P11_CHILD_TIMEOUT,
+#ifdef HAVE_NSS
+                            "sql:" ABS_BUILD_DIR "/src/tests/test_CA/p11_nssdb",
+#else
+                            ABS_BUILD_DIR "/src/tests/test_CA/SSSD_test_CA.pem",
+#endif
+                            ts->sss_certmap_ctx, 2, &val[0], NULL);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_cert_to_ssh_2keys_with_certmap_2_done, ts);
+
+    while (!ts->done) {
+        tevent_loop_once(ev);
+    }
+
+    talloc_free(val[0].data);
+    talloc_free(val[1].data);
+    talloc_free(ev);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -745,6 +823,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_ec_cert_to_ssh_key_send,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_with_certmap_send,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_with_certmap_2_send,
                                         setup, teardown),
 #endif
     };

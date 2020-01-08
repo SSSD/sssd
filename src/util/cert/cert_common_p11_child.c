@@ -28,7 +28,6 @@ struct cert_to_ssh_key_state {
     time_t timeout;
     const char **extra_args;
     const char **certs;
-    struct ldb_val *bin_certs;
     struct ldb_val *keys;
     size_t cert_count;
     size_t iter;
@@ -74,7 +73,6 @@ struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
     state->child_debug_fd = (child_debug_fd == -1) ? STDERR_FILENO
                                                    : child_debug_fd;
     state->timeout = timeout;
-    state->bin_certs = bin_certs;
     state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
@@ -138,6 +136,7 @@ struct tevent_req *cert_to_ssh_key_send(TALLOC_CTX *mem_ctx,
             ret = EINVAL;
             goto done;
         }
+
         state->cert_count++;
     }
 
@@ -289,11 +288,10 @@ static void cert_to_ssh_key_done(int child_status,
     if (valid) {
         DEBUG(SSSDBG_TRACE_LIBS, "Certificate [%s] is valid.\n",
                                   state->certs[state->iter]);
-        ret = get_ssh_key_from_cert(state->keys,
-                                    state->bin_certs[state->iter].data,
-                                    state->bin_certs[state->iter].length,
-                                    &state->keys[state->iter].data,
-                                    &state->keys[state->iter].length);
+        ret = get_ssh_key_from_derb64(state->keys,
+                                      state->certs[state->iter],
+                                      &state->keys[state->iter].data,
+                                      &state->keys[state->iter].length);
         if (ret == EOK) {
             state->valid_keys++;
         } else {
