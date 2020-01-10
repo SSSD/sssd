@@ -1947,7 +1947,6 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     struct sysdb_attrs **reply;
     const char *target_dn = NULL;
     uint32_t uac;
-    char *filter = NULL;
     char *domain_dn;
     const char *attrs[] = {AD_AT_SID, NULL};
     struct ldb_message *msg;
@@ -2050,16 +2049,10 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
             goto done;
         }
 
-        filter = talloc_asprintf(subreq, SYSDB_COMP_FILTER, state->ad_hostname);
-        if (!filter) {
-            ret = ENOMEM;
-            goto done;
-        }
-
         subreq = sdap_get_generic_send(state, state->ev, state->opts,
                                        sdap_id_op_handle(state->sdap_op),
-                                       domain_dn, LDAP_SCOPE_SUBTREE,
-                                       filter, attrs, NULL, 0,
+                                       state->target_dn, LDAP_SCOPE_BASE,
+                                       "(&)", attrs, NULL, 0,
                                        state->timeout,
                                        false);
 
