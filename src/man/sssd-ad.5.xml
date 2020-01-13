@@ -193,15 +193,17 @@ ad_enabled_domains = sales.example.com, eng.example.com
                     <term>ad_hostname (string)</term>
                     <listitem>
                         <para>
-                            Optional. May be set on machines where the
-                            hostname(5) does not reflect the fully qualified
-                            name used in the Active Directory domain to
-                            identify this host.
+                            Optional. On machines where the hostname(5) does
+                            not reflect the fully qualified name, sssd will try
+                            to expand the short name. If it is not possible or
+                            the short name should be really used instead, set
+                            this parameter explicitly.
                         </para>
                         <para>
                             This field is used to determine the host principal
-                            in use in the keytab. It must match the hostname
-                            for which the keytab was issued.
+                            in use in the keytab and to perform dynamic DNS
+                            updates. It must match the hostname for which the
+                            keytab was issued.
                         </para>
                     </listitem>
                 </varlistentry>
