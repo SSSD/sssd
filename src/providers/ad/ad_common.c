@@ -406,6 +406,34 @@ ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
     return ad_options;
 }
 
+static errno_t
+ad_try_to_get_fqdn(const char *hostname,
+                   char *buf,
+                   size_t buflen)
+{
+    int ret;
+    struct addrinfo *res;
+    struct addrinfo hints;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_CANONNAME;
+
+    ret = getaddrinfo(hostname, NULL, &hints, &res);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "getaddrinfo failed: %s\n",
+              gai_strerror(ret));
+        return ret;
+    }
+
+    strncpy(buf, res->ai_canonname, buflen);
+
+    freeaddrinfo(res);
+
+    return EOK;
+}
+
 errno_t
 ad_get_common_options(TALLOC_CTX *mem_ctx,
                       struct confdb_ctx *cdb,
@@ -421,6 +449,7 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
     char *realm;
     char *ad_hostname;
     char hostname[HOST_NAME_MAX + 1];
+    char fqdn[HOST_NAME_MAX + 1];
     char *case_sensitive_opt;
     const char *opt_override;
 
@@ -468,6 +497,19 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
             goto done;
         }
         hostname[HOST_NAME_MAX] = '\0';
+
+        if (strchr(hostname, '.') == NULL) {
+            ret = ad_try_to_get_fqdn(hostname, fqdn, sizeof(fqdn));
+            if (ret == EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "The hostname [%s] has been expanded to FQDN [%s]. "
+                      "If sssd should really use the short hostname, please "
+                      "set ad_hostname explicitly.\n", hostname, fqdn);
+                strncpy(hostname, fqdn, sizeof(hostname));
+                hostname[HOST_NAME_MAX] = '\0';
+            }
+        }
+
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Setting ad_hostname to [%s].\n", hostname);
         ret = dp_opt_set_string(opts->basic, AD_HOSTNAME, hostname);
