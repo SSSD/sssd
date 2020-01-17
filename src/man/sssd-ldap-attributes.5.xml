@@ -1180,6 +1180,51 @@
         </para>
     </refsect1>
 
+    <refsect1 id='iphost-attributes'>
+    <title>IP HOST ATTRIBUTES</title>
+    <para>
+        <variablelist>
+            <varlistentry>
+                    <term>ldap_iphost_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of an iphost entry in LDAP.
+                        </para>
+                        <para>
+                            Default: ipHost
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_iphost_name (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the name of the
+                            IP host attributes and their aliases.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_iphost_number (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the IP host
+                            address.
+                        </para>
+                        <para>
+                            Default: ipHostNumber
+                        </para>
+                    </listitem>
+                </varlistentry>
+        </variablelist>
+    </para>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
