@@ -425,6 +425,11 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_iphost_search_base (string)</term>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_search_timeout (integer)</term>
                     <listitem>
                         <para>
