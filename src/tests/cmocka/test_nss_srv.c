@@ -403,6 +403,8 @@ static int parse_group_packet(uint8_t *body, size_t blen, struct group *gr, uint
     gr->gr_passwd = (char *) body+rp;
     rp += strlen(gr->gr_passwd) + 1;
 
+    gr->gr_mem = NULL;
+
     if (*nmem > 0) {
         gr->gr_mem = talloc_zero_array(nss_test_ctx, char *, *nmem);
         if (gr->gr_mem == NULL) return ENOMEM;
