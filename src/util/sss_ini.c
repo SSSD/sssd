@@ -320,7 +320,7 @@ static int sss_ini_add_snippets(struct sss_ini *self,
     return ret;
 
 #else /* HAVE_LIBINI_CONFIG_V1_3 */
-    return EOK
+    return EOK;
 #endif /* ! HAVE_LIBINI_CONFIG_V1_3 */
 }
 
