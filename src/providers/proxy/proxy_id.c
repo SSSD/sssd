@@ -212,9 +212,16 @@ delete_user(struct sss_domain_info *domain,
 {
     int ret = EOK;
 
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "User %s does not exist (or is invalid) on remote server,"
-           " deleting!\n", name);
+    if (name != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "User %s does not exist (or is invalid) on remote server,"
+              " deleting!\n", name);
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "User with UID %"SPRIuid" does not exist (or is invalid) "
+              "on remote server, deleting!\n", uid);
+    }
+
     ret = sysdb_delete_user(domain, name, uid);
     if (ret == ENOENT) {
         ret = EOK;
