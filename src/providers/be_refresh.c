@@ -385,6 +385,10 @@ static errno_t be_refresh_step(struct tevent_req *req)
         if (state->index == BE_REFRESH_TYPE_SENTINEL) {
             state->domain = get_next_domain(state->domain,
                                             SSS_GND_DESCEND);
+            /* we can update just subdomains */
+            if (state->domain != NULL && !IS_SUBDOMAIN(state->domain)) {
+                break;
+            }
             state->index = 0;
             continue;
         }
