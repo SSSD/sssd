@@ -268,12 +268,6 @@ sss_ptr_hash_lookup_internal(hash_table_t *table,
         return NULL;
     }
 
-    /* This may happen if we are in delete callback
-     * and we try to search the hash table. */
-    if (table_value.ptr == NULL) {
-        return NULL;
-    }
-
     if (!sss_ptr_hash_check_type(table_value.ptr, "struct sss_ptr_hash_value")) {
         return NULL;
     }
