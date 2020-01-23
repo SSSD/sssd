@@ -138,12 +138,6 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
     struct sss_ptr_hash_value *value;
     struct hash_entry_t callback_entry;
 
-    data = talloc_get_type(pvt, struct sss_ptr_hash_delete_data);
-    if (data == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid data!\n");
-        return;
-    }
-
     value = talloc_get_type(item->value.ptr, struct sss_ptr_hash_value);
     if (value == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid value!\n");
@@ -157,8 +151,14 @@ sss_ptr_hash_delete_cb(hash_entry_t *item,
     /* Free value, this also will disable spy */
     talloc_free(value);
 
-    /* Switch to the input value and call custom callback. */
-    if (data->callback != NULL) {
+    if (pvt != NULL) {
+        /* Switch to the input value and call custom callback. */
+        data = talloc_get_type(pvt, struct sss_ptr_hash_delete_data);
+        if (data == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid data!\n");
+            return;
+        }
+
         data->callback(&callback_entry, deltype, data->pvt);
     }
 }
@@ -167,17 +167,19 @@ hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
                                   hash_delete_callback *del_cb,
                                   void *del_cb_pvt)
 {
-    struct sss_ptr_hash_delete_data *data;
+    struct sss_ptr_hash_delete_data *data = NULL;
     hash_table_t *table;
     errno_t ret;
 
-    data = talloc_zero(NULL, struct sss_ptr_hash_delete_data);
-    if (data == NULL) {
-        return NULL;
-    }
+    if (del_cb != NULL) {
+        data = talloc_zero(NULL, struct sss_ptr_hash_delete_data);
+        if (data == NULL) {
+            return NULL;
+        }
 
-    data->callback = del_cb;
-    data->pvt = del_cb_pvt;
+        data->callback = del_cb;
+        data->pvt = del_cb_pvt;
+    }
 
     ret = sss_hash_create_ex(mem_ctx, 10, &table, 0, 0, 0, 0,
                              sss_ptr_hash_delete_cb, data);
@@ -188,7 +190,9 @@ hash_table_t *sss_ptr_hash_create(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    talloc_steal(table, data);
+    if (data != NULL) {
+        talloc_steal(table, data);
+    }
 
     return table;
 }
