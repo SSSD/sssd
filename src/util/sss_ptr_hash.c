@@ -331,19 +331,20 @@ void sss_ptr_hash_delete(hash_table_t *table,
     struct sss_ptr_hash_value *value;
     hash_key_t table_key;
     int hret;
-    void *ptr;
+    void *payload;
 
     if (table == NULL || key == NULL) {
         return;
     }
 
-    value = sss_ptr_hash_lookup_internal(table, key);
-    if (value == NULL) {
-        /* Value not found. */
-        return;
+    if (free_value) {
+        value = sss_ptr_hash_lookup_internal(table, key);
+        if (value == NULL) {
+            free_value = false;
+        } else {
+            payload = value->ptr;
+        }
     }
-
-    ptr = value->ptr;
 
     table_key.type = HASH_KEY_STRING;
     table_key.str = discard_const_p(char, key);
@@ -357,7 +358,7 @@ void sss_ptr_hash_delete(hash_table_t *table,
 
     /* Also free the original value if requested. */
     if (free_value) {
-        talloc_free(ptr);
+        talloc_free(payload);
     }
 
     return;
