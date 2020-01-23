@@ -584,7 +584,7 @@ sbus_server_name_lost(struct sbus_server *server,
 }
 
 static void
-sbus_server_name_remove_from_table(hash_entry_t *item,
+sbus_server_name_remove_from_table_cb(hash_entry_t *item,
                                    hash_destroy_enum type,
                                    void *pvt)
 {
@@ -676,7 +676,7 @@ sbus_server_create(TALLOC_CTX *mem_ctx,
     }
 
     sbus_server->names = sss_ptr_hash_create(sbus_server,
-                             sbus_server_name_remove_from_table, sbus_server);
+                             sbus_server_name_remove_from_table_cb, sbus_server);
     if (sbus_server->names == NULL) {
         ret = ENOMEM;
         goto done;
