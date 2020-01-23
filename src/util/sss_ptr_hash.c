@@ -217,20 +217,20 @@ errno_t _sss_ptr_hash_add(hash_table_t *table,
         return ERR_INVALID_DATA_TYPE;
     }
 
+    table_key.type = HASH_KEY_STRING;
+    table_key.str = discard_const_p(char, key);
+
+    if (override == false && hash_has_key(table, &table_key)) {
+        return EEXIST;
+    }
+
     value = sss_ptr_hash_value_create(table, key, talloc_ptr);
     if (value == NULL) {
         return ENOMEM;
     }
 
-    table_key.type = HASH_KEY_STRING;
-    table_key.str = discard_const_p(char, key);
-
     table_value.type = HASH_VALUE_PTR;
     table_value.ptr = value;
-
-    if (override == false && hash_has_key(table, &table_key)) {
-        return EEXIST;
-    }
 
     hret = hash_enter(table, &table_key, &table_value);
     if (hret != HASH_SUCCESS) {
