@@ -12,6 +12,7 @@ def systems = [
   'fedora-rawhide',
   'rhel7',
   'debian10',
+  'centos7'
 ]
 
 /* Send notifications to Github.
