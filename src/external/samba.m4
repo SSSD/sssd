@@ -143,3 +143,14 @@ AC_CHECK_MEMBERS([struct PAC_LOGON_INFO.resource_groups], , ,
                     #include <gen_ndr/krb5pac.h>
                     #include <gen_ndr/krb5pac.h>]])
 CFLAGS=$SAVE_CFLAGS
+
+PKG_CHECK_MODULES([NDR],[ndr])
+if test x$has_ndr != xno; then
+    SAFE_LIBS="$LIBS"
+    LIBS="$NDR_LIBS"
+
+    AC_CHECK_FUNC([ndr_pull_get_switch_value],
+                  AC_DEFINE([HAVE_NDR_PULL_GET_SWITCH_VALUE], [1],
+                            [Define if ndr_pull_get_switch_value exists]))
+    LIBS="$SAFE_LIBS"
+fi

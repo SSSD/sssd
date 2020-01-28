@@ -105,7 +105,11 @@ ndr_pull_security_ace_object_type(struct ndr_pull *ndr,
                                   union security_ace_object_type *r)
 {
     uint32_t level;
+#ifdef HAVE_NDR_PULL_GET_SWITCH_VALUE
     level = ndr_pull_get_switch_value(ndr, r);
+#else
+    NDR_CHECK(ndr_pull_steal_switch_value(ndr, r, &level));
+#endif
     NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
     if (ndr_flags & NDR_SCALARS) {
         NDR_CHECK(ndr_pull_union_align(ndr, 4));
@@ -135,7 +139,11 @@ ndr_pull_security_ace_object_inherited_type(struct ndr_pull *ndr,
                                             union security_ace_object_inherited_type *r)
 {
     uint32_t level;
+#ifdef HAVE_NDR_PULL_GET_SWITCH_VALUE
     level = ndr_pull_get_switch_value(ndr, r);
+#else
+    NDR_CHECK(ndr_pull_steal_switch_value(ndr, r, &level));
+#endif
     NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
     if (ndr_flags & NDR_SCALARS) {
         NDR_CHECK(ndr_pull_union_align(ndr, 4));
@@ -198,7 +206,11 @@ ndr_pull_security_ace_object_ctr(struct ndr_pull *ndr,
                                  union security_ace_object_ctr *r)
 {
     uint32_t level;
+#ifdef HAVE_NDR_PULL_GET_SWITCH_VALUE
     level = ndr_pull_get_switch_value(ndr, r);
+#else
+    NDR_CHECK(ndr_pull_steal_switch_value(ndr, r, &level));
+#endif
     NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
     if (ndr_flags & NDR_SCALARS) {
         NDR_CHECK(ndr_pull_union_align(ndr, 4));
