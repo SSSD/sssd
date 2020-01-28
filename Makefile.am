@@ -3054,6 +3054,7 @@ test_ipa_idmap_LDADD = \
 test_utils_SOURCES = \
     src/tests/cmocka/test_utils.c \
     src/tests/cmocka/test_string_utils.c \
+    src/tests/cmocka/test_sss_ptr_hash.c \
     src/p11_child/p11_child_common_utils.c \
     $(NULL)
 if BUILD_SSH

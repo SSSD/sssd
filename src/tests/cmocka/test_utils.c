@@ -2055,6 +2055,15 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_get_domain_mappings_content,
                                         setup_dom_list_with_subdomains,
                                         teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_sss_ptr_hash_with_free_cb,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_ptr_hash_with_lookup_cb,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
+        cmocka_unit_test_setup_teardown(test_sss_ptr_hash_without_cb,
+                                        setup_leak_tests,
+                                        teardown_leak_tests),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
