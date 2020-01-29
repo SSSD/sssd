@@ -36,10 +36,13 @@ path. If you want to build sssd without $1 bindings then specify
     if test $? -eq 0; then
         PYTHON_DLOPEN_LIB="` $PYTHON_CONFIG --libs --embed | grep -o -- '-lpython@<:@^ @:>@*' |sed -e 's/^-l/lib/'`"
         if test x"$PYTHON_DLOPEN_LIB" != x; then
-            python_lib_path="` $PYTHON_CONFIG --ldflags | grep -o -- '-L/@<:@^ @:>@*' | sed -e 's/^-L//'`"
-            if test x"$python_lib_path" != x; then
-                PYTHON_DLOPEN_LIB=$python_lib_path"/"$PYTHON_DLOPEN_LIB
-            fi
+            python_lib_paths="` $PYTHON_CONFIG --ldflags | grep -o -- '-L/@<:@^ @:>@*' | sed -e 's/^-L//'`"
+            for p in $python_lib_paths; do
+                if test -e $p"/"$PYTHON_DLOPEN_LIB; then
+                    PYTHON_DLOPEN_LIB=$p"/"$PYTHON_DLOPEN_LIB
+                    break
+                fi
+            done
             PYTHON_DLOPEN_LIB=$PYTHON_DLOPEN_LIB".so"
             AC_DEFINE_UNQUOTED([PYTHON_DLOPEN_LIB], ["$PYTHON_DLOPEN_LIB"], [The path of libpython for dlopen-tests])
         fi
