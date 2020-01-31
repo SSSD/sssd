@@ -1187,7 +1187,8 @@ static void sdap_pam_change_password_done(struct tevent_req *subreq)
                                            &state->user_error_message);
         break;
     case SDAP_PWMODIFY_LDAP:
-        ret = sdap_modify_passwd_recv(subreq);
+        ret = sdap_modify_passwd_recv(subreq, state,
+                                      &state->user_error_message);
         break;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE, "Unrecognized pwmodify mode: %d\n",
