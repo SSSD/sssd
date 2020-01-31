@@ -183,7 +183,9 @@ sdap_modify_passwd_send(TALLOC_CTX *mem_ctx,
                         const char *user_dn,
                         const char *new_password);
 
-errno_t sdap_modify_passwd_recv(struct tevent_req *req);
+errno_t sdap_modify_passwd_recv(struct tevent_req *req,
+                                TALLOC_CTX * mem_ctx,
+                                char **_user_error_message);
 
 struct tevent_req *
 sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,

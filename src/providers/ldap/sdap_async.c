@@ -469,6 +469,40 @@ int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
 
 /* ==Modify-Password====================================================== */
 
+static errno_t
+sdap_chpass_result(TALLOC_CTX *mem_ctx,
+                   int ldap_result,
+                   const char *ldap_msg,
+                   char **_user_msg)
+{
+    errno_t ret;
+
+    switch (ldap_result) {
+    case LDAP_SUCCESS:
+        /* There's no need to set _user_msg here. */
+        return EOK;
+    case LDAP_CONSTRAINT_VIOLATION:
+        if (ldap_msg == NULL || *ldap_msg == '\0') {
+            ldap_msg = "Please make sure the password "
+                       "meets the complexity constraints.";
+        }
+        ret = ERR_CHPASS_DENIED;
+        break;
+    default:
+        ret = ERR_NETWORK_IO;
+    }
+
+    if (ldap_msg != NULL) {
+        *_user_msg = talloc_strdup(mem_ctx, ldap_msg);
+        if (*_user_msg == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    return ret;
+}
+
 struct sdap_exop_modify_passwd_state {
     struct sdap_handle *sh;
 
@@ -632,39 +666,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
     DEBUG(SSSDBG_MINOR_FAILURE, "ldap_extended_operation result: %s(%d), %s\n",
             sss_ldap_err2string(result), result, errmsg);
 
-    switch (result) {
-    case LDAP_SUCCESS:
-        ret = EOK;
-        break;
-    case LDAP_CONSTRAINT_VIOLATION:
-        if (errmsg && strlen(errmsg) != 0) {
-            state->user_error_message = talloc_strdup(state, errmsg);
-        } else {
-            state->user_error_message = talloc_strdup(state,
-                "Please make sure the password meets the "
-                "complexity constraints.");
-        }
-
-        if (state->user_error_message == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = ERR_CHPASS_DENIED;
-        break;
-    default:
-        if (errmsg) {
-            state->user_error_message = talloc_strdup(state, errmsg);
-            if (state->user_error_message == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-        ret = ERR_NETWORK_IO;
-        break;
-    }
+    ret = sdap_chpass_result(state, result, errmsg, &state->user_error_message);
 
 done:
     ldap_controls_free(response_controls);
@@ -696,6 +698,9 @@ struct sdap_modify_state {
     struct tevent_context *ev;
     struct sdap_handle *sh;
     struct sdap_op *op;
+
+    int ldap_result;
+    char *ldap_msg;
 };
 
 static void sdap_modify_done(struct sdap_op *op,
@@ -798,6 +803,15 @@ static void sdap_modify_done(struct sdap_op *op,
                               sss_ldap_err2string(result),
                               result, errmsg);
 
+    state->ldap_result = result;
+    if (errmsg != NULL) {
+        state->ldap_msg = talloc_strdup(state, errmsg);
+        if (state->ldap_msg == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     ret = EOK;
 
 done:
@@ -810,15 +824,31 @@ done:
     }
 }
 
-static errno_t sdap_modify_recv(struct tevent_req *req)
+static errno_t sdap_modify_recv(TALLOC_CTX *mem_ctx,
+                                struct tevent_req *req,
+                                int *_ldap_result,
+                                char **_ldap_msg)
 {
+    struct sdap_modify_state *state;
+
+    state = tevent_req_data(req, struct sdap_modify_state);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_ldap_result != NULL) {
+        *_ldap_result = state->ldap_result;
+    }
+
+    if (_ldap_msg != NULL) {
+        *_ldap_msg = talloc_steal(mem_ctx, state->ldap_msg);
+    }
 
     return EOK;
 }
 
 struct sdap_modify_passwd_state {
     const char *dn;
+    char *user_msg;
 };
 
 static void sdap_modify_passwd_done(struct tevent_req *subreq);
@@ -880,13 +910,23 @@ static void sdap_modify_passwd_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_modify_passwd_state *state;
+    int ldap_result;
+    char *ldap_msg;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_modify_passwd_state);
 
-    ret = sdap_modify_recv(subreq);
+    ret = sdap_modify_recv(state, subreq, &ldap_result, &ldap_msg);
     talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Password change for [%s] failed [%d]: %s\n",
+              state->dn, ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sdap_chpass_result(state, ldap_result, ldap_msg, &state->user_msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Password change for [%s] failed [%d]: %s\n",
               state->dn, ret, sss_strerror(ret));
@@ -900,8 +940,17 @@ static void sdap_modify_passwd_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-errno_t sdap_modify_passwd_recv(struct tevent_req *req)
+errno_t sdap_modify_passwd_recv(struct tevent_req *req,
+                                TALLOC_CTX * mem_ctx,
+                                char **_user_error_message)
 {
+    struct sdap_modify_passwd_state *state;
+
+    state = tevent_req_data(req, struct sdap_modify_passwd_state);
+
+    /* We want to return the error message even on failure */
+    *_user_error_message = talloc_steal(mem_ctx, state->user_msg);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
@@ -974,7 +1023,7 @@ static void sdap_modify_shadow_lastchange_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_modify_shadow_lastchange_state);
 
-    ret = sdap_modify_recv(subreq);
+    ret = sdap_modify_recv(state, subreq, NULL, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "shadowLastChange change for [%s] failed [%d]: %s\n",
