@@ -122,9 +122,9 @@ int main(void)
     AC_DEFINE_UNQUOTED(SMB_IDMAP_INTERFACE_VERSION, $idmap_version,
                        [Detected version of Samba's idmap plugin interface])
 
-    samba_major_version=`echo -e '#include <samba/version.h>\nSAMBA_VERSION_MAJOR' | $CPP $SMBCLIENT_CFLAGS -P -`
-    samba_minor_version=`echo -e '#include <samba/version.h>\nSAMBA_VERSION_MINOR' | $CPP $SMBCLIENT_CFLAGS -P -`
-    samba_release_version=`echo -e '#include <samba/version.h>\nSAMBA_VERSION_RELEASE' | $CPP $SMBCLIENT_CFLAGS -P -`
+    samba_major_version=`printf '#include <samba/version.h>\nSAMBA_VERSION_MAJOR' | $CPP $SMBCLIENT_CFLAGS -P -`
+    samba_minor_version=`printf '#include <samba/version.h>\nSAMBA_VERSION_MINOR' | $CPP $SMBCLIENT_CFLAGS -P -`
+    samba_release_version=`printf '#include <samba/version.h>\nSAMBA_VERSION_RELEASE' | $CPP $SMBCLIENT_CFLAGS -P -`
     AC_MSG_NOTICE([Samba version: $samba_major_version $samba_minor_version $samba_release_version])
     if test $samba_major_version -ge 4 -a $samba_minor_version -ge 8 ; then
         AC_DEFINE_UNQUOTED(SMB_IDMAP_DOMAIN_HAS_DOM_SID, 1,
