@@ -465,7 +465,17 @@ AC_CACHE_CHECK(
     [sss_cv_attribute_fallthrough],
     [AC_COMPILE_IFELSE(
          [AC_LANG_SOURCE(
-             [ __attribute__ ((fallthrough)); ])
+             [ void test_fun(int arg) {
+                   switch (arg) {
+                   case 1:
+                   __attribute__ ((fallthrough));
+                   case 2: ++arg;
+                           break;
+                   default: --arg;
+                            break;
+                   }
+               }
+             ])
          ],[
              sss_cv_attribute_fallthrough=yes
              sss_cv_attribute_fallthrough_val="__attribute__ ((fallthrough))"
