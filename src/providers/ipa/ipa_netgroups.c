@@ -26,7 +26,6 @@
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ipa/ipa_id.h"
-#include "db/sysdb.h"
 #include <ctype.h>
 
 #define ENTITY_NG 1

@@ -32,7 +32,6 @@
 #include "responder/pam/pamsrv.h"
 #include "responder/pam/pam_helpers.h"
 #include "responder/common/cache_req/cache_req.h"
-#include "db/sysdb.h"
 
 enum pam_verbosity {
     PAM_VERBOSITY_NO_MESSAGES = 0,
