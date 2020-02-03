@@ -24,7 +24,6 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#include <unistd.h>
 #include <sys/syscall.h>
 
 #include "sss_client/sss_cli.h"

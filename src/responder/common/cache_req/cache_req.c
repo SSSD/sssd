@@ -26,7 +26,6 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req_private.h"
-#include "responder/common/cache_req/cache_req_private.h"
 #include "responder/common/cache_req/cache_req_plugin.h"
 
 static const struct cache_req_plugin *
