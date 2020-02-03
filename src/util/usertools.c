@@ -22,7 +22,6 @@
 #include <pwd.h>
 #include <errno.h>
 #include <talloc.h>
-#include <pwd.h>
 #include <grp.h>
 
 #include "db/sysdb.h"
