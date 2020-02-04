@@ -2177,7 +2177,8 @@ class SSSDConfig(SSSDChangeConf):
         if name not in self.list_domains():
             self.add_section(sectionname, []);
 
-        for option in self.options(sectionname):
+        section_options = self.options(sectionname)[:]
+        for option in section_options:
             if option['type'] == 'option':
                 if option['name'] not in domain.get_all_options():
                     self.delete_option_subtree(section_subtree['value'], 'option', option['name'], True)
