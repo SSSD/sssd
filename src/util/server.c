@@ -136,15 +136,13 @@ static void become_daemon(void)
     close_low_fds();
 }
 
-int pidfile(const char *file)
+int check_pidfile(const char *file)
 {
     char pid_str[32];
     pid_t pid;
     int fd;
     int ret, err;
     ssize_t len;
-    size_t size;
-    ssize_t written;
     ssize_t pidlen = sizeof(pid_str) - 1;
 
     fd = open(file, O_RDONLY, 0644);
@@ -191,6 +189,22 @@ int pidfile(const char *file)
         if (err != ENOENT) {
             return err;
         }
+    }
+
+    return 0;
+}
+
+int pidfile(const char *file)
+{
+    char pid_str[32];
+    int fd;
+    int ret, err;
+    size_t size;
+    ssize_t written;
+
+    ret = check_pidfile(file);
+    if (ret != EOK) {
+        return ret;
     }
 
     fd = open(file, O_CREAT | O_WRONLY | O_EXCL, 0644);
