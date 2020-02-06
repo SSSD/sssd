@@ -910,8 +910,8 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         goto out;
     }
 
-    /* only root shall use the privileged pipe */
-    if (getuid() == 0 && getgid() == 0) {
+    /* only UID 0 shall use the privileged pipe */
+    if (getuid() == 0) {
         socket_name = SSS_PAM_PRIV_SOCKET_NAME;
         errno = 0;
         statret = stat(socket_name, &stat_buf);
