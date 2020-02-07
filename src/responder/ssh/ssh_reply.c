@@ -196,6 +196,14 @@ struct tevent_req *ssh_get_output_keys_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (state->ssh_ctx->cert_rules_error) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Skipping keys from certificates because there was an error "
+              "while processing matching rules.\n");
+        ret = EOK;
+        goto done;
+    }
+
     ret = confdb_get_string(cli_ctx->rctx->cdb, state,
                             CONFDB_MONITOR_CONF_ENTRY,
                             CONFDB_MONITOR_CERT_VERIFICATION, NULL,

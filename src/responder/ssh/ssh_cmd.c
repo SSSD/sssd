@@ -157,10 +157,26 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
     size_t c;
     int ret;
     bool rule_added;
+    bool all_rules = false;
+    bool no_rules = false;
+
+    ssh_ctx->cert_rules_error = false;
+
+    if (ssh_ctx->cert_rules == NULL || ssh_ctx->cert_rules[0] == NULL) {
+        all_rules = true;
+    } else if (ssh_ctx->cert_rules[0] != NULL
+                    && ssh_ctx->cert_rules[1] == NULL) {
+        if (strcmp(ssh_ctx->cert_rules[0], "all_rules") == 0) {
+            all_rules = true;
+        } else if (strcmp(ssh_ctx->cert_rules[0], "no_rules") == 0) {
+            no_rules = true;
+        }
+    }
 
     if (!ssh_ctx->use_cert_keys
             || ssh_ctx->certmap_last_read
-                    >= ssh_ctx->rctx->get_domains_last_call.tv_sec) {
+                    >= ssh_ctx->rctx->get_domains_last_call.tv_sec
+            || no_rules) {
         DEBUG(SSSDBG_TRACE_ALL, "No certmap update needed.\n");
         return EOK;
     }
@@ -180,9 +196,8 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
 
         for (c = 0; certmap_list[c] != NULL; c++) {
 
-            if (ssh_ctx->cert_rules != NULL
-                        && !string_in_list(certmap_list[c]->name,
-                                           ssh_ctx->cert_rules, true)) {
+            if (!all_rules && !string_in_list(certmap_list[c]->name,
+                                              ssh_ctx->cert_rules, true)) {
                 DEBUG(SSSDBG_TRACE_ALL, "Skipping matching rule [%s], it is "
                       "not listed in the ssh_use_certificate_matching_rules "
                       "option.\n", certmap_list[c]->name);
@@ -212,11 +227,12 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
     }
 
     if (!rule_added) {
-        DEBUG(SSSDBG_TRACE_ALL,
-              "No matching rule added, all certificates will be used.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "No matching rule added, please check "
+              "ssh_use_certificate_matching_rules option values for typos .\n");
 
-        sss_certmap_free_ctx(sss_certmap_ctx);
-        sss_certmap_ctx = NULL;
+        ret = EINVAL;
+        goto done;
     }
 
     ret = EOK;
@@ -228,6 +244,7 @@ done:
         ssh_ctx->certmap_last_read = ssh_ctx->rctx->get_domains_last_call.tv_sec;
     } else {
         sss_certmap_free_ctx(sss_certmap_ctx);
+        ssh_ctx->cert_rules_error = true;
     }
 
     return ret;
