@@ -1760,12 +1760,20 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                             will be ignored.
                         </para>
                         <para>
-                            If a non-existing rule name is given all rules will
-                            be ignored and all available certificates will be
-                            used to derive ssh keys.
+                            There are two special key words 'all_rules' and
+                            'no_rules' which will enable all or no rules,
+                            respectively. The latter means that no certificates
+                            will be filtered out and ssh keys will be generated
+                            from all valid certificates.
                         </para>
                         <para>
-                            Default: not set, all found rules are used
+                            A non-existing rule name is considered an error.
+                            If as a result no rule is selected all certificates
+                            will be ignored.
+                        </para>
+                        <para>
+                            Default: not set, equivalent to 'all_rules,
+                            all found rules are used
                         </para>
                     </listitem>
                 </varlistentry>
