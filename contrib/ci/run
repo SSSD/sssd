@@ -160,43 +160,6 @@ function mock_privileged()
     fi
 }
 
-# Execute mock_privileged with extra chroot configuration added.
-# Args: chroot [mock_arg...]
-# Input: extra configuration
-function mock_privileged_conf()
-{
-    declare -r chroot="$1"; shift
-    declare conf_dir
-
-    conf_dir=`mktemp --tmpdir --directory mock-config.XXXXXXXX`
-    trap 'trap - RETURN; rm -R "$conf_dir";' RETURN
-    # Preserve timestamps to avoid unnecessary cache rebuilds
-    cp -r --preserve=timestamps /etc/mock/* "$conf_dir"/
-    touch --reference="/etc/mock/${chroot}.cfg" "${conf_dir}/${chroot}.cfg"
-    mock_privileged --configdir="$conf_dir" --root="$chroot" "$@"
-}
-
-# Execute mock_privileged with dependency package source configuration added.
-# Args: chroot [mock_arg...]
-function mock_privileged_deps()
-{
-    declare -r chroot_name="$1"; shift
-    declare -r config=$(basename $(readlink -f "/etc/mock/${chroot_name}.cfg"))
-    declare -r chroot="${config%.cfg}"
-    declare repo
-
-    if [[ "$chroot" == fedora-* ]]; then
-        repo='fedora-$releasever-$basearch'
-    elif [[ "$chroot" =~ epel-([0-9]+) ]]; then
-        repo="epel-${BASH_REMATCH[1]}-\$basearch"
-    else
-        echo "Unknown chroot config: $chroot" >&2
-        exit 1
-    fi
-
-    mock_privileged_conf "$chroot" "$@"
-}
-
 # Run debug build checks.
 function build_debug()
 {
@@ -262,7 +225,7 @@ function build_debug()
 
         if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
             stage make-srpm     env -u CFLAGS -- make srpm
-            stage mock-build    mock_privileged_deps "default" \
+            stage mock-build    mock_privileged  \
                                      --resultdir ci-mock-result \
                                      rpmbuild/SRPMS/*.src.rpm
         fi
