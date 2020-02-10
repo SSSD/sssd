@@ -52,8 +52,10 @@ option_strings = {
     'client_idle_timeout' : _('Idle time before automatic disconnection of a client'),
     'responder_idle_timeout' : _('Idle time before automatic shutdown of the responder'),
     'cache_first': _('Always query all the caches before querying the Data Providers'),
+    'offline_timeout': _('When SSSD switches to offline mode the amount of time before it tries to go back online will increase based upon the time spent disconnected. This value is in seconds and calculated by the following: offline_timeout + random_offset.'),
 
     # [sssd]
+    'config_file_version': _('Indicates what is the syntax of the config file. SSSD 0.6.0 and later use version 2.'),
     'services' : _('SSSD Services to start'),
     'domains' : _('SSSD Domains to start'),
     'sbus_timeout' : _('Timeout for messages sent over the SBUS'),
@@ -67,6 +69,8 @@ option_strings = {
     'disable_netlink' : _('Tune sssd to honor or ignore netlink state changes'),
     'enable_files_domain' : _('Enable or disable the implicit files domain'),
     'domain_resolution_order': _('A specific order of the domains to be looked up'),
+    'monitor_resolv_conf': _('Controls if SSSD should monitor the state of resolv.conf to identify when it needs to update its internal DNS resolver.'),
+    'try_inotify': _('SSSD monitors the state of resolv.conf to identify when it needs to update its internal DNS resolver. By default, we will attempt to use inotify for this, and will fall back to polling resolv.conf every five seconds if inotify cannot be used.'),
 
     # [nss]
     'enum_cache_timeout' : _('Enumeration cache timeout length (seconds)'),
@@ -86,6 +90,9 @@ option_strings = {
     'default_shell': _('Shell to use if the provider does not list one'),
     'memcache_timeout': _('How long will be in-memory cache records valid'),
     'user_attributes': _('List of user attributes the NSS responder is allowed to publish'),
+    'homedir_substring': _('The value of this option will be used in the expansion of the override_homedir option if the template contains the format string %H.'),
+    'get_domains_timeout': _('Specifies time in seconds for which the list of subdomains will be considered valid.'),
+    'entry_cache_nowait_percentage': _('The entry cache can be set to automatically update entries in the background if they are requested beyond a percentage of the entry_cache_timeout value for the domain.'),
 
     # [pam]
     'offline_credentials_expiration' : _('How long to allow cached logins between online logins (days)'),
@@ -151,6 +158,11 @@ option_strings = {
     'cert': _('Path to file containing client\'s certificate'),
     'key': _('Path to file containing client\'s private key'),
 
+    # [session_recording]
+    'scope': _('One of the following strings specifying the scope of session recording: none - No users are recorded. some - Users/groups specified by users and groups options are recorded. all - All users are recorded.'),
+    'users': _('A comma-separated list of users which should have session recording enabled. Matches user names as returned by NSS. I.e. after the possible space replacement, case changes, etc.'),
+    'groups': _('A comma-separated list of groups, members of which should have session recording enabled. Matches group names as returned by NSS. I.e. after the possible space replacement, case changes, etc.'),
+
     # [provider]
     'id_provider' : _('Identity provider'),
     'auth_provider' : _('Authentication provider'),
@@ -202,6 +214,11 @@ option_strings = {
     'full_name_format' : _('Printf-compatible format for displaying fully-qualified names'),
     're_expression' : _('Regex to parse username and domain'),
     'auto_private_groups' : _('Whether to automatically create private groups for users'),
+    'pwd_expiration_warning': _('Display a warning N days before the password expires.'),
+    'realmd_tags': _('Various tags stored by the realmd configuration service for this domain.'),
+    'subdomains_provider': _('The provider which should handle fetching of subdomains. This value should be always the same as id_provider.'),
+    'entry_cache_ssh_host_timeout': _('How many seconds to keep a host ssh key after refresh. IE how long to cache the host key for.'),
+    'cache_credentials_minimal_first_factor_length': _('If 2-Factor-Authentication (2FA) is used and credentials should be saved this value determines the minimal length the first authentication factor (long term password) must have to be saved as SHA512 hash into the cache.'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),
@@ -229,6 +246,31 @@ option_strings = {
     'ipa_deskprofile_search_base': _("Search base for Desktop Profile related objects"),
     'ipa_deskprofile_refresh': _("The amount of time in seconds between lookups of the Desktop Profile rules against the IPA server"),
     'ipa_deskprofile_request_interval': _("The amount of time in minutes between lookups of Desktop Profiles rules against the IPA server when the last request did not find any rule"),
+    'ipa_host_fqdn': _('The LDAP attribute that contains FQDN of the host.'),
+    'ipa_host_object_class': _('The object class of a host entry in LDAP.'),
+    'ipa_host_search_base': _('Use the given string as search base for host objects.'),
+    'ipa_host_ssh_public_key': _('The LDAP attribute that contains the host\'s SSH public keys.'),
+    'ipa_netgroup_domain': _('The LDAP attribute that contains NIS domain name of the netgroup.'),
+    'ipa_netgroup_member': _('The LDAP attribute that contains the names of the netgroup\'s members.'),
+    'ipa_netgroup_member_ext_host': _('The LDAP attribute that lists FQDNs of hosts and host groups that are members of the netgroup.'),
+    'ipa_netgroup_member_host': _('The LDAP attribute that lists hosts and host groups that are direct members of the netgroup.'),
+    'ipa_netgroup_member_of': _('The LDAP attribute that lists netgroup\'s memberships.'),
+    'ipa_netgroup_member_user': _('The LDAP attribute that lists system users and groups that are direct members of the netgroup.'),
+    'ipa_netgroup_name': _('The LDAP attribute that corresponds to the netgroup name.'),
+    'ipa_netgroup_object_class': _('The object class of a netgroup entry in LDAP.'),
+    'ipa_netgroup_uuid': _('The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object.'),
+    'ipa_selinux_usermap_enabled': _('The LDAP attribute that contains whether or not is user map enabled for usage.'),
+    'ipa_selinux_usermap_host_category': _('The LDAP attribute that contains host category such as \'all\'.'),
+    'ipa_selinux_usermap_member_host': _('The LDAP attribute that contains all hosts / hostgroups this rule match against.'),
+    'ipa_selinux_usermap_member_user': _('The LDAP attribute that contains all users / groups this rule match against.'),
+    'ipa_selinux_usermap_name': _('The LDAP attribute that contains the name of SELinux usermap.'),
+    'ipa_selinux_usermap_object_class': _('The object class of a host entry in LDAP.'),
+    'ipa_selinux_usermap_see_also': _('The LDAP attribute that contains DN of HBAC rule which can be used for matching instead of memberUser and memberHost.'),
+    'ipa_selinux_usermap_selinux_user': _('The LDAP attribute that contains SELinux user string itself.'),
+    'ipa_selinux_usermap_user_category': _('The LDAP attribute that contains user category such as \'all\'.'),
+    'ipa_selinux_usermap_uuid': _('The LDAP attribute that contains unique ID of the user map.'),
+    'ipa_server_mode': _('The option denotes that the SSSD is running on IPA server and should perform lookups of users and groups from trusted domains differently.'),
+    'ipa_subdomains_search_base': _('Use the given string as search base for trusted domains.'),
 
     # [provider/ad]
     'ad_domain' : _('Active Directory domain'),
@@ -316,6 +358,7 @@ option_strings = {
     'ldap_page_size' : _('The number of records to retrieve in a single LDAP query'),
     'ldap_deref_threshold' : _('The number of members that must be missing to trigger a full deref'),
     'ldap_sasl_canonicalize' : _('Whether the LDAP library should perform a reverse lookup to canonicalize the host name during a SASL bind'),
+    'ldap_rfc2307_fallback_to_local_users': _('Allows to retain local users as members of an LDAP group for servers that use the RFC2307 schema.'),
 
     'ldap_entry_usn' : _('entryUSN attribute'),
     'ldap_rootdse_last_usn' : _('lastUSN attribute'),
@@ -337,7 +380,6 @@ option_strings = {
     'ldap_user_search_filter' : _('Filter for user lookups'),
     'ldap_user_object_class' : _('Objectclass for users'),
     'ldap_user_name' : _('Username attribute'),
-    #not used # 'ldap_user_pwd' :_('Password attribute'),
     'ldap_user_uid_number' : _('UID attribute'),
     'ldap_user_gid_number' : _('Primary GID attribute'),
     'ldap_user_gecos' : _('GECOS attribute'),
@@ -350,7 +392,6 @@ option_strings = {
     'ldap_user_fullname' : _('Full Name'),
     'ldap_user_member_of' : _('memberOf attribute'),
     'ldap_user_modify_timestamp' : _('Modification time attribute'),
-    #replaced by ldap_entry_usn# 'ldap_user_entry_usn' : _('entryUSN attribute'),
     'ldap_user_shadow_last_change' : _('shadowLastChange attribute'),
     'ldap_user_shadow_min' : _('shadowMin attribute'),
     'ldap_user_shadow_max' : _('shadowMax attribute'),
@@ -378,8 +419,6 @@ option_strings = {
     'ldap_user_extra_attrs' : _('A list of extra attributes to download along with the user entry'),
 
     'ldap_group_search_base' : _('Base DN for group lookups'),
-    # not used # 'ldap_group_search_scope' : _('Scope of group lookups'),
-    # not used # 'ldap_group_search_filter' : _('Filter for group lookups'),
     'ldap_group_object_class' : _('Objectclass for groups'),
     'ldap_group_name' : _('Group name'),
     'ldap_group_pwd' : _('Group password'),
@@ -390,8 +429,9 @@ option_strings = {
     'ldap_group_modify_timestamp' : _('Modification time attribute for groups'),
     'ldap_group_type' : _('Type of the group and other flags'),
     'ldap_group_external_member' : _('The LDAP group external member attribute'),
-    #replaced by ldap_entry_usn# 'ldap_group_entry_usn' : _('entryUSN attribute'),
     'ldap_group_nesting_level' : _('Maximum nesting level SSSD will follow'),
+    'ldap_group_search_filter' : _('Filter for group lookups'),
+    'ldap_group_search_scope' : _('Scope of group lookups'),
 
     'ldap_netgroup_search_base' : _('Base DN for netgroup lookups'),
     'ldap_netgroup_object_class' : _('Objectclass for netgroups'),
@@ -405,7 +445,6 @@ option_strings = {
     'ldap_service_name' : _('Service name attribute'),
     'ldap_service_port' : _('Service port attribute'),
     'ldap_service_proto' : _('Service protocol attribute'),
-    #replaced by ldap_entry_usn# 'ldap_service_entry_usn' : _('Service entryUSN attribute'),
 
     'ldap_idmap_range_min' : _('Lower bound for ID-mapping'),
     'ldap_idmap_range_max' : _('Upper bound for ID-mapping'),
@@ -465,14 +504,23 @@ option_strings = {
     'ldap_autofs_entry_key' : _('Automounter map entry key attribute'),
     'ldap_autofs_entry_value' : _('Automounter map entry value attribute'),
     'ldap_autofs_search_base' : _('Base DN for automounter map lookups'),
+    'ldap_autofs_map_master_name': _('The name of the automount master map in LDAP.'),
 
     # [provider/simple/access]
     'simple_allow_users' : _('Comma separated list of allowed users'),
     'simple_deny_users' : _('Comma separated list of prohibited users'),
+    'simple_allow_groups': _('Comma separated list of groups that are allowed to log in. This applies only to groups within this SSSD domain. Local groups are not evaluated.'),
+    'simple_deny_groups': _('Comma separated list of groups that are explicitly denied access. This applies only to groups within this SSSD domain. Local groups are not evaluated.'),
 
     # [provider/local/id]
     'default_shell' : _('Default shell, /bin/bash'),
     'base_directory' : _('Base for home directories'),
+    'create_homedir' : _('Indicate if a home directory should be created for new users.'),
+    'remove_homedir' : _('Indicate if a home directory should be removed for deleted users.'),
+    'homedir_umask' : _('Specify the default permissions on a newly created home directory.'),
+    'skel_dir' : _('The skeleton directory.'),
+    'mail_dir' : _('The mail spool directory.'),
+    'userdel_cmd' : _('The command that is run after a user is removed.'),
 
     # [provider/proxy]
     'proxy_max_children' : _('The number of preforked proxy children.'),
