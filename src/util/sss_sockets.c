@@ -120,7 +120,7 @@ static errno_t set_fd_common_opts(int fd, int timeout)
         }
 
         milli = timeout * 1000; /* timeout in milliseconds */
-        ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, milli,
+        ret = setsockopt(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, &milli,
                          sizeof(milli));
         if (ret != 0) {
             ret = errno;
