@@ -4095,7 +4095,7 @@ ad_gpo_missing_or_unreadable_attr(struct ad_gpo_process_gpo_state *state,
               "ad_gpo_ignore_unreadable = True which will skip this GPO. "
               "See ad_gpo_ignore_unreadable in 'man sssd-ad' for details.\n",
               state->candidate_gpos[state->gpo_index]->gpo_dn);
-        sss_log(SSSDBG_CRIT_FAILURE,
+        sss_log(SSS_LOG_ERR,
                 "Group Policy Container with DN [%s] is unreadable or has "
                 "unreadable or missing attributes. In order to fix this "
                 "make sure that this AD object has following attributes "
