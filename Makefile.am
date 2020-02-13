@@ -445,6 +445,7 @@ dist_noinst_SCRIPTS = \
     $(EXTRA_SCRIPTS) \
     src/config/setup.py \
     src/config/SSSDConfig/ipachangeconf.py \
+    src/config/SSSDConfig/sssdoptions.py \
     src/config/SSSDConfig/__init__.py \
     src/config/SSSDConfigTest.py \
     src/config/SSSDConfigTest.py2.sh \
@@ -5298,8 +5299,12 @@ if BUILD_PYTHON_BINDINGS
 $(abs_builddir)/src/config/SSSDConfig/ipachangeconf.py:
 	-cp $(srcdir)/src/config/SSSDConfig/ipachangeconf.py $(builddir)/src/config/SSSDConfig/
 
+$(abs_builddir)/src/config/SSSDConfig/sssdoptions.py:
+	-cp $(srcdir)/src/config/SSSDConfig/sssdoptions.py $(builddir)/src/config/SSSDConfig/
+
 SSSDCONFIG_MODULES = \
-    $(abs_builddir)/src/config/SSSDConfig/ipachangeconf.py
+    $(abs_builddir)/src/config/SSSDConfig/ipachangeconf.py \
+    $(abs_builddir)/src/config/SSSDConfig/sssdoptions.py
 else
 SSSSCONFIG_MODULES =
 endif
@@ -5420,6 +5425,10 @@ if BUILD_PYTHON2_BINDINGS
 		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
 	fi
 
+	if [ ! $(srcdir)/src/config/SSSDConfig/sssdoptions.py -ef $(builddir)/src/config/SSSDConfig/sssdoptions.py ]; then \
+		rm -f $(builddir)/src/config/SSSDConfig/sssdoptions.py ; \
+	fi
+
 	rm -f $(builddir)/src/config/SSSDConfig/*.pyc
 
 	cd $(builddir)/src/config; $(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config clean --all
@@ -5427,6 +5436,10 @@ endif
 if BUILD_PYTHON3_BINDINGS
 	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
 		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
+	fi
+
+	if [ ! $(srcdir)/src/config/SSSDConfig/sssdoptions.py -ef $(builddir)/src/config/SSSDConfig/sssdoptions.py ]; then \
+		rm -f $(builddir)/src/config/SSSDConfig/sssdoptions.py ; \
 	fi
 
 	rm -f $(builddir)/src/config/SSSDConfig/__pycache__/*.pyc
