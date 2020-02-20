@@ -4828,7 +4828,6 @@ void test_nss_getgrgid_ex_no_members(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     mock_account_recv_simple();
-    mock_account_recv_simple();
 
     set_cmd_cb(test_nss_getgrnam_no_members_check);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
@@ -4843,11 +4842,6 @@ void test_nss_getgrgid_ex_no_members(void **state)
     /* Use flag SSS_NSS_EX_FLAG_INVALIDATE_CACHE */
     mock_input_id_ex(nss_test_ctx, getgrnam_no_members.gr_gid,
                      SSS_NSS_EX_FLAG_INVALIDATE_CACHE);
-    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRGID_EX);
-    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     set_cmd_cb(test_nss_getgrnam_no_members_check);
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRGID_EX,
