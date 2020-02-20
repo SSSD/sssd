@@ -1,20 +1,6 @@
 import hudson.AbortException
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
-/* Tests will be run on these systems.
- * To add a new sytem simple extend this list.
- */
-def systems = [
-  'fedora28',
-  'fedora29',
-  'fedora30',
-  'fedora31',
-  'fedora-rawhide',
-  'rhel7',
-  'debian10',
-  'centos7'
-]
-
 /* Send notifications to Github.
  * If it is an on-demand run then no notifications are sent.
  */
@@ -259,6 +245,7 @@ class OnDemandTest extends Test {
   }
 }
 
+def systems = []
 def on_demand = params.ON_DEMAND ? true : false
 def notification = new Notification(
   this, 'sssd-ci',
@@ -267,13 +254,35 @@ def notification = new Notification(
   on_demand
 )
 
-if (params.SYSTEMS) {
-  if (params.SYSTEMS != 'all') {
-    systems = params.SYSTEMS.split()
-  }
-}
-
 try {
+  stage('Get system list') {
+    node('master') {
+      if (params.SYSTEMS && params.SYSTEMS != 'all') {
+        /* This is a parametrized custom build. System list is taken
+         * from provided parameter. */
+        systems = params.SYSTEMS.split()
+      } else {
+        /* This is automated build or custom build that requested
+         * tests on all systems (i.e. same systems as master branch) */
+        def branch = env.CHANGE_TARGET ? env.CHANGE_TARGET : 'master'
+        def config = "systems-${branch}"
+        echo "Using configuration: ${config}"
+
+        /* Configuration is read from Jenkins-managed configuration file.
+         * Path to the configuration is loaded into env.CONFIG_PATH */
+        configFileProvider([
+          configFile(fileId: config, variable: 'CONFIG_PATH')
+        ]) {
+          def contents = readFile "${env.CONFIG_PATH}"
+          systems = contents.split()
+        }
+      }
+
+      echo 'Test will be done on following systems:'
+      echo systems.join(', ')
+    }
+  }
+
   /* Setup nice build description so pull request are easy to find. */
   stage('Setup description') {
     node('master') {
