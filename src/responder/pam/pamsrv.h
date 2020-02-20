@@ -32,6 +32,13 @@ struct pam_auth_req;
 
 typedef void (pam_dp_callback_t)(struct pam_auth_req *preq);
 
+enum pam_initgroups_scheme {
+    PAM_INITGR_NEVER,
+    PAM_INITGR_NO_SESSION,
+    PAM_INITGR_ALWAYS,
+    PAM_INITGR_INVALID
+};
+
 struct pam_ctx {
     struct resp_ctx *rctx;
     time_t id_timeout;
@@ -54,6 +61,8 @@ struct pam_ctx {
 
     char **prompting_config_sections;
     int num_prompting_config_sections;
+
+    enum pam_initgroups_scheme initgroups_scheme;
 };
 
 struct pam_auth_req {
@@ -132,4 +141,6 @@ errno_t filter_responses(struct confdb_ctx *cdb,
 
 errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd);
 
+enum pam_initgroups_scheme pam_initgroups_string_to_enum(const char *str);
+const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme);
 #endif /* __PAMSRV_H__ */
