@@ -309,6 +309,7 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     bool bypass_cache = false;
     bool bypass_dp = false;
+    bool skip_refresh = false;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct cache_req_search_state);
@@ -340,6 +341,7 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
             break;
         case CACHE_REQ_BYPASS_PROVIDER:
             bypass_dp = true;
+            skip_refresh = true;
             break;
         default:
             break;
@@ -370,11 +372,12 @@ cache_req_search_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        /* If bypass_dp is true but we found the object in this domain,
-         * we will contact the data provider anyway to refresh it so
-         * we can return it without searching the rest of the domains.
+        /* For the CACHE_REQ_CACHE_FIRST case, if bypass_dp is true but we
+         * found the object in this domain, we will contact the data provider
+         * anyway to refresh it so we can return it without searching the rest
+         * of the domains.
          */
-        if (status != CACHE_OBJECT_MISSING) {
+        if (status != CACHE_OBJECT_MISSING && !skip_refresh) {
             CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                             "Object found, but needs to be refreshed.\n");
             bypass_dp = false;
