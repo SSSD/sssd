@@ -1617,6 +1617,38 @@ p11_uri = library-description=OpenSC%20smartcard%20framework;slot-id=2
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_initgroups_scheme</term>
+                    <listitem>
+                        <para>
+                            The PAM responder can force an online lookup to get
+                            the current group memberships of the user trying to
+                            log in. This option controls when this should be
+                            done and the following values are allowed:
+                            <variablelist>
+                            <varlistentry><term>always</term>
+                                <listitem><para>Always do an online lookup,
+                                please note that pam_id_timeout still
+                                applies</para></listitem>
+                            </varlistentry>
+                            <varlistentry><term>no_session</term>
+                                <listitem><para>Only do an online
+                                lookup if there is no active session of the
+                                user, i.e. if the user is currently not logged
+                                in</para></listitem>
+                            </varlistentry>
+                            <varlistentry><term>never</term>
+                                <listitem><para>Never force an online lookup,
+                                use the data from the cache as long as they are
+                                not expired</para></listitem>
+                            </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            Default: no_session
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
