@@ -138,6 +138,7 @@
 #define CONFDB_PAM_APP_SERVICES "pam_app_services"
 #define CONFDB_PAM_P11_ALLOWED_SERVICES "pam_p11_allowed_services"
 #define CONFDB_PAM_P11_URI "p11_uri"
+#define CONFDB_PAM_INITGROUPS_SCHEME "pam_initgroups_scheme"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"

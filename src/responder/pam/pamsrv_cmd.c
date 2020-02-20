@@ -43,6 +43,44 @@ enum pam_verbosity {
 
 #define DEFAULT_PAM_VERBOSITY PAM_VERBOSITY_IMPORTANT
 
+struct pam_initgroup_enum_str {
+    enum pam_initgroups_scheme scheme;
+    const char *option;
+};
+
+struct pam_initgroup_enum_str pam_initgroup_enum_str[] = {
+    { PAM_INITGR_NEVER, "never" },
+    { PAM_INITGR_NO_SESSION, "no_session" },
+    { PAM_INITGR_ALWAYS, "always" },
+    { PAM_INITGR_INVALID, NULL }
+};
+
+enum pam_initgroups_scheme pam_initgroups_string_to_enum(const char *str)
+{
+    size_t c;
+
+    for (c = 0 ; pam_initgroup_enum_str[c].option != NULL; c++) {
+        if (strcasecmp(pam_initgroup_enum_str[c].option, str) == 0) {
+            return pam_initgroup_enum_str[c].scheme;
+        }
+    }
+
+    return PAM_INITGR_INVALID;
+}
+
+const char *pam_initgroup_enum_to_string(enum pam_initgroups_scheme scheme) {
+    size_t c;
+
+    for (c = 0 ; pam_initgroup_enum_str[c].option != NULL; c++) {
+        if (pam_initgroup_enum_str[c].scheme == scheme) {
+            return pam_initgroup_enum_str[c].option;
+        }
+    }
+
+    return NULL;
+}
+
+
 static errno_t
 pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                           const char *username);
