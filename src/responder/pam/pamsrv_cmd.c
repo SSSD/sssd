@@ -1930,7 +1930,7 @@ static void pam_check_user_search_next(struct tevent_req *req)
 {
     struct pam_auth_req *preq;
     struct pam_ctx *pctx;
-    struct cache_req_result *result;
+    struct cache_req_result *result = NULL;
     struct cache_req_data *data;
     struct tevent_req *dpreq;
     int ret;
@@ -1947,23 +1947,33 @@ static void pam_check_user_search_next(struct tevent_req *req)
         return;
     }
 
+    DEBUG(SSSDBG_TRACE_ALL, "PAM initgroups scheme [%s].\n",
+          pam_initgroup_enum_to_string(pctx->initgroups_scheme));
+
     if (ret == EOK) {
         bool user_has_session = false;
-        uid_t uid = ldb_msg_find_attr_as_uint64(result->msgs[0], SYSDB_UIDNUM, 0);
-        if (!uid) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "A user with no UID?\n");
-            talloc_zfree(preq->cctx);
-            return;
-        }
 
-        /* If a user already has a session on the system, we take the
-         * cache for granted and do not force an online lookup. This is
-         * because in most cases the user is just trying to authenticate
-         * but not create a new session (sudo, lockscreen, polkit, etc.)
-         * An online refresh in this situation would just delay operations
-         * without providing any useful additional information.
-         */
-        (void)check_if_uid_is_active(uid, &user_has_session);
+        if (pctx->initgroups_scheme == PAM_INITGR_NO_SESSION) {
+            uid_t uid = ldb_msg_find_attr_as_uint64(result->msgs[0],
+                                                    SYSDB_UIDNUM, 0);
+            if (!uid) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "A user with no UID?\n");
+                talloc_zfree(preq->cctx);
+                return;
+            }
+
+            /* If a user already has a session on the system, we take the
+             * cache for granted and do not force an online lookup. This is
+             * because in most cases the user is just trying to authenticate
+             * but not create a new session (sudo, lockscreen, polkit, etc.)
+             * An online refresh in this situation would just delay operations
+             * without providing any useful additional information.
+             */
+            (void)check_if_uid_is_active(uid, &user_has_session);
+
+            DEBUG(SSSDBG_TRACE_ALL, "Found %s session for uid %"SPRIuid".\n",
+                                    user_has_session ? "a" : "no", uid);
+        }
 
         /* The initgr cache is used to make sure that during a single PAM
          * session (auth, acct_mgtm, ....) the backend is contacted only
@@ -1976,7 +1986,17 @@ static void pam_check_user_search_next(struct tevent_req *req)
             DEBUG(SSSDBG_OP_FAILURE, "Could not look up initgroup timeout\n");
         }
 
-        if ((ret == EOK) || user_has_session) {
+        if ((ret == EOK) || user_has_session
+                || pctx->initgroups_scheme == PAM_INITGR_NEVER) {
+            DEBUG(SSSDBG_TRACE_ALL, "No new initgroups needed because:\n");
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_ALL, "PAM initgr cache still valid.\n");
+            } else if (user_has_session) {
+                DEBUG(SSSDBG_TRACE_ALL, "there is a active session for "
+                                        "user [%s].\n", preq->pd->logon_name);
+            } else if (pctx->initgroups_scheme == PAM_INITGR_NEVER) {
+                DEBUG(SSSDBG_TRACE_ALL, "initgroups scheme is 'never'.\n");
+            }
             pam_check_user_search_done(preq, EOK, result);
             return;
         }
