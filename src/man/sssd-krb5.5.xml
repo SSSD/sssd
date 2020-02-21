@@ -46,7 +46,7 @@
         <para>
             This backend also provides access control based on the .k5login
             file in the home directory of the user. See <citerefentry>
-            <refentrytitle>.k5login</refentrytitle><manvolnum>5</manvolnum>
+            <refentrytitle>k5login</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry> for more details. Please note that an empty .k5login
             file will deny all access to this user. To activate this feature,
             use 'access_provider = krb5' in your SSSD configuration.
