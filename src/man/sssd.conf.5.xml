@@ -314,7 +314,7 @@
                             </para>
                             <para>
                                 Each domain can have an individual format string configured.
-                                see DOMAIN SECTIONS for more info on this option.
+                                See DOMAIN SECTIONS for more info on this option.
                             </para>
                         </listitem>
                     </varlistentry>
@@ -1599,7 +1599,7 @@ pam_p11_allowed_services = +my_pam_service, -login
                         <para>
                             Example:
                             <programlisting>
-p11_uri = slot-description=My%20Smartcar%20Reader
+p11_uri = slot-description=My%20Smartcard%20Reader
                             </programlisting>
                             or
                             <programlisting>
