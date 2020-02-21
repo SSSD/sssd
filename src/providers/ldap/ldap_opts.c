@@ -311,7 +311,7 @@ struct sdap_attr_map gen_ad2008r2_user_map[] = {
 struct sdap_attr_map gen_ad2008r2_group_map[] = {
     { "ldap_group_object_class", "group", SYSDB_GROUP_CLASS, NULL },
     { "ldap_group_object_class_alt", NULL, SYSDB_GROUP_CLASS, NULL },
-    { "ldap_group_name", "name", SYSDB_NAME, NULL },
+    { "ldap_group_name", "sAMAccountName", SYSDB_NAME, NULL },
     { "ldap_group_pwd", NULL, SYSDB_PWD, NULL },
     { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
     { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
