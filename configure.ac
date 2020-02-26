@@ -376,7 +376,7 @@ them please use argument --without-python3-bindings when running configure.])])
     SSS_CLEAN_PYTHON_VARIABLES
 fi
 
-if test x$HAVE_PYTHON3_BINDINGS = xyes; then
+if test x$HAVE_PYTHON3 = xyes; then
     PYTHON_EXEC=$PYTHON3
 else
     PYTHON_EXEC=$PYTHON2
