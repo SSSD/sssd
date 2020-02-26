@@ -172,7 +172,6 @@ function mock_privileged_conf()
     trap 'trap - RETURN; rm -R "$conf_dir";' RETURN
     # Preserve timestamps to avoid unnecessary cache rebuilds
     cp -r --preserve=timestamps /etc/mock/* "$conf_dir"/
-    cat >> "${conf_dir}/${chroot}.cfg"
     touch --reference="/etc/mock/${chroot}.cfg" "${conf_dir}/${chroot}.cfg"
     mock_privileged --configdir="$conf_dir" --root="$chroot" "$@"
 }
@@ -195,16 +194,7 @@ function mock_privileged_deps()
         exit 1
     fi
 
-    mock_privileged_conf "$chroot" "$@" <<<"
-config_opts['yum.conf'] += '''
-[sssd-deps]
-name=Extra SSSD dependencies
-baseurl=http://copr-be.cloud.fedoraproject.org/results/lslebodn/sssd-deps/$repo/
-skip_if_unavailable=true
-gpgcheck=0
-enabled=1
-'''
-"
+    mock_privileged_conf "$chroot" "$@"
 }
 
 # Run debug build checks.
