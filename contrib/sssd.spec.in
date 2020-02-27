@@ -173,6 +173,9 @@ Requires: python3-sssdconfig = %{version}-%{release}
 %else
 Requires: python2-sssdconfig = %{version}-%{release}
 %endif
+%if (0%{?fedora} >= 30 || 0%{?rhel} >= 8)
+Recommends: logrotate
+%endif
 
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
@@ -375,6 +378,9 @@ Requires: python2-sssdconfig = %{version}-%{release}
 %endif
 %if (0%{?use_systemd} == 0)
 Requires: /sbin/service
+%endif
+%if (0%{?fedora} >= 30 || 0%{?rhel} >= 8)
+Recommends: sssd-dbus
 %endif
 
 %description tools
