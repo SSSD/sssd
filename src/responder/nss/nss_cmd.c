@@ -731,11 +731,13 @@ done:
     talloc_free(cmd_ctx);
 }
 
-static void nss_setnetgrent_done(struct tevent_req *subreq);
+static void sss_nss_setnetgrent_done(struct tevent_req *subreq);
 
-static errno_t nss_setnetgrent(struct cli_ctx *cli_ctx,
-                               enum cache_req_type type,
-                               nss_protocol_fill_packet_fn fill_fn)
+/* This function's name started to collide with external nss symbol,
+ * so it has additional sss_* prefix unlike other functions here. */
+static errno_t sss_nss_setnetgrent(struct cli_ctx *cli_ctx,
+                                   enum cache_req_type type,
+                                   nss_protocol_fill_packet_fn fill_fn)
 {
     struct nss_ctx *nss_ctx;
     struct nss_state_ctx *state_ctx;
@@ -777,7 +779,7 @@ static errno_t nss_setnetgrent(struct cli_ctx *cli_ctx,
         goto done;
     }
 
-    tevent_req_set_callback(subreq, nss_setnetgrent_done, cmd_ctx);
+    tevent_req_set_callback(subreq, sss_nss_setnetgrent_done, cmd_ctx);
 
     ret = EOK;
 
@@ -790,7 +792,7 @@ done:
     return EOK;
 }
 
-static void nss_setnetgrent_done(struct tevent_req *subreq)
+static void sss_nss_setnetgrent_done(struct tevent_req *subreq)
 {
     struct nss_cmd_ctx *cmd_ctx;
     errno_t ret;
@@ -1040,8 +1042,8 @@ static errno_t nss_cmd_initgroups_ex(struct cli_ctx *cli_ctx)
 
 static errno_t nss_cmd_setnetgrent(struct cli_ctx *cli_ctx)
 {
-    return nss_setnetgrent(cli_ctx, CACHE_REQ_NETGROUP_BY_NAME,
-                           nss_protocol_fill_setnetgrent);
+    return sss_nss_setnetgrent(cli_ctx, CACHE_REQ_NETGROUP_BY_NAME,
+                               nss_protocol_fill_setnetgrent);
 }
 
 static errno_t nss_cmd_getnetgrent(struct cli_ctx *cli_ctx)
