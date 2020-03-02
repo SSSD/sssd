@@ -1319,6 +1319,18 @@ static errno_t nss_cmd_endhostent(struct cli_ctx *cli_ctx)
     return nss_endent(cli_ctx, &state_ctx->hostent);
 }
 
+static errno_t nss_cmd_getnetbyname(struct cli_ctx *cli_ctx)
+{
+    return nss_getby_name(cli_ctx, false, CACHE_REQ_IP_NETWORK_BY_NAME, NULL,
+                          SSS_MC_NONE, nss_protocol_fill_netent);
+}
+
+static errno_t nss_cmd_getnetbyaddr(struct cli_ctx *cli_ctx)
+{
+    return nss_getby_addr(cli_ctx, CACHE_REQ_IP_NETWORK_BY_ADDR,
+                          SSS_MC_NONE, nss_protocol_fill_netent);
+}
+
 struct sss_cmd_table *get_nss_cmds(void)
 {
     static struct sss_cmd_table nss_cmds[] = {
@@ -1362,6 +1374,8 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_SETHOSTENT, nss_cmd_sethostent },
         { SSS_NSS_GETHOSTENT, nss_cmd_gethostent },
         { SSS_NSS_ENDHOSTENT, nss_cmd_endhostent },
+        { SSS_NSS_GETNETBYNAME, nss_cmd_getnetbyname },
+        { SSS_NSS_GETNETBYADDR, nss_cmd_getnetbyaddr },
         { SSS_CLI_NULL, NULL }
     };
 
