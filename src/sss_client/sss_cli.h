@@ -128,7 +128,7 @@ enum sss_cli_command {
     SSS_NSS_GETNETGRENT    = 0x0062,
     SSS_NSS_ENDNETGRENT    = 0x0063,
     /* SSS_NSS_INNETGR     = 0x0064, */
-#if 0
+
 /* networks */
 
     SSS_NSS_GETNETBYNAME   = 0x0071,
@@ -137,6 +137,7 @@ enum sss_cli_command {
     SSS_NSS_GETNETENT      = 0x0074,
     SSS_NSS_ENDNETENT      = 0x0075,
 
+#if 0
 /* protocols */
 
     SSS_NSS_GETPROTOBYNAME = 0x0081,

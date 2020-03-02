@@ -38,11 +38,11 @@ EXPORTED {
 		_nss_sss_getnetgrent_r;
 		_nss_sss_endnetgrent;
 
-		#_nss_sss_getnetbyname_r;
-		#_nss_sss_getnetbyaddr_r;
-		#_nss_sss_setnetent;
-		#_nss_sss_getnetent_r;
-		#_nss_sss_endnetent;
+		_nss_sss_getnetbyname_r;
+		_nss_sss_getnetbyaddr_r;
+		_nss_sss_setnetent;
+		_nss_sss_getnetent_r;
+		_nss_sss_endnetent;
 
 		#_nss_sss_getprotobyname_r;
 		#_nss_sss_getprotobynumber_r;
