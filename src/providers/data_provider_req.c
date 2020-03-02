@@ -42,6 +42,8 @@ const char *be_req2str(dbus_uint32_t req_type)
         return be_req_to_str(BE_REQ_SUDO_RULES);
     case BE_REQ_HOST:
         return be_req_to_str(BE_REQ_HOST);
+    case BE_REQ_IP_NETWORK:
+        return be_req_to_str(BE_REQ_IP_NETWORK);
     case BE_REQ_BY_SECID:
         return be_req_to_str(BE_REQ_BY_SECID);
     case BE_REQ_USER_AND_GROUP:

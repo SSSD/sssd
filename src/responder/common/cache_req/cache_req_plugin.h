@@ -321,5 +321,7 @@ extern const struct cache_req_plugin cache_req_autofs_map_by_name;
 extern const struct cache_req_plugin cache_req_autofs_entry_by_name;
 extern const struct cache_req_plugin cache_req_ip_host_by_name;
 extern const struct cache_req_plugin cache_req_ip_host_by_addr;
+extern const struct cache_req_plugin cache_req_ip_network_by_name;
+extern const struct cache_req_plugin cache_req_ip_network_by_addr;
 
 #endif /* _CACHE_REQ_PLUGIN_H_ */
