@@ -212,5 +212,10 @@ nss_protocol_fill_hostent(struct nss_ctx *nss_ctx,
                           struct nss_cmd_ctx *cmd_ctx,
                           struct sss_packet *packet,
                           struct cache_req_result *result);
+errno_t
+nss_protocol_fill_netent(struct nss_ctx *nss_ctx,
+                         struct nss_cmd_ctx *cmd_ctx,
+                         struct sss_packet *packet,
+                         struct cache_req_result *result);
 
 #endif /* _NSS_PROTOCOL_H_ */
