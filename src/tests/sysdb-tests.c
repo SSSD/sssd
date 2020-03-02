@@ -34,6 +34,7 @@
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_iphosts.h"
+#include "db/sysdb_ipnetworks.h"
 #include "tests/common.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
@@ -7633,6 +7634,157 @@ START_TEST(test_sysdb_add_hosts)
 }
 END_TEST
 
+void ipnetwork_check_match(struct sysdb_test_ctx *test_ctx,
+                           struct ldb_message *msg,
+                           const char *primary_name,
+                           const char **aliases,
+                           const char *address)
+
+{
+    errno_t ret;
+    const char *ret_name;
+    const char *ret_addr;
+    char *c_addr;
+    struct ldb_message_element *el;
+    size_t len;
+    unsigned int i, j;
+    bool matched;
+
+    ret = sss_canonicalize_ip_address(test_ctx, address, &c_addr);
+    fail_if(ret != EOK);
+
+    ret_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_if(ret_name == NULL);
+    fail_unless(strcmp(ret_name, primary_name) == 0);
+
+    ret_addr = ldb_msg_find_attr_as_string(msg, SYSDB_IP_NETWORK_ATTR_NUMBER,
+                                           NULL);
+    fail_if(ret_addr == NULL);
+    fail_unless(strcmp(ret_addr, c_addr) == 0);
+
+    el = ldb_msg_find_element(msg, SYSDB_NAME_ALIAS);
+    fail_if(el == NULL);
+
+    len = talloc_array_length(aliases);
+    for (i = 0; i < el->num_values; i++) {
+        matched = false;
+        for (j = 0; j < len && aliases[j] != NULL; j++) {
+            if (strcmp(aliases[j], (const char *)el->values[i].data) == 0) {
+                matched = true;
+            }
+        }
+        fail_if(!matched, "Unexpected value in LDB entry: [%s]",
+                (const char *)el->values[i].data);
+    }
+}
+
+void ipnetwork_check_match_name(struct sysdb_test_ctx *test_ctx,
+                                const char *search_name,
+                                const char *primary_name,
+                                const char **aliases,
+				const char *address)
+{
+    errno_t ret;
+    struct ldb_result *res;
+
+    ret = sysdb_getipnetworkbyname(test_ctx, test_ctx->domain,
+                                   search_name, &res);
+    fail_if(ret != EOK, "sysdb_getipnetworkbyname error [%s]\n",
+            strerror(ret));
+    fail_if(res == NULL, "ENOMEM");
+    fail_if(res->count != 1);
+
+    ipnetwork_check_match(test_ctx, res->msgs[0], primary_name, aliases,
+			  address);
+}
+
+void ipnetwork_check_match_addr(struct sysdb_test_ctx *test_ctx,
+                                const char *search_addr,
+                                const char *primary_name,
+                                const char **aliases,
+                                const char *address)
+{
+    errno_t ret;
+    struct ldb_result *res;
+
+    ret = sysdb_getipnetworkbyaddr(test_ctx, test_ctx->domain,
+                                   search_addr, &res);
+    fail_if(ret != EOK, "sysdb_getipnetworkbyaddr error [%s]\n",
+            strerror(ret));
+    fail_if(res == NULL, "ENOMEM");
+    fail_if(res->count != 1);
+
+    ipnetwork_check_match(test_ctx, res->msgs[0], primary_name, aliases,
+			  address);
+}
+
+START_TEST(test_sysdb_add_ipnetworks)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    char *primary_name;
+    const char **aliases;
+    const char *address;
+    int i;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    primary_name = talloc_asprintf(test_ctx, "network_1");
+    fail_if(primary_name == NULL);
+
+    aliases = talloc_array(test_ctx, const char *, 3);
+    fail_if(aliases == NULL);
+
+    aliases[0] = talloc_asprintf(aliases, "network_1_alias_1");
+    fail_if(aliases[0] == NULL);
+
+    aliases[1] = talloc_asprintf(aliases, "network_1_alias_2");
+    fail_if(aliases[1] == NULL);
+
+    aliases[2] = NULL;
+
+    address = talloc_asprintf(test_ctx, "192.168.1.0");
+    fail_if(address == NULL);
+
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
+
+    ret = sysdb_ipnetwork_add(NULL, test_ctx->domain,
+                              primary_name, aliases,
+                              address, NULL);
+    fail_unless(ret == EOK, "sysdb_ipnetwork_add error [%s]\n", strerror(ret));
+
+    /* Search by name and make sure the results match */
+    ipnetwork_check_match_name(test_ctx, primary_name, primary_name,
+                               aliases, address);
+    for (i = 0; aliases[i] != NULL; i++) {
+        ipnetwork_check_match_name(test_ctx, aliases[i], primary_name,
+                                   aliases, address);
+    }
+
+    /* Search by address and make sure the results match */
+    ipnetwork_check_match_addr(test_ctx, address, primary_name,
+                               aliases, address);
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
+
+    /* Clean up after ourselves (and test deleting by name)
+     *
+     * We have to do this after the transaction, because LDB
+     * doesn't like adding and deleting the same entry in a
+     * single transaction.
+     */
+    ret = sysdb_ipnetwork_delete(test_ctx->domain, primary_name, NULL);
+    fail_if(ret != EOK, "[%s]", strerror(ret));
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -7891,6 +8043,9 @@ Suite *create_sysdb_suite(void)
 
 /* ===== Hosts tests ===== */
     tcase_add_test(tc_sysdb, test_sysdb_add_hosts);
+
+/* ===== IP Networks tests ===== */
+    tcase_add_test(tc_sysdb, test_sysdb_add_ipnetworks);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
