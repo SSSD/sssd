@@ -4106,6 +4106,7 @@ libnss_sss_la_SOURCES = \
     src/sss_client/nss_netgroup.c \
     src/sss_client/nss_services.c \
     src/sss_client/nss_hosts.c \
+    src/sss_client/nss_ipnetworks.c \
     src/sss_client/sss_cli.h \
     src/sss_client/nss_compat.h \
     src/sss_client/nss_common.h \
