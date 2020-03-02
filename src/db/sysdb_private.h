@@ -58,6 +58,7 @@
      "originalDN: CASE_INSENSITIVE\n" \
      "objectclass: CASE_INSENSITIVE\n" \
      "ipHostNumber: CASE_INSENSITIVE\n" \
+     "ipNetworkNumber: CASE_INSENSITIVE\n" \
      "\n" \
      "dn: @INDEXLIST\n" \
      "@IDXATTR: cn\n" \
@@ -84,6 +85,7 @@
      "@IDXATTR: userMappedCertificate\n" \
      "@IDXATTR: ccacheFile\n" \
      "@IDXATTR: ipHostNumber\n" \
+     "@IDXATTR: ipNetworkNumber\n" \
      "\n" \
      "dn: @MODULES\n" \
      "@LIST: asq,memberof\n" \
