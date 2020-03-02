@@ -26,6 +26,7 @@
 #include "db/sysdb_private.h"
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_iphosts.h"
+#include "db/sysdb_ipnetworks.h"
 
 struct upgrade_ctx {
     struct ldb_context *ldb;
@@ -1004,7 +1005,7 @@ int sysdb_upgrade_09(struct sysdb_ctx *sysdb, const char **ver)
         goto done;
     }
 
-    /* Add Index for servicePort and serviceProtocol */
+    /* Add Index for ipHostNumber and ipNetworkNumber */
     ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
     if (ret != LDB_SUCCESS) {
         ret = ENOMEM;
@@ -2572,7 +2573,7 @@ int sysdb_upgrade_21(struct sysdb_ctx *sysdb, const char **ver)
         return ret;
     }
 
-    /* Case insensitive search for ipHostNumber */
+    /* Case insensitive search for ipHostNumber and ipNetworkNumber */
     msg = ldb_msg_new(tmp_ctx);
     if (msg == NULL) {
         ret = ENOMEM;
@@ -2592,6 +2593,20 @@ int sysdb_upgrade_21(struct sysdb_ctx *sysdb, const char **ver)
     }
 
     ret = ldb_msg_add_string(msg, SYSDB_IP_HOST_ATTR_ADDRESS, "CASE_INSENSITIVE");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, SYSDB_IP_NETWORK_ATTR_NUMBER,
+                            LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, SYSDB_IP_NETWORK_ATTR_NUMBER,
+                             "CASE_INSENSITIVE");
     if (ret != LDB_SUCCESS) {
         ret = ENOMEM;
         goto done;
@@ -2626,6 +2641,12 @@ int sysdb_upgrade_21(struct sysdb_ctx *sysdb, const char **ver)
     }
 
     ret = ldb_msg_add_string(msg, "@IDXATTR", SYSDB_IP_HOST_ATTR_ADDRESS);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "@IDXATTR", SYSDB_IP_NETWORK_ATTR_NUMBER);
     if (ret != LDB_SUCCESS) {
         ret = ENOMEM;
         goto done;
