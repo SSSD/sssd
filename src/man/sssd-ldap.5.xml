@@ -286,7 +286,6 @@
                     <listitem>
                         <para>
                             The authentication token of the default bind DN.
-                            Only clear text passwords are currently supported.
                         </para>
                     </listitem>
                 </varlistentry>
