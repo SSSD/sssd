@@ -97,6 +97,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_AUTOFS_MAP_ENTRIES:
     case CACHE_REQ_AUTOFS_MAP_BY_NAME:
     case CACHE_REQ_IP_HOST_BY_NAME:
+    case CACHE_REQ_IP_NETWORK_BY_NAME:
         if (input->name.input == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
             ret = ERR_INTERNAL;
@@ -110,6 +111,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         }
         break;
     case CACHE_REQ_IP_HOST_BY_ADDR:
+    case CACHE_REQ_IP_NETWORK_BY_ADDR:
         data->addr.af = input->addr.af;
         data->addr.len = input->addr.len;
         data->addr.data = talloc_memdup(data, input->addr.data,

@@ -67,6 +67,8 @@ cache_req_get_plugin(enum cache_req_type type)
 
         &cache_req_ip_host_by_name,
         &cache_req_ip_host_by_addr,
+        &cache_req_ip_network_by_name,
+        &cache_req_ip_network_by_addr,
     };
 
     if (type >= CACHE_REQ_SENTINEL) {
