@@ -28,13 +28,6 @@
 #include "responder/nss/nss_private.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
 
-/* arbitrary (avg of my /etc/passwd) */
-#define SSS_AVG_PASSWD_PAYLOAD (MC_SLOT_SIZE * 4)
-/* short group name and no gids (private user group */
-#define SSS_AVG_GROUP_PAYLOAD (MC_SLOT_SIZE * 3)
-/* average place for 40 supplementary groups + 2 names */
-#define SSS_AVG_INITGROUP_PAYLOAD (MC_SLOT_SIZE * 5)
-
 #define MC_NEXT_BARRIER(val) ((((val) + 1) & 0x00ffffff) | 0xf0000000)
 
 #define MC_RAISE_BARRIER(m) do { \
@@ -1251,23 +1244,13 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                             enum sss_mc_type type, size_t n_elem,
                             time_t timeout, struct sss_mc_ctx **mcc)
 {
-    struct sss_mc_ctx *mc_ctx = NULL;
-    int payload;
-    int ret, dret;
+    /* sss_mc_header alone occupies whole slot,
+     * so each entry takes 2 slots at the very least
+     */
+    static const int PAYLOAD_FACTOR = 2;
 
-    switch (type) {
-    case SSS_MC_PASSWD:
-        payload = SSS_AVG_PASSWD_PAYLOAD;
-        break;
-    case SSS_MC_GROUP:
-        payload = SSS_AVG_GROUP_PAYLOAD;
-        break;
-    case SSS_MC_INITGROUPS:
-        payload = SSS_AVG_INITGROUP_PAYLOAD;
-        break;
-    default:
-        return EINVAL;
-    }
+    struct sss_mc_ctx *mc_ctx = NULL;
+    int ret, dret;
 
     mc_ctx = talloc_zero(mem_ctx, struct sss_mc_ctx);
     if (!mc_ctx) {
@@ -1303,9 +1286,9 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
 
     /* hash table is double the size because it will store both forward and
      * reverse keys (name/uid, name/gid, ..) */
-    mc_ctx->ht_size = MC_HT_SIZE(n_elem * 2);
-    mc_ctx->dt_size = MC_DT_SIZE(n_elem, payload);
-    mc_ctx->ft_size = MC_FT_SIZE(n_elem);
+    mc_ctx->ht_size = MC_HT_SIZE(2 * n_elem / PAYLOAD_FACTOR);
+    mc_ctx->dt_size = n_elem * MC_SLOT_SIZE;
+    mc_ctx->ft_size = n_elem / 8; /* 1 bit per slot */
     mc_ctx->mmap_size = MC_HEADER_SIZE +
                         MC_ALIGN64(mc_ctx->dt_size) +
                         MC_ALIGN64(mc_ctx->ft_size) +

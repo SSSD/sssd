@@ -22,8 +22,6 @@
 #ifndef _NSSSRV_MMAP_CACHE_H_
 #define _NSSSRV_MMAP_CACHE_H_
 
-#define SSS_MC_CACHE_ELEMENTS 50000
-
 struct sss_mc_ctx;
 
 enum sss_mc_type {
