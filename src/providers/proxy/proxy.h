@@ -160,6 +160,18 @@ proxy_hosts_handler_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
                          struct dp_reply_std *data);
 
+/* From proxy_ipnetworks.c */
+struct tevent_req *
+proxy_nets_handler_send(TALLOC_CTX *mem_ctx,
+                        struct proxy_resolver_ctx *proxy_resolver_ctx,
+                        struct dp_resolver_data *resolver_data,
+                        struct dp_req_params *params);
+
+errno_t
+proxy_nets_handler_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        struct dp_reply_std *data);
+
 errno_t
 proxy_client_init(struct sbus_connection *conn,
                   struct proxy_auth_ctx *auth_ctx);

@@ -4373,6 +4373,7 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_netgroup.c \
     src/providers/proxy/proxy_services.c \
     src/providers/proxy/proxy_hosts.c \
+    src/providers/proxy/proxy_ipnetworks.c \
     src/providers/proxy/proxy_auth.c \
     src//util/nss_dl_load.c \
     $(NULL)
