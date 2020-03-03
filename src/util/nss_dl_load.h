@@ -90,6 +90,21 @@ struct sss_nss_ops {
                                     int *errnop, int *h_errnop);
     enum nss_status (*endhostent)(void);
 
+    /* Networks */
+    enum nss_status (*getnetbyname_r)(const char *name,
+                                      struct netent *result,
+                                      char *buffer, size_t buflen,
+                                      int *errnop, int *h_errnop);
+    enum nss_status (*getnetbyaddr_r)(uint32_t addr, int type,
+                                      struct netent *result,
+                                      char *buffer, size_t buflen,
+                                      int *errnop, int *h_errnop);
+    enum nss_status (*setnetent)(void);
+    enum nss_status (*getnetent_r)(struct netent *ret,
+                                   char *buffer, size_t buflen,
+                                   int *errnop, int *h_errnop);
+    enum nss_status (*endnetent)(void);
+
     void *dl_handle;
 };
 
