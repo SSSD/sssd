@@ -49,6 +49,16 @@ errno_t sysdb_getipnetworkbyaddr(TALLOC_CTX *mem_ctx,
 				 const char *address,
                                  struct ldb_result **_res);
 
+errno_t
+sysdb_store_ipnetwork(struct sss_domain_info *domain,
+                      const char *primary_name,
+                      const char **aliases,
+                      const char *address,
+                      struct sysdb_attrs *extra_attrs,
+                      char **remove_attrs,
+                      uint64_t cache_timeout,
+                      time_t now);
+
 struct ldb_dn *sysdb_ipnetwork_dn(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *domain,
                                   const char *name);
