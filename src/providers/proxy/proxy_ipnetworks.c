@@ -195,6 +195,96 @@ done:
     return ret;
 }
 
+static errno_t
+get_net_byaddr(struct proxy_resolver_ctx *ctx,
+               struct sss_domain_info *domain,
+               const char *search_addrstr)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct netent *result = NULL;
+    char *buffer = NULL;
+    size_t buflen = DEFAULT_BUFSIZE;
+    int err = 0;
+    int h_err = 0;
+    uint32_t addrbuf;
+    enum nss_status status;
+    errno_t ret;
+    char *name = NULL;
+    char *address = NULL;
+    char **aliases = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Resolving network [%s]\n", search_addrstr);
+
+    if (inet_pton(AF_INET, search_addrstr, &addrbuf) != 1) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    result = talloc_zero(tmp_ctx, struct netent);
+    if (result == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (status = NSS_STATUS_TRYAGAIN,
+         err = ERANGE, h_err = 0;
+         status == NSS_STATUS_TRYAGAIN && err == ERANGE;
+         buflen *= 2)
+    {
+        buffer = talloc_realloc_size(tmp_ctx, buffer, buflen);
+        if (buffer == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        status = ctx->ops.getnetbyaddr_r(addrbuf, AF_INET, result,
+                                         buffer, buflen,
+                                         &err, &h_err);
+    }
+
+    ret = nss_status_to_errno(status);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+            "getnetbyname_r failed for network [%s]: %d, %s, %s.\n",
+            search_addrstr, status, strerror(err), hstrerror(h_err));
+        goto done;
+    }
+
+    if (ret == ENOENT) {
+        /* Not found, make sure we remove it from the cache */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Network [%s] not found, removing from "
+              "cache\n", name);
+        sysdb_ipnetwork_delete(domain, NULL, search_addrstr);
+        ret = ENOENT;
+        goto done;
+    } else {
+        /* Found, parse result */
+        ret = parse_netent(tmp_ctx, result, domain->case_sensitive,
+                           &name, &aliases, &address);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to parse netent [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+
+        /* Save result into the cache */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Network [%s] found, saving into "
+              "cache\n", name);
+        /* TODO */
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static struct dp_reply_std
 proxy_nets_info(TALLOC_CTX *mem_ctx,
                 struct proxy_resolver_ctx *ctx,
@@ -214,8 +304,8 @@ proxy_nets_info(TALLOC_CTX *mem_ctx,
         break;
 
     case BE_FILTER_ADDR:
-        /* TODO */
-        /* FALLTHROUGH */
+        ret = get_net_byaddr(ctx, domain, data->filter_value);
+        break;
 
     case BE_FILTER_ENUM:
         /* TODO */
