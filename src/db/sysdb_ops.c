@@ -24,6 +24,7 @@
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_iphosts.h"
+#include "db/sysdb_ipnetworks.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/cert.h"
 #include <time.h>
@@ -5012,6 +5013,9 @@ errno_t sysdb_remove_attrs(struct sss_domain_info *domain,
         break;
     case SYSDB_MEMBER_HOST:
         msg->dn = sysdb_host_dn(msg, domain, name);
+        break;
+    case SYSDB_MEMBER_IP_NETWORK:
+        msg->dn = sysdb_ipnetwork_dn(msg, domain, name);
         break;
     }
     if (!msg->dn) {
