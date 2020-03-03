@@ -359,6 +359,7 @@ enum sysdb_member_type {
     SYSDB_MEMBER_NETGROUP,
     SYSDB_MEMBER_SERVICE,
     SYSDB_MEMBER_HOST,
+    SYSDB_MEMBER_IP_NETWORK,
 };
 
 /* These attributes are stored in the timestamp cache */
