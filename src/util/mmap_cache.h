@@ -40,9 +40,6 @@ typedef uint32_t rel_ptr_t;
 
 #define MC_HT_SIZE(elems) ( (elems) * MC_32 )
 #define MC_HT_ELEMS(size) ( (size) / MC_32 )
-#define MC_DT_SIZE(elems, payload) ( (elems) * (payload) )
-#define MC_FT_SIZE(elems) ( (elems) / 8 )
-/* ^^ 8 bits per byte so we need just elems/8 bytes to represent all blocks */
 
 #define MC_PTR_ADD(ptr, bytes) (void *)((uint8_t *)(ptr) + (bytes))
 #define MC_PTR_DIFF(ptr, base) ((uint8_t *)(ptr) - (uint8_t *)(base))
