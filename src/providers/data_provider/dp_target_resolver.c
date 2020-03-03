@@ -77,6 +77,11 @@ dp_resolver_handler_send(TALLOC_CTX *mem_ctx,
                              DPM_RESOLVER_HOSTS_HANDLER, dp_flags, state->data,
                              &state->request_name);
         break;
+    case BE_REQ_IP_NETWORK:
+        subreq = dp_req_send(state, provider, NULL, "Resolver", DPT_RESOLVER,
+                             DPM_RESOLVER_IP_NETWORK_HANDLER, dp_flags,
+                             state->data, &state->request_name);
+        break;
     default:
         ret = EINVAL;
         goto done;
