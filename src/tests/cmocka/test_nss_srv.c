@@ -37,6 +37,7 @@
 #include "util/crypto/nss/nss_util.h"
 #include "db/sysdb_private.h"   /* new_subdomain() */
 #include "db/sysdb_iphosts.h"
+#include "db/sysdb_ipnetworks.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_nss_conf.ldb"
@@ -5150,7 +5151,7 @@ void test_nss_gethostbyname(void **state)
     assert_int_equal(ret, EOK);
 }
 
-static void mock_input_hostbyaddr(TALLOC_CTX *mem_ctx, int af, const char *addrstr)
+static void mock_input_netaddr(TALLOC_CTX *mem_ctx, int af, const char *addrstr)
 {
     uint8_t *body;
     size_t blen;
@@ -5183,7 +5184,7 @@ void test_nss_gethostbyaddr(void **state)
     errno_t ret;
 
     /* Host stored by previous tests */
-    mock_input_hostbyaddr(nss_test_ctx, AF_INET, "1.2.3.4");
+    mock_input_netaddr(nss_test_ctx, AF_INET, "1.2.3.4");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
@@ -5201,7 +5202,7 @@ void test_nss_gethostbyaddr(void **state)
     /* Test search by aliases */
     nss_test_ctx->tctx->done = false;
 
-    mock_input_hostbyaddr(nss_test_ctx, AF_INET, "9.8.7.6");
+    mock_input_netaddr(nss_test_ctx, AF_INET, "9.8.7.6");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
@@ -5219,7 +5220,7 @@ void test_nss_gethostbyaddr(void **state)
     /* Test search by aliases */
     nss_test_ctx->tctx->done = false;
 
-    mock_input_hostbyaddr(nss_test_ctx, AF_INET6, "2001:DB8:1234:0::0000");
+    mock_input_netaddr(nss_test_ctx, AF_INET6, "2001:DB8:1234:0::0000");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
@@ -5237,7 +5238,7 @@ void test_nss_gethostbyaddr(void **state)
     /* Test search by aliases */
     nss_test_ctx->tctx->done = false;
 
-    mock_input_hostbyaddr(nss_test_ctx, AF_INET6, "2001:DB8:0000::1234");
+    mock_input_netaddr(nss_test_ctx, AF_INET6, "2001:DB8:0000::1234");
     mock_resolver_recv_simple();
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETHOSTBYADDR);
     will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 9);
@@ -5301,6 +5302,230 @@ static int nss_host_test_teardown(void **state)
 
     return nss_test_teardown(state);
 }
+
+const char *test_netent_aliases[] = {
+    "test_network_alias1",
+    "test_network_alias2",
+    "test_network_alias3",
+    NULL
+};
+
+struct netent test_netent = {
+    .n_name = discard_const("test_network"),
+    .n_aliases = discard_const(test_netent_aliases),
+    .n_addrtype = AF_INET,
+    .n_net = 0x04030201 /* 1.2.3.4 */
+};
+
+static void mock_input_netbyname(const char *name)
+{
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, name);
+    will_return(__wrap_sss_packet_get_body, 0);
+    mock_parse_inp(name, NULL, EOK);
+}
+
+static int parse_network_packet(int type, uint8_t *body, size_t blen,
+                                struct netent *netent)
+{
+    size_t rp = 2 * sizeof(uint32_t); /* Number of results and reserved */
+    char *address;
+    unsigned int num_aliases;
+    unsigned int i;
+    int ret;
+
+    SAFEALIGN_COPY_UINT32(&num_aliases, body+rp, &rp);
+
+    netent->n_addrtype = type;
+
+    netent->n_name = talloc_strdup(nss_test_ctx, (char *) body+rp);
+    rp += strlen(netent->n_name) + 1;
+
+    address = (char *) body+rp;
+    ret = inet_pton(AF_INET, address, &netent->n_net);
+    if (ret != 1) {
+        return EINVAL;
+    }
+    rp += strlen(address) + 1;
+
+    if (num_aliases > 0) {
+        netent->n_aliases = talloc_zero_array(nss_test_ctx, char *,
+                                              num_aliases + 1);
+        for (i=0; i<num_aliases; i++) {
+            netent->n_aliases[i] = talloc_strdup(netent->n_aliases,
+                                                 (char *) body+rp);
+            netent->n_aliases[i + 1] = NULL;
+            rp += strlen(netent->n_aliases[i]) + 1;
+        }
+    }
+
+    /* Make sure we exactly matched the end of the packet */
+    if (rp != blen) {
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
+static void assert_network_equal(int type, struct netent *ref, struct netent *b)
+{
+    unsigned int i;
+
+    assert_string_equal(ref->n_name, b->n_name);
+    assert_int_equal(type, b->n_addrtype);
+    assert_int_equal(ref->n_addrtype, b->n_addrtype);
+    assert_int_equal(ref->n_net, b->n_net);
+    for (i=0; ref->n_aliases[i] != NULL; i++) {
+        assert_non_null(b->n_aliases[i]);
+        assert_string_equal(ref->n_aliases[i], b->n_aliases[i]);
+    }
+    assert_null(b->n_aliases[i]);
+}
+
+static int test_nss_getnetbyname_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    struct netent netent = { 0 };
+    errno_t ret;
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_network_packet(AF_INET, body, blen, &netent);
+    assert_int_equal(ret, EOK);
+
+    assert_network_equal(AF_INET, &test_netent, &netent);
+
+    return EOK;
+}
+
+void test_nss_getnetbyname(void **state)
+{
+    errno_t ret;
+
+    mock_input_netbyname("test_network");
+    mock_resolver_recv_simple();
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
+    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+
+    /* Query for that network, call a callback when command finishes */
+    set_cmd_cb(test_nss_getnetbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+    /* Test search by aliases */
+    nss_test_ctx->tctx->done = false;
+
+    mock_input_netbyname("test_network_alias1");
+    mock_resolver_recv_simple();
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
+    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+
+    set_cmd_cb(test_nss_getnetbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+    /* Test search by aliases */
+    nss_test_ctx->tctx->done = false;
+
+    mock_input_netbyname("test_network_alias2");
+    mock_resolver_recv_simple();
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
+    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+
+    set_cmd_cb(test_nss_getnetbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+    /* Test search by aliases */
+    nss_test_ctx->tctx->done = false;
+
+    mock_input_netbyname("test_network_alias3");
+    mock_resolver_recv_simple();
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYNAME);
+    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+
+    set_cmd_cb(test_nss_getnetbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getnetbyaddr(void **state)
+{
+    errno_t ret;
+
+    mock_input_netaddr(nss_test_ctx, AF_INET, "1.2.3.4");
+    mock_resolver_recv_simple();
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNETBYADDR);
+    will_return_count(__wrap_sss_packet_get_body, WRAP_CALL_REAL, 5);
+
+    /* Query for that network, call a callback when command finishes */
+    set_cmd_cb(test_nss_getnetbyname_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNETBYADDR,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static int nss_network_test_setup(void **state)
+{
+    const char **aliases = NULL;
+    errno_t ret;
+    unsigned int i;
+
+    nss_test_setup(state);
+
+    /* sysdb_ipnetwork_add expects a talloc_array of aliases */
+    for (i = 0; test_netent.n_aliases[i]; i++) {
+        aliases = talloc_realloc(nss_test_ctx, aliases, const char *, i + 2);
+        assert_non_null(aliases);
+
+        aliases[i] = talloc_strdup(aliases, test_netent.n_aliases[i]);
+        assert_non_null(aliases[i]);
+
+        aliases[i + 1] = NULL;
+    }
+
+    ret = sysdb_ipnetwork_add(nss_test_ctx, nss_test_ctx->tctx->dom,
+                              test_netent.n_name, aliases, "1.2.3.4",
+                              NULL);
+    assert_int_equal(ret, EOK);
+
+    return 0;
+}
+
+static int nss_network_test_teardown(void **state)
+{
+    errno_t ret;
+
+    ret = sysdb_ipnetwork_delete(nss_test_ctx->tctx->dom,
+                                 test_netent.n_name, NULL);
+    assert_int_equal(ret, EOK);
+
+    return nss_test_teardown(state);
+}
+
 
 int main(int argc, const char *argv[])
 {
@@ -5477,6 +5702,12 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_gethostbyaddr,
                                         nss_host_test_setup,
                                         nss_host_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getnetbyname,
+                                        nss_network_test_setup,
+                                        nss_network_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getnetbyaddr,
+                                        nss_network_test_setup,
+                                        nss_network_test_teardown),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
