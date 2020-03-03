@@ -278,6 +278,14 @@
                         <para>
                             Default: password
                         </para>
+                        <para>
+                            See the
+                            <citerefentry>
+                                <refentrytitle>sss_obfuscate</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>
+                            manual page for more information.
+                        </para>
                     </listitem>
                 </varlistentry>
 
