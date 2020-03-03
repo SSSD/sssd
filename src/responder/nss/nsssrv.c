@@ -99,10 +99,9 @@ static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
         return ret;
     }
 
-    /* TODO: read cache sizes from configuration */
     DEBUG(SSSDBG_TRACE_FUNC, "Clearing memory caches.\n");
     ret = sss_mmap_cache_reinit(nctx, nctx->mc_uid, nctx->mc_gid,
-                                SSS_MC_CACHE_ELEMENTS,
+                                -1, /* keep current size */
                                 (time_t) memcache_timeout,
                                 &nctx->pwd_mc_ctx);
     if (ret != EOK) {
@@ -112,7 +111,7 @@ static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
     }
 
     ret = sss_mmap_cache_reinit(nctx, nctx->mc_uid, nctx->mc_gid,
-                                SSS_MC_CACHE_ELEMENTS,
+                                -1, /* keep current size */
                                 (time_t) memcache_timeout,
                                 &nctx->grp_mc_ctx);
     if (ret != EOK) {
@@ -122,7 +121,7 @@ static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
     }
 
     ret = sss_mmap_cache_reinit(nctx, nctx->mc_uid, nctx->mc_gid,
-                                SSS_MC_CACHE_ELEMENTS,
+                                -1, /* keep current size */
                                 (time_t)memcache_timeout,
                                 &nctx->initgr_mc_ctx);
     if (ret != EOK) {
@@ -257,6 +256,11 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
 
 static int setup_memcaches(struct nss_ctx *nctx)
 {
+    /* TODO: read cache sizes from configuration */
+    static const size_t SSS_MC_CACHE_PASSWD_SLOTS    = 200000;  /*  8mb */
+    static const size_t SSS_MC_CACHE_GROUP_SLOTS     = 150000;  /*  6mb */
+    static const size_t SSS_MC_CACHE_INITGROUP_SLOTS = 250000;  /* 10mb */
+
     int ret;
     int memcache_timeout;
 
@@ -286,11 +290,11 @@ static int setup_memcaches(struct nss_ctx *nctx)
         return EOK;
     }
 
-    /* TODO: read cache sizes from configuration */
     ret = sss_mmap_cache_init(nctx, "passwd",
                               nctx->mc_uid, nctx->mc_gid,
                               SSS_MC_PASSWD,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
+                              SSS_MC_CACHE_PASSWD_SLOTS,
+                              (time_t)memcache_timeout,
                               &nctx->pwd_mc_ctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "passwd mmap cache is DISABLED\n");
@@ -299,7 +303,8 @@ static int setup_memcaches(struct nss_ctx *nctx)
     ret = sss_mmap_cache_init(nctx, "group",
                               nctx->mc_uid, nctx->mc_gid,
                               SSS_MC_GROUP,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
+                              SSS_MC_CACHE_GROUP_SLOTS,
+                              (time_t)memcache_timeout,
                               &nctx->grp_mc_ctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "group mmap cache is DISABLED\n");
@@ -308,7 +313,8 @@ static int setup_memcaches(struct nss_ctx *nctx)
     ret = sss_mmap_cache_init(nctx, "initgroups",
                               nctx->mc_uid, nctx->mc_gid,
                               SSS_MC_INITGROUPS,
-                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
+                              SSS_MC_CACHE_INITGROUP_SLOTS,
+                              (time_t)memcache_timeout,
                               &nctx->initgr_mc_ctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "initgroups mmap cache is DISABLED\n");
