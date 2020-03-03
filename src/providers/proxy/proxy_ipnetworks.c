@@ -111,6 +111,72 @@ done:
 }
 
 static errno_t
+proxy_save_ipnetwork(struct sss_domain_info *domain,
+                     bool lowercase,
+                     uint64_t cache_timeout,
+                     char *name,
+                     char **aliases,
+                     char *address)
+{
+    errno_t ret;
+    char *cased_name = NULL;
+    const char **cased_aliases = NULL;
+    TALLOC_CTX *tmp_ctx;
+    char *lc_alias = NULL;
+    time_t now = time(NULL);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Saving network [%s] into cache, domain [%s]\n",
+          name, domain->name);
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    cased_name = sss_get_cased_name(tmp_ctx, name,
+                                    domain->case_preserve);
+    if (cased_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get cased name.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Count the aliases */
+    ret = sss_get_cased_name_list(tmp_ctx,
+                                  (const char * const *) aliases,
+                                  !lowercase, &cased_aliases);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get cased aliases.\n");
+        goto done;
+    }
+
+    if (domain->case_preserve) {
+        /* Add lowercased alias to allow case-insensitive lookup */
+        lc_alias = sss_tc_utf8_str_tolower(tmp_ctx, name);
+        if (lc_alias == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = add_string_to_list(tmp_ctx, lc_alias,
+                                 discard_const_p(char **, &cased_aliases));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add lowercased name alias.\n");
+            goto done;
+        }
+    }
+
+    ret = sysdb_store_ipnetwork(domain, cased_name, cased_aliases, address,
+                                NULL, NULL, cache_timeout, now);
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t
 get_net_byname(struct proxy_resolver_ctx *ctx,
                struct sss_domain_info *domain,
                const char *search_name)
@@ -185,7 +251,15 @@ get_net_byname(struct proxy_resolver_ctx *ctx,
         /* Save result into the cache */
         DEBUG(SSSDBG_TRACE_INTERNAL, "Network [%s] found, saving into "
               "cache\n", name);
-        /* TODO */
+        ret = proxy_save_ipnetwork(domain, !domain->case_sensitive,
+                                   domain->resolver_timeout,
+                                   name, aliases, address);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store network [%s] [%d]: %s\n",
+                  name, ret, sss_strerror(ret));
+            goto done;
+        }
     }
 
     ret = EOK;
@@ -275,7 +349,15 @@ get_net_byaddr(struct proxy_resolver_ctx *ctx,
         /* Save result into the cache */
         DEBUG(SSSDBG_TRACE_INTERNAL, "Network [%s] found, saving into "
               "cache\n", name);
-        /* TODO */
+        ret = proxy_save_ipnetwork(domain, !domain->case_sensitive,
+                                   domain->resolver_timeout,
+                                   name, aliases, address);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store network [%s] [%d]: %s\n",
+                  name, ret, sss_strerror(ret));
+            goto done;
+        }
     }
 
     ret = EOK;
