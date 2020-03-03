@@ -296,6 +296,27 @@ static errno_t proxy_load_nss_hosts_symbols(struct sss_nss_ops *ops,
     return EOK;
 }
 
+static errno_t proxy_load_nss_nets_symbols(struct sss_nss_ops *ops,
+                                           const char *libname)
+{
+    errno_t ret;
+    struct sss_nss_symbols syms[] = {
+        {(void*)&ops->getnetbyname_r,  true,  "getnetbyname_r"},
+        {(void*)&ops->getnetbyaddr_r,  true,  "getnetbyaddr_r"},
+        {(void*)&ops->setnetent,       false, "setnetent"},
+        {(void*)&ops->getnetent_r,     false, "getnetent_r"},
+        {(void*)&ops->endnetent,       false, "endnetent"},
+    };
+    size_t nsyms = sizeof(syms) / sizeof(struct sss_nss_symbols);
+
+    ret = sss_load_nss_symbols(ops, libname, syms, nsyms);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
 errno_t sssm_proxy_id_init(TALLOC_CTX *mem_ctx,
                            struct be_ctx *be_ctx,
                            void *module_data,
@@ -412,6 +433,13 @@ errno_t sssm_proxy_resolver_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = proxy_load_nss_hosts_symbols(&module_ctx->resolver_ctx->ops, libname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = proxy_load_nss_nets_symbols(&module_ctx->resolver_ctx->ops, libname);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unable to load NSS symbols [%d]: %s\n",
               ret, sss_strerror(ret));
