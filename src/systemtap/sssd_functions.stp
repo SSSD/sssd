@@ -28,7 +28,7 @@ function acct_req_desc(entry_type)
     } else if (entry_type == 0x0008) {
         str_entry_type = "host"
     } else if (entry_type == 0x0009) {
-        str_entry_type = "autofs"
+        str_entry_type = "ip_network"
     # See src/providers/data_provider_req.h, no 0x0010 there..
     } else if (entry_type == 0x0010) {
     } else if (entry_type == 0x0011) {
