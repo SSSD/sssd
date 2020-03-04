@@ -72,6 +72,9 @@ class SSSDOptions(object):
         'shell_fallback': _('If a shell stored in central directory is allowed but not available, use this fallback'),
         'default_shell': _('Shell to use if the provider does not list one'),
         'memcache_timeout': _('How long will be in-memory cache records valid'),
+        'memcache_size_passwd': _('Number of slots in fast in-memory cache for passwd requests'),
+        'memcache_size_group': _('Number of slots in fast in-memory cache for group requests'),
+        'memcache_size_initgroups': _('Number of slots in fast in-memory cache for initgroups requests'),
         'homedir_substring': _('The value of this option will be used in the expansion of the override_homedir option '
                                'if the template contains the format string %H.'),
         'get_domains_timeout': _('Specifies time in seconds for which the list of subdomains will be considered '
