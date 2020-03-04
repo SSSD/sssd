@@ -22,6 +22,7 @@
 
 #include "providers/ldap/ldap_common.h"
 #include "db/sysdb_iphosts.h"
+#include "db/sysdb_ipnetworks.h"
 
 static errno_t
 cleanup_iphosts(struct sdap_options *opts,
@@ -99,6 +100,82 @@ done:
     return ret;
 }
 
+static errno_t
+cleanup_ipnetworks(struct sdap_options *opts,
+                   struct sss_domain_info *domain)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    const char *attrs[] = { SYSDB_NAME, NULL };
+    time_t now = time(NULL);
+    char *subfilter;
+    char *ts_subfilter;
+    struct ldb_message **msgs;
+    size_t count;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    subfilter = talloc_asprintf(tmp_ctx, "(!(%s=0))", SYSDB_CACHE_EXPIRE);
+    if (subfilter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ts_subfilter = talloc_asprintf(tmp_ctx, "(&(!(%s=0))(%s<=%ld))",
+                                   SYSDB_CACHE_EXPIRE,
+                                   SYSDB_CACHE_EXPIRE, (long)now);
+    if (ts_subfilter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_ipnetworks(tmp_ctx, domain, /* subfilter, */
+                                  ts_subfilter, attrs, &count, &msgs);
+    if (ret == ENOENT) {
+        count = 0;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to search IP networks [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "Found %zu expired IP network entries!\n", count);
+
+    if (count == 0) {
+        ret = EOK;
+        goto done;
+    }
+
+    for (i = 0; i < count; i++) {
+        const char *name;
+
+        name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
+        if (name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Entry %s has no Name Attribute ?!?\n",
+                  ldb_dn_get_linearized(msgs[i]->dn));
+            continue;
+        }
+
+        DEBUG(SSSDBG_TRACE_INTERNAL, "About to delete IP network %s\n", name);
+        ret = sysdb_ipnetwork_delete(domain, name, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "IP network delete returned [%d]: (%s)\n",
+                  ret, sss_strerror(ret));
+            continue;
+        }
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 errno_t
 ldap_resolver_cleanup(struct sdap_resolver_ctx *ctx)
 {
@@ -124,6 +201,11 @@ ldap_resolver_cleanup(struct sdap_resolver_ctx *ctx)
     in_transaction = true;
 
     ret = cleanup_iphosts(id_ctx->opts, sdom->dom);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    }
+
+    ret = cleanup_ipnetworks(id_ctx->opts, sdom->dom);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     }
