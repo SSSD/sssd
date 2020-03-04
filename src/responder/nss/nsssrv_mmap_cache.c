@@ -371,6 +371,20 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
     return true;
 }
 
+static const char *mc_type_to_str(enum sss_mc_type type)
+{
+    switch (type) {
+    case SSS_MC_PASSWD:
+        return "PASSWD";
+    case SSS_MC_GROUP:
+        return "GROUP";
+    case SSS_MC_INITGROUPS:
+        return "INITGROUPS";
+    default:
+        return "-UNKNOWN-";
+    }
+}
+
 /* FIXME: This is a very simplistic, inefficient, memory allocator,
  * it will just free the oldest entries regardless of expiration if it
  * cycled the whole free bits map and found no empty slot */
@@ -437,6 +451,14 @@ static errno_t sss_mc_find_free_slots(struct sss_mc_ctx *mcc,
         cur = 0;
     } else {
         cur = mcc->next_slot;
+    }
+    if (cur == 0) {
+        /* inform only once per full loop to avoid excessive spam */
+        DEBUG(SSSDBG_IMPORTANT_INFO, "mmap cache of type '%s' is full\n",
+              mc_type_to_str(mcc->type));
+        sss_log(SSS_LOG_NOTICE, "mmap cache of type '%s' is full, if you see "
+                "this message often then please consider increase of cache size",
+                mc_type_to_str(mcc->type));
     }
     for (i = 0; i < num_slots; i++) {
         MC_PROBE_BIT(mcc->free_table, cur + i, used);
