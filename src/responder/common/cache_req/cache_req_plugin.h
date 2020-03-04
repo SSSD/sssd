@@ -312,6 +312,7 @@ extern const struct cache_req_plugin cache_req_enum_users;
 extern const struct cache_req_plugin cache_req_enum_groups;
 extern const struct cache_req_plugin cache_req_enum_svc;
 extern const struct cache_req_plugin cache_req_enum_ip_hosts;
+extern const struct cache_req_plugin cache_req_enum_ip_networks;
 extern const struct cache_req_plugin cache_req_svc_by_name;
 extern const struct cache_req_plugin cache_req_svc_by_port;
 extern const struct cache_req_plugin cache_req_netgroup_by_name;

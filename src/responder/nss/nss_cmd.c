@@ -1331,6 +1331,38 @@ static errno_t nss_cmd_getnetbyaddr(struct cli_ctx *cli_ctx)
                           SSS_MC_NONE, nss_protocol_fill_netent);
 }
 
+
+static errno_t nss_cmd_setnetent(struct cli_ctx *cli_ctx)
+{
+    struct nss_ctx *nss_ctx;
+
+    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+
+    return nss_setent(cli_ctx, CACHE_REQ_ENUM_IP_NETWORK, nss_ctx->netent);
+}
+
+static errno_t nss_cmd_getnetent(struct cli_ctx *cli_ctx)
+{
+    struct nss_ctx *nss_ctx;
+    struct nss_state_ctx *state_ctx;
+
+    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+
+    return nss_getent(cli_ctx, CACHE_REQ_ENUM_IP_NETWORK,
+                      &state_ctx->netent, nss_protocol_fill_netent,
+                      nss_ctx->netent);
+}
+
+static errno_t nss_cmd_endnetent(struct cli_ctx *cli_ctx)
+{
+    struct nss_state_ctx *state_ctx;
+
+    state_ctx = talloc_get_type(cli_ctx->state_ctx, struct nss_state_ctx);
+
+    return nss_endent(cli_ctx, &state_ctx->netent);
+}
+
 struct sss_cmd_table *get_nss_cmds(void)
 {
     static struct sss_cmd_table nss_cmds[] = {
@@ -1376,6 +1408,9 @@ struct sss_cmd_table *get_nss_cmds(void)
         { SSS_NSS_ENDHOSTENT, nss_cmd_endhostent },
         { SSS_NSS_GETNETBYNAME, nss_cmd_getnetbyname },
         { SSS_NSS_GETNETBYADDR, nss_cmd_getnetbyaddr },
+        { SSS_NSS_SETNETENT, nss_cmd_setnetent },
+        { SSS_NSS_GETNETENT, nss_cmd_getnetent },
+        { SSS_NSS_ENDNETENT, nss_cmd_endnetent },
         { SSS_CLI_NULL, NULL }
     };
 
