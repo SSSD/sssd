@@ -533,6 +533,11 @@ class SSSDOptions(object):
         'ldap_iphost_name': _('IP host name attribute'),
         'ldap_iphost_number': _('IP host number (address) attribute'),
         'ldap_iphost_entry_usn': _('IP host entryUSN attribute'),
+        'ldap_ipnetwork_search_base': _('Base DN for IP networks lookups'),
+        'ldap_ipnetwork_object_class': _('Object class for IP networks'),
+        'ldap_ipnetwork_name': _('IP network name attribute'),
+        'ldap_ipnetwork_number': _('IP network number (address) attribute'),
+        'ldap_ipnetwork_entry_usn': _('IP network entryUSN attribute'),
 
         # [provider/simple/access]
         'simple_allow_users': _('Comma separated list of allowed users'),

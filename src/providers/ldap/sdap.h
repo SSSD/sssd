@@ -176,6 +176,7 @@ enum sdap_basic_opt {
     SDAP_AUTOFS_SEARCH_BASE,
     SDAP_AUTOFS_MAP_MASTER_NAME,
     SDAP_IPHOST_SEARCH_BASE,
+    SDAP_IPNETWORK_SEARCH_BASE,
     SDAP_SCHEMA,
     SDAP_PWMODIFY_MODE,
     SDAP_OFFLINE_TIMEOUT,
@@ -376,6 +377,15 @@ enum sdap_iphost_entry_attrs {
     SDAP_OPTS_IPHOST /* attrs counter */
 };
 
+enum sdap_ipnetwork_entry_attrs {
+    SDAP_OC_IPNETWORK = 0,
+    SDAP_AT_IPNETWORK_NAME,
+    SDAP_AT_IPNETWORK_NUMBER,
+    SDAP_AT_IPNETWORK_USN,
+
+    SDAP_OPTS_IPNETWORK /* attrs counter */
+};
+
 enum sdap_autofs_map_attrs {
     SDAP_OC_AUTOFS_MAP,
     SDAP_AT_AUTOFS_MAP_NAME,
@@ -438,6 +448,7 @@ struct sdap_domain {
     struct sdap_search_base **sudo_search_bases;
     struct sdap_search_base **service_search_bases;
     struct sdap_search_base **iphost_search_bases;
+    struct sdap_search_base **ipnetwork_search_bases;
     struct sdap_search_base **autofs_search_bases;
 
     struct sdap_domain *next, *prev;
@@ -480,6 +491,7 @@ struct sdap_options {
     struct sdap_attr_map *host_map;
     struct sdap_attr_map *service_map;
     struct sdap_attr_map *iphost_map;
+    struct sdap_attr_map *ipnetwork_map;
 
     /* ID-mapping support */
     struct sdap_idmap_ctx *idmap_ctx;
