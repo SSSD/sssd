@@ -826,3 +826,44 @@ done:
     talloc_zfree(msg);
     return ret;
 }
+
+errno_t
+sysdb_enumnetent(TALLOC_CTX *mem_ctx,
+                 struct sss_domain_info *domain,
+                 struct ldb_result **_res)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    static const char *attrs[] = {
+        SYSDB_NAME,
+        SYSDB_NAME_ALIAS,
+        SYSDB_IP_NETWORK_ATTR_NUMBER,
+        NULL,
+    };
+    struct ldb_result *res = NULL;
+    struct ldb_message **msgs;
+    size_t msgs_count;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_ipnetworks(tmp_ctx, domain, "", attrs,
+                                  &msgs_count, &msgs);
+    if (ret == EOK) {
+        res = talloc_zero(mem_ctx, struct ldb_result);
+        if (res == NULL) {
+            ret = ENOMEM;
+            goto done;
+	}
+        res->count = msgs_count;
+        res->msgs = talloc_steal(res, msgs);
+    }
+
+    *_res = res;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
