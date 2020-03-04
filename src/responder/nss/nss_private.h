@@ -60,6 +60,7 @@ struct nss_state_ctx {
     struct nss_enum_index svcent;
     struct nss_enum_index netgrent;
     struct nss_enum_index hostent;
+    struct nss_enum_index netent;
 
     const char *netgroup;
 };
@@ -83,6 +84,7 @@ struct nss_ctx {
     struct nss_enum_ctx *grent;
     struct nss_enum_ctx *svcent;
     struct nss_enum_ctx *hostent;
+    struct nss_enum_ctx *netent;
     hash_table_t *netgrent;
 
     /* Memory cache. */

@@ -156,6 +156,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_ENUM_GROUPS:
     case CACHE_REQ_ENUM_SVC:
     case CACHE_REQ_ENUM_HOST:
+    case CACHE_REQ_ENUM_IP_NETWORK:
         break;
     case CACHE_REQ_SVC_BY_NAME:
         if (input->svc.name->input == NULL) {
