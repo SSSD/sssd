@@ -714,5 +714,11 @@ errno_t sssm_ad_resolver_init(TALLOC_CTX *mem_ctx,
                   struct sdap_resolver_ctx,
                   struct dp_resolver_data, struct dp_reply_std);
 
+    dp_set_method(dp_methods, DPM_RESOLVER_IP_NETWORK_HANDLER,
+                  sdap_ipnetwork_handler_send, sdap_ipnetwork_handler_recv,
+                  init_ctx->resolver_ctx->sdap_resolver_ctx,
+                  struct sdap_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
     return EOK;
 }

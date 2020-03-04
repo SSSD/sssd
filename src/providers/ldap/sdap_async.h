@@ -392,6 +392,24 @@ enum_iphosts_send(TALLOC_CTX *memctx,
 errno_t
 enum_iphosts_recv(struct tevent_req *req);
 
+struct tevent_req *
+sdap_get_ipnetwork_send(TALLOC_CTX *memctx,
+                        struct tevent_context *ev,
+                        struct sss_domain_info *dom,
+                        struct sysdb_ctx *sysdb,
+                        struct sdap_options *opts,
+                        struct sdap_search_base **search_bases,
+                        struct sdap_handle *sh,
+                        const char **attrs,
+                        const char *filter,
+                        int timeout,
+                        bool enumeration);
+
+errno_t
+sdap_get_ipnetwork_recv(TALLOC_CTX *mem_ctx,
+                        struct tevent_req *req,
+                        char **usn_value);
+
 /* OID documented in
  * http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx
  */

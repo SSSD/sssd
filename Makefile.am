@@ -4241,6 +4241,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_opts.c \
     src/providers/ldap/sdap_access.c \
     src/providers/ldap/sdap_iphost.c \
+    src/providers/ldap/sdap_ipnetwork.c \
     src/providers/ldap/sdap_async.c \
     src/providers/ldap/sdap_async_users.c \
     src/providers/ldap/sdap_async_groups.c \
@@ -4253,6 +4254,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_async_hosts.c \
     src/providers/ldap/sdap_async_services.c \
     src/providers/ldap/sdap_async_iphost.c \
+    src/providers/ldap/sdap_async_ipnetwork.c \
     src/providers/ldap/sdap_online_check.c \
     src/providers/ldap/sdap_ad_groups.c \
     src/providers/ldap/sdap_child_helpers.c \
