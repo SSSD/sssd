@@ -1485,6 +1485,12 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                     talloc_strdup(opts->iphost_map,
                                   opts->gen_map[SDAP_AT_ENTRY_USN].name);
     }
+    if (opts->ipnetwork_map &&
+        !opts->ipnetwork_map[SDAP_AT_IPNETWORK_USN].name) {
+        opts->ipnetwork_map[SDAP_AT_IPNETWORK_USN].name =
+                    talloc_strdup(opts->ipnetwork_map,
+                                  opts->gen_map[SDAP_AT_ENTRY_USN].name);
+    }
 
     *srv_opts = so;
     return EOK;

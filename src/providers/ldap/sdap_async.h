@@ -410,6 +410,16 @@ sdap_get_ipnetwork_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
                         char **usn_value);
 
+struct tevent_req *
+enum_ipnetworks_send(TALLOC_CTX *memctx,
+                     struct tevent_context *ev,
+                     struct sdap_id_ctx *id_ctx,
+                     struct sdap_id_op *op,
+                     bool purge);
+
+errno_t
+enum_ipnetworks_recv(struct tevent_req *req);
+
 /* OID documented in
  * http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx
  */

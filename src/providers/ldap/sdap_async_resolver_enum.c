@@ -31,6 +31,8 @@ static errno_t sdap_dom_resolver_enum_retry(struct tevent_req *req,
 static bool sdap_dom_resolver_enum_connected(struct tevent_req *subreq);
 static void sdap_dom_resolver_enum_get_iphost(struct tevent_req *subreq);
 static void sdap_dom_resolver_enum_iphost_done(struct tevent_req *subreq);
+static void sdap_dom_resolver_enum_get_ipnetwork(struct tevent_req *subreq);
+static void sdap_dom_resolver_enum_ipnetwork_done(struct tevent_req *subreq);
 
 struct sdap_dom_resolver_enum_state {
     struct tevent_context *ev;
@@ -40,6 +42,7 @@ struct sdap_dom_resolver_enum_state {
 
     struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *iphost_op;
+    struct sdap_id_op *ipnetwork_op;
 
     bool purge;
 };
@@ -197,6 +200,84 @@ static void sdap_dom_resolver_enum_iphost_done(struct tevent_req *subreq)
         /* Non-recoverable error */
         DEBUG(SSSDBG_OP_FAILURE,
               "IP hosts enumeration failed: %d: %s\n", ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->ipnetwork_op = sdap_id_op_create(state, state->conn->conn_cache);
+    if (state->ipnetwork_op == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_id_op_create failed for IP networks\n");
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    ret = sdap_dom_resolver_enum_retry(req, state->ipnetwork_op,
+                                       sdap_dom_resolver_enum_get_ipnetwork);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Continues to sdap_dom_resolver_enum_get_ipnetwork */
+}
+
+static void sdap_dom_resolver_enum_get_ipnetwork(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_dom_resolver_enum_state *state;
+
+    state = tevent_req_data(req, struct sdap_dom_resolver_enum_state);
+
+    if (sdap_dom_resolver_enum_connected(subreq) == false) {
+        return;
+    }
+
+    subreq = enum_ipnetworks_send(state, state->ev,
+                                  state->id_ctx,
+                                  state->ipnetwork_op,
+                                  state->purge);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, sdap_dom_resolver_enum_ipnetwork_done, req);
+}
+
+static void sdap_dom_resolver_enum_ipnetwork_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_dom_resolver_enum_state *state;
+    errno_t ret;
+    int dp_error;
+
+    state = tevent_req_data(req, struct sdap_dom_resolver_enum_state);
+
+    ret = enum_ipnetworks_recv(subreq);
+    talloc_zfree(subreq);
+
+    ret = sdap_id_op_done(state->ipnetwork_op, ret, &dp_error);
+    if (dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = sdap_dom_resolver_enum_retry(req, state->ipnetwork_op,
+                                        sdap_dom_resolver_enum_get_ipnetwork);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+        return;
+    } else if (dp_error == DP_ERR_OFFLINE) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK && ret != ENOENT) {
+        /* Non-recoverable error */
+        DEBUG(SSSDBG_OP_FAILURE,
+              "IP networks enumeration failed: %d: %s\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }

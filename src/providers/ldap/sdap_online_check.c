@@ -105,6 +105,7 @@ static void sdap_online_check_connect_done(struct tevent_req *subreq)
             srv_opts->max_service_value = 0;
             srv_opts->max_sudo_value = 0;
             srv_opts->max_iphost_value = 0;
+            srv_opts->max_ipnetwork_value = 0;
         } else if (strcmp(srv_opts->server_id, id_ctx->srv_opts->server_id) == 0
                    && srv_opts->supports_usn
                    && id_ctx->srv_opts->last_usn > srv_opts->last_usn) {
@@ -113,6 +114,7 @@ static void sdap_online_check_connect_done(struct tevent_req *subreq)
             id_ctx->srv_opts->max_service_value = 0;
             id_ctx->srv_opts->max_sudo_value = 0;
             id_ctx->srv_opts->max_iphost_value = 0;
+            id_ctx->srv_opts->max_ipnetwork_value = 0;
             id_ctx->srv_opts->last_usn = srv_opts->last_usn;
 
             reinit = true;
