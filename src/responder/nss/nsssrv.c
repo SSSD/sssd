@@ -255,7 +255,8 @@ static int setup_memcaches(struct nss_ctx *nctx)
                          &mc_size_passwd);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get 'memcache_size_passwd' option from confdb.\n");
+              "Failed to get '"CONFDB_NSS_MEMCACHE_SIZE_PASSWD
+              "' option from confdb.\n");
         return ret;
     }
 
@@ -266,7 +267,8 @@ static int setup_memcaches(struct nss_ctx *nctx)
                          &mc_size_group);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get 'memcache_size_group' option from confdb.\n");
+              "Failed to get '"CONFDB_NSS_MEMCACHE_SIZE_GROUP
+              "' option from confdb.\n");
         return ret;
     }
 
@@ -277,7 +279,8 @@ static int setup_memcaches(struct nss_ctx *nctx)
                          &mc_size_initgroups);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to get 'memcache_size_nitgroups' option from confdb.\n");
+              "Failed to get '"CONFDB_NSS_MEMCACHE_SIZE_INITGROUPS
+              "' option from confdb.\n");
         return ret;
     }
 
@@ -291,8 +294,16 @@ static int setup_memcaches(struct nss_ctx *nctx)
                                   (time_t)memcache_timeout,
                                   &nctx->pwd_mc_ctx);
         if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "passwd mmap cache is DISABLED\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to initialize passwd mmap cache: '%s'\n",
+                  sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_CONF_SETTINGS, "Passwd mmap cache size is %d\n",
+                  mc_size_passwd);
         }
+    } else {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Passwd mmap cache is explicitly DISABLED\n");
     }
 
     if (mc_size_group != 0) {
@@ -303,8 +314,16 @@ static int setup_memcaches(struct nss_ctx *nctx)
                                   (time_t)memcache_timeout,
                                   &nctx->grp_mc_ctx);
         if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "group mmap cache is DISABLED\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to initialize group mmap cache: '%s'\n",
+                  sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_CONF_SETTINGS, "Group mmap cache size is %d\n",
+                  mc_size_group);
         }
+    } else {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Group mmap cache is explicitly DISABLED\n");
     }
 
     if (mc_size_initgroups != 0) {
@@ -315,8 +334,16 @@ static int setup_memcaches(struct nss_ctx *nctx)
                                   (time_t)memcache_timeout,
                                   &nctx->initgr_mc_ctx);
         if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "initgroups mmap cache is DISABLED\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to initialize initgroups mmap cache: '%s'\n",
+                  sss_strerror(ret));
+        } else {
+            DEBUG(SSSDBG_CONF_SETTINGS, "Initgroups mmap cache size is %d\n",
+                  mc_size_initgroups);
         }
+    } else {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Initgroups mmap cache is explicitly DISABLED\n");
     }
 
     return EOK;
