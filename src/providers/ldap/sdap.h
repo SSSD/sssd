@@ -539,6 +539,7 @@ struct sdap_server_opts {
     char *max_service_value;
     char *max_sudo_value;
     char *max_iphost_value;
+    char *max_ipnetwork_value;
 };
 
 struct sdap_id_ctx;
