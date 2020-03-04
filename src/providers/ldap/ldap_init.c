@@ -739,5 +739,10 @@ errno_t sssm_ldap_resolver_init(TALLOC_CTX *mem_ctx,
                   init_ctx->resolver_ctx, struct sdap_resolver_ctx,
                   struct dp_resolver_data, struct dp_reply_std);
 
+    dp_set_method(dp_methods, DPM_RESOLVER_IP_NETWORK_HANDLER,
+                  sdap_ipnetwork_handler_send, sdap_ipnetwork_handler_recv,
+                  init_ctx->resolver_ctx, struct sdap_resolver_ctx,
+                  struct dp_resolver_data, struct dp_reply_std);
+
     return EOK;
 }
