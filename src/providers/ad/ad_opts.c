@@ -25,6 +25,7 @@
 #include "db/sysdb_autofs.h"
 #include "db/sysdb_sudo.h"
 #include "db/sysdb_iphosts.h"
+#include "db/sysdb_ipnetworks.h"
 #include "providers/ldap/ldap_common.h"
 #include "config.h"
 
@@ -91,6 +92,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_autofs_map_master_name", DP_OPT_STRING, { "auto.master" }, NULL_STRING },
     { "ldap_iphost_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_ipnetwork_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ad" }, NULL_STRING },
     { "ldap_pwmodify_mode", DP_OPT_STRING, { "exop" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
@@ -287,6 +289,14 @@ struct sdap_attr_map ad_iphost_map[] = {
     { "ldap_iphost_name", "cn", SYSDB_NAME, NULL },
     { "ldap_iphost_number", "ipHostNumber", SYSDB_IP_HOST_ATTR_ADDRESS, NULL },
     { "ldap_iphost_entry_usn", NULL, SYSDB_USN, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map ad_ipnetwork_map[] = {
+    { "ldap_ipnetwork_object_class", "ipNetwork", SYSDB_IP_NETWORK_CLASS, NULL },
+    { "ldap_ipnetwork_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_ipnetwork_number", "ipNetworkNumber", SYSDB_IP_NETWORK_ATTR_NUMBER, NULL },
+    { "ldap_ipnetwork_entry_usn", NULL, SYSDB_USN, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
