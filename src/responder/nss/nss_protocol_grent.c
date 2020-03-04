@@ -292,16 +292,17 @@ nss_protocol_fill_grent(struct nss_ctx *nss_ctx,
         num_results++;
 
         /* Do not store entry in memory cache during enumeration or when
-         * requested. */
+         * requested or if cache explicitly disabled. */
         if (!cmd_ctx->enumeration
-                && (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0) {
+                && ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0)
+                && (nss_ctx->grp_mc_ctx != NULL)) {
             members = (char *)&body[rp_members];
             members_size = body_len - rp_members;
             ret = sss_mmap_cache_gr_store(&nss_ctx->grp_mc_ctx, name, &pwfield,
                                           gid, num_members, members,
                                           members_size);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
+                DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to store group %s (%s) in mem-cache [%d]: %s!\n",
                       name->str, result->domain->name, ret, sss_strerror(ret));
             }
@@ -423,7 +424,8 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
     }
 
     if (nss_ctx->initgr_mc_ctx
-                && (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0) {
+                && ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0)
+                && (nss_ctx->initgr_mc_ctx != NULL)) {
         to_sized_string(&rawname, cmd_ctx->rawname);
         to_sized_string(&unique_name, result->lookup_name);
 
@@ -431,7 +433,7 @@ nss_protocol_fill_initgr(struct nss_ctx *nss_ctx,
                                           &unique_name, num_results,
                                           body + 2 * sizeof(uint32_t));
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
+            DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to store initgroups %s (%s) in mem-cache [%d]: %s!\n",
                   rawname.str, domain->name, ret, sss_strerror(ret));
             sss_packet_set_size(packet, 0);
