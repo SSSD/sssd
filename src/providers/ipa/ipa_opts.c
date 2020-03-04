@@ -98,6 +98,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_autofs_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_autofs_map_master_name", DP_OPT_STRING, { "auto.master" }, NULL_STRING },
     { "ldap_iphost_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_ipnetwork_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "ipa_v1" }, NULL_STRING },
     { "ldap_pwmodify_mode", DP_OPT_STRING, { "exop" }, NULL_STRING },
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
