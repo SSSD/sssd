@@ -331,6 +331,17 @@ sdap_iphost_handler_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
                          struct dp_reply_std *data);
 
+struct tevent_req *
+sdap_ipnetwork_handler_send(TALLOC_CTX *mem_ctx,
+                            struct sdap_resolver_ctx *resolver_ctx,
+                            struct dp_resolver_data *resolver_data,
+                            struct dp_req_params *params);
+
+errno_t
+sdap_ipnetwork_handler_recv(TALLOC_CTX *mem_ctx,
+                            struct tevent_req *req,
+                            struct dp_reply_std *data);
+
 /* setup child logging */
 int sdap_setup_child(void);
 
