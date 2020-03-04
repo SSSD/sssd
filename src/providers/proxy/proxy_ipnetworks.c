@@ -367,6 +367,174 @@ done:
     return ret;
 }
 
+
+static errno_t
+getnetent_internal(struct proxy_resolver_ctx *ctx,
+                   struct sss_domain_info *domain,
+                   TALLOC_CTX *mem_ctx,
+                   char **out_name,
+                   char **out_address,
+                   char ***out_aliases)
+
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *buffer = NULL;
+    size_t buflen = DEFAULT_BUFSIZE;
+    enum nss_status status;
+    struct netent *result = NULL;
+    char *name = NULL;
+    char *address = NULL;
+    char **aliases = NULL;
+    int err;
+    int h_err;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    result = talloc_zero(tmp_ctx, struct netent);
+    if (result == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (status = NSS_STATUS_TRYAGAIN,
+         err = ERANGE, h_err = 0;
+         status == NSS_STATUS_TRYAGAIN && err == ERANGE;
+         buflen *= 2)
+    {
+        buffer = talloc_realloc_size(tmp_ctx, buffer, buflen);
+        if (buffer == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        status = ctx->ops.getnetent_r(result,
+                                      buffer, buflen,
+                                      &err, &h_err);
+    }
+
+    ret = nss_status_to_errno(status);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+            "getnetent_r failed: %d, %s, %s.\n",
+            status, strerror(err), hstrerror(h_err));
+        goto done;
+    }
+
+    if (ret == EOK) {
+        ret = parse_netent(tmp_ctx, result, domain->case_sensitive,
+                           &name, &aliases, &address);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to parse netent [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    if (name != NULL) {
+        *out_name = talloc_steal(mem_ctx, name);
+    }
+    if (address != NULL) {
+        *out_address = talloc_steal(mem_ctx, address);
+    }
+    if (aliases != NULL) {
+        *out_aliases = talloc_steal(mem_ctx, aliases);
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t
+enum_ipnetworks(struct proxy_resolver_ctx *ctx,
+                struct sss_domain_info *domain)
+{
+    struct sysdb_ctx *sysdb = domain->sysdb;
+    TALLOC_CTX *tmp_ctx = NULL;
+    bool in_transaction = false;
+    enum nss_status status;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Enumerating IP networks\n");
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
+        goto done;
+    }
+    in_transaction = true;
+
+    status = ctx->ops.setnetent();
+    if (status != NSS_STATUS_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    do {
+        char *name = NULL;
+        char *address = NULL;
+        char **aliases = NULL;
+
+        ret = getnetent_internal(ctx, domain, tmp_ctx, &name,
+                                 &address, &aliases);
+        if (ret == EOK) {
+            /* Results found. Save them into the cache */
+            DEBUG(SSSDBG_TRACE_INTERNAL, "IP network [%s] found, saving into "
+                  "cache\n", name);
+
+            proxy_save_ipnetwork(domain, !domain->case_sensitive,
+                                 domain->resolver_timeout,
+                                 name, aliases, address);
+        }
+
+        /* Free children to avoid using too much memory */
+        talloc_free_children(tmp_ctx);
+    } while (ret == EOK);
+
+    if (ret == ENOENT) {
+        /* We are done, commit transaction and stop loop */
+        DEBUG(SSSDBG_TRACE_FUNC, "IP networks enumeration completed.\n");
+        ret = sysdb_transaction_commit(sysdb);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
+            goto done;
+        }
+        in_transaction = false;
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "getnetent_r failed [%d]: %s\n",
+              ret, strerror(ret));
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    if (in_transaction) {
+        errno_t sret;
+
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not cancel transaction! [%s]\n",
+                   strerror(sret));
+        }
+    }
+    ctx->ops.endnetent();
+    return ret;
+}
+
 static struct dp_reply_std
 proxy_nets_info(TALLOC_CTX *mem_ctx,
                 struct proxy_resolver_ctx *ctx,
@@ -390,8 +558,8 @@ proxy_nets_info(TALLOC_CTX *mem_ctx,
         break;
 
     case BE_FILTER_ENUM:
-        /* TODO */
-        /* FALLTHROUGH */
+        ret = enum_ipnetworks(ctx, domain);
+        break;
 
     default:
         dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
