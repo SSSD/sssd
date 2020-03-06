@@ -44,6 +44,7 @@
 #define _(STRING) dgettext (PACKAGE, STRING)
 #include "sss_cli.h"
 #include "common_private.h"
+#include "util/util_errors.h"
 
 #if HAVE_PTHREAD
 #include <pthread.h>
@@ -1054,9 +1055,17 @@ int sss_autofs_make_request(enum sss_cli_command cmd,
                             uint8_t **repbuf, size_t *replen,
                             int *errnop)
 {
-    return sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
-                                            repbuf, replen, errnop,
-                                            SSS_AUTOFS_SOCKET_NAME);
+    enum sss_status status;
+
+    status = sss_cli_make_request_with_checks(cmd, rd, SSS_CLI_SOCKET_TIMEOUT,
+                                              repbuf, replen, errnop,
+                                              SSS_AUTOFS_SOCKET_NAME);
+
+    if (*errnop == ERR_OFFLINE) {
+        *errnop = EHOSTDOWN;
+    }
+
+    return status;
 }
 
 int sss_ssh_make_request(enum sss_cli_command cmd,
