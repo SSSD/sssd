@@ -455,6 +455,18 @@ cache_req_data_set_requested_domains(struct cache_req_data *data,
     data->requested_domains = requested_domains;
 }
 
+void
+cache_req_data_set_propogate_offline_status(struct cache_req_data *data,
+                                            bool propogate_offline_status)
+{
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_data should never be NULL\n");
+        return;
+    }
+
+    data->propogate_offline_status = propogate_offline_status;
+}
+
 enum cache_req_type
 cache_req_data_get_type(struct cache_req_data *data)
 {
