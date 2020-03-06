@@ -103,6 +103,9 @@ struct cache_req_data {
 
     /* if set, only search in the listed domains */
     char **requested_domains;
+
+    /* if set, ERR_OFFLINE is returned if data provider is offline */
+    bool propogate_offline_status;
 };
 
 struct tevent_req *
