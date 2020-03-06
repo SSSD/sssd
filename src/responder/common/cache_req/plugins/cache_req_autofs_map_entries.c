@@ -168,6 +168,8 @@ cache_req_autofs_map_entries_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    cache_req_data_set_propogate_offline_status(data, true);
+
     return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
                                          cache_refresh_percent,
                                          CACHE_REQ_POSIX_DOM, domain,
