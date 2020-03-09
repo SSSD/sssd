@@ -26,12 +26,11 @@
 #include "util/child_common.h"
 #include "util/strtonum.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/pam/pam_helpers.h"
 #include "lib/certmap/sss_certmap.h"
 #include "util/crypto/sss_crypto.h"
 #include "db/sysdb.h"
 
-
-#define CERT_AUTH_DEFAULT_MATCHING_RULE "KRB5:<EKU>clientAuth"
 
 struct cert_auth_info {
     char *cert;
