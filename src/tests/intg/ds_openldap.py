@@ -276,7 +276,7 @@ class DSOpenLDAP(DS):
             ("objectClass", b"organizationalRole"),
         ])
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies",
-                   "Hosts"):
+                   "Hosts", "Networks"):
             ldap_conn.add_s("ou=" + ou + "," + self.base_dn, [
                 ("objectClass", [b"top", b"organizationalUnit"]),
             ])
