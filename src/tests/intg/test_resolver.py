@@ -34,6 +34,7 @@ import ldap_ent
 from util import unindent
 from sssd_nss import NssReturnCode, HostError
 from sssd_hosts import call_sssd_gethostbyname
+from sssd_nets import call_sssd_getnetbyname, call_sssd_getnetbyaddr
 
 LDAP_BASE_DN = "dc=example,dc=com"
 
@@ -75,7 +76,7 @@ def cleanup_ldap_entries(ldap_conn, ent_list=None):
     """Remove LDAP entries added by create_ldap_entries"""
     if ent_list is None:
         for ou in ("Users", "Groups", "Netgroups", "Services", "Policies",
-                   "Hosts"):
+                   "Hosts", "Networks"):
             for entry in ldap_conn.search_s("ou=" + ou + "," +
                                             ldap_conn.ds_inst.base_dn,
                                             ldap.SCOPE_ONELEVEL,
@@ -107,6 +108,7 @@ def format_basic_conf(ldap_conn, schema):
     if schema == SCHEMA_RFC2307_BIS:
         schema_conf += "ldap_group_object_class = groupOfNames\n"
     iphost_search_base = "ou=Hosts," + ldap_conn.ds_inst.base_dn
+    ipnetwork_search_base = "ou=Networks," + ldap_conn.ds_inst.base_dn
     return unindent("""\
         [sssd]
         debug_level         = 0xffff
@@ -127,7 +129,8 @@ def format_basic_conf(ldap_conn, schema):
         resolver_provider   = ldap
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
-        {iphost_search_base}
+        ldap_iphost_search_base = {iphost_search_base}
+        ldap_ipnetwork_search_base = {ipnetwork_search_base}
     """).format(**locals())
 
 
@@ -221,6 +224,22 @@ def add_hosts(request, ldap_conn):
     return None
 
 
+@pytest.fixture
+def add_nets(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+
+    ent_list.add_ipnet("net1", "192.168.1.1",
+                       aliases=["net1_alias1", "net1_alias2"])
+    ent_list.add_ipnet("net2", "10.2.2.2",
+                       aliases=["net2_alias1", "net2_alias2"])
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307)
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
 def test_hostbyname(add_hosts):
     (res, hres, _) = call_sssd_gethostbyname("invalid")
 
@@ -256,5 +275,45 @@ def test_hostbyname(add_hosts):
     assert hres == 0
 
     (res, hres, _) = call_sssd_gethostbyname("host2_alias2.example.com")
+    assert res == NssReturnCode.SUCCESS
+    assert hres == 0
+
+
+def test_netbyname(add_nets):
+    (res, hres, _) = call_sssd_getnetbyname("invalid")
+    assert res == NssReturnCode.NOTFOUND
+    assert hres == HostError.HOST_NOT_FOUND
+
+    (res, hres, _) = call_sssd_getnetbyname("net1")
+    assert res == NssReturnCode.SUCCESS
+    assert hres == 0
+
+    (res, hres, _) = call_sssd_getnetbyname("net1_alias1")
+    assert res == NssReturnCode.SUCCESS
+    assert hres == 0
+
+    (res, hres, _) = call_sssd_getnetbyname("net1_alias2")
+    assert res == NssReturnCode.SUCCESS
+    assert hres == 0
+
+    (res, hres, _) = call_sssd_getnetbyname("net2")
+    assert res == NssReturnCode.SUCCESS
+    assert hres == 0
+
+    (res, hres, _) = call_sssd_getnetbyname("net2_alias1")
+    assert res == NssReturnCode.SUCCESS
+    assert hres == 0
+
+    (res, hres, _) = call_sssd_getnetbyname("net2_alias2")
+    assert res == NssReturnCode.SUCCESS
+    assert hres == 0
+
+
+def test_netbyaddr(add_nets):
+    (res, hres, _) = call_sssd_getnetbyname("10.2.2.1")
+    assert res == NssReturnCode.NOTFOUND
+    assert hres == HostError.HOST_NOT_FOUND
+
+    (res, hres, _) = call_sssd_getnetbyaddr("10.2.2.2")
     assert res == NssReturnCode.SUCCESS
     assert hres == 0
