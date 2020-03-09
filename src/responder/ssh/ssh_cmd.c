@@ -29,6 +29,7 @@
 #include "responder/common/responder.h"
 #include "responder/common/cache_req/cache_req.h"
 #include "responder/ssh/ssh_private.h"
+#include "responder/pam/pam_helpers.h"
 #include "lib/certmap/sss_certmap.h"
 
 struct ssh_cmd_ctx {
@@ -159,6 +160,7 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
     bool rule_added;
     bool all_rules = false;
     bool no_rules = false;
+    bool rules_present = false;
 
     ssh_ctx->cert_rules_error = false;
 
@@ -195,6 +197,7 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
         }
 
         for (c = 0; certmap_list[c] != NULL; c++) {
+            rules_present = true;
 
             if (!all_rules && !string_in_list(certmap_list[c]->name,
                                               ssh_ctx->cert_rules, true)) {
@@ -227,12 +230,27 @@ static errno_t ssh_cmd_refresh_certmap_ctx(struct ssh_ctx *ssh_ctx,
     }
 
     if (!rule_added) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "No matching rule added, please check "
-              "ssh_use_certificate_matching_rules option values for typos .\n");
+        if (!rules_present) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "No rules available, trying to add default matching rule.\n");
+            ret = sss_certmap_add_rule(sss_certmap_ctx, SSS_CERTMAP_MIN_PRIO,
+                                       CERT_AUTH_DEFAULT_MATCHING_RULE,
+                                       NULL, NULL);
+            if (ret != 0) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to add default matching rule [%d][%s].\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
+        } else {
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "No matching rule added, please check "
+                  "ssh_use_certificate_matching_rules option values for "
+                  "typos.\n");
 
-        ret = EINVAL;
-        goto done;
+            ret = EINVAL;
+            goto done;
+        }
     }
 
     ret = EOK;
