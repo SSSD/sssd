@@ -769,6 +769,62 @@ void test_ssh_user_pubkey_cert_with_all_rules(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_ssh_user_pubkey_cert_with_all_rules_but_no_rules_present(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    /* Both rules are enabled, both certificates should be handled. */
+    const char *rule_list[] = { "all_rules", NULL };
+
+    attrs = sysdb_new_attrs(ssh_test_ctx);
+    assert_non_null(attrs);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SSH_PUBKEY, TEST_SSH_PUBKEY);
+    assert_int_equal(ret, EOK);
+    ret = sysdb_attrs_add_base64_blob(attrs, SYSDB_USER_CERT,
+                                      SSSD_TEST_CERT_0001);
+    assert_int_equal(ret, EOK);
+    ret = sysdb_attrs_add_base64_blob(attrs, SYSDB_USER_CERT,
+                                      SSSD_TEST_CERT_0002);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(ssh_test_ctx->tctx->dom,
+                              ssh_test_ctx->ssh_user_fqdn,
+                              attrs,
+                              LDB_FLAG_MOD_ADD);
+    talloc_free(attrs);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user(ssh_test_ctx, ssh_test_ctx->ssh_user_fqdn);
+    will_return(__wrap_sss_packet_get_cmd, SSS_SSH_GET_USER_PUBKEYS);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Enable certificate support */
+    ssh_test_ctx->ssh_ctx->use_cert_keys = true;
+    ssh_test_ctx->ssh_ctx->rctx->domains->certmaps = NULL;
+    ssh_test_ctx->ssh_ctx->certmap_last_read = 0;
+    ssh_test_ctx->ssh_ctx->rctx->get_domains_last_call.tv_sec = 1;
+    ssh_test_ctx->ssh_ctx->cert_rules = discard_const(rule_list);
+#ifdef HAVE_NSS
+    ssh_test_ctx->ssh_ctx->ca_db = discard_const("sql:" ABS_BUILD_DIR
+                                                "/src/tests/test_CA/p11_nssdb");
+#else
+    ssh_test_ctx->ssh_ctx->ca_db = discard_const(ABS_BUILD_DIR
+                                                "/src/tests/test_CA/SSSD_test_CA.pem");
+#endif
+
+    set_cmd_cb(test_ssh_user_pubkey_cert_check);
+    ret = sss_cmd_execute(ssh_test_ctx->cctx, SSS_SSH_GET_USER_PUBKEYS,
+                          ssh_test_ctx->ssh_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(ssh_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_ssh_user_pubkey_cert_with_no_rules(void **state)
 {
     int ret;
@@ -965,6 +1021,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_ssh_user_pubkey_cert_with_rule,
                                         ssh_test_setup, ssh_test_teardown),
         cmocka_unit_test_setup_teardown(test_ssh_user_pubkey_cert_with_all_rules,
+                                        ssh_test_setup, ssh_test_teardown),
+        cmocka_unit_test_setup_teardown(test_ssh_user_pubkey_cert_with_all_rules_but_no_rules_present,
                                         ssh_test_setup, ssh_test_teardown),
         cmocka_unit_test_setup_teardown(test_ssh_user_pubkey_cert_with_no_rules,
                                         ssh_test_setup, ssh_test_teardown),
