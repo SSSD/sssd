@@ -467,7 +467,7 @@ static int sbus_auto_reconnect(struct sbus_connection *conn)
     struct timeval tv;
 
     conn->retries++;
-    if (conn->retries >= conn->max_retries) {
+    if (conn->retries > conn->max_retries) {
         /* Return EIO (to tell the calling process it
          * needs to create a new connection from scratch
          */
