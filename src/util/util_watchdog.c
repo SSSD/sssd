@@ -71,7 +71,7 @@ static void watchdog_handler(int sig)
     watchdog_detect_timeshift();
 
     /* if a pre-defined number of ticks passed by kills itself */
-    if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) > WATCHDOG_MAX_TICKS) {
+    if (__sync_add_and_fetch(&watchdog_ctx.ticks, 1) >= WATCHDOG_MAX_TICKS) {
         if (getpid() == getpgrp()) {
             kill(-getpgrp(), SIGTERM);
         }
