@@ -1438,7 +1438,7 @@ static void test_sysdb_search_with_ts(void **state)
                                     test_ctx->tctx->dom,
                                     base_dn,
                                     LDB_SCOPE_SUBTREE,
-                                    0,
+                                    SYSDB_CACHE_TYPE_NONE,
                                     SYSDB_NAME"=*",
                                     attrs,
                                     &res);
@@ -1523,7 +1523,7 @@ static void test_sysdb_search_with_ts(void **state)
                                     test_ctx->tctx->dom,
                                     base_dn,
                                     LDB_SCOPE_SUBTREE,
-                                    0,
+                                    SYSDB_CACHE_TYPE_NONE,
                                     filter,
                                     attrs,
                                     &res);
@@ -1552,7 +1552,7 @@ static void test_sysdb_search_with_ts(void **state)
                                     test_ctx->tctx->dom,
                                     base_dn,
                                     LDB_SCOPE_SUBTREE,
-                                    SYSDB_SEARCH_WITH_TS_ONLY_TS_FILTER,
+                                    SYSDB_CACHE_TYPE_TIMESTAMP,
                                     filter,
                                     attrs,
                                     &res);
@@ -1571,7 +1571,7 @@ static void test_sysdb_search_with_ts(void **state)
                                     test_ctx->tctx->dom,
                                     base_dn,
                                     LDB_SCOPE_SUBTREE,
-                                    SYSDB_SEARCH_WITH_TS_ONLY_SYSDB_FILTER,
+                                    SYSDB_CACHE_TYPE_PERSISTENT,
                                     filter,
                                     attrs,
                                     &res);
@@ -1596,7 +1596,7 @@ static void test_sysdb_search_with_ts(void **state)
                                     test_ctx->tctx->dom,
                                     base_dn,
                                     LDB_SCOPE_SUBTREE,
-                                    0,
+                                    SYSDB_CACHE_TYPE_NONE,
                                     filter,
                                     attrs,
                                     &res);

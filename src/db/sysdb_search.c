@@ -639,7 +639,7 @@ errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *domain,
                                   struct ldb_dn *base_dn,
                                   enum ldb_scope scope,
-                                  int optflags,
+                                  enum sysdb_cache_type search_cache,
                                   const char *filter,
                                   const char *attrs[],
                                   struct ldb_result **_res)
@@ -666,7 +666,8 @@ errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (optflags & SYSDB_SEARCH_WITH_TS_ONLY_SYSDB_FILTER) {
+    switch (search_cache) {
+    case SYSDB_CACHE_TYPE_PERSISTENT: {
         /* We only care about searching the persistent db */
         ts_cache_res = talloc_zero(tmp_ctx, struct ldb_result);
         if (ts_cache_res == NULL) {
@@ -675,7 +676,14 @@ errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
         }
         ts_cache_res->count = 0;
         ts_cache_res->msgs = NULL;
-    } else {
+
+        break;
+    }
+
+    case SYSDB_CACHE_TYPE_TIMESTAMP:
+        /* FALLTHOUGH*/
+        SSS_ATTRIBUTE_FALLTHROUGH;
+    default: {
         /* Because the timestamp database does not contain all the
          * attributes, we need to search the persistent db for each
          * of the entries found and merge the results
@@ -708,9 +716,13 @@ errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
         if (ret != EOK) {
             goto done;
         }
+
+        break;
+    }
     }
 
-    if (optflags & SYSDB_SEARCH_WITH_TS_ONLY_TS_FILTER) {
+    switch (search_cache) {
+    case SYSDB_CACHE_TYPE_TIMESTAMP: {
         /* The filter only contains timestamp attrs, no need to search the
          * persistent db
          */
@@ -718,7 +730,14 @@ errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
             res->count = ts_cache_res->count;
             res->msgs = talloc_steal(res, ts_cache_res->msgs);
         }
-    } else {
+
+        break;
+    }
+
+    case SYSDB_CACHE_TYPE_PERSISTENT:
+        /* FALLTHOUGH*/
+        SSS_ATTRIBUTE_FALLTHROUGH;
+    default: {
         /* Because some of the attributes being searched might exist in the persistent
          * database only, we also search the persistent db
          */
@@ -738,6 +757,9 @@ errno_t sysdb_search_with_ts_attr(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
+
+        break;
+    }
     }
 
     *_res = talloc_steal(mem_ctx, res);
