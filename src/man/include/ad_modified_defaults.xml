@@ -40,7 +40,7 @@
             </listitem>
             <listitem>
                 <para>
-                    ldap_sasl_mech = gssapi
+                    ldap_sasl_mech = GSS-SPNEGO
                 </para>
             </listitem>
             <listitem>

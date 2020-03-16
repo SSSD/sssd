@@ -106,7 +106,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_tls_cipher_suite", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_id_use_start_tls", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_id_mapping", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
-    { "ldap_sasl_mech", DP_OPT_STRING, { "gssapi" }, NULL_STRING },
+    { "ldap_sasl_mech", DP_OPT_STRING, { "GSS-SPNEGO" }, NULL_STRING },
     { "ldap_sasl_authid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sasl_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_sasl_minssf", DP_OPT_NUMBER, { .number = -1 }, NULL_NUMBER },
