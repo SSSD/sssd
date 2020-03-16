@@ -1101,11 +1101,11 @@ done:
     return;
 }
 
-void ad_set_ssf_for_ldaps(struct sdap_options *id_opts)
+void ad_set_ssf_and_mech_for_ldaps(struct sdap_options *id_opts)
 {
     int ret;
 
-    DEBUG(SSSDBG_TRACE_ALL, "Setting ssf for ldaps usage.\n");
+    DEBUG(SSSDBG_TRACE_ALL, "Setting ssf and mech for ldaps usage.\n");
     ret = dp_opt_set_int(id_opts->basic, SDAP_SASL_MINSSF, 0);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1115,6 +1115,17 @@ void ad_set_ssf_for_ldaps(struct sdap_options *id_opts)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to set SASL maxssf for ldaps usage, ignored.\n");
+    }
+
+    /* There is an issue in cyrus-sasl with respect to GSS-SPNEGO and
+     * maxssf==0. Until the fix
+     * https://github.com/cyrusimap/cyrus-sasl/pull/603 is widely used we
+     * switch to GSSAPI by default when using AD with LDAPS where maxssf==0 is
+     * required. */
+    ret = dp_opt_set_string(id_opts->basic, SDAP_SASL_MECH, "GSSAPI");
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set SASL mech for ldaps usage, ignored.\n");
     }
 }
 
@@ -1177,7 +1188,7 @@ ad_set_sdap_options(struct ad_options *ad_opts,
     }
 
     if (dp_opt_get_bool(ad_opts->basic, AD_USE_LDAPS)) {
-        ad_set_ssf_for_ldaps(id_opts);
+        ad_set_ssf_and_mech_for_ldaps(id_opts);
     }
 
     /* Warn if the user is doing something silly like overriding the schema
