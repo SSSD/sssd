@@ -1654,7 +1654,7 @@ msgstr "Afficher le numéro de version et quitte"
 
 #: src/monitor/monitor.c:2630
 msgid "SSSD is already running\n"
-msgstr "SSSD déjà en cours d'exécution"
+msgstr "SSSD déjà en cours d'exécution\n"
 
 #: src/providers/krb5/krb5_child.c:3229 src/providers/ldap/ldap_child.c:605
 msgid "Debug level"
@@ -2422,7 +2422,7 @@ msgid ""
 "only accept a single provided argument.\n"
 msgstr ""
 "Argument(s) fournis non attendus, options invalidant un objet simple "
-"n'acceptent qu'un seul argument fourni."
+"n'acceptent qu'un seul argument fourni.\n"
 
 #: src/tools/sss_cache.c:804
 msgid "Please select at least one object to invalidate\n"
@@ -2476,17 +2476,17 @@ msgstr "résultat non valide"
 #: src/tools/sssctl/sssctl.c:78
 #, c-format
 msgid "Unable to read user input\n"
-msgstr "Impossible de lire les données de l'utilisateur"
+msgstr "Impossible de lire les données de l'utilisateur\n"
 
 #: src/tools/sssctl/sssctl.c:91
 #, c-format
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
-msgstr "Données non valides, veuillez fournir « %s » ou « %s »."
+msgstr "Données non valides, veuillez fournir « %s » ou « %s ».\n"
 
 #: src/tools/sssctl/sssctl.c:109 src/tools/sssctl/sssctl.c:114
 #, c-format
 msgid "Error while executing external command\n"
-msgstr "Erreur lors de l'exécution de la commande externe"
+msgstr "Erreur lors de l'exécution de la commande externe\n"
 
 #: src/tools/sssctl/sssctl.c:156
 msgid "SSSD needs to be running. Start SSSD now?"
@@ -2532,7 +2532,7 @@ msgstr "Mise en cache dans InfoPipe"
 #: src/tools/sssctl/sssctl_cache.c:512
 #, c-format
 msgid "Error: Unable to get object [%d]: %s\n"
-msgstr "Erreur : impossible d'obtenir l'objet  [%d]: %s"
+msgstr "Erreur : impossible d'obtenir l'objet  [%d]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:528
 #, c-format
@@ -2579,7 +2579,7 @@ msgid ""
 "File ownership and permissions check failed. Expected root:root and 0600.\n"
 msgstr ""
 "La vérification de la propriété et des permissions des fichiers ont échoué. "
-"Résultat attendu root:root et 0600."
+"Résultat attendu root:root et 0600.\n"
 
 #: src/tools/sssctl/sssctl_config.c:104
 #, c-format
@@ -2589,12 +2589,12 @@ msgstr "Problèmes identifiés par les validateurs: %zu\n"
 #: src/tools/sssctl/sssctl_config.c:114
 #, c-format
 msgid "Messages generated during configuration merging: %zu\n"
-msgstr "Messages générés lors du regroupement de configuration : %zu"
+msgstr "Messages générés lors du regroupement de configuration : %zu\n"
 
 #: src/tools/sssctl/sssctl_config.c:127
 #, c-format
 msgid "Used configuration snippet files: %u\n"
-msgstr "Fichiers snippet de configuration utilisés : %u"
+msgstr "Fichiers snippet de configuration utilisés : %u\n"
 
 #: src/tools/sssctl/sssctl_data.c:89
 #, c-format
@@ -2610,12 +2610,12 @@ msgstr ""
 #: src/tools/sssctl/sssctl_data.c:111
 #, c-format
 msgid "Unable to export user overrides\n"
-msgstr "Impossible d'exporter les substitutions des utilisateurs"
+msgstr "Impossible d'exporter les substitutions des utilisateurs\n"
 
 #: src/tools/sssctl/sssctl_data.c:118
 #, c-format
 msgid "Unable to export group overrides\n"
-msgstr "Impossible d'exporter les substitutions des groupes"
+msgstr "Impossible d'exporter les substitutions des groupes\n"
 
 #: src/tools/sssctl/sssctl_data.c:134 src/tools/sssctl/sssctl_data.c:217
 msgid "Override existing backup"
@@ -2624,12 +2624,12 @@ msgstr "Substitution de la sauvegarde existante"
 #: src/tools/sssctl/sssctl_data.c:164
 #, c-format
 msgid "Unable to import user overrides\n"
-msgstr "Impossible d'importer les substitutions de l'utilisateur"
+msgstr "Impossible d'importer les substitutions de l'utilisateur\n"
 
 #: src/tools/sssctl/sssctl_data.c:173
 #, c-format
 msgid "Unable to import group overrides\n"
-msgstr "Impossible d'importer les substitutions des groupes"
+msgstr "Impossible d'importer les substitutions des groupes\n"
 
 #: src/tools/sssctl/sssctl_data.c:194 src/tools/sssctl/sssctl_domains.c:74
 #: src/tools/sssctl/sssctl_domains.c:339
@@ -2655,29 +2655,29 @@ msgstr "Démarrer SSSD une fois le cache retiré"
 #: src/tools/sssctl/sssctl_data.c:235
 #, c-format
 msgid "Creating backup of local data...\n"
-msgstr "Création de la sauvegarde des données locales..."
+msgstr "Création de la sauvegarde des données locales...\n"
 
 #: src/tools/sssctl/sssctl_data.c:238
 #, c-format
 msgid "Unable to create backup of local data, can not remove the cache.\n"
 msgstr ""
 "Impossible de créer une sauvegarde des données locales, ou de retirer le "
-"cache."
+"cache.\n"
 
 #: src/tools/sssctl/sssctl_data.c:243
 #, c-format
 msgid "Removing cache files...\n"
-msgstr "Supprimer les fichiers cache..."
+msgstr "Supprimer les fichiers cache...\n"
 
 #: src/tools/sssctl/sssctl_data.c:246
 #, c-format
 msgid "Unable to remove cache files\n"
-msgstr "Impossible de supprimer les fichiers cache"
+msgstr "Impossible de supprimer les fichiers cache\n"
 
 #: src/tools/sssctl/sssctl_data.c:251
 #, c-format
 msgid "Restoring local data...\n"
-msgstr "Restaurer les données locales..."
+msgstr "Restaurer les données locales...\n"
 
 #: src/tools/sssctl/sssctl_domains.c:75
 msgid "Show domain list including primary or trusted domain type"
@@ -2701,7 +2701,7 @@ msgstr "Hors ligne"
 #: src/tools/sssctl/sssctl_domains.c:214
 #, c-format
 msgid "Active servers:\n"
-msgstr "Serveurs actifs :"
+msgstr "Serveurs actifs :\n"
 
 #: src/tools/sssctl/sssctl_domains.c:231
 msgid "not connected"
@@ -2714,7 +2714,7 @@ msgstr "%s serveurs découverts :\n"
 
 #: src/tools/sssctl/sssctl_domains.c:296
 msgid "None so far.\n"
-msgstr "Pas pour l'instant."
+msgstr "Pas pour l'instant.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:336
 msgid "Show online status"
@@ -2740,12 +2740,12 @@ msgstr "Plus de mémoire disponible !\n"
 #: src/tools/sssctl/sssctl_domains.c:377 src/tools/sssctl/sssctl_domains.c:387
 #, c-format
 msgid "Unable to get online status\n"
-msgstr "Impossible d'afficher le statut en ligne"
+msgstr "Impossible d'afficher le statut en ligne\n"
 
 #: src/tools/sssctl/sssctl_domains.c:397
 #, c-format
 msgid "Unable to get server list\n"
-msgstr "Impossible d’obtenir la liste des serveurs"
+msgstr "Impossible d’obtenir la liste des serveurs\n"
 
 #: src/tools/sssctl/sssctl_logs.c:47
 msgid "\n"
@@ -2758,22 +2758,22 @@ msgstr "Supprimer les fichiers de journalisation au lieu de les réduire"
 #: src/tools/sssctl/sssctl_logs.c:248
 #, c-format
 msgid "Deleting log files...\n"
-msgstr "Supprimer les fichiers de journalisation..."
+msgstr "Supprimer les fichiers de journalisation...\n"
 
 #: src/tools/sssctl/sssctl_logs.c:251
 #, c-format
 msgid "Unable to remove log files\n"
-msgstr "Impossible de supprimer les fichiers de journalisation"
+msgstr "Impossible de supprimer les fichiers de journalisation\n"
 
 #: src/tools/sssctl/sssctl_logs.c:257
 #, c-format
 msgid "Truncating log files...\n"
-msgstr "Réduction des fichiers de journalisation..."
+msgstr "Réduction des fichiers de journalisation...\n"
 
 #: src/tools/sssctl/sssctl_logs.c:260
 #, c-format
 msgid "Unable to truncate log files\n"
-msgstr "Impossible de réduire les fichiers de journalisation"
+msgstr "Impossible de réduire les fichiers de journalisation\n"
 
 #: src/tools/sssctl/sssctl_logs.c:286
 #, c-format
@@ -2783,12 +2783,12 @@ msgstr "Manque de mémoire !"
 #: src/tools/sssctl/sssctl_logs.c:289
 #, c-format
 msgid "Archiving log files into %s...\n"
-msgstr "Archivage des fichiers de journalisation dans %s..."
+msgstr "Archivage des fichiers de journalisation dans %s...\n"
 
 #: src/tools/sssctl/sssctl_logs.c:292
 #, c-format
 msgid "Unable to archive log files\n"
-msgstr "Impossible d'archiver les fichiers de journalisation"
+msgstr "Impossible d'archiver les fichiers de journalisation\n"
 
 #: src/tools/sssctl/sssctl_logs.c:317
 msgid "Specify debug level you want to set"
@@ -2801,7 +2801,7 @@ msgid ""
 msgstr ""
 "Vérifier que SSSD soit bien en cours d'exécution et que le répondant "
 "InfoPipe soit actif. Veillez à ce que « ifp » soit bien listé dans les "
-"options « services » de sssd.conf."
+"options « services » de sssd.conf.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:91
 #, c-format
@@ -2816,7 +2816,7 @@ msgstr "Impossible d'obtenir l'objet utilisateur"
 #: src/tools/sssctl/sssctl_user_checks.c:101
 #, c-format
 msgid "SSSD InfoPipe user lookup result:\n"
-msgstr "Résultat de recherche utilisateur SSSD InfoPipe"
+msgstr "Résultat de recherche utilisateur SSSD InfoPipe\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:113
 #, c-format
@@ -3038,12 +3038,12 @@ msgstr ""
 #: src/tools/sssctl/sssctl_user_checks.c:281
 #, c-format
 msgid "unknown action\n"
-msgstr "action inconnue"
+msgstr "action inconnue\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:284
 #, c-format
 msgid "PAM Environment:\n"
-msgstr "Environnement PAM"
+msgstr "Environnement PAM\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:292
 #, c-format

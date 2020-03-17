@@ -2196,7 +2196,7 @@ msgstr ""
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
 msgid "Specify the attribute name/value pair(s)\n"
-msgstr "属性の名前/値のペアを指定します"
+msgstr "属性の名前/値のペアを指定します\n"
 
 #: src/tools/sss_usermod.c:152
 msgid "Specify user to modify\n"
@@ -2231,12 +2231,12 @@ msgstr "指定された検索に一致するキャッシュオブジェクトが
 #: src/tools/sss_cache.c:519
 #, c-format
 msgid "Couldn't invalidate %1$s\n"
-msgstr "%1$s を無効化できませんでした"
+msgstr "%1$s を無効化できませんでした\n"
 
 #: src/tools/sss_cache.c:526
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s\n"
-msgstr "%1$s %2$s を無効化できませんでした"
+msgstr "%1$s %2$s を無効化できませんでした\n"
 
 #: src/tools/sss_cache.c:704
 msgid "Invalidate all cached entries"
