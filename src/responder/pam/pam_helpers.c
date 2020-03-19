@@ -46,6 +46,12 @@ errno_t pam_initgr_cache_set(struct tevent_context *ev,
     struct timeval tv;
     struct pam_initgr_table_ctx *table_ctx;
 
+    ret = pam_initgr_check_timeout(id_table, name);
+    if (ret == EOK) {
+        /* user is already in the cache */
+        goto done;
+    }
+
     table_ctx = talloc_zero(id_table, struct pam_initgr_table_ctx);
     if (!table_ctx) return ENOMEM;
 
