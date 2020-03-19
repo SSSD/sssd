@@ -434,13 +434,6 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
         return ret;
     }
 
-    /* Setup periodical refresh of expired records */
-    ret = sdap_refresh_init(be_ctx, id_ctx);
-    if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh will not work "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-    }
-
     ret = confdb_certmap_to_sysdb(be_ctx->cdb, be_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,

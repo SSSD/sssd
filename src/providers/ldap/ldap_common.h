@@ -424,9 +424,6 @@ sdap_resolver_ctx_new(TALLOC_CTX *mem_ctx,
                       struct sdap_id_ctx *id_ctx,
                       struct sdap_resolver_ctx **out_ctx);
 
-errno_t sdap_refresh_init(struct be_ctx *be_ctx,
-                          struct sdap_id_ctx *id_ctx);
-
 errno_t sdap_init_certmap(TALLOC_CTX *mem_ctx, struct sdap_id_ctx *id_ctx);
 
 errno_t sdap_setup_certmap(struct sdap_certmap_ctx *sdap_certmap_ctx,
