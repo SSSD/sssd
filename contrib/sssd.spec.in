@@ -338,6 +338,8 @@ subpackages such as sssd-ldap.
 Summary: SSSD Client libraries for NSS and PAM
 Group: Applications/System
 License: LGPLv3+
+Requires: libsss_nss_idmap = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
@@ -368,6 +370,7 @@ Summary: Userspace tools for use with the SSSD
 Group: Applications/System
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
+Requires: libsss_simpleifp = %{version}-%{release}
 # required by sss_obfuscate
 %if (0%{?with_python3} == 1)
 Requires: python3-sss = %{version}-%{release}
@@ -480,6 +483,7 @@ License: GPLv3+
 Conflicts: sssd < %{version}-%{release}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 
 %description ldap
 Provides the LDAP back end that the SSSD can utilize to fetch identity data
@@ -514,6 +518,7 @@ Summary: Common files needed for supporting PAC processing
 Group: Applications/System
 License: GPLv3+
 Requires: sssd-common = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 
 %description common-pac
 Provides common files needed by SSSD providers such as IPA and Active Directory
@@ -529,6 +534,7 @@ Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libipa_hbac = %{version}-%{release}
 Requires: bind-utils
 Requires: sssd-common-pac = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 
 %description ipa
 Provides the IPA back end that the SSSD can utilize to fetch identity data
@@ -542,6 +548,7 @@ Conflicts: sssd < %{version}-%{release}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: sssd-common-pac = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 Requires: bind-utils
 
 %description ad
@@ -721,6 +728,7 @@ Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
 Summary: The SSSD libwbclient implementation
 Group: Applications/System
 License: GPLv3+ and LGPLv3+
+Requires: libsss_nss_idmap = %{version}-%{release}
 
 %description libwbclient
 The SSSD libwbclient implementation.
@@ -737,6 +745,8 @@ Development libraries for the SSSD libwbclient implementation.
 Summary: SSSD's idmap_sss Backend for Winbind
 Group:  Applications/System
 License: GPLv3+ and LGPLv3+
+Requires: libsss_nss_idmap = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 
 %description winbind-idmap
 The idmap_sss module provides a way for Winbind to call SSSD to map UIDs/GIDs
