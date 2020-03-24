@@ -105,9 +105,14 @@ ndr_pull_security_ace_object_type(struct ndr_pull *ndr,
                                   union security_ace_object_type *r)
 {
     uint32_t level;
-    level = ndr_token_peek(&ndr->switch_list, r);
     NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
     if (ndr_flags & NDR_SCALARS) {
+        /* This token is not used again (except perhaps below in the NDR_BUFFERS case) */
+#ifdef SMB_HAS_NEW_NDR_PULL_STEAL_SWITCH
+        NDR_CHECK(ndr_pull_steal_switch_value(ndr, r, &level));
+#else
+        level = ndr_pull_steal_switch_value(ndr, r);
+#endif
         NDR_CHECK(ndr_pull_union_align(ndr, 4));
         switch (level) {
         case SEC_ACE_OBJECT_TYPE_PRESENT: {
@@ -115,14 +120,6 @@ ndr_pull_security_ace_object_type(struct ndr_pull *ndr,
             break; }
         default: {
             break; }
-        }
-    }
-    if (ndr_flags & NDR_BUFFERS) {
-        switch (level) {
-        case SEC_ACE_OBJECT_TYPE_PRESENT:
-            break;
-        default:
-            break;
         }
     }
     return NDR_ERR_SUCCESS;
@@ -135,9 +132,14 @@ ndr_pull_security_ace_object_inherited_type(struct ndr_pull *ndr,
                                             union security_ace_object_inherited_type *r)
 {
     uint32_t level;
-    level = ndr_token_peek(&ndr->switch_list, r);
     NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
     if (ndr_flags & NDR_SCALARS) {
+        /* This token is not used again (except perhaps below in the NDR_BUFFERS case) */
+#ifdef SMB_HAS_NEW_NDR_PULL_STEAL_SWITCH
+        NDR_CHECK(ndr_pull_steal_switch_value(ndr, r, &level));
+#else
+        level = ndr_pull_steal_switch_value(ndr, r);
+#endif
         NDR_CHECK(ndr_pull_union_align(ndr, 4));
         switch (level) {
         case SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT: {
@@ -147,14 +149,6 @@ ndr_pull_security_ace_object_inherited_type(struct ndr_pull *ndr,
             break; }
         default: {
             break; }
-        }
-    }
-    if (ndr_flags & NDR_BUFFERS) {
-        switch (level) {
-        case SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT:
-            break;
-        default:
-            break;
         }
     }
     return NDR_ERR_SUCCESS;
@@ -198,9 +192,14 @@ ndr_pull_security_ace_object_ctr(struct ndr_pull *ndr,
                                  union security_ace_object_ctr *r)
 {
     uint32_t level;
-    level = ndr_token_peek(&ndr->switch_list, r);
     NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
     if (ndr_flags & NDR_SCALARS) {
+        /* This token is not used again (except perhaps below in the NDR_BUFFERS case) */
+#ifdef SMB_HAS_NEW_NDR_PULL_STEAL_SWITCH
+        NDR_CHECK(ndr_pull_steal_switch_value(ndr, r, &level));
+#else
+        level = ndr_pull_steal_switch_value(ndr, r);
+#endif
         NDR_CHECK(ndr_pull_union_align(ndr, 4));
         switch (level) {
         case SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT: {
@@ -224,6 +223,14 @@ ndr_pull_security_ace_object_ctr(struct ndr_pull *ndr,
         }
     }
     if (ndr_flags & NDR_BUFFERS) {
+        if (!(ndr_flags & NDR_SCALARS)) {
+            /* We didn't get it above, and the token is not needed after this. */
+#ifdef SMB_HAS_NEW_NDR_PULL_STEAL_SWITCH
+            NDR_CHECK(ndr_pull_steal_switch_value(ndr, r, &level));
+#else
+            level = ndr_pull_steal_switch_value(ndr, r);
+#endif
+        }
         switch (level) {
         case SEC_ACE_TYPE_ACCESS_ALLOWED_OBJECT:
             NDR_CHECK(ndr_pull_security_ace_object
