@@ -746,19 +746,18 @@
     <refsect1 id='trusted_domains'>
         <title>TRUSTED DOMAINS CONFIGURATION</title>
         <para>
-            Some configuration options can be also set for a trusted domain.
-            A trusted domain configuration can either be done using
-            a subsection, for example:
+            Some configuration options can also be set for a trusted domain.
+            A trusted domain configuration can be set using the trusted domain
+            subsection as shown in the example below. Alternatively,
+            the <quote>subdomain_inherit</quote> option can be used in the
+            parent domain.
 <programlisting>
 [domain/ipa.domain.com/ad.domain.com]
 ad_server = dc.ad.domain.com
 </programlisting>
         </para>
         <para>
-            In addition, some options can be set in the parent domain
-            and inherited by the trusted domain using the
-            <quote>subdomain_inherit</quote> option. For more details,
-            see the
+            For more details, see the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
