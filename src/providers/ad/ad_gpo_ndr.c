@@ -177,8 +177,16 @@ ndr_pull_security_ace_object(struct ndr_pull *ndr,
         NDR_CHECK(ndr_pull_trailer_align(ndr, 4));
     }
     if (ndr_flags & NDR_BUFFERS) {
+        NDR_CHECK(ndr_pull_set_switch_value
+                  (ndr,
+                   &r->type,
+                   r->flags & SEC_ACE_OBJECT_TYPE_PRESENT));
         NDR_CHECK(ndr_pull_security_ace_object_type
                   (ndr, NDR_BUFFERS, &r->type));
+        NDR_CHECK(ndr_pull_set_switch_value
+                  (ndr,
+                   &r->inherited_type,
+                   r->flags & SEC_ACE_INHERITED_OBJECT_TYPE_PRESENT));
         NDR_CHECK(ndr_pull_security_ace_object_inherited_type
                   (ndr, NDR_BUFFERS, &r->inherited_type));
     }
@@ -342,7 +350,7 @@ ndr_pull_security_acl(struct ndr_pull *ndr,
                   (ndr, NDR_SCALARS, &r->revision));
         NDR_CHECK(ndr_pull_uint16(ndr, NDR_SCALARS, &r->size));
         NDR_CHECK(ndr_pull_uint32(ndr, NDR_SCALARS, &r->num_aces));
-        if (r->num_aces > 1000) {
+        if (r->num_aces > 2000) {
             return ndr_pull_error(ndr, NDR_ERR_RANGE, "value out of range");
         }
         size_aces_0 = r->num_aces;
@@ -408,107 +416,110 @@ ad_gpo_ndr_pull_security_descriptor(struct ndr_pull *ndr,
     TALLOC_CTX *_mem_save_sacl_0;
     uint32_t _ptr_dacl;
     TALLOC_CTX *_mem_save_dacl_0;
-    uint32_t _flags_save_STRUCT = ndr->flags;
-    uint32_t _relative_save_offset;
-
-    ndr_set_flags(&ndr->flags, LIBNDR_FLAG_LITTLE_ENDIAN);
-    NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
-    if (ndr_flags & NDR_SCALARS) {
-        NDR_CHECK(ndr_pull_align(ndr, 5));
-        NDR_CHECK(ndr_pull_security_descriptor_revision(ndr,
+    {
+        uint32_t _flags_save_STRUCT = ndr->flags;
+        ndr_set_flags(&ndr->flags, LIBNDR_FLAG_LITTLE_ENDIAN);
+        NDR_PULL_CHECK_FLAGS(ndr, ndr_flags);
+        if (ndr_flags & NDR_SCALARS) {
+            NDR_CHECK(ndr_pull_align(ndr, 5));
+            NDR_CHECK(ndr_pull_security_descriptor_revision(ndr,
+                                                            NDR_SCALARS,
+                                                            &r->revision));
+            NDR_CHECK(ndr_pull_security_descriptor_type(ndr,
                                                         NDR_SCALARS,
-                                                        &r->revision));
-        NDR_CHECK(ndr_pull_security_descriptor_type(ndr,
-                                                    NDR_SCALARS,
-                                                    &r->type));
-        NDR_CHECK(ndr_pull_generic_ptr(ndr, &_ptr_owner_sid));
-        if (_ptr_owner_sid) {
-            NDR_PULL_ALLOC(ndr, r->owner_sid);
-            NDR_CHECK(ndr_pull_relative_ptr1(ndr,
-                                             r->owner_sid,
-                                             _ptr_owner_sid));
-        } else {
-            r->owner_sid = NULL;
-        }
-        NDR_CHECK(ndr_pull_generic_ptr(ndr, &_ptr_group_sid));
-        if (_ptr_group_sid) {
-            NDR_PULL_ALLOC(ndr, r->group_sid);
-            NDR_CHECK(ndr_pull_relative_ptr1(ndr,
-                                             r->group_sid,
-                                             _ptr_group_sid));
-        } else {
-            r->group_sid = NULL;
-        }
-        NDR_CHECK(ndr_pull_generic_ptr(ndr, &_ptr_sacl));
-        if (_ptr_sacl) {
-            NDR_PULL_ALLOC(ndr, r->sacl);
-            NDR_CHECK(ndr_pull_relative_ptr1(ndr, r->sacl, _ptr_sacl));
-        } else {
-            r->sacl = NULL;
-        }
-        NDR_CHECK(ndr_pull_generic_ptr(ndr, &_ptr_dacl));
-        if (_ptr_dacl) {
-            NDR_PULL_ALLOC(ndr, r->dacl);
-            NDR_CHECK(ndr_pull_relative_ptr1(ndr, r->dacl, _ptr_dacl));
-        } else {
-            r->dacl = NULL;
-        }
-        NDR_CHECK(ndr_pull_trailer_align(ndr, 5));
-    }
-    if (ndr_flags & NDR_BUFFERS) {
-        if (r->owner_sid) {
-            _relative_save_offset = ndr->offset;
-            NDR_CHECK(ndr_pull_relative_ptr2(ndr, r->owner_sid));
-            _mem_save_owner_sid_0 = NDR_PULL_GET_MEM_CTX(ndr);
-            NDR_PULL_SET_MEM_CTX(ndr, r->owner_sid, 0);
-            NDR_CHECK(ndr_pull_dom_sid(ndr, NDR_SCALARS, r->owner_sid));
-            NDR_PULL_SET_MEM_CTX(ndr, _mem_save_owner_sid_0, 0);
-            if (ndr->offset > ndr->relative_highest_offset) {
-                ndr->relative_highest_offset = ndr->offset;
+                                                        &r->type));
+            NDR_CHECK(ndr_pull_generic_ptr(ndr, &_ptr_owner_sid));
+            if (_ptr_owner_sid) {
+                NDR_PULL_ALLOC(ndr, r->owner_sid);
+                NDR_CHECK(ndr_pull_relative_ptr1(ndr,
+                                                 r->owner_sid,
+                                                 _ptr_owner_sid));
+            } else {
+                r->owner_sid = NULL;
             }
-            ndr->offset = _relative_save_offset;
-        }
-        if (r->group_sid) {
-            _relative_save_offset = ndr->offset;
-            NDR_CHECK(ndr_pull_relative_ptr2(ndr, r->group_sid));
-            _mem_save_group_sid_0 = NDR_PULL_GET_MEM_CTX(ndr);
-            NDR_PULL_SET_MEM_CTX(ndr, r->group_sid, 0);
-            NDR_CHECK(ndr_pull_dom_sid(ndr, NDR_SCALARS, r->group_sid));
-            NDR_PULL_SET_MEM_CTX(ndr, _mem_save_group_sid_0, 0);
-            if (ndr->offset > ndr->relative_highest_offset) {
-                ndr->relative_highest_offset = ndr->offset;
+            NDR_CHECK(ndr_pull_generic_ptr(ndr, &_ptr_group_sid));
+            if (_ptr_group_sid) {
+                NDR_PULL_ALLOC(ndr, r->group_sid);
+                NDR_CHECK(ndr_pull_relative_ptr1(ndr,
+                                                 r->group_sid,
+                                                 _ptr_group_sid));
+            } else {
+                r->group_sid = NULL;
             }
-            ndr->offset = _relative_save_offset;
-        }
-        if (r->sacl) {
-            _relative_save_offset = ndr->offset;
-            NDR_CHECK(ndr_pull_relative_ptr2(ndr, r->sacl));
-            _mem_save_sacl_0 = NDR_PULL_GET_MEM_CTX(ndr);
-            NDR_PULL_SET_MEM_CTX(ndr, r->sacl, 0);
-            NDR_CHECK(ndr_pull_security_acl(ndr,
-                                            NDR_SCALARS|NDR_BUFFERS,
-                                            r->sacl));
-            NDR_PULL_SET_MEM_CTX(ndr, _mem_save_sacl_0, 0);
-            if (ndr->offset > ndr->relative_highest_offset) {
-                ndr->relative_highest_offset = ndr->offset;
+            NDR_CHECK(ndr_pull_generic_ptr(ndr, &_ptr_sacl));
+            if (_ptr_sacl) {
+                NDR_PULL_ALLOC(ndr, r->sacl);
+                NDR_CHECK(ndr_pull_relative_ptr1(ndr, r->sacl, _ptr_sacl));
+            } else {
+                r->sacl = NULL;
             }
-            ndr->offset = _relative_save_offset;
-        }
-        if (r->dacl) {
-            _relative_save_offset = ndr->offset;
-            NDR_CHECK(ndr_pull_relative_ptr2(ndr, r->dacl));
-            _mem_save_dacl_0 = NDR_PULL_GET_MEM_CTX(ndr);
-            NDR_PULL_SET_MEM_CTX(ndr, r->dacl, 0);
-            NDR_CHECK(ndr_pull_security_acl(ndr,
-                                            NDR_SCALARS|NDR_BUFFERS,
-                                            r->dacl));
-            NDR_PULL_SET_MEM_CTX(ndr, _mem_save_dacl_0, 0);
-            if (ndr->offset > ndr->relative_highest_offset) {
-                ndr->relative_highest_offset = ndr->offset;
+            NDR_CHECK(ndr_pull_generic_ptr(ndr, &_ptr_dacl));
+            if (_ptr_dacl) {
+                NDR_PULL_ALLOC(ndr, r->dacl);
+                NDR_CHECK(ndr_pull_relative_ptr1(ndr, r->dacl, _ptr_dacl));
+            } else {
+                r->dacl = NULL;
             }
-            ndr->offset = _relative_save_offset;
+            NDR_CHECK(ndr_pull_trailer_align(ndr, 5));
         }
-
+        if (ndr_flags & NDR_BUFFERS) {
+            if (r->owner_sid) {
+                uint32_t _relative_save_offset;
+                _relative_save_offset = ndr->offset;
+                NDR_CHECK(ndr_pull_relative_ptr2(ndr, r->owner_sid));
+                _mem_save_owner_sid_0 = NDR_PULL_GET_MEM_CTX(ndr);
+                NDR_PULL_SET_MEM_CTX(ndr, r->owner_sid, 0);
+                NDR_CHECK(ndr_pull_dom_sid(ndr, NDR_SCALARS, r->owner_sid));
+                NDR_PULL_SET_MEM_CTX(ndr, _mem_save_owner_sid_0, 0);
+                if (ndr->offset > ndr->relative_highest_offset) {
+                    ndr->relative_highest_offset = ndr->offset;
+                }
+                ndr->offset = _relative_save_offset;
+            }
+            if (r->group_sid) {
+                uint32_t _relative_save_offset;
+                _relative_save_offset = ndr->offset;
+                NDR_CHECK(ndr_pull_relative_ptr2(ndr, r->group_sid));
+                _mem_save_group_sid_0 = NDR_PULL_GET_MEM_CTX(ndr);
+                NDR_PULL_SET_MEM_CTX(ndr, r->group_sid, 0);
+                NDR_CHECK(ndr_pull_dom_sid(ndr, NDR_SCALARS, r->group_sid));
+                NDR_PULL_SET_MEM_CTX(ndr, _mem_save_group_sid_0, 0);
+                if (ndr->offset > ndr->relative_highest_offset) {
+                    ndr->relative_highest_offset = ndr->offset;
+                }
+                ndr->offset = _relative_save_offset;
+            }
+            if (r->sacl) {
+                uint32_t _relative_save_offset;
+                _relative_save_offset = ndr->offset;
+                NDR_CHECK(ndr_pull_relative_ptr2(ndr, r->sacl));
+                _mem_save_sacl_0 = NDR_PULL_GET_MEM_CTX(ndr);
+                NDR_PULL_SET_MEM_CTX(ndr, r->sacl, 0);
+                NDR_CHECK(ndr_pull_security_acl(ndr,
+                                                NDR_SCALARS|NDR_BUFFERS,
+                                                r->sacl));
+                NDR_PULL_SET_MEM_CTX(ndr, _mem_save_sacl_0, 0);
+                if (ndr->offset > ndr->relative_highest_offset) {
+                    ndr->relative_highest_offset = ndr->offset;
+                }
+                ndr->offset = _relative_save_offset;
+            }
+            if (r->dacl) {
+                uint32_t _relative_save_offset;
+                _relative_save_offset = ndr->offset;
+                NDR_CHECK(ndr_pull_relative_ptr2(ndr, r->dacl));
+                _mem_save_dacl_0 = NDR_PULL_GET_MEM_CTX(ndr);
+                NDR_PULL_SET_MEM_CTX(ndr, r->dacl, 0);
+                NDR_CHECK(ndr_pull_security_acl(ndr,
+                                                NDR_SCALARS|NDR_BUFFERS,
+                                                r->dacl));
+                NDR_PULL_SET_MEM_CTX(ndr, _mem_save_dacl_0, 0);
+                if (ndr->offset > ndr->relative_highest_offset) {
+                    ndr->relative_highest_offset = ndr->offset;
+                }
+                ndr->offset = _relative_save_offset;
+            }
+        }
         ndr->flags = _flags_save_STRUCT;
     }
     return NDR_ERR_SUCCESS;
