@@ -130,10 +130,17 @@ int main(void)
         AC_DEFINE_UNQUOTED(SMB_IDMAP_DOMAIN_HAS_DOM_SID, 1,
                            [Samba's struct idmap_domain has dom_sid member])
         AC_MSG_NOTICE([Samba's struct idmap_domain has dom_sid member])
+        if test $samba_minor_version -ge 12 ; then
+            AC_DEFINE_UNQUOTED(SMB_HAS_NEW_NDR_PULL_STEAL_SWITCH, 1,
+                               [Samba's new push/pull switch functions])
+            AC_MSG_NOTICE([Samba has support for new ndr_push_steal_switch_value and ndr_pull_steal_switch_value functions])
+        else
+            AC_MSG_NOTICE([Samba supports old ndr_pull_steal_switch_value and ndr_pull_steal_switch_value functions])
+        fi
     else
         AC_MSG_NOTICE([Samba's struct idmap_domain does not have dom_sid member])
+        AC_MSG_NOTICE([Samba supports old ndr_pull_steal_switch_value and ndr_pull_steal_switch_value functions])
     fi
-
 fi
 
 SAVE_CFLAGS=$CFLAGS
