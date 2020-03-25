@@ -1261,6 +1261,7 @@ static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,
     int ret;
     const char *orig_obj_dn;
     const char *filter;
+    const struct ldb_val *orig_domain;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -1327,6 +1328,23 @@ static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,
         if (base_dn == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
             ret = ENOMEM;
+            goto done;
+        }
+
+        /* Check if the found override object belongs to an object in this
+         * domain. The base dn is in the form:
+         * name=user@domain,cn=users,cn=domain,cn=sysdb
+         * = 0              = 1      = 2       = 3
+         */
+        orig_domain = ldb_dn_get_component_val(base_dn, 2);
+        if (orig_domain == NULL || !orig_domain->length) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid original object DN\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        if (strcmp((const char*)orig_domain->data, domain->name) != 0) {
+            ret = ENOENT;
             goto done;
         }
 
