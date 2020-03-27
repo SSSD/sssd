@@ -450,7 +450,7 @@ static errno_t ipa_certmap_parse_results(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_update_certmap(domain->sysdb, certmap_list, user_name_hint);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_certmap failed");
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_certmap failed.\n");
         goto done;
     }
 
