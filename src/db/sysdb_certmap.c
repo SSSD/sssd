@@ -71,6 +71,30 @@ done:
     return ret;
 }
 
+static struct ldb_dn *sysdb_certmap_dn(TALLOC_CTX *mem_ctx,
+                                       struct sysdb_ctx *sysdb,
+                                       const char *name)
+{
+    int ret;
+    char *clean_name;
+    struct ldb_dn *dn = NULL;
+
+    ret = sysdb_dn_sanitize(mem_ctx, name, &clean_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_dn_sanitize failed.\n");
+        return NULL;
+    }
+
+    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_CERTMAP, clean_name);
+    talloc_free(clean_name);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt failed.\n");
+        return NULL;
+    }
+
+    return dn;
+}
+
 static errno_t sysdb_certmap_add(struct sysdb_ctx *sysdb,
                                  struct certmap_info *certmap)
 {
@@ -93,10 +117,9 @@ static errno_t sysdb_certmap_add(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    msg->dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_CERTMAP, certmap->name);
+    msg->dn = sysdb_certmap_dn(tmp_ctx, sysdb, certmap->name);
     if (msg->dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_certmap_dn failed.\n");
         ret = ENOMEM;
         goto done;
     }
