@@ -133,12 +133,20 @@ static void test_sysdb_update_certmap(void **state)
 {
     int ret;
     const char *domains[] = { "dom1.test", "dom2.test", "dom3.test", NULL };
-    struct certmap_info map_a = { discard_const("map_a"), 11, discard_const("abc"), discard_const("def"), NULL };
-    struct certmap_info map_b = { discard_const("map_b"), UINT_MAX, discard_const("abc"), NULL, domains };
+    struct certmap_info map_a = { discard_const("map_a"), 11,
+                                  discard_const("abc"), discard_const("def"),
+                                  NULL };
+    struct certmap_info map_b = { discard_const("map_b"), UINT_MAX,
+                                  discard_const("abc"), NULL, domains };
+    struct certmap_info map_c = { discard_const("cn=map_c,dc=sssd,dc=org"),
+                                  UINT_MAX, discard_const("abc"), NULL,
+                                  domains };
+
     struct certmap_info *certmap_empty[] = { NULL };
     struct certmap_info *certmap_a[] = { &map_a, NULL };
     struct certmap_info *certmap_b[] = { &map_b, NULL };
     struct certmap_info *certmap_ab[] = { &map_a, &map_b, NULL };
+    struct certmap_info *certmap_c[] = { &map_c, NULL };
     struct certmap_info **certmap;
     struct certmap_test_ctx *ctctx = talloc_get_type(*state,
                                                      struct certmap_test_ctx);
@@ -206,6 +214,19 @@ static void test_sysdb_update_certmap(void **state)
         check_certmap(certmap[0], &map_b, 3);
         check_certmap(certmap[1], &map_a, 0);
     }
+    talloc_free(certmap);
+
+    ret = sysdb_update_certmap(ctctx->tctx->sysdb, certmap_c, false);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_get_certmap(ctctx, ctctx->tctx->sysdb, &certmap,
+                            &user_name_hint);
+    assert_int_equal(ret, EOK);
+    assert_false(user_name_hint);
+    assert_non_null(certmap);
+    assert_non_null(certmap[0]);
+    check_certmap(certmap[0], &map_c, 3);
+    assert_null(certmap[1]);
     talloc_free(certmap);
 }
 
