@@ -170,6 +170,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->override_shell = parent->override_shell;
     dom->default_shell = parent->default_shell;
     dom->homedir_substr = parent->homedir_substr;
+    dom->override_gid = parent->override_gid;
 
     if (parent->sysdb == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing sysdb context in parent domain.\n");
