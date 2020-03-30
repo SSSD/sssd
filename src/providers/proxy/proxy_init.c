@@ -396,8 +396,6 @@ errno_t sssm_proxy_resolver_init(TALLOC_CTX *mem_ctx,
     char *libname;
     errno_t ret;
 
-    /* New config option proxy_resolver_target = files | dns | mdns4 ... */
-
     module_ctx = talloc_get_type(module_data, struct proxy_module_ctx);
 
     module_ctx->resolver_ctx = talloc_zero(mem_ctx, struct proxy_resolver_ctx);
@@ -406,7 +404,10 @@ errno_t sssm_proxy_resolver_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = proxy_resolver_conf(module_ctx->resolver_ctx, be_ctx, &libname);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        ret = ENOTSUP;
+        goto done;
+    } else if (ret != EOK) {
         goto done;
     }
 
