@@ -34,6 +34,7 @@
 
 #include "util/util.h"
 #include "util/sss_ptr_hash.h"
+#include "util/mmap_cache.h"
 #include "responder/nss/nss_private.h"
 #include "responder/nss/nss_iface.h"
 #include "responder/nss/nsssrv_mmap_cache.h"
@@ -210,9 +211,10 @@ done:
 static int setup_memcaches(struct nss_ctx *nctx)
 {
     /* Default memcache sizes */
-    static const size_t SSS_MC_CACHE_PASSWD_SLOTS    = 200000;  /*  8mb */
-    static const size_t SSS_MC_CACHE_GROUP_SLOTS     = 150000;  /*  6mb */
-    static const size_t SSS_MC_CACHE_INITGROUP_SLOTS = 250000;  /* 10mb */
+    static const size_t SSS_MC_CACHE_SLOTS_PER_MB   = 1024*1024/MC_SLOT_SIZE;
+    static const size_t SSS_MC_CACHE_PASSWD_SIZE    =  8;
+    static const size_t SSS_MC_CACHE_GROUP_SIZE     =  6;
+    static const size_t SSS_MC_CACHE_INITGROUP_SIZE = 10;
 
     int ret;
     int memcache_timeout;
@@ -251,7 +253,7 @@ static int setup_memcaches(struct nss_ctx *nctx)
     ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_MEMCACHE_SIZE_PASSWD,
-                         SSS_MC_CACHE_PASSWD_SLOTS,
+                         SSS_MC_CACHE_PASSWD_SIZE,
                          &mc_size_passwd);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -263,7 +265,7 @@ static int setup_memcaches(struct nss_ctx *nctx)
     ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_MEMCACHE_SIZE_GROUP,
-                         SSS_MC_CACHE_GROUP_SLOTS,
+                         SSS_MC_CACHE_GROUP_SIZE,
                          &mc_size_group);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -275,7 +277,7 @@ static int setup_memcaches(struct nss_ctx *nctx)
     ret = confdb_get_int(nctx->rctx->cdb,
                          CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_MEMCACHE_SIZE_INITGROUPS,
-                         SSS_MC_CACHE_INITGROUP_SLOTS,
+                         SSS_MC_CACHE_INITGROUP_SIZE,
                          &mc_size_initgroups);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -290,7 +292,7 @@ static int setup_memcaches(struct nss_ctx *nctx)
         ret = sss_mmap_cache_init(nctx, "passwd",
                                   nctx->mc_uid, nctx->mc_gid,
                                   SSS_MC_PASSWD,
-                                  mc_size_passwd,
+                                  mc_size_passwd * SSS_MC_CACHE_SLOTS_PER_MB,
                                   (time_t)memcache_timeout,
                                   &nctx->pwd_mc_ctx);
         if (ret) {
@@ -310,7 +312,7 @@ static int setup_memcaches(struct nss_ctx *nctx)
         ret = sss_mmap_cache_init(nctx, "group",
                                   nctx->mc_uid, nctx->mc_gid,
                                   SSS_MC_GROUP,
-                                  mc_size_group,
+                                  mc_size_group * SSS_MC_CACHE_SLOTS_PER_MB,
                                   (time_t)memcache_timeout,
                                   &nctx->grp_mc_ctx);
         if (ret) {
@@ -330,7 +332,7 @@ static int setup_memcaches(struct nss_ctx *nctx)
         ret = sss_mmap_cache_init(nctx, "initgroups",
                                   nctx->mc_uid, nctx->mc_gid,
                                   SSS_MC_INITGROUPS,
-                                  mc_size_initgroups,
+                                  mc_size_initgroups * SSS_MC_CACHE_SLOTS_PER_MB,
                                   (time_t)memcache_timeout,
                                   &nctx->initgr_mc_ctx);
         if (ret) {

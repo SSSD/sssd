@@ -1076,7 +1076,7 @@ fallback_homedir = /home/%u
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>memcache_timeout (int)</term>
+                    <term>memcache_timeout (integer)</term>
                     <listitem>
                         <para>
                             Specifies time in seconds for which records
@@ -1104,14 +1104,13 @@ fallback_homedir = /home/%u
                     <term>memcache_size_passwd (integer)</term>
                     <listitem>
                         <para>
-                            Number of slots allocated inside fast in-memory
-                            cache for passwd requests. Note that one entry
-                            in fast in-memory cache can occupy more than one slot.
-                            Setting the size to 0 will disable the passwd in-memory
-                            cache.
+                            Size (in megabytes) of the data table allocated inside
+                            fast in-memory cache for passwd requests.
+                            Setting the size to 0 will disable the passwd
+                            in-memory cache.
                         </para>
                         <para>
-                            Default: 200000
+                            Default: 8
                         </para>
                         <para>
                             WARNING: Disabled or too small in-memory cache can
@@ -1130,14 +1129,13 @@ fallback_homedir = /home/%u
                     <term>memcache_size_group (integer)</term>
                     <listitem>
                         <para>
-                            Number of slots allocated inside fast in-memory
-                            cache for group requests. Note that one entry
-                            in fast in-memory cache can occupy more than one
-                            slot. Setting the size to 0 will disable the group
+                            Size (in megabytes) of the data table allocated inside
+                            fast in-memory cache for group requests.
+                            Setting the size to 0 will disable the group
                             in-memory cache.
                         </para>
                         <para>
-                            Default: 150000
+                            Default: 6
                         </para>
                         <para>
                             WARNING: Disabled or too small in-memory cache can
@@ -1156,14 +1154,13 @@ fallback_homedir = /home/%u
                     <term>memcache_size_initgroups (integer)</term>
                     <listitem>
                         <para>
-                            Number of slots allocated inside fast in-memory
-                            cache for initgroups requests. Note that one entry
-                            in fast in-memory cache can occupy more than one
-                            slot. Setting the size to 0 will disable the
-                            initgroups in-memory cache.
+                            Size (in megabytes) of the data table allocated inside
+                            fast in-memory cache for initgroups requests.
+                            Setting the size to 0 will disable the initgroups
+                            in-memory cache.
                         </para>
                         <para>
-                            Default: 250000
+                            Default: 10
                         </para>
                         <para>
                             WARNING: Disabled or too small in-memory cache can
